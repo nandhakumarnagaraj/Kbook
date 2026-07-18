@@ -1,20 +1,27 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import {
   BusinessDashboard,
   BusinessMarketplaceSetup,
   BusinessMenuItem,
+  BusinessCategory,
   BusinessOrder,
   BusinessStaffItem,
   BusinessTerminal,
+  CreateMenuItemRequest,
+  CreateStaffRequest,
   MarketplaceConfig,
   MarketplaceConfigRequest,
   MenuExtractionJob,
+  OrderDetailResponse,
   RecoverTerminalRequest,
   RefundOrderRequest,
   RejectTerminalRequest,
   RenameTerminalRequest,
-  TerminalRequest
+  StaffCreatedResponse,
+  TerminalRequest,
+  UpdateMenuItemRequest,
+  UpdateStaffRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
@@ -24,8 +31,11 @@ const API_BASE_URL = environment.apiBaseUrl;
 export class BusinessApiService {
   private readonly http = inject(HttpClient);
 
-  getDashboard() {
-    return this.http.get<BusinessDashboard>(`${API_BASE_URL}/business/dashboard`);
+  getDashboard(from?: string, to?: string) {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get<BusinessDashboard>(`${API_BASE_URL}/business/dashboard`, { params });
   }
 
   getMarketplaceSetup() {
@@ -46,6 +56,10 @@ export class BusinessApiService {
 
   getMenu() {
     return this.http.get<BusinessMenuItem[]>(`${API_BASE_URL}/business/menu`);
+  }
+
+  getMenuCategories() {
+    return this.http.get<BusinessCategory[]>(`${API_BASE_URL}/business/menu/categories`);
   }
 
   getStaff() {
@@ -97,6 +111,46 @@ export class BusinessApiService {
 
   getMenuJobStatus(jobId: number) {
     return this.http.get<MenuExtractionJob>(`${API_BASE_URL}/menus/jobs/${jobId}`);
+  }
+
+  // Staff CRUD
+  createStaff(payload: CreateStaffRequest) {
+    return this.http.post<StaffCreatedResponse>(`${API_BASE_URL}/business/staff`, payload);
+  }
+
+  updateStaff(userId: number, payload: UpdateStaffRequest) {
+    return this.http.put<void>(`${API_BASE_URL}/business/staff/${userId}`, payload);
+  }
+
+  deactivateStaff(userId: number) {
+    return this.http.post<void>(`${API_BASE_URL}/business/staff/${userId}/deactivate`, {});
+  }
+
+  // Menu CRUD
+  createMenuItem(payload: CreateMenuItemRequest) {
+    return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu`, payload);
+  }
+
+  updateMenuItem(menuItemId: number, payload: UpdateMenuItemRequest) {
+    return this.http.put<BusinessMenuItem>(`${API_BASE_URL}/business/menu/${menuItemId}`, payload);
+  }
+
+  deleteMenuItem(menuItemId: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/business/menu/${menuItemId}`);
+  }
+
+  toggleMenuItemAvailability(menuItemId: number) {
+    return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu/${menuItemId}/toggle-availability`, {});
+  }
+
+  // Terminal
+  reactivateTerminal(terminalId: number) {
+    return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/reactivate`, {});
+  }
+
+  // Orders
+  getOrderDetail(billId: number) {
+    return this.http.get<OrderDetailResponse>(`${API_BASE_URL}/business/orders/${billId}`);
   }
 
 }

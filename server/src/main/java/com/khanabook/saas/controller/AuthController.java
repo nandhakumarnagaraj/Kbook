@@ -6,7 +6,11 @@ import com.khanabook.saas.security.TokenRevocationCache;
 import com.khanabook.saas.service.AuthService;
 import com.khanabook.saas.service.LoginRateLimiter;
 import com.khanabook.saas.service.OtpRateLimiter;
+import com.khanabook.saas.service.WebAdminPasswordResetService;
 import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.webadmin.dto.RequestOtpRequest;
+import com.khanabook.saas.webadmin.dto.VerifyOtpRequest;
+import com.khanabook.saas.webadmin.dto.VerifyOtpResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
@@ -38,6 +42,7 @@ public class AuthController {
 	private final TokenRevocationCache tokenRevocationCache;
 	private final OtpRateLimiter otpRateLimiter;
 	private final LoginRateLimiter loginRateLimiter;
+	private final WebAdminPasswordResetService webAdminPasswordResetService;
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
@@ -129,7 +134,45 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	// ─── Web Admin Forgot Password Flow ──────────────────────────────────────────
 
+	@PostMapping("/forgot-password/request-otp")
+	public ResponseEntity<?> forgotPasswordRequestOtp(@Valid @RequestBody RequestOtpRequest request, HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!otpRateLimiter.tryConsume(request.phone())) {
+			log.warn("OTP rate limit exceeded for forgot-password phone={}*** ip={}", request.phone().substring(0, 3), ip);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		try {
+			webAdminPasswordResetService.requestOtp(request.phone());
+			return ResponseEntity.ok().build();
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.ok().build();
+		}
+	}
+
+	@PostMapping("/forgot-password/verify-otp")
+	public ResponseEntity<?> forgotPasswordVerifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+		try {
+			String tempToken = webAdminPasswordResetService.verifyOtp(request.phone(), request.otp());
+			return ResponseEntity.ok(new VerifyOtpResponse(tempToken));
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(java.util.Map.of("error", "INVALID_OTP", "message", "Invalid or expired OTP"));
+		}
+	}
+
+	@PostMapping("/forgot-password/reset-password")
+	public ResponseEntity<?> forgotPasswordResetPassword(
+			@Valid @RequestBody com.khanabook.saas.webadmin.dto.ResetPasswordRequest request) {
+		try {
+			webAdminPasswordResetService.resetPassword(request.tempToken(), request.newPassword());
+			return ResponseEntity.ok().build();
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(java.util.Map.of("error", "INVALID_TOKEN", "message", e.getMessage()));
+		}
+	}
 
 	@Data
 	@AllArgsConstructor

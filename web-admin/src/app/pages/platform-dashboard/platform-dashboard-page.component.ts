@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
@@ -9,6 +10,21 @@ import { formatCurrency } from '../../shared/formatters';
   selector: 'app-platform-dashboard-page',
   standalone: true,
   imports: [CommonModule],
+  styles: [`
+    .stat-card--clickable {
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+
+    .stat-card--clickable:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .stat-card--clickable:active {
+      transform: translateY(0);
+    }
+  `],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -22,7 +38,7 @@ import { formatCurrency } from '../../shared/formatters';
       </section>
 
       <div class="stats-grid" *ngIf="summary() as data; else loading">
-        <article class="panel stat-card">
+        <article class="panel stat-card stat-card--clickable" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
           <h3>Total Businesses</h3>
           <strong>{{ data.totalBusinesses }}</strong>
         </article>
@@ -85,6 +101,7 @@ import { formatCurrency } from '../../shared/formatters';
 })
 export class PlatformDashboardPageComponent {
   private readonly api = inject(AdminApiService);
+  private readonly router = inject(Router);
 
   readonly summary = toSignal(
     this.api.getDashboardSummary().pipe(
@@ -95,4 +112,8 @@ export class PlatformDashboardPageComponent {
       }))
     )
   );
+
+  navigateToBusinesses(): void {
+    this.router.navigate(['/admin/businesses']);
+  }
 }

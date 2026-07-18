@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { AuthSession, LoginRequest } from '../models/session.model';
 import { TokenStorageService } from './token-storage.service';
@@ -75,5 +76,17 @@ export class AuthService {
     }
 
     void this.router.navigate(['/limited-access']);
+  }
+
+  requestPasswordOtp(phone: string): Observable<void> {
+    return this.http.post<void>(`${API_BASE_URL}/auth/forgot-password/request-otp`, { phone });
+  }
+
+  verifyPasswordOtp(phone: string, otp: string): Observable<{ tempToken: string }> {
+    return this.http.post<{ tempToken: string }>(`${API_BASE_URL}/auth/forgot-password/verify-otp`, { phone, otp });
+  }
+
+  resetPassword(tempToken: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${API_BASE_URL}/auth/forgot-password/reset-password`, { tempToken, newPassword });
   }
 }

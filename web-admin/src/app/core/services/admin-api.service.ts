@@ -21,4 +21,12 @@ export class AdminApiService {
     return this.http.get<AdminBusinessDetail>(`${API_BASE_URL}/admin/businesses/${restaurantId}`);
   }
 
+  suspendBusiness(restaurantId: number) {
+    return this.http.post<void>(`${API_BASE_URL}/admin/businesses/${restaurantId}/suspend`, null);
+  }
+
+  activateBusiness(restaurantId: number) {
+    return this.http.post<void>(`${API_BASE_URL}/admin/businesses/${restaurantId}/activate`, null);
+  }
+
 }

@@ -116,6 +116,9 @@ public class SecurityConfig {
 						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/request",
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
+								"/auth/forgot-password/request-otp",
+								"/auth/forgot-password/verify-otp",
+								"/auth/forgot-password/reset-password",
 								"/public/**",
 								"/error",
 								"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")

@@ -20,6 +20,7 @@ export interface AdminBusinessListItem {
   menuCount: number;
   orderCount: number;
   updatedAt: number | null;
+  isSuspended: boolean;
 }
 
 export interface AdminBusinessDetail extends AdminBusinessListItem {
@@ -78,6 +79,7 @@ export interface BusinessDashboard {
 
 export interface BusinessMenuItem {
   menuItemId: number;
+  categoryId: number;
   categoryName: string | null;
   name: string;
   description: string | null;
@@ -87,6 +89,11 @@ export interface BusinessMenuItem {
   stockStatus: string;
   variantCount: number;
   updatedAt: number | null;
+}
+
+export interface BusinessCategory {
+  categoryId: number;
+  name: string;
 }
 
 export interface BusinessStaffItem {
@@ -187,5 +194,57 @@ export interface MenuExtractionItem {
   fullPrice?: string;
   price?: string;
   description?: string;
+}
+
+export interface CreateStaffRequest {
+  name: string;
+  phone: string;
+  role: 'OWNER' | 'SHOP_ADMIN';
+  email?: string;
+}
+
+export interface StaffCreatedResponse {
+  userId: number;
+  name: string;
+  phone: string;
+  role: string;
+  temporaryPassword: string;
+}
+
+export interface UpdateStaffRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  role: 'OWNER' | 'SHOP_ADMIN';
+}
+
+export interface CreateMenuItemRequest {
+  name: string;
+  categoryId: number;
+  foodType: 'veg' | 'non-veg';
+  basePrice: number;
+  description?: string;
+}
+
+export interface UpdateMenuItemRequest {
+  name: string;
+  categoryId: number;
+  foodType: 'veg' | 'non-veg';
+  basePrice: number;
+  description?: string;
+}
+
+export interface OrderDetailResponse {
+  order: BusinessOrder;
+  lineItems: OrderLineItem[];
+}
+
+export interface OrderLineItem {
+  id: number;
+  itemName: string;
+  variantName?: string;
+  quantity: number;
+  price: number;
+  itemTotal: number;
 }
 

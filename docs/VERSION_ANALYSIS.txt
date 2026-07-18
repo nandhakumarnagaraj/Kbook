@@ -1,0 +1,400 @@
+================================================================================
+                    KHANABOOK — VERSION ANALYSIS REPORT
+                    Generated: 2026-07-17
+================================================================================
+
+Repository: github.com/nandhakumarnagaraj/Kbook
+Branches on GitHub: main, v2
+Developer: nandhakumarnagaraj (489 commits on main, 600 on v2)
+Project Start: 2026-03-30
+Latest Activity: 2026-07-17 (main), 2026-06-20 (v2)
+
+================================================================================
+SECTION 1: VERSION 1 (main branch) — PRODUCTION
+================================================================================
+
+Status: LIVE on kbook.iadv.cloud
+Commits: 489 total (130 unique to main, not in v2)
+Package: com.piquantservices.khanabooklite.debug
+Latest Version: 1.0.11 (versionCode 20)
+
+────────────────────────────────────────────────────────────────────────────────
+1.1 CORE BILLING & POS
+────────────────────────────────────────────────────────────────────────────────
+• GST-compliant billing (CGST + SGST breakdown)
+• Multi-step bill creation: Menu → Cart → Payment → Receipt
+• Payment modes: Cash, Manual UPI (offline QR), POS terminal
+• Pay-before-food and pay-after-food workflows
+• Order types: Dine-In, Takeaway
+• Order cancellation with mandatory reason field
+• Bill item notes/special instructions
+• Variant support (size, add-ons)
+• Configurable order payment flow
+
+────────────────────────────────────────────────────────────────────────────────
+1.2 MULTI-TERMINAL SYSTEM (5-device limit)
+────────────────────────────────────────────────────────────────────────────────
+• Server-enforced 5 active terminal cap per restaurant (pessimistic lock)
+• Terminal-scoped bill ownership and visibility isolation
+• Atomic daily invoice counter per terminal (no collisions)
+• Terminal reclaim on app reinstall (idle time check)
+• X-Terminal-Token header for backend authorization
+• SHOP_ADMIN role for terminal approval/management
+• Device registration request flow (PENDING → APPROVED)
+• Room database migrations v44–v60 for terminal identity
+
+────────────────────────────────────────────────────────────────────────────────
+1.3 OFFLINE-FIRST SYNC ENGINE
+────────────────────────────────────────────────────────────────────────────────
+• WorkManager-based background sync
+• Last-Write-Wins (LWW) conflict resolution across devices
+• Relational sync: bills, payments, items, categories, users, profiles
+• Push: local → server with localToServerIdMap response
+• Pull: server → local with cursor-based pagination
+• Cross-tenant isolation (restaurantId scoping on all queries)
+• Infinite 409 loop breaker (invoice-series unique violations)
+• FK constraint handling during relational sync
+• Soft logout preserves unsynced data
+• Immediate sync trigger on bill creation
+• Bill children included in pulled history
+
+────────────────────────────────────────────────────────────────────────────────
+1.4 PRINTING & RECEIPTS
+────────────────────────────────────────────────────────────────────────────────
+• Bluetooth thermal printer (80mm aligned)
+• Multi-printer routing (receipt + kitchen)
+• Kitchen KOT (delta printing via sentToKot flag)
+• KDS pending queue + reprint screen
+• PDF invoice generation (SGST display, no clipping)
+• Offline logo caching for print
+• Background PrintService for non-blocking prints
+
+────────────────────────────────────────────────────────────────────────────────
+1.5 REPORTS & EXPORTS
+────────────────────────────────────────────────────────────────────────────────
+• Daily/weekly/monthly reports at order level
+• PDF export with styled table headers
+• Excel export
+• WhatsApp invoice sharing (PDF + deep link)
+• SMS invoice sharing
+• Report download (no freeze bug)
+
+────────────────────────────────────────────────────────────────────────────────
+1.6 SECURITY (Hardened)
+────────────────────────────────────────────────────────────────────────────────
+• JWT authentication (30-day expiry)
+• PIN/Biometric app lock (GPay-style 30s grace period)
+• SSL certificate pinning (LE ECDSA chain)
+• Rate limiting: login, OTP, general API
+• Device binding
+• Admin IP allowlist
+• Swagger/OpenAPI disabled in production (KB-008)
+• Security audit fixes:
+  - KB-001: Prevent role escalation via user sync push
+  - KB-002: Harden payment deep link against spoofing
+  - KB-005: Prevent 'INVnull' display for legacy bills
+  - KB-006: Audit trail for manual refund actions
+  - KB-007: Prevent UPI draft bill accumulation across sessions
+  - KB-009: Preserve recordOrigin for own-terminal drafts
+• Error message sanitization (no stack traces to users)
+• Destructive sign-out protected with app PIN
+
+────────────────────────────────────────────────────────────────────────────────
+1.7 WEB ADMIN (Angular 18)
+────────────────────────────────────────────────────────────────────────────────
+• Role-based access: KBOOK_ADMIN, OWNER, SHOP_ADMIN
+• Device/terminal management page
+• OCR menu upload + AI extraction preview
+• Marketplace config endpoints (OWNER-only)
+• Limited-access page for unauthorized roles
+• Deployed as static files via deploy-web.sh
+
+────────────────────────────────────────────────────────────────────────────────
+1.8 INFRASTRUCTURE & DEPLOYMENT
+────────────────────────────────────────────────────────────────────────────────
+• Docker Compose production stack (postgres + server)
+• Apache reverse proxy (/api/v1/ → 127.0.0.1:8081)
+• Flyway schema migrations (versioned)
+• Automated deploy scripts:
+  - deploy-production.sh (backend: build image + docker up)
+  - deploy-web.sh (frontend: npm ci + ng build + rsync)
+• PostgreSQL backup/restore scripts
+• GitHub Actions CI (ci.yml + gated-tests.yml)
+• Actuator health endpoint with git info
+
+────────────────────────────────────────────────────────────────────────────────
+1.9 ANDROID COMPATIBILITY
+────────────────────────────────────────────────────────────────────────────────
+• Min SDK 26 (Android 8), Target SDK 35 (Android 15)
+• Android 11–16 compatibility fixes
+• Edge-to-edge display support
+• Tablet UI (responsive grid, fontScale handling)
+• Modern image picker (Android 13+ PickVisualMedia)
+• ProGuard rules for Google Sign-In
+
+────────────────────────────────────────────────────────────────────────────────
+1.10 AUTHENTICATION
+────────────────────────────────────────────────────────────────────────────────
+• Phone + OTP signup (WhatsApp OTP delivery)
+• Google Sign-In (OAuth2 credential manager)
+• Forgot password flow with step indicator
+• Multi-tenant isolation (shared device, different restaurants)
+• Atomic database switch on login
+
+================================================================================
+SECTION 2: VERSION 2 (v2 branch) — DEVELOPMENT COMPLETE, UNMERGED
+================================================================================
+
+Status: Development complete, NOT deployed to production
+Commits: 600 total (241 unique to v2, not in main)
+Last Activity: 2026-06-20
+Divergence from main: 785 files changed, +83,384 / -62,367 lines
+
+────────────────────────────────────────────────────────────────────────────────
+2.1 EASEBUZZ PAYMENT GATEWAY (Full Integration)
+────────────────────────────────────────────────────────────────────────────────
+• Sub-merchant onboarding (KYC document upload, CPV compliance)
+• In-app Easebuzz checkout via WebView dialog
+• UPI handoff from in-app to external UPI apps
+• Real-time payment status (webhook-verified)
+• Split payments: post-transaction commission model
+• Async commission calculation service
+• Payout tracking per sub-merchant
+• Refund flows: manual + gateway (Easebuzz-initiated)
+• Cap refunds to gateway paid amount
+• HMAC webhook authentication
+• Sandbox testing infrastructure + test scripts
+• Fallback to parent merchant when sub-merchant not ACTIVE
+• Sub-merchant resubmit for FAILED status
+• Android SDK integration with billing flow state preservation
+
+────────────────────────────────────────────────────────────────────────────────
+2.2 WIRE PLATFORM INTEGRATION
+────────────────────────────────────────────────────────────────────────────────
+• WIRE platform API client
+• Web admin UI for WIRE lookup
+• Row-level WIRE lookup button per sub-merchant
+• Auto-match local sub-merchant from WIRE by email/subMerchantId
+• Inline lookup results in detail panel
+• Sandbox tests (testwire.easebuzz.in)
+
+────────────────────────────────────────────────────────────────────────────────
+2.3 MARKETPLACE INTEGRATION (Swiggy/Zomato)
+────────────────────────────────────────────────────────────────────────────────
+• Owner config for Swiggy/Zomato API keys
+• Marketplace order management (completed state + filters)
+• Marketplace Setup page (stepper + onboarding + glassmorphism)
+• Auto-enable marketplace on sync when API keys configured
+• Retroactive auto-enable for existing merchants
+• Menu item unavailable marking + extraction-based update
+• GST/FSSAI lookup APIs for marketplace compliance
+
+────────────────────────────────────────────────────────────────────────────────
+2.4 FSSAI & COMPLIANCE TRACKING
+────────────────────────────────────────────────────────────────────────────────
+• Dedicated fssai_tracker table (license status, expiry, alert history)
+• FSSAI license renewal push notifications
+• Action buttons: Pay Now / Remind Me
+• FSSAI renewal payment screen + navigation route
+• Backend schema, endpoints, webhooks, and tests
+• Smart FSSAI & GST Expiry Alerts (server + web-admin + Android)
+• Send FSSAI + legal entity name + real address for CPV compliance
+
+────────────────────────────────────────────────────────────────────────────────
+2.5 PUSH NOTIFICATIONS (FCM — Full System)
+────────────────────────────────────────────────────────────────────────────────
+• Server-side FCM sender with Firebase Admin SDK
+• Android FCM service + notification channels/groups
+• Event-driven notifications:
+  - Login welcome
+  - New orders
+  - Payment confirmations
+  - Order cancellations
+  - KYC status updates
+  - Payout completions
+• Customizable notification templates (welcome + FSSAI)
+• Deep links from notifications to specific screens
+• Admin notification controller (custom push)
+• Background reliability: BootReceiver + OEM auto-start config
+• LinkedIn-style in-app + outside-app notifications
+• OAuth2 refresh token fallback for Firebase (org policy workaround)
+• Force FCM token registration on app startup
+
+────────────────────────────────────────────────────────────────────────────────
+2.6 UI/UX OVERHAUL — GROUNDED EARTH & SAFFRON DESIGN
+────────────────────────────────────────────────────────────────────────────────
+• Complete theme token migration (MaterialTheme.kb* tokens)
+• Grounded Earth & Saffron dark mode design system
+• Light + Dark mode support (theme toggle)
+• Premium 11-shade saffron palette + warm neutral scale
+• Android screens fully theme-aware
+• Design tokens replace all hardcoded colors
+• Glassmorphic KhanaBookBackButton
+• KbMotion animation system
+• Compact profile/settings/config views
+• Button touch targets upgraded to 48dp (accessibility)
+• Redesigned screens:
+  - Login: premium midnight purple → saffron
+  - Signup: premium Create Account mockup
+  - Forgot Password: full-screen overlay
+  - Settings/Profile: Stitch mockup match
+  - Home Dashboard: premium depth and contrast
+  - Display settings: redesign + category drill-down
+• Edge-to-edge transparent status bars
+• Radial glow splash screen
+• Logo: new cloche-receipt branding across Android + web
+
+────────────────────────────────────────────────────────────────────────────────
+2.7 WEB ADMIN v2 (Premium Glassmorphic Dashboards)
+────────────────────────────────────────────────────────────────────────────────
+• Rebuilt login page with premium design
+• Platform Overview dashboard
+• Business Directory (table + View/Edit/Suspend modals)
+• Payment Dashboard (sub-merchant status + header)
+• Commission reports
+• Marketplace Setup (stepper + onboarding + clipboard)
+• KYC management with vertical timeline
+• Sub-merchant details modal dialog
+• Weekly Revenue Trend (interactive bar chart)
+• Recent Transactions (2-column grid, last 10 orders)
+• Theme toggle (dark/light)
+• Accessibility overhaul + route animations + shared components
+• SCSS migration (from plain CSS)
+• Responsive stat-card grid (minmax + truncation)
+
+────────────────────────────────────────────────────────────────────────────────
+2.8 SERVER ADDITIONS
+────────────────────────────────────────────────────────────────────────────────
+• Easebuzz sub-merchant APIs + split service
+• Notification controller + FCM sender
+• FSSAI tracker table + endpoints
+• KYC document upload endpoints
+• Marketplace order management endpoints
+• Change-password backend endpoint
+• Email notification system
+• MDC log tracing for async executors
+• Typed exceptions + HMAC webhook auth
+• Post-split idempotency
+• v2 runs on port 8082 (separate from v1's 8081)
+• Thymeleaf invoice template (extracted from StringBuilder)
+• OAuth2 refresh token fallback for Firebase
+
+────────────────────────────────────────────────────────────────────────────────
+2.9 ANDROID ADDITIONS
+────────────────────────────────────────────────────────────────────────────────
+• Easebuzz SDK integration (WebView checkout)
+• FCM service + notification UI
+• BootReceiver for worker restart on device boot
+• KYC document upload from device
+• FSSAI renewal payment screen
+• Zomato/Swiggy owner config screen
+• Display settings redesign
+• Category drill-down menu configuration
+• Change-password flow
+• Notification channel groups (orders, payments, system, promos)
+• OEM auto-start configuration
+
+================================================================================
+SECTION 3: COMPARISON MATRIX
+================================================================================
+
+Feature Area                  | v1 (main)        | v2 (branch)
+─────────────────────────────────────────────────────────────────────────────────
+Billing                       | Cash + Manual UPI | + Easebuzz gateway
+Payment Gateway               | None             | Easebuzz (full lifecycle)
+Split Payments / Commission   | None             | Post-transaction splits
+Marketplace (Swiggy/Zomato)   | Config endpoints | Full order management
+Push Notifications            | None             | FCM (event-driven, templates)
+FSSAI Compliance              | None             | Tracking + alerts + renewal
+KYC Documents                 | None             | Upload + CPV enforcement
+UI Theme                      | Dark-only        | Light + Dark (token system)
+Design System                 | KhanaBook tokens | Grounded Earth & Saffron
+Web Admin                     | Basic (devices)  | Premium dashboards + reports
+Invoice Template              | StringBuilder    | Thymeleaf (styled HTML)
+Server Port                   | 8081             | 8082
+Multi-Terminal                | Yes (5 devices)  | Inherits from shared base
+Security Hardening            | KB-001 to KB-009 | Not applied (diverged before)
+Terminal Management           | Yes (SHOP_ADMIN) | Not present (diverged before)
+OCR Menu Upload               | Yes              | Not present (diverged before)
+
+================================================================================
+SECTION 4: DIVERGENCE ANALYSIS
+================================================================================
+
+The branches diverged after the shared base (v1 core). After divergence:
+
+• main gained: 130 commits focused on:
+  - Multi-terminal enforcement (5-device cap)
+  - Security audit (KB-001 through KB-009)
+  - SHOP_ADMIN role + terminal management
+  - Web-admin device management + OCR
+  - Deploy automation
+  - Sync hardening (409 loops, FK violations)
+
+• v2 gained: 241 commits focused on:
+  - Easebuzz payment gateway (full lifecycle)
+  - Push notifications (FCM system)
+  - FSSAI/compliance tracking
+  - Marketplace integration
+  - Complete UI/UX redesign (light+dark theme)
+  - Web-admin premium dashboards
+
+• Files changed between branches: 785
+• Lines diff: +83,384 / -62,367 (heavy rewrite in v2)
+
+MERGE CONFLICT RISK: HIGH
+- Both branches modified: Color.kt, theme files, screen layouts, server configs
+- v2 did a complete UI token migration that conflicts with v1's dark-only system
+- Server SecurityConfig differs (v2 has different path patterns)
+- Database migrations may conflict (different Flyway version numbers)
+
+================================================================================
+SECTION 5: RISKS & RECOMMENDATIONS
+================================================================================
+
+5.1 RISKS IF MERGING v2 INTO main:
+────────────────────────────────────
+• v2 lacks multi-terminal security (KB-001 to KB-009 fixes)
+• v2 lacks terminal management (SHOP_ADMIN, 5-device cap)
+• v2 lacks OCR menu upload
+• v2 UI overwrites v1's dark-only theme (breaks existing user expectation)
+• Flyway migration numbering likely conflicts
+• Server port difference (8081 vs 8082) needs reconciliation
+• SCSS vs plain CSS in web-admin (different build pipeline)
+
+5.2 RECOMMENDATIONS:
+────────────────────
+1. DO NOT merge v2 wholesale into main — too much divergence.
+2. Cherry-pick v2 features into main one at a time:
+   Priority 1: Push notifications (FCM) — high user value, low conflict
+   Priority 2: FSSAI compliance tracking — standalone feature
+   Priority 3: Easebuzz gateway — complex but high revenue impact
+   Priority 4: UI redesign — highest conflict risk, do last
+3. Apply main's security fixes (KB-001 to KB-009) to v2 if deploying v2 standalone.
+4. Tag main as v1.1.0 before starting any merge work.
+5. Create a fresh integration branch for cherry-picks (e.g., develop/v2-merge).
+
+================================================================================
+SECTION 6: TECH DEBT IDENTIFIED
+================================================================================
+
+Both branches:
+• No automated linting (no ESLint, ktlint, Prettier)
+• No end-to-end test suite
+• No staging environment (dev → prod direct)
+• Manual deployment (no CI/CD auto-deploy)
+
+main specifically:
+• Stock log sync was removed then re-added then removed again (dead code risk)
+• Multiple merge commits without squash (noisy history)
+• Some commit messages are single words ("error", "Cleanup", "Update")
+
+v2 specifically:
+• Debug endpoints left in code (dev-debug signup)
+• SCSS migration incomplete (some plain CSS remains)
+• Hardcoded dashboard percentages were removed but may have left UI gaps
+• Several "fix the fix" commit chains (indicates insufficient testing)
+
+================================================================================
+END OF REPORT
+================================================================================

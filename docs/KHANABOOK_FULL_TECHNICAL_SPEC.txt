@@ -1,0 +1,1188 @@
+================================================================================
+              KHANABOOK — FULL TECHNICAL SPECIFICATION
+              Logic, Workflows, Dependencies & Architecture
+              Generated: 2026-07-17
+================================================================================
+
+REPO: github.com/nandhakumarnagaraj/Kbook
+BRANCHES: main (production), v2 (development — unmerged)
+
+================================================================================
+SECTION 1: PROJECT ARCHITECTURE OVERVIEW
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SYSTEM ARCHITECTURE                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────┐     ┌──────────────────┐     ┌───────────────────┐       │
+│  │ Android POS  │────▶│  Spring Boot API  │◀────│  Angular Web Admin │       │
+│  │ (Kotlin)     │     │  (Java 17)        │     │  (TypeScript)      │       │
+│  └──────────────┘     └──────────────────┘     └───────────────────┘       │
+│        │                       │                                             │
+│        ▼                       ▼                                             │
+│  ┌──────────────┐     ┌──────────────────┐                                  │
+│  │ Room + SQLCi │     │   PostgreSQL      │                                  │
+│  │ (local DB)   │     │   (remote DB)     │                                  │
+│  └──────────────┘     └──────────────────┘                                  │
+│                                                                              │
+│  Communication: REST API over HTTPS (kbook.iadv.cloud/api/v1/)              │
+│  Sync: Cursor-based push/pull with LWW conflict resolution                  │
+│  Auth: JWT Bearer tokens (30-day expiry)                                     │
+│  Infra: Docker Compose + Apache reverse proxy                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Package Structure:
+  Android: com.khanabook.lite.pos (data/domain/ui/worker/di)
+  Server:  com.khanabook.saas (controller/service/entity/repository/sync/config)
+  Web:     khanabook-web-admin (core/pages/layout/shared)
+
+================================================================================
+SECTION 2: VERSION 1 (main) — DEPENDENCIES
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+2.1 ANDROID DEPENDENCIES (Kotlin 2.0.21, AGP 8.7.3)
+────────────────────────────────────────────────────────────────────────────────
+
+CATEGORY: UI Framework
+  androidx.compose.bom                2024.12.01   Jetpack Compose Bill of Materials
+  androidx.compose.material3          (BOM)        Material 3 components
+  androidx.compose.material-icons     (BOM)        Extended Material icons
+  androidx.compose.material3-window   (BOM)        Window size class (responsive)
+  androidx.compose.material3-adaptive (BOM)        Adaptive navigation suite
+  androidx.compose.ui-text-google     (BOM)        Google Fonts (Poppins)
+  androidx.activity-compose           1.9.3        Compose activity integration
+  com.google.android.material         1.12.0       Material Design components
+  androidx.core:core-splashscreen     1.0.1        Splash screen API
+  com.airbnb.android:lottie-compose   6.4.0        Lottie animations (loading)
+  io.coil-kt:coil-compose             2.6.0        Image loading (logos, assets)
+
+CATEGORY: Architecture
+  androidx.lifecycle-runtime-ktx      2.8.7        Lifecycle-aware coroutines
+  androidx.lifecycle-viewmodel-ktx    2.8.7        ViewModel + coroutines
+  androidx.lifecycle-viewmodel-compose 2.8.7       ViewModel in Compose
+  androidx.navigation-compose         2.8.5        Navigation with Compose
+  com.google.dagger:hilt-android      2.51.1       Dependency injection
+  androidx.hilt:hilt-navigation       1.2.0        Hilt + Navigation integration
+
+CATEGORY: Local Database
+  androidx.room:room-runtime          2.6.1        Room ORM
+  androidx.room:room-ktx              2.6.1        Room coroutines extensions
+  net.zetetic:sqlcipher-android       4.6.1        AES-256 database encryption
+  androidx.sqlite:sqlite-ktx          2.4.0        SQLite KTX extensions
+
+CATEGORY: Networking
+  com.squareup.retrofit2:retrofit     2.11.0       HTTP client
+  com.squareup.retrofit2:converter    2.11.0       JSON (Gson) converter
+  com.squareup.okhttp3:logging        4.12.0       Network request logging
+
+CATEGORY: Background Processing
+  androidx.work:work-runtime-ktx      2.9.0        WorkManager (sync jobs)
+  androidx.hilt:hilt-work             1.2.0        Hilt + WorkManager DI
+
+CATEGORY: Security
+  org.mindrot:jbcrypt                 0.4          Password hashing (PIN)
+  androidx.security:security-crypto   1.1.0        EncryptedSharedPreferences
+  androidx.biometric:biometric        1.1.0        Fingerprint/face unlock
+
+CATEGORY: Authentication
+  com.google.android.gms:play-auth   21.2.0       Google Sign-In (legacy)
+  androidx.credentials:credentials    1.3.0        Credential Manager (modern)
+  com.google.android.libraries:googleid 1.1.1      Google ID token
+
+CATEGORY: Camera & OCR
+  androidx.camera:camera-*            1.4.1        CameraX (core/camera2/lifecycle/view)
+  com.google.android.gms:mlkit-text   19.0.1       ML Kit text recognition (OCR)
+
+CATEGORY: Utilities
+  com.journeyapps:zxing-android       4.3.0        QR code generation (UPI)
+  com.tom-roush:pdfbox-android        2.0.27.0     PDF generation (invoices)
+  androidx.browser:browser            1.8.0        Chrome Custom Tabs
+
+CATEGORY: Testing
+  junit:junit                         4.13.2       Unit testing
+  io.mockk:mockk                      1.13.10      Kotlin mocking
+  org.mockito:mockito-core            5.11.0       Java mocking
+  kotlinx-coroutines-test             1.8.0        Coroutine testing
+  com.squareup.okhttp3:mockwebserver  4.12.0       HTTP mocking
+  com.google.dagger:hilt-android-test 2.50         Hilt testing
+  androidx.test.uiautomator           2.2.0        UI automation tests
+
+────────────────────────────────────────────────────────────────────────────────
+2.2 SERVER DEPENDENCIES (Java 17, Spring Boot 3.5.12, Maven)
+────────────────────────────────────────────────────────────────────────────────
+
+CATEGORY: Spring Boot Starters
+  spring-boot-starter-web             3.5.12       REST API framework
+  spring-boot-starter-data-jpa        3.5.12       JPA/Hibernate ORM
+  spring-boot-starter-security        3.5.12       Spring Security (JWT filter)
+  spring-boot-starter-validation      3.5.12       Bean validation (@Valid)
+  spring-boot-starter-actuator        3.5.12       Health/info endpoints
+  spring-boot-devtools                3.5.12       Hot reload (dev only)
+
+CATEGORY: Database
+  org.postgresql:postgresql           (managed)    PostgreSQL JDBC driver
+  org.flywaydb:flyway-core            (managed)    Schema migration
+  org.flywaydb:flyway-database-pg     (managed)    Flyway PostgreSQL support
+  com.h2database:h2                   (managed)    In-memory test DB
+
+CATEGORY: Security & Auth
+  io.jsonwebtoken:jjwt-api            0.11.5       JWT creation/validation
+  io.jsonwebtoken:jjwt-impl           0.11.5       JWT implementation
+  io.jsonwebtoken:jjwt-jackson        0.11.5       JWT JSON serialization
+  com.google.api-client               2.2.0        Google ID token verification
+
+CATEGORY: Rate Limiting
+  com.bucket4j:bucket4j-core          8.7.0        Token-bucket rate limiter
+
+CATEGORY: Monitoring
+  io.micrometer:micrometer-prometheus (managed)    Prometheus metrics export
+
+CATEGORY: API Documentation
+  org.springdoc:springdoc-openapi     2.8.5        Swagger/OpenAPI UI
+
+CATEGORY: PDF Processing
+  technology.tabula:tabula            1.0.5        PDF table extraction (OCR)
+
+CATEGORY: Utilities
+  org.projectlombok:lombok            (managed)    Boilerplate reduction
+  com.fasterxml.jackson:hibernate6    (managed)    JSON + Hibernate lazy fix
+
+CATEGORY: Build Plugins
+  io.github.git-commit-id             9.0.1        Git info in /actuator/info
+  spring-boot-maven-plugin            3.5.12       Fat JAR packaging
+
+CATEGORY: Testing
+  spring-boot-starter-test            3.5.12       JUnit 5 + Mockito + Spring Test
+  org.testcontainers:postgresql       (managed)    Docker PostgreSQL for tests
+  org.testcontainers:junit-jupiter    (managed)    Testcontainers JUnit 5
+
+────────────────────────────────────────────────────────────────────────────────
+2.3 WEB ADMIN DEPENDENCIES (Angular 18.2, TypeScript 5.5)
+────────────────────────────────────────────────────────────────────────────────
+
+CATEGORY: Framework
+  @angular/core                       ^18.2.0      Angular framework core
+  @angular/common                     ^18.2.0      Common utilities/pipes
+  @angular/compiler                   ^18.2.0      Template compiler
+  @angular/forms                      ^18.2.0      Reactive & template forms
+  @angular/router                     ^18.2.0      Client-side routing
+  @angular/animations                 ^18.2.0      Animation system
+  @angular/platform-browser           ^18.2.0      Browser platform
+
+CATEGORY: Reactive
+  rxjs                                ^7.8.1       Reactive extensions (Observables)
+  zone.js                             ^0.14.10     Angular change detection
+
+CATEGORY: Utilities
+  tslib                               ^2.8.1       TypeScript runtime helpers
+  symbol-observable                   ^1.2.0       Observable symbol polyfill
+
+CATEGORY: Dev/Build
+  @angular-devkit/build-angular       ^18.2.0      Angular build system (Webpack)
+  @angular/cli                        ^18.2.0      CLI tooling
+  @angular/compiler-cli               ^18.2.0      AOT compiler
+  typescript                          ^5.5.4       TypeScript compiler
+
+CATEGORY: Testing
+  jasmine-core                        ^5.3.0       Test framework
+  karma                               ^6.4.4       Test runner
+  karma-chrome-launcher               ^3.2.0       Chrome for tests
+  karma-coverage                      ^2.2.1       Code coverage
+  karma-jasmine                       ^5.1.0       Karma-Jasmine adapter
+  karma-jasmine-html-reporter         ^2.1.0       HTML test reports
+
+NOTE: v1 web-admin uses NO UI component library (no Material, no Tailwind).
+      All components are hand-rolled with plain CSS custom properties.
+
+================================================================================
+SECTION 3: VERSION 1 (main) — LOGIC & WORKFLOWS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+3.1 AUTHENTICATION WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+SIGNUP FLOW:
+  User → Phone + Password + OTP (WhatsApp delivery)
+  1. Android sends signup request to /auth/signup
+  2. Server validates OTP via PasswordResetOtpService
+  3. Server creates User + RestaurantProfile (sets lastResetDate)
+  4. Server returns JWT token (30-day expiry)
+  5. Android stores token in EncryptedSharedPreferences
+  6. Triggers InitialSync → pulls server data to Room
+
+GOOGLE SIGN-IN FLOW:
+  1. Android uses Credential Manager → gets Google ID token
+  2. Sends token to /auth/google
+  3. Server verifies with Google API Client (google-api-client 2.2.0)
+  4. Creates/updates User, returns JWT
+  5. Android proceeds to InitialSync
+
+LOGIN FLOW:
+  1. Phone + Password → /auth/login
+  2. Server validates credentials (bcrypt hashed)
+  3. Returns JWT + user role
+  4. Android: atomic database switch (different restaurant = fresh DB)
+  5. SessionManager stores session, triggers sync
+
+APP LOCK:
+  Manager: SessionManager.kt
+  - PIN stored: EncryptedSharedPreferences (AES-256)
+  - Biometric: BiometricPrompt + KeyStore
+  - Grace period: 30 seconds (GPay-style)
+  - Trigger: app goes to background → lock on resume
+  - Fallback: PIN always available if biometric fails
+
+TOKEN LIFECYCLE:
+  - 30-day expiry (server-side JwtService)
+  - Token blocklist (TokenBlocklist entity + cleanup scheduler)
+  - 401 response → redirect to LoginScreen
+  - No refresh token (re-login required on expiry)
+
+────────────────────────────────────────────────────────────────────────────────
+3.2 BILLING WORKFLOW (Core Business Logic)
+────────────────────────────────────────────────────────────────────────────────
+
+BILL CREATION (NewBillScreen → Multi-step):
+  Step 1: Menu Selection
+    - LazyVerticalGrid shows menu items (responsive columns)
+    - Tap item → add to cart (BillItemEntity)
+    - Variant selection dialog if item has variants
+    - Search/filter by category
+    - Split-view on tablets (menu left, cart right)
+
+  Step 2: Cart Review
+    - Quantity +/- adjustment
+    - Special instructions per item (specialInstruction field)
+    - Cart total with GST calculation (BillCalculator.kt)
+
+  Step 3: Payment
+    - PaymentModeManager determines available modes
+    - Modes: Cash, Manual UPI (QR), POS Terminal
+    - Cash: enter received amount → calculate change
+    - UPI: display QR (ZXing generation), mark paid manually
+    - Split payment: divide across modes
+
+  Step 4: Settlement
+    - BillEntity status: DRAFT → COMPLETED
+    - OrderIdManager generates: daily order number + lifetime order
+    - TerminalDailyCounterEntity: atomic per-terminal invoice numbering
+    - Invoice series format: T{terminalId}-{dailyCount}/{date}
+    - Triggers immediate sync push to server
+    - Print receipt (BluetoothPrinterManager)
+    - Print KOT to kitchen (KitchenPrintQueueManager)
+
+DATA MODEL (Room entities):
+  BillEntity:
+    - id, localId, serverId, restaurantId, terminalId
+    - orderNumber, lifetimeOrderId, invoiceNumber
+    - status (DRAFT/COMPLETED/CANCELLED/PAID)
+    - orderType (DINE_IN/TAKEAWAY)
+    - totalAmount, taxAmount, discountAmount
+    - paymentMode, paidAmount, changeAmount
+    - createdAt, updatedAt, syncedAt
+    - isDeleted, recordOrigin, ownerTerminalId
+
+  BillItemEntity:
+    - billId → BillEntity (FK)
+    - menuItemId, variantId
+    - quantity, unitPrice, totalPrice
+    - specialInstruction, sentToKot (boolean)
+
+  BillPaymentEntity:
+    - billId → BillEntity (FK)
+    - mode (CASH/UPI/POS), amount
+    - transactionReference
+
+GST CALCULATION (BillCalculator.kt):
+  - Subtotal = sum(item.quantity * item.unitPrice)
+  - Tax = subtotal * taxRate (configurable per restaurant)
+  - CGST = tax / 2, SGST = tax / 2
+  - Total = subtotal + tax - discount
+
+────────────────────────────────────────────────────────────────────────────────
+3.3 SYNC ENGINE WORKFLOW (Offline-First)
+────────────────────────────────────────────────────────────────────────────────
+
+COMPONENTS:
+  Android: MasterSyncWorker.kt (WorkManager) → MasterSyncProcessor.kt
+  Server:  MasterSyncController.java → GenericSyncService (sync/)
+
+SYNC TRIGGER POINTS:
+  1. Periodic: WorkManager enqueues every 15 minutes
+  2. Immediate: on bill creation, payment, or manual trigger
+  3. App startup: after login/InitialSync
+  4. Network recovery: connectivity change listener
+
+PUSH FLOW (Local → Server):
+  1. MasterSyncProcessor queries Room for unsynced records
+     (syncedAt == null OR updatedAt > syncedAt)
+  2. Groups by entity type: Bills, BillItems, Payments, Menu, Users, etc.
+  3. POST /sync/push/{entity} with batch payload + X-Terminal-Token header
+  4. Server validates tenant isolation (restaurantId matches JWT)
+  5. Server deduplicates (checks existing serverId)
+  6. Server returns: { successfulLocalIds: [], localToServerIdMap: {} }
+  7. Android updates local records with serverId + syncedAt timestamp
+  8. Conflict: 409 → LWW (Last-Write-Wins based on updatedAt)
+
+PULL FLOW (Server → Local):
+  1. GET /sync/pull/{entity}?cursor={lastSyncTimestamp}&limit=100
+  2. Server returns records updated after cursor, scoped to restaurant
+  3. Android inserts/updates Room records
+  4. If hasMore=true, continue pulling (pagination)
+  5. Update sync cursor for next pull
+  6. Post-pull reconciliation: resolve FK relationships
+
+CONFLICT RESOLUTION:
+  - Strategy: Last-Write-Wins (LWW) by updatedAt timestamp
+  - Terminal isolation: ownerTerminalId prevents cross-terminal edits
+  - Invoice series: unique constraint → 409 → increment and retry
+  - Quarantine: unresolvable conflicts → SyncQuarantineEntity
+
+MULTI-TENANT ISOLATION:
+  - Every query scoped by restaurantId (WHERE restaurantId = ?)
+  - Atomic DB switch on login to different restaurant
+  - Server: tenant extracted from JWT, enforced on all operations
+  - Cross-tenant push blocked with 403
+
+────────────────────────────────────────────────────────────────────────────────
+3.4 MULTI-TERMINAL MANAGEMENT WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+DEVICE REGISTRATION:
+  1. App installed on new device → generates unique deviceId
+  2. POST /terminal/activate with deviceId + restaurantId
+  3. Server checks: MAX_ACTIVE_TERMINALS = 5 (pessimistic lock on profile)
+  4. If < 5: creates DeviceRegistrationRequest (status: PENDING)
+  5. SHOP_ADMIN approves via web-admin or TerminalManagementController
+  6. On approval: creates RestaurantTerminal, returns terminalId + token
+  7. Android stores X-Terminal-Token for all subsequent requests
+
+TERMINAL RECLAIM (reinstall):
+  1. Same deviceId re-activates → /terminal/activate
+  2. Server: findMostRecentByRestaurantIdAndDeviceId
+  3. If APPROVED request exists → return existing terminalId+token directly
+  4. No infinite PENDING loop (fixed: return APPROVED immediately)
+
+BILL ISOLATION:
+  - Bills tagged with ownerTerminalId on creation
+  - Visibility: each terminal sees only its own bills in draft/active
+  - Completed bills visible to all terminals (for reports)
+  - Server enforces: X-Terminal-Token must match ownerTerminalId
+
+INVOICE NUMBERING:
+  - TerminalDailyCounterEntity: { terminalId, date, counter }
+  - Atomic increment per terminal per day (no collisions)
+  - Format: T{id}-{counter}/{DDMMYYYY}
+  - Seeded from existing bills on migration/APK update
+
+ROLES:
+  - OWNER: full access, manages restaurant
+  - SHOP_ADMIN: approves terminals, manages staff terminals
+  - USER: standard POS operator on assigned terminal
+
+────────────────────────────────────────────────────────────────────────────────
+3.5 PRINTING WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+PRINTER ARCHITECTURE:
+  BluetoothPrinterManager → PrintRouter → PrintService (background)
+  Kitchen: KitchenPrintQueueManager → KitchenTicketFormatter
+
+RECEIPT PRINTING:
+  1. Bill settled → PrintRouter routes to receipt printer (by MAC address)
+  2. PrintService formats ESC/POS commands (80mm width)
+  3. Bluetooth SPP connection → send byte stream
+  4. Includes: shop name, logo (cached bitmap), items, GST, QR code
+  5. Retry on failure (background service, non-blocking)
+
+KOT (Kitchen Order Ticket):
+  1. New items added → check sentToKot flag per BillItem
+  2. Only unsent items printed (delta printing)
+  3. KitchenTicketFormatter: item name, qty, special instructions
+  4. Routed to kitchen printer (separate MAC)
+  5. KitchenPrintQueueEntity tracks pending prints
+  6. ReprintKdsScreen: view/reprint pending KOTs
+
+PDF INVOICE:
+  Manager: InvoicePDFGenerator.kt (uses PdfBox-Android 2.0.27.0)
+  - Generates styled PDF: header, logo, items table, GST split, footer
+  - Stored temporarily for sharing via WhatsApp/email
+
+QR CODE:
+  Manager: QrCodeManager.kt (uses ZXing 4.3.0)
+  - UPI QR: encodes upi://pay?pa={vpa}&am={amount}&pn={name}
+  - Invoice QR: deep link to public invoice URL
+
+────────────────────────────────────────────────────────────────────────────────
+3.6 REPORTS & EXPORT WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+REPORT GENERATION (ReportGenerator.kt):
+  - Queries Room: BillEntity + BillItemEntity + BillPaymentEntity
+  - Filters: date range, order type, payment mode
+  - Aggregates: total revenue, order count, avg ticket, top items
+  - Time periods: Today, This Week, This Month, Custom Range
+
+EXPORT (ReportExporter.kt):
+  PDF Export:
+    - Uses PdfBox-Android
+    - Styled table: headers, rows, totals
+    - Logo cached (Coil → Bitmap → stored for reuse)
+    - Shares via Android Intent (WhatsApp, email, etc.)
+
+  Excel Export:
+    - CSV format with headers
+    - Columns: Order#, Date, Items, Amount, Payment Mode, Status
+
+INVOICE SHARING:
+  1. Bill completed → serverId assigned after sync
+  2. Invoice URL: https://kbook.iadv.cloud/api/v1/invoice/{token}
+  3. Share via WhatsApp: PDF attachment + deep link
+  4. Server InvoiceController serves public HTML invoice page
+
+────────────────────────────────────────────────────────────────────────────────
+3.7 OCR MENU UPLOAD WORKFLOW (Web Admin)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Owner uploads menu image/PDF via web-admin
+  2. POST /extraction/upload → stores file in CDN
+  3. Server: MenuExtractionWorker processes async
+  4. Uses Tabula (1.0.5) for PDF table extraction
+  5. Returns extracted items with categories, prices, veg/non-veg
+  6. Owner reviews + confirms in web-admin UI
+  7. Confirmed items synced to Android devices via pull
+
+────────────────────────────────────────────────────────────────────────────────
+3.8 SERVER API ENDPOINTS (v1)
+────────────────────────────────────────────────────────────────────────────────
+
+AUTH:
+  POST /auth/signup           — Phone + OTP signup
+  POST /auth/login            — Phone + password login
+  POST /auth/google           — Google OAuth token exchange
+  POST /auth/forgot-password  — OTP-based password reset
+
+SYNC:
+  POST /sync/push/bills       — Push local bills
+  POST /sync/push/billitems   — Push bill items
+  POST /sync/push/payments    — Push payments
+  POST /sync/push/menu        — Push menu items
+  POST /sync/push/categories  — Push categories
+  POST /sync/push/users       — Push user records
+  GET  /sync/pull/{entity}    — Pull server records (cursor-based)
+
+TERMINAL:
+  POST /terminal/activate     — Register/reclaim terminal
+  GET  /terminal/list         — List terminals for restaurant
+  POST /terminal/management/* — SHOP_ADMIN approve/reject
+
+BUSINESS:
+  GET/PUT /business/profile   — Restaurant profile CRUD
+  POST /business/asset/upload — Logo/QR image upload
+  GET  /business/menu         — Menu items for restaurant
+  POST /business/extraction   — OCR menu extraction
+
+BILLING:
+  GET  /invoice/{token}       — Public invoice page
+  GET  /bills                 — Bill history
+
+ADMIN (web-admin):
+  GET  /admin/restaurants     — List all restaurants (KBOOK_ADMIN)
+  GET  /admin/dashboard       — Platform stats
+  GET/POST /marketplace/config — Marketplace settings (OWNER)
+
+────────────────────────────────────────────────────────────────────────────────
+3.9 DATABASE SCHEMA (Server — PostgreSQL, Flyway managed)
+────────────────────────────────────────────────────────────────────────────────
+
+CORE TABLES:
+  users                  — id, phone, email, passwordHash, role, restaurantId
+  restaurant_profiles    — id, name, gstin, fssaiNo, address, logo, upiVpa
+  bills                  — id, restaurantId, terminalId, orderNumber, status, total
+  bill_items             — id, billId (FK), menuItemId, quantity, price
+  bill_payments          — id, billId (FK), mode, amount, txnRef
+  menu_items             — id, restaurantId, name, price, categoryId, isAvailable
+  categories             — id, restaurantId, name, displayOrder
+  item_variants          — id, menuItemId (FK), name, priceOverride
+
+TERMINAL TABLES:
+  restaurant_terminals           — id, restaurantId, deviceId, name, status
+  device_registration_requests   — id, restaurantId, deviceId, status, approvedAt
+
+SECURITY TABLES:
+  token_blocklist        — id, jti, expiresAt (revoked JWT tracking)
+  security_audit_events  — id, eventType, userId, details, timestamp
+  otp_requests           — id, phone, otp, expiresAt, verified
+
+SYNC TABLES:
+  stock_logs             — id, restaurantId, menuItemId, delta, reason
+  menu_extraction_jobs   — id, restaurantId, fileUrl, status, result
+
+────────────────────────────────────────────────────────────────────────────────
+3.10 ANDROID DATA LAYER ARCHITECTURE
+────────────────────────────────────────────────────────────────────────────────
+
+LAYER: data/local/
+  AppDatabase.kt       — Room database (SQLCipher encrypted, version 60)
+  DatabaseProvider.kt  — Provides encrypted DB instance via Hilt
+  dao/                 — Data Access Objects (BillDao, MenuItemDao, etc.)
+  entity/              — Room entities (14 entities)
+  relation/            — Room relations (BillWithItems, etc.)
+
+LAYER: data/remote/
+  ApiService.kt        — Retrofit interface (all REST endpoints)
+  AuthInterceptor.kt   — Adds JWT Bearer + X-Terminal-Token headers
+  NetworkMonitor.kt    — Connectivity state observer
+
+LAYER: data/repository/
+  BillRepository.kt    — Bill CRUD + sync coordination
+  MenuRepository.kt    — Menu items + categories
+  SyncRepository.kt    — Push/pull orchestration
+  UserRepository.kt    — User/auth data access
+
+LAYER: domain/manager/
+  AuthManager          — Login/logout/session lifecycle
+  BillCalculator       — GST/total/discount computation
+  BluetoothPrinterManager — BT connection + ESC/POS commands
+  InvoicePDFGenerator  — PDF creation for invoices
+  KitchenPrintQueueManager — KOT delta print queue
+  MasterSyncProcessor  — Orchestrates full sync cycle
+  OrderIdManager       — Daily/lifetime order ID generation
+  PaymentModeManager   — Available payment modes logic
+  PrintRouter          — Routes print jobs to correct printer
+  PrintService         — Background print execution
+  QrCodeManager        — UPI QR generation
+  ReportExporter       — PDF/Excel export
+  ReportGenerator      — Report data aggregation
+  SearchManager        — Order/invoice search
+  SessionManager       — Auth state + app lock + grace period
+  SyncManager          — Sync triggers + WorkManager scheduling
+
+LAYER: domain/model/
+  Business domain objects (Bill, CartItem, PaymentResult, etc.)
+
+LAYER: domain/util/
+  ValidationUtils, DateUtils, CurrencyFormatter, etc.
+
+────────────────────────────────────────────────────────────────────────────────
+3.11 WEB ADMIN ARCHITECTURE (v1)
+────────────────────────────────────────────────────────────────────────────────
+
+PAGES:
+  login/               — Phone + Google Sign-In
+  platform-dashboard/  — KBOOK_ADMIN: all restaurants overview
+  business-dashboard/  — OWNER: single restaurant stats
+  terminals/           — Device management (approve/reject)
+  menu/                — OCR upload + extraction preview
+  orders/              — Order history viewer
+  marketplace-setup/   — Swiggy/Zomato config
+  businesses/          — Restaurant directory (admin)
+  staff/               — Staff management
+  limited-access/      — Unauthorized role landing page
+
+SERVICES:
+  admin-api.service.ts    — KBOOK_ADMIN endpoints (platform level)
+  business-api.service.ts — OWNER endpoints (restaurant level)
+  AuthService             — JWT storage, role detection, route guard
+
+PATTERNS:
+  - Standalone components (no NgModules)
+  - Lazy-loaded routes (loadComponent)
+  - Angular Signals for state management
+  - authGuard + roleGuard for route protection
+  - Plain CSS with CSS Custom Properties (no SCSS, no Material)
+  - Hand-rolled components (tables, modals, pagination)
+
+================================================================================
+SECTION 4: VERSION 2 (v2) — ADDITIONAL DEPENDENCIES
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+4.1 ANDROID — NEW DEPENDENCIES IN v2
+────────────────────────────────────────────────────────────────────────────────
+
+  com.google.firebase:firebase-messaging  24.1.1   FCM push notifications
+  in.easebuzz:android-v2                  1.0.6    Easebuzz Payment SDK
+  com.facebook.flipper:flipper            0.182.0  Debug: network inspection
+  com.facebook.soloader:soloader          0.10.5   Debug: native lib loader
+  com.facebook.flipper:flipper-network    0.182.0  Debug: network plugin
+
+  Purpose:
+  - Firebase Messaging: receive push notifications (orders, payments, KYC)
+  - Easebuzz SDK: in-app payment gateway checkout
+  - Flipper: debug-only network inspection tool (not in release)
+
+────────────────────────────────────────────────────────────────────────────────
+4.2 SERVER — NEW DEPENDENCIES IN v2 (Spring Boot 3.5.14)
+────────────────────────────────────────────────────────────────────────────────
+
+  spring-boot-starter-thymeleaf       3.5.14     HTML template engine (invoices)
+  spring-boot-starter-mail            3.5.14     Email sending (SMTP)
+  spring-boot-starter-cache           3.5.14     Caching abstraction
+  com.github.ben-manes.caffeine       (managed)  In-memory cache (hot data)
+  net.logstash.logback:encoder        8.0        Structured JSON logging
+  com.google.firebase:firebase-admin  9.3.0      Server-side push notifications
+
+  Purpose:
+  - Thymeleaf: styled HTML invoices (replaced StringBuilder approach)
+  - Mail: email notifications (order confirmations, FSSAI alerts)
+  - Cache + Caffeine: cache frequently accessed data (restaurant profiles)
+  - Logstash encoder: structured JSON logs for production debugging
+  - Firebase Admin: send push notifications from server to Android devices
+
+────────────────────────────────────────────────────────────────────────────────
+4.3 WEB ADMIN — NEW DEPENDENCIES IN v2
+────────────────────────────────────────────────────────────────────────────────
+
+  @angular/cdk                        ^18.2.14   Component Dev Kit (overlays, etc.)
+  @angular/material                   ^18.2.14   Material UI components
+  chart.js                            ^4.5.1     Data visualization (bar charts)
+  jspdf                               ^4.2.1     Client-side PDF generation
+  jspdf-autotable                     ^5.0.8     PDF table formatting
+
+  Purpose:
+  - Angular Material: UI components (dialogs, tables, form fields)
+  - Angular CDK: overlay/accessibility utilities
+  - Chart.js: Weekly Revenue Trend bar chart on dashboard
+  - jsPDF: client-side PDF generation (commission reports, exports)
+
+  NOTE: v2 also migrated from plain CSS → SCSS (styles.scss replaces styles.css)
+
+================================================================================
+SECTION 5: VERSION 2 (v2) — ADDITIONAL LOGIC & WORKFLOWS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+5.1 EASEBUZZ PAYMENT GATEWAY WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+SUB-MERCHANT ONBOARDING:
+  1. Restaurant owner submits KYC docs (PAN, GSTIN, bank details)
+  2. Android uploads docs to /business/kyc/upload (local CDN)
+  3. Server submits to Easebuzz Sub-Merchant API
+  4. Status: PENDING_KYC → ACTIVE (or FAILED → allow resubmit)
+  5. Web-admin: Business Directory shows KYC status + timeline
+
+PAYMENT FLOW:
+  1. Customer selects "Pay Online" at checkout
+  2. Android checks sub-merchant status (ACTIVE required)
+  3. If not ACTIVE: fallback to parent merchant
+  4. Launches Easebuzz SDK (in.easebuzz:android-v2:1.0.6)
+  5. SDK opens WebView with payment options (UPI, cards, netbanking)
+  6. User completes payment → Easebuzz callback
+  7. Android receives result → marks bill as PAID
+  8. Server webhook confirms (HMAC-authenticated)
+  9. Transaction recorded for commission split
+
+SPLIT PAYMENT & COMMISSION:
+  1. Each transaction → post-transaction split calculation
+  2. Async commission service: platform fee % deducted
+  3. Net amount → sub-merchant payout queue
+  4. Payout tracking per sub-merchant in web-admin
+  5. Commission reports generated for platform admin
+
+REFUND FLOW:
+  1. Owner initiates refund (web-admin or Android)
+  2. If Easebuzz payment → gateway refund (capped to paid amount)
+  3. If manual payment → manual refund only
+  4. Refund status: INITIATED → PROCESSED → COMPLETED
+  5. Webhook updates status async
+
+WIRE INTEGRATION:
+  - Lookup sub-merchant details from Easebuzz WIRE platform
+  - Auto-match by email or subMerchantId
+  - Web-admin UI: inline lookup results per merchant
+
+────────────────────────────────────────────────────────────────────────────────
+5.2 PUSH NOTIFICATIONS WORKFLOW (FCM)
+────────────────────────────────────────────────────────────────────────────────
+
+SETUP:
+  Server: Firebase Admin SDK (9.3.0) + service account credentials
+  Android: Firebase Messaging (24.1.1) + FCM service
+
+REGISTRATION:
+  1. App startup (if logged in) → force register FCM device token
+  2. After login/signup → register token with retry
+  3. Token stored on server per (userId + deviceId)
+  4. Stale tokens filtered to prevent cross-tenant 403
+
+NOTIFICATION EVENTS (server triggers):
+  - LOGIN_WELCOME: new user welcome message
+  - NEW_ORDER: marketplace order received
+  - PAYMENT_CONFIRMED: payment success notification
+  - ORDER_CANCELLED: cancellation alert
+  - KYC_STATUS: KYC approval/rejection update
+  - PAYOUT_COMPLETED: money transferred notification
+  - FSSAI_EXPIRY: license renewal reminder (action buttons)
+
+DELIVERY:
+  1. Server event fires (e.g., payment confirmed)
+  2. PushNotificationService builds payload (title, body, data, deepLink)
+  3. Firebase Admin sends to device token
+  4. Android FCMService receives in background/foreground
+  5. Notification channel: Orders | Payments | System | Promotions
+  6. Deep link opens relevant screen on tap
+
+RELIABILITY:
+  - BootReceiver: re-registers token on device restart
+  - OEM auto-start config: guides user to enable background
+  - OAuth2 refresh token fallback for Firebase (org policy workaround)
+  - Channel groups registered before channel creation (prevents crash)
+
+TEMPLATES:
+  - Customizable templates (welcome + FSSAI) stored server-side
+  - Admin can push custom notifications via AdminNotificationController
+  - Test endpoint: POST /notifications/test
+
+────────────────────────────────────────────────────────────────────────────────
+5.3 MARKETPLACE INTEGRATION WORKFLOW (Swiggy/Zomato)
+────────────────────────────────────────────────────────────────────────────────
+
+CONFIGURATION:
+  1. Owner enters Swiggy/Zomato API keys in web-admin
+  2. Keys synced to Android on next pull
+  3. Auto-enable: on first sync with keys present, marketplace activated
+  4. Retroactive enable for existing merchants
+
+ORDER MANAGEMENT:
+  1. Marketplace order received → stored with marketplace source
+  2. Orders visible in web-admin with marketplace filters
+  3. Status tracking: RECEIVED → PREPARING → COMPLETED
+  4. Menu item availability synced to marketplace (mark unavailable)
+
+GST/FSSAI LOOKUP:
+  - APIs to lookup GST/FSSAI numbers for compliance
+  - Auto-populate restaurant profile fields
+
+────────────────────────────────────────────────────────────────────────────────
+5.4 FSSAI COMPLIANCE TRACKING WORKFLOW
+────────────────────────────────────────────────────────────────────────────────
+
+DATABASE: fssai_tracker table
+  - restaurantId, licenseNumber, expiryDate
+  - alertLevel (GREEN/YELLOW/ORANGE/RED)
+  - lastAlertSent, reminderCount
+
+ALERT LOGIC:
+  - 90 days before expiry: GREEN (info notification)
+  - 60 days: YELLOW (remind notification)
+  - 30 days: ORANGE (urgent notification with "Pay Now")
+  - Expired: RED (critical alert)
+
+RENEWAL PAYMENT:
+  1. Push notification with action: "Pay Now" / "Remind Me"
+  2. "Pay Now" → opens FSSAI renewal payment screen in Android
+  3. Payment processed → updates tracker status
+  4. "Remind Me" → snoozes for configurable period
+
+SMART ALERTS:
+  - Server scheduled job checks all restaurants
+  - Combined FSSAI + GST expiry alerts
+  - Visible in web-admin dashboard as compliance cards
+
+────────────────────────────────────────────────────────────────────────────────
+5.5 UI/UX DESIGN SYSTEM (v2 — Grounded Earth & Saffron)
+────────────────────────────────────────────────────────────────────────────────
+
+THEME TOKEN MIGRATION:
+  Old (v1): hardcoded Color() values, dark-only
+  New (v2): MaterialTheme.kb* extension tokens, light + dark
+
+COLOR SYSTEM:
+  Brand: Saffron #C85A00 (11-shade palette)
+  Accent: Teal #0891B2
+  Surfaces: Warm neutrals (espresso/parchment tones)
+  Dark mode: inverted with warm dark backgrounds
+  Light mode: mid-white #F2F0EB background
+
+ANDROID SCREENS REDESIGNED:
+  - LoginScreen: premium saffron gradient (was midnight purple)
+  - SignUpScreen: Create Account mockup with validation
+  - ForgotPassword: full-screen overlay
+  - HomeScreen: premium depth dashboard with glassmorphic cards
+  - SettingsScreen: compact profile (Stitch mockup)
+  - SplashScreen: radial glow with new cloche-receipt logo
+  - All screens: theme-aware (respond to dark/light toggle)
+
+WEB ADMIN REDESIGN:
+  - Login: premium glassmorphic design
+  - Dashboards: glassmorphic metric cards + shimmer skeletons
+  - KYC: vertical timeline view
+  - Charts: Chart.js interactive bar charts
+  - Tables: Angular Material data tables
+  - Migrated: plain CSS → SCSS with design tokens
+
+────────────────────────────────────────────────────────────────────────────────
+5.6 SERVER ADDITIONS IN v2
+────────────────────────────────────────────────────────────────────────────────
+
+NEW SERVICES:
+  EasebuzzApiClient        — HTTP client for Easebuzz APIs
+  EasebuzzWebhookService   — HMAC-verified webhook handler
+  SplitPaymentService      — Post-transaction commission splits
+  PayoutTrackingService    — Track merchant payouts
+  PushNotificationService  — FCM message sender
+  FssaiTrackerService      — License expiry monitoring
+  EmailNotificationService — SMTP email sending (thymeleaf templates)
+  CacheService             — Caffeine in-memory caching
+
+NEW CONTROLLERS:
+  EasebuzzController       — Payment initiation + status + webhooks
+  NotificationController   — Push notification management
+  AdminNotificationController — Custom push from admin
+  FssaiController          — FSSAI status + renewal endpoints
+  KycController            — KYC document upload + status
+  MarketplaceOrderController — Marketplace order CRUD
+  ChangePasswordController — Password update endpoint
+
+NEW ENTITIES:
+  SubMerchant              — Easebuzz sub-merchant (KYC, status, keys)
+  FssaiTracker             — License tracking per restaurant
+  EasebuzzTransaction      — Payment transaction records
+  EasebuzzPayout           — Payout tracking records
+  NotificationTemplate     — Customizable push templates
+  DeviceToken              — FCM token per user+device
+
+INFRASTRUCTURE:
+  - Server port: 8082 (separate from v1's 8081)
+  - Thymeleaf templates for HTML invoices + emails
+  - Caffeine cache for hot restaurant profile lookups
+  - MDC log tracing propagated to async executors
+  - Structured JSON logging (logstash encoder)
+  - Docker compose updated for v2 deployment
+
+────────────────────────────────────────────────────────────────────────────────
+5.7 ANDROID ADDITIONS IN v2
+────────────────────────────────────────────────────────────────────────────────
+
+NEW SCREENS:
+  FssaiRenewalPaymentScreen  — License renewal payment
+  EasebuzzCheckoutActivity   — WebView payment gateway
+  KycUploadScreen            — Document upload for sub-merchant
+  DisplaySettingsScreen      — Theme toggle + display scale
+  ChangePasswordScreen       — Password update flow
+  NotificationSettingsScreen — Channel preferences
+
+NEW MANAGERS:
+  EasebuzzPaymentManager     — SDK integration + flow state
+  FCMService                 — Firebase messaging service
+  BootReceiver               — Re-register FCM on device boot
+  NotificationChannelManager — Channel/group setup
+
+BUILD CONFIG CHANGES:
+  - Added: WEB_ADMIN_URL build config field
+  - Firebase plugin: google-services + messaging
+  - Removed: material3-window-size dependency
+  - Debug: Flipper network inspection tools
+
+================================================================================
+SECTION 6: COMPLETE DEPENDENCY COMPARISON TABLE
+================================================================================
+
+┌────────────────────────────────────────┬──────────┬──────────┬──────────────┐
+│ Dependency                             │ v1 (main)│ v2       │ Purpose      │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ ANDROID                                │          │          │              │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ Kotlin                                 │ 2.0.21   │ 2.0.21   │ Language     │
+│ AGP (Android Gradle Plugin)            │ 8.7.3    │ 8.7.3    │ Build        │
+│ Compose BOM                            │ 2024.12  │ 2024.12  │ UI framework │
+│ Material 3                             │ (BOM)    │ (BOM)    │ UI components│
+│ Room                                   │ 2.6.1    │ 2.6.1    │ Local DB     │
+│ SQLCipher                              │ 4.6.1    │ 4.6.1    │ DB encryption│
+│ Hilt (Dagger)                          │ 2.51.1   │ 2.51.1   │ DI           │
+│ Navigation Compose                     │ 2.8.5    │ 2.8.5    │ Navigation   │
+│ WorkManager                            │ 2.9.0    │ 2.9.0    │ Background   │
+│ Retrofit                               │ 2.11.0   │ 2.11.0   │ HTTP client  │
+│ OkHttp                                 │ 4.12.0   │ 4.12.0   │ HTTP layer   │
+│ CameraX                                │ 1.4.1    │ 1.4.1    │ Camera/OCR   │
+│ ML Kit Text Recognition                │ 19.0.1   │ 19.0.1   │ OCR          │
+│ Coil                                   │ 2.6.0    │ 2.6.0    │ Image load   │
+│ Lottie                                 │ 6.4.0    │ 6.4.0    │ Animations   │
+│ ZXing                                  │ 4.3.0    │ 4.3.0    │ QR codes     │
+│ PdfBox Android                         │ 2.0.27   │ 2.0.27   │ PDF gen      │
+│ Biometric                              │ 1.1.0    │ 1.1.0    │ App lock     │
+│ Firebase Messaging                     │ —        │ 24.1.1   │ Push notifs  │
+│ Easebuzz SDK                           │ —        │ 1.0.6    │ Payments     │
+│ Flipper (debug only)                   │ —        │ 0.182.0  │ Debug tools  │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ SERVER                                 │          │          │              │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ Spring Boot                            │ 3.5.12   │ 3.5.14   │ Framework    │
+│ Java                                   │ 17       │ 17       │ Language     │
+│ PostgreSQL driver                      │ (managed)│ (managed)│ Database     │
+│ Flyway                                 │ (managed)│ (managed)│ Migrations   │
+│ Spring Security                        │ (managed)│ (managed)│ Auth         │
+│ Spring Data JPA                        │ (managed)│ (managed)│ ORM          │
+│ JJWT                                   │ 0.11.5   │ 0.11.5   │ JWT tokens   │
+│ Bucket4j                               │ 8.7.0    │ 8.7.0    │ Rate limit   │
+│ SpringDoc OpenAPI                      │ 2.8.5    │ 2.8.5    │ Swagger      │
+│ Tabula                                 │ 1.0.5    │ 1.0.5    │ PDF parsing  │
+│ Google API Client                      │ 2.2.0    │ 2.2.0    │ Google auth  │
+│ Jackson Hibernate6                     │ (managed)│ (managed)│ JSON         │
+│ Micrometer Prometheus                  │ (managed)│ (managed)│ Metrics      │
+│ Lombok                                 │ (managed)│ (managed)│ Boilerplate  │
+│ Testcontainers                         │ (managed)│ (managed)│ Testing      │
+│ Thymeleaf                              │ —        │ 3.5.14   │ HTML templ.  │
+│ Spring Mail                            │ —        │ 3.5.14   │ Email        │
+│ Spring Cache + Caffeine                │ —        │ 3.5.14   │ Caching      │
+│ Logstash Logback Encoder               │ —        │ 8.0      │ JSON logs    │
+│ Firebase Admin SDK                     │ —        │ 9.3.0    │ Push notifs  │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ WEB ADMIN                              │          │          │              │
+├────────────────────────────────────────┼──────────┼──────────┼──────────────┤
+│ Angular                                │ ^18.2.0  │ ^18.2.0  │ Framework    │
+│ TypeScript                             │ ^5.5.4   │ ^5.5.4   │ Language     │
+│ RxJS                                   │ ^7.8.1   │ ^7.8.1   │ Reactive     │
+│ Zone.js                                │ ^0.14.10 │ ^0.14.10 │ Change det.  │
+│ Karma + Jasmine                        │ 6.4/5.3  │ 6.4/5.3  │ Testing      │
+│ Angular CDK                            │ —        │ ^18.2.14 │ Utilities    │
+│ Angular Material                       │ —        │ ^18.2.14 │ UI library   │
+│ Chart.js                               │ —        │ ^4.5.1   │ Charts       │
+│ jsPDF                                  │ —        │ ^4.2.1   │ PDF gen      │
+│ jsPDF-AutoTable                        │ —        │ ^5.0.8   │ PDF tables   │
+└────────────────────────────────────────┴──────────┴──────────┴──────────────┘
+
+================================================================================
+SECTION 7: INFRASTRUCTURE & DEPLOYMENT
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+7.1 PRODUCTION STACK (v1 — LIVE)
+────────────────────────────────────────────────────────────────────────────────
+
+HOST: VPS at kbook.iadv.cloud
+STACK: Docker Compose (postgres + server containers)
+PROXY: Apache → 127.0.0.1:8081 (/api/v1/)
+WEB: Static files served by Apache (/var/www/kbook.iadv.cloud/web/)
+
+Docker Compose Services:
+  postgres:
+    - PostgreSQL (latest)
+    - Volume: persistent data
+    - Port: 5432 (internal only)
+
+  server:
+    - Dockerfile builds Spring Boot JAR
+    - mvn package -Dmaven.test.skip=true
+    - Port: 8081 (mapped to 127.0.0.1 only)
+    - Health: /api/v1/actuator/health
+
+Deploy Commands:
+  Backend: ./deploy-production.sh (git pull → docker build → up -d)
+  Frontend: ./deploy-web.sh (npm ci → ng build → rsync to docroot)
+
+────────────────────────────────────────────────────────────────────────────────
+7.2 ANDROID BUILD & RELEASE
+────────────────────────────────────────────────────────────────────────────────
+
+Build System: Gradle 8.7.3 (Kotlin DSL)
+Min SDK: 26 (Android 8.0)
+Target SDK: 35 (Android 15)
+Compile SDK: 35
+
+Release Guards (enforced in build.gradle.kts):
+  - SIGNING_STORE_FILE must be configured
+  - RELEASE_VERSION_CODE + RELEASE_VERSION_NAME required
+  - GOOGLE_WEB_CLIENT_ID must not be placeholder
+  - BACKEND_URL must be HTTPS + must point to kbook.iadv.cloud
+  - ProGuard enabled (minifyEnabled + shrinkResources)
+
+Current Version: 1.0.11 (versionCode 20)
+Package: com.piquantservices.khanabooklite (release)
+         com.piquantservices.khanabooklite.debug (debug)
+
+────────────────────────────────────────────────────────────────────────────────
+7.3 CI/CD (GitHub Actions)
+────────────────────────────────────────────────────────────────────────────────
+
+Workflows:
+  ci.yml           — Build + test on push/PR
+  gated-tests.yml  — Full test suite (Docker-based)
+
+No auto-deploy: manual deploy via SSH to VPS.
+
+================================================================================
+SECTION 8: DATA FLOW DIAGRAMS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+8.1 COMPLETE BILL LIFECYCLE
+────────────────────────────────────────────────────────────────────────────────
+
+  ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+  │  DRAFT  │───▶│ COMPLETED│───▶│  SYNCED  │───▶│ INVOICED │
+  └─────────┘    └──────────┘    └──────────┘    └──────────┘
+       │              │                                 │
+       │              ▼                                 ▼
+       │         ┌──────────┐                   ┌──────────────┐
+       └────────▶│ CANCELLED│                   │ PUBLIC INVOICE│
+                 └──────────┘                   │ (HTML page)  │
+                                                └──────────────┘
+
+  Draft → items added, payment pending
+  Completed → payment received, invoice number assigned
+  Synced → pushed to server (serverId assigned)
+  Invoiced → shareable public URL generated
+  Cancelled → reason required, refund if paid
+
+────────────────────────────────────────────────────────────────────────────────
+8.2 SYNC CYCLE DIAGRAM
+────────────────────────────────────────────────────────────────────────────────
+
+  ┌──────────────┐                          ┌──────────────────┐
+  │  Android POS │                          │  Spring Boot API  │
+  └──────┬───────┘                          └────────┬─────────┘
+         │                                           │
+         │──── POST /sync/push/bills ───────────────▶│
+         │     (unsynced local bills)                │
+         │                                           │── validate tenant
+         │                                           │── deduplicate
+         │                                           │── store in PostgreSQL
+         │◀─── { localToServerIdMap } ──────────────│
+         │                                           │
+         │──── GET /sync/pull/bills?cursor=X ───────▶│
+         │                                           │── query by restaurant
+         │                                           │── filter by updatedAt > X
+         │◀─── { records[], hasMore } ─────────────│
+         │                                           │
+         │── update Room DB                          │
+         │── advance cursor                          │
+         │── repeat if hasMore                       │
+         └───────────────────────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────
+8.3 TERMINAL REGISTRATION FLOW
+────────────────────────────────────────────────────────────────────────────────
+
+  Android (new device)              Server                    Web Admin
+       │                              │                          │
+       │── POST /terminal/activate ──▶│                          │
+       │   (deviceId + restaurantId)  │                          │
+       │                              │── check terminal count   │
+       │                              │── if < 5: create request │
+       │                              │── status: PENDING        │
+       │◀── { status: PENDING } ─────│                          │
+       │                              │                          │
+       │                              │◀── SHOP_ADMIN approves ─│
+       │                              │── status: APPROVED       │
+       │                              │── create terminal record │
+       │                              │                          │
+       │── POST /terminal/activate ──▶│                          │
+       │   (retry/poll)               │── find APPROVED request  │
+       │◀── { terminalId, token } ───│                          │
+       │                              │                          │
+       │── stores X-Terminal-Token    │                          │
+       │── all future requests include token                     │
+
+────────────────────────────────────────────────────────────────────────────────
+8.4 EASEBUZZ PAYMENT FLOW (v2 only)
+────────────────────────────────────────────────────────────────────────────────
+
+  Android                    Server                   Easebuzz
+     │                         │                        │
+     │── initiate payment ────▶│                        │
+     │                         │── create txn hash ────▶│
+     │                         │◀── payment URL ───────│
+     │◀── payment URL ────────│                        │
+     │                         │                        │
+     │── launch WebView ──────────────────────────────▶│
+     │   (Easebuzz SDK 1.0.6)  │                       │── user pays
+     │◀── callback (success) ─────────────────────────│
+     │                         │                        │
+     │── confirm to server ───▶│                        │
+     │                         │◀── webhook (HMAC) ────│
+     │                         │── verify + record      │
+     │                         │── split commission     │
+     │◀── payment confirmed ──│                        │
+     │                         │                        │
+     │── mark bill PAID        │                        │
+     │── sync push             │                        │
+
+────────────────────────────────────────────────────────────────────────────────
+8.5 PUSH NOTIFICATION FLOW (v2 only)
+────────────────────────────────────────────────────────────────────────────────
+
+  Server Event              Firebase Admin         Android Device
+     │                          │                       │
+     │── send notification ────▶│                       │
+     │   (token, title, body,   │── route to device ───▶│
+     │    data, deepLink)       │                       │── FCMService receives
+     │                          │                       │── show notification
+     │                          │                       │── tap → deep link
+     │                          │                       │── opens target screen
+
+================================================================================
+SECTION 9: SECURITY ARCHITECTURE
+================================================================================
+
+v1 SECURITY LAYERS:
+  1. Network: SSL/TLS (Let's Encrypt) + certificate pinning on Android
+  2. Transport: HTTPS enforced for all API calls
+  3. Auth: JWT Bearer token in Authorization header
+  4. Terminal: X-Terminal-Token header for bill ownership
+  5. Rate Limiting: Bucket4j (login: 5/min, OTP: 3/min, API: 100/min)
+  6. Database: SQLCipher AES-256 encryption on device
+  7. Secrets: EncryptedSharedPreferences (PIN, tokens)
+  8. App Lock: PIN + Biometric with 30s grace period
+  9. Swagger: disabled in production (KB-008)
+  10. Audit: SecurityAuditEvent logged for sensitive operations
+
+v2 ADDITIONS:
+  11. Webhook Auth: HMAC-SHA256 verification for Easebuzz callbacks
+  12. Cache: Caffeine with TTL to prevent stale data exposure
+  13. Email: server-side templates (no user input in body)
+  14. Firebase: service account credentials (env vars, not committed)
+
+KNOWN SECURITY FIXES (main):
+  KB-001: Prevent role escalation via user sync push
+  KB-002: Harden payment deep link against spoofing
+  KB-005: Prevent 'INVnull' display for legacy bills
+  KB-006: Audit trail for manual refund actions
+  KB-007: Prevent UPI draft bill accumulation across sessions
+  KB-008: Disable Swagger/OpenAPI in production
+  KB-009: Preserve recordOrigin for own-terminal drafts during pull
+
+================================================================================
+SECTION 10: KEY CONFIGURATION FILES
+================================================================================
+
+ANDROID:
+  Android/app/build.gradle.kts        — App config, dependencies, signing
+  Android/gradle/libs.versions.toml   — Version catalog
+  Android/app/proguard-rules.pro      — ProGuard obfuscation rules
+  Android/app/schemas/                — Room migration schemas (v44-v60)
+  Android/local.properties            — Local secrets (not committed)
+
+SERVER:
+  server/pom.xml                      — Maven dependencies
+  server/src/main/resources/
+    application.properties            — Base config
+    application-dev.properties        — Dev profile
+    application-prod.properties       — Prod profile (env vars)
+  server/src/main/resources/db/migration/  — Flyway SQL migrations
+
+WEB ADMIN:
+  web-admin/package.json              — NPM dependencies
+  web-admin/angular.json              — Angular build config
+  web-admin/tsconfig.json             — TypeScript config
+  web-admin/src/environments/
+    environment.ts                    — Dev API URL
+    environment.prod.ts               — Prod API URL (kbook.iadv.cloud)
+
+DEPLOYMENT:
+  docker-compose.production.yml       — Production Docker stack
+  docker-compose.yml                  — Local development stack
+  deploy-production.sh                — Backend deploy script
+  deploy-web.sh                       — Frontend deploy script
+  apache-kbook.conf                   — Apache virtual host config
+  ops/backup_postgres.sh              — DB backup script
+  ops/restore_postgres.sh             — DB restore script
+
+================================================================================
+END OF TECHNICAL SPECIFICATION
+================================================================================

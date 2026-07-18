@@ -1,14 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
+import { AuthService } from '../../core/auth/auth.service';
+import { BusinessCategory, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-menu-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -26,7 +29,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <h3>Menu Snapshot</h3>
           <p class="muted">Use this list to spot missing descriptions, low stock, and stale updates.</p>
         </div>
-        <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
+        <div class="toolbar-actions">
+          <button class="primary-btn" *ngIf="isOwner" (click)="openAddModal()">+ Add Item</button>
+          <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
+        </div>
       </div>
 
       <section class="panel filter-panel" *ngIf="loaded && items.length">
@@ -101,6 +107,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <th>Variants</th>
               <th>Availability</th>
               <th>Updated</th>
+              <th *ngIf="isOwner">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -116,11 +123,31 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <td>{{ formatCurrencyValue(item.basePrice) }}</td>
               <td>{{ item.variantCount }}</td>
               <td>
-                <span class="chip" [class.success]="item.available" [class.warn]="item.stockStatus === 'RUNNING_LOW'" [class.danger]="item.stockStatus === 'OUT_OF_STOCK'">
-                  {{ item.stockStatus }}
+                <span
+                  class="chip"
+                  [class.success]="item.available"
+                  [class.danger]="!item.available"
+                  [class.warn]="item.stockStatus === 'RUNNING_LOW'"
+                >
+                  {{ item.available ? item.stockStatus : 'UNAVAILABLE' }}
                 </span>
               </td>
               <td>{{ formatDateValue(item.updatedAt) }}</td>
+              <td *ngIf="isOwner">
+                <div class="action-stack">
+                  <button
+                    class="toggle-btn"
+                    [class.toggle-btn--on]="item.available"
+                    [class.toggle-btn--off]="!item.available"
+                    (click)="toggleAvailability(item)"
+                    [disabled]="togglingId === item.menuItemId"
+                  >
+                    {{ item.available ? '🟢 On' : '🔴 Off' }}
+                  </button>
+                  <button class="ghost-btn" (click)="openEditModal(item)">✏️ Edit</button>
+                  <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">🗑️ Delete</button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -137,6 +164,85 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       <ng-template #loading>
         <div class="panel loading">{{ loaded ? 'No menu items match the current filters.' : 'Loading menu...' }}</div>
       </ng-template>
+
+      <!-- Add/Edit Menu Item Modal -->
+      <div class="modal-backdrop" *ngIf="showFormModal" (click)="closeFormModal()">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <h3>{{ editingItem ? 'Edit Menu Item' : 'Add Menu Item' }}</h3>
+          <p class="muted" *ngIf="editingItem">Editing: {{ editingItem.name }}</p>
+
+          <div class="field">
+            <label>Name *</label>
+            <input
+              type="text"
+              class="field-control"
+              [(ngModel)]="formName"
+              placeholder="Item name"
+            />
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select class="field-select" [(ngModel)]="formCategoryId">
+              <option [ngValue]="null" disabled>Select a category</option>
+              <option *ngFor="let category of categories" [ngValue]="category.categoryId">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Food Type *</label>
+            <select class="field-select" [(ngModel)]="formFoodType">
+              <option value="veg">Veg</option>
+              <option value="non-veg">Non-Veg</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Base Price (₹) *</label>
+            <input
+              type="number"
+              class="field-control"
+              [(ngModel)]="formBasePrice"
+              placeholder="0.00"
+              min="0.01"
+              step="0.01"
+            />
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <input
+              type="text"
+              class="field-control"
+              [(ngModel)]="formDescription"
+              placeholder="Optional description"
+            />
+          </div>
+
+          <p class="error-text" *ngIf="formError">{{ formError }}</p>
+
+          <div class="modal-actions">
+            <button class="ghost-btn" (click)="closeFormModal()">Cancel</button>
+            <button
+              class="primary-btn"
+              [disabled]="formSaving || !isFormValid()"
+              (click)="submitForm()"
+            >
+              {{ formSaving ? 'Saving...' : (editingItem ? 'Update' : 'Add Item') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Confirmation Dialog -->
+      <app-confirm-dialog
+        *ngIf="deleteTarget"
+        title="Delete Menu Item"
+        [message]="'Are you sure you want to delete \\'' + deleteTarget.name + '\\'? This action cannot be undone.'"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="confirmDelete()"
+        (cancelled)="closeDeleteConfirm()"
+      ></app-confirm-dialog>
 
       <section class="panel filter-panel ocr-panel">
         <div class="toolbar">
@@ -230,8 +336,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .result-header { display: flex; align-items: center; gap: 0.75rem; }
     .extracted-table { margin-top: 0.75rem; }
     .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.4rem 0 0.75rem; }
-    .modal-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
-    .error-text { color: #b03030; font-size: 0.9rem; }
+    .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
     .toast {
       position: fixed; bottom: 1.5rem; right: 1.5rem;
       background: #24170f; color: #fff;
@@ -239,42 +344,117 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
       z-index: 1100; max-width: 340px;
     }
+    .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .toggle-btn {
+      border: 1px solid var(--line, #e9dcc9);
+      background: var(--panel, #fffdf8);
+      border-radius: 8px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .toggle-btn:disabled { opacity: 0.5; cursor: default; }
+    .toggle-btn--on { border-color: #1d7b5f; color: #1d7b5f; }
+    .toggle-btn--off { border-color: var(--danger, #a6372f); color: var(--danger, #a6372f); }
+    .danger-btn { color: var(--danger, #a6372f) !important; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: var(--panel, #fffdf8);
+      border: 1px solid var(--line, #e9dcc9);
+      border-radius: 18px;
+      padding: 1.5rem 2rem;
+      min-width: 340px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
+    }
+    .modal-box h3 { margin: 0 0 0.25rem; }
+    .field { margin: 1rem 0; display: flex; flex-direction: column; gap: 0.3rem; }
+    .field label { font-size: 0.85rem; font-weight: 600; color: var(--ink, #24170f); }
+    .field .field-control, .field .field-select {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--line, #e9dcc9);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      outline: none;
+      min-height: 44px;
+    }
+    .field .field-control:focus, .field .field-select:focus {
+      border-color: var(--brand, #b56a2d);
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+    @media (max-width: 480px) {
+      .modal-box { min-width: unset; padding: 1.25rem; }
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions button { width: 100%; text-align: center; }
+      .action-stack { flex-direction: column; align-items: stretch; }
+    }
   `]
 })
 export class MenuPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
   private readonly zone = inject(NgZone);
 
   items: BusinessMenuItem[] = [];
+  categories: BusinessCategory[] = [];
   loaded = false;
 
   searchTerm = '';
-  stockFilter: 'ALL' | 'IN_STOCK' | 'RUNNING_LOW' | 'OUT_OF_STOCK' = 'ALL';
-  availabilityFilter: 'ALL' | 'AVAILABLE' | 'UNAVAILABLE' = 'ALL';
+  stockFilter = 'ALL';
+  availabilityFilter = 'ALL';
   pageSize = 10;
   currentPage = 1;
 
-  readonly uploading = signal(false);
-  readonly job = signal<MenuExtractionJob | null>(null);
-  readonly extractedItems = signal<MenuExtractionItem[]>([]);
-  readonly toast = signal<string | null>(null);
+  // Form modal state
+  showFormModal = false;
+  editingItem: BusinessMenuItem | null = null;
+  formName = '';
+  formCategoryId: number | null = null;
+  formFoodType: 'veg' | 'non-veg' = 'veg';
+  formBasePrice: number | null = null;
+  formDescription = '';
+  formError = '';
+  formSaving = false;
+
+  // Delete state
+  deleteTarget: BusinessMenuItem | null = null;
+
+  // Availability toggle state
+  togglingId: number | null = null;
+
+  // OCR state
+  uploading = signal(false);
+  job = signal<MenuExtractionJob | null>(null);
+  extractedItems = signal<MenuExtractionItem[]>([]);
+  toast = signal<string>('');
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor() {
-    this.loadMenu();
+  get isOwner(): boolean {
+    return this.auth.session()?.role === 'OWNER';
   }
 
   get filteredItems(): BusinessMenuItem[] {
     const search = this.searchTerm.trim().toLowerCase();
-
-    return this.items.filter((item) => {
+    return this.items.filter(item => {
       const matchesSearch = !search || [
         item.name,
         item.categoryName ?? '',
-        item.description ?? '',
-        item.foodType ?? ''
-      ].some((value) => value.toLowerCase().includes(search));
+        item.description ?? ''
+      ].some(v => v.toLowerCase().includes(search));
 
       const matchesStock = this.stockFilter === 'ALL' || item.stockStatus === this.stockFilter;
       const matchesAvailability =
@@ -295,17 +475,175 @@ export class MenuPageComponent {
     return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
   }
 
+  constructor() {
+    this.loadMenu();
+  }
+
   loadMenu(): void {
     this.loaded = false;
-    this.api.getMenu().subscribe({
-      next: (data) => {
-        this.items = data;
+    forkJoin({
+      items: this.api.getMenu(),
+      categories: this.api.getMenuCategories()
+    }).subscribe({
+      next: ({ items, categories }) => {
+        this.items = items;
+        this.categories = categories;
         this.loaded = true;
         this.currentPage = 1;
       },
       error: () => { this.loaded = true; }
     });
   }
+
+  // --- Add/Edit Modal ---
+
+  openAddModal(): void {
+    this.editingItem = null;
+    this.formName = '';
+    this.formCategoryId = null;
+    this.formFoodType = 'veg';
+    this.formBasePrice = null;
+    this.formDescription = '';
+    this.formError = '';
+    this.formSaving = false;
+    this.showFormModal = true;
+  }
+
+  openEditModal(item: BusinessMenuItem): void {
+    this.editingItem = item;
+    this.formName = item.name;
+    this.formCategoryId = item.categoryId;
+    this.formFoodType = (item.foodType === 'non-veg' ? 'non-veg' : 'veg');
+    this.formBasePrice = item.basePrice;
+    this.formDescription = item.description || '';
+    this.formError = '';
+    this.formSaving = false;
+    this.showFormModal = true;
+  }
+
+  closeFormModal(): void {
+    this.showFormModal = false;
+    this.editingItem = null;
+    this.formError = '';
+  }
+
+  isFormValid(): boolean {
+    return this.formName.trim().length > 0
+      && this.formCategoryId !== null
+      && (this.formBasePrice ?? 0) > 0;
+  }
+
+  submitForm(): void {
+    if (!this.isFormValid() || this.formSaving) return;
+
+    this.formSaving = true;
+    this.formError = '';
+
+    const categoryId = this.formCategoryId!;
+
+    if (this.editingItem) {
+      const payload = {
+        name: this.formName.trim(),
+        categoryId,
+        foodType: this.formFoodType as 'veg' | 'non-veg',
+        basePrice: this.formBasePrice!,
+        ...(this.formDescription.trim() ? { description: this.formDescription.trim() } : {})
+      };
+
+      this.api.updateMenuItem(this.editingItem.menuItemId, payload).subscribe({
+        next: (updated) => {
+          const idx = this.items.findIndex(i => i.menuItemId === updated.menuItemId);
+          if (idx >= 0) this.items[idx] = updated;
+          this.formSaving = false;
+          this.closeFormModal();
+          this.showToast('Menu item updated');
+        },
+        error: (err) => {
+          this.formSaving = false;
+          this.formError = err.error?.message || 'Failed to update item. Please try again.';
+        }
+      });
+    } else {
+      const payload = {
+        name: this.formName.trim(),
+        categoryId,
+        foodType: this.formFoodType as 'veg' | 'non-veg',
+        basePrice: this.formBasePrice!,
+        ...(this.formDescription.trim() ? { description: this.formDescription.trim() } : {})
+      };
+
+      this.api.createMenuItem(payload).subscribe({
+        next: (created) => {
+          this.items = [created, ...this.items];
+          this.formSaving = false;
+          this.closeFormModal();
+          this.showToast('Menu item added');
+        },
+        error: (err) => {
+          this.formSaving = false;
+          this.formError = err.error?.message || 'Failed to add item. Please try again.';
+        }
+      });
+    }
+  }
+
+  // --- Delete ---
+
+  openDeleteConfirm(item: BusinessMenuItem): void {
+    this.deleteTarget = item;
+  }
+
+  closeDeleteConfirm(): void {
+    this.deleteTarget = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteTarget) return;
+
+    const id = this.deleteTarget.menuItemId;
+    this.deleteTarget = null;
+
+    this.api.deleteMenuItem(id).subscribe({
+      next: () => {
+        this.items = this.items.filter(i => i.menuItemId !== id);
+        this.showToast('Menu item deleted');
+      },
+      error: () => {
+        this.showToast('Failed to delete item');
+      }
+    });
+  }
+
+  // --- Availability Toggle (optimistic) ---
+
+  toggleAvailability(item: BusinessMenuItem): void {
+    if (this.togglingId === item.menuItemId) return;
+
+    this.togglingId = item.menuItemId;
+    const previousState = item.available;
+
+    // Optimistic update
+    item.available = !item.available;
+
+    this.api.toggleMenuItemAvailability(item.menuItemId).subscribe({
+      next: (updated) => {
+        const idx = this.items.findIndex(i => i.menuItemId === updated.menuItemId);
+        if (idx >= 0) this.items[idx] = updated;
+        this.togglingId = null;
+        this.showToast(updated.available ? 'Item marked available' : 'Item marked unavailable');
+      },
+      error: () => {
+        // Revert on error
+        item.available = previousState;
+        this.togglingId = null;
+        this.showToast('Failed to update availability');
+      }
+    });
+  }
+
+  // --- Helpers ---
+
+  // --- Filters and Pagination ---
 
   resetPage(): void {
     this.currentPage = 1;
@@ -323,19 +661,24 @@ export class MenuPageComponent {
     this.currentPage = Math.min(Math.max(1, page), this.totalPages);
   }
 
+  formatCurrencyValue(value: number): string {
+    return formatCurrency(value);
+  }
+
+  formatDateValue(value: number | null): string {
+    return formatDate(value);
+  }
+
+  // --- OCR Upload ---
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
 
-    const allowed = /\.(pdf|jpe?g|png)$/i.test(file.name);
-    if (!allowed) {
-      this.notify('Unsupported file type. Use PDF, JPG, or PNG.');
-      input.value = '';
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      this.notify('File exceeds the 10 MB limit.');
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      this.showToast('File exceeds 10 MB limit');
       input.value = '';
       return;
     }
@@ -347,48 +690,52 @@ export class MenuPageComponent {
     this.api.uploadMenuFile(file).subscribe({
       next: (res) => {
         this.uploading.set(false);
-        this.pollJob(res.jobId);
+        input.value = '';
+        this.pollJobStatus(res.jobId);
       },
-      error: (err) => {
+      error: () => {
         this.uploading.set(false);
-        const e = err?.error?.error;
-        this.notify(e || 'Upload failed. Please try again.');
+        input.value = '';
+        this.showToast('Upload failed. Please try again.');
       }
     });
-
-    input.value = '';
   }
 
-  private pollJob(jobId: number): void {
-    this.stopPoll();
-    this.pollTimer = setInterval(() => {
+  private pollJobStatus(jobId: number): void {
+    this.stopPolling();
+
+    const check = () => {
       this.api.getMenuJobStatus(jobId).subscribe({
-        next: (job) => {
+        next: (j) => {
           this.zone.run(() => {
-            this.job.set(job);
-            if (job.status === 'COMPLETED') {
-              this.parseExtracted(job.extractedDataJson);
-              this.stopPoll();
-            } else if (job.status === 'FAILED') {
-              this.stopPoll();
+            this.job.set(j);
+            if (j.status === 'COMPLETED') {
+              this.stopPolling();
+              this.parseExtractedData(j.extractedDataJson);
+            } else if (j.status === 'FAILED') {
+              this.stopPolling();
             }
           });
         },
-        error: () => {
-          this.zone.run(() => this.notify('Could not read extraction status.'));
-          this.stopPoll();
-        }
+        error: () => { this.stopPolling(); }
       });
-    }, 2000);
+    };
+
+    check();
+    this.pollTimer = setInterval(check, 3000);
   }
 
-  private parseExtracted(json: string | null): void {
-    if (!json) {
-      this.extractedItems.set([]);
-      return;
+  private stopPolling(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
+  }
+
+  private parseExtractedData(json: string | null): void {
+    if (!json) { this.extractedItems.set([]); return; }
     try {
-      const parsed = JSON.parse(json) as MenuExtractionItem[];
+      const parsed = JSON.parse(json);
       this.extractedItems.set(Array.isArray(parsed) ? parsed : []);
     } catch {
       this.extractedItems.set([]);
@@ -396,28 +743,13 @@ export class MenuPageComponent {
   }
 
   resetJob(): void {
-    this.stopPoll();
     this.job.set(null);
     this.extractedItems.set([]);
+    this.stopPolling();
   }
 
-  private stopPoll(): void {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
-  }
-
-  private notify(message: string): void {
-    this.toast.set(message);
-    setTimeout(() => this.toast.set(null), 2600);
-  }
-
-  formatCurrencyValue(value: number): string {
-    return formatCurrency(value);
-  }
-
-  formatDateValue(value: number | null): string {
-    return formatDate(value);
+  private showToast(msg: string): void {
+    this.toast.set(msg);
+    setTimeout(() => this.toast.set(''), 3000);
   }
 }

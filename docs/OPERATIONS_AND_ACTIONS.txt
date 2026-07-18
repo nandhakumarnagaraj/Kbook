@@ -1,0 +1,616 @@
+================================================================================
+           KHANABOOK — ALL OPERATIONS & ACTIONS (User-Facing)
+           Android POS + Web Admin — Version-wise
+           Generated: 2026-07-17
+================================================================================
+
+
+================================================================================
+SECTION 1: ANDROID POS — VERSION 1 (main) OPERATIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+1.1 AUTHENTICATION (LoginScreen / SignUpScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Phone Signup                    │ Enter phone + password, receive OTP on WhatsApp
+Verify OTP                      │ Enter 4-digit OTP to confirm signup
+Google Sign-In                  │ One-tap Google OAuth login
+Phone Login                     │ Enter registered phone + password
+Forgot Password                 │ OTP-based password reset (step indicator UI)
+Auto-login on reset             │ Login automatically after successful reset
+Double-back exit                │ Two back presses on main tabs to exit app
+
+────────────────────────────────────────────────────────────────────────────────
+1.2 APP LOCK (AppLockScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Enter PIN                       │ 4-digit PIN to unlock app
+Biometric Unlock                │ Fingerprint or face unlock
+Set/Change PIN                  │ Configure app lock PIN in settings
+Enable/Disable App Lock         │ Toggle lock feature on/off
+30s Grace Period                │ No lock if returned within 30 seconds
+PIN-protected Logout            │ Destructive sign-out requires PIN confirmation
+
+────────────────────────────────────────────────────────────────────────────────
+1.3 HOME SCREEN (HomeScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Today's Summary            │ Revenue, orders count, average ticket
+Start New Bill                  │ Navigate to NewBillScreen (billing flow)
+View Active Orders              │ Navigate to ActiveOrdersScreen
+Quick Stats                     │ Today's cash/UPI breakdown
+Sync Status Indicator           │ Shows last sync time, tap to manual sync
+
+────────────────────────────────────────────────────────────────────────────────
+1.4 BILLING — NEW BILL (NewBillScreen — Multi-Step)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Select Order Type               │ Choose Dine-In or Takeaway
+Enter Table/Customer Name       │ For dine-in identification
+Select Recent Customer          │ Quick-pick from recent customer chips
+Browse Menu Grid                │ LazyVerticalGrid with responsive columns
+Filter by Category              │ Category tabs to narrow menu
+Search Menu Items               │ Text search within menu
+Add Item to Cart                │ Tap menu item → add with quantity 1
+Select Variant                  │ Choose size/variant in dialog
+Adjust Quantity (+/-)           │ Increase/decrease item count
+Remove Item from Cart           │ Swipe or minus to zero
+Add Item Note                   │ Special instruction per item
+Scan Barcode                    │ Camera barcode → auto-add item
+Choose Payment Mode             │ Cash / UPI / POS / Split
+Enter Cash Received             │ Calculate change automatically
+Split Payment                   │ Divide amount across 2 modes
+Set Split Amounts               │ Enter amount for each split mode
+Complete Order                  │ Finalize bill → assign invoice number
+Save as Draft                   │ Save bill without payment (pay later)
+Cancel Order                    │ Cancel with mandatory reason
+Print Receipt                   │ Send to Bluetooth receipt printer
+Print KOT (Kitchen Ticket)      │ Send new items to kitchen printer
+View Last Bill                  │ Quick access to most recent bill
+Share Invoice (WhatsApp)        │ PDF share via WhatsApp
+Share Invoice (SMS)             │ Text link via SMS
+
+────────────────────────────────────────────────────────────────────────────────
+1.5 ACTIVE ORDERS (ActiveOrdersScreen / ActiveOrderDetailScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Active Orders List         │ All draft/unpaid orders
+Open Order Detail               │ View items, amounts, status
+Edit Draft Order                │ Load draft into billing flow
+Add Items to Draft              │ Append new items to existing draft
+Settle Draft Order              │ Complete payment for saved draft
+Cancel Draft Order              │ Cancel with reason
+Change Payment Mode             │ Switch payment type on active order
+Reprint KOT                     │ Resend kitchen ticket
+
+────────────────────────────────────────────────────────────────────────────────
+1.6 ORDERS (OrdersScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Orders Table               │ List all completed/cancelled orders
+Filter by Date Range            │ Today / This Week / Month / Custom
+Filter by Payment Mode          │ Cash / UPI / POS / All
+Search by Order Number          │ Find specific order
+Search by Invoice Number        │ Find by invoice series
+Change Payment Mode (post-fact) │ Modify payment mode on completed order
+Cancel Completed Order          │ Void with reason (restricted to today)
+
+────────────────────────────────────────────────────────────────────────────────
+1.7 REPORTS (ReportsScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Revenue Summary            │ Total, cash, UPI breakdown
+View by Date Range              │ Today / This Week / Month / Custom
+Custom Date Picker              │ Select arbitrary start/end dates
+Order-Level Report              │ Default: report per order
+Item-Level Report               │ Drill into item sales
+Export PDF                      │ Download styled PDF report
+Export Excel (CSV)              │ Download CSV spreadsheet
+Share Report (WhatsApp)         │ Send PDF via WhatsApp
+Share Report (Email)            │ Send via email intent
+
+────────────────────────────────────────────────────────────────────────────────
+1.8 SEARCH (SearchScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Search by Order Number          │ Find bill by order number
+Search by Invoice Number        │ Find bill by invoice series
+Search by Customer Name         │ Find bills for customer
+Search by Phone Number          │ Lookup by customer phone
+View Search Results             │ Table of matching bills
+
+────────────────────────────────────────────────────────────────────────────────
+1.9 SETTINGS — SHOP CONFIG (SettingsScreen > ShopConfigSection)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Edit Restaurant Name            │ Update business name
+Edit GSTIN                      │ Set/change GST number
+Edit FSSAI Number               │ Set food license number
+Edit Address                    │ Update restaurant address
+Edit Phone Number               │ Change contact (with user-exists check)
+Upload Logo                     │ Pick image → upload to CDN
+Set Google Review Link          │ Add review URL for invoices
+Toggle Mask Customer Phone      │ Hide phone on receipts
+Toggle Show Branding            │ KhanaBook branding on/off
+
+────────────────────────────────────────────────────────────────────────────────
+1.10 SETTINGS — TAX CONFIG (SettingsScreen > TaxConfigSection)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Set Tax Rate                    │ Configure GST percentage
+Set Tax Label                   │ Custom tax display name
+Enable/Disable Tax              │ Toggle tax calculation
+Set Custom Tax Name             │ For non-GST tax regimes
+
+────────────────────────────────────────────────────────────────────────────────
+1.11 SETTINGS — PAYMENT CONFIG (SettingsScreen > PaymentConfigSection)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Set UPI VPA                     │ Enter UPI address for QR generation
+Upload UPI QR Image             │ Custom QR image instead of generated
+Set Payment Flow Mode           │ Pay-before-food or pay-after-food
+Enable/Disable Payment Modes    │ Toggle Cash / UPI / POS availability
+Set Default Payment Mode        │ Pre-select for quick checkout
+
+────────────────────────────────────────────────────────────────────────────────
+1.12 SETTINGS — PRINTER CONFIG (SettingsScreen > PrinterConfigSection)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Scan Bluetooth Devices          │ Discovery of nearby BT printers
+Connect Receipt Printer         │ Pair by MAC address (role: RECEIPT)
+Connect Kitchen Printer         │ Pair separate kitchen printer (role: KDS)
+Test Print (Receipt)            │ Print test page on receipt printer
+Test Print (Kitchen)            │ Print test page on KDS printer
+Set Paper Size                  │ 80mm / 58mm selection
+Toggle Auto-Print               │ Auto-print receipt on bill complete
+Toggle Include Logo              │ Print shop logo on receipts
+Remove Printer                  │ Disconnect and forget printer
+Update Printer Settings         │ Change paper size, logo, auto-print
+
+────────────────────────────────────────────────────────────────────────────────
+1.13 SETTINGS — MENU CONFIGURATION (MenuConfigurationScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Add Category                    │ Create new menu category
+Edit Category Name              │ Rename existing category
+View Items by Category          │ Drill into category items
+Add Menu Item                   │ Name, price, type (veg/non-veg), stock
+Edit Menu Item                  │ Update name, price, details
+Toggle Item Availability        │ Mark available/unavailable
+Delete Menu Item                │ Remove (soft-delete, disable only)
+Add Variant to Item             │ Add size/option with price override
+Edit Variant                    │ Update variant name/price
+OCR Scan Menu                   │ Camera scan → AI item extraction
+Review Detected Items           │ Confirm/reject OCR-extracted items
+
+────────────────────────────────────────────────────────────────────────────────
+1.14 SETTINGS — APP & SUPPORT
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Set/Change App Lock PIN         │ Configure 4-digit security PIN
+Enable/Disable Biometric        │ Toggle fingerprint/face unlock
+View App Lock Config            │ See current lock settings
+Update Display Scale            │ Adjust UI zoom level (1.0x default)
+View About App                  │ Version, logo, expandable details
+Call Customer Support            │ Phone intent to support number
+WhatsApp Support                │ Open WhatsApp chat with support
+View Sync Status                │ Last sync timestamp
+Manual Sync                     │ Force trigger sync now
+Retry Failed Syncs              │ Retry individual failed bill syncs
+Retry All Failed Syncs          │ Batch retry all failed bill pushes
+View Duplicate ID Health        │ Diagnostic: ID collision check
+Repair Order ID Counters        │ Fix duplicate invoice sequences
+Cancel Conflict Bills           │ Resolve duplicate ID conflicts
+Logout                          │ PIN-protected sign out
+Delete Account                  │ Account removal request
+
+────────────────────────────────────────────────────────────────────────────────
+1.15 KDS / REPRINT (ReprintKdsScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Pending KDS Queue          │ List of unprinted kitchen tickets
+Reprint KOT                     │ Resend specific ticket to kitchen
+Search by Invoice/Order         │ Find specific bill for reprint
+Print from History              │ Reprint any past receipt/KOT
+
+
+================================================================================
+SECTION 2: WEB ADMIN — VERSION 1 (main) OPERATIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+2.1 LOGIN (login page)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION                          │ ROLE
+────────────────────────────────┼──────────────────────────────────────┼────────
+Phone + Password Login          │ Standard credential login            │ ALL
+Google Sign-In                  │ OAuth button login                   │ ALL
+Auto-route by Role              │ Redirect to correct dashboard        │ ALL
+
+────────────────────────────────────────────────────────────────────────────────
+2.2 PLATFORM DASHBOARD (admin/dashboard) — KBOOK_ADMIN only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Total Restaurants          │ Count of all registered restaurants
+View Active Restaurants         │ Currently active count
+View Total Revenue (platform)   │ Aggregated platform revenue
+View Recent Signups             │ New restaurants timeline
+Filter by Date                  │ Date range for stats
+
+────────────────────────────────────────────────────────────────────────────────
+2.3 BUSINESSES (admin/businesses) — KBOOK_ADMIN only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View All Restaurants            │ Paginated table of businesses
+Search Restaurant               │ By name, phone, GSTIN
+View Restaurant Details         │ Modal with full profile
+Filter by Status                │ Active / Inactive / All
+Pagination                      │ Page through results
+
+────────────────────────────────────────────────────────────────────────────────
+2.4 BUSINESS DASHBOARD (business/dashboard) — OWNER only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Today's Revenue            │ Total revenue for today
+View Today's Orders             │ Order count for today
+View Average Ticket Size        │ Mean order value
+View Payment Mode Breakdown     │ Cash vs UPI vs POS split
+Filter by Date Range            │ Custom date selection
+
+────────────────────────────────────────────────────────────────────────────────
+2.5 ORDERS (business/orders) — OWNER only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Orders Table               │ All orders with pagination
+Filter by Status                │ Completed / Cancelled / All
+Filter by Date Range            │ Today / Week / Month / Custom
+Filter by Payment Mode          │ Cash / UPI / POS
+Search by Order/Invoice         │ Find specific order
+View Order Details              │ Items, amounts, timestamps
+Pagination Controls             │ Page size + navigation
+
+────────────────────────────────────────────────────────────────────────────────
+2.6 MENU (business/menu) — OWNER only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Upload Menu (OCR)               │ Upload PDF/image for AI extraction
+Review Extracted Items          │ Confirm/reject OCR results
+View Menu Categories            │ Browse category list
+View Items per Category         │ List items in category
+
+────────────────────────────────────────────────────────────────────────────────
+2.7 STAFF (business/staff) — OWNER only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Staff List                 │ All users for this restaurant
+View Staff Roles                │ OWNER / SHOP_ADMIN / USER
+
+────────────────────────────────────────────────────────────────────────────────
+2.8 TERMINALS (business/terminals) — OWNER + SHOP_ADMIN
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Registered Devices         │ All terminals (active + pending)
+View Pending Requests           │ Devices awaiting approval
+Approve Terminal                │ Allow device to join restaurant
+Reject Terminal                 │ Deny device registration
+View Terminal Status            │ Active / Inactive / Pending
+View Device Details             │ Device ID, name, last active
+
+────────────────────────────────────────────────────────────────────────────────
+2.9 MARKETPLACE SETUP (business/marketplace) — OWNER only
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Configure Marketplace           │ Enter Swiggy/Zomato API keys
+Save Marketplace Config         │ POST marketplace configuration
+View Current Config             │ See saved API key status
+
+
+================================================================================
+SECTION 3: ANDROID POS — VERSION 2 (v2) ADDITIONAL OPERATIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+3.1 EASEBUZZ PAYMENT (Billing Flow — Payment Step)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Pay via Easebuzz (Online)       │ Launch in-app payment gateway
+Select UPI App                  │ Choose GPay/PhonePe/Paytm etc.
+Pay via Card/Netbanking         │ Card payment via Easebuzz SDK
+View Payment Status             │ Real-time gateway status
+Cancel Online Payment           │ Back out of payment
+Restore Pending Payment         │ Resume interrupted gateway payment
+Auto-launch Easebuzz            │ SDK auto-opens when READY
+
+────────────────────────────────────────────────────────────────────────────────
+3.2 PUSH NOTIFICATIONS (System-wide)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Receive Order Notification      │ Alert for new marketplace orders
+Receive Payment Notification    │ Confirmation of successful payment
+Receive KYC Update              │ Sub-merchant KYC status change
+Receive Payout Notification     │ Money transfer confirmation
+Receive FSSAI Alert             │ License expiry reminder
+Tap Notification Deep Link      │ Open relevant screen directly
+Configure Notification Prefs    │ Enable/disable channel groups
+
+────────────────────────────────────────────────────────────────────────────────
+3.3 FSSAI RENEWAL (FssaiRenewalPaymentScreen)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View FSSAI License Status       │ Current license, expiry date
+View Alert Level                │ GREEN/YELLOW/ORANGE/RED indicator
+Tap "Pay Now"                   │ Navigate to renewal payment
+Tap "Remind Me"                 │ Snooze alert for later
+Complete Renewal Payment        │ Process FSSAI fee payment
+
+────────────────────────────────────────────────────────────────────────────────
+3.4 KYC DOCUMENT UPLOAD
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Upload PAN Card                 │ Photo/scan of PAN document
+Upload GSTIN Certificate        │ GST registration proof
+Upload Bank Proof               │ Cancelled cheque or passbook
+Submit KYC for Verification     │ Send to Easebuzz for CPV
+View KYC Status                 │ PENDING / ACTIVE / FAILED
+Resubmit Failed KYC             │ Correct and resubmit documents
+
+────────────────────────────────────────────────────────────────────────────────
+3.5 MARKETPLACE ORDERS
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Marketplace Orders         │ Swiggy/Zomato incoming orders
+Accept/Reject Order             │ Respond to marketplace order
+Mark Item Unavailable           │ Sync availability to platform
+Configure Swiggy/Zomato Keys   │ Enter API credentials
+
+────────────────────────────────────────────────────────────────────────────────
+3.6 UI/THEME SETTINGS (v2 additions)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Toggle Dark/Light Mode          │ Switch between themes
+View Display Settings           │ Font size, theme, scale
+Change Password                 │ Update account password
+Category Drill-Down Menu        │ Multi-level menu navigation
+
+
+================================================================================
+SECTION 4: WEB ADMIN — VERSION 2 (v2) ADDITIONAL OPERATIONS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+4.1 PLATFORM DASHBOARD (v2 — Enhanced)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Platform Overview          │ Stat cards with real computed values
+Weekly Revenue Trend Chart      │ Interactive Chart.js bar chart
+Recent Transactions Grid        │ Last 10 orders (2-column)
+Toggle Dark/Light Theme         │ Theme switcher in toolbar
+View Compliance Alerts          │ FSSAI/GST expiry warnings
+
+────────────────────────────────────────────────────────────────────────────────
+4.2 BUSINESS DIRECTORY (v2 — Enhanced)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Business Table             │ All restaurants with status
+View Business Details (modal)   │ Profile info in modal dialog
+Edit Business Details           │ Update from admin side
+Suspend Business                │ Temporarily disable restaurant
+View Sub-Merchant Status        │ Easebuzz KYC state per business
+
+────────────────────────────────────────────────────────────────────────────────
+4.3 PAYMENT DASHBOARD (v2 — New)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View Sub-Merchant List          │ All Easebuzz sub-merchants
+View KYC Status per Merchant    │ PENDING / ACTIVE / FAILED
+View Sub-Merchant Details       │ Modal with full KYC + bank info
+View Commission Reports         │ Platform earnings breakdown
+Export Commission PDF           │ Download with jsPDF
+View Payout History             │ Per-merchant payout records
+
+────────────────────────────────────────────────────────────────────────────────
+4.4 WIRE INTEGRATION (v2 — New)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+WIRE Lookup (per merchant)      │ Query Easebuzz WIRE by email
+Auto-Match Sub-Merchant         │ Match local merchant to WIRE data
+View WIRE Results Inline        │ Results in detail panel
+Copy Sub-Merchant ID            │ Clipboard helper
+
+────────────────────────────────────────────────────────────────────────────────
+4.5 MARKETPLACE SETUP (v2 — Enhanced)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Onboarding Stepper              │ Multi-step setup wizard
+Configure Swiggy API Key        │ Enter + validate credentials
+Configure Zomato API Key        │ Enter + validate credentials
+View Connection Status          │ Human-readable status per platform
+View Marketplace Orders         │ Orders from aggregators
+Mark Menu Item Unavailable      │ Sync to Swiggy/Zomato
+
+────────────────────────────────────────────────────────────────────────────────
+4.6 COMPLIANCE ALERTS (v2 — New)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+View FSSAI Expiry Alerts        │ Restaurants with expiring licenses
+View GST Compliance Status      │ GST validity per restaurant
+Trigger Manual Alert            │ Admin push specific alert
+View Alert History              │ Past alerts sent per restaurant
+
+────────────────────────────────────────────────────────────────────────────────
+4.7 PUSH NOTIFICATIONS ADMIN (v2 — New)
+────────────────────────────────────────────────────────────────────────────────
+
+ACTION                          │ DESCRIPTION
+────────────────────────────────┼────────────────────────────────────────────────
+Send Custom Push                │ Admin sends notification to user
+Test Push Endpoint              │ POST /notifications/test
+View Notification Templates     │ Welcome + FSSAI templates
+Customize Template              │ Edit title/body/action of template
+
+
+================================================================================
+SECTION 5: SUMMARY — TOTAL ACTION COUNT
+================================================================================
+
+┌──────────────────────────────────┬────────────┬────────────┐
+│ AREA                             │ v1 (main)  │ v2 (adds)  │
+├──────────────────────────────────┼────────────┼────────────┤
+│ ANDROID                          │            │            │
+├──────────────────────────────────┼────────────┼────────────┤
+│ Authentication                   │ 6 actions  │ —          │
+│ App Lock                         │ 6 actions  │ —          │
+│ Home Screen                      │ 5 actions  │ —          │
+│ Billing (New Bill)               │ 27 actions │ +7 (gateway)│
+│ Active Orders                    │ 8 actions  │ —          │
+│ Orders                           │ 7 actions  │ —          │
+│ Reports                          │ 9 actions  │ —          │
+│ Search                           │ 5 actions  │ —          │
+│ Shop Config                      │ 9 actions  │ —          │
+│ Tax Config                       │ 4 actions  │ —          │
+│ Payment Config                   │ 5 actions  │ —          │
+│ Printer Config                   │ 10 actions │ —          │
+│ Menu Configuration               │ 11 actions │ —          │
+│ App & Support                    │ 15 actions │ —          │
+│ KDS / Reprint                    │ 4 actions  │ —          │
+│ Push Notifications               │ —          │ +7 actions │
+│ FSSAI Renewal                    │ —          │ +5 actions │
+│ KYC Upload                       │ —          │ +6 actions │
+│ Marketplace Orders               │ —          │ +4 actions │
+│ UI/Theme Settings                │ —          │ +4 actions │
+├──────────────────────────────────┼────────────┼────────────┤
+│ ANDROID TOTAL                    │ 131 actions│ +33 actions│
+├──────────────────────────────────┼────────────┼────────────┤
+│ WEB ADMIN                        │            │            │
+├──────────────────────────────────┼────────────┼────────────┤
+│ Login                            │ 3 actions  │ —          │
+│ Platform Dashboard               │ 5 actions  │ +5 enhanced│
+│ Businesses                       │ 5 actions  │ +5 enhanced│
+│ Business Dashboard               │ 5 actions  │ —          │
+│ Orders                           │ 7 actions  │ —          │
+│ Menu                             │ 4 actions  │ —          │
+│ Staff                            │ 2 actions  │ —          │
+│ Terminals                        │ 6 actions  │ —          │
+│ Marketplace Setup                │ 3 actions  │ +6 enhanced│
+│ Payment Dashboard                │ —          │ +6 actions │
+│ WIRE Integration                 │ —          │ +4 actions │
+│ Compliance Alerts                │ —          │ +4 actions │
+│ Push Notifications Admin         │ —          │ +4 actions │
+├──────────────────────────────────┼────────────┼────────────┤
+│ WEB ADMIN TOTAL                  │ 40 actions │ +34 actions│
+├──────────────────────────────────┼────────────┼────────────┤
+│ GRAND TOTAL                      │ 171 actions│ +67 actions│
+│                                  │            │ = 238 total│
+└──────────────────────────────────┴────────────┴────────────┘
+
+================================================================================
+SECTION 6: ROLE-BASED ACCESS MATRIX
+================================================================================
+
+┌─────────────────────────────────────┬─────────┬───────────┬──────────┐
+│ OPERATION                           │ OWNER   │ SHOP_ADMIN│ USER/POS │
+├─────────────────────────────────────┼─────────┼───────────┼──────────┤
+│ ANDROID                             │         │           │          │
+├─────────────────────────────────────┼─────────┼───────────┼──────────┤
+│ Create Bills / Take Orders          │ ✓       │ ✓         │ ✓        │
+│ View Reports / Export               │ ✓       │ ✓         │ ✓        │
+│ Configure Shop Profile              │ ✓       │ ✗         │ ✗        │
+│ Configure Menu (add/edit items)     │ ✓       │ ✗         │ ✗        │
+│ Configure Tax                       │ ✓       │ ✗         │ ✗        │
+│ Configure Payment                   │ ✓       │ ✗         │ ✗        │
+│ Configure Printers                  │ ✓       │ ✓         │ ✓        │
+│ Cancel Orders                       │ ✓       │ ✓         │ ✓        │
+│ Upload KYC (v2)                     │ ✓       │ ✗         │ ✗        │
+│ Logout                              │ ✓       │ ✓         │ ✓        │
+├─────────────────────────────────────┼─────────┼───────────┼──────────┤
+│ WEB ADMIN                           │ KBOOK   │ OWNER     │ SHOP     │
+│                                     │ _ADMIN  │           │ _ADMIN   │
+├─────────────────────────────────────┼─────────┼───────────┼──────────┤
+│ Platform Dashboard                  │ ✓       │ ✗         │ ✗        │
+│ All Businesses List                 │ ✓       │ ✗         │ ✗        │
+│ Business Dashboard                  │ ✗       │ ✓         │ ✗        │
+│ Orders Viewer                       │ ✗       │ ✓         │ ✗        │
+│ Menu Upload (OCR)                   │ ✗       │ ✓         │ ✗        │
+│ Staff Management                    │ ✗       │ ✓         │ ✗        │
+│ Terminal Management                 │ ✗       │ ✓         │ ✓        │
+│ Marketplace Config                  │ ✗       │ ✓         │ ✗        │
+│ Payment Dashboard (v2)              │ ✓       │ ✓         │ ✗        │
+│ Push Notifications Admin (v2)       │ ✓       │ ✗         │ ✗        │
+│ Compliance Alerts (v2)              │ ✓       │ ✓         │ ✗        │
+└─────────────────────────────────────┴─────────┴───────────┴──────────┘
+
+================================================================================
+END OF OPERATIONS & ACTIONS DOCUMENT
+================================================================================

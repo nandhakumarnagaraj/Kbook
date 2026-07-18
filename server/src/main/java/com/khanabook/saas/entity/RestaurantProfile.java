@@ -192,6 +192,9 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "mask_customer_phone")
 	private Boolean maskCustomerPhone = true;
 
+	@Column(name = "is_suspended")
+	private Boolean isSuspended = false;
+
 	@Column(name = "last_reset_date_proper")
 	private java.time.LocalDate lastResetDateProper;
 

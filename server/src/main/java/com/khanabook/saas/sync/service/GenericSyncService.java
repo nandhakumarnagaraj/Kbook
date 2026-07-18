@@ -410,15 +410,6 @@ public class GenericSyncService {
 										user.setGoogleEmail(existingUser.getGoogleEmail());
 									}
 
-									if (user.getIsActive() == null) {
-										user.setIsActive(existingUser.getIsActive() != null ? existingUser.getIsActive() : true);
-									}
-
-									// SECURITY: role is server-owned. A sync push can NEVER escalate
-									// or change a user's role. Only KBOOK_ADMIN via web-admin may do so.
-									// Always preserve the existing role regardless of what the client sends.
-									user.setRole(existingUser.getRole());
-
 									// Prevent duplicate email/phone numbers from crashing the batch sync
 										if (repository instanceof com.khanabook.saas.repository.UserRepository) {
 										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
@@ -446,6 +437,7 @@ public class GenericSyncService {
 							
 							// Relational ID Resolution for Updates
 							resolveRelationalIds(incomingRecord, idMaps);
+							preserveServerOwnedState(incomingRecord, existingRecord);
 
 							// Enforce parent-bill terminal ownership for child records
 							// (BillItem / BillPayment) so one terminal cannot attach or mutate
@@ -523,6 +515,8 @@ public class GenericSyncService {
 						// Only KBOOK_ADMIN can create admin users (via web-admin, not sync).
 						if (incomingRecord instanceof User newUser && !isKbookAdmin) {
 							newUser.setRole(com.khanabook.saas.entity.UserRole.OWNER);
+							newUser.setIsActive(true);
+							newUser.setTokenInvalidatedAt(null);
 						}
 
 						// Enforce parent-bill terminal ownership for child records
@@ -792,6 +786,18 @@ public class GenericSyncService {
 			incoming.setDailyOrderCounter(maxNullable(existing.getDailyOrderCounter(), incoming.getDailyOrderCounter()));
 			incoming.setLastResetDate(existing.getLastResetDate());
 			incoming.setLastResetDateProper(existing.getLastResetDateProper());
+		}
+	}
+
+	static void preserveServerOwnedState(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		if (incoming instanceof User incomingUser && existing instanceof User existingUser) {
+			incomingUser.setIsActive(existingUser.getIsActive() != null ? existingUser.getIsActive() : true);
+			incomingUser.setTokenInvalidatedAt(existingUser.getTokenInvalidatedAt());
+			incomingUser.setRole(existingUser.getRole());
+		}
+		if (incoming instanceof RestaurantProfile incomingProfile
+				&& existing instanceof RestaurantProfile existingProfile) {
+			incomingProfile.setIsSuspended(existingProfile.getIsSuspended());
 		}
 	}
 

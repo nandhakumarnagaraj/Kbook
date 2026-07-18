@@ -49,6 +49,16 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	@ExceptionHandler(DuplicateStaffPhoneException.class)
+	public ResponseEntity<Map<String, Object>> handleDuplicateStaffPhone(
+			DuplicateStaffPhoneException e, HttpServletRequest request) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+				"error", "PHONE_NUMBER_EXISTS",
+				"message", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<Map<String, Object>> handleUnreadableMessage(
 			HttpMessageNotReadableException e, HttpServletRequest request) {
@@ -65,6 +75,7 @@ public class GlobalExceptionHandler {
 		log.warn("Access denied [{}]: {}", request.getRequestURI(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
 				"error", "Access denied",
+				"message", e.getMessage() != null ? e.getMessage() : "Required permission is missing",
 				"path", request.getRequestURI()
 		));
 	}
@@ -95,6 +106,17 @@ public class GlobalExceptionHandler {
 		log.warn("Duplicate menu item [{}]: {}", request.getRequestURI(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
 				"error", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(BusinessSuspendedException.class)
+	public ResponseEntity<Map<String, Object>> handleBusinessSuspended(
+			BusinessSuspendedException e, HttpServletRequest request) {
+		log.warn("Business suspended login attempt [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+				"error", "BUSINESS_SUSPENDED",
+				"message", "Business is suspended",
 				"path", request.getRequestURI()
 		));
 	}

@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -26,6 +27,11 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <p class="muted">Select a row to inspect revenue and business details.</p>
         </div>
         <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+      </div>
+
+      <!-- Toast notification -->
+      <div class="toast" *ngIf="toast()" [class.toast--success]="toast()!.kind === 'success'" [class.toast--error]="toast()!.kind === 'error'">
+        {{ toast()!.message }}
       </div>
 
       <section class="panel filter-panel" *ngIf="loaded && businesses.length">
@@ -67,21 +73,37 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <th>Menu</th>
               <th>Staff</th>
               <th>Updated</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let business of pagedBusinesses" (click)="showDetails(business)" style="cursor: pointer;">
-              <td>
+            <tr *ngFor="let business of pagedBusinesses">
+              <td (click)="showDetails(business)" style="cursor: pointer;">
                 <div class="stacked-meta">
                   <strong>{{ business.shopName || '-' }}</strong>
                   <span class="muted">#{{ business.restaurantId }}</span>
+                  <span class="chip danger" *ngIf="business.isSuspended">Suspended</span>
                 </div>
               </td>
-              <td>{{ business.ownerName || '-' }}</td>
-              <td>{{ business.orderCount }}</td>
-              <td>{{ business.menuCount }}</td>
-              <td>{{ business.staffCount }}</td>
-              <td>{{ formatDateValue(business.updatedAt) }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.ownerName || '-' }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.updatedAt) }}</td>
+              <td>
+                <button
+                  *ngIf="!business.isSuspended"
+                  class="ghost-btn ghost-btn--danger"
+                  (click)="confirmSuspend(business); $event.stopPropagation()">
+                  Suspend
+                </button>
+                <button
+                  *ngIf="business.isSuspended"
+                  class="ghost-btn ghost-btn--accent"
+                  (click)="activateBusiness(business); $event.stopPropagation()">
+                  Activate
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -135,8 +157,56 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           </article>
         </div>
       </div>
+
+      <!-- Suspend confirmation dialog -->
+      <app-confirm-dialog
+        *ngIf="suspendTarget()"
+        title="Suspend Business"
+        [message]="'Are you sure you want to suspend ' + (suspendTarget()!.shopName || 'this business') + '? This will disable all operations for this business.'"
+        confirmLabel="Suspend"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="executeSuspend()"
+        (cancelled)="suspendTarget.set(null)"
+      ></app-confirm-dialog>
     </div>
-  `
+  `,
+  styles: [`
+    .ghost-btn--danger {
+      color: var(--danger, #a6372f);
+      border-color: var(--danger, #a6372f);
+    }
+    .ghost-btn--accent {
+      color: var(--accent, #1d7b5f);
+      border-color: var(--accent, #1d7b5f);
+    }
+    .toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 2000;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      animation: slideIn 0.3s ease;
+    }
+    .toast--success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+    .toast--error {
+      background: #fbe9e7;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  `]
 })
 export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
@@ -145,6 +215,8 @@ export class BusinessesPageComponent {
   loaded = false;
   loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
+  readonly suspendTarget = signal<AdminBusinessListItem | null>(null);
+  readonly toast = signal<{ message: string; kind: 'success' | 'error' } | null>(null);
 
   searchTerm = '';
   pageSize = 10;
@@ -220,6 +292,43 @@ export class BusinessesPageComponent {
 
   clearDetail(): void {
     this.selectedDetail.set(null);
+  }
+
+  confirmSuspend(business: AdminBusinessListItem): void {
+    this.suspendTarget.set(business);
+  }
+
+  executeSuspend(): void {
+    const target = this.suspendTarget();
+    if (!target) return;
+    this.suspendTarget.set(null);
+
+    this.api.suspendBusiness(target.restaurantId).subscribe({
+      next: () => {
+        target.isSuspended = true;
+        this.showToast(`${target.shopName || 'Business'} has been suspended.`, 'success');
+      },
+      error: () => {
+        this.showToast(`Failed to suspend ${target.shopName || 'business'}.`, 'error');
+      }
+    });
+  }
+
+  activateBusiness(business: AdminBusinessListItem): void {
+    this.api.activateBusiness(business.restaurantId).subscribe({
+      next: () => {
+        business.isSuspended = false;
+        this.showToast(`${business.shopName || 'Business'} has been activated.`, 'success');
+      },
+      error: () => {
+        this.showToast(`Failed to activate ${business.shopName || 'business'}.`, 'error');
+      }
+    });
+  }
+
+  private showToast(message: string, kind: 'success' | 'error'): void {
+    this.toast.set({ message, kind });
+    setTimeout(() => this.toast.set(null), 4000);
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }

@@ -9,6 +9,7 @@ public record AdminBusinessListItemResponse(
         String whatsappNumber,
         String email,
         boolean websiteEnabled,
+        boolean isSuspended,
         long staffCount,
         long menuCount,
         long orderCount,

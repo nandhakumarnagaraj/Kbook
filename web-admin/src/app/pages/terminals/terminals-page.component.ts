@@ -2,13 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { BusinessTerminal, TerminalRequest } from '../../core/models/api.models';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -52,7 +54,7 @@ import { formatDate } from '../../shared/formatters';
                     placeholder="Terminal name"
                   />
                   <div class="row-actions">
-                    <button class="ghost-btn" [disabled]="saving" (click)="saveRename(terminal)">Save</button>
+                    <button class="ghost-btn" [disabled]="saving()" (click)="saveRename(terminal)">Save</button>
                     <button class="ghost-btn" (click)="cancelEdit()">Cancel</button>
                   </div>
                 </ng-container>
@@ -68,7 +70,7 @@ import { formatDate } from '../../shared/formatters';
                 <span
                   class="chip"
                   [class.success]="terminal.status.toLowerCase() === 'active'"
-                  [class.danger]="terminal.status.toLowerCase() === 'deactivated'"
+                  [class.danger]="terminal.status.toLowerCase() === 'inactive'"
                 >
                   {{ terminal.status }}
                 </span>
@@ -77,16 +79,24 @@ import { formatDate } from '../../shared/formatters';
               <td>{{ formatDateValue(terminal.updatedAt) }}</td>
               <td>
                 <div class="action-stack">
-                  <button class="ghost-btn" [disabled]="saving" (click)="startEdit(terminal)">Rename</button>
+                  <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
                   <button
-                    *ngIf="terminal.status.toLowerCase() !== 'deactivated'; else deactivated"
+                    *ngIf="terminal.status.toLowerCase() !== 'inactive'"
                     class="ghost-btn danger-btn"
-                    [disabled]="saving"
+                    [disabled]="saving()"
                     (click)="deactivate(terminal)"
                   >
                     Deactivate
                   </button>
-                  <ng-template #deactivated><span class="muted">Deactivated</span></ng-template>
+                  <button
+                    *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()"
+                    class="ghost-btn success-btn"
+                    [disabled]="saving()"
+                    (click)="confirmReactivate(terminal)"
+                  >
+                    Reactivate
+                  </button>
+                  <span *ngIf="terminal.status.toLowerCase() === 'inactive' && !canManageTerminals()" class="muted">Deactivated</span>
                 </div>
               </td>
             </tr>
@@ -159,8 +169,8 @@ import { formatDate } from '../../shared/formatters';
                 <td>{{ formatDateValue(req.requestedAt) }}</td>
                 <td>
                   <div class="action-stack" *ngIf="req.status.toLowerCase() === 'pending'; else reqDone">
-                    <button class="ghost-btn success-btn" [disabled]="saving" (click)="approve(req)">Approve</button>
-                    <button class="ghost-btn danger-btn" [disabled]="saving" (click)="reject(req)">Reject</button>
+                    <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
+                    <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="reject(req)">Reject</button>
                   </div>
                   <ng-template #reqDone><span class="muted">{{ req.rejectionReason || '-' }}</span></ng-template>
                 </td>
@@ -172,6 +182,16 @@ import { formatDate } from '../../shared/formatters';
           <div class="loading">No device requests.</div>
         </ng-template>
       </section>
+
+      <app-confirm-dialog
+        *ngIf="reactivatingTerminal()"
+        title="Reactivate Terminal"
+        [message]="getReactivateMessage()"
+        confirmLabel="Reactivate"
+        cancelLabel="Cancel"
+        (confirmed)="doReactivate()"
+        (cancelled)="reactivatingTerminal.set(null)"
+      ></app-confirm-dialog>
 
       <div class="toast" *ngIf="toast(); else nostate">{{ toast() }}</div>
       <ng-template #nostate></ng-template>
@@ -203,12 +223,14 @@ import { formatDate } from '../../shared/formatters';
 })
 export class TerminalsPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
 
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly requests = signal<TerminalRequest[]>([]);
   readonly loaded = signal(false);
   readonly saving = signal(false);
   readonly toast = signal<string | null>(null);
+  readonly reactivatingTerminal = signal<BusinessTerminal | null>(null);
 
   readonly requestFilter = signal<'PENDING' | 'ALL'>('PENDING');
   readonly editingId = signal<number | null>(null);
@@ -282,7 +304,7 @@ export class TerminalsPageComponent {
     this.api.deactivateTerminal(terminal.id).subscribe({
       next: () => {
         this.terminals.update((list) =>
-          list.map((t) => (t.id === terminal.id ? { ...t, status: 'DEACTIVATED', isActive: false } : t))
+          list.map((t) => (t.id === terminal.id ? { ...t, status: 'INACTIVE', isActive: false } : t))
         );
         this.saving.set(false);
         this.notify('Terminal deactivated');
@@ -329,6 +351,48 @@ export class TerminalsPageComponent {
     });
   }
 
+  canManageTerminals(): boolean {
+    const role = this.auth.session()?.role;
+    return role === 'OWNER' || role === 'SHOP_ADMIN';
+  }
+
+  confirmReactivate(terminal: BusinessTerminal): void {
+    this.reactivatingTerminal.set(terminal);
+  }
+
+  getReactivateMessage(): string {
+    const t = this.reactivatingTerminal();
+    const name = t?.terminalName || t?.terminalSeries || 'Unnamed';
+    return `Reactivate terminal "${name}"? It will become active and count toward the 5 active terminal limit.`;
+  }
+
+  doReactivate(): void {
+    const terminal = this.reactivatingTerminal();
+    if (!terminal) return;
+    this.reactivatingTerminal.set(null);
+    this.saving.set(true);
+    this.api.reactivateTerminal(terminal.id).subscribe({
+      next: () => {
+        this.terminals.update((list) =>
+          list.map((t) => (t.id === terminal.id ? { ...t, status: 'ACTIVE', isActive: true } : t))
+        );
+        this.saving.set(false);
+        this.notify('Terminal reactivated');
+      },
+      error: (err) => {
+        this.saving.set(false);
+        const msg = this.errMsg(err, 'Reactivation failed');
+        if (msg === 'MAX_ACTIVE_TERMINALS_REACHED'
+            || msg.toLowerCase().includes('limit')
+            || msg.toLowerCase().includes('maximum')) {
+          this.fail('Cannot reactivate: maximum 5 active terminals reached');
+        } else {
+          this.fail(msg);
+        }
+      }
+    });
+  }
+
   private notify(message: string): void {
     this.toast.set(message);
     setTimeout(() => this.toast.set(null), 2600);
@@ -346,7 +410,5 @@ export class TerminalsPageComponent {
 
   formatDateValue(value: number | null): string { return formatDate(value); }
 }
-
-
 
 

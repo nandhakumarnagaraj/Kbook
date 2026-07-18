@@ -6,6 +6,14 @@ import { environment } from '../../../environments/environment';
 
 declare const google: any;
 
+type ForgotStep = 'none' | 'phone' | 'otp' | 'password' | 'success';
+
+export function isPasswordResetSubmissionValid(newPassword: string, confirmPassword: string): boolean {
+  return newPassword.length >= 6
+    && confirmPassword.length >= 6
+    && newPassword === confirmPassword;
+}
+
 @Component({
   selector: 'app-login-page',
   standalone: true,
@@ -23,31 +31,127 @@ declare const google: any;
           </div>
         </div>
 
-        <!-- Google Sign-In button -->
-        <div>
-          <div id="google-btn"></div>
-          <div *ngIf="googleError" class="alert-box error" style="margin-top: 0.75rem;">{{ googleError }}</div>
-        </div>
+        <!-- Login success message (after password reset) -->
+        <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
 
-        <div class="divider"><span>or sign in with password</span></div>
+        <!-- Main Login Form -->
+        <ng-container *ngIf="forgotStep === 'none'">
+          <!-- Google Sign-In button -->
+          <div>
+            <div id="google-btn"></div>
+            <div *ngIf="googleError" class="alert-box error" style="margin-top: 0.75rem;">{{ googleError }}</div>
+          </div>
 
-        <form [formGroup]="form" (ngSubmit)="submit()">
-          <label>
-            Login ID
-            <input formControlName="loginId" placeholder="Phone number or email">
-          </label>
+          <div class="divider"><span>or sign in with password</span></div>
 
-          <label>
-            Password
-            <input type="password" formControlName="password" placeholder="Enter password">
-          </label>
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <label>
+              Login ID
+              <input formControlName="loginId" placeholder="Phone number or email">
+            </label>
 
-          <div *ngIf="error" class="alert-box error">{{ error }}</div>
+            <label>
+              Password
+              <input type="password" formControlName="password" placeholder="Enter password">
+            </label>
 
-          <button class="primary-btn" [disabled]="form.invalid || loading">
-            {{ loading ? 'Signing in...' : 'Sign in' }}
-          </button>
-        </form>
+            <a class="forgot-link" (click)="startForgotPassword()">Forgot Password?</a>
+
+            <div *ngIf="error" class="alert-box error">{{ error }}</div>
+
+            <button class="primary-btn" [disabled]="form.invalid || loading">
+              {{ loading ? 'Signing in...' : 'Sign in' }}
+            </button>
+          </form>
+        </ng-container>
+
+        <!-- Forgot Password Step 1: Phone Number -->
+        <ng-container *ngIf="forgotStep === 'phone'">
+          <div class="forgot-header">
+            <h2>Forgot Password</h2>
+            <p class="muted">Enter your registered phone number to receive an OTP.</p>
+          </div>
+
+          <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()">
+            <label>
+              Phone Number
+              <input formControlName="phone" placeholder="10-digit phone number" maxlength="10">
+            </label>
+
+            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+
+            <button class="primary-btn" [disabled]="phoneForm.invalid || forgotLoading">
+              {{ forgotLoading ? 'Sending OTP...' : 'Send OTP' }}
+            </button>
+          </form>
+
+          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
+        </ng-container>
+
+        <!-- Forgot Password Step 2: OTP Entry -->
+        <ng-container *ngIf="forgotStep === 'otp'">
+          <div class="forgot-header">
+            <h2>Enter OTP</h2>
+            <p class="muted">Enter the 4-digit code sent to your phone.</p>
+          </div>
+
+          <form [formGroup]="otpForm" (ngSubmit)="submitOtp()">
+            <label>
+              OTP Code
+              <input formControlName="otp" placeholder="4-digit OTP" maxlength="4">
+            </label>
+
+            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+
+            <button class="primary-btn" [disabled]="otpForm.invalid || forgotLoading">
+              {{ forgotLoading ? 'Verifying...' : 'Verify OTP' }}
+            </button>
+          </form>
+
+          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
+        </ng-container>
+
+        <!-- Forgot Password Step 3: New Password -->
+        <ng-container *ngIf="forgotStep === 'password'">
+          <div class="forgot-header">
+            <h2>Reset Password</h2>
+            <p class="muted">Enter your new password (minimum 6 characters).</p>
+          </div>
+
+          <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()">
+            <label>
+              New Password
+              <input type="password" formControlName="newPassword" placeholder="Min 6 characters">
+            </label>
+
+            <label>
+              Confirm Password
+              <input type="password" formControlName="confirmPassword" placeholder="Re-enter password">
+            </label>
+
+            <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error">
+              Passwords do not match.
+            </div>
+
+            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+
+            <button class="primary-btn" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
+              {{ forgotLoading ? 'Resetting...' : 'Reset Password' }}
+            </button>
+          </form>
+
+          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
+        </ng-container>
+
+        <!-- Forgot Password Success -->
+        <ng-container *ngIf="forgotStep === 'success'">
+          <div class="forgot-header">
+            <h2>Password Reset Successful</h2>
+            <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
+          </div>
+
+          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
+        </ng-container>
       </div>
     </section>
   `,
@@ -72,6 +176,7 @@ declare const google: any;
     }
 
     h1 { margin: 0.25rem 0 0.5rem; font-size: 2rem; }
+    h2 { margin: 0; font-size: 1.4rem; }
 
     .eyebrow {
       text-transform: uppercase;
@@ -119,8 +224,32 @@ declare const google: any;
       font-size: 0.9rem;
     }
     .alert-box.error { color: #b03030; background: #fdf0f0; }
+    .alert-box.success { color: #1d6b4f; background: #edf8f4; }
 
     #google-btn { display: flex; justify-content: center; }
+
+    .forgot-link {
+      color: var(--brand);
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-align: right;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+
+    .back-link {
+      color: var(--muted);
+      font-size: 0.88rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--brand); text-decoration: underline; }
+
+    .forgot-header {
+      display: grid;
+      gap: 0.5rem;
+    }
   `]
 })
 export class LoginPageComponent implements OnInit {
@@ -133,9 +262,34 @@ export class LoginPageComponent implements OnInit {
     password: ['', Validators.required]
   });
 
+  readonly phoneForm = this.fb.nonNullable.group({
+    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]]
+  });
+
+  readonly otpForm = this.fb.nonNullable.group({
+    otp: ['', [Validators.required, Validators.pattern(/^\d{4}$/)]]
+  });
+
+  readonly passwordForm = this.fb.nonNullable.group({
+    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required, Validators.minLength(6)]]
+  });
+
   loading = false;
   error = '';
   googleError = '';
+  loginSuccessMessage = '';
+
+  forgotStep: ForgotStep = 'none';
+  forgotLoading = false;
+  forgotError = '';
+  private forgotPhone = '';
+  private tempToken = '';
+
+  get passwordMismatch(): boolean {
+    const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
+    return confirmPassword.length > 0 && newPassword !== confirmPassword;
+  }
 
   ngOnInit(): void {
     this.initGoogle();
@@ -174,11 +328,87 @@ export class LoginPageComponent implements OnInit {
     if (this.form.invalid || this.loading) return;
     this.loading = true;
     this.error = '';
+    this.loginSuccessMessage = '';
     this.authService.login(this.form.getRawValue()).subscribe({
       next: () => { this.loading = false; },
       error: (err) => {
         this.loading = false;
         this.error = err?.error?.error || err?.error?.message || 'Login failed.';
+      }
+    });
+  }
+
+  startForgotPassword(): void {
+    this.forgotStep = 'phone';
+    this.forgotError = '';
+    this.forgotLoading = false;
+    this.loginSuccessMessage = '';
+    this.phoneForm.reset();
+    this.otpForm.reset();
+    this.passwordForm.reset();
+  }
+
+  backToLogin(): void {
+    this.forgotStep = 'none';
+    this.forgotError = '';
+    this.forgotLoading = false;
+    this.forgotPhone = '';
+    this.tempToken = '';
+  }
+
+  submitPhone(): void {
+    if (this.phoneForm.invalid || this.forgotLoading) return;
+    this.forgotLoading = true;
+    this.forgotError = '';
+    this.forgotPhone = this.phoneForm.getRawValue().phone;
+
+    this.authService.requestPasswordOtp(this.forgotPhone).subscribe({
+      next: () => {
+        this.forgotLoading = false;
+        this.forgotStep = 'otp';
+      },
+      error: (err) => {
+        this.forgotLoading = false;
+        this.forgotError = err?.error?.error || err?.error?.message || 'Failed to send OTP. Please try again.';
+      }
+    });
+  }
+
+  submitOtp(): void {
+    if (this.otpForm.invalid || this.forgotLoading) return;
+    this.forgotLoading = true;
+    this.forgotError = '';
+    const otp = this.otpForm.getRawValue().otp;
+
+    this.authService.verifyPasswordOtp(this.forgotPhone, otp).subscribe({
+      next: (res) => {
+        this.forgotLoading = false;
+        this.tempToken = res.tempToken;
+        this.forgotStep = 'password';
+      },
+      error: (err) => {
+        this.forgotLoading = false;
+        this.forgotError = err?.error?.error || err?.error?.message || 'Invalid or expired OTP. Please try again.';
+      }
+    });
+  }
+
+  submitNewPassword(): void {
+    const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
+    if (this.passwordForm.invalid
+        || !isPasswordResetSubmissionValid(newPassword, confirmPassword)
+        || this.forgotLoading) return;
+    this.forgotLoading = true;
+    this.forgotError = '';
+
+    this.authService.resetPassword(this.tempToken, newPassword).subscribe({
+      next: () => {
+        this.forgotLoading = false;
+        this.forgotStep = 'success';
+      },
+      error: (err) => {
+        this.forgotLoading = false;
+        this.forgotError = err?.error?.error || err?.error?.message || 'Failed to reset password. Please try again.';
       }
     });
   }

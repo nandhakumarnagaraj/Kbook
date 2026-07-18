@@ -10,6 +10,7 @@ import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.exception.BusinessSuspendedException;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.AuthService;
@@ -62,6 +63,8 @@ public class AuthServiceImpl implements AuthService {
 		if (!Boolean.TRUE.equals(user.getIsActive())) {
 			throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
 		}
+
+		checkBusinessNotSuspended(user.getRestaurantId());
 
 		backfillLoginIdIfMissing(user);
 
@@ -149,6 +152,7 @@ public class AuthServiceImpl implements AuthService {
 							if (!Boolean.TRUE.equals(user.getIsActive())) {
 								throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
 							}
+							checkBusinessNotSuspended(user.getRestaurantId());
 							// Upgrade older records to explicit Google ownership when linked.
 							if (user.getGoogleEmail() == null) {
 								user.setGoogleEmail(email);
@@ -282,5 +286,14 @@ public class AuthServiceImpl implements AuthService {
 			return user.getLoginId();
 		}
 		return user.getEmail();
+	}
+
+	private void checkBusinessNotSuspended(Long restaurantId) {
+		restaurantProfileRepository.findByRestaurantId(restaurantId)
+				.ifPresent(profile -> {
+					if (Boolean.TRUE.equals(profile.getIsSuspended())) {
+						throw new BusinessSuspendedException();
+					}
+				});
 	}
 }

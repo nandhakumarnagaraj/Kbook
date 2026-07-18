@@ -2,13 +2,56 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessOrder } from '../../core/models/api.models';
+import { BusinessOrder, OrderDetailResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+
+export function escapeCsvField(value: string): string {
+  const spreadsheetSafe = /^[=+\-@]/.test(value) ? `'${value}` : value;
+  if (spreadsheetSafe.includes(',') || spreadsheetSafe.includes('"')
+      || spreadsheetSafe.includes('\n') || spreadsheetSafe.includes('\r')) {
+    return `"${spreadsheetSafe.replace(/"/g, '""')}"`;
+  }
+  return spreadsheetSafe;
+}
+
+export interface BusinessOrderFilters {
+  searchTerm: string;
+  statusFilter: string;
+  sourceFilter: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+}
+
+export function filterBusinessOrders(
+  orders: BusinessOrder[],
+  filters: BusinessOrderFilters
+): BusinessOrder[] {
+  const search = filters.searchTerm.trim().toLowerCase();
+  return orders.filter(order => {
+    const matchesSearch = !search || [
+      order.orderCode,
+      order.customerName ?? '',
+      order.customerContact ?? '',
+      order.paymentMethod,
+      order.paymentStatus
+    ].some(value => value.toLowerCase().includes(search));
+    const matchesStatus = filters.statusFilter === 'ALL' || order.orderStatus === filters.statusFilter;
+    const matchesSource = filters.sourceFilter === 'ALL' || order.sourceType === filters.sourceFilter;
+    const matchesDate = !filters.dateFrom || !filters.dateTo
+      ? true
+      : Boolean(order.createdAt)
+        && new Date(order.createdAt!) >= new Date(filters.dateFrom + 'T00:00:00')
+        && new Date(order.createdAt!) <= new Date(filters.dateTo + 'T23:59:59.999');
+    return matchesSearch && matchesStatus && matchesSource && matchesDate;
+  });
+}
 
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -20,6 +63,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
       </section>
 
+      <!-- Refund Modal -->
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
         <div class="modal-box" (click)="$event.stopPropagation()">
           <h3>Manual Refund {{ refundTarget.orderCode }}</h3>
@@ -59,12 +103,26 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
       </div>
 
+      <!-- Order Detail Modal -->
+      <app-order-detail-modal
+        [order]="selectedOrderDetail"
+        (closed)="closeOrderDetail()">
+      </app-order-detail-modal>
+
       <div class="toolbar">
         <div>
           <h3>POS and Business Orders</h3>
           <p class="muted">POS order list.</p>
         </div>
-        <button class="ghost-btn" (click)="loadOrders()">Refresh</button>
+        <div class="toolbar-actions">
+          <button
+            class="ghost-btn"
+            [disabled]="filteredOrders.length === 0"
+            [title]="filteredOrders.length === 0 ? 'No data to export' : 'Export filtered orders as CSV'"
+            (click)="exportCsv()"
+          >Export CSV</button>
+          <button class="ghost-btn" (click)="loadOrders()">Refresh</button>
+        </div>
       </div>
 
       <section class="panel filter-panel" *ngIf="ordersLoaded && orders.length">
@@ -104,8 +162,17 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           </div>
         </div>
 
+        <!-- Date Range Filter -->
+        <div class="filter-group filter-group--full">
+          <label>Date Range</label>
+          <app-date-range-selector (rangeChanged)="onDateRangeChange($event)"></app-date-range-selector>
+        </div>
+
         <div class="filter-summary">
-          <p class="muted">{{ filteredOrders.length }} of {{ orders.length }} orders</p>
+          <p class="muted">
+            {{ filteredOrders.length }} of {{ orders.length }} orders
+            <span *ngIf="dateRangeLabel" class="date-range-active">&#x1f4c5; {{ dateRangeLabel }}</span>
+          </p>
           <button class="ghost-btn" (click)="clearOrderFilters()">Clear filters</button>
         </div>
       </section>
@@ -126,7 +193,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let order of pagedOrders">
+            <tr *ngFor="let order of pagedOrders" class="clickable-row" (click)="openOrderDetail(order)">
               <td><span class="chip">{{ order.sourceType }}</span></td>
               <td>{{ order.orderCode }}</td>
               <td>
@@ -168,7 +235,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                   <button
                     *ngIf="order.manualRefundAllowed"
                     class="ghost-btn danger-btn"
-                    (click)="openManualRefund(order)"
+                    (click)="openManualRefund(order); $event.stopPropagation()"
                   >
                     Manual Refund
                   </button>
@@ -200,6 +267,20 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .chip.danger { background: #fdecea; color: #b03030; }
     .chip.warn { background: #fff8e1; color: #7a5c00; }
     .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+
+    .clickable-row { cursor: pointer; transition: background 0.15s; }
+    .clickable-row:hover { background: var(--bg, #f6f1e8); }
+
+    .filter-group--full { grid-column: 1 / -1; }
+
+    .date-range-active {
+      display: inline-block;
+      margin-left: 0.5rem;
+      padding: 0.15rem 0.5rem;
+      background: var(--bg, #f6f1e8);
+      border-radius: 6px;
+      font-size: 0.8rem;
+}
 
     .modal-backdrop {
       position: fixed;
@@ -237,6 +318,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
     .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
     .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.35rem 0 0; }
+    .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
   `]
 })
 export class OrdersPageComponent {
@@ -257,6 +339,15 @@ export class OrdersPageComponent {
   orderPageSize = 10;
   orderCurrentPage = 1;
 
+  // Date range filter state
+  dateFrom: string | null = null;
+  dateTo: string | null = null;
+  dateRangeLabel = '';
+
+  // Order detail modal state
+  selectedOrderDetail: OrderDetailResponse | null = null;
+  orderDetailLoading = false;
+
   constructor() {
     this.loadOrders();
   }
@@ -270,21 +361,12 @@ export class OrdersPageComponent {
   }
 
   get filteredOrders(): BusinessOrder[] {
-    const search = this.orderSearchTerm.trim().toLowerCase();
-
-    return this.orders.filter((order) => {
-      const matchesSearch = !search || [
-        order.orderCode,
-        order.customerName ?? '',
-        order.customerContact ?? '',
-        order.paymentMethod,
-        order.paymentStatus
-      ].some((value) => value.toLowerCase().includes(search));
-
-      const matchesStatus = this.orderStatusFilter === 'ALL' || order.orderStatus === this.orderStatusFilter;
-      const matchesSource = this.orderSourceFilter === 'ALL' || order.sourceType === this.orderSourceFilter;
-
-      return matchesSearch && matchesStatus && matchesSource;
+    return filterBusinessOrders(this.orders, {
+      searchTerm: this.orderSearchTerm,
+      statusFilter: this.orderStatusFilter,
+      sourceFilter: this.orderSourceFilter,
+      dateFrom: this.dateFrom,
+      dateTo: this.dateTo
     });
   }
 
@@ -319,11 +401,95 @@ export class OrdersPageComponent {
     this.orderSourceFilter = 'ALL';
     this.orderPageSize = 10;
     this.orderCurrentPage = 1;
+    this.dateFrom = null;
+    this.dateTo = null;
+    this.dateRangeLabel = '';
   }
 
   goToOrderPage(page: number): void {
     this.orderCurrentPage = Math.min(Math.max(1, page), this.orderTotalPages);
   }
+
+  // --- Date range filtering ---
+
+  onDateRangeChange(range: { from: string; to: string }): void {
+    this.dateFrom = range.from;
+    this.dateTo = range.to;
+    this.dateRangeLabel = `${range.from} → ${range.to}`;
+    this.resetOrderPage();
+  }
+
+  // --- Order detail modal ---
+
+  openOrderDetail(order: BusinessOrder): void {
+    this.orderDetailLoading = true;
+    this.api.getOrderDetail(order.orderId).subscribe({
+      next: (detail) => {
+        this.selectedOrderDetail = detail;
+        this.orderDetailLoading = false;
+        document.body.style.overflow = 'hidden';
+      },
+      error: () => {
+        this.orderDetailLoading = false;
+      }
+    });
+  }
+
+  closeOrderDetail(): void {
+    this.selectedOrderDetail = null;
+    document.body.style.overflow = '';
+  }
+
+  // --- CSV Export ---
+
+  exportCsv(): void {
+    const orders = this.filteredOrders;
+    if (orders.length === 0) return;
+
+    const headers = [
+      'Order Code', 'Source', 'Customer Name', 'Customer Contact',
+      'Order Status', 'Payment Method', 'Payment Status',
+      'Total Amount', 'Refund Amount', 'Created Date'
+    ];
+
+    const rows = orders.map(order => [
+      order.orderCode,
+      order.sourceType,
+      order.customerName ?? '',
+      order.customerContact ?? '',
+      order.orderStatus,
+      order.paymentMethod,
+      order.paymentStatus,
+      String(order.totalAmount ?? 0),
+      String(order.refundAmount ?? 0),
+      order.createdAt ? this.formatDateValue(order.createdAt) : ''
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => escapeCsvField(field)).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.getCsvFilename();
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  private getCsvFilename(): string {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `orders_${yyyy}-${mm}-${dd}.csv`;
+  }
+
+  // --- Refund ---
 
   openManualRefund(order: BusinessOrder): void {
     this.refundTarget = order;

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 @Builder
 public record BusinessMenuListItemResponse(
         Long menuItemId,
+        Long categoryId,
         String categoryName,
         String name,
         String description,

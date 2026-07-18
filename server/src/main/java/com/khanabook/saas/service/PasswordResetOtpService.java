@@ -28,6 +28,7 @@ public class PasswordResetOtpService {
 	private static final int MAX_ATTEMPTS = 5;
 	private static final String SIGNUP_PREFIX = "signup:";
 	private static final String PASSWORD_RESET_PREFIX = "password-reset:";
+	private static final String WEB_PASSWORD_RESET_PREFIX = "web-password-reset:";
 	private static final String MOBILE_UPDATE_PREFIX = "mobile-update:";
 
 	private final OtpRequestRepository otpRequestRepository;
@@ -50,12 +51,12 @@ public class PasswordResetOtpService {
 
 	@Transactional
 	public void issueOtp(String phoneNumber) {
-		issueOtp(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber);
+		issueOtp(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, 6);
 	}
 
 	@Transactional
 	public void issueSignupOtp(String phoneNumber) {
-		issueOtp(SIGNUP_PREFIX + phoneNumber, phoneNumber);
+		issueOtp(SIGNUP_PREFIX + phoneNumber, phoneNumber, 6);
 	}
 
 	@Transactional
@@ -70,7 +71,7 @@ public class PasswordResetOtpService {
 
 	@Transactional
 	public void issueMobileUpdateOtp(Long tenantId, String phoneNumber) {
-		issueOtp(MOBILE_UPDATE_PREFIX + tenantId, phoneNumber);
+		issueOtp(MOBILE_UPDATE_PREFIX + tenantId, phoneNumber, 6);
 	}
 
 	@Transactional
@@ -78,8 +79,21 @@ public class PasswordResetOtpService {
 		validateOtpOrThrow(MOBILE_UPDATE_PREFIX + tenantId, phoneNumber, otp);
 	}
 
-	private void issueOtp(String challengeKey, String phoneNumber) {
-		String otp = String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
+	@Transactional
+	public void issueWebAdminOtp(String phoneNumber) {
+		issueOtp(WEB_PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, 4);
+	}
+
+	@Transactional
+	public void validateWebAdminOtpOrThrow(String phoneNumber, String otp) {
+		validateOtpOrThrow(WEB_PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, otp);
+	}
+
+	private void issueOtp(String challengeKey, String phoneNumber, int digits) {
+		int upperBound = digits == 4 ? 10_000 : 1_000_000;
+		String format = digits == 4 ? "%04d" : "%06d";
+		String otp = String.format(format,
+				java.util.concurrent.ThreadLocalRandom.current().nextInt(0, upperBound));
 
 		long now = System.currentTimeMillis();
 		OtpRequest request = otpRequestRepository.findByChallengeKey(challengeKey)

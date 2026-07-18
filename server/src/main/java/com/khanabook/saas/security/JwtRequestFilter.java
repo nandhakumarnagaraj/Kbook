@@ -2,6 +2,7 @@ package com.khanabook.saas.security;
 
 import com.khanabook.saas.utility.JwtUtility;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
 import jakarta.servlet.FilterChain;
@@ -33,6 +34,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
+	private final RestaurantProfileRepository restaurantProfileRepository;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
 	private final TokenRevocationCache tokenRevocationCache;
 
@@ -99,6 +101,19 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
+
+							if (!"KBOOK_ADMIN".equals(role) && restaurantId != null
+									&& restaurantProfileRepository.findByRestaurantId(restaurantId)
+											.map(profile -> Boolean.TRUE.equals(profile.getIsSuspended()))
+											.orElse(false)) {
+								response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+								response.setContentType("application/json");
+								response.getWriter().write(
+										"{\"error\":\"BUSINESS_SUSPENDED\",\"message\":\"Business is suspended\"}");
+								TenantContext.clear();
+								SecurityContextHolder.clearContext();
+								return;
+							}
 
 							// Device binding: warn but allow — any JWT valid for the user works across devices
 							String jwtDeviceId = jwtUtility.extractDeviceId(jwt);

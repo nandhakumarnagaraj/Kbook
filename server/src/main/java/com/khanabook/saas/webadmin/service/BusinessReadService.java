@@ -3,9 +3,11 @@ package com.khanabook.saas.webadmin.service;
 import com.khanabook.saas.utility.AppConstants;
 
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
@@ -13,12 +15,15 @@ import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
+import com.khanabook.saas.webadmin.dto.BusinessCategoryResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMarketplaceSetupResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
 import com.khanabook.saas.webadmin.dto.MarketplaceConfigRequest;
 import com.khanabook.saas.webadmin.dto.MarketplaceConfigResponse;
+import com.khanabook.saas.webadmin.dto.OrderDetailResponse;
+import com.khanabook.saas.webadmin.dto.OrderLineItemResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,19 +47,44 @@ public class BusinessReadService {
     private final ItemVariantRepository itemVariantRepository;
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
+    private final BillItemRepository billItemRepository;
     private final com.khanabook.saas.service.SecurityAuditService securityAuditService;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
+        return getDashboard(restaurantId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public BusinessDashboardResponse getDashboard(Long restaurantId, LocalDate from, LocalDate to) {
         var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
                 .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
         List<User> staff = getBusinessUsers(restaurantId);
         List<MenuItem> menuItems = getBusinessMenuItems(restaurantId);
-        List<Bill> bills = getBusinessBills(restaurantId);
+        List<Bill> allBills = getBusinessBills(restaurantId);
 
         ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
+
+        // Filter bills by date range if from/to are provided
+        List<Bill> bills;
+        if (from != null || to != null) {
+            long rangeStart = from != null
+                    ? from.atStartOfDay(zoneId).toInstant().toEpochMilli()
+                    : 0L;
+            long rangeEnd = to != null
+                    ? to.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+                    : Long.MAX_VALUE;
+            bills = allBills.stream()
+                    .filter(bill -> bill.getCreatedAt() != null
+                            && bill.getCreatedAt() >= rangeStart
+                            && bill.getCreatedAt() < rangeEnd)
+                    .toList();
+        } else {
+            bills = allBills;
+        }
+
         LocalDate today = LocalDate.now(zoneId);
         long startOfToday = today.atStartOfDay(zoneId).toInstant().toEpochMilli();
 
@@ -212,6 +242,7 @@ public class BusinessReadService {
         return menuItems.stream()
                 .map(item -> BusinessMenuListItemResponse.builder()
                         .menuItemId(item.getId())
+                        .categoryId(item.getCategoryId())
                         .categoryName(categoryNames.get(item.getCategoryId()))
                         .name(item.getName())
                         .description(item.getDescription())
@@ -223,6 +254,14 @@ public class BusinessReadService {
                         .updatedAt(item.getUpdatedAt())
                         .build())
                 .sorted(Comparator.comparing(BusinessMenuListItemResponse::updatedAt, Comparator.nullsLast(Long::compareTo)).reversed())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BusinessCategoryResponse> getCategories(Long restaurantId) {
+        return categoryRepository.findByRestaurantIdAndIsDeletedFalseAndIsActiveTrueOrderByNameAsc(restaurantId)
+                .stream()
+                .map(category -> new BusinessCategoryResponse(category.getId(), category.getName()))
                 .toList();
     }
 
@@ -249,6 +288,23 @@ public class BusinessReadService {
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
         return toBillOrderResponse(bill);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getOrderDetail(Long restaurantId, Long billId) {
+        BusinessOrderListItemResponse order = getPosOrder(restaurantId, billId);
+        List<BillItem> billItems = billItemRepository.findByServerBillIdAndIsDeletedFalseOrderById(billId);
+        List<OrderLineItemResponse> lineItems = billItems.stream()
+                .map(item -> new OrderLineItemResponse(
+                        item.getId(),
+                        item.getItemName(),
+                        item.getVariantName(),
+                        item.getQuantity(),
+                        item.getPrice(),
+                        item.getItemTotal()
+                ))
+                .toList();
+        return new OrderDetailResponse(order, lineItems);
     }
 
     @Transactional
@@ -368,5 +424,34 @@ public class BusinessReadService {
                 .replace('_', ' ')
                 .toLowerCase(Locale.ROOT);
         return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
+    }
+
+    /**
+     * Maps a single MenuItem entity to a BusinessMenuListItemResponse.
+     * Used by write endpoints after creating/updating an item.
+     */
+    public BusinessMenuListItemResponse mapMenuItemToResponse(MenuItem item) {
+        String categoryName = null;
+        if (item.getCategoryId() != null) {
+            categoryName = categoryRepository
+                    .findByIdAndRestaurantIdAndIsDeletedFalse(item.getCategoryId(), item.getRestaurantId())
+                    .map(Category::getName)
+                    .orElse(null);
+        }
+        long variantCount = itemVariantRepository
+                .countByMenuItemIdAndIsDeletedFalse(item.getId());
+        return BusinessMenuListItemResponse.builder()
+                .menuItemId(item.getId())
+                .categoryId(item.getCategoryId())
+                .categoryName(categoryName)
+                .name(item.getName())
+                .description(item.getDescription())
+                .foodType(item.getFoodType())
+                .basePrice(item.getBasePrice())
+                .available(Boolean.TRUE.equals(item.getIsAvailable()))
+                .stockStatus(item.getStockStatus() != null ? item.getStockStatus().name() : "IN_STOCK")
+                .variantCount(variantCount)
+                .updatedAt(item.getUpdatedAt())
+                .build();
     }
 }

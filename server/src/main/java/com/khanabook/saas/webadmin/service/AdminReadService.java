@@ -90,6 +90,7 @@ public class AdminReadService {
                             .whatsappNumber(profile.getWhatsappNumber())
                             .email(profile.getEmail())
                             .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
+                            .isSuspended(Boolean.TRUE.equals(profile.getIsSuspended()))
                             .staffCount(staffCount.getOrDefault(profile.getRestaurantId(), 0L))
                             .menuCount(menuCount.getOrDefault(profile.getRestaurantId(), 0L))
                             .orderCount(orders)
