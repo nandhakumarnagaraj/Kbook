@@ -80,9 +80,7 @@ type NavLink = { label: string; path: string };
       position: sticky;
       top: 1.25rem;
       height: calc(100vh - 2.5rem);
-      background:
-        linear-gradient(180deg, rgba(181, 106, 45, 0.08), transparent 28%),
-        var(--panel);
+      background: var(--panel);
     }
 
     .brand-block h1 {
@@ -96,9 +94,9 @@ type NavLink = { label: string; path: string };
       justify-content: center;
       width: 48px;
       height: 48px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
-      box-shadow: 0 10px 22px rgba(126, 68, 23, 0.25);
+      border-radius: 8px;
+      background: var(--brand);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
       margin-bottom: 0.35rem;
     }
 
@@ -126,7 +124,7 @@ type NavLink = { label: string; path: string };
     .nav-link {
       display: block;
       padding: 0.85rem 1rem;
-      border-radius: 12px;
+      border-radius: 8px;
       color: var(--ink);
       text-decoration: none;
       font-weight: 600;
@@ -135,15 +133,15 @@ type NavLink = { label: string; path: string };
     }
 
     .nav-link:hover {
-      background: rgba(181, 106, 45, 0.08);
-      border-color: rgba(181, 106, 45, 0.12);
+      background: rgba(249, 115, 22, 0.08);
+      border-color: rgba(249, 115, 22, 0.12);
       transform: translateX(2px);
     }
 
     .nav-link.active-link {
-      background: linear-gradient(135deg, rgba(181, 106, 45, 0.16), rgba(126, 68, 23, 0.12));
+      background: rgba(249, 115, 22, 0.16);
       color: var(--brand-deep);
-      border-color: rgba(181, 106, 45, 0.18);
+      border-color: rgba(249, 115, 22, 0.18);
     }
 
     .logout-btn {
@@ -230,7 +228,7 @@ type NavLink = { label: string; path: string };
         position: fixed;
         inset: 0;
         z-index: 35;
-        background: rgba(36, 23, 15, 0.45);
+        background: rgba(30, 41, 59, 0.45);
       }
 
       .content-shell {

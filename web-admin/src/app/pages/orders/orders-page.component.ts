@@ -276,8 +276,8 @@ export function filterBusinessOrders(
     .refunded-label { color: var(--danger); font-weight: 500; }
     .refund-meta { font-size: 0.75rem; color: var(--brand-deep); }
     .clickable-row { cursor: pointer; transition: background 0.15s; }
-    .clickable-row:hover { background: var(--bg, #f6f1e8); }
-    .clickable-row:focus-visible { outline: 2px solid var(--brand, #b56a2d); outline-offset: -2px; }
+    .clickable-row:hover { background: var(--bg, #F8FAFC); }
+    .clickable-row:focus-visible { outline: 2px solid var(--brand, #F97316); outline-offset: -2px; }
 
     .filter-group--full { grid-column: 1 / -1; }
 
@@ -285,7 +285,7 @@ export function filterBusinessOrders(
       display: inline-block;
       margin-left: 0.5rem;
       padding: 0.15rem 0.5rem;
-      background: var(--bg, #f6f1e8);
+      background: var(--bg, #F8FAFC);
       border-radius: 6px;
       font-size: 0.8rem;
     }
@@ -295,7 +295,7 @@ export function filterBusinessOrders(
     .field input {
       padding: 0.5rem 0.75rem;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 8px;
       font-size: 0.95rem;
       outline: none;
       min-height: 44px;

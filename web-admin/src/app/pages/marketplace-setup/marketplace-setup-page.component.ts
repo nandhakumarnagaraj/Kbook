@@ -199,7 +199,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       padding: 0;
     }
 
-    .toggle-btn.on { background: #b56a2d; }
+    .toggle-btn.on { background: #F97316; }
 
     .toggle-knob {
       position: absolute;

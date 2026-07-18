@@ -179,12 +179,12 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
   `,
   styles: [`
     .ghost-btn--danger {
-      color: var(--danger, #a6372f);
-      border-color: var(--danger, #a6372f);
+      color: var(--danger, #EF4444);
+      border-color: var(--danger, #EF4444);
     }
     .ghost-btn--accent {
-      color: var(--accent, #1d7b5f);
-      border-color: var(--accent, #1d7b5f);
+      color: var(--accent, #14B8A6);
+      border-color: var(--accent, #14B8A6);
     }
   `]
 })

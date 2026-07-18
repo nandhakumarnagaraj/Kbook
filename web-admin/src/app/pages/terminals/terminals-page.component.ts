@@ -232,7 +232,7 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .ghost-btn.active { background: rgba(181, 106, 45, 0.16); color: var(--brand-deep); }
+    .ghost-btn.active { background: rgba(249, 115, 22, 0.16); color: var(--brand-deep); }
     .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
     .row-actions { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
     .stacked-meta { display: flex; flex-direction: column; }
