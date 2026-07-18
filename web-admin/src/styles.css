@@ -142,6 +142,12 @@ textarea {
 .stat-card {
   padding: 1.1rem 1.2rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 243, 232, 0.92));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(36, 23, 15, 0.1);
 }
 
 .stat-card h3 {
@@ -153,6 +159,34 @@ textarea {
 
 .stat-card strong {
   font-size: 1.85rem;
+}
+
+.stat-card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.stat-card--clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.stat-card--clickable:active {
+  transform: translateY(0);
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickable-row:hover {
+  background: var(--bg, #f6f1e8);
+}
+
+.clickable-row:focus-visible {
+  outline: 2px solid var(--brand, #b56a2d);
+  outline-offset: -2px;
 }
 
 .table-wrap {
@@ -192,7 +226,7 @@ tr:last-child td {
 }
 
 tbody tr:hover {
-  background: rgba(181, 106, 45, 0.035);
+  background: rgba(181, 106, 45, 0.06);
 }
 
 .toolbar {
@@ -212,7 +246,13 @@ tbody tr:hover {
   padding: 0.8rem 1rem;
   cursor: pointer;
   font-weight: 700;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.primary-btn:active,
+.ghost-btn:active,
+.toolbar button:active {
+  transform: scale(0.97);
 }
 
 .primary-btn {
@@ -325,6 +365,12 @@ tbody tr:hover {
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(245, 236, 225, 0.88));
   box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.suggestion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .suggestion-card h3 {
@@ -363,6 +409,234 @@ tbody tr:hover {
   padding: 2rem;
   text-align: center;
   color: var(--muted);
+}
+
+/* --- Shared modal surface (used by orders, menu, staff) --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(36, 23, 15, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1.5rem 2rem;
+  min-width: 340px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 18px 42px rgba(36, 23, 15, 0.18);
+}
+
+.modal-box h3 {
+  margin: 0 0 0.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .modal-box {
+    min-width: unset;
+    padding: 1.25rem;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* --- Shared action button variants --- */
+.danger-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.success-btn {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+/* --- Shared toast (black pill, bottom-right) --- */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  z-index: 1100;
+  max-width: 340px;
+}
+
+/* --- Spinner + reduced motion --- */
+.spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(181, 106, 45, 0.25);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-top: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- Shared skeleton loaders --- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--line, #e9dcc9);
+  border-radius: 8px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: shimmer 1.3s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-stat {
+  height: 84px;
+  border-radius: 18px;
+}
+
+.skeleton-line {
+  height: 0.85rem;
+  margin: 0.4rem 0;
+  border-radius: 6px;
+}
+
+.skeleton-row {
+  height: 52px;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-stack {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.skeleton-table {
+  width: 100%;
+}
+
+.skeleton-table .skeleton-row {
+  width: 100%;
+}
+
+/* --- Shared empty state --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  color: var(--muted);
+}
+
+.empty-state .empty-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.empty-state .empty-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.empty-state .empty-text {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 0.9rem;
+}
+
+.empty-state .empty-action {
+  margin-top: 0.4rem;
+}
+
+/* --- Shared micro-interactions --- */
+.btn-press {
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+.card-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(36, 23, 15, 0.1);
+}
+
+.row-hover {
+  transition: background 0.15s ease;
+}
+
+.row-hover:hover {
+  background: rgba(181, 106, 45, 0.06);
 }
 
 @media (max-width: 900px) {

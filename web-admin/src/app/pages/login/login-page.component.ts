@@ -219,12 +219,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
 
     .alert-box {
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 0.75rem 1rem;
       font-size: 0.9rem;
     }
-    .alert-box.error { color: #b03030; background: #fdf0f0; }
-    .alert-box.success { color: #1d6b4f; background: #edf8f4; }
+    .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(166, 55, 47, 0.2); }
+    .alert-box.success { color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(29, 123, 95, 0.2); }
 
     #google-btn { display: flex; justify-content: center; }
 

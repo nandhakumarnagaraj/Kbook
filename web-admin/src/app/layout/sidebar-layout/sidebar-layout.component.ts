@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -11,8 +11,32 @@ type NavLink = { label: string; path: string };
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="layout-shell">
-      <aside class="sidebar panel">
+      <header class="topbar">
+        <button
+          type="button"
+          class="hamburger"
+          aria-label="Toggle navigation menu"
+          [attr.aria-expanded]="menuOpen()"
+          aria-controls="sidebar-nav"
+          (click)="toggleMenu()">
+          <span class="hamburger__bar"></span>
+          <span class="hamburger__bar"></span>
+          <span class="hamburger__bar"></span>
+        </button>
+        <span class="topbar__title">KhanaBook Web Admin</span>
+      </header>
+
+      <div
+        class="sidebar-backdrop"
+        *ngIf="menuOpen()"
+        (click)="closeMenu()"
+        aria-hidden="true"></div>
+
+      <aside class="sidebar panel" [class.sidebar--open]="menuOpen()" id="sidebar-nav">
         <div class="brand-block">
+          <div class="brand-logo" aria-hidden="true">
+            <span class="brand-logo__mark">K</span>
+          </div>
           <span class="eyebrow">KhanaBook</span>
           <h1>Web Admin</h1>
           <p class="muted">{{ session()?.userName || 'Operator' }}</p>
@@ -25,7 +49,7 @@ type NavLink = { label: string; path: string };
             [routerLink]="link.path"
             routerLinkActive="active-link"
             class="nav-link"
-          >
+            (click)="closeMenu()">
             {{ link.label }}
           </a>
         </nav>
@@ -64,6 +88,25 @@ type NavLink = { label: string; path: string };
     .brand-block h1 {
       margin: 0.35rem 0;
       font-size: 1.7rem;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+      box-shadow: 0 10px 22px rgba(126, 68, 23, 0.25);
+      margin-bottom: 0.35rem;
+    }
+
+    .brand-logo__mark {
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.5rem;
+      line-height: 1;
     }
 
     .eyebrow {
@@ -111,15 +154,93 @@ type NavLink = { label: string; path: string };
       min-width: 0;
     }
 
-    @media (max-width: 960px) {
+    .topbar {
+      display: none;
+    }
+
+    .hamburger {
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      width: 44px;
+      height: 44px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      cursor: pointer;
+    }
+
+    .hamburger__bar {
+      display: block;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--ink);
+    }
+
+    .sidebar-backdrop {
+      display: none;
+    }
+
+    @media (max-width: 1024px) {
       .layout-shell {
         grid-template-columns: 1fr;
-        padding: 1rem;
+        padding: 0;
+        gap: 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        padding: 0.75rem 1rem;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .topbar__title {
+        font-weight: 700;
+        color: var(--brand-deep);
       }
 
       .sidebar {
-        position: static;
-        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 40;
+        width: 280px;
+        max-width: 85vw;
+        height: 100vh;
+        border-radius: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar--open {
+        transform: translateX(0);
+      }
+
+      .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 35;
+        background: rgba(36, 23, 15, 0.45);
+      }
+
+      .content-shell {
+        padding: 1rem;
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .sidebar-backdrop {
+        display: none !important;
       }
     }
   `]
@@ -127,6 +248,8 @@ type NavLink = { label: string; path: string };
 export class SidebarLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  readonly menuOpen = signal(false);
 
   readonly session = this.authService.session;
   readonly links = computed<NavLink[]>(() => {
@@ -151,6 +274,14 @@ export class SidebarLayoutComponent {
     ];
     return links;
   });
+
+  toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
+
+  closeMenu(): void {
+    this.menuOpen.set(false);
+  }
 
   logout(): void {
     this.authService.logout();

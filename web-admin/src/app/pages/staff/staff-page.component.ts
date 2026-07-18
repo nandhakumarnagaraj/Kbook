@@ -6,29 +6,17 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessStaffItem, StaffCreatedResponse } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-staff-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent],
   styles: [`
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
     .modal-content {
-      background: var(--panel, #fffdf8);
-      border-radius: 16px;
-      padding: 2rem;
       width: 100%;
       max-width: 460px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     }
     .modal-content h3 {
       margin: 0 0 1.5rem;
@@ -62,12 +50,6 @@ import { formatDate } from '../../shared/formatters';
       color: var(--danger, #a6372f);
       font-size: 0.875rem;
       margin-bottom: 1rem;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
-      margin-top: 1.5rem;
     }
     .success-section {
       text-align: center;
@@ -175,8 +157,8 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Create Staff Modal -->
       <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-          <!-- Success View -->
+          <div class="modal-box modal-content" (click)="$event.stopPropagation()">
+            <!-- Success View -->
           <ng-container *ngIf="createdStaff; else createFormView">
             <div class="success-section">
               <h4>Staff Member Created</h4>
@@ -245,8 +227,8 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Edit Staff Modal -->
       <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-          <h3>Edit Staff Member</h3>
+          <div class="modal-box modal-content" (click)="$event.stopPropagation()">
+            <h3>Edit Staff Member</h3>
 
           <div class="form-error" *ngIf="editError">{{ editError }}</div>
 
@@ -410,7 +392,20 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">{{ loaded ? 'No staff match the current filters.' : 'Loading staff...' }}</div>
+        <div class="panel loading" *ngIf="!loaded; else staffEmpty">
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+          </div>
+        </div>
+        <ng-template #staffEmpty>
+          <app-empty-state
+            icon="👥"
+            title="No staff match the current filters"
+            text="Try a different search, role, or status filter. Owners can add a new team member."
+            [actionLabel]="isOwner ? 'Add Staff' : ''"
+            (action)="openCreateModal()"
+          ></app-empty-state>
+        </ng-template>
       </ng-template>
     </div>
   `

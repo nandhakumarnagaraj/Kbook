@@ -2,14 +2,16 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
+import { ToastService } from '../../core/services/toast.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -27,11 +29,6 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
           <p class="muted">Select a row to inspect revenue and business details.</p>
         </div>
         <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
-      </div>
-
-      <!-- Toast notification -->
-      <div class="toast" *ngIf="toast()" [class.toast--success]="toast()!.kind === 'success'" [class.toast--error]="toast()!.kind === 'error'">
-        {{ toast()!.message }}
       </div>
 
       <section class="panel filter-panel" *ngIf="loaded && businesses.length">
@@ -118,9 +115,18 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">
-          {{ loadError ? loadError : (loaded ? 'No businesses match the current filters.' : 'Loading businesses...') }}
+        <div class="panel loading" *ngIf="!loaded; else businessesEmpty">
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+          </div>
         </div>
+        <ng-template #businessesEmpty>
+          <app-empty-state
+            icon="🏪"
+            title="No businesses match the current filters"
+            text="Try a different search term to find the business you are looking for."
+          ></app-empty-state>
+        </ng-template>
       </ng-template>
 
       <div class="panel soft-section" *ngIf="selectedDetail() as detail">
@@ -180,32 +186,6 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
       color: var(--accent, #1d7b5f);
       border-color: var(--accent, #1d7b5f);
     }
-    .toast {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      padding: 0.75rem 1.25rem;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      z-index: 2000;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      animation: slideIn 0.3s ease;
-    }
-    .toast--success {
-      background: #e8f5e9;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
-    }
-    .toast--error {
-      background: #fbe9e7;
-      color: #c62828;
-      border: 1px solid #ef9a9a;
-    }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
   `]
 })
 export class BusinessesPageComponent {
@@ -216,7 +196,7 @@ export class BusinessesPageComponent {
   loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
   readonly suspendTarget = signal<AdminBusinessListItem | null>(null);
-  readonly toast = signal<{ message: string; kind: 'success' | 'error' } | null>(null);
+  private readonly toast = inject(ToastService);
 
   searchTerm = '';
   pageSize = 10;
@@ -327,8 +307,7 @@ export class BusinessesPageComponent {
   }
 
   private showToast(message: string, kind: 'success' | 'error'): void {
-    this.toast.set({ message, kind });
-    setTimeout(() => this.toast.set(null), 4000);
+    this.toast.show(message, kind);
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }

@@ -2,10 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 export function escapeCsvField(value: string): string {
   const spreadsheetSafe = /^[=+\-@]/.test(value) ? `'${value}` : value;
@@ -51,7 +53,7 @@ export function filterBusinessOrders(
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent],
+  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -193,7 +195,7 @@ export function filterBusinessOrders(
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let order of pagedOrders" class="clickable-row" (click)="openOrderDetail(order)">
+             <tr *ngFor="let order of pagedOrders" class="clickable-row" tabindex="0" role="button" [attr.aria-label]="'View order ' + order.orderCode" (click)="openOrderDetail(order)" (keydown.enter)="openOrderDetail(order)">
               <td><span class="chip">{{ order.sourceType }}</span></td>
               <td>{{ order.orderCode }}</td>
               <td>
@@ -255,21 +257,27 @@ export function filterBusinessOrders(
         </div>
       </div>
       <ng-template #posLoading>
-        <div class="panel loading">{{ ordersLoaded ? 'No orders match the current filters.' : 'Loading orders...' }}</div>
+        <div class="panel loading" *ngIf="!ordersLoaded; else ordersEmpty">
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+          </div>
+        </div>
+        <ng-template #ordersEmpty>
+          <app-empty-state
+            icon="🧾"
+            title="No orders match the current filters"
+            text="Try adjusting the search, status, source, or date range to see more results."
+          ></app-empty-state>
+        </ng-template>
       </ng-template>
     </div>
   `,
   styles: [`
-    .danger-btn { color: #b03030; border-color: #b03030; }
-    .refunded-label { color: #b03030; font-weight: 500; }
-    .refund-meta { font-size: 0.75rem; color: #7a5c00; }
-    .chip.success { background: #e6f4ea; color: #2d7a3a; }
-    .chip.danger { background: #fdecea; color: #b03030; }
-    .chip.warn { background: #fff8e1; color: #7a5c00; }
-    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
-
+    .refunded-label { color: var(--danger); font-weight: 500; }
+    .refund-meta { font-size: 0.75rem; color: var(--brand-deep); }
     .clickable-row { cursor: pointer; transition: background 0.15s; }
     .clickable-row:hover { background: var(--bg, #f6f1e8); }
+    .clickable-row:focus-visible { outline: 2px solid var(--brand, #b56a2d); outline-offset: -2px; }
 
     .filter-group--full { grid-column: 1 / -1; }
 
@@ -280,49 +288,27 @@ export function filterBusinessOrders(
       background: var(--bg, #f6f1e8);
       border-radius: 6px;
       font-size: 0.8rem;
-}
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
     }
 
-    .modal-box {
-      background: #fff;
-      border-radius: 18px;
-      padding: 1.5rem 2rem;
-      min-width: 340px;
-      max-width: 460px;
-      width: 100%;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
-    }
-
-    .modal-box h3 { margin: 0 0 0.25rem; }
     .field { margin: 1rem 0; display: flex; flex-direction: column; gap: 0.3rem; }
-    .field label { font-size: 0.85rem; font-weight: 600; color: #444; }
-
+    .field label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
     .field input {
       padding: 0.5rem 0.75rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
       font-size: 0.95rem;
       outline: none;
+      min-height: 44px;
     }
-
-    .field input:focus { border-color: #4a90e2; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
-    .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.35rem 0 0; }
+    .field input:focus { border-color: var(--brand); }
+    .error-text { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0 0; }
+    .hint-text { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
   `]
 })
 export class OrdersPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly toast = inject(ToastService);
 
   orders: BusinessOrder[] = [];
   ordersLoaded = false;
@@ -431,6 +417,7 @@ export class OrdersPageComponent {
       },
       error: () => {
         this.orderDetailLoading = false;
+        this.toast.show('Unable to load order details.', 'error');
       }
     });
   }

@@ -5,15 +5,17 @@ import { combineLatest, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { ToastService } from '../../core/services/toast.service';
 import { OrderDetailResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 @Component({
   selector: 'app-business-dashboard-page',
   standalone: true,
-  imports: [CommonModule, DateRangeSelectorComponent, OrderDetailModalComponent],
+  imports: [CommonModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
       <section class="panel page-hero">
@@ -138,13 +140,37 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let order of data.recentOrders" class="clickable-row" (click)="openOrderDetail(order.orderId)">
+              <tr
+                *ngFor="let order of data.recentOrders"
+                class="clickable-row"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="'View order ' + order.orderCode"
+                (click)="openOrderDetail(order.orderId)"
+                (keydown.enter)="openOrderDetail(order.orderId)">
                 <td><span class="chip">{{ order.sourceType }}</span></td>
                 <td>{{ order.orderCode }}</td>
                 <td>{{ order.customerName || '-' }}</td>
-                <td>{{ order.orderStatus }}</td>
+                <td>
+                  <span
+                    class="chip"
+                    [class.success]="order.orderStatus.toLowerCase() === 'completed'"
+                    [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'"
+                    [class.warn]="order.orderStatus.toLowerCase() === 'draft'">
+                    {{ order.orderStatus }}
+                  </span>
+                </td>
                 <td>{{ formatCurrencyValue(order.totalAmount) }}</td>
                 <td>{{ formatDateValue(order.createdAt) }}</td>
+              </tr>
+              <tr *ngIf="!data.recentOrders || data.recentOrders.length === 0">
+                <td colspan="6">
+                  <app-empty-state
+                    icon="🧾"
+                    title="No recent orders yet"
+                    text="New POS and online orders will show up here as they come in."
+                  ></app-empty-state>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -153,15 +179,21 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     </div>
 
     <ng-template #loading>
-      <div class="page-shell">
+      <div class="page-shell" *ngIf="dashboardError(); else dashboardSkeleton">
         <div class="panel loading">
-          <ng-container *ngIf="dashboardError(); else loadingMessage">
-            <p>{{ dashboardError() }}</p>
-            <button class="primary-btn" (click)="refresh()">Retry</button>
-          </ng-container>
-          <ng-template #loadingMessage>Loading business dashboard...</ng-template>
+          <p>{{ dashboardError() }}</p>
+          <button class="primary-btn" (click)="refresh()">Retry</button>
         </div>
       </div>
+      <ng-template #dashboardSkeleton>
+        <div class="page-shell">
+          <div class="skeleton skeleton-stat" style="height: 96px;"></div>
+          <div class="stats-grid">
+            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4,5,6]"></div>
+          </div>
+          <div class="skeleton skeleton-row" style="height: 220px;"></div>
+        </div>
+      </ng-template>
     </ng-template>
 
     <app-order-detail-modal
@@ -199,27 +231,10 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       flex-shrink: 0;
     }
 
-    .stat-card--clickable {
-      cursor: pointer;
-      transition: box-shadow 0.2s, transform 0.15s;
-    }
-
-    .stat-card--clickable:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      transform: translateY(-1px);
-    }
-
-    .stat-card--clickable:active {
-      transform: translateY(0);
-    }
-
-    .clickable-row {
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .clickable-row:hover {
-      background: var(--bg, #f6f1e8);
+    .empty-cell {
+      text-align: center;
+      color: var(--muted);
+      padding: 1.75rem 1rem;
     }
 
     @media (max-width: 480px) {
@@ -238,6 +253,7 @@ export class BusinessDashboardPageComponent {
   private static readonly RANGE_STORAGE_KEY = 'business-dashboard-date-range';
   private readonly api = inject(BusinessApiService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   private readonly refresh$ = new Subject<void>();
 
@@ -365,7 +381,7 @@ export class BusinessDashboardPageComponent {
   openOrderDetail(orderId: number): void {
     this.api.getOrderDetail(orderId).subscribe({
       next: (detail) => this.selectedOrderDetail.set(detail),
-      error: () => {} // silently handle – could add toast later
+      error: () => this.toast.show('Unable to load order details.', 'error')
     });
   }
 

@@ -3,14 +3,16 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { BusinessTerminal, TerminalRequest } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -84,7 +86,7 @@ import { formatDate } from '../../shared/formatters';
                     *ngIf="terminal.status.toLowerCase() !== 'inactive'"
                     class="ghost-btn danger-btn"
                     [disabled]="saving()"
-                    (click)="deactivate(terminal)"
+                    (click)="requestDeactivate(terminal)"
                   >
                     Deactivate
                   </button>
@@ -104,12 +106,20 @@ import { formatDate } from '../../shared/formatters';
         </table>
 
         <ng-template #noTerminals>
-          <div class="loading">No terminals registered yet.</div>
+          <app-empty-state
+            icon="📟"
+            title="No terminals registered yet"
+            text="New devices will appear here once they request access to this shop."
+          ></app-empty-state>
         </ng-template>
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">Loading devices...</div>
+        <div class="panel loading">
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+          </div>
+        </div>
       </ng-template>
 
       <section class="panel filter-panel" *ngIf="loaded()">
@@ -169,8 +179,8 @@ import { formatDate } from '../../shared/formatters';
                 <td>{{ formatDateValue(req.requestedAt) }}</td>
                 <td>
                   <div class="action-stack" *ngIf="req.status.toLowerCase() === 'pending'; else reqDone">
-                    <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
-                    <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="reject(req)">Reject</button>
+                  <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
+                  <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
                   </div>
                   <ng-template #reqDone><span class="muted">{{ req.rejectionReason || '-' }}</span></ng-template>
                 </td>
@@ -179,7 +189,11 @@ import { formatDate } from '../../shared/formatters';
           </table>
         </div>
         <ng-template #noRequests>
-          <div class="loading">No device requests.</div>
+          <app-empty-state
+            icon="🔔"
+            title="No device requests"
+            text="Pending and processed device access requests will appear here."
+          ></app-empty-state>
         </ng-template>
       </section>
 
@@ -193,32 +207,35 @@ import { formatDate } from '../../shared/formatters';
         (cancelled)="reactivatingTerminal.set(null)"
       ></app-confirm-dialog>
 
-      <div class="toast" *ngIf="toast(); else nostate">{{ toast() }}</div>
-      <ng-template #nostate></ng-template>
+      <app-confirm-dialog
+        *ngIf="deactivatingTerminal()"
+        title="Deactivate Terminal"
+        [message]="getDeactivateMessage()"
+        confirmLabel="Deactivate"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="doDeactivate()"
+        (cancelled)="deactivatingTerminal.set(null)"
+      ></app-confirm-dialog>
+
+      <app-confirm-dialog
+        *ngIf="rejectingRequest()"
+        title="Reject Device Request"
+        [message]="getRejectMessage()"
+        confirmLabel="Reject"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="doReject()"
+        (cancelled)="rejectingRequest.set(null)"
+      ></app-confirm-dialog>
+
     </div>
   `,
   styles: [`
-    .danger-btn { color: #b03030; border-color: #b03030; }
-    .success-btn { color: #2d7a3a; border-color: #2d7a3a; }
     .ghost-btn.active { background: rgba(181, 106, 45, 0.16); color: var(--brand-deep); }
     .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
     .row-actions { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
     .stacked-meta { display: flex; flex-direction: column; }
-    .chip.success { background: #e6f4ea; color: #2d7a3a; }
-    .chip.danger { background: #fdecea; color: #b03030; }
-    .chip.warn { background: #fff8e1; color: #7a5c00; }
-    .toast {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      background: #24170f;
-      color: #fff;
-      padding: 0.85rem 1.25rem;
-      border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-      z-index: 1100;
-      max-width: 320px;
-    }
   `]
 })
 export class TerminalsPageComponent {
@@ -229,8 +246,10 @@ export class TerminalsPageComponent {
   readonly requests = signal<TerminalRequest[]>([]);
   readonly loaded = signal(false);
   readonly saving = signal(false);
-  readonly toast = signal<string | null>(null);
+  private readonly toast = inject(ToastService);
   readonly reactivatingTerminal = signal<BusinessTerminal | null>(null);
+  readonly deactivatingTerminal = signal<BusinessTerminal | null>(null);
+  readonly rejectingRequest = signal<TerminalRequest | null>(null);
 
   readonly requestFilter = signal<'PENDING' | 'ALL'>('PENDING');
   readonly editingId = signal<number | null>(null);
@@ -299,7 +318,6 @@ export class TerminalsPageComponent {
   }
 
   deactivate(terminal: BusinessTerminal): void {
-    if (!confirm(`Deactivate terminal "${terminal.terminalName || terminal.terminalSeries}"?`)) return;
     this.saving.set(true);
     this.api.deactivateTerminal(terminal.id).subscribe({
       next: () => {
@@ -314,6 +332,22 @@ export class TerminalsPageComponent {
         this.fail('Deactivate failed');
       }
     });
+  }
+
+  requestDeactivate(terminal: BusinessTerminal): void {
+    this.deactivatingTerminal.set(terminal);
+  }
+
+  getDeactivateMessage(): string {
+    const t = this.deactivatingTerminal();
+    const name = t?.terminalName || t?.terminalSeries || 'Unnamed';
+    return `Deactivate terminal "${name}"? It will be marked inactive immediately.`;
+  }
+
+  doDeactivate(): void {
+    const terminal = this.deactivatingTerminal();
+    this.deactivatingTerminal.set(null);
+    if (terminal) this.deactivate(terminal);
   }
 
   approve(req: TerminalRequest): void {
@@ -334,7 +368,6 @@ export class TerminalsPageComponent {
   }
 
   reject(req: TerminalRequest): void {
-    if (!confirm('Reject this device request?')) return;
     this.saving.set(true);
     this.api.rejectTerminalRequest(req.id).subscribe({
       next: () => {
@@ -349,6 +382,22 @@ export class TerminalsPageComponent {
         this.fail('Reject failed');
       }
     });
+  }
+
+  requestReject(req: TerminalRequest): void {
+    this.rejectingRequest.set(req);
+  }
+
+  getRejectMessage(): string {
+    const r = this.rejectingRequest();
+    const name = r?.deviceName || r?.deviceId || 'this device';
+    return `Reject the device request for "${name}"?`;
+  }
+
+  doReject(): void {
+    const req = this.rejectingRequest();
+    this.rejectingRequest.set(null);
+    if (req) this.reject(req);
   }
 
   canManageTerminals(): boolean {
@@ -394,13 +443,12 @@ export class TerminalsPageComponent {
   }
 
   private notify(message: string): void {
-    this.toast.set(message);
-    setTimeout(() => this.toast.set(null), 2600);
+    this.toast.show(message, 'success');
   }
 
   private fail(message: string): void {
     this.loaded.set(true);
-    this.notify(message);
+    this.toast.show(message, 'error');
   }
 
   private errMsg(err: unknown, fallback: string): string {

@@ -1,30 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
+import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { formatCurrency } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
-  imports: [CommonModule],
-  styles: [`
-    .stat-card--clickable {
-      cursor: pointer;
-      transition: box-shadow 0.2s, transform 0.15s;
-    }
-
-    .stat-card--clickable:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      transform: translateY(-1px);
-    }
-
-    .stat-card--clickable:active {
-      transform: translateY(0);
-    }
-  `],
+  imports: [CommonModule, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -94,7 +80,15 @@ import { formatCurrency } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">Loading platform dashboard...</div>
+        <div class="stats-grid" *ngIf="!summaryError(); else summaryErrorState">
+          <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4,5,6,7]"></div>
+        </div>
+        <ng-template #summaryErrorState>
+          <div class="panel loading">
+            <p>{{ summaryError() }}</p>
+            <button class="primary-btn" (click)="refresh()">Retry</button>
+          </div>
+        </ng-template>
       </ng-template>
     </div>
   `
@@ -103,15 +97,35 @@ export class PlatformDashboardPageComponent {
   private readonly api = inject(AdminApiService);
   private readonly router = inject(Router);
 
+  readonly summaryError = signal('');
+  private readonly refresh$ = new Subject<void>();
+
   readonly summary = toSignal(
-    this.api.getDashboardSummary().pipe(
-      map((summary) => ({
-        ...summary,
-        totalRevenueFormatted: formatCurrency(summary.totalRevenue),
-        refundedAmountFormatted: formatCurrency(summary.refundedAmount)
-      }))
+    this.refresh$.pipe(
+      startWith(undefined),
+      switchMap(() => {
+        this.summaryError.set('');
+        return this.api.getDashboardSummary().pipe(
+          map((summary) => ({
+            ...summary,
+            totalRevenueFormatted: formatCurrency(summary.totalRevenue),
+            refundedAmountFormatted: formatCurrency(summary.refundedAmount)
+          })),
+          catchError((error: unknown) => {
+            const response = error as { error?: { message?: string; error?: string } };
+            this.summaryError.set(
+              response.error?.message || response.error?.error || 'Unable to load the platform dashboard.'
+            );
+            return of(null);
+          })
+        );
+      })
     )
   );
+
+  refresh(): void {
+    this.refresh$.next();
+  }
 
   navigateToBusinesses(): void {
     this.router.navigate(['/admin/businesses']);

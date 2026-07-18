@@ -4,14 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 import { BusinessCategory, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-menu-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -142,10 +144,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                     (click)="toggleAvailability(item)"
                     [disabled]="togglingId === item.menuItemId"
                   >
-                    {{ item.available ? '🟢 On' : '🔴 Off' }}
+                    {{ item.available ? 'On' : 'Off' }}
                   </button>
-                  <button class="ghost-btn" (click)="openEditModal(item)">✏️ Edit</button>
-                  <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">🗑️ Delete</button>
+                  <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
+                  <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
                 </div>
               </td>
             </tr>
@@ -162,7 +164,20 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">{{ loaded ? 'No menu items match the current filters.' : 'Loading menu...' }}</div>
+        <div class="panel loading" *ngIf="!loaded; else menuEmpty">
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+          </div>
+        </div>
+        <ng-template #menuEmpty>
+          <app-empty-state
+            icon="🍽️"
+            title="No menu items match the current filters"
+            text="Try a different search or clear the filters. Owners can also add a new item."
+            [actionLabel]="isOwner ? 'Add Item' : ''"
+            (action)="openAddModal()"
+          ></app-empty-state>
+        </ng-template>
       </ng-template>
 
       <!-- Add/Edit Menu Item Modal -->
@@ -307,43 +322,16 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
       </section>
 
-      <div class="toast" *ngIf="toast()">{{ toast() }}</div>
     </div>
   `,
   styles: [`
     .ocr-panel { margin-top: 1.25rem; }
     .upload-btn { display: inline-flex; align-items: center; cursor: pointer; }
-    .primary-btn {
-      background: var(--brand, #b56a2d);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 0.6rem 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .primary-btn:disabled { opacity: 0.6; cursor: default; }
-    .spinner {
-      width: 26px; height: 26px;
-      border: 3px solid rgba(181, 106, 45, 0.25);
-      border-top-color: var(--brand, #b56a2d);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-top: 0.5rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
     .ocr-result { margin-top: 0.5rem; }
     .result-header { display: flex; align-items: center; gap: 0.75rem; }
     .extracted-table { margin-top: 0.75rem; }
-    .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.4rem 0 0.75rem; }
-    .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .toast {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      background: #24170f; color: #fff;
-      padding: 0.85rem 1.25rem; border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-      z-index: 1100; max-width: 340px;
-    }
+    .hint-text { color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0.75rem; }
+    .error-text { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
     .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
     .toggle-btn {
@@ -357,48 +345,9 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       transition: opacity 0.2s;
     }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
-    .toggle-btn--on { border-color: #1d7b5f; color: #1d7b5f; }
+    .toggle-btn--on { border-color: var(--accent); color: var(--accent); }
     .toggle-btn--off { border-color: var(--danger, #a6372f); color: var(--danger, #a6372f); }
-    .danger-btn { color: var(--danger, #a6372f) !important; }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-    .modal-box {
-      background: var(--panel, #fffdf8);
-      border: 1px solid var(--line, #e9dcc9);
-      border-radius: 18px;
-      padding: 1.5rem 2rem;
-      min-width: 340px;
-      max-width: 460px;
-      width: 100%;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
-    }
-    .modal-box h3 { margin: 0 0 0.25rem; }
-    .field { margin: 1rem 0; display: flex; flex-direction: column; gap: 0.3rem; }
-    .field label { font-size: 0.85rem; font-weight: 600; color: var(--ink, #24170f); }
-    .field .field-control, .field .field-select {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--line, #e9dcc9);
-      border-radius: 12px;
-      font-size: 0.95rem;
-      outline: none;
-      min-height: 44px;
-    }
-    .field .field-control:focus, .field .field-select:focus {
-      border-color: var(--brand, #b56a2d);
-    }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
     @media (max-width: 480px) {
-      .modal-box { min-width: unset; padding: 1.25rem; }
-      .modal-actions { flex-direction: column-reverse; }
-      .modal-actions button { width: 100%; text-align: center; }
       .action-stack { flex-direction: column; align-items: stretch; }
     }
   `]
@@ -439,7 +388,8 @@ export class MenuPageComponent {
   uploading = signal(false);
   job = signal<MenuExtractionJob | null>(null);
   extractedItems = signal<MenuExtractionItem[]>([]);
-  toast = signal<string>('');
+
+  private readonly toast = inject(ToastService);
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -609,7 +559,7 @@ export class MenuPageComponent {
         this.showToast('Menu item deleted');
       },
       error: () => {
-        this.showToast('Failed to delete item');
+        this.showToast('Failed to delete item', 'error');
       }
     });
   }
@@ -636,7 +586,7 @@ export class MenuPageComponent {
         // Revert on error
         item.available = previousState;
         this.togglingId = null;
-        this.showToast('Failed to update availability');
+        this.showToast('Failed to update availability', 'error');
       }
     });
   }
@@ -748,8 +698,7 @@ export class MenuPageComponent {
     this.stopPolling();
   }
 
-  private showToast(msg: string): void {
-    this.toast.set(msg);
-    setTimeout(() => this.toast.set(''), 3000);
+  private showToast(msg: string, type: 'info' | 'error' | 'success' = 'success'): void {
+    this.toast.show(msg, type);
   }
 }
