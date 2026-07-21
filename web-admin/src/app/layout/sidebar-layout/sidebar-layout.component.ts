@@ -279,7 +279,7 @@ export class SidebarLayoutComponent {
       { label: 'Orders', path: '/business/orders' },
       { label: 'Menu', path: '/business/menu' },
       { label: 'Staff', path: '/business/staff' },
-      { label: 'Payments & Integrations', path: '/business/marketplace' },
+      { label: 'Integrations', path: '/business/marketplace' },
       { label: 'Devices', path: '/business/terminals' }
     ];
     return links;

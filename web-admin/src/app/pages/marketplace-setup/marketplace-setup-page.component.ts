@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ApiStateComponent } from '../../core/components/api-state.component';
-import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/api.models';
+import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-marketplace-setup-page',
@@ -12,65 +12,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
-        <h2>Payments &amp; Online Integrations</h2>
-        <p class="muted">Review Easebuzz payment onboarding and connect supported online-order providers for this restaurant.</p>
+        <h2>Online-order Integrations</h2>
+        <p class="muted">Connect supported delivery providers for online orders from this restaurant.</p>
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
-          <span class="chip success">Platform-managed Payments</span>
+          <span class="chip success">Zomato &amp; Swiggy</span>
         </div>
       </section>
-
-      <div class="panel loading-panel" *ngIf="setupState() === 'loading'" role="status" aria-live="polite">
-        <span class="spinner" aria-hidden="true"></span> Loading settlement onboarding...
-      </div>
-      <app-api-state
-        *ngIf="setupState() === 'error'"
-        [loading]="false"
-        error="Settlement onboarding could not be loaded."
-        (retry)="loadSetup()"
-      ></app-api-state>
-
-      <div class="panel config-card soft-section" *ngIf="setupState() === 'loaded' && marketplaceSetup() as setup">
-        <div class="card-header">
-          <div class="card-info">
-            <h3>Online Payments — Easebuzz</h3>
-            <p class="muted meta-row">
-              <span>Managed by: <strong>KBook Admin</strong></span>
-              <span class="dot">.</span>
-              <span>Restaurant: <strong>{{ setup.shopName || ('#' + setup.restaurantId) }}</strong></span>
-              <span class="dot">.</span>
-              <span>
-                Status:
-                <span class="chip"
-                  [class.warn]="setup.subMerchantStatus === 'PENDING' || setup.subMerchantStatus === 'KYC_SUBMITTED' || !setup.subMerchantStatus"
-                  [class.success]="setup.subMerchantStatus === 'ACTIVE'"
-                  [class.danger]="setup.subMerchantStatus === 'REJECTED' || setup.subMerchantStatus === 'SUSPENDED'">
-                  {{ setup.subMerchantStatus || 'NOT_STARTED' }}
-                </span>
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <article class="panel stat-card">
-            <h3>Sub-Merchant ID</h3>
-            <strong><code>{{ setup.subMerchantId || '-' }}</code></strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>KYC Portal</h3>
-            <strong>{{ setup.kycPortalUrl ? 'Generated' : 'Pending' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Settlement Path</h3>
-            <strong>{{ setup.subMerchantStatus === 'ACTIVE' ? 'Master + Sub-Merchant' : 'Awaiting admin onboarding' }}</strong>
-          </article>
-        </div>
-
-        <div class="toast-success">
-          Easebuzz credentials are not editable here. Contact KBook Admin if settlement onboarding needs to be created or changed.
-        </div>
-      </div>
 
       <div
         class="panel config-card soft-section"
@@ -357,8 +305,6 @@ export class MarketplaceSetupPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
   private readonly fb = inject(FormBuilder);
 
-  readonly marketplaceSetup = signal<BusinessMarketplaceSetup | null>(null);
-  readonly setupState = signal<'loading' | 'loaded' | 'error'>('loading');
   readonly marketplaceConfig = signal<MarketplaceConfig | null>(null);
   readonly marketplaceState = signal<'loading' | 'loaded' | 'error'>('loading');
   readonly marketplaceSaveState = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -374,19 +320,7 @@ export class MarketplaceSetupPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadSetup();
     this.loadMarketplaceConfig();
-  }
-
-  loadSetup(): void {
-    this.setupState.set('loading');
-    this.api.getMarketplaceSetup().subscribe({
-      next: (setup) => {
-        this.marketplaceSetup.set(setup);
-        this.setupState.set('loaded');
-      },
-      error: () => { this.setupState.set('error'); }
-    });
   }
 
   loadMarketplaceConfig(): void {
