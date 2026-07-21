@@ -1,0 +1,180 @@
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-bar .field-input, .filter-bar select { width: 100%; }
+}
+
+/* =========================================================
+   Wave C — Menu + Orders visual refresh (CSS-only, no template surgery)
+   ========================================================= */
+
+/* Filter panel: modern, denser, aligned grid used by Menu & Orders */
+.filter-panel {
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border, #ecebe6);
+  box-shadow: 0 1px 2px rgba(24, 20, 14, 0.03);
+}
+.filter-panel .filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem 0.9rem;
+  align-items: end;
+}
+.filter-panel .filter-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.filter-panel .filter-group--full { grid-column: 1 / -1; }
+.filter-panel .filter-group label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted, #78736b); font-weight: 600;
+}
+.filter-panel .field-control,
+.filter-panel .field-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border, #ecebe6);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.filter-panel .field-control:focus,
+.filter-panel .field-select:focus {
+  outline: none;
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+.filter-summary {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 0.85rem; padding-top: 0.75rem;
+  border-top: 1px dashed var(--border, #ecebe6);
+  gap: 0.75rem; flex-wrap: wrap;
+}
+.filter-summary .date-range-active {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  margin-left: 0.5rem; padding: 0.15rem 0.55rem;
+  background: #fffbeb; color: #b45309;
+  border: 1px solid #fde68a; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600;
+}
+
+/* Toolbar refinement (used across Menu, Orders, Staff, Terminals) */
+.toolbar {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+  padding: 0.25rem 0.25rem 0.6rem;
+}
+.toolbar h3 { margin: 0 0 0.15rem; font-size: 1.05rem; letter-spacing: -0.005em; }
+.toolbar .muted { margin: 0; font-size: 0.85rem; }
+.toolbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Modal polish for Orders refund + Menu edit dialogs */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(24, 20, 14, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem; z-index: 60;
+  animation: modalFade 0.15s ease-out;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--border, #ecebe6);
+  padding: 1.4rem 1.5rem;
+  max-width: 480px; width: 100%;
+  box-shadow: 0 20px 50px -12px rgba(24, 20, 14, 0.35);
+  animation: modalRise 0.2s ease-out;
+}
+.modal-box h3 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+.modal-box .muted { margin: 0 0 0.75rem; font-size: 0.85rem; }
+.modal-box .hint-text {
+  padding: 0.65rem 0.8rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  margin: 0 0 1rem;
+}
+.modal-box .field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.85rem; }
+.modal-box .field label {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted, #78736b); font-weight: 600;
+}
+.modal-box .error-text {
+  color: #b91c1c; font-size: 0.82rem; margin: 0 0 0.5rem;
+}
+.modal-actions {
+  display: flex; justify-content: flex-end; gap: 0.5rem;
+  margin-top: 0.75rem; padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle, #f1efe9);
+}
+@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalRise { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Date range selector: match new filter styling */
+app-date-range-selector { display: block; width: 100%; }
+
+/* Row hover reveals inline actions more clearly (Menu items list) */
+.data-table tbody tr .row-actions .action-btn { opacity: 0.75; }
+.data-table tbody tr:hover .row-actions .action-btn { opacity: 1; }
+
+/* Pagination footer (Menu / Orders lists) */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; flex-wrap: wrap;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border, #ecebe6);
+  background: var(--surface-2, #fafaf7);
+  border-radius: 0 0 12px 12px;
+}
+.pagination .page-info { font-size: 0.82rem; color: var(--muted, #78736b); }
+.pagination .page-controls { display: inline-flex; gap: 0.35rem; }
+.pagination button {
+  border: 1px solid var(--border, #ecebe6);
+  background: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pagination button:hover:not(:disabled) { border-color: #d97706; color: #b45309; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Loading state polish */
+.panel.loading {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--surface-2, #fafaf7);
+  color: var(--muted, #78736b);
+  font-size: 0.88rem;
+  border-radius: 12px;
+  border: 1px solid var(--border, #ecebe6);
+}
+.panel.loading::before {
+  content: '';
+  width: 14px; height: 14px;
+  border: 2px solid #ecebe6;
+  border-top-color: #d97706;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Menu extraction / OCR job panels — subtle progress accent */
+.job-panel {
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border, #ecebe6);
+  background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+}
+.job-panel .progress-bar {
+  height: 6px; border-radius: 999px;
+  background: #f1efe9; overflow: hidden;
+}
+.job-panel .progress-bar > span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
