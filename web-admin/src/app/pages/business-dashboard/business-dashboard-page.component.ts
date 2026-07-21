@@ -20,104 +20,120 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
       <section class="panel page-hero">
         <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
-        <p class="muted">Owner and manager view with aligned KPIs, recent order visibility, setup confirmation, and practical next-step suggestions.</p>
+        <p class="muted">Revenue, order health, and operational readiness in one view.</p>
         <div class="hero-meta">
-          <span class="chip">Daily Revenue</span>
-          <span class="chip">Order Health</span>
-          <span class="chip success">Setup Confirmation</span>
+          <span class="chip success">Owner Overview</span>
         </div>
       </section>
 
-      <section class="panel toolbar">
-        <div class="toolbar__left">
-          <app-date-range-selector
-            [initialRange]="selectedDateRange()"
-            (rangeChanged)="onDateRangeChanged($event)">
-          </app-date-range-selector>
+      <section class="panel dashboard-overview" aria-labelledby="business-overview-title">
+        <div class="overview-header">
+          <div>
+            <span class="eyebrow">Performance</span>
+            <h3 id="business-overview-title">Business at a glance</h3>
+          </div>
+          <div class="overview-controls">
+            <app-date-range-selector
+              [initialRange]="selectedDateRange()"
+              (rangeChanged)="onDateRangeChanged($event)">
+            </app-date-range-selector>
+            <button class="ghost-btn" (click)="refresh()" [disabled]="isRefreshing()">
+              {{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}
+            </button>
+          </div>
         </div>
-        <div class="toolbar__right">
-          <button class="primary-btn" (click)="refresh()" [disabled]="isRefreshing()">
-            {{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}
+
+        <div class="primary-kpi-grid" aria-label="Primary business metrics">
+          <article class="kpi-card kpi-card--primary">
+            <span class="kpi-label">Today Revenue</span>
+            <strong>{{ data.todayRevenueFormatted }}</strong>
+            <span class="kpi-caption">Revenue recognized today</span>
+          </article>
+          <article class="kpi-card kpi-card--primary">
+            <span class="kpi-label">Total Revenue</span>
+            <strong>{{ data.totalRevenueFormatted }}</strong>
+            <span class="kpi-caption">For the selected period</span>
+          </article>
+          <button type="button" class="kpi-card kpi-card--primary kpi-card--clickable" (click)="navigateToOrders()">
+            <span class="kpi-label">POS Orders</span>
+            <strong>{{ data.posOrderCount }}</strong>
+            <span class="kpi-action">View orders →</span>
+          </button>
+          <button
+            type="button"
+            class="kpi-card kpi-card--primary kpi-card--clickable"
+            [class.kpi-card--attention]="data.pendingPosPayments > 0"
+            (click)="navigateToOrders()">
+            <span class="kpi-label">Pending Payments</span>
+            <strong>{{ data.pendingPosPayments }}</strong>
+            <span class="kpi-action">{{ data.pendingPosPayments ? 'Review pending →' : 'Nothing pending' }}</span>
+          </button>
+        </div>
+
+        <div class="secondary-kpi-grid" aria-label="Secondary business metrics">
+          <article class="kpi-card kpi-card--secondary">
+            <span class="kpi-label">Refunds</span>
+            <strong>{{ data.refundedAmountFormatted }}</strong>
+            <span class="kpi-caption">{{ data.refundedOrders }} orders</span>
+          </article>
+          <button type="button" class="kpi-card kpi-card--secondary kpi-card--clickable" (click)="navigateToStaff()">
+            <span class="kpi-label">Staff</span>
+            <strong>{{ data.totalStaff }}</strong>
+            <span class="kpi-action">Manage staff →</span>
+          </button>
+          <button type="button" class="kpi-card kpi-card--secondary kpi-card--clickable" (click)="navigateToMenu()">
+            <span class="kpi-label">Menu</span>
+            <strong>{{ data.totalMenuItems }}</strong>
+            <span class="kpi-action">Manage menu →</span>
+          </button>
+          <button
+            type="button"
+            class="kpi-card kpi-card--secondary kpi-card--clickable"
+            [class.kpi-card--attention]="getReadySetupCount(data.setupChecks) < data.setupChecks.length"
+            (click)="scrollToSetup()">
+            <span class="kpi-label">Setup</span>
+            <strong>{{ getReadySetupCount(data.setupChecks) }}/{{ data.setupChecks.length }}</strong>
+            <span class="kpi-action">
+              {{ getReadySetupCount(data.setupChecks) < data.setupChecks.length ? 'Finish setup →' : 'Setup complete' }}
+            </span>
           </button>
         </div>
       </section>
 
-      <div class="stats-grid">
-        <article class="panel stat-card">
-          <h3>Total Revenue</h3>
-          <strong>{{ data.totalRevenueFormatted }}</strong>
-        </article>
-        <article class="panel stat-card">
-          <h3>Today Revenue</h3>
-          <strong>{{ data.todayRevenueFormatted }}</strong>
-        </article>
-        <article class="panel stat-card">
-          <h3>Refunded Amount</h3>
-          <strong>{{ data.refundedAmountFormatted }}</strong>
-        </article>
-        <article class="panel stat-card">
-          <h3>Refunded Orders</h3>
-          <strong>{{ data.refundedOrders }}</strong>
-        </article>
-        <article class="panel stat-card stat-card--clickable" (click)="navigateToOrders()" role="button" tabindex="0" (keydown.enter)="navigateToOrders()">
-          <h3>POS Orders</h3>
-          <strong>{{ data.posOrderCount }}</strong>
-        </article>
-        <article class="panel stat-card">
-          <h3>Pending POS Pay</h3>
-          <strong>{{ data.pendingPosPayments }}</strong>
-        </article>
-        <article class="panel stat-card stat-card--clickable" (click)="navigateToStaff()" role="button" tabindex="0" (keydown.enter)="navigateToStaff()">
-          <h3>Staff / Menu</h3>
-          <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
-        </article>
-
-        <section class="panel soft-section" style="grid-column: 1 / -1;">
-          <div class="section-head">
-            <div>
-              <h3>Setup Confirmation</h3>
-              <p class="muted">Confirm the business is ready for website orders, kitchen handling, and marketplace intake.</p>
-            </div>
+      <section id="setup-checklist" class="panel setup-panel" aria-labelledby="setup-checklist-title">
+        <div class="section-head setup-panel__head">
+          <div>
+            <span class="eyebrow">Readiness</span>
+            <h3 id="setup-checklist-title">Setup Checklist</h3>
+            <p class="muted">Complete the remaining items needed for daily operations.</p>
           </div>
-          <div class="suggestion-grid">
-            <article class="suggestion-card" *ngFor="let item of data.setupChecks">
-              <div class="setup-head">
-                <h3>{{ item.label }}</h3>
+          <span class="setup-progress">{{ getReadySetupCount(data.setupChecks) }} of {{ data.setupChecks.length }} ready</span>
+        </div>
+        <ol class="setup-list" aria-label="Business setup checklist">
+          <li
+            class="setup-row"
+            *ngFor="let item of data.setupChecks; let index = index"
+            [attr.aria-current]="isNextIncomplete(data.setupChecks, index) ? 'step' : null">
+            <span class="setup-dot" [class.setup-dot--ready]="item.ready" aria-hidden="true"></span>
+            <div class="setup-copy">
+              <div class="setup-title">
+                <h4>{{ item.label }}</h4>
                 <span class="chip" [class.success]="item.ready" [class.warn]="!item.ready">
                   {{ item.ready ? 'Ready' : 'Pending' }}
                 </span>
               </div>
               <p>{{ item.detail }}</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel soft-section" style="grid-column: 1 / -1;">
-          <div class="section-head">
-            <div>
-              <h3>Suggested Next Steps</h3>
-              <p class="muted">Quick checks based on the metrics and setup state on this page.</p>
             </div>
-          </div>
-          <div class="suggestion-grid">
-            <article class="suggestion-card">
-              <h3>Resume Pending POS Payments</h3>
-              <p>Draft POS bills with pending payments should be resumed or cancelled before starting new gateway attempts.</p>
-              <span class="chip warn">{{ data.pendingPosPayments }} pending</span>
-            </article>
-            <article class="suggestion-card">
-              <h3>Balance Menu Against Sales</h3>
-              <p>Check whether menu size is growing faster than order volume. That is usually a sign the catalog needs cleanup.</p>
-              <span class="chip">{{ data.totalMenuItems }} items listed</span>
-            </article>
-            <article class="suggestion-card">
-              <h3>Watch Refund Frequency</h3>
-              <p>Refund spikes are easier to catch here than after reconciliation. Verify causes before they repeat.</p>
-              <span class="chip danger">{{ data.refundedOrders }} refunded</span>
-            </article>
-          </div>
-        </section>
-      </div>
+            <button
+              *ngIf="setupAction(item.label) as action"
+              type="button"
+              class="setup-action"
+              (click)="navigateTo(action.route)">
+              {{ action.label }} →
+            </button>
+          </li>
+        </ol>
+      </section>
 
       <section class="panel soft-section">
         <div class="section-head">
@@ -202,50 +218,77 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
     </app-order-detail-modal>
   `,
   styles: [`
-    .setup-head {
+    .dashboard-overview { padding: clamp(1rem, 2vw, 1.5rem); }
+    .overview-header {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 0.35rem;
-    }
-
-    .setup-head h3 {
-      margin: 0;
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: space-between;
       gap: 1rem;
-      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
     }
-
-    .toolbar__left {
-      flex: 1;
+    .overview-header h3 { margin: 0.2rem 0 0; font-size: 1.25rem; }
+    .eyebrow {
+      color: var(--brand-deep);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .overview-controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap; }
+    .primary-kpi-grid, .secondary-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.9rem; }
+    .secondary-kpi-grid { margin-top: 0.9rem; }
+    .kpi-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
       min-width: 0;
+      padding: 1rem;
+      color: var(--ink);
+      text-align: left;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
     }
-
-    .toolbar__right {
-      flex-shrink: 0;
+    button.kpi-card { width: 100%; font: inherit; cursor: pointer; }
+    .kpi-card--primary { min-height: 132px; }
+    .kpi-card--secondary { min-height: 96px; }
+    .kpi-card--primary strong { margin: 0.55rem 0 0.35rem; font-size: clamp(1.7rem, 2.5vw, 2rem); line-height: 1; }
+    .kpi-card--secondary strong { margin: 0.4rem 0 0.25rem; font-size: 1.35rem; line-height: 1.1; }
+    .kpi-label { color: var(--muted); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .kpi-caption, .kpi-action { color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
+    .kpi-action { color: var(--brand-deep); font-weight: 700; }
+    .kpi-card--clickable { transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease; }
+    .kpi-card--clickable:hover { border-color: var(--brand); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .kpi-card--clickable:focus-visible { outline: 3px solid var(--brand-soft); outline-offset: 2px; }
+    .kpi-card--attention { border-color: rgba(181, 106, 45, 0.5); background: linear-gradient(135deg, var(--panel), var(--brand-soft)); }
+    .setup-panel { padding: clamp(1rem, 2vw, 1.5rem); }
+    .setup-panel__head { align-items: center; margin-bottom: 1rem; }
+    .setup-panel__head h3 { margin: 0.2rem 0; }
+    .setup-progress { padding: 0.5rem 0.8rem; color: var(--brand-deep); background: var(--brand-soft); border-radius: 999px; font-size: 0.8rem; font-weight: 800; white-space: nowrap; }
+    .setup-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .setup-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; background: var(--panel); }
+    .setup-row + .setup-row { border-top: 1px solid var(--line); }
+    .setup-dot { width: 0.65rem; height: 0.65rem; background: var(--brand); border-radius: 50%; box-shadow: 0 0 0 4px var(--brand-soft); }
+    .setup-dot--ready { background: var(--success); box-shadow: 0 0 0 4px var(--success-soft); }
+    .setup-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
+    .setup-title h4 { margin: 0; font-size: 0.93rem; }
+    .setup-copy p { margin: 0.22rem 0 0; color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+    .setup-action { min-height: 38px; padding: 0.45rem 0.7rem; color: var(--brand-deep); background: transparent; border: 1px solid var(--line); border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .setup-action:hover { border-color: var(--brand); background: var(--brand-soft); }
+    @media (max-width: 1100px) {
+      .overview-header { align-items: flex-start; flex-direction: column; }
+      .overview-controls { justify-content: flex-start; width: 100%; }
+      .primary-kpi-grid, .secondary-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-
-    .empty-cell {
-      text-align: center;
-      color: var(--muted);
-      padding: 1.75rem 1rem;
-    }
-
-    @media (max-width: 480px) {
-      .toolbar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .toolbar__right {
-        align-self: flex-end;
-      }
+    @media (max-width: 640px) {
+      .primary-kpi-grid, .secondary-kpi-grid { grid-template-columns: 1fr; }
+      .overview-controls { align-items: stretch; flex-direction: column; }
+      .overview-controls .ghost-btn { width: 100%; }
+      .setup-panel__head { align-items: flex-start; }
+      .setup-row { grid-template-columns: auto minmax(0, 1fr); }
+      .setup-action { grid-column: 2; width: 100%; }
     }
   `]
 })
@@ -376,6 +419,33 @@ export class BusinessDashboardPageComponent {
 
   navigateToStaff(): void {
     this.router.navigate(['/business/staff']);
+  }
+
+  navigateToMenu(): void {
+    this.router.navigate(['/business/menu']);
+  }
+
+  navigateTo(route: string): void {
+    this.router.navigate([route]);
+  }
+
+  setupAction(label: string): { label: string; route: string } | null {
+    if (label === 'Marketplace Intake') {
+      return { label: 'Open integrations', route: '/business/marketplace' };
+    }
+    return null;
+  }
+
+  getReadySetupCount(checks: Array<{ ready: boolean }>): number {
+    return checks.filter((item) => item.ready).length;
+  }
+
+  isNextIncomplete(checks: Array<{ ready: boolean }>, index: number): boolean {
+    return !checks[index]?.ready && checks.slice(0, index).every((item) => item.ready);
+  }
+
+  scrollToSetup(): void {
+    document.getElementById('setup-checklist')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   openOrderDetail(orderId: number): void {
