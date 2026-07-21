@@ -18,107 +18,101 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
   imports: [CommonModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
-      <section class="panel page-hero">
-        <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
-        <p class="muted">Revenue, order health, and operational readiness in one view.</p>
-        <div class="hero-meta">
-          <span class="chip success">Owner Overview</span>
+      <section class="page-header">
+        <div>
+          <span class="eyebrow">Owner overview</span>
+          <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
+          <p class="muted">Revenue, order health, and operational readiness in one view.</p>
         </div>
-      </section>
-
-      <section class="panel dashboard-overview" aria-labelledby="business-overview-title">
-        <div class="overview-header">
-          <div>
-            <span class="eyebrow">Performance</span>
-            <h3 id="business-overview-title">Business at a glance</h3>
-          </div>
-          <div class="overview-controls">
-            <app-date-range-selector
-              [initialRange]="selectedDateRange()"
-              (rangeChanged)="onDateRangeChanged($event)">
-            </app-date-range-selector>
-            <button class="ghost-btn" (click)="refresh()" [disabled]="isRefreshing()">
-              {{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}
-            </button>
-          </div>
-        </div>
-
-        <div class="primary-kpi-grid" aria-label="Primary business metrics">
-          <article class="kpi-card kpi-card--primary">
-            <span class="kpi-label">Today Revenue</span>
-            <strong>{{ data.todayRevenueFormatted }}</strong>
-            <span class="kpi-caption">Revenue recognized today</span>
-          </article>
-          <article class="kpi-card kpi-card--primary">
-            <span class="kpi-label">Total Revenue</span>
-            <strong>{{ data.totalRevenueFormatted }}</strong>
-            <span class="kpi-caption">For the selected period</span>
-          </article>
-          <button type="button" class="kpi-card kpi-card--primary kpi-card--clickable" (click)="navigateToOrders()">
-            <span class="kpi-label">POS Orders</span>
-            <strong>{{ data.posOrderCount }}</strong>
-            <span class="kpi-action">View orders →</span>
-          </button>
-          <button
-            type="button"
-            class="kpi-card kpi-card--primary kpi-card--clickable"
-            [class.kpi-card--attention]="data.pendingPosPayments > 0"
-            (click)="navigateToOrders()">
-            <span class="kpi-label">Pending Payments</span>
-            <strong>{{ data.pendingPosPayments }}</strong>
-            <span class="kpi-action">{{ data.pendingPosPayments ? 'Review pending →' : 'Nothing pending' }}</span>
-          </button>
-        </div>
-
-        <div class="secondary-kpi-grid" aria-label="Secondary business metrics">
-          <article class="kpi-card kpi-card--secondary">
-            <span class="kpi-label">Refunds</span>
-            <strong>{{ data.refundedAmountFormatted }}</strong>
-            <span class="kpi-caption">{{ data.refundedOrders }} orders</span>
-          </article>
-          <button type="button" class="kpi-card kpi-card--secondary kpi-card--clickable" (click)="navigateToStaff()">
-            <span class="kpi-label">Staff</span>
-            <strong>{{ data.totalStaff }}</strong>
-            <span class="kpi-action">Manage staff →</span>
-          </button>
-          <button type="button" class="kpi-card kpi-card--secondary kpi-card--clickable" (click)="navigateToMenu()">
-            <span class="kpi-label">Menu</span>
-            <strong>{{ data.totalMenuItems }}</strong>
-            <span class="kpi-action">Manage menu →</span>
-          </button>
-          <button
-            type="button"
-            class="kpi-card kpi-card--secondary kpi-card--clickable"
-            [class.kpi-card--attention]="getReadySetupCount(data.setupChecks) < data.setupChecks.length"
-            (click)="scrollToSetup()">
-            <span class="kpi-label">Setup</span>
-            <strong>{{ getReadySetupCount(data.setupChecks) }}/{{ data.setupChecks.length }}</strong>
-            <span class="kpi-action">
-              {{ getReadySetupCount(data.setupChecks) < data.setupChecks.length ? 'Finish setup →' : 'Setup complete' }}
-            </span>
+        <div class="header-controls">
+          <app-date-range-selector
+            [initialRange]="selectedDateRange()"
+            (rangeChanged)="onDateRangeChanged($event)">
+          </app-date-range-selector>
+          <button class="ghost-btn" (click)="refresh()" [disabled]="isRefreshing()">
+            {{ isRefreshing() ? 'Refreshing…' : 'Refresh' }}
           </button>
         </div>
       </section>
 
-      <section id="setup-checklist" class="panel setup-panel" aria-labelledby="setup-checklist-title">
-        <div class="section-head setup-panel__head">
+      <section class="kpi-primary" aria-label="Primary business metrics">
+        <article class="kpi-card kpi-card--hero">
+          <span class="kpi-label">Today Revenue</span>
+          <strong class="kpi-value">{{ data.todayRevenueFormatted }}</strong>
+          <span class="kpi-foot">Recognized today</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">Total Revenue</span>
+          <strong class="kpi-value">{{ data.totalRevenueFormatted }}</strong>
+          <span class="kpi-foot">For the selected period</span>
+        </article>
+        <button type="button" class="kpi-card kpi-card--clickable" (click)="navigateToOrders()">
+          <span class="kpi-label">POS Orders</span>
+          <strong class="kpi-value">{{ data.posOrderCount }}</strong>
+          <span class="kpi-action">View orders →</span>
+        </button>
+        <button
+          type="button"
+          class="kpi-card kpi-card--clickable"
+          [class.kpi-card--warn]="data.pendingPosPayments > 0"
+          (click)="navigateToOrders()">
+          <span class="kpi-label">Pending Payments</span>
+          <strong class="kpi-value">{{ data.pendingPosPayments }}</strong>
+          <span class="kpi-action">{{ data.pendingPosPayments ? 'Review pending →' : 'Nothing pending' }}</span>
+        </button>
+      </section>
+
+      <section class="kpi-secondary" aria-label="Secondary business metrics">
+        <div class="kpi-mini">
+          <span class="kpi-mini-label">Refunds</span>
+          <span class="kpi-mini-value">{{ data.refundedAmountFormatted }}</span>
+          <span class="kpi-mini-foot">{{ data.refundedOrders }} orders</span>
+        </div>
+        <button type="button" class="kpi-mini kpi-mini--btn" (click)="navigateToStaff()">
+          <span class="kpi-mini-label">Staff</span>
+          <span class="kpi-mini-value">{{ data.totalStaff }}</span>
+          <span class="kpi-mini-foot">Manage →</span>
+        </button>
+        <button type="button" class="kpi-mini kpi-mini--btn" (click)="navigateToMenu()">
+          <span class="kpi-mini-label">Menu</span>
+          <span class="kpi-mini-value">{{ data.totalMenuItems }}</span>
+          <span class="kpi-mini-foot">Manage →</span>
+        </button>
+        <button
+          type="button"
+          class="kpi-mini kpi-mini--btn"
+          [class.kpi-mini--attention]="getReadySetupCount(data.setupChecks) < data.setupChecks.length"
+          (click)="scrollToSetup()">
+          <span class="kpi-mini-label">Setup</span>
+          <span class="kpi-mini-value">{{ getReadySetupCount(data.setupChecks) }}/{{ data.setupChecks.length }}</span>
+          <span class="kpi-mini-foot">
+            {{ getReadySetupCount(data.setupChecks) < data.setupChecks.length ? 'Finish setup →' : 'Complete' }}
+          </span>
+        </button>
+      </section>
+
+      <section id="setup-checklist" class="section" aria-labelledby="setup-checklist-title">
+        <header class="section-head">
           <div>
             <span class="eyebrow">Readiness</span>
             <h3 id="setup-checklist-title">Setup Checklist</h3>
             <p class="muted">Complete the remaining items needed for daily operations.</p>
           </div>
-          <span class="setup-progress">{{ getReadySetupCount(data.setupChecks) }} of {{ data.setupChecks.length }} ready</span>
-        </div>
+          <span class="progress-pill">{{ getReadySetupCount(data.setupChecks) }} of {{ data.setupChecks.length }} ready</span>
+        </header>
         <ol class="setup-list" aria-label="Business setup checklist">
           <li
             class="setup-row"
             *ngFor="let item of data.setupChecks; let index = index"
-            [attr.aria-current]="isNextIncomplete(data.setupChecks, index) ? 'step' : null">
-            <span class="setup-dot" [class.setup-dot--ready]="item.ready" aria-hidden="true"></span>
+            [attr.aria-current]="isNextIncomplete(data.setupChecks, index) ? 'step' : null"
+            [class.is-ready]="item.ready">
+            <span class="setup-dot" [class.setup-dot--ready]="item.ready" aria-hidden="true">
+              <svg *ngIf="item.ready" viewBox="0 0 12 12" width="12" height="12"><path d="M2 6.5L4.5 9L10 3.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
             <div class="setup-copy">
               <div class="setup-title">
                 <h4>{{ item.label }}</h4>
-                <span class="chip" [class.success]="item.ready" [class.warn]="!item.ready">
+                <span class="chip-pill" [class.chip-pill--ok]="item.ready" [class.chip-pill--pending]="!item.ready">
                   {{ item.ready ? 'Ready' : 'Pending' }}
                 </span>
               </div>
@@ -135,14 +129,13 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
         </ol>
       </section>
 
-      <section class="panel soft-section">
-        <div class="section-head">
+      <section class="section">
+        <header class="section-head">
           <div>
             <h3>Recent Orders</h3>
             <p class="muted">Latest POS activity.</p>
           </div>
-        </div>
-
+        </header>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
@@ -164,19 +157,19 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
                 [attr.aria-label]="'View order ' + order.orderCode"
                 (click)="openOrderDetail(order.orderId)"
                 (keydown.enter)="openOrderDetail(order.orderId)">
-                <td><span class="chip">{{ order.sourceType }}</span></td>
-                <td>{{ order.orderCode }}</td>
-                <td>{{ order.customerName || '-' }}</td>
+                <td><span class="tag tag--muted">{{ order.sourceType }}</span></td>
+                <td class="mono">{{ order.orderCode }}</td>
+                <td>{{ order.customerName || '—' }}</td>
                 <td>
                   <span
-                    class="chip"
-                    [class.success]="order.orderStatus.toLowerCase() === 'completed'"
-                    [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'"
-                    [class.warn]="order.orderStatus.toLowerCase() === 'draft'">
+                    class="chip-pill"
+                    [class.chip-pill--ok]="order.orderStatus.toLowerCase() === 'completed'"
+                    [class.chip-pill--danger]="order.orderStatus.toLowerCase() === 'cancelled'"
+                    [class.chip-pill--pending]="order.orderStatus.toLowerCase() === 'draft'">
                     {{ order.orderStatus }}
                   </span>
                 </td>
-                <td>{{ formatCurrencyValue(order.totalAmount) }}</td>
+                <td class="mono">{{ formatCurrencyValue(order.totalAmount) }}</td>
                 <td>{{ formatDateValue(order.createdAt) }}</td>
               </tr>
               <tr *ngIf="!data.recentOrders || data.recentOrders.length === 0">
@@ -203,9 +196,9 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
       </div>
       <ng-template #dashboardSkeleton>
         <div class="page-shell">
-          <div class="skeleton skeleton-stat" style="height: 96px;"></div>
-          <div class="stats-grid">
-            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4,5,6]"></div>
+          <div class="skeleton skeleton-stat" style="height: 84px;"></div>
+          <div class="kpi-primary">
+            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]"></div>
           </div>
           <div class="skeleton skeleton-row" style="height: 220px;"></div>
         </div>
@@ -218,75 +211,142 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
     </app-order-detail-modal>
   `,
   styles: [`
-    .dashboard-overview { padding: clamp(1rem, 2vw, 1.5rem); }
-    .overview-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+    :host { display: block; }
+    .page-shell { display: grid; gap: 1.5rem; }
+
+    .page-header {
+      display: flex; justify-content: space-between; align-items: end; gap: 1rem; flex-wrap: wrap;
     }
-    .overview-header h3 { margin: 0.2rem 0 0; font-size: 1.25rem; }
-    .eyebrow {
-      color: var(--brand-deep);
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
+    .page-header h2 { margin: 0.25rem 0 0.35rem; font-size: 1.75rem; letter-spacing: -0.01em; }
+    .page-header p { margin: 0; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; font-weight: 700; color: var(--brand, #d97706); }
+    .header-controls { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+    @media (max-width: 720px) {
+      .page-header { flex-direction: column; align-items: stretch; }
+      .header-controls { justify-content: flex-start; }
+      .header-controls .ghost-btn { flex: 1; }
     }
-    .overview-controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap; }
-    .primary-kpi-grid, .secondary-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.9rem; }
-    .secondary-kpi-grid { margin-top: 0.9rem; }
+
+    .kpi-primary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    @media (max-width: 1100px) { .kpi-primary { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px)  { .kpi-primary { grid-template-columns: 1fr; } }
+
     .kpi-card {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      min-width: 0;
-      padding: 1rem;
-      color: var(--ink);
-      text-align: left;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      box-shadow: var(--shadow);
+      background: #fff; border: 1px solid var(--line, #e6e4df);
+      border-radius: 14px; padding: 1.15rem 1.25rem;
+      display: grid; gap: 0.35rem; text-align: left; color: inherit; font: inherit;
+      transition: border-color .18s, transform .18s, box-shadow .18s;
     }
-    button.kpi-card { width: 100%; font: inherit; cursor: pointer; }
-    .kpi-card--primary { min-height: 132px; }
-    .kpi-card--secondary { min-height: 96px; }
-    .kpi-card--primary strong { margin: 0.55rem 0 0.35rem; font-size: clamp(1.7rem, 2.5vw, 2rem); line-height: 1; }
-    .kpi-card--secondary strong { margin: 0.4rem 0 0.25rem; font-size: 1.35rem; line-height: 1.1; }
-    .kpi-label { color: var(--muted); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
-    .kpi-caption, .kpi-action { color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
-    .kpi-action { color: var(--brand-deep); font-weight: 700; }
-    .kpi-card--clickable { transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease; }
-    .kpi-card--clickable:hover { border-color: var(--brand); box-shadow: var(--shadow-md); transform: translateY(-2px); }
-    .kpi-card--clickable:focus-visible { outline: 3px solid var(--brand-soft); outline-offset: 2px; }
-    .kpi-card--attention { border-color: rgba(181, 106, 45, 0.5); background: linear-gradient(135deg, var(--panel), var(--brand-soft)); }
-    .setup-panel { padding: clamp(1rem, 2vw, 1.5rem); }
-    .setup-panel__head { align-items: center; margin-bottom: 1rem; }
-    .setup-panel__head h3 { margin: 0.2rem 0; }
-    .setup-progress { padding: 0.5rem 0.8rem; color: var(--brand-deep); background: var(--brand-soft); border-radius: 999px; font-size: 0.8rem; font-weight: 800; white-space: nowrap; }
-    .setup-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-    .setup-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; background: var(--panel); }
-    .setup-row + .setup-row { border-top: 1px solid var(--line); }
-    .setup-dot { width: 0.65rem; height: 0.65rem; background: var(--brand); border-radius: 50%; box-shadow: 0 0 0 4px var(--brand-soft); }
-    .setup-dot--ready { background: var(--success); box-shadow: 0 0 0 4px var(--success-soft); }
+    button.kpi-card { cursor: pointer; }
+    .kpi-card--hero { background: linear-gradient(160deg, #fff7ed 0%, #ffffff 60%); border-color: #fed7aa; }
+    .kpi-card--hero .kpi-value { font-size: 2.1rem; color: #7c2d12; }
+    .kpi-card--warn { border-color: #fecaca; background: linear-gradient(160deg, #fef2f2 0%, #ffffff 60%); }
+    .kpi-card--clickable:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -20px rgba(217,119,6,0.4); border-color: #fed7aa; }
+    .kpi-card--clickable:focus-visible { outline: 3px solid rgba(217,119,6,0.25); outline-offset: 2px; }
+
+    .kpi-label { font-size: 0.78rem; color: var(--muted, #6b7280); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .kpi-value { font-size: 1.85rem; font-weight: 700; color: var(--ink, #111827); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+    .kpi-foot { font-size: 0.82rem; color: var(--muted, #6b7280); }
+    .kpi-action { font-size: 0.82rem; color: #b45309; font-weight: 600; }
+
+    .kpi-secondary {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      background: #fff; border: 1px solid var(--line, #e6e4df);
+      border-radius: 12px; overflow: hidden;
+    }
+    @media (max-width: 720px) { .kpi-secondary { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-mini {
+      padding: 0.9rem 1.1rem; display: grid; gap: 0.2rem;
+      border-right: 1px solid var(--line, #e6e4df);
+      background: transparent; text-align: left; color: inherit; font: inherit;
+    }
+    .kpi-mini:last-child { border-right: none; }
+    .kpi-mini--btn { cursor: pointer; transition: background .15s; }
+    .kpi-mini--btn:hover { background: #fafaf9; }
+    .kpi-mini--attention { background: #fef3c7; }
+    .kpi-mini--attention:hover { background: #fde68a; }
+    @media (max-width: 720px) {
+      .kpi-mini:nth-child(2n) { border-right: none; }
+      .kpi-mini:nth-child(-n+2) { border-bottom: 1px solid var(--line, #e6e4df); }
+    }
+    .kpi-mini-label { font-size: 0.75rem; color: var(--muted, #6b7280); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-mini-value { font-size: 1.15rem; font-weight: 700; color: var(--ink, #111827); font-variant-numeric: tabular-nums; }
+    .kpi-mini-foot { font-size: 0.75rem; color: var(--muted, #6b7280); }
+
+    .section {
+      background: #fff; border: 1px solid var(--line, #e6e4df);
+      border-radius: 14px; padding: 1.35rem 1.5rem;
+    }
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .section-head h3 { margin: 0.2rem 0 0.25rem; font-size: 1.1rem; }
+    .section-head p { margin: 0; }
+    .progress-pill {
+      padding: 0.35rem 0.75rem; background: #fef3c7; color: #92400e;
+      border-radius: 999px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em;
+    }
+
+    .setup-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line, #e6e4df); border-radius: 12px; overflow: hidden; }
+    .setup-row {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center; gap: 0.85rem; padding: 0.95rem 1.1rem; background: #fff;
+    }
+    .setup-row + .setup-row { border-top: 1px solid var(--line, #e6e4df); }
+    .setup-row.is-ready { background: #fafaf9; }
+    .setup-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #fff; border: 2px solid var(--line, #e6e4df);
+      display: grid; place-items: center; color: #fff;
+    }
+    .setup-dot--ready { background: #10b981; border-color: #10b981; }
+    .setup-copy { min-width: 0; }
     .setup-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
-    .setup-title h4 { margin: 0; font-size: 0.93rem; }
-    .setup-copy p { margin: 0.22rem 0 0; color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
-    .setup-action { min-height: 38px; padding: 0.45rem 0.7rem; color: var(--brand-deep); background: transparent; border: 1px solid var(--line); border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-    .setup-action:hover { border-color: var(--brand); background: var(--brand-soft); }
-    @media (max-width: 1100px) {
-      .overview-header { align-items: flex-start; flex-direction: column; }
-      .overview-controls { justify-content: flex-start; width: 100%; }
-      .primary-kpi-grid, .secondary-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .setup-title h4 { margin: 0; font-size: 0.95rem; }
+    .setup-copy p { margin: 0.22rem 0 0; color: var(--muted, #6b7280); font-size: 0.85rem; line-height: 1.45; }
+    .setup-action {
+      min-height: 36px; padding: 0.45rem 0.85rem;
+      color: #b45309; background: #fff7ed; border: 1px solid #fed7aa;
+      border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.85rem;
     }
+    .setup-action:hover { background: #ffedd5; border-color: #fdba74; }
+
+    .chip-pill {
+      display: inline-flex; align-items: center;
+      padding: 0.2rem 0.6rem; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      background: #f3f4f6; color: #374151;
+    }
+    .chip-pill--ok { background: #d1fae5; color: #065f46; }
+    .chip-pill--pending { background: #fef3c7; color: #92400e; }
+    .chip-pill--danger { background: #fee2e2; color: #991b1b; }
+    .tag {
+      display: inline-flex; align-items: center;
+      padding: 0.18rem 0.55rem; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+      background: #f3f4f6; color: #374151;
+    }
+    .tag--muted { background: #fafaf9; color: #6b7280; border: 1px solid var(--line, #e6e4df); }
+    .mono { font-variant-numeric: tabular-nums; }
+
+    .table-wrap { border: 1px solid var(--line, #e6e4df); border-radius: 12px; overflow: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .data-table thead th {
+      text-align: left; padding: 0.7rem 0.9rem; background: #fafaf9;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted, #6b7280); font-weight: 700;
+      border-bottom: 1px solid var(--line, #e6e4df);
+    }
+    .data-table tbody td {
+      padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--line, #e6e4df); vertical-align: middle;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .clickable-row { cursor: pointer; transition: background .15s; }
+    .clickable-row:hover { background: #fafaf9; }
+    .clickable-row:focus-visible { outline: 2px solid rgba(217,119,6,0.4); outline-offset: -2px; }
+
     @media (max-width: 640px) {
-      .primary-kpi-grid, .secondary-kpi-grid { grid-template-columns: 1fr; }
-      .overview-controls { align-items: stretch; flex-direction: column; }
-      .overview-controls .ghost-btn { width: 100%; }
-      .setup-panel__head { align-items: flex-start; }
       .setup-row { grid-template-columns: auto minmax(0, 1fr); }
       .setup-action { grid-column: 2; width: 100%; }
     }
@@ -405,29 +465,13 @@ export class BusinessDashboardPageComponent {
     }
   }
 
-  formatCurrencyValue(value: number): string {
-    return formatCurrency(value);
-  }
+  formatCurrencyValue(value: number): string { return formatCurrency(value); }
+  formatDateValue(value: number | null): string { return formatDate(value); }
 
-  formatDateValue(value: number | null): string {
-    return formatDate(value);
-  }
-
-  navigateToOrders(): void {
-    this.router.navigate(['/business/orders']);
-  }
-
-  navigateToStaff(): void {
-    this.router.navigate(['/business/staff']);
-  }
-
-  navigateToMenu(): void {
-    this.router.navigate(['/business/menu']);
-  }
-
-  navigateTo(route: string): void {
-    this.router.navigate([route]);
-  }
+  navigateToOrders(): void { this.router.navigate(['/business/orders']); }
+  navigateToStaff(): void { this.router.navigate(['/business/staff']); }
+  navigateToMenu(): void { this.router.navigate(['/business/menu']); }
+  navigateTo(route: string): void { this.router.navigate([route]); }
 
   setupAction(label: string): { label: string; route: string } | null {
     if (label === 'Marketplace Intake') {
