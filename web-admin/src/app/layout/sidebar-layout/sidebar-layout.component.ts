@@ -24,7 +24,12 @@ type NavLink = { label: string; path: string };
           <span class="hamburger__bar"></span>
           <span class="hamburger__bar"></span>
         </button>
-        <span class="topbar__title">KhanaBook Web Admin</span>
+        <div class="topbar__brand">
+          <div class="brand-logo brand-logo--sm" aria-hidden="true">
+            <span class="brand-logo__mark">K</span>
+          </div>
+          <span class="topbar__title">KhanaBook</span>
+        </div>
       </header>
 
       <div
@@ -35,34 +40,49 @@ type NavLink = { label: string; path: string };
 
       <aside
         #sidebar
-        class="sidebar panel"
+        class="sidebar"
         [class.sidebar--open]="menuOpen()"
         id="sidebar-nav"
         aria-label="Primary navigation"
         tabindex="-1"
       >
         <div class="brand-block">
-          <div class="brand-logo" aria-hidden="true">
-            <span class="brand-logo__mark">K</span>
+          <div class="brand-row">
+            <div class="brand-logo" aria-hidden="true">
+              <span class="brand-logo__mark">K</span>
+            </div>
+            <div class="brand-copy">
+              <span class="eyebrow">KhanaBook</span>
+              <h1>Web Admin</h1>
+            </div>
           </div>
-          <span class="eyebrow">KhanaBook</span>
-          <h1>Web Admin</h1>
-          <p class="muted">{{ session()?.userName || 'Operator' }}</p>
-          <span class="chip">{{ session()?.role }}</span>
+          <div class="user-card">
+            <div class="user-avatar" aria-hidden="true">
+              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
+            </div>
+            <div class="user-meta">
+              <span class="user-name">{{ session()?.userName || 'Operator' }}</span>
+              <span class="user-role">{{ session()?.role }}</span>
+            </div>
+          </div>
         </div>
 
-        <nav class="nav-links">
+        <nav class="nav-links" aria-label="Main">
           <a
             *ngFor="let link of links()"
             [routerLink]="link.path"
             routerLinkActive="active-link"
             class="nav-link"
             (click)="closeMenu()">
-            {{ link.label }}
+            <span class="nav-link__dot" aria-hidden="true"></span>
+            <span class="nav-link__label">{{ link.label }}</span>
           </a>
         </nav>
 
-        <button class="ghost-btn logout-btn" (click)="logout()">Logout</button>
+        <button class="logout-btn" (click)="logout()" type="button">
+          <span aria-hidden="true">↩</span>
+          <span>Sign out</span>
+        </button>
       </aside>
 
       <main class="content-shell">
@@ -71,97 +91,227 @@ type NavLink = { label: string; path: string };
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
     .layout-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 1.25rem;
-      padding: 1.25rem;
+      grid-template-columns: 260px 1fr;
       align-items: start;
     }
 
     .sidebar {
-      padding: 1.5rem;
+      padding: 1.25rem 0.9rem 1rem;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.25rem;
       position: sticky;
-      top: 1.25rem;
-      height: calc(100vh - 2.5rem);
+      top: 0;
+      height: 100vh;
       background: var(--panel);
+      border-right: 1px solid var(--line);
     }
 
-    .brand-block h1 {
-      margin: 0.35rem 0;
-      font-size: 1.7rem;
+    .brand-block {
+      display: grid;
+      gap: 1rem;
+      padding: 0 0.35rem;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .brand-copy { display: grid; }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
 
     .brand-logo {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+      box-shadow: 0 4px 10px -3px rgba(217, 119, 6, 0.5);
+      flex-shrink: 0;
+    }
+
+    .brand-logo--sm {
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
-      background: var(--brand);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      margin-bottom: 0.35rem;
     }
 
     .brand-logo__mark {
       color: #fff;
       font-weight: 800;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       line-height: 1;
+      letter-spacing: -0.02em;
     }
+
+    .brand-logo--sm .brand-logo__mark { font-size: 0.95rem; }
 
     .eyebrow {
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--brand-deep);
-      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-size: 0.65rem;
       font-weight: 700;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.6rem 0.7rem;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .user-meta {
+      display: grid;
+      min-width: 0;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-role {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
     }
 
     .nav-links {
       display: flex;
       flex-direction: column;
-      gap: 0.45rem;
+      gap: 0.15rem;
     }
 
     .nav-link {
-      display: block;
-      padding: 0.85rem 1rem;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.6rem 0.85rem;
       border-radius: 8px;
-      color: var(--ink);
+      color: var(--ink-2);
       text-decoration: none;
-      font-weight: 600;
-      border: 1px solid transparent;
-      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+      font-weight: 500;
+      font-size: 0.88rem;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .nav-link__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+      transition: background 0.15s ease, transform 0.15s ease;
     }
 
     .nav-link:hover {
-      background: rgba(249, 115, 22, 0.08);
-      border-color: rgba(249, 115, 22, 0.12);
-      transform: translateX(2px);
+      background: var(--panel-2);
+      color: var(--ink);
+    }
+
+    .nav-link:hover .nav-link__dot {
+      background: var(--muted);
     }
 
     .nav-link.active-link {
-      background: rgba(249, 115, 22, 0.16);
+      background: var(--brand-soft);
       color: var(--brand-deep);
-      border-color: rgba(249, 115, 22, 0.18);
+      font-weight: 650;
+    }
+
+    .nav-link.active-link::before {
+      content: "";
+      position: absolute;
+      left: -0.9rem;
+      top: 0.55rem;
+      bottom: 0.55rem;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--brand);
+    }
+
+    .nav-link.active-link .nav-link__dot {
+      background: var(--brand);
+      transform: scale(1.2);
     }
 
     .logout-btn {
       margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.85rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: rgba(185, 28, 28, 0.25);
     }
 
     .content-shell {
       min-width: 0;
+      width: 100%;
     }
 
-    .topbar {
-      display: none;
+    .topbar { display: none; }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
     }
 
     .hamburger {
@@ -169,10 +319,10 @@ type NavLink = { label: string; path: string };
       flex-direction: column;
       justify-content: center;
       gap: 4px;
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       padding: 0 10px;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-strong);
       border-radius: 10px;
       background: var(--panel);
       cursor: pointer;
@@ -185,15 +335,11 @@ type NavLink = { label: string; path: string };
       background: var(--ink);
     }
 
-    .sidebar-backdrop {
-      display: none;
-    }
+    .sidebar-backdrop { display: none; }
 
     @media (max-width: 1024px) {
       .layout-shell {
         grid-template-columns: 1fr;
-        padding: 0;
-        gap: 0;
       }
 
       .topbar {
@@ -203,14 +349,15 @@ type NavLink = { label: string; path: string };
         position: sticky;
         top: 0;
         z-index: 30;
-        padding: 0.75rem 1rem;
+        padding: 0.7rem 1rem;
         background: var(--panel);
         border-bottom: 1px solid var(--line);
       }
 
       .topbar__title {
         font-weight: 700;
-        color: var(--brand-deep);
+        color: var(--ink);
+        letter-spacing: -0.01em;
       }
 
       .sidebar {
@@ -221,33 +368,26 @@ type NavLink = { label: string; path: string };
         width: 280px;
         max-width: 85vw;
         height: 100vh;
-        border-radius: 0;
+        border-right: 1px solid var(--line);
         transform: translateX(-100%);
         transition: transform 0.25s ease;
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-lg);
       }
 
-      .sidebar--open {
-        transform: translateX(0);
-      }
+      .sidebar--open { transform: translateX(0); }
 
       .sidebar-backdrop {
         display: block;
         position: fixed;
         inset: 0;
         z-index: 35;
-        background: rgba(30, 41, 59, 0.45);
-      }
-
-      .content-shell {
-        padding: 1rem;
+        background: rgba(15, 17, 21, 0.5);
+        backdrop-filter: blur(2px);
       }
     }
 
     @media (min-width: 1025px) {
-      .sidebar-backdrop {
-        display: none !important;
-      }
+      .sidebar-backdrop { display: none !important; }
     }
   `]
 })
