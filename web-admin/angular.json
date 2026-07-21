@@ -27,7 +27,8 @@
             ],
             "styles": [
               "src/styles.css",
-              "src/styles/wave-c.css"
+              "src/styles/wave-c.css",
+              "src/styles/wave-de.css"
             ]
           },
           "configurations": {
@@ -77,7 +78,8 @@
             "tsConfig": "tsconfig.spec.json",
             "styles": [
               "src/styles.css",
-              "src/styles/wave-c.css"
+              "src/styles/wave-c.css",
+              "src/styles/wave-de.css"
             ]
           }
         }
