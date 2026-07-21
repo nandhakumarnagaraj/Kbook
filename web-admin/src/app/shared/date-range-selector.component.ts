@@ -78,21 +78,24 @@ export function getPresetDateRange(
     }
 
     .date-range__presets {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(max-content, 1fr));
+      gap: 0.5rem;
     }
 
     .date-range__preset-btn {
-      padding: 0.4rem 0.85rem;
+      min-height: 42px;
+      min-width: 5.5rem;
+      padding: 0.55rem 0.9rem;
       border-radius: 8px;
       border: 1px solid var(--line, #e9dcc9);
       background: var(--panel, #fffdf8);
       color: var(--ink, #24170f);
       font-size: 0.85rem;
-      font-weight: 500;
+      font-weight: 600;
+      white-space: nowrap;
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
 
     .date-range__preset-btn:hover {

@@ -1,20 +1,20 @@
 :root {
-  --bg: #F8FAFC;
-  --panel: #FFFFFF;
-  --ink: #1E293B;
-  --muted: #64748B;
-  --line: #E2E8F0;
-  --brand: #F97316;
-  --brand-deep: #C2410C;
-  --brand-soft: #FFF7ED;
-  --accent: #14B8A6;
-  --accent-soft: #F0FDFA;
-  --danger: #EF4444;
-  --danger-soft: #FEF2F2;
-  --success: #22C55E;
-  --success-soft: #F0FDF4;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --bg: #f6f1e8;
+  --panel: #fffdf8;
+  --ink: #24170f;
+  --muted: #7d6b5f;
+  --line: #e9dcc9;
+  --brand: #b56a2d;
+  --brand-deep: #7e4417;
+  --brand-soft: #f8eadc;
+  --accent: #1d7b5f;
+  --accent-soft: #e6f3ee;
+  --danger: #a6372f;
+  --danger-soft: #f9e9e7;
+  --success: #1d7b5f;
+  --success-soft: #e6f3ee;
+  --shadow: 0 2px 8px rgba(78, 45, 24, 0.08);
+  --shadow-md: 0 10px 28px rgba(78, 45, 24, 0.1);
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 

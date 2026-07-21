@@ -12,11 +12,11 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
-        <h2>Online-order Integrations</h2>
-        <p class="muted">Connect supported delivery providers and review settlement onboarding for this restaurant.</p>
+        <h2>Payments &amp; Online Integrations</h2>
+        <p class="muted">Review Easebuzz payment onboarding and connect supported online-order providers for this restaurant.</p>
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
-          <span class="chip success">Encrypted Credentials</span>
+          <span class="chip success">Platform-managed Payments</span>
         </div>
       </section>
 
@@ -33,7 +33,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       <div class="panel config-card soft-section" *ngIf="setupState() === 'loaded' && marketplaceSetup() as setup">
         <div class="card-header">
           <div class="card-info">
-            <h3>Easebuzz Settlement Onboarding</h3>
+            <h3>Online Payments — Easebuzz</h3>
             <p class="muted meta-row">
               <span>Managed by: <strong>KBook Admin</strong></span>
               <span class="dot">.</span>
