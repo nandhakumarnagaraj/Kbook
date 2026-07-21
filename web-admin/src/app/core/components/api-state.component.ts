@@ -22,95 +22,81 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <!-- Loading spinner -->
-    <div *ngIf="loading" class="api-state-loading">
-      <div class="spinner"></div>
+    <div *ngIf="loading" class="api-state-loading" role="status" aria-live="polite" aria-busy="true">
+      <div class="spinner" aria-hidden="true"></div>
       <p class="loading-text">{{ loadingText }}</p>
     </div>
 
-    <!-- Error banner -->
-    <div *ngIf="!loading && error" class="api-state-error">
-      <div class="error-icon">⚠️</div>
-      <p class="error-message">{{ error }}</p>
-      <button *ngIf="showRetry" class="retry-btn" (click)="retry.emit()">
-        Try Again
+    <section *ngIf="!loading && error" class="api-state-error" role="alert" aria-live="assertive">
+      <div class="error-icon" aria-hidden="true">!</div>
+      <div>
+        <h3>We couldn't load this content</h3>
+        <p class="error-message">{{ error }}</p>
+      </div>
+      <button *ngIf="showRetry" type="button" class="retry-btn" (click)="retry.emit()">
+        Try again
       </button>
-    </div>
+    </section>
 
-    <!-- Content slot — rendered only when idle and no error -->
     <ng-container *ngIf="!loading && !error">
       <ng-content></ng-content>
     </ng-container>
   `,
   styles: [`
     .api-state-loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      justify-items: center;
+      gap: 0.8rem;
       padding: 3rem 1rem;
-      gap: 1rem;
     }
-
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(196, 160, 90, 0.2);
-      border-top-color: #c4a05a;
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--brand-soft);
+      border-top-color: var(--brand);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      color: #9a8060;
-      font-size: 0.9rem;
-      margin: 0;
-    }
-
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { margin: 0; color: var(--muted); }
     .api-state-error {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: center;
-      padding: 2.5rem 1.5rem;
-      gap: 0.75rem;
-      background: rgba(220, 53, 69, 0.06);
-      border: 1px solid rgba(220, 53, 69, 0.25);
-      border-radius: 12px;
+      gap: 1rem;
       margin: 1rem;
+      padding: 1rem 1.1rem;
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid rgba(166, 55, 47, 0.22);
+      border-radius: 14px;
     }
-
     .error-icon {
-      font-size: 2rem;
+      display: grid;
+      place-items: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      color: #fff;
+      background: var(--danger);
+      border-radius: 999px;
+      font-weight: 800;
     }
-
-    .error-message {
-      color: #c0392b;
-      font-size: 0.95rem;
-      text-align: center;
-      margin: 0;
-      max-width: 400px;
-    }
-
+    h3 { margin: 0 0 0.2rem; color: var(--ink); font-size: 0.95rem; }
+    .error-message { margin: 0; color: var(--danger); line-height: 1.4; }
     .retry-btn {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1.5rem;
-      border: none;
-      border-radius: 8px;
-      background: #c4a05a;
-      color: #1a1008;
-      font-weight: 600;
-      font-size: 0.9rem;
+      min-height: 42px;
+      padding: 0.55rem 1rem;
+      color: #fff;
+      background: var(--danger);
+      border: 0;
+      border-radius: 10px;
       cursor: pointer;
-      transition: opacity 0.2s;
+      font-weight: 700;
     }
-
-    .retry-btn:hover {
-      opacity: 0.85;
+    .retry-btn:focus-visible { outline: 3px solid rgba(166, 55, 47, 0.24); outline-offset: 2px; }
+    @media (max-width: 640px) {
+      .api-state-error { grid-template-columns: auto minmax(0, 1fr); }
+      .retry-btn { grid-column: 1 / -1; width: 100%; }
     }
   `]
 })

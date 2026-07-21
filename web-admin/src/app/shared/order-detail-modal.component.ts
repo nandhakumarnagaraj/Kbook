@@ -1,4 +1,15 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderDetailResponse } from '../core/models/api.models';
 import { formatCurrency, formatDate } from './formatters';
@@ -8,11 +19,19 @@ import { formatCurrency, formatDate } from './formatters';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="order-modal__overlay" *ngIf="order" (click)="closed.emit()">
-      <div class="order-modal__card" (click)="$event.stopPropagation()">
+    <div class="order-modal__overlay" *ngIf="order" (click)="close()">
+      <section
+        #dialogCard
+        class="order-modal__card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-detail-title"
+        tabindex="-1"
+        (click)="$event.stopPropagation()"
+      >
         <div class="order-modal__header">
-          <h3 class="order-modal__title">Order #{{ order.order.orderCode }}</h3>
-          <button class="order-modal__close" (click)="closed.emit()" aria-label="Close">✕</button>
+          <h3 id="order-detail-title" class="order-modal__title">Order #{{ order.order.orderCode }}</h3>
+          <button #closeButton type="button" class="order-modal__close" (click)="close()" aria-label="Close order details">✕</button>
         </div>
 
         <div class="order-modal__details">
@@ -83,7 +102,7 @@ import { formatCurrency, formatDate } from './formatters';
             No line items found.
           </div>
         </div>
-      </div>
+      </section>
     </div>
   `,
   styles: [`
@@ -271,10 +290,68 @@ import { formatCurrency, formatDate } from './formatters';
     }
   `]
 })
-export class OrderDetailModalComponent {
+export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   @Input() order: OrderDetailResponse | null = null;
   @Output() closed = new EventEmitter<void>();
+  @ViewChild('dialogCard') private dialogCard?: ElementRef<HTMLElement>;
+  @ViewChild('closeButton') private closeButton?: ElementRef<HTMLButtonElement>;
 
-  fmtCurrency = formatCurrency;
-  fmtDate = formatDate;
+  readonly fmtCurrency = formatCurrency;
+  readonly fmtDate = formatDate;
+  private previouslyFocused: HTMLElement | null = null;
+  private previousBodyOverflow = '';
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['order']) return;
+    if (this.order) {
+      this.previouslyFocused = document.activeElement as HTMLElement | null;
+      this.previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => this.closeButton?.nativeElement.focus());
+    } else {
+      this.restorePage();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.restorePage();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  handleKeydown(event: KeyboardEvent): void {
+    if (!this.order) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.close();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = this.dialogCard?.nativeElement.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  close(): void {
+    this.restorePage();
+    this.closed.emit();
+  }
+
+  private restorePage(): void {
+    document.body.style.overflow = this.previousBodyOverflow;
+    if (this.previouslyFocused) {
+      this.previouslyFocused.focus();
+      this.previouslyFocused = null;
+    }
+  }
 }

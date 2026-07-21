@@ -65,6 +65,11 @@ class MainActivity : FragmentActivity() {
         private const val UI_SCALE_TAG = "UI_SCALE_DEBUG"
     }
 
+    private fun authenticatedStartDestination(): String {
+        if (!sessionManager.canUsePos()) return "role_access"
+        return if (sessionManager.isInitialSyncCompleted()) "main/0" else "initial_sync"
+    }
+
     /**
      * Pin fontScale to 1.0 at the Context level so that:
      *  1. Compose's root LocalDensity is initialised with fontScale=1f (not the system value).
@@ -116,7 +121,7 @@ class MainActivity : FragmentActivity() {
             networkMonitor.status.collectLatest { status ->
                 if (status == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
                     val tokenVal = sessionManager.getAuthToken()
-                    if (!tokenVal.isNullOrBlank()) {
+                    if (!tokenVal.isNullOrBlank() && sessionManager.canUsePos()) {
                         Log.i("MainActivity", "Network reconnected. Enqueuing background sync.")
                         androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce()
                         syncManager.triggerImmediateSync()
@@ -184,7 +189,10 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(navController) {
                     PaymentReturnManager.latestEvent.collect { event ->
                         val currentRoute = navController.currentDestination?.route
-                        if (event != null && currentRoute?.startsWith("new_bill") != true) {
+                        if (sessionManager.canUsePos()
+                            && event != null
+                            && currentRoute?.startsWith("new_bill") != true
+                        ) {
                             navController.navigate("new_bill?resumePayment=true")
                         }
                     }
@@ -272,10 +280,14 @@ class MainActivity : FragmentActivity() {
                                 navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                             },
                             onNavigateToMain = {
-                                navController.navigate("main/0") { popUpTo("splash") { inclusive = true } }
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("splash") { inclusive = true }
+                                }
                             },
                             onNavigateToInitialSync = {
-                                navController.navigate("initial_sync") { popUpTo("splash") { inclusive = true } }
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("splash") { inclusive = true }
+                                }
                             },
                             onNavigateToAppLock = {
                                 navController.navigate("app_lock") { popUpTo("splash") { inclusive = true } }
@@ -288,7 +300,9 @@ class MainActivity : FragmentActivity() {
                                 if (navController.previousBackStackEntry != null) {
                                     navController.popBackStack()
                                 } else {
-                                    navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
+                                    navController.navigate(authenticatedStartDestination()) {
+                                        popUpTo("app_lock") { inclusive = true }
+                                    }
                                 }
                             },
                             onRecoverAccount = {
@@ -299,10 +313,23 @@ class MainActivity : FragmentActivity() {
                             }
                         )
                     }
+                    composable("role_access") {
+                        RoleAccessScreen(
+                            role = sessionManager.getActiveUserRole(),
+                            onSignOut = {
+                                authViewModel.logout()
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
                     composable("initial_sync") {
                         InitialSyncScreen(
                             onSyncCompleteNavigateToMain = {
-                                navController.navigate("main/0") { popUpTo("initial_sync") { inclusive = true } }
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("initial_sync") { inclusive = true }
+                                }
                             },
                             onNavigateToLogin = {
                                 navController.navigate("login") { popUpTo(0) { inclusive = true } }
@@ -312,10 +339,8 @@ class MainActivity : FragmentActivity() {
                     composable("login") {
                         LoginScreen(
                             onLoginSuccess = {
-                                if (sessionManager.isInitialSyncCompleted()) {
-                                    navController.navigate("main/0") { popUpTo("login") { inclusive = true } }
-                                } else {
-                                    navController.navigate("initial_sync") { popUpTo("login") { inclusive = true } }
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("login") { inclusive = true }
                                 }
                             },
                             onSignUpClick = { navController.navigate("signup") }
@@ -324,10 +349,8 @@ class MainActivity : FragmentActivity() {
                     composable("signup") {
                         SignUpScreen(
                             onSignUpSuccess = {
-                                if (sessionManager.isInitialSyncCompleted()) {
-                                    navController.navigate("main/0") { popUpTo("signup") { inclusive = true } }
-                                } else {
-                                    navController.navigate("initial_sync") { popUpTo("signup") { inclusive = true } }
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("signup") { inclusive = true }
                                 }
                             },
                             onLoginClick = { navController.popBackStack() }

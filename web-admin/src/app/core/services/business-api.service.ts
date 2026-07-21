@@ -15,6 +15,7 @@ import {
   MenuExtractionJob,
   OrderDetailResponse,
   RecoverTerminalRequest,
+  RecoverTerminalResponse,
   RefundOrderRequest,
   RejectTerminalRequest,
   RenameTerminalRequest,
@@ -97,7 +98,7 @@ export class BusinessApiService {
   }
 
   recoverTerminal(terminalId: number, payload: RecoverTerminalRequest) {
-    return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/recover`, payload);
+    return this.http.post<RecoverTerminalResponse>(`${API_BASE_URL}/business/terminals/${terminalId}/recover`, payload);
   }
 
   uploadMenuFile(file: File) {

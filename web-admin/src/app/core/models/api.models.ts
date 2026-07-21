@@ -176,6 +176,13 @@ export interface RecoverTerminalRequest {
   deviceId: string;
 }
 
+export interface RecoverTerminalResponse {
+  terminalId: number;
+  terminalSeries: string | null;
+  terminalName: string | null;
+  terminalToken: string;
+}
+
 export type MenuExtractionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 export interface MenuExtractionJob {

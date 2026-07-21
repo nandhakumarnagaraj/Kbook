@@ -190,10 +190,12 @@ constructor(
         //
         // Here we only schedule the periodic sync job and trigger an
         // immediate push for any pending offline data on re-login.
-        MasterSyncWorker.schedule(context)
-        val restaurantId = user.restaurantId
-        if (databaseProvider.isDatabaseFileExists(restaurantId)) {
-            androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(initialDelaySeconds = 10)
+        if (sessionManager.canUsePos()) {
+            MasterSyncWorker.schedule(context)
+            val restaurantId = user.restaurantId
+            if (databaseProvider.isDatabaseFileExists(restaurantId)) {
+                androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(initialDelaySeconds = 10)
+            }
         }
         return Result.success(Unit)
     }

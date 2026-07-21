@@ -59,23 +59,15 @@ export class AuthService {
     return !!this.tokenStorage.getToken();
   }
 
+  getLandingPath(role = this.session()?.role): string {
+    if (role === 'KBOOK_ADMIN') return '/admin/dashboard';
+    if (role === 'OWNER') return '/business/dashboard';
+    if (role === 'SHOP_ADMIN') return '/business/terminals';
+    return '/limited-access';
+  }
+
   navigateByRole(role: string): void {
-    if (role === 'KBOOK_ADMIN') {
-      void this.router.navigate(['/admin/dashboard']);
-      return;
-    }
-
-    if (role === 'OWNER') {
-      void this.router.navigate(['/business/dashboard']);
-      return;
-    }
-
-    if (role === 'SHOP_ADMIN') {
-      void this.router.navigate(['/business/terminals']);
-      return;
-    }
-
-    void this.router.navigate(['/limited-access']);
+    void this.router.navigateByUrl(this.getLandingPath(role));
   }
 
   requestPasswordOtp(phone: string): Observable<void> {

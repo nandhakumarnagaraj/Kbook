@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 
 export function escapeCsvField(value: string): string {
   const spreadsheetSafe = /^[=+\-@]/.test(value) ? `'${value}` : value;
@@ -53,7 +54,7 @@ export function filterBusinessOrders(
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -65,44 +66,56 @@ export function filterBusinessOrders(
         </div>
       </section>
 
-      <!-- Refund Modal -->
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
-        <div class="modal-box" (click)="$event.stopPropagation()">
-          <h3>Manual Refund {{ refundTarget.orderCode }}</h3>
-          <p class="muted">Total: {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
+        <section
+          class="modal-box"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="refund-dialog-title"
+          (click)="$event.stopPropagation()"
+        >
+          <h3 id="refund-dialog-title">Record Manual Refund</h3>
+          <p class="muted">Order {{ refundTarget.orderCode }} · Total {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
           <p class="hint-text">
-            This only records a refund already handled outside the gateway.
+            Use this only after the money has been returned outside KhanaBook. This action records the refund; it does not contact a payment gateway.
           </p>
 
           <div class="field">
-            <label>Refund Amount</label>
+            <label for="refund-amount">Refund Amount</label>
             <input
+              id="refund-amount"
+              class="field-control"
               type="number"
               [(ngModel)]="refundAmountInput"
               [max]="refundTarget.totalAmount"
               min="0.01"
               step="0.01"
               placeholder="Enter amount"
+              autofocus
             />
           </div>
           <div class="field">
-            <label>Reason</label>
-            <input type="text" [(ngModel)]="refundReasonInput" placeholder="e.g. Customer request" />
+            <label for="refund-reason">Reason</label>
+            <input id="refund-reason" class="field-control" type="text" [(ngModel)]="refundReasonInput" placeholder="For example, customer request" />
           </div>
 
-          <p class="error-text" *ngIf="refundError">{{ refundError }}</p>
+          <p class="error-text" role="alert" *ngIf="refundAmountInput && refundAmountInput > refundTarget.totalAmount">
+            Refund amount cannot exceed the order total.
+          </p>
+          <p class="error-text" role="alert" *ngIf="refundError">{{ refundError }}</p>
 
           <div class="modal-actions">
-            <button class="ghost-btn" (click)="closeRefund()">Cancel</button>
+            <button type="button" class="ghost-btn" (click)="closeRefund()">Cancel</button>
             <button
+              type="button"
               class="ghost-btn danger-btn"
-              [disabled]="refunding || !refundAmountInput || refundAmountInput <= 0"
+              [disabled]="refunding || !refundAmountInput || refundAmountInput <= 0 || refundAmountInput > refundTarget.totalAmount"
               (click)="confirmRefund()"
             >
-              {{ refunding ? 'Processing...' : 'Confirm Manual Refund' }}
+              {{ refunding ? 'Recording...' : 'Record Manual Refund' }}
             </button>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Order Detail Modal -->
@@ -110,6 +123,9 @@ export function filterBusinessOrders(
         [order]="selectedOrderDetail"
         (closed)="closeOrderDetail()">
       </app-order-detail-modal>
+      <div class="panel loading" *ngIf="orderDetailLoading" role="status" aria-live="polite">
+        Loading order details...
+      </div>
 
       <div class="toolbar">
         <div>
@@ -126,6 +142,13 @@ export function filterBusinessOrders(
           <button class="ghost-btn" (click)="loadOrders()">Refresh</button>
         </div>
       </div>
+
+      <app-api-state
+        *ngIf="ordersError"
+        [loading]="false"
+        [error]="ordersError"
+        (retry)="loadOrders()"
+      ></app-api-state>
 
       <section class="panel filter-panel" *ngIf="ordersLoaded && orders.length">
         <div class="filter-grid">
@@ -264,6 +287,7 @@ export function filterBusinessOrders(
         </div>
         <ng-template #ordersEmpty>
           <app-empty-state
+            *ngIf="!ordersError"
             icon="🧾"
             title="No orders match the current filters"
             text="Try adjusting the search, status, source, or date range to see more results."
@@ -312,12 +336,14 @@ export class OrdersPageComponent {
 
   orders: BusinessOrder[] = [];
   ordersLoaded = false;
+  ordersError = '';
 
   refundTarget: BusinessOrder | null = null;
   refundAmountInput: number | null = null;
   refundReasonInput = '';
   refunding = false;
   refundError: string | null = null;
+  private refundTrigger: HTMLElement | null = null;
 
   orderSearchTerm = '';
   orderStatusFilter = 'ALL';
@@ -367,13 +393,18 @@ export class OrdersPageComponent {
 
   loadOrders(): void {
     this.ordersLoaded = false;
+    this.ordersError = '';
     this.api.getOrders().subscribe({
       next: (data) => {
         this.orders = data;
         this.ordersLoaded = true;
         this.orderCurrentPage = 1;
       },
-      error: () => { this.ordersLoaded = true; }
+      error: () => {
+        this.orders = [];
+        this.ordersError = 'Unable to load orders. Check your connection and try again.';
+        this.ordersLoaded = true;
+      }
     });
   }
 
@@ -413,7 +444,6 @@ export class OrdersPageComponent {
       next: (detail) => {
         this.selectedOrderDetail = detail;
         this.orderDetailLoading = false;
-        document.body.style.overflow = 'hidden';
       },
       error: () => {
         this.orderDetailLoading = false;
@@ -424,7 +454,6 @@ export class OrdersPageComponent {
 
   closeOrderDetail(): void {
     this.selectedOrderDetail = null;
-    document.body.style.overflow = '';
   }
 
   // --- CSV Export ---
@@ -479,6 +508,8 @@ export class OrdersPageComponent {
   // --- Refund ---
 
   openManualRefund(order: BusinessOrder): void {
+    this.refundTrigger = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
     this.refundTarget = order;
     this.refundAmountInput = order.totalAmount;
     this.refundReasonInput = '';
@@ -486,12 +517,22 @@ export class OrdersPageComponent {
   }
 
   closeRefund(): void {
+    if (this.refunding) return;
     this.refundTarget = null;
     this.refundError = null;
+    document.body.style.overflow = '';
+    this.refundTrigger?.focus();
+    this.refundTrigger = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  handleEscape(): void {
+    if (this.refundTarget && !this.refunding) this.closeRefund();
   }
 
   confirmRefund(): void {
     if (!this.refundTarget || !this.refundAmountInput) return;
+    if (this.refundAmountInput <= 0 || this.refundAmountInput > this.refundTarget.totalAmount) return;
     this.refunding = true;
     this.refundError = null;
 

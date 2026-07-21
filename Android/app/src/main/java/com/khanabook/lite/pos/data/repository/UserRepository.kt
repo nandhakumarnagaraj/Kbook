@@ -40,8 +40,8 @@ class UserRepository(
         private val restaurantDao: RestaurantDao
 ) {
     private fun normalizeAllowedRole(role: String?): String {
-        return when (role) {
-            "OWNER", "KBOOK_ADMIN" -> role
+        return when (role?.uppercase()) {
+            "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN" -> role.uppercase()
             else -> "OWNER"
         }
     }
@@ -437,7 +437,9 @@ class UserRepository(
     }
 
     private fun triggerBackgroundSync() {
-        workManager.enqueueMasterSyncOnce()
+        if (sessionManager.canUsePos()) {
+            workManager.enqueueMasterSyncOnce()
+        }
     }
 
     private fun mapBackendException(error: Throwable): Throwable {

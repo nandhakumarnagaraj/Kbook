@@ -7,11 +7,12 @@ import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/ap
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -30,6 +31,13 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
         </div>
         <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
       </div>
+
+      <app-api-state
+        *ngIf="loadError"
+        [loading]="false"
+        [error]="loadError"
+        (retry)="loadBusinesses()"
+      ></app-api-state>
 
       <section class="panel filter-panel" *ngIf="loaded && businesses.length">
         <div class="filter-grid">
@@ -122,6 +130,7 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
         </div>
         <ng-template #businessesEmpty>
           <app-empty-state
+            *ngIf="!loadError"
             icon="🏪"
             title="No businesses match the current filters"
             text="Try a different search term to find the business you are looking for."
@@ -266,7 +275,8 @@ export class BusinessesPageComponent {
   showDetails(business: AdminBusinessListItem): void {
     this.selectedDetail.set(null);
     this.api.getBusinessDetail(business.restaurantId).subscribe({
-      next: (detail) => { this.selectedDetail.set(detail); }
+      next: (detail) => { this.selectedDetail.set(detail); },
+      error: () => this.showToast('Unable to load business details.', 'error')
     });
   }
 

@@ -7,12 +7,14 @@ import { AuthService } from '../../core/auth/auth.service';
 import { BusinessStaffItem, StaffCreatedResponse } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
+import { ToastService } from '../../core/services/toast.service';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-staff-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   styles: [`
     .modal-content {
       width: 100%;
@@ -155,6 +157,13 @@ import { formatDate } from '../../shared/formatters';
         </div>
       </div>
 
+      <app-api-state
+        *ngIf="loadError"
+        [loading]="false"
+        [error]="loadError"
+        (retry)="loadStaff()"
+      ></app-api-state>
+
       <!-- Create Staff Modal -->
       <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
           <div class="modal-box modal-content" (click)="$event.stopPropagation()">
@@ -165,7 +174,8 @@ import { formatDate } from '../../shared/formatters';
               <p><strong>{{ createdStaff.name }}</strong> ({{ createdStaff.role }})</p>
               <p>Temporary Password:</p>
               <div class="temp-password">{{ createdStaff.temporaryPassword }}</div>
-              <p class="muted">Share this password with the staff member. They will need it for their first login.</p>
+              <button type="button" class="ghost-btn" (click)="copyTemporaryPassword()">Copy temporary password</button>
+              <p class="muted">This password is shown once. Share it securely; the staff member will need it for their first login.</p>
             </div>
             <div class="modal-actions">
               <button class="primary-btn" (click)="closeCreateModal()">Done</button>
@@ -202,7 +212,7 @@ import { formatDate } from '../../shared/formatters';
                 <label for="staff-role-select">Role *</label>
                 <select id="staff-role-select" class="field-select" formControlName="role">
                   <option value="OWNER">Owner</option>
-                  <option value="SHOP_ADMIN">Shop Admin</option>
+                  <option value="SHOP_ADMIN">Terminal Administrator</option>
                 </select>
               </div>
 
@@ -256,7 +266,7 @@ import { formatDate } from '../../shared/formatters';
               <label for="edit-staff-role">Role *</label>
               <select id="edit-staff-role" class="field-select" formControlName="role">
                 <option value="OWNER">Owner</option>
-                <option value="SHOP_ADMIN">Shop Admin</option>
+                <option value="SHOP_ADMIN">Terminal Administrator</option>
               </select>
               <div class="role-disabled-note" *ngIf="isEditingSelf">
                 Cannot change your own role
@@ -399,6 +409,7 @@ import { formatDate } from '../../shared/formatters';
         </div>
         <ng-template #staffEmpty>
           <app-empty-state
+            *ngIf="!loadError"
             icon="👥"
             title="No staff match the current filters"
             text="Try a different search, role, or status filter. Owners can add a new team member."
@@ -414,9 +425,11 @@ export class StaffPageComponent {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly toast = inject(ToastService);
 
   staff: BusinessStaffItem[] = [];
   loaded = false;
+  loadError = '';
 
   searchTerm = '';
   roleFilter = 'ALL';
@@ -602,14 +615,25 @@ export class StaffPageComponent {
       next: () => {
         this.loadStaff();
       },
-      error: (err: HttpErrorResponse) => {
-        console.error('Failed to deactivate staff:', err);
+      error: () => {
+        this.toast.show('Failed to deactivate the staff account. Please try again.', 'error');
       }
     });
   }
 
   cancelDeactivate(): void {
     this.staffToDeactivate = null;
+  }
+
+  async copyTemporaryPassword(): Promise<void> {
+    const password = this.createdStaff?.temporaryPassword;
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      this.toast.show('Temporary password copied.', 'success');
+    } catch {
+      this.toast.show('Could not copy the password. Select and copy it manually.', 'error');
+    }
   }
 
   // --- Filters and Pagination ---
@@ -651,13 +675,18 @@ export class StaffPageComponent {
 
   loadStaff(): void {
     this.loaded = false;
+    this.loadError = '';
     this.api.getStaff().subscribe({
       next: (data) => {
         this.staff = data;
         this.loaded = true;
         this.currentPage = 1;
       },
-      error: () => { this.loaded = true; }
+      error: () => {
+        this.staff = [];
+        this.loadError = 'Unable to load staff accounts. Check your connection and try again.';
+        this.loaded = true;
+      }
     });
   }
 

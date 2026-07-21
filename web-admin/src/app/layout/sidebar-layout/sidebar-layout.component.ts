@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -13,6 +13,7 @@ type NavLink = { label: string; path: string };
     <div class="layout-shell">
       <header class="topbar">
         <button
+          #menuButton
           type="button"
           class="hamburger"
           aria-label="Toggle navigation menu"
@@ -32,7 +33,14 @@ type NavLink = { label: string; path: string };
         (click)="closeMenu()"
         aria-hidden="true"></div>
 
-      <aside class="sidebar panel" [class.sidebar--open]="menuOpen()" id="sidebar-nav">
+      <aside
+        #sidebar
+        class="sidebar panel"
+        [class.sidebar--open]="menuOpen()"
+        id="sidebar-nav"
+        aria-label="Primary navigation"
+        tabindex="-1"
+      >
         <div class="brand-block">
           <div class="brand-logo" aria-hidden="true">
             <span class="brand-logo__mark">K</span>
@@ -246,6 +254,8 @@ type NavLink = { label: string; path: string };
 export class SidebarLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
+  @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 
   readonly menuOpen = signal(false);
 
@@ -265,20 +275,57 @@ export class SidebarLayoutComponent {
 
     const links: NavLink[] = [
       { label: 'Business Dashboard', path: '/business/dashboard' },
+      { label: 'Reports', path: '/business/reports' },
       { label: 'Orders', path: '/business/orders' },
       { label: 'Menu', path: '/business/menu' },
       { label: 'Staff', path: '/business/staff' },
+      { label: 'Integrations', path: '/business/marketplace' },
       { label: 'Devices', path: '/business/terminals' }
     ];
     return links;
   });
 
   toggleMenu(): void {
-    this.menuOpen.update((open) => !open);
+    if (this.menuOpen()) {
+      this.closeMenu();
+      return;
+    }
+    this.menuOpen.set(true);
+    setTimeout(() => {
+      const firstLink = this.sidebar?.nativeElement.querySelector<HTMLElement>('.nav-link');
+      (firstLink ?? this.sidebar?.nativeElement)?.focus();
+    });
   }
 
-  closeMenu(): void {
+  closeMenu(restoreFocus = true): void {
+    if (!this.menuOpen()) return;
     this.menuOpen.set(false);
+    if (restoreFocus) setTimeout(() => this.menuButton?.nativeElement.focus());
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  handleMenuKeydown(event: KeyboardEvent): void {
+    if (!this.menuOpen()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeMenu();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = this.sidebar?.nativeElement.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   logout(): void {

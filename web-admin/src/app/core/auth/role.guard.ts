@@ -5,11 +5,7 @@ import { AuthService } from './auth.service';
 export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  if (authService.isAuthenticated()) {
-    return true;
-  }
-  void router.navigate(['/login']);
-  return false;
+  return authService.isAuthenticated() ? true : router.parseUrl('/login');
 };
 
 export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
@@ -18,15 +14,7 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const allowedRoles = route.data['roles'] as string[] | undefined;
   const session = authService.session();
 
-  if (!session) {
-    void router.navigate(['/login']);
-    return false;
-  }
-
-  if (!allowedRoles || allowedRoles.includes(session.role)) {
-    return true;
-  }
-
-  authService.navigateByRole(session.role);
-  return false;
+  if (!session) return router.parseUrl('/login');
+  if (!allowedRoles || allowedRoles.includes(session.role)) return true;
+  return router.parseUrl(authService.getLandingPath(session.role));
 };

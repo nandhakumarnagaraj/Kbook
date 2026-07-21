@@ -1,67 +1,82 @@
-import { Routes } from '@angular/router';
-import { LoginPageComponent } from './pages/login/login-page.component';
-import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
-import { PlatformDashboardPageComponent } from './pages/platform-dashboard/platform-dashboard-page.component';
-import { BusinessesPageComponent } from './pages/businesses/businesses-page.component';
-import { BusinessDashboardPageComponent } from './pages/business-dashboard/business-dashboard-page.component';
-import { OrdersPageComponent } from './pages/orders/orders-page.component';
-import { MenuPageComponent } from './pages/menu/menu-page.component';
-import { StaffPageComponent } from './pages/staff/staff-page.component';
-import { TerminalsPageComponent } from './pages/terminals/terminals-page.component';
-import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
+import { AuthService } from './core/auth/auth.service';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginPageComponent },
-  { path: 'limited-access', canActivate: [authGuard], component: LimitedAccessPageComponent },
+  {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login-page.component').then(m => m.LoginPageComponent)
+  },
+  {
+    path: 'limited-access',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/limited-access/limited-access-page.component').then(m => m.LimitedAccessPageComponent)
+  },
   {
     path: '',
-    component: SidebarLayoutComponent,
     canActivate: [authGuard],
+    loadComponent: () => import('./layout/sidebar-layout/sidebar-layout.component').then(m => m.SidebarLayoutComponent),
     children: [
       {
         path: 'admin/dashboard',
-        component: PlatformDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/platform-dashboard/platform-dashboard-page.component').then(m => m.PlatformDashboardPageComponent)
       },
       {
         path: 'admin/businesses',
-        component: BusinessesPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/businesses/businesses-page.component').then(m => m.BusinessesPageComponent)
       },
       {
         path: 'business/dashboard',
-        component: BusinessDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/business-dashboard/business-dashboard-page.component').then(m => m.BusinessDashboardPageComponent)
+      },
+      {
+        path: 'business/reports',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/reports/reports-page.component').then(m => m.ReportsPageComponent)
       },
       {
         path: 'business/orders',
-        component: OrdersPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/orders/orders-page.component').then(m => m.OrdersPageComponent)
       },
       {
         path: 'business/menu',
-        component: MenuPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/menu/menu-page.component').then(m => m.MenuPageComponent)
       },
       {
         path: 'business/staff',
-        component: StaffPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/staff/staff-page.component').then(m => m.StaffPageComponent)
+      },
+      {
+        path: 'business/marketplace',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/marketplace-setup/marketplace-setup-page.component').then(m => m.MarketplaceSetupPageComponent)
       },
       {
         path: 'business/terminals',
-        component: TerminalsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'SHOP_ADMIN'] }
+        data: { roles: ['OWNER', 'SHOP_ADMIN'] },
+        loadComponent: () => import('./pages/terminals/terminals-page.component').then(m => m.TerminalsPageComponent)
       },
-      { path: '', pathMatch: 'full', redirectTo: 'business/dashboard' }
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => inject(Router).parseUrl(inject(AuthService).getLandingPath())
+      }
     ]
   },
   { path: '**', redirectTo: 'login' }

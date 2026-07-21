@@ -145,6 +145,8 @@ public class SecurityConfig {
 						// OWNER only. SHOP_ADMIN and KBOOK_ADMIN must not push or mutate restaurant data.
 						.requestMatchers("/sync/**").hasRole("OWNER")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
+						// Menu extraction mutates tenant-owned menu data and is an OWNER workflow.
+						.requestMatchers("/menus/**").hasRole("OWNER")
 						.anyRequest().authenticated())
 
 				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)

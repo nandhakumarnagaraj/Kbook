@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { BusinessTerminal, TerminalRequest } from '../../core/models/api.models';
+import { BusinessTerminal, RecoverTerminalResponse, TerminalRequest } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { formatDate } from '../../shared/formatters';
@@ -32,8 +32,12 @@ import { formatDate } from '../../shared/formatters';
         <button class="ghost-btn" (click)="reload()">Refresh</button>
       </div>
 
-      <div class="panel table-wrap" *ngIf="loaded(); else loading">
-        <table class="data-table" *ngIf="terminals().length; else noTerminals">
+      <div class="panel table-wrap" *ngIf="!terminalsLoading(); else loading">
+        <div class="alert error load-error" role="alert" *ngIf="terminalsError()">
+          <span>{{ terminalsError() }}</span>
+          <button type="button" class="ghost-btn" (click)="loadTerminals()">Try again</button>
+        </div>
+        <table class="data-table" *ngIf="!terminalsError() && terminals().length; else noTerminals">
           <thead>
             <tr>
               <th>Name</th>
@@ -82,6 +86,7 @@ import { formatDate } from '../../shared/formatters';
               <td>
                 <div class="action-stack">
                   <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+                  <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
                   <button
                     *ngIf="terminal.status.toLowerCase() !== 'inactive'"
                     class="ghost-btn danger-btn"
@@ -107,6 +112,7 @@ import { formatDate } from '../../shared/formatters';
 
         <ng-template #noTerminals>
           <app-empty-state
+            *ngIf="!terminalsError()"
             icon="📟"
             title="No terminals registered yet"
             text="New devices will appear here once they request access to this shop."
@@ -122,7 +128,7 @@ import { formatDate } from '../../shared/formatters';
         </div>
       </ng-template>
 
-      <section class="panel filter-panel" *ngIf="loaded()">
+      <section class="panel filter-panel">
         <div class="toolbar">
           <div>
             <h3>Device Requests</h3>
@@ -144,7 +150,13 @@ import { formatDate } from '../../shared/formatters';
           </button>
         </div>
 
-        <div class="panel table-wrap" *ngIf="pendingOrAllRequests().length; else noRequests">
+        <div class="loading compact-loading" role="status" *ngIf="requestsLoading()">Loading device requests...</div>
+        <div class="alert error load-error" role="alert" *ngIf="requestsError()">
+          <span>{{ requestsError() }}</span>
+          <button type="button" class="ghost-btn" (click)="loadRequests()">Try again</button>
+        </div>
+
+        <div class="panel table-wrap" *ngIf="!requestsLoading() && !requestsError() && pendingOrAllRequests().length">
           <table class="data-table">
             <thead>
               <tr>
@@ -188,14 +200,65 @@ import { formatDate } from '../../shared/formatters';
             </tbody>
           </table>
         </div>
-        <ng-template #noRequests>
-          <app-empty-state
-            icon="🔔"
-            title="No device requests"
-            text="Pending and processed device access requests will appear here."
-          ></app-empty-state>
-        </ng-template>
+        <app-empty-state
+          *ngIf="!requestsLoading() && !requestsError() && !pendingOrAllRequests().length"
+          icon="🔔"
+          title="No device requests"
+          text="Pending and processed device access requests will appear here."
+        ></app-empty-state>
       </section>
+
+      <div class="modal-backdrop" *ngIf="recoveringTerminal() as terminal" (click)="closeRecovery()">
+        <section
+          class="modal-box recovery-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="recovery-title"
+          (click)="$event.stopPropagation()"
+        >
+          <ng-container *ngIf="recoveryResult() as result; else recoveryForm">
+            <h3 id="recovery-title">Terminal recovery ready</h3>
+            <p class="muted">{{ result.terminalName || result.terminalSeries || 'Terminal' }} is now assigned to the new device.</p>
+            <div class="credential-box">
+              <span class="credential-label">One-time terminal token</span>
+              <code>{{ result.terminalToken }}</code>
+            </div>
+            <p class="recovery-warning">Copy this token now and enter it on the Android device. It will not be shown again after closing.</p>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" (click)="copyRecoveryToken()">Copy token</button>
+              <button type="button" class="primary-btn" (click)="closeRecovery()">Done</button>
+            </div>
+          </ng-container>
+
+          <ng-template #recoveryForm>
+            <h3 id="recovery-title">Recover {{ terminal.terminalName || terminal.terminalSeries || 'terminal' }}</h3>
+            <p class="muted">Rebind this terminal to a replacement Android device. Existing terminal credentials will stop working.</p>
+            <div class="filter-group">
+              <label for="recovery-device-id">New device ID</label>
+              <input
+                id="recovery-device-id"
+                class="field-control"
+                [(ngModel)]="recoveryDeviceId"
+                placeholder="Enter the ID shown on the new device"
+                autocomplete="off"
+                autofocus
+              />
+            </div>
+            <p class="error-text" role="alert" *ngIf="recoveryError()">{{ recoveryError() }}</p>
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeRecovery()">Cancel</button>
+              <button
+                type="button"
+                class="primary-btn"
+                [disabled]="saving() || !recoveryDeviceId.trim()"
+                (click)="recoverTerminal()"
+              >
+                {{ saving() ? 'Recovering...' : 'Recover terminal' }}
+              </button>
+            </div>
+          </ng-template>
+        </section>
+      </div>
 
       <app-confirm-dialog
         *ngIf="reactivatingTerminal()"
@@ -234,26 +297,75 @@ import { formatDate } from '../../shared/formatters';
   styles: [`
     .ghost-btn.active { background: rgba(249, 115, 22, 0.16); color: var(--brand-deep); }
     .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
-    .row-actions { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
-    .stacked-meta { display: flex; flex-direction: column; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
+    .stacked-meta { display: flex; flex-direction: column; gap: 0.15rem; }
+    .recovery-dialog { width: min(100%, 520px); }
+    .credential-box {
+      display: grid;
+      gap: 0.45rem;
+      margin: 1.1rem 0;
+      padding: 1rem;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .credential-box code {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+      font-size: 0.9rem;
+      line-height: 1.55;
+      user-select: all;
+    }
+    .credential-label {
+      color: var(--brand-deep);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .recovery-warning {
+      margin: 0;
+      padding: 0.85rem 1rem;
+      color: #6f4e00;
+      background: #fff4cf;
+      border: 1px solid #ead58e;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+    .error-text { margin: 0.75rem 0 0; color: var(--danger); font-weight: 650; }
+    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.65rem; margin-top: 1.25rem; }
+    @media (max-width: 480px) {
+      .modal-actions button { width: 100%; }
+      .credential-box { padding: 0.85rem; }
+    }
   `]
 })
 export class TerminalsPageComponent {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+  private recoveryTrigger: HTMLElement | null = null;
+  private readonly recoveryKeydownHandler = (event: KeyboardEvent) => this.handleRecoveryKeydown(event);
 
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly requests = signal<TerminalRequest[]>([]);
-  readonly loaded = signal(false);
+  readonly terminalsLoading = signal(true);
+  readonly requestsLoading = signal(true);
+  readonly terminalsError = signal('');
+  readonly requestsError = signal('');
   readonly saving = signal(false);
-  private readonly toast = inject(ToastService);
   readonly reactivatingTerminal = signal<BusinessTerminal | null>(null);
   readonly deactivatingTerminal = signal<BusinessTerminal | null>(null);
   readonly rejectingRequest = signal<TerminalRequest | null>(null);
+  readonly recoveringTerminal = signal<BusinessTerminal | null>(null);
+  readonly recoveryResult = signal<RecoverTerminalResponse | null>(null);
+  readonly recoveryError = signal('');
 
   readonly requestFilter = signal<'PENDING' | 'ALL'>('PENDING');
   readonly editingId = signal<number | null>(null);
   editName = '';
+  recoveryDeviceId = '';
 
   readonly pendingRequests = computed(() =>
     this.requests().filter((r) => r.status?.toLowerCase() === 'pending')
@@ -269,17 +381,37 @@ export class TerminalsPageComponent {
   }
 
   reload(): void {
-    this.loaded.set(false);
+    this.loadTerminals();
+    this.loadRequests();
+  }
+
+  loadTerminals(): void {
+    this.terminalsLoading.set(true);
+    this.terminalsError.set('');
     this.api.getTerminals().subscribe({
       next: (data) => {
         this.terminals.set(data);
-        this.loaded.set(true);
+        this.terminalsLoading.set(false);
       },
-      error: () => this.fail('Failed to load terminals')
+      error: (err) => {
+        this.terminalsLoading.set(false);
+        this.terminalsError.set(this.errMsg(err, 'Failed to load registered terminals.'));
+      }
     });
+  }
+
+  loadRequests(): void {
+    this.requestsLoading.set(true);
+    this.requestsError.set('');
     this.api.getTerminalRequests('ALL').subscribe({
-      next: (data) => this.requests.set(data),
-      error: () => this.fail('Failed to load device requests')
+      next: (data) => {
+        this.requests.set(data);
+        this.requestsLoading.set(false);
+      },
+      error: (err) => {
+        this.requestsLoading.set(false);
+        this.requestsError.set(this.errMsg(err, 'Failed to load device requests.'));
+      }
     });
   }
 
@@ -315,6 +447,77 @@ export class TerminalsPageComponent {
         this.fail('Rename failed');
       }
     });
+  }
+
+  startRecovery(terminal: BusinessTerminal): void {
+    this.recoveryTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.recoveringTerminal.set(terminal);
+    this.recoveryResult.set(null);
+    this.recoveryError.set('');
+    this.recoveryDeviceId = '';
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', this.recoveryKeydownHandler);
+    setTimeout(() => document.getElementById('recovery-device-id')?.focus());
+  }
+
+  closeRecovery(): void {
+    if (this.saving()) return;
+    document.removeEventListener('keydown', this.recoveryKeydownHandler);
+    document.body.style.overflow = '';
+    this.recoveringTerminal.set(null);
+    this.recoveryResult.set(null);
+    this.recoveryError.set('');
+    this.recoveryDeviceId = '';
+    const trigger = this.recoveryTrigger;
+    this.recoveryTrigger = null;
+    setTimeout(() => trigger?.focus());
+  }
+
+  recoverTerminal(): void {
+    const terminal = this.recoveringTerminal();
+    const deviceId = this.recoveryDeviceId.trim();
+    if (!terminal || !deviceId || this.saving()) return;
+
+    this.saving.set(true);
+    this.recoveryError.set('');
+    this.api.recoverTerminal(terminal.id, { deviceId }).subscribe({
+      next: (result) => {
+        this.terminals.update((list) => list.map((item) =>
+          item.id === terminal.id
+            ? {
+                ...item,
+                deviceId,
+                status: 'ACTIVE',
+                isActive: true,
+                credentialVersion: (item.credentialVersion ?? 0) + 1,
+                updatedAt: Date.now()
+              }
+            : item
+        ));
+        this.recoveryDeviceId = '';
+        this.recoveryResult.set(result);
+        this.saving.set(false);
+        this.notify('Terminal recovered. Copy the new token now.');
+        setTimeout(() => {
+          document.querySelector<HTMLElement>('.recovery-dialog .ghost-btn')?.focus();
+        });
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.recoveryError.set(this.errMsg(err, 'Terminal recovery failed. Check the device ID and try again.'));
+      }
+    });
+  }
+
+  async copyRecoveryToken(): Promise<void> {
+    const token = this.recoveryResult()?.terminalToken;
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(token);
+      this.notify('Terminal token copied');
+    } catch {
+      this.toast.show('Could not copy automatically. Select and copy the token manually.', 'error');
+    }
   }
 
   deactivate(terminal: BusinessTerminal): void {
@@ -442,18 +645,42 @@ export class TerminalsPageComponent {
     });
   }
 
+  private handleRecoveryKeydown(event: KeyboardEvent): void {
+    if (!this.recoveringTerminal()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeRecovery();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const dialog = document.querySelector<HTMLElement>('.recovery-dialog');
+    const focusable = dialog?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   private notify(message: string): void {
     this.toast.show(message, 'success');
   }
 
   private fail(message: string): void {
-    this.loaded.set(true);
     this.toast.show(message, 'error');
   }
 
   private errMsg(err: unknown, fallback: string): string {
-    const e = err as { error?: { error?: string } } | null;
-    return e?.error?.error || fallback;
+    const e = err as { error?: { error?: string; message?: string } } | null;
+    return e?.error?.message || e?.error?.error || fallback;
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }

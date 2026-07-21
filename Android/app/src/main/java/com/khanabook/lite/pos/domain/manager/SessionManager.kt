@@ -233,7 +233,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun isOwner(): Boolean = getActiveUserRole() == "OWNER"
+    fun isShopAdmin(): Boolean = getActiveUserRole() == "SHOP_ADMIN"
     fun isKbookAdmin(): Boolean = getActiveUserRole() == "KBOOK_ADMIN"
+    fun canUsePos(): Boolean = isOwner()
 
     fun saveActiveUserRole(role: String) {
         val editor = prefs.edit()

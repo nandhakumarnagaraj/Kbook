@@ -2,26 +2,33 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-marketplace-setup-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ApiStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
-        <h2>Marketplace Setup</h2>
-        <p class="muted">Manage your own Zomato and Swiggy credentials here. Easebuzz settlement onboarding is handled only by the KBook admin team.</p>
+        <h2>Online-order Integrations</h2>
+        <p class="muted">Connect supported delivery providers and review settlement onboarding for this restaurant.</p>
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
-          <span class="chip success">Marketplace Credentials</span>
+          <span class="chip success">Encrypted Credentials</span>
         </div>
       </section>
 
-      <div class="panel loading-panel" *ngIf="setupState() === 'loading'">
-        <span class="spinner"></span> Loading payment onboarding...
+      <div class="panel loading-panel" *ngIf="setupState() === 'loading'" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span> Loading settlement onboarding...
       </div>
+      <app-api-state
+        *ngIf="setupState() === 'error'"
+        [loading]="false"
+        error="Settlement onboarding could not be loaded."
+        (retry)="loadSetup()"
+      ></app-api-state>
 
       <div class="panel config-card soft-section" *ngIf="setupState() === 'loaded' && marketplaceSetup() as setup">
         <div class="card-header">
@@ -65,7 +72,11 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
         </div>
       </div>
 
-      <div class="panel config-card soft-section" *ngIf="marketplaceState() === 'loaded' && marketplaceConfig() as mp">
+      <div
+        class="panel config-card soft-section"
+        *ngIf="marketplaceState() === 'loaded' && marketplaceConfig() as mp"
+        [formGroup]="marketplaceForm"
+      >
         <h3>Marketplace Integration</h3>
         <p class="muted meta-row">
           <span class="chip">Marketplace</span>
@@ -74,20 +85,26 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
 
         <div class="section-header">
           <h4>Zomato</h4>
-          <label class="toggle-wrap">
-            <span class="toggle-label">{{ mp.zomatoEnabled ? 'Enabled' : 'Disabled' }}</span>
-            <button class="toggle-btn" [class.on]="marketplaceForm.get('zomatoEnabled')?.value"
-              (click)="marketplaceForm.patchValue({ zomatoEnabled: !marketplaceForm.get('zomatoEnabled')?.value })"
-              type="button">
+          <div class="toggle-wrap">
+            <span class="toggle-label">{{ marketplaceForm.controls.zomatoEnabled.value ? 'Enabled' : 'Disabled' }}</span>
+            <button
+              class="toggle-btn"
+              [class.on]="marketplaceForm.controls.zomatoEnabled.value"
+              (click)="toggleProvider('zomato')"
+              type="button"
+              role="switch"
+              aria-label="Enable Zomato integration"
+              [attr.aria-checked]="marketplaceForm.controls.zomatoEnabled.value"
+            >
               <span class="toggle-knob"></span>
             </button>
-          </label>
+          </div>
         </div>
 
         <div class="form-group" *ngIf="marketplaceForm.get('zomatoEnabled')?.value">
           <label class="field-label">
             API Key
-            <input class="field-input" formControlName="zomatoApiKey" placeholder="Enter Zomato API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
+            <input class="field-input" formControlName="zomatoApiKey" placeholder="Enter a new Zomato API key" type="password" autocomplete="new-password">
           </label>
           <label class="field-label">
             Webhook Secret
@@ -99,20 +116,26 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
 
         <div class="section-header">
           <h4>Swiggy</h4>
-          <label class="toggle-wrap">
-            <span class="toggle-label">{{ mp.swiggyEnabled ? 'Enabled' : 'Disabled' }}</span>
-            <button class="toggle-btn" [class.on]="marketplaceForm.get('swiggyEnabled')?.value"
-              (click)="marketplaceForm.patchValue({ swiggyEnabled: !marketplaceForm.get('swiggyEnabled')?.value })"
-              type="button">
+          <div class="toggle-wrap">
+            <span class="toggle-label">{{ marketplaceForm.controls.swiggyEnabled.value ? 'Enabled' : 'Disabled' }}</span>
+            <button
+              class="toggle-btn"
+              [class.on]="marketplaceForm.controls.swiggyEnabled.value"
+              (click)="toggleProvider('swiggy')"
+              type="button"
+              role="switch"
+              aria-label="Enable Swiggy integration"
+              [attr.aria-checked]="marketplaceForm.controls.swiggyEnabled.value"
+            >
               <span class="toggle-knob"></span>
             </button>
-          </label>
+          </div>
         </div>
 
         <div class="form-group" *ngIf="marketplaceForm.get('swiggyEnabled')?.value">
           <label class="field-label">
             API Key
-            <input class="field-input" formControlName="swiggyApiKey" placeholder="Enter Swiggy API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
+            <input class="field-input" formControlName="swiggyApiKey" placeholder="Enter a new Swiggy API key" type="password" autocomplete="new-password">
           </label>
           <label class="field-label">
             Webhook Secret
@@ -132,17 +155,23 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
           </button>
         </div>
 
-        <div class="toast-success" *ngIf="marketplaceSaveState() === 'saved'">
+        <div class="toast-success" *ngIf="marketplaceSaveState() === 'saved'" role="status" aria-live="polite">
           Marketplace configuration updated successfully.
         </div>
-        <div class="save-error" *ngIf="marketplaceSaveState() === 'error'">
+        <div class="save-error" *ngIf="marketplaceSaveState() === 'error'" role="alert">
           {{ marketplaceSaveError() }}
         </div>
       </div>
 
-      <div class="panel loading-panel" *ngIf="marketplaceState() === 'loading'">
-        <span class="spinner"></span> Loading marketplace configuration...
+      <div class="panel loading-panel" *ngIf="marketplaceState() === 'loading'" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span> Loading provider configuration...
       </div>
+      <app-api-state
+        *ngIf="marketplaceState() === 'error'"
+        [loading]="false"
+        error="Online-order integrations could not be loaded."
+        (retry)="loadMarketplaceConfig()"
+      ></app-api-state>
     </div>
   `,
   styles: [`
@@ -345,6 +374,12 @@ export class MarketplaceSetupPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadSetup();
+    this.loadMarketplaceConfig();
+  }
+
+  loadSetup(): void {
+    this.setupState.set('loading');
     this.api.getMarketplaceSetup().subscribe({
       next: (setup) => {
         this.marketplaceSetup.set(setup);
@@ -352,11 +387,9 @@ export class MarketplaceSetupPageComponent implements OnInit {
       },
       error: () => { this.setupState.set('error'); }
     });
-
-    this.loadMarketplaceConfig();
   }
 
-  private loadMarketplaceConfig(): void {
+  loadMarketplaceConfig(): void {
     this.marketplaceState.set('loading');
     this.api.getMarketplaceConfig().subscribe({
       next: (cfg) => {
@@ -373,6 +406,14 @@ export class MarketplaceSetupPageComponent implements OnInit {
       },
       error: () => { this.marketplaceState.set('error'); }
     });
+  }
+
+  toggleProvider(provider: 'zomato' | 'swiggy'): void {
+    const control = provider === 'zomato'
+      ? this.marketplaceForm.controls.zomatoEnabled
+      : this.marketplaceForm.controls.swiggyEnabled;
+    control.setValue(!control.value);
+    this.marketplaceSaveState.set('idle');
   }
 
   saveMarketplaceConfig(): void {
@@ -392,6 +433,14 @@ export class MarketplaceSetupPageComponent implements OnInit {
     this.api.saveMarketplaceConfig(payload).subscribe({
       next: (cfg) => {
         this.marketplaceConfig.set(cfg);
+        this.marketplaceForm.patchValue({
+          zomatoEnabled: cfg.zomatoEnabled,
+          zomatoApiKey: '',
+          zomatoWebhookSecret: '',
+          swiggyEnabled: cfg.swiggyEnabled,
+          swiggyApiKey: '',
+          swiggyWebhookSecret: ''
+        });
         this.marketplaceState.set('loaded');
         this.marketplaceSaveState.set('saved');
         setTimeout(() => this.marketplaceSaveState.set('idle'), 2000);

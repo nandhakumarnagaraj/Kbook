@@ -32,8 +32,8 @@ class MasterSyncProcessor @Inject constructor(
     private val sessionManager: SessionManager
 ) {
     private fun normalizeUserRole(role: String?): String {
-        return when (role) {
-            "OWNER", "KBOOK_ADMIN" -> role
+        return when (role?.uppercase()) {
+            "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN" -> role.uppercase()
             else -> "OWNER"
         }
     }

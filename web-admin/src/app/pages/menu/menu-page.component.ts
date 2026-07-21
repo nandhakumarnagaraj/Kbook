@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, NgZone } from '@angular/core';
+import { Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -8,12 +8,13 @@ import { ToastService } from '../../core/services/toast.service';
 import { BusinessCategory, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-menu-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -36,6 +37,13 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
         </div>
       </div>
+
+      <app-api-state
+        *ngIf="loadError"
+        [loading]="false"
+        [error]="loadError"
+        (retry)="loadMenu()"
+      ></app-api-state>
 
       <section class="panel filter-panel" *ngIf="loaded && items.length">
         <div class="filter-grid">
@@ -171,6 +179,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
         <ng-template #menuEmpty>
           <app-empty-state
+            *ngIf="!loadError"
             icon="🍽️"
             title="No menu items match the current filters"
             text="Try a different search or clear the filters. Owners can also add a new item."
@@ -352,7 +361,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     }
   `]
 })
-export class MenuPageComponent {
+export class MenuPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly zone = inject(NgZone);
@@ -360,6 +369,7 @@ export class MenuPageComponent {
   items: BusinessMenuItem[] = [];
   categories: BusinessCategory[] = [];
   loaded = false;
+  loadError = '';
 
   searchTerm = '';
   stockFilter = 'ALL';
@@ -431,6 +441,7 @@ export class MenuPageComponent {
 
   loadMenu(): void {
     this.loaded = false;
+    this.loadError = '';
     forkJoin({
       items: this.api.getMenu(),
       categories: this.api.getMenuCategories()
@@ -441,7 +452,12 @@ export class MenuPageComponent {
         this.loaded = true;
         this.currentPage = 1;
       },
-      error: () => { this.loaded = true; }
+      error: () => {
+        this.items = [];
+        this.categories = [];
+        this.loadError = 'Unable to load the menu. Check your connection and try again.';
+        this.loaded = true;
+      }
     });
   }
 
@@ -628,7 +644,7 @@ export class MenuPageComponent {
 
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      this.showToast('File exceeds 10 MB limit');
+      this.showToast('File exceeds 10 MB limit', 'error');
       input.value = '';
       return;
     }
@@ -646,7 +662,7 @@ export class MenuPageComponent {
       error: () => {
         this.uploading.set(false);
         input.value = '';
-        this.showToast('Upload failed. Please try again.');
+        this.showToast('Upload failed. Please try again.', 'error');
       }
     });
   }
@@ -695,6 +711,10 @@ export class MenuPageComponent {
   resetJob(): void {
     this.job.set(null);
     this.extractedItems.set([]);
+    this.stopPolling();
+  }
+
+  ngOnDestroy(): void {
     this.stopPolling();
   }
 
