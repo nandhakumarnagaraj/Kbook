@@ -19,243 +19,293 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <section class="login-shell">
-      <div class="login-card panel">
-        <div class="login-copy">
-          <span class="eyebrow">KhanaBook</span>
-          <h1>Web Admin</h1>
-          <p class="muted">Sign in to manage menu data, team access, and orders from one place.</p>
-          <div class="hero-meta">
-            <span class="chip">Fast Access</span>
-            <span class="chip success">Business Control</span>
-          </div>
+    <section class="auth-shell">
+      <aside class="auth-brand">
+        <div class="brand-mark">
+          <span class="brand-dot"></span>
+          <span>KhanaBook</span>
         </div>
+        <div class="brand-copy">
+          <h1>Run your kitchen<br/>with confidence.</h1>
+          <p>One workspace for menu, orders, staff, and payments — built for busy owners and managers.</p>
+        </div>
+        <ul class="brand-points">
+          <li><span>01</span> Live orders across POS &amp; marketplaces</li>
+          <li><span>02</span> Menu &amp; stock control in seconds</li>
+          <li><span>03</span> Daily revenue &amp; refund insights</li>
+        </ul>
+        <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
+      </aside>
 
-        <!-- Login success message (after password reset) -->
-        <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
+      <main class="auth-main">
+        <div class="auth-card">
+          <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
 
-        <!-- Main Login Form -->
-        <ng-container *ngIf="forgotStep === 'none'">
-          <!-- Google Sign-In button -->
-          <div>
-            <div id="google-btn"></div>
-            <div *ngIf="googleError" class="alert-box error" style="margin-top: 0.75rem;">{{ googleError }}</div>
-          </div>
+          <ng-container *ngIf="forgotStep === 'none'">
+            <header class="auth-head">
+              <h2>Welcome back</h2>
+              <p class="muted">Sign in to your admin workspace.</p>
+            </header>
 
-          <div class="divider"><span>or sign in with password</span></div>
-
-          <form [formGroup]="form" (ngSubmit)="submit()">
-            <label>
-              Login ID
-              <input formControlName="loginId" placeholder="Phone number or email">
-            </label>
-
-            <label>
-              Password
-              <input type="password" formControlName="password" placeholder="Enter password">
-            </label>
-
-            <a class="forgot-link" (click)="startForgotPassword()">Forgot Password?</a>
-
-            <div *ngIf="error" class="alert-box error">{{ error }}</div>
-
-            <button class="primary-btn" [disabled]="form.invalid || loading">
-              {{ loading ? 'Signing in...' : 'Sign in' }}
-            </button>
-          </form>
-        </ng-container>
-
-        <!-- Forgot Password Step 1: Phone Number -->
-        <ng-container *ngIf="forgotStep === 'phone'">
-          <div class="forgot-header">
-            <h2>Forgot Password</h2>
-            <p class="muted">Enter your registered phone number to receive an OTP.</p>
-          </div>
-
-          <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()">
-            <label>
-              Phone Number
-              <input formControlName="phone" placeholder="10-digit phone number" maxlength="10">
-            </label>
-
-            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
-
-            <button class="primary-btn" [disabled]="phoneForm.invalid || forgotLoading">
-              {{ forgotLoading ? 'Sending OTP...' : 'Send OTP' }}
-            </button>
-          </form>
-
-          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
-        </ng-container>
-
-        <!-- Forgot Password Step 2: OTP Entry -->
-        <ng-container *ngIf="forgotStep === 'otp'">
-          <div class="forgot-header">
-            <h2>Enter OTP</h2>
-            <p class="muted">Enter the 4-digit code sent to your phone.</p>
-          </div>
-
-          <form [formGroup]="otpForm" (ngSubmit)="submitOtp()">
-            <label>
-              OTP Code
-              <input formControlName="otp" placeholder="4-digit OTP" maxlength="4">
-            </label>
-
-            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
-
-            <button class="primary-btn" [disabled]="otpForm.invalid || forgotLoading">
-              {{ forgotLoading ? 'Verifying...' : 'Verify OTP' }}
-            </button>
-          </form>
-
-          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
-        </ng-container>
-
-        <!-- Forgot Password Step 3: New Password -->
-        <ng-container *ngIf="forgotStep === 'password'">
-          <div class="forgot-header">
-            <h2>Reset Password</h2>
-            <p class="muted">Enter your new password (minimum 6 characters).</p>
-          </div>
-
-          <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()">
-            <label>
-              New Password
-              <input type="password" formControlName="newPassword" placeholder="Min 6 characters">
-            </label>
-
-            <label>
-              Confirm Password
-              <input type="password" formControlName="confirmPassword" placeholder="Re-enter password">
-            </label>
-
-            <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error">
-              Passwords do not match.
+            <div class="google-wrap">
+              <div id="google-btn"></div>
+              <div *ngIf="googleError" class="alert-box error">{{ googleError }}</div>
             </div>
 
-            <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+            <div class="divider"><span>or with password</span></div>
 
-            <button class="primary-btn" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
-              {{ forgotLoading ? 'Resetting...' : 'Reset Password' }}
-            </button>
-          </form>
+            <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
+              <label class="field">
+                <span class="field-label">Login ID</span>
+                <input class="field-input" formControlName="loginId" placeholder="Phone number or email" autocomplete="username">
+              </label>
 
-          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
-        </ng-container>
+              <label class="field">
+                <span class="field-label">Password</span>
+                <input class="field-input" type="password" formControlName="password" placeholder="Enter password" autocomplete="current-password">
+              </label>
 
-        <!-- Forgot Password Success -->
-        <ng-container *ngIf="forgotStep === 'success'">
-          <div class="forgot-header">
-            <h2>Password Reset Successful</h2>
-            <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
-          </div>
+              <a class="link-right" (click)="startForgotPassword()">Forgot password?</a>
 
-          <a class="back-link" (click)="backToLogin()">← Back to Login</a>
-        </ng-container>
-      </div>
+              <div *ngIf="error" class="alert-box error">{{ error }}</div>
+
+              <button class="primary-btn primary-btn--block" [disabled]="form.invalid || loading">
+                {{ loading ? 'Signing in…' : 'Sign in' }}
+              </button>
+            </form>
+          </ng-container>
+
+          <ng-container *ngIf="forgotStep === 'phone'">
+            <header class="auth-head">
+              <h2>Forgot password</h2>
+              <p class="muted">Enter your registered phone number to receive an OTP.</p>
+            </header>
+            <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()" class="auth-form">
+              <label class="field">
+                <span class="field-label">Phone number</span>
+                <input class="field-input" formControlName="phone" placeholder="10-digit phone number" maxlength="10" inputmode="numeric">
+              </label>
+              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+              <button class="primary-btn primary-btn--block" [disabled]="phoneForm.invalid || forgotLoading">
+                {{ forgotLoading ? 'Sending OTP…' : 'Send OTP' }}
+              </button>
+            </form>
+            <a class="back-link" (click)="backToLogin()">← Back to sign in</a>
+          </ng-container>
+
+          <ng-container *ngIf="forgotStep === 'otp'">
+            <header class="auth-head">
+              <h2>Enter OTP</h2>
+              <p class="muted">Enter the 4-digit code sent to your phone.</p>
+            </header>
+            <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form">
+              <label class="field">
+                <span class="field-label">OTP code</span>
+                <input class="field-input" formControlName="otp" placeholder="4-digit OTP" maxlength="4" inputmode="numeric">
+              </label>
+              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+              <button class="primary-btn primary-btn--block" [disabled]="otpForm.invalid || forgotLoading">
+                {{ forgotLoading ? 'Verifying…' : 'Verify OTP' }}
+              </button>
+            </form>
+            <a class="back-link" (click)="backToLogin()">← Back to sign in</a>
+          </ng-container>
+
+          <ng-container *ngIf="forgotStep === 'password'">
+            <header class="auth-head">
+              <h2>Reset password</h2>
+              <p class="muted">Enter a new password (minimum 6 characters).</p>
+            </header>
+            <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()" class="auth-form">
+              <label class="field">
+                <span class="field-label">New password</span>
+                <input class="field-input" type="password" formControlName="newPassword" placeholder="Min 6 characters" autocomplete="new-password">
+              </label>
+              <label class="field">
+                <span class="field-label">Confirm password</span>
+                <input class="field-input" type="password" formControlName="confirmPassword" placeholder="Re-enter password" autocomplete="new-password">
+              </label>
+              <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error">
+                Passwords do not match.
+              </div>
+              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+              <button class="primary-btn primary-btn--block" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
+                {{ forgotLoading ? 'Resetting…' : 'Reset password' }}
+              </button>
+            </form>
+            <a class="back-link" (click)="backToLogin()">← Back to sign in</a>
+          </ng-container>
+
+          <ng-container *ngIf="forgotStep === 'success'">
+            <header class="auth-head">
+              <h2>Password reset</h2>
+              <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
+            </header>
+            <a class="back-link" (click)="backToLogin()">← Back to sign in</a>
+          </ng-container>
+        </div>
+      </main>
     </section>
   `,
   styles: [`
-    .login-shell {
+    :host { display: block; }
+    .auth-shell {
       min-height: 100vh;
       display: grid;
-      place-items: center;
-      padding: 1rem;
+      grid-template-columns: 1.05fr 1fr;
+      background: var(--surface-alt, #f7f7f5);
     }
-
-    .login-card {
-      width: min(460px, 100%);
-      padding: 2rem;
-      display: grid;
-      gap: 1.5rem;
+    @media (max-width: 960px) {
+      .auth-shell { grid-template-columns: 1fr; }
+      .auth-brand { display: none; }
     }
-
-    .login-copy {
+    .auth-brand {
+      position: relative;
+      padding: 3rem 3.25rem;
+      color: #fff;
+      background:
+        radial-gradient(1200px 500px at 10% 0%, rgba(255,255,255,0.12), transparent 60%),
+        radial-gradient(700px 400px at 90% 100%, rgba(255,255,255,0.08), transparent 60%),
+        linear-gradient(160deg, #7c2d12 0%, #b45309 55%, #d97706 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+    .auth-brand::after {
+      content: '';
+      position: absolute;
+      inset: auto -20% -30% auto;
+      width: 460px;
+      height: 460px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 60%);
+      pointer-events: none;
+    }
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      font-size: 1.05rem;
+    }
+    .brand-dot {
+      width: 12px; height: 12px; border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
+    }
+    .brand-copy h1 {
+      font-size: clamp(1.9rem, 3vw, 2.6rem);
+      line-height: 1.1;
+      margin: 0 0 0.9rem;
+      letter-spacing: -0.01em;
+    }
+    .brand-copy p {
+      max-width: 42ch;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.55;
+      margin: 0;
+      font-size: 1.02rem;
+    }
+    .brand-points {
+      list-style: none;
+      padding: 0;
+      margin: 0;
       display: grid;
       gap: 0.75rem;
     }
-
-    h1 { margin: 0.25rem 0 0.5rem; font-size: 2rem; }
-    h2 { margin: 0; font-size: 1.4rem; }
-
-    .eyebrow {
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--brand-deep);
-      font-size: 0.78rem;
-      font-weight: 700;
-    }
-
-    form { display: grid; gap: 1rem; }
-
-    label { display: grid; gap: 0.45rem; font-weight: 600; }
-
-    input {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0.9rem 1rem;
-      background: #fff;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14);
-    }
-
-    .divider {
+    .brand-points li {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      color: var(--muted);
-      font-size: 0.85rem;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.09);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 0.95rem;
+    }
+    .brand-points span {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+    }
+    .brand-foot { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin: 0; }
+
+    .auth-main {
+      display: grid;
+      place-items: center;
+      padding: 2rem 1.25rem;
+    }
+    .auth-card {
+      width: min(440px, 100%);
+      background: #fff;
+      border: 1px solid var(--line, #e6e4df);
+      border-radius: 18px;
+      padding: 2.25rem;
+      display: grid;
+      gap: 1.25rem;
+      box-shadow: 0 24px 60px -32px rgba(17, 24, 39, 0.18);
+    }
+    .auth-head h2 { margin: 0 0 0.35rem; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .auth-head p { margin: 0; }
+    .auth-form { display: grid; gap: 0.9rem; }
+    .field { display: grid; gap: 0.4rem; }
+    .field-label { font-weight: 600; font-size: 0.88rem; color: var(--ink, #1f2937); }
+    .field-input {
+      border: 1px solid var(--line, #e6e4df);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      background: #fff;
+      font-size: 0.98rem;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .field-input:focus {
+      outline: none;
+      border-color: var(--brand, #d97706);
+      box-shadow: 0 0 0 4px rgba(217,119,6,0.14);
+    }
+    .divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      color: var(--muted, #6b7280); font-size: 0.82rem;
     }
     .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--line);
+      content: ''; flex: 1; height: 1px; background: var(--line, #e6e4df);
     }
-
-    .alert-box {
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.9rem;
-    }
-    .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .alert-box.success { color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(20, 184, 166, 0.2); }
-
+    .google-wrap { display: grid; gap: 0.5rem; }
     #google-btn { display: flex; justify-content: center; }
-
-    .forgot-link {
-      color: var(--brand);
+    .link-right {
+      justify-self: end;
+      color: var(--brand, #d97706);
       font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
-      text-align: right;
       text-decoration: none;
-      font-weight: 500;
     }
-    .forgot-link:hover { text-decoration: underline; }
-
+    .link-right:hover { text-decoration: underline; }
     .back-link {
-      color: var(--muted);
+      color: var(--muted, #6b7280);
       font-size: 0.88rem;
       cursor: pointer;
       text-decoration: none;
+      justify-self: start;
     }
-    .back-link:hover { color: var(--brand); text-decoration: underline; }
-
-    .forgot-header {
-      display: grid;
-      gap: 0.5rem;
-    }
+    .back-link:hover { color: var(--brand, #d97706); text-decoration: underline; }
+    .primary-btn--block { width: 100%; justify-content: center; }
+    .alert-box { border-radius: 10px; padding: 0.75rem 0.95rem; font-size: 0.9rem; }
+    .alert-box.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
+    .alert-box.success { color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; }
   `]
 })
 export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly ngZone = inject(NgZone);
+
+  readonly year = new Date().getFullYear();
 
   readonly form = this.fb.nonNullable.group({
     loginId: ['', Validators.required],
@@ -306,7 +356,7 @@ export class LoginPageComponent implements OnInit {
         });
         google.accounts.id.renderButton(
           document.getElementById('google-btn'),
-          { theme: 'outline', size: 'large', width: 400, text: 'signin_with' }
+          { theme: 'outline', size: 'large', width: 380, text: 'signin_with' }
         );
       } else {
         setTimeout(check, 300);
