@@ -344,8 +344,8 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
     .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
     .toggle-btn {
-      border: 1px solid var(--line, #E2E8F0);
-      background: var(--panel, #FFFFFF);
+      border: 1px solid var(--line);
+      background: var(--panel);
       border-radius: 8px;
       padding: 0.3rem 0.6rem;
       font-size: 0.8rem;
@@ -355,7 +355,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
     .toggle-btn--on { border-color: var(--accent); color: var(--accent); }
-    .toggle-btn--off { border-color: var(--danger, #EF4444); color: var(--danger, #EF4444); }
+    .toggle-btn--off { border-color: var(--danger); color: var(--danger); }
     @media (max-width: 480px) {
       .action-stack { flex-direction: column; align-items: stretch; }
     }

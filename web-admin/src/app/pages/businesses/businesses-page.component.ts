@@ -188,12 +188,12 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
   `,
   styles: [`
     .ghost-btn--danger {
-      color: var(--danger, #EF4444);
-      border-color: var(--danger, #EF4444);
+      color: var(--danger);
+      border-color: var(--danger);
     }
     .ghost-btn--accent {
-      color: var(--accent, #14B8A6);
-      border-color: var(--accent, #14B8A6);
+      color: var(--accent);
+      border-color: var(--accent);
     }
   `]
 })

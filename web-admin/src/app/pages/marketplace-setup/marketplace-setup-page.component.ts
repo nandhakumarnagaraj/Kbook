@@ -239,7 +239,7 @@ import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/a
     }
 
     .field-input {
-      border: 1px solid var(--line, #ddd);
+      border: 1px solid var(--line);
       border-radius: 10px;
       padding: 0.8rem 1rem;
       font-size: 0.95rem;

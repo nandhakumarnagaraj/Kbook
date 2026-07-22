@@ -68,7 +68,7 @@ import { CommonModule } from '@angular/common';
       padding: 1rem 1.1rem;
       color: var(--danger);
       background: var(--danger-soft);
-      border: 1px solid rgba(166, 55, 47, 0.22);
+      border: 1px solid rgba(192, 57, 43, 0.22);
       border-radius: 14px;
     }
     .error-icon {
@@ -93,7 +93,7 @@ import { CommonModule } from '@angular/common';
       cursor: pointer;
       font-weight: 700;
     }
-    .retry-btn:focus-visible { outline: 3px solid rgba(166, 55, 47, 0.24); outline-offset: 2px; }
+    .retry-btn:focus-visible { outline: 3px solid rgba(192, 57, 43, 0.24); outline-offset: 2px; }
     @media (max-width: 640px) {
       .api-state-error { grid-template-columns: auto minmax(0, 1fr); }
       .retry-btn { grid-column: 1 / -1; width: 100%; }

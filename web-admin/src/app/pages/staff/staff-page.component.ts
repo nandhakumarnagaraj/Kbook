@@ -22,7 +22,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .modal-content h3 {
       margin: 0 0 1.5rem;
-      color: var(--ink, #1E293B);
+      color: var(--ink);
     }
     .form-group {
       margin-bottom: 1rem;
@@ -31,7 +31,7 @@ import { formatDate } from '../../shared/formatters';
       display: block;
       margin-bottom: 0.25rem;
       font-size: 0.875rem;
-      color: var(--ink, #1E293B);
+      color: var(--ink);
       font-weight: 500;
     }
     .form-group .field-control,
@@ -40,16 +40,16 @@ import { formatDate } from '../../shared/formatters';
       box-sizing: border-box;
     }
     .field-error {
-      color: var(--danger, #EF4444);
+      color: var(--danger);
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
     .form-error {
       background: rgba(239, 68, 68, 0.08);
-      border: 1px solid var(--danger, #EF4444);
+      border: 1px solid var(--danger);
       border-radius: 8px;
       padding: 0.75rem 1rem;
-      color: var(--danger, #EF4444);
+      color: var(--danger);
       font-size: 0.875rem;
       margin-bottom: 1rem;
     }
@@ -58,19 +58,19 @@ import { formatDate } from '../../shared/formatters';
       padding: 1rem 0;
     }
     .success-section h4 {
-      color: var(--accent, #14B8A6);
+      color: var(--accent);
       margin: 0 0 0.5rem;
     }
     .temp-password {
-      background: var(--bg, #F8FAFC);
-      border: 1px dashed var(--brand, #F97316);
+      background: var(--bg);
+      border: 1px dashed var(--brand);
       border-radius: 8px;
       padding: 1rem;
       margin: 1rem 0;
       font-family: monospace;
       font-size: 1.25rem;
       letter-spacing: 0.1em;
-      color: var(--ink, #1E293B);
+      color: var(--ink);
       word-break: break-all;
     }
     .success-section p.muted {
@@ -87,17 +87,17 @@ import { formatDate } from '../../shared/formatters';
       font-size: 0.8rem;
       font-weight: 500;
       cursor: pointer;
-      border: 1px solid var(--line, #E2E8F0);
+      border: 1px solid var(--line);
       background: transparent;
-      color: var(--ink, #1E293B);
+      color: var(--ink);
       transition: opacity 0.2s, background 0.2s;
     }
     .action-btn:hover:not(:disabled) {
-      background: var(--bg, #F8FAFC);
+      background: var(--bg);
     }
     .action-btn--danger {
-      color: var(--danger, #EF4444);
-      border-color: var(--danger, #EF4444);
+      color: var(--danger);
+      border-color: var(--danger);
     }
     .action-btn--danger:hover:not(:disabled) {
       background: rgba(239, 68, 68, 0.06);
@@ -116,7 +116,7 @@ import { formatDate } from '../../shared/formatters';
       bottom: 100%;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--ink, #1E293B);
+      background: var(--ink);
       color: #fff;
       font-size: 0.7rem;
       padding: 0.35rem 0.6rem;
@@ -130,7 +130,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .role-disabled-note {
       font-size: 0.75rem;
-      color: var(--muted, #64748B);
+      color: var(--muted);
       font-style: italic;
       margin-top: 0.25rem;
     }

@@ -119,8 +119,8 @@ import { formatCurrency, formatDate } from './formatters';
     }
 
     .order-modal__card {
-      background: var(--panel, #fffdf8);
-      border: 1px solid var(--line, #e9dcc9);
+      background: var(--panel);
+      border: 1px solid var(--line);
       border-radius: 16px;
       width: 100%;
       max-width: 460px;
@@ -134,21 +134,21 @@ import { formatCurrency, formatDate } from './formatters';
       align-items: center;
       justify-content: space-between;
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--line, #e9dcc9);
+      border-bottom: 1px solid var(--line);
     }
 
     .order-modal__title {
       margin: 0;
       font-size: 1.1rem;
       font-weight: 600;
-      color: var(--ink, #24170f);
+      color: var(--ink);
     }
 
     .order-modal__close {
       background: none;
       border: none;
       font-size: 1.2rem;
-      color: var(--muted, #7d6b5f);
+      color: var(--muted);
       cursor: pointer;
       padding: 0.25rem 0.5rem;
       border-radius: 6px;
@@ -156,7 +156,7 @@ import { formatCurrency, formatDate } from './formatters';
     }
 
     .order-modal__close:hover {
-      background: var(--bg, #f6f1e8);
+      background: var(--bg);
     }
 
     .order-modal__details {
@@ -175,24 +175,24 @@ import { formatCurrency, formatDate } from './formatters';
     .order-modal__row--total {
       margin-top: 0.5rem;
       padding-top: 0.75rem;
-      border-top: 1px solid var(--line, #e9dcc9);
+      border-top: 1px solid var(--line);
     }
 
     .order-modal__label {
       font-size: 0.85rem;
-      color: var(--muted, #7d6b5f);
+      color: var(--muted);
     }
 
     .order-modal__value {
       font-size: 0.9rem;
-      color: var(--ink, #24170f);
+      color: var(--ink);
       font-weight: 500;
     }
 
     .order-modal__value--total {
       font-size: 1.05rem;
       font-weight: 700;
-      color: var(--brand, #b56a2d);
+      color: var(--brand);
     }
 
     .chip {
@@ -202,35 +202,35 @@ import { formatCurrency, formatDate } from './formatters';
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
-      background: var(--bg, #f6f1e8);
-      color: var(--ink, #24170f);
+      background: var(--bg);
+      color: var(--ink);
     }
 
     .chip--success {
-      background: rgba(29, 123, 95, 0.12);
-      color: var(--accent, #1d7b5f);
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--accent);
     }
 
     .chip--warn {
-      background: rgba(181, 106, 45, 0.12);
-      color: var(--brand, #b56a2d);
+      background: rgba(232, 122, 30, 0.12);
+      color: var(--brand);
     }
 
     .chip--danger {
-      background: rgba(166, 55, 47, 0.12);
-      color: var(--danger, #a6372f);
+      background: rgba(192, 57, 43, 0.12);
+      color: var(--danger);
     }
 
     .order-modal__items {
       padding: 1rem 1.5rem 1.5rem;
-      border-top: 1px solid var(--line, #e9dcc9);
+      border-top: 1px solid var(--line);
     }
 
     .order-modal__subtitle {
       margin: 0 0 0.75rem;
       font-size: 0.95rem;
       font-weight: 600;
-      color: var(--ink, #24170f);
+      color: var(--ink);
     }
 
     .order-modal__table-wrap {
@@ -246,8 +246,8 @@ import { formatCurrency, formatDate } from './formatters';
     .order-modal__table th {
       text-align: left;
       padding: 0.5rem 0.6rem;
-      border-bottom: 1px solid var(--line, #e9dcc9);
-      color: var(--muted, #7d6b5f);
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
       font-weight: 600;
       font-size: 0.8rem;
       white-space: nowrap;
@@ -255,8 +255,8 @@ import { formatCurrency, formatDate } from './formatters';
 
     .order-modal__table td {
       padding: 0.5rem 0.6rem;
-      border-bottom: 1px solid var(--line, #e9dcc9);
-      color: var(--ink, #24170f);
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
     }
 
     .order-modal__table tr:last-child td {
@@ -265,13 +265,13 @@ import { formatCurrency, formatDate } from './formatters';
 
     .order-modal__variant {
       font-size: 0.8rem;
-      color: var(--muted, #7d6b5f);
+      color: var(--muted);
     }
 
     .order-modal__empty {
       text-align: center;
       padding: 1rem;
-      color: var(--muted, #7d6b5f);
+      color: var(--muted);
       font-size: 0.9rem;
     }
 

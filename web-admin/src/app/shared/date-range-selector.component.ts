@@ -88,9 +88,9 @@ export function getPresetDateRange(
       min-width: 5.5rem;
       padding: 0.55rem 0.9rem;
       border-radius: 8px;
-      border: 1px solid var(--line, #e9dcc9);
-      background: var(--panel, #fffdf8);
-      color: var(--ink, #24170f);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
       font-size: 0.85rem;
       font-weight: 600;
       white-space: nowrap;
@@ -99,13 +99,13 @@ export function getPresetDateRange(
     }
 
     .date-range__preset-btn:hover {
-      border-color: var(--brand, #b56a2d);
+      border-color: var(--brand);
     }
 
     .date-range__preset-btn--active {
-      background: var(--brand, #b56a2d);
+      background: var(--brand);
       color: #fff;
-      border-color: var(--brand, #b56a2d);
+      border-color: var(--brand);
     }
 
     .date-range__custom {
@@ -117,29 +117,29 @@ export function getPresetDateRange(
 
     .date-range__input {
       padding: 0.4rem 0.6rem;
-      border: 1px solid var(--line, #e9dcc9);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel, #fffdf8);
-      color: var(--ink, #24170f);
+      background: var(--panel);
+      color: var(--ink);
       font-size: 0.85rem;
       min-height: 36px;
     }
 
     .date-range__input:focus {
       outline: none;
-      border-color: var(--brand, #b56a2d);
-      box-shadow: 0 0 0 2px rgba(181, 106, 45, 0.15);
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(232, 122, 30, 0.15);
     }
 
     .date-range__separator {
-      color: var(--muted, #7d6b5f);
+      color: var(--muted);
       font-size: 0.85rem;
     }
 
     .date-range__label {
       font-size: 0.8rem;
-      color: var(--muted, #7d6b5f);
-      background: var(--bg, #f6f1e8);
+      color: var(--muted);
+      background: var(--bg);
       padding: 0.25rem 0.6rem;
       border-radius: 6px;
     }

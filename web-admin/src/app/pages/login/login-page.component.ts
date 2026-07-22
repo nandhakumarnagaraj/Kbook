@@ -189,7 +189,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      background: var(--bg, #f7f7f5);
+      background: var(--bg);
     }
     @media (max-width: 960px) {
       .auth-shell { grid-template-columns: 1fr; }
