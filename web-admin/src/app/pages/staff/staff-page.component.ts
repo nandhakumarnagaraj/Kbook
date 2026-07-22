@@ -364,10 +364,10 @@ import { formatDate } from '../../shared/formatters';
             <tr *ngFor="let item of pagedStaff">
               <td>{{ item.name }}</td>
               <td>{{ item.loginId }}</td>
-              <td><span class="chip">{{ item.role }}</span></td>
+              <td><span class="chip-pill" [class.chip-pill--ok]="item.role === 'OWNER'">{{ item.role }}</span></td>
               <td>{{ item.whatsappNumber || item.email || '-' }}</td>
               <td>
-                <span class="chip" [class.success]="item.active" [class.danger]="!item.active">
+                <span class="chip-pill" [class.chip-pill--ok]="item.active" [class.chip-pill--pending]="!item.active">
                   {{ item.active ? 'Active' : 'Inactive' }}
                 </span>
               </td>

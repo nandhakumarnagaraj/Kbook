@@ -74,9 +74,9 @@ import { formatDate } from '../../shared/formatters';
               </td>
               <td>
                 <span
-                  class="chip"
-                  [class.success]="terminal.status.toLowerCase() === 'active'"
-                  [class.danger]="terminal.status.toLowerCase() === 'inactive'"
+                  class="chip-pill"
+                  [class.chip-pill--ok]="terminal.status.toLowerCase() === 'active'"
+                  [class.chip-pill--pending]="terminal.status.toLowerCase() === 'inactive'"
                 >
                   {{ terminal.status }}
                 </span>

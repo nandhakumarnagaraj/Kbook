@@ -110,10 +110,13 @@ import { formatCurrency } from '../../shared/formatters';
       display: grid; gap: 0.35rem;
     }
     .kpi-card--hero {
-      background: linear-gradient(160deg, #fff7ed 0%, #ffffff 60%);
-      border-color: #fed7aa;
+      background: var(--gradient-hero);
+      border-color: transparent;
+      color: #ffffff;
     }
-    .kpi-card--hero .kpi-value { font-size: 2.1rem; color: #7c2d12; }
+    .kpi-card--hero .kpi-label { color: rgba(255, 255, 255, 0.85); }
+    .kpi-card--hero .kpi-value { font-size: 2.1rem; color: #ffffff; }
+    .kpi-card--hero .kpi-foot { color: rgba(255, 255, 255, 0.85); }
     .kpi-card--warn { border-color: #fecaca; background: linear-gradient(160deg, #fef2f2 0%, #ffffff 60%); }
 
     .kpi-label { font-size: 0.78rem; color: var(--muted, #6b7280); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }

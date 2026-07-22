@@ -16,7 +16,7 @@ import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/a
         <p class="muted">Connect supported delivery providers for online orders from this restaurant.</p>
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
-          <span class="chip success">Zomato &amp; Swiggy</span>
+          <span class="chip-pill chip-pill--ok">Zomato &amp; Swiggy</span>
         </div>
       </section>
 
