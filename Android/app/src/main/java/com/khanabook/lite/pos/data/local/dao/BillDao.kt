@@ -119,15 +119,18 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
 
     // Terminal ownership isolation: a bill that THIS terminal may mutate as an operational
-    // record. Returns null for server-imported / marketplace history, other terminals' bills,
-    // or anything not explicitly local_created + terminal_operational. Mutable workflows must
-    // load bills through this method so a history record can never reach a DAO write.
+    // record. Returns null for marketplace history (zomato/swiggy/own_website), other
+    // terminals' bills, or deleted records. Ownership is proven by current_owner_terminal_id
+    // or created_terminal_id — NOT by record_origin/record_scope labels, which the sync
+    // pull overwrites to server_imported/restaurant_history, making local bills read-only.
+    // Mutable workflows must load bills through this method so a history record can never
+    // reach a DAO write.
     @Query("""
         SELECT * FROM bills
         WHERE id = :id AND restaurant_id = :restaurantId AND is_deleted = 0
-          AND record_scope = 'terminal_operational' AND record_origin = 'local_created'
           AND (current_owner_terminal_id = :terminalId
                OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId))
+          AND (source_channel IS NULL OR source_channel NOT IN ('zomato', 'swiggy', 'own_website'))
         LIMIT 1
     """)
     suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity?
@@ -659,10 +662,11 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
             } else {
                 // Present locally. Check if we should overwrite it.
                 // We overwrite if local is already synced, OR if remote updatedAt is strictly newer.
+                // Note: record_origin/record_scope intentionally come from the remote here —
+                // getOperationalBillById uses currentOwnerTerminalId (not those labels) to
+                // determine editability, so there is no need to preserve stale local labels.
                 if (localBill.isSynced || (bill.updatedAt > localBill.updatedAt)) {
-                    // Update the local bill but preserve local id if matching
-                    val updatedLocalBill = bill.copy(id = localBill.id)
-                    insertBill(updatedLocalBill)
+                    insertBill(bill.copy(id = localBill.id))
                 } else {
                     // Preserve newer local fields, but still merge server identity from the pull.
                     // Bill items link through serverBillId -> bills.server_id; without this repair

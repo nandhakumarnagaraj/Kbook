@@ -270,6 +270,68 @@ The approach builds incrementally — security infrastructure first, then write 
 - [x] 16. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
+## OWNER UI Refinement — Seven Implementation Slices
+
+- [ ] 17. PR 1 — Compact global page headers
+  - [ ] 17.1 Replace oversized OWNER page hero cards with the shared compact title, subtitle, metadata, and action-slot pattern
+    - Move recurring Refresh actions into the same header location
+    - Convert decorative chips to plain metadata and retain chips only for real filters
+    - Preserve responsive wrapping and existing page states
+    - Validate with TypeScript and a development build
+    - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 21.5, 21.7_
+
+- [ ] 18. PR 2 — Reports KPI hierarchy
+  - [ ] 18.1 Recompose the Reports KPI area around two primary financial cards and one compact secondary strip
+    - Move date presets into an accessible segmented control in the KPI header
+    - Replace the persistent report explanation with an accessible information control
+    - Preserve custom-date behavior and responsive stacking
+    - Validate keyboard operation, TypeScript, and a development build
+    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 21.1, 21.7_
+
+- [ ] 19. PR 3 — Dense Menu table and filters
+  - [ ] 19.1 Refine Menu filtering, table columns, statuses, and row actions
+    - Add the computed Needs attention filter and remove repeated missing-description copy
+    - Conditionally collapse zero-only variants and show positive counts beside item names
+    - Render switch, edit, and ghost-danger delete actions inline with accessible labels
+    - Apply semantic warning/success colors and right-aligned tabular numbers
+    - Validate responsive table behavior, TypeScript, and a development build
+    - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 21.1, 21.2, 21.3_
+
+- [ ] 20. PR 4 — Scannable Devices table
+  - [ ] 20.1 Consolidate device state and compact terminal actions
+    - Remove the redundant Active column and normalize the Status display
+    - Truncate identifiers to eight characters with full tooltip and copy behavior
+    - Render Rename, Recover, and Reactivate inline with accessible labels
+    - Add zero-pending explanatory copy and plain metadata
+    - Validate copy feedback, responsive table behavior, TypeScript, and a development build
+    - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5, 18.6, 21.1, 21.2, 21.3_
+
+- [ ] 21. PR 5 — Zomato and Swiggy integration cards
+  - [ ] 21.1 Rebuild marketplace settings as equivalent provider cards
+    - Keep the OWNER marketplace view limited to Zomato and Swiggy; do not add Easebuzz
+    - Protect API key and secret fields with labelled show/hide controls
+    - Normalize webhook URLs to exactly one `/api/v1` segment and add copy feedback
+    - Track loaded values so Save is enabled only while valid changes are dirty
+    - Validate both URL base forms, responsive cards, TypeScript, and a development build
+    - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7, 21.1, 21.7_
+
+- [ ] 22. PR 6 — Sidebar visual refinement
+  - [ ] 22.1 Rebalance branding, active navigation, and Logout treatment
+    - Reduce the logo tile to 40px
+    - Add the primary left accent to the active item
+    - Add a divider and muted default treatment above Logout
+    - Preserve responsive drawer behavior, role metadata, and ARIA state
+    - Validate desktop/mobile navigation, TypeScript, and a development build
+    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5, 21.7_
+
+- [ ] 23. PR 7 — Accessibility, consistency, and design-system documentation
+  - [ ] 23.1 Complete the cross-page accessibility and consistency pass
+    - Standardize button radius, effective target size, focus state, tooltip, table hover, status semantics, and tabular numeric alignment
+    - Recheck loading, error, empty, and success states on all affected pages
+    - Update `web-admin/DESIGN_SYSTEM.md` with header, KPI, row-action, status-color, and icon-control patterns
+    - Run `npx tsc --noEmit` and `ng build --configuration development`
+    - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for faster MVP
@@ -280,6 +342,8 @@ The approach builds incrementally — security infrastructure first, then write 
 - Backend tasks (1-7) should be completed before frontend tasks (8-15) to ensure APIs are available
 - Shared UI components (task 8.4) are used across multiple page implementations
 - The `@RequireRole` interceptor (task 1.1) is foundational — all subsequent write endpoints depend on it
+- Tasks 17-23 are seven independently reviewable OWNER UI refinement slices; complete them in order because task 23 consolidates shared guidance
+- No new dependencies are permitted for tasks 17-23
 
 ## Task Dependency Graph
 
@@ -295,7 +359,14 @@ The approach builds incrementally — security infrastructure first, then write 
     { "id": 6, "tasks": ["9.2", "10.1", "10.2", "11.1"] },
     { "id": 7, "tasks": ["11.2", "11.3", "12.1", "12.2"] },
     { "id": 8, "tasks": ["12.3", "14.1", "14.2", "15.1"] },
-    { "id": 9, "tasks": ["14.3"] }
+    { "id": 9, "tasks": ["14.3"] },
+    { "id": 10, "tasks": ["17.1"] },
+    { "id": 11, "tasks": ["18.1"] },
+    { "id": 12, "tasks": ["19.1"] },
+    { "id": 13, "tasks": ["20.1"] },
+    { "id": 14, "tasks": ["21.1"] },
+    { "id": 15, "tasks": ["22.1"] },
+    { "id": 16, "tasks": ["23.1"] }
   ]
 }
 ```

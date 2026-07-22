@@ -153,14 +153,11 @@ class SyncManager @Inject constructor(
         return syncMutex.withLock {
             try {
                 ensureTerminalActivated()
-                // Re-label this terminal's own synced bills (corrects the v59→60 migration's
-                // conservative backfill now that the authoritative terminal is known).
-                masterSyncProcessor.reconcileLocalBillScope()
                 pullAndPersistMasterData(
                     lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
                     deviceId = sessionManager.getDeviceId()
                 )
-                Result.success(Unit)
+                return Result.success(Unit)
             } catch (e: Exception) {
                 logError("Master pull failed", e)
                 Result.failure(e)
@@ -281,6 +278,12 @@ class SyncManager @Inject constructor(
         )
         // Persist all pulled records into Room (wrapped in a DB transaction in MasterSyncProcessor).
         masterSyncProcessor.insertMasterData(mergedResponse)
+        // Re-label this terminal's own synced bills AFTER the pull so the pull's
+        // insertSyncedBills doesn't immediately overwrite the correction.
+        // Without this, a sync-pull relabels completed local bills as
+        // server_imported/restaurant_history, making them read-only and silently
+        // blocking all local edits (payment mode, status changes).
+        masterSyncProcessor.reconcileLocalBillScope()
         // Commit the new checkpoint ONLY after Room write fully succeeds.
         if (mergedResponse.serverTimestamp > 0) {
             sessionManager.saveLastSyncTimestamp(mergedResponse.serverTimestamp)

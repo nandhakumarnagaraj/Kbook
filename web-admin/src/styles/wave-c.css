@@ -1,7 +1,3 @@
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .filter-bar .field-input, .filter-bar select { width: 100%; }
-}
-
 /* =========================================================
    Wave C — Menu + Orders visual refresh (CSS-only, no template surgery)
    ========================================================= */

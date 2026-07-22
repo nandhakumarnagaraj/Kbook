@@ -482,3 +482,68 @@ Each property test references its design property with tag format:
 - **Accessibility**: Screen reader navigation through forms and modals, keyboard-only operation
 - **Responsive layout**: Verify forms and modals at mobile (480px), tablet (768px), desktop (1024px+)
 - **Session invalidation**: Verify deactivated staff and role-changed staff are actually logged out
+## OWNER UI Refinement Design Addendum
+
+### Scope and Constraints
+
+This addendum changes OWNER-facing presentation and local interaction behavior in `web-admin`. Existing service contracts and authorization rules remain unchanged. The only data-path correction is deterministic webhook URL construction. The implementation uses Angular 18 standalone components, signals or existing component state, plain CSS, existing tokens, and no new dependencies.
+
+### Shared Compact Page Header
+
+Each refined page uses the same semantic header structure: a title/subtitle group, optional non-interactive metadata, and a stable action slot. Desktop renders one row; narrow layouts wrap the action slot below the title without reintroducing a tall hero card. The active sidebar item is the only location that uses the primary left accent. Refresh belongs in the action slot and not in a secondary toolbar.
+
+Static labels become text metadata. Filter-like chips remain only when they mutate a visible result set and expose `aria-pressed` or equivalent state. This distinction prevents decorative labels from resembling actions.
+
+### Reports Composition
+
+The KPI band has three layers: a heading row with the segmented range control and accessible information trigger, a two-card primary grid for Recognized Revenue and Net After Refunds, and a compact four-item secondary strip. Currency and counts use tabular numerals. At narrow widths, the primary grid becomes one column and the secondary strip wraps into two columns or one column without overflow.
+
+The information trigger is a real button with an accessible label and a focus/hover disclosure. Custom date inputs continue to use the current report filtering logic.
+
+### Menu Table Composition
+
+Menu actions use one `row-actions` group: the existing availability switch plus compact edit and delete controls. Glyphs may use Unicode or styled text because icon libraries are prohibited; meaning never depends on the glyph because each action has an `aria-label`, `title`, and visible focus state. Delete uses a transparent danger treatment.
+
+Missing descriptions are summarized as a computed “Needs attention (N)” filter. Activating it filters the same client-side item collection and has a visible active state. A dedicated variants column is conditional on at least one currently visible item having variants; otherwise variant counts greater than zero appear beside the item name. Warning and success colors follow semantic meaning rather than boolean availability styling inherited from the old page.
+
+### Devices Table Composition
+
+Device rows contain Name, Series, Device, Status, Updated, and Actions. Status is normalized in the view to Active, Inactive, or Pending; a separate Active column is removed. The device control visually shows the first eight identifier characters and retains the complete identifier in its accessible label and tooltip. Copy uses the Clipboard API with a safe fallback only if the project already has one, and reports outcomes through the existing toast.
+
+Pending metadata is plain header text. A zero-pending state includes concise explanatory copy without presenting a disabled approval action.
+
+### Integration Cards and URL Normalization
+
+Zomato and Swiggy share one provider view model shape and render through equivalent card markup. The cards use two columns where space permits and one column on compact screens. Easebuzz remains outside this marketplace configuration view because payment collection is handled separately through offline UPI configuration.
+
+Sensitive credential controls use password inputs and per-field visibility signals. The dirty state compares editable values with a snapshot captured after load or successful save. Save is enabled only when dirty, valid, and not saving.
+
+Webhook URL generation normalizes boundaries instead of concatenating raw strings:
+
+```text
+normalizedBase = apiBase with trailing slashes removed and one trailing /api/v1 ensured
+webhookUrl = normalizedBase + /webhooks/ + lowercaseProvider
+```
+
+If the configured base already ends in `/api/v1`, no second segment is added. URL copy uses the same generated value displayed to the user.
+
+### Sidebar and Shared Styling
+
+The logo footprint becomes 40px. Active navigation receives a 3px primary left border while retaining the current warm background. Logout is separated by a token-colored divider and muted until hover/focus. The existing responsive drawer semantics remain intact.
+
+Shared CSS defines or reuses compact header, segmented control, KPI hierarchy, row actions, icon button, warning status, hover surface, and tabular-number patterns. All button radii resolve to the existing 12px convention. No new palette values are introduced outside token definitions.
+
+### Accessibility and Responsive Behavior
+
+Icon actions are native buttons with accessible names, tooltips, 44px effective pointer targets, and `:focus-visible` treatment. Dynamic status text is announced without making static badges unnecessarily verbose. Interactive rows preserve keyboard semantics. Tables retain horizontal containment, while action groups remain inline and may wrap only as a group at the smallest supported width.
+
+### Verification Strategy
+
+For each of the seven implementation slices:
+
+1. Run `npx tsc --noEmit`.
+2. Run `ng build --configuration development`.
+3. Check the affected page at desktop, below 1024px, and below 480px.
+4. Keyboard-check header actions, segmented controls, copy controls, visibility controls, and row actions.
+5. Confirm loading, empty, error, and success states remain available.
+6. Confirm generated webhook URLs contain exactly one `/api/v1` segment.

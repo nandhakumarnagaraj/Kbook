@@ -133,10 +133,9 @@ class MasterSyncProcessor @Inject constructor(
         val restaurantId = sessionManager.getRestaurantId()
         val terminalId = sessionManager.getTerminalId() ?: return
         if (restaurantId <= 0L) return
+        Log.d("MasterSyncProcessor", "reconcileLocalBillScope: restaurantId=$restaurantId terminalId=$terminalId")
         val updated = billDao.reconcileLocalRecordScope(restaurantId, terminalId)
-        if (updated > 0) {
-            Log.i("MasterSyncProcessor", "Reconciled $updated local bill(s) to terminal_operational for terminal=$terminalId")
-        }
+        Log.i("MasterSyncProcessor", "reconcileLocalBillScope: updated=$updated bill(s) to terminal_operational for terminal=$terminalId")
 
         // Ensure terminal_daily_counter is seeded from existing local bills for today.
         // This prevents duplicate daily order numbers after APK update/migration when

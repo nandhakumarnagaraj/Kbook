@@ -238,8 +238,10 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
       transition: border-color .18s, transform .18s, box-shadow .18s;
     }
     button.kpi-card { cursor: pointer; }
-    .kpi-card--hero { background: linear-gradient(160deg, #fff7ed 0%, #ffffff 60%); border-color: #fed7aa; }
-    .kpi-card--hero .kpi-value { font-size: 2.1rem; color: #7c2d12; }
+    .kpi-card--hero { background: var(--gradient-hero); border-color: transparent; color: #ffffff; }
+    .kpi-card--hero .kpi-label { color: rgba(255, 255, 255, 0.85); }
+    .kpi-card--hero .kpi-value { font-size: 2.1rem; color: #ffffff; }
+    .kpi-card--hero .kpi-foot { color: rgba(255, 255, 255, 0.85); }
     .kpi-card--warn { border-color: #fecaca; background: linear-gradient(160deg, #fef2f2 0%, #ffffff 60%); }
     .kpi-card--clickable:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -20px rgba(217,119,6,0.4); border-color: #fed7aa; }
     .kpi-card--clickable:focus-visible { outline: 3px solid rgba(217,119,6,0.25); outline-offset: 2px; }

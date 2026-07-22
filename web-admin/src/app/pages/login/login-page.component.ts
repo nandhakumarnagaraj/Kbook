@@ -20,25 +20,44 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="auth-shell">
-      <aside class="auth-brand">
-        <div class="brand-mark">
-          <span class="brand-dot"></span>
-          <span>KhanaBook</span>
+      <aside class="auth-brand" style="background-image: var(--gradient-hero);">
+        <div class="brand-top">
+          <div class="brand-mark">
+            <div class="brand-logo">K</div>
+            <span class="brand-title">KhanaBook</span>
+          </div>
         </div>
+
         <div class="brand-copy">
           <h1>Run your kitchen<br/>with confidence.</h1>
           <p>One workspace for menu, orders, staff, and payments — built for busy owners and managers.</p>
+
+          <ul class="brand-points">
+            <li>
+              <span class="point-num">01</span>
+              <span>Live orders across POS &amp; marketplaces</span>
+            </li>
+            <li>
+              <span class="point-num">02</span>
+              <span>Menu &amp; stock control in seconds</span>
+            </li>
+            <li>
+              <span class="point-num">03</span>
+              <span>Daily revenue &amp; refund insights</span>
+            </li>
+          </ul>
         </div>
-        <ul class="brand-points">
-          <li><span>01</span> Live orders across POS &amp; marketplaces</li>
-          <li><span>02</span> Menu &amp; stock control in seconds</li>
-          <li><span>03</span> Daily revenue &amp; refund insights</li>
-        </ul>
+
         <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
       </aside>
 
       <main class="auth-main">
         <div class="auth-card">
+          <div class="mobile-brand">
+            <div class="brand-logo brand-logo--sm">K</div>
+            <span class="brand-title">KhanaBook</span>
+          </div>
+
           <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
 
           <ng-container *ngIf="forgotStep === 'none'">
@@ -61,15 +80,16 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               </label>
 
               <label class="field">
-                <span class="field-label">Password</span>
+                <div class="field-row">
+                  <span class="field-label">Password</span>
+                  <a class="link-right" (click)="startForgotPassword()">Forgot password?</a>
+                </div>
                 <input class="field-input" type="password" formControlName="password" placeholder="Enter password" autocomplete="current-password">
               </label>
 
-              <a class="link-right" (click)="startForgotPassword()">Forgot password?</a>
-
               <div *ngIf="error" class="alert-box error">{{ error }}</div>
 
-              <button class="primary-btn primary-btn--block" [disabled]="form.invalid || loading">
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading">
                 {{ loading ? 'Signing in…' : 'Sign in' }}
               </button>
             </form>
@@ -86,7 +106,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <input class="field-input" formControlName="phone" placeholder="10-digit phone number" maxlength="10" inputmode="numeric">
               </label>
               <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block" [disabled]="phoneForm.invalid || forgotLoading">
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading">
                 {{ forgotLoading ? 'Sending OTP…' : 'Send OTP' }}
               </button>
             </form>
@@ -104,7 +124,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <input class="field-input" formControlName="otp" placeholder="4-digit OTP" maxlength="4" inputmode="numeric">
               </label>
               <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block" [disabled]="otpForm.invalid || forgotLoading">
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading">
                 {{ forgotLoading ? 'Verifying…' : 'Verify OTP' }}
               </button>
             </form>
@@ -129,7 +149,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 Passwords do not match.
               </div>
               <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
                 {{ forgotLoading ? 'Resetting…' : 'Reset password' }}
               </button>
             </form>
@@ -152,152 +172,133 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .auth-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1.05fr 1fr;
-      background: var(--surface-alt, #f7f7f5);
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg, #f7f7f5);
     }
     @media (max-width: 960px) {
       .auth-shell { grid-template-columns: 1fr; }
       .auth-brand { display: none; }
     }
     .auth-brand {
-      position: relative;
-      padding: 3rem 3.25rem;
+      padding: 3.5rem 3rem;
       color: #fff;
-      background:
-        radial-gradient(1200px 500px at 10% 0%, rgba(255,255,255,0.12), transparent 60%),
-        radial-gradient(700px 400px at 90% 100%, rgba(255,255,255,0.08), transparent 60%),
-        linear-gradient(160deg, #7c2d12 0%, #b45309 55%, #d97706 100%);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      overflow: hidden;
+      position: relative;
     }
-    .auth-brand::after {
-      content: '';
-      position: absolute;
-      inset: auto -20% -30% auto;
-      width: 460px;
-      height: 460px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 60%);
-      pointer-events: none;
+    .brand-top { display: flex; align-items: center; justify-content: space-between; }
+    .brand-mark { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(8px);
+      display: grid; place-items: center;
+      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: #fff;
     }
-    .brand-mark {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      font-size: 1.05rem;
+    .brand-logo--sm {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--gradient-primary); font-size: 1rem;
     }
-    .brand-dot {
-      width: 12px; height: 12px; border-radius: 4px;
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
-    }
+    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
+    .brand-copy { max-width: 420px; display: grid; gap: 1.25rem; }
     .brand-copy h1 {
-      font-size: clamp(1.9rem, 3vw, 2.6rem);
-      line-height: 1.1;
-      margin: 0 0 0.9rem;
-      letter-spacing: -0.01em;
+      font-size: clamp(2rem, 3.2vw, 2.75rem);
+      line-height: 1.15;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+      letter-spacing: -0.02em;
     }
     .brand-copy p {
-      max-width: 42ch;
-      color: rgba(255,255,255,0.88);
+      color: rgba(255, 255, 255, 0.88);
       line-height: 1.55;
       margin: 0;
-      font-size: 1.02rem;
+      font-size: 0.98rem;
     }
     .brand-points {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 0.75rem;
+      list-style: none; padding: 0; margin: 0.5rem 0 0; display: grid; gap: 0.65rem;
     }
     .brand-points li {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      padding: 0.85rem 1rem;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.09);
-      backdrop-filter: blur(6px);
-      border: 1px solid rgba(255,255,255,0.12);
-      font-size: 0.95rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.9rem; color: rgba(255, 255, 255, 0.92);
     }
-    .brand-points span {
-      font-variant-numeric: tabular-nums;
-      font-weight: 700;
-      color: rgba(255,255,255,0.7);
-      font-size: 0.8rem;
-      letter-spacing: 0.06em;
+    .point-num {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: rgba(255, 255, 255, 0.16);
+      display: grid; place-items: center;
+      font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0;
     }
-    .brand-foot { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin: 0; }
+    .brand-foot { font-size: 0.78rem; color: rgba(255, 255, 255, 0.7); margin: 0; }
 
     .auth-main {
-      display: grid;
-      place-items: center;
-      padding: 2rem 1.25rem;
+      display: grid; place-items: center; padding: 2.5rem 1.5rem;
     }
     .auth-card {
-      width: min(440px, 100%);
-      background: #fff;
-      border: 1px solid var(--line, #e6e4df);
-      border-radius: 18px;
-      padding: 2.25rem;
-      display: grid;
-      gap: 1.25rem;
-      box-shadow: 0 24px 60px -32px rgba(17, 24, 39, 0.18);
+      width: min(420px, 100%);
+      display: grid; gap: 1.25rem;
     }
-    .auth-head h2 { margin: 0 0 0.35rem; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .mobile-brand {
+      display: none; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
+    }
+    @media (max-width: 960px) { .mobile-brand { display: flex; } }
+    .auth-head h2 { margin: 0 0 0.35rem; font-size: 1.6rem; font-weight: 700; }
     .auth-head p { margin: 0; }
-    .auth-form { display: grid; gap: 0.9rem; }
-    .field { display: grid; gap: 0.4rem; }
-    .field-label { font-weight: 600; font-size: 0.88rem; color: var(--ink, #1f2937); }
+    .auth-form { display: grid; gap: 1rem; }
+    .field { display: grid; gap: 0.35rem; }
+    .field-row { display: flex; justify-content: space-between; align-items: center; }
+    .field-label { font-weight: 600; font-size: 0.82rem; color: var(--ink); }
     .field-input {
-      border: 1px solid var(--line, #e6e4df);
-      border-radius: 10px;
-      padding: 0.85rem 1rem;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--r-md);
+      padding: 0.7rem 0.9rem;
       background: #fff;
-      font-size: 0.98rem;
-      transition: border-color .18s ease, box-shadow .18s ease;
+      font-size: 0.92rem;
+      height: 44px;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
     .field-input:focus {
       outline: none;
-      border-color: var(--brand, #d97706);
-      box-shadow: 0 0 0 4px rgba(217,119,6,0.14);
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-ring);
     }
     .divider {
       display: flex; align-items: center; gap: 0.75rem;
-      color: var(--muted, #6b7280); font-size: 0.82rem;
+      color: var(--muted); font-size: 0.78rem; margin: 0.25rem 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--line, #e6e4df);
+      content: ''; flex: 1; height: 1px; background: var(--line);
     }
     .google-wrap { display: grid; gap: 0.5rem; }
     #google-btn { display: flex; justify-content: center; }
     .link-right {
-      justify-self: end;
-      color: var(--brand, #d97706);
-      font-size: 0.85rem;
+      color: var(--brand);
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
     }
     .link-right:hover { text-decoration: underline; }
     .back-link {
-      color: var(--muted, #6b7280);
-      font-size: 0.88rem;
+      color: var(--muted);
+      font-size: 0.84rem;
       cursor: pointer;
       text-decoration: none;
       justify-self: start;
     }
-    .back-link:hover { color: var(--brand, #d97706); text-decoration: underline; }
-    .primary-btn--block { width: 100%; justify-content: center; }
-    .alert-box { border-radius: 10px; padding: 0.75rem 0.95rem; font-size: 0.9rem; }
-    .alert-box.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
-    .alert-box.success { color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .back-link:hover { color: var(--brand); text-decoration: underline; }
+    .primary-btn--block { width: 100%; justify-content: center; height: 44px; font-size: 0.9rem; }
+    .primary-btn--hero {
+      background: var(--gradient-primary);
+      border: none;
+      box-shadow: var(--shadow-elevated);
+    }
+    .primary-btn--hero:hover {
+      transform: translateY(-1px);
+    }
+    .alert-box { border-radius: var(--r-md); padding: 0.75rem 0.95rem; font-size: 0.86rem; }
+    .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(185,28,28,0.2); }
+    .alert-box.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(4,120,87,0.2); }
   `]
 })
 export class LoginPageComponent implements OnInit {

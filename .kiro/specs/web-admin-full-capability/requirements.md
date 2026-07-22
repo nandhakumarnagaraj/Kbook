@@ -192,3 +192,98 @@ This document defines the requirements for expanding the KhanaBook Web Admin fro
 4. WHEN the KBOOK_ADMIN clicks "Activate" on a suspended business, THE Business_Service SHALL restore the business to active status.
 5. THE Web_Admin SHALL update the businesses table immediately after a successful status change without requiring a page reload.
 6. IF a suspended business's staff attempts to log in, THEN THE Auth_Service SHALL return an error indicating the business is suspended.
+## OWNER Web Admin UI Refinement Addendum
+
+This phase refines the existing OWNER experience without adding dependencies or changing established business capabilities, except for correcting webhook URL generation and adding local interaction state such as copy, visibility, and dirty-state controls.
+
+### Requirement 15: Compact Global Page Header
+
+**User Story:** As an OWNER, I want consistent compact page headers, so that primary content and actions remain visible above the fold.
+
+#### Acceptance Criteria
+
+1. THE Web_Admin SHALL render each OWNER page header as one responsive row containing a 24px-equivalent heading, one-line muted subtitle, optional inline metadata, and a right-aligned primary action slot.
+2. THE page header SHALL NOT use the sidebar active-item accent bar or static decorative chips.
+3. IF header labels do not filter content, THEN THE Web_Admin SHALL render them as plain inline metadata separated by middle dots.
+4. IF a header control filters content, THEN THE Web_Admin SHALL expose it as a keyboard-operable control with a visible active state.
+5. THE shared header action slot SHALL position recurring actions such as Refresh consistently across OWNER pages.
+
+### Requirement 16: Reports KPI Hierarchy
+
+**User Story:** As an OWNER, I want the most important financial values emphasized, so that I can understand business performance quickly.
+
+#### Acceptance Criteria
+
+1. THE Reports page SHALL promote Recognized Revenue and Net After Refunds into primary KPI cards spanning more width than secondary metrics and using 40px-equivalent tabular numbers on desktop.
+2. THE Reports page SHALL render Bill Records, Pending Payments, Refunded Orders, and Refunded Amount as a compact secondary metric strip below the primary KPIs.
+3. THE date presets Today, This Week, This Month, and Custom SHALL appear as one segmented control at the top-right of the KPI band.
+4. WHEN Custom is selected, THE Reports page SHALL preserve the existing custom date input behavior.
+5. THE report explanation SHALL be available from a keyboard- and screen-reader-accessible information control rather than a persistent content panel.
+6. THE KPI hierarchy SHALL stack without horizontal overflow on narrow screens.
+
+### Requirement 17: Dense Menu Management
+
+**User Story:** As an OWNER, I want a compact, scannable menu table, so that I can manage more items with fewer clicks and less scrolling.
+
+#### Acceptance Criteria
+
+1. THE Menu page SHALL place availability, edit, and delete controls in one inline row-action group with tooltips and accessible names.
+2. THE delete action SHALL use a ghost danger treatment and SHALL retain the existing confirmation flow.
+3. THE Menu page SHALL expose a real “Needs attention (N)” filter for items missing descriptions instead of repeating “No description added yet” in every affected row.
+4. THE Menu page SHALL omit a dedicated Variants column when all visible variant counts are zero and SHALL show a compact item badge only when a count is greater than zero.
+5. THE unavailable or out-of-stock status SHALL use an amber warning treatment; green SHALL be reserved for available or in-stock status.
+6. THE filter panel SHALL reduce vertical spacing and place Clear filters adjacent to Search while preserving Search, Stock, Availability, and Rows controls.
+7. THE Price and count values SHALL be right-aligned and use tabular numerals.
+
+### Requirement 18: Scannable Device Management
+
+**User Story:** As an OWNER, I want concise terminal rows, so that device identity, status, and recovery actions are easy to scan.
+
+#### Acceptance Criteria
+
+1. THE Devices page SHALL render Rename, Recover, and Reactivate as an inline action group with tooltips and accessible names.
+2. THE Devices page SHALL use one Status column with Active, Inactive, or Pending and SHALL remove the redundant Active column.
+3. THE device identifier SHALL display its first eight characters while exposing the full value in a tooltip.
+4. WHEN the user activates the device identifier control, THE Web_Admin SHALL copy the full identifier and announce success or failure.
+5. WHEN no devices are pending, THE Devices page SHALL display an unobtrusive hint explaining that new approval requests will appear in the pending area.
+6. Status metadata in the header SHALL use plain text such as “12 registered · 0 pending,” not static chips.
+
+### Requirement 19: Marketplace Integration Cards
+
+**User Story:** As an OWNER, I want secure, provider-specific integration forms, so that Zomato and Swiggy settings are clear and safe to manage.
+
+#### Acceptance Criteria
+
+1. THE Integrations page SHALL render Zomato and Swiggy as equal provider cards in a responsive two-column layout that stacks on narrow screens.
+2. THE OWNER integration page SHALL expose only Zomato and Swiggy and SHALL NOT expose Easebuzz.
+3. API key and webhook secret fields SHALL use password inputs by default and provide labelled show/hide controls.
+4. THE generated webhook URL SHALL contain exactly one `/api/v1` segment before `/webhooks/{provider}`, regardless of whether the configured API base already ends with `/api/v1`.
+5. EACH provider webhook URL SHALL have a labelled copy control that copies the full URL and reports success or failure.
+6. Save Marketplace Config SHALL remain disabled until a supported field differs from its loaded value and while a save request is in progress.
+7. AFTER a successful save, THE loaded baseline SHALL update so the Save action returns to its disabled state.
+
+### Requirement 20: Sidebar Refinement
+
+**User Story:** As an OWNER, I want a visually balanced sidebar with clear current-location and logout affordances, so that navigation is easier to scan.
+
+#### Acceptance Criteria
+
+1. THE sidebar logo tile SHALL use a 40px square footprint while preserving the existing brand identity.
+2. THE active navigation item SHALL retain its warm fill and add a 3px primary-colored left accent.
+3. THE Logout action SHALL be separated from navigation by a subtle divider and use muted styling until hover or focus.
+4. THE existing OWNER role label SHALL remain informational and SHALL NOT appear interactive.
+5. THE sidebar SHALL preserve its current responsive drawer, keyboard navigation, and ARIA behavior.
+
+### Requirement 21: Accessibility, Consistency, and Design Guidance
+
+**User Story:** As an OWNER using different input methods and screen sizes, I want consistent and accessible controls, so that every management page remains understandable and operable.
+
+#### Acceptance Criteria
+
+1. EVERY icon-only action SHALL have an accessible name, visible tooltip, keyboard operation, and visible focus state.
+2. EVERY interactive data-table row SHALL display the shared surface-hover background on hover and a visible outline on keyboard focus.
+3. Status indicators SHALL use `role="status"` where status changes dynamically and SHALL meet WCAG AA contrast.
+4. ALL buttons in this refinement SHALL use the existing 12px radius token and minimum 44px target, unless an established compact icon-button token provides an equivalent accessible target.
+5. THE implementation SHALL use existing CSS custom properties and hand-rolled Angular components without new runtime dependencies or hardcoded palette values.
+6. `web-admin/DESIGN_SYSTEM.md` SHALL document the compact page-header pattern, primary/secondary KPI hierarchy, inline row-action pattern, semantic status colors, and accessible icon-control requirements.
+7. THE refined pages SHALL preserve loading, error, empty, and success states at mobile, tablet, and desktop breakpoints.

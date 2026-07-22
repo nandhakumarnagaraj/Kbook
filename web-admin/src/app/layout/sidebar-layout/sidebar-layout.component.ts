@@ -3,7 +3,7 @@ import { Component, computed, ElementRef, HostListener, inject, signal, ViewChil
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
-type NavLink = { label: string; path: string };
+type NavLink = { label: string; path: string; icon: string };
 
 @Component({
   selector: 'app-sidebar-layout',
@@ -74,7 +74,7 @@ type NavLink = { label: string; path: string };
             routerLinkActive="active-link"
             class="nav-link"
             (click)="closeMenu()">
-            <span class="nav-link__dot" aria-hidden="true"></span>
+            <span class="nav-link__icon" aria-hidden="true">{{ link.icon }}</span>
             <span class="nav-link__label">{{ link.label }}</span>
           </a>
         </nav>
@@ -404,23 +404,23 @@ export class SidebarLayoutComponent {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
       return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard' },
-        { label: 'Businesses', path: '/admin/businesses' }
+        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉' },
+        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' }
       ];
     }
 
     if (role === 'SHOP_ADMIN') {
-      return [{ label: 'Devices', path: '/business/terminals' }];
+      return [{ label: 'Devices', path: '/business/terminals', icon: '▣' }];
     }
 
     const links: NavLink[] = [
-      { label: 'Business Dashboard', path: '/business/dashboard' },
-      { label: 'Reports', path: '/business/reports' },
-      { label: 'Orders', path: '/business/orders' },
-      { label: 'Menu', path: '/business/menu' },
-      { label: 'Staff', path: '/business/staff' },
-      { label: 'Integrations', path: '/business/marketplace' },
-      { label: 'Devices', path: '/business/terminals' }
+      { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
+      { label: 'Reports', path: '/business/reports', icon: '◔' },
+      { label: 'Orders', path: '/business/orders', icon: '▤' },
+      { label: 'Menu', path: '/business/menu', icon: '◈' },
+      { label: 'Staff', path: '/business/staff', icon: '◍' },
+      { label: 'Integrations', path: '/business/marketplace', icon: '◇' },
+      { label: 'Devices', path: '/business/terminals', icon: '▣' }
     ];
     return links;
   });
