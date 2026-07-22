@@ -142,23 +142,50 @@ a:hover { color: var(--brand-deep); }
 .muted { color: var(--muted); }
 
 /* ============ Chips / Pills ============ */
-.chip {
+.chip,
+.chip-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.22rem 0.65rem;
   border-radius: 999px;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--panel-2);
   color: var(--ink-2);
   border: 1px solid var(--line);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.chip.success { background: var(--success-soft); color: var(--success); border-color: transparent; }
-.chip.warn { background: var(--warning-soft); color: var(--warning); border-color: transparent; }
-.chip.danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.chip.success,
+.chip-pill--ok {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: rgba(4, 120, 87, 0.2);
+}
+
+.chip.warn,
+.chip-pill--pending {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: rgba(180, 83, 9, 0.2);
+}
+
+.chip.danger,
+.chip-pill--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
 
 /* ============ Stats grid ============ */
 .stats-grid {

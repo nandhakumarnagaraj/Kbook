@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone, inject } from '@angular/core';
+import { Component, OnInit, NgZone, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
@@ -84,7 +84,23 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   <span class="field-label">Password</span>
                   <a class="link-right" (click)="startForgotPassword()">Forgot password?</a>
                 </div>
-                <input class="field-input" type="password" formControlName="password" placeholder="Enter password" autocomplete="current-password">
+                <div class="input-with-action">
+                  <input
+                    class="field-input"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    formControlName="password"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    class="toggle-pwd-btn"
+                    (click)="showPassword.set(!showPassword())"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  >
+                    {{ showPassword() ? '🙈' : '👁️' }}
+                  </button>
+                </div>
               </label>
 
               <div *ngIf="error" class="alert-box error">{{ error }}</div>
@@ -296,6 +312,27 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .primary-btn--hero:hover {
       transform: translateY(-1px);
     }
+    .input-with-action {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-with-action .field-input {
+      width: 100%;
+      padding-right: 2.5rem;
+    }
+    .toggle-pwd-btn {
+      position: absolute;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.35rem;
+      opacity: 0.7;
+      transition: opacity 0.15s ease;
+    }
+    .toggle-pwd-btn:hover { opacity: 1; }
     .alert-box { border-radius: var(--r-md); padding: 0.75rem 0.95rem; font-size: 0.86rem; }
     .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(185,28,28,0.2); }
     .alert-box.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(4,120,87,0.2); }
@@ -307,6 +344,7 @@ export class LoginPageComponent implements OnInit {
   private readonly ngZone = inject(NgZone);
 
   readonly year = new Date().getFullYear();
+  readonly showPassword = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     loginId: ['', Validators.required],

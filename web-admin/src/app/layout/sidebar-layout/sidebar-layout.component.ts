@@ -229,22 +229,22 @@ type NavLink = { label: string; path: string; icon: string };
       position: relative;
       display: flex;
       align-items: center;
-      gap: 0.65rem;
-      padding: 0.6rem 0.85rem;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
       border-radius: 8px;
-      color: var(--ink-2);
+      color: var(--muted);
       text-decoration: none;
       font-weight: 500;
       font-size: 0.88rem;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition: all 0.15s ease;
     }
 
-    .nav-link__dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: transparent;
-      transition: background 0.15s ease, transform 0.15s ease;
+    .nav-link__icon {
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
     }
 
     .nav-link:hover {
@@ -252,30 +252,21 @@ type NavLink = { label: string; path: string; icon: string };
       color: var(--ink);
     }
 
-    .nav-link:hover .nav-link__dot {
-      background: var(--muted);
-    }
-
     .nav-link.active-link {
-      background: var(--brand-soft);
-      color: var(--brand-deep);
-      font-weight: 650;
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--brand);
+      font-weight: 700;
     }
 
     .nav-link.active-link::before {
       content: "";
       position: absolute;
-      left: -0.9rem;
-      top: 0.55rem;
-      bottom: 0.55rem;
-      width: 3px;
-      border-radius: 0 3px 3px 0;
+      left: 0;
+      top: 0.4rem;
+      bottom: 0.4rem;
+      width: 4px;
+      border-radius: 0 4px 4px 0;
       background: var(--brand);
-    }
-
-    .nav-link.active-link .nav-link__dot {
-      background: var(--brand);
-      transform: scale(1.2);
     }
 
     .logout-btn {
