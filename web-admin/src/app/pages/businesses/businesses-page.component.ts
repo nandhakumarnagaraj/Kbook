@@ -113,6 +113,20 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
           </tbody>
         </table>
 
+        <div class="mobile-data-list" aria-label="Businesses">
+          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses" [class.mobile-data-card--danger]="business.isSuspended">
+            <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
+              <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
+              <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
+            </button>
+            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div></dl>
+            <div class="mobile-data-card__actions">
+              <button *ngIf="!business.isSuspended" class="ghost-btn danger-btn" (click)="confirmSuspend(business)">Suspend</button>
+              <button *ngIf="business.isSuspended" class="ghost-btn success-btn" (click)="activateBusiness(business)">Activate</button>
+            </div>
+          </article>
+        </div>
+
         <div class="pagination-bar" *ngIf="filteredBusinesses.length > pageSize">
           <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
           <div class="pagination-controls">

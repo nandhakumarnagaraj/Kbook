@@ -110,6 +110,20 @@ import { formatDate } from '../../shared/formatters';
           </tbody>
         </table>
 
+        <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
+          <article class="mobile-data-card" *ngFor="let terminal of terminals()">
+            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
+            <p>{{ terminal.terminalSeries || 'No series' }} · {{ terminal.deviceId || 'No device assigned' }}</p>
+            <dl><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
+            <div class="mobile-data-card__actions">
+              <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+              <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
+              <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
+              <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
+            </div>
+          </article>
+        </div>
+
         <ng-template #noTerminals>
           <app-empty-state
             *ngIf="!terminalsError()"
@@ -199,6 +213,17 @@ import { formatDate } from '../../shared/formatters';
               </tr>
             </tbody>
           </table>
+          <div class="mobile-data-list" aria-label="Terminal requests">
+            <article class="mobile-data-card" *ngFor="let req of pendingOrAllRequests()">
+              <div class="mobile-data-card__head"><strong>{{ req.deviceName || 'Unnamed device' }}</strong><span class="chip" [class.success]="req.status.toLowerCase() === 'approved'" [class.danger]="req.status.toLowerCase() === 'rejected'" [class.warn]="req.status.toLowerCase() === 'pending'">{{ req.status }}</span></div>
+              <p>{{ req.deviceModel || 'Unknown model' }} · {{ req.deviceId || 'No device ID' }}</p>
+              <dl><div><dt>Type</dt><dd>{{ req.requestType || '-' }}</dd></div><div><dt>Requested</dt><dd>{{ formatDateValue(req.requestedAt) }}</dd></div></dl>
+              <div class="mobile-data-card__actions" *ngIf="req.status.toLowerCase() === 'pending'">
+                <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
+                <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
+              </div>
+            </article>
+          </div>
         </div>
         <app-empty-state
           *ngIf="!requestsLoading() && !requestsError() && !pendingOrAllRequests().length"

@@ -11,8 +11,8 @@ type NavLink = { label: string; path: string; icon: string };
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="layout-shell">
-      <!-- Topbar (mobile only) -->
-      <header class="topbar">
+      <a class="skip-link" href="#main-content">Skip to main content</a>
+      <header class="topbar topbar--mobile">
         <button
           #menuButton
           type="button"
@@ -88,10 +88,31 @@ type NavLink = { label: string; path: string; icon: string };
         </button>
       </aside>
 
-      <!-- Main content -->
-      <main class="content-shell">
-        <router-outlet />
-      </main>
+      <div class="workspace">
+        <header class="desktop-topbar">
+          <div class="business-context">
+            <div class="context-mark" aria-hidden="true">{{ contextInitial() }}</div>
+            <div class="context-copy">
+              <strong>{{ contextTitle() }}</strong>
+              <span>{{ contextSubtitle() }}</span>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <button *ngIf="session()?.role === 'OWNER'" type="button" class="quick-search" (click)="openOrders()">
+              <span aria-hidden="true">⌕</span>
+              <span>Search orders</span>
+              <kbd>Ctrl K</kbd>
+            </button>
+            <span class="restaurant-chip" *ngIf="session()?.restaurantId as restaurantId">Restaurant #{{ restaurantId }}</span>
+            <div class="topbar-avatar" [attr.aria-label]="'Signed in as ' + (session()?.userName || 'Operator')">
+              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
+            </div>
+          </div>
+        </header>
+        <main id="main-content" class="content-shell" tabindex="-1">
+          <router-outlet />
+        </main>
+      </div>
     </div>
   `,
   styles: [`
@@ -103,6 +124,13 @@ type NavLink = { label: string; path: string; icon: string };
       grid-template-columns: 260px 1fr;
       align-items: start;
     }
+    .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
+    .skip-link {
+      position: fixed; left: 1rem; top: 0; z-index: 100;
+      padding: 0.65rem 1rem; color: #fff; background: var(--brand);
+      border-radius: 0 0 8px 8px; transform: translateY(-110%);
+    }
+    .skip-link:focus { transform: translateY(0); }
 
     /* ── Sidebar (dark espresso) ── */
     .sidebar {
@@ -224,7 +252,37 @@ type NavLink = { label: string; path: string; icon: string };
     .logout-btn:hover { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
 
     /* Content */
-    .content-shell { min-width: 0; width: 100%; }
+    .content-shell { min-width: 0; width: 100%; flex: 1; }
+    .content-shell:focus { outline: none; }
+
+    .desktop-topbar {
+      position: sticky; top: 0; z-index: var(--kb-z-topbar);
+      height: var(--kb-topbar-height); padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      background: rgba(250, 247, 242, 0.94); border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .business-context { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+    .context-mark, .topbar-avatar {
+      display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px;
+      border-radius: 9px; background: var(--kb-color-espresso); color: var(--kb-color-espresso-foreground);
+      font-weight: 700;
+    }
+    .topbar-avatar { border-radius: 50%; background: var(--brand-soft); color: var(--brand-deep); }
+    .context-copy { display: grid; min-width: 0; line-height: 1.2; }
+    .context-copy strong { overflow: hidden; color: var(--ink); font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
+    .context-copy span { color: var(--muted); font-size: 0.7rem; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.65rem; }
+    .quick-search, .restaurant-chip {
+      min-height: 36px; display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.4rem 0.7rem; color: var(--muted); background: var(--panel);
+      border: 1px solid var(--line-strong); border-radius: var(--r-lg); font-size: 0.78rem;
+    }
+    .quick-search { width: 220px; cursor: pointer; text-align: left; }
+    .quick-search:hover { border-color: var(--brand); color: var(--ink); }
+    .quick-search:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .quick-search kbd { margin-left: auto; padding: 0.1rem 0.35rem; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); font-size: 0.65rem; }
+    .restaurant-chip { min-height: 30px; background: var(--panel-2); }
 
     /* ── Topbar (mobile only) ── */
     .topbar { display: none; }
@@ -249,6 +307,7 @@ type NavLink = { label: string; path: string; icon: string };
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       .layout-shell { grid-template-columns: 1fr; }
+      .desktop-topbar { display: none; }
       .topbar {
         display: flex;
         align-items: center;
@@ -297,6 +356,9 @@ export class SidebarLayoutComponent {
   readonly menuOpen = signal(false);
 
   readonly session = this.authService.session;
+  readonly contextTitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'KhanaBook Platform' : 'Restaurant operations');
+  readonly contextSubtitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'Administration workspace' : 'Live business workspace');
+  readonly contextInitial = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'K' : 'R');
   readonly links = computed<NavLink[]>(() => {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
@@ -332,6 +394,17 @@ export class SidebarLayoutComponent {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  openOrders(): void {
+    void this.router.navigate(['/business/orders']);
+  }
+
+  @HostListener('document:keydown.control.k', ['$event'])
+  openOrderSearch(event: KeyboardEvent): void {
+    if (this.session()?.role !== 'OWNER') return;
+    event.preventDefault();
+    this.openOrders();
   }
 
   /* Close menu on Escape key */

@@ -247,9 +247,9 @@ const W = 72, H = 24;
                 </td>
                 <td>
                   <span class="chip"
-                    [class.chip--ok]="order.orderStatus?.toLowerCase() === 'completed'"
-                    [class.chip--danger]="order.orderStatus?.toLowerCase() === 'cancelled'"
-                    [class.chip--warn]="order.orderStatus?.toLowerCase() === 'draft'">
+                  [class.chip--ok]="order.orderStatus.toLowerCase() === 'completed'"
+                  [class.chip--danger]="order.orderStatus.toLowerCase() === 'cancelled'"
+                  [class.chip--warn]="order.orderStatus.toLowerCase() === 'draft'">
                     {{ order.orderStatus }}
                   </span>
                 </td>

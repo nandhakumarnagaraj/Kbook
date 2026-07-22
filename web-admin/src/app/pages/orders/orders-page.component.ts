@@ -80,6 +80,7 @@ export function filterBusinessOrders(
             Use this only after the money has been returned outside KhanaBook. This action records the refund; it does not contact a payment gateway.
           </p>
 
+          <ng-container *ngIf="!refundReview; else refundReviewStep">
           <div class="field">
             <label for="refund-amount">Refund Amount</label>
             <input
@@ -104,15 +105,26 @@ export function filterBusinessOrders(
           </p>
           <p class="error-text" role="alert" *ngIf="refundError">{{ refundError }}</p>
 
+          </ng-container>
+          <ng-template #refundReviewStep>
+            <div class="refund-review" role="status">
+              <span>Refund amount</span><strong>{{ formatCurrencyValue(refundAmountInput) }}</strong>
+              <span>Reason</span><strong>{{ refundReasonInput.trim() || 'Refund handled manually' }}</strong>
+            </div>
+            <p class="hint-text">Review these details carefully. KhanaBook will record this refund immediately after confirmation.</p>
+            <p class="error-text" role="alert" *ngIf="refundError">{{ refundError }}</p>
+          </ng-template>
+
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" (click)="closeRefund()">Cancel</button>
+            <button type="button" class="ghost-btn" (click)="refundReview ? returnToRefundForm() : closeRefund()">{{ refundReview ? 'Back' : 'Cancel' }}</button>
             <button
               type="button"
               class="ghost-btn danger-btn"
+              [attr.aria-busy]="refunding"
               [disabled]="refunding || !refundAmountInput || refundAmountInput <= 0 || refundAmountInput > refundTarget.totalAmount"
-              (click)="confirmRefund()"
+              (click)="refundReview ? confirmRefund() : reviewRefund()"
             >
-              {{ refunding ? 'Recording...' : 'Record Manual Refund' }}
+              {{ refunding ? 'Recording...' : (refundReview ? 'Confirm Refund' : 'Review Refund') }}
             </button>
           </div>
         </section>
@@ -271,6 +283,22 @@ export function filterBusinessOrders(
           </tbody>
         </table>
 
+        <div class="mobile-order-list" aria-label="Orders">
+          <article *ngFor="let order of pagedOrders" class="mobile-order-card" [class.mobile-order-card--refunded]="order.refundAmount && order.refundAmount > 0">
+            <button type="button" class="mobile-order-card__main" (click)="openOrderDetail(order)" [attr.aria-label]="'View order ' + order.orderCode">
+              <span class="mobile-order-card__title">{{ order.orderCode }}</span>
+              <span class="chip" [class.success]="order.orderStatus.toLowerCase() === 'completed'" [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'" [class.warn]="order.orderStatus.toLowerCase() === 'draft'">{{ order.orderStatus }}</span>
+              <span class="mobile-order-card__customer">{{ order.customerName || 'Walk-in customer' }}</span>
+              <span class="mobile-order-card__amount">{{ formatCurrencyValue(order.totalAmount) }}</span>
+              <span class="mobile-order-card__meta">{{ order.sourceType }} · {{ order.paymentMethod }} · {{ formatDateValue(order.createdAt) }}</span>
+            </button>
+            <div class="mobile-order-card__footer" *ngIf="order.manualRefundAllowed || (order.refundAmount && order.refundAmount > 0)">
+              <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">Refunded {{ formatCurrencyValue(order.refundAmount) }}</span>
+              <button *ngIf="order.manualRefundAllowed" type="button" class="ghost-btn danger-btn" (click)="openManualRefund(order)">Manual Refund</button>
+            </div>
+          </article>
+        </div>
+
         <div class="pagination-bar" *ngIf="filteredOrders.length > orderPageSize">
           <p class="muted">Page {{ orderCurrentPage }} of {{ orderTotalPages }}</p>
           <div class="pagination-controls">
@@ -328,6 +356,23 @@ export function filterBusinessOrders(
     .error-text { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .hint-text { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .refund-review { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem 1rem; margin: 1rem 0; padding: 1rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); }
+    .refund-review span { color: var(--muted); }
+    .refund-review strong { text-align: right; overflow-wrap: anywhere; }
+    .mobile-order-list { display: none; }
+    @media (max-width: 767px) {
+      .table-wrap > .data-table { display: none; }
+      .mobile-order-list { display: grid; gap: 0.75rem; padding: 0.75rem; }
+      .mobile-order-card { overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-xs); }
+      .mobile-order-card--refunded { border-left: 4px solid var(--danger); }
+      .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem 0.75rem; padding: 1rem; text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
+      .mobile-order-card__main:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+      .mobile-order-card__title { font-weight: 700; }
+      .mobile-order-card__customer { color: var(--ink-2); }
+      .mobile-order-card__amount { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--muted); font-size: 0.75rem; }
+      .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem; border-top: 1px solid var(--line); background: var(--panel-2); }
+    }
   `]
 })
 export class OrdersPageComponent {
@@ -343,6 +388,7 @@ export class OrdersPageComponent {
   refundReasonInput = '';
   refunding = false;
   refundError: string | null = null;
+  refundReview = false;
   private refundTrigger: HTMLElement | null = null;
 
   orderSearchTerm = '';
@@ -514,12 +560,14 @@ export class OrdersPageComponent {
     this.refundAmountInput = order.totalAmount;
     this.refundReasonInput = '';
     this.refundError = null;
+    this.refundReview = false;
   }
 
   closeRefund(): void {
     if (this.refunding) return;
     this.refundTarget = null;
     this.refundError = null;
+    this.refundReview = false;
     document.body.style.overflow = '';
     this.refundTrigger?.focus();
     this.refundTrigger = null;
@@ -551,6 +599,19 @@ export class OrdersPageComponent {
         this.refunding = false;
       }
     });
+  }
+
+  reviewRefund(): void {
+    if (!this.refundAmountInput || this.refundAmountInput <= 0) return;
+    if (!this.refundTarget || this.refundAmountInput > this.refundTarget.totalAmount) return;
+    this.refundError = null;
+    this.refundReview = true;
+  }
+
+  returnToRefundForm(): void {
+    if (this.refunding) return;
+    this.refundReview = false;
+    this.refundError = null;
   }
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }

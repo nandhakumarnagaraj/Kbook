@@ -162,6 +162,19 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           </tbody>
         </table>
 
+        <div class="mobile-data-list" aria-label="Menu items">
+          <article class="mobile-data-card" *ngFor="let item of pagedItems">
+            <div class="mobile-data-card__head"><strong>{{ item.name }}</strong><span class="chip" [class.success]="item.available" [class.danger]="!item.available">{{ item.available ? item.stockStatus : 'Unavailable' }}</span></div>
+            <p>{{ item.description || 'No description added yet.' }}</p>
+            <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd>{{ formatCurrencyValue(item.basePrice) }}</dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
+            <div class="mobile-data-card__actions" *ngIf="isOwner">
+              <button class="ghost-btn" [disabled]="togglingId === item.menuItemId" (click)="toggleAvailability(item)">{{ item.available ? 'Set unavailable' : 'Set available' }}</button>
+              <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
+              <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
+            </div>
+          </article>
+        </div>
+
         <div class="pagination-bar" *ngIf="filteredItems.length > pageSize">
           <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
           <div class="pagination-controls">
@@ -191,8 +204,8 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 
       <!-- Add/Edit Menu Item Modal -->
       <div class="modal-backdrop" *ngIf="showFormModal" (click)="closeFormModal()">
-        <div class="modal-box" (click)="$event.stopPropagation()">
-          <h3>{{ editingItem ? 'Edit Menu Item' : 'Add Menu Item' }}</h3>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="menu-form-title" (click)="$event.stopPropagation()">
+          <h3 id="menu-form-title">{{ editingItem ? 'Edit Menu Item' : 'Add Menu Item' }}</h3>
           <p class="muted" *ngIf="editingItem">Editing: {{ editingItem.name }}</p>
 
           <div class="field">
@@ -280,15 +293,15 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           </label>
         </div>
 
-        <div class="loading" *ngIf="uploading()">Uploading menu file...</div>
+        <div class="ocr-state ocr-state--progress" *ngIf="uploading()" role="status" aria-live="polite"><span class="spinner"></span><div><strong>Uploading menu</strong><p>Keep this page open while the file is transferred securely.</p></div></div>
+        <div class="ocr-state ocr-state--error" *ngIf="ocrUploadError()" role="alert"><strong>Upload could not start</strong><p>{{ ocrUploadError() }}</p></div>
 
-        <div class="ocr-progress" *ngIf="job() && (job()!.status === 'PENDING' || job()!.status === 'PROCESSING')">
-          <p class="muted">Extracting items... ({{ job()!.status }})</p>
-          <div class="spinner"></div>
+        <div class="ocr-state ocr-state--progress" *ngIf="job() && (job()!.status === 'PENDING' || job()!.status === 'PROCESSING')" role="status" aria-live="polite">
+          <span class="spinner"></span><div><strong>{{ job()!.status === 'PENDING' ? 'Queued for extraction' : 'Reading menu items' }}</strong><p>Recognition can take a few moments. Status refreshes automatically.</p></div>
         </div>
 
         <div class="ocr-error" *ngIf="job() && job()!.status === 'FAILED'">
-          <p class="error-text">Extraction failed: {{ job()!.errorMessage || 'Unknown error' }}</p>
+          <p class="error-text" role="alert">Extraction failed: {{ job()!.errorMessage || 'Unknown error' }}</p>
           <button class="ghost-btn" (click)="resetJob()">Try another file</button>
         </div>
 
@@ -323,7 +336,16 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                 </tr>
               </tbody>
             </table>
+            <div class="mobile-data-list" aria-label="Extracted menu items">
+              <article class="mobile-data-card" *ngFor="let row of extractedItems()">
+                <div class="mobile-data-card__head"><strong>{{ row.itemName }}</strong><span class="chip">Preview</span></div>
+                <p>{{ row.description || 'No description detected' }}</p>
+                <dl><div><dt>Half</dt><dd>{{ row.halfPrice || '-' }}</dd></div><div><dt>Full</dt><dd>{{ row.fullPrice || row.price || '-' }}</dd></div></dl>
+              </article>
+            </div>
           </div>
+
+          <div class="ocr-state ocr-state--warning" *ngIf="!extractedItems().length" role="status"><strong>Extraction completed with no items</strong><p>Try a clearer image or a PDF where item names and prices are easy to read.</p></div>
 
           <div class="modal-actions">
             <button class="ghost-btn" (click)="resetJob()">Done</button>
@@ -337,6 +359,12 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .ocr-panel { margin-top: 1.25rem; }
     .upload-btn { display: inline-flex; align-items: center; cursor: pointer; }
     .ocr-result { margin-top: 0.5rem; }
+    .ocr-state { display: flex; align-items: flex-start; gap: 0.8rem; margin-top: 0.85rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel-2); }
+    .ocr-state strong, .ocr-state p { margin: 0; }
+    .ocr-state p { margin-top: 0.15rem; color: var(--muted); font-size: 0.82rem; }
+    .ocr-state .spinner { flex: 0 0 auto; margin: 0.1rem 0 0; }
+    .ocr-state--error { border-color: rgba(192,57,43,.25); background: var(--danger-soft); color: var(--danger); }
+    .ocr-state--warning { border-color: rgba(183,121,31,.25); background: var(--warning-soft); color: var(--warning); }
     .result-header { display: flex; align-items: center; gap: 0.75rem; }
     .extracted-table { margin-top: 0.75rem; }
     .hint-text { color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0.75rem; }
@@ -398,6 +426,7 @@ export class MenuPageComponent implements OnDestroy {
   uploading = signal(false);
   job = signal<MenuExtractionJob | null>(null);
   extractedItems = signal<MenuExtractionItem[]>([]);
+  ocrUploadError = signal('');
 
   private readonly toast = inject(ToastService);
 
@@ -643,12 +672,19 @@ export class MenuPageComponent implements OnDestroy {
     if (!file) return;
 
     const maxSize = 10 * 1024 * 1024;
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      this.ocrUploadError.set('Choose a PDF, JPG, or PNG file.');
+      input.value = '';
+      return;
+    }
     if (file.size > maxSize) {
-      this.showToast('File exceeds 10 MB limit', 'error');
+      this.ocrUploadError.set('The selected file exceeds the 10 MB limit.');
       input.value = '';
       return;
     }
 
+    this.ocrUploadError.set('');
     this.uploading.set(true);
     this.job.set(null);
     this.extractedItems.set([]);
@@ -662,7 +698,7 @@ export class MenuPageComponent implements OnDestroy {
       error: () => {
         this.uploading.set(false);
         input.value = '';
-        this.showToast('Upload failed. Please try again.', 'error');
+        this.ocrUploadError.set('Upload failed. Check your connection and try again.');
       }
     });
   }
@@ -712,6 +748,7 @@ export class MenuPageComponent implements OnDestroy {
     this.job.set(null);
     this.extractedItems.set([]);
     this.stopPolling();
+    this.ocrUploadError.set('');
   }
 
   ngOnDestroy(): void {

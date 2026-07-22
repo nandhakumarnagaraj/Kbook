@@ -166,11 +166,11 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Create Staff Modal -->
       <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
-          <div class="modal-box modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-staff-title" (click)="$event.stopPropagation()">
             <!-- Success View -->
           <ng-container *ngIf="createdStaff; else createFormView">
             <div class="success-section">
-              <h4>Staff Member Created</h4>
+              <h4 id="create-staff-title">Staff Member Created</h4>
               <p><strong>{{ createdStaff.name }}</strong> ({{ createdStaff.role }})</p>
               <p>Temporary Password:</p>
               <div class="temp-password">{{ createdStaff.temporaryPassword }}</div>
@@ -184,7 +184,7 @@ import { formatDate } from '../../shared/formatters';
 
           <!-- Form View -->
           <ng-template #createFormView>
-            <h3>Add Staff Member</h3>
+            <h3 id="create-staff-title">Add Staff Member</h3>
 
             <div class="form-error" *ngIf="createError">{{ createError }}</div>
 
@@ -237,8 +237,8 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Edit Staff Modal -->
       <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()">
-          <div class="modal-box modal-content" (click)="$event.stopPropagation()">
-            <h3>Edit Staff Member</h3>
+          <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" (click)="$event.stopPropagation()">
+            <h3 id="edit-staff-title">Edit Staff Member</h3>
 
           <div class="form-error" *ngIf="editError">{{ editError }}</div>
 
@@ -391,6 +391,18 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </tbody>
         </table>
+
+        <div class="mobile-data-list" aria-label="Staff members">
+          <article class="mobile-data-card" *ngFor="let item of pagedStaff">
+            <div class="mobile-data-card__head"><strong>{{ item.name }}</strong><span class="chip" [class.success]="item.active" [class.warn]="!item.active">{{ item.active ? 'Active' : 'Inactive' }}</span></div>
+            <p>{{ item.loginId }} · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
+            <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
+            <div class="mobile-data-card__actions" *ngIf="isOwner">
+              <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
+              <button class="ghost-btn danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
+            </div>
+          </article>
+        </div>
 
         <div class="pagination-bar" *ngIf="filteredStaff.length > pageSize">
           <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>

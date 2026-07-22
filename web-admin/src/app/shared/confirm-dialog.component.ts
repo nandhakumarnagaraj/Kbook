@@ -107,7 +107,8 @@ import {
     .confirm-dialog__btn--confirm { color: #fff; background: var(--brand); }
     .confirm-dialog__btn--danger { background: var(--danger); }
     @media (max-width: 480px) {
-      .confirm-dialog__card { padding: 1.25rem; }
+      .confirm-dialog__overlay { place-items: end stretch; padding: 0; }
+      .confirm-dialog__card { width: 100%; padding: 1.25rem; border-radius: 18px 18px 0 0; }
       .confirm-dialog__actions { flex-direction: column-reverse; }
       .confirm-dialog__btn { width: 100%; }
     }
