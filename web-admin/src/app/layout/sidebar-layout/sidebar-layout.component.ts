@@ -112,8 +112,9 @@ type NavLink = { label: string; path: string; icon: string };
       position: sticky;
       top: 0;
       height: 100vh;
-      background: var(--panel);
-      border-right: 1px solid var(--line);
+      background: #140d07;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f3f4f6;
     }
 
     .brand-block {
@@ -135,6 +136,7 @@ type NavLink = { label: string; path: string; icon: string };
       font-size: 1.05rem;
       font-weight: 700;
       letter-spacing: -0.02em;
+      color: #ffffff;
     }
 
     .brand-logo {
@@ -144,8 +146,8 @@ type NavLink = { label: string; path: string; icon: string };
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
-      box-shadow: 0 4px 10px -3px rgba(217, 119, 6, 0.5);
+      background: linear-gradient(135deg, var(--brand) 0%, #b45309 100%);
+      box-shadow: 0 4px 14px -3px rgba(217, 119, 6, 0.6);
       flex-shrink: 0;
     }
 
@@ -168,7 +170,7 @@ type NavLink = { label: string; path: string; icon: string };
     .eyebrow {
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--muted);
+      color: #fbbf24;
       font-size: 0.65rem;
       font-weight: 700;
     }
@@ -177,24 +179,26 @@ type NavLink = { label: string; path: string; icon: string };
       display: flex;
       align-items: center;
       gap: 0.65rem;
-      padding: 0.6rem 0.7rem;
-      background: var(--panel-2);
-      border: 1px solid var(--line);
+      padding: 0.65rem 0.75rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
+      backdrop-filter: blur(8px);
     }
 
     .user-avatar {
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: var(--brand-soft);
-      color: var(--brand-deep);
+      background: var(--gradient-primary);
+      color: #ffffff;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
       font-size: 0.85rem;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
     .user-meta {
@@ -205,7 +209,7 @@ type NavLink = { label: string; path: string; icon: string };
     .user-name {
       font-weight: 600;
       font-size: 0.85rem;
-      color: var(--ink);
+      color: #ffffff;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -213,16 +217,16 @@ type NavLink = { label: string; path: string; icon: string };
 
     .user-role {
       font-size: 0.68rem;
-      color: var(--muted);
+      color: #fbbf24;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .nav-links {
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
+      gap: 0.25rem;
     }
 
     .nav-link {
@@ -231,8 +235,8 @@ type NavLink = { label: string; path: string; icon: string };
       align-items: center;
       gap: 0.75rem;
       padding: 0.65rem 0.85rem;
-      border-radius: 8px;
-      color: var(--muted);
+      border-radius: 10px;
+      color: rgba(255, 255, 255, 0.65);
       text-decoration: none;
       font-weight: 500;
       font-size: 0.88rem;
@@ -248,25 +252,27 @@ type NavLink = { label: string; path: string; icon: string };
     }
 
     .nav-link:hover {
-      background: var(--panel-2);
-      color: var(--ink);
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
     }
 
     .nav-link.active-link {
-      background: rgba(217, 119, 6, 0.1);
-      color: var(--brand);
+      background: linear-gradient(90deg, rgba(217, 119, 6, 0.28) 0%, rgba(217, 119, 6, 0.06) 100%);
+      color: #fbbf24;
       font-weight: 700;
+      border: 1px solid rgba(245, 158, 11, 0.25);
     }
 
     .nav-link.active-link::before {
       content: "";
       position: absolute;
       left: 0;
-      top: 0.4rem;
-      bottom: 0.4rem;
+      top: 0.35rem;
+      bottom: 0.35rem;
       width: 4px;
       border-radius: 0 4px 4px 0;
-      background: var(--brand);
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
     }
 
     .logout-btn {
@@ -276,20 +282,20 @@ type NavLink = { label: string; path: string; icon: string };
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 0.85rem;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
 
     .logout-btn:hover {
-      background: var(--danger-soft);
-      color: var(--danger);
-      border-color: rgba(185, 28, 28, 0.25);
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
     }
 
     .content-shell {
