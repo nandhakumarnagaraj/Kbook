@@ -25,7 +25,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class
                 ],
-        version = 61,
+        version = 62,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -41,6 +41,30 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+        /**
+         * Callback for clean-install databases. Room's @Entity annotations cannot
+         * represent partial (conditional) unique indexes, so we create the partial
+         * unique index on (restaurant_id, operation_id) here for fresh installs.
+         *
+         * This ensures clean-install and migrated (v61→62) databases have the
+         * same constraint. Without this callback, a clean-install would lack the
+         * index entirely (since the entity annotation has no index declaration).
+         */
+        val CLEAN_INSTALL_CALLBACK = object : RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation`
+                    ON `bill_payments` (`restaurant_id`, `operation_id`)
+                    WHERE `operation_id` IS NOT NULL AND `operation_id` != '' AND `is_deleted` = 0
+                    """.trimIndent()
+                )
+                android.util.Log.i("AppDatabase",
+                    "Clean-install callback: created partial unique index on (restaurant_id, operation_id)")
+            }
+        }
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -836,22 +860,136 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
         }
 
         val MIGRATION_60_61 = object : Migration(60, 61) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                // Add payment-attempt tracking columns to bills (used by payment deep-link flow).
-                if (!db.hasColumn("bills", "payment_attempt_status")) {
-                    db.execSQL(
-                        "ALTER TABLE `bills` ADD COLUMN `payment_attempt_status` TEXT NOT NULL DEFAULT 'none'"
-                    )
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Add payment-attempt tracking columns to bills (used by payment deep-link flow).
+                    if (!db.hasColumn("bills", "payment_attempt_status")) {
+                        db.execSQL(
+                            "ALTER TABLE `bills` ADD COLUMN `payment_attempt_status` TEXT NOT NULL DEFAULT 'none'"
+                        )
+                    }
+                    if (!db.hasColumn("bills", "payment_attempt_started_at")) {
+                        db.execSQL(
+                            "ALTER TABLE `bills` ADD COLUMN `payment_attempt_started_at` INTEGER DEFAULT NULL"
+                        )
+                    }
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_payment_attempt_status` ON `bills` (`payment_attempt_status`)")
+                    android.util.Log.i("AppDatabase", "MIGRATION_60_61 complete: payment_attempt_status + payment_attempt_started_at added")
                 }
-                if (!db.hasColumn("bills", "payment_attempt_started_at")) {
-                    db.execSQL(
-                        "ALTER TABLE `bills` ADD COLUMN `payment_attempt_started_at` INTEGER DEFAULT NULL"
-                    )
-                }
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_payment_attempt_status` ON `bills` (`payment_attempt_status`)")
-                android.util.Log.i("AppDatabase", "MIGRATION_60_61 complete: payment_attempt_status + payment_attempt_started_at added")
             }
-        }
+
+        val MIGRATION_61_62 = object : Migration(61, 62) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Add scoped unique index for payment operation_id to prevent duplicate payment
+                    // identities across bills within the same restaurant.
+                    //
+                    // The index is PARTIAL (WHERE clause) so that:
+                    //   - Historical rows with NULL or empty operation_id are not rejected.
+                    //   - Future rows with non-null, non-empty operation_id are constrained.
+                    //
+                    // Pre-migration duplicate resolution:
+                    //   At version 61, operation_id was added with DEFAULT NULL (via MIGRATION_57_58),
+                    //   so most devices have no data. However, a direct SQLite write or edge case
+                    //   could have produced duplicates. For each duplicate group, compare the
+                    //   immutable semantic fields:
+                    //     - restaurant_id, bill_id, bill_public_token, operation_id
+                    //     - amount, payment_mode, terminal_id
+                    //     - gateway_txn_id, gateway_status, verified_by
+                    //   If all semantic fields match, it is an exact duplicate and later rows
+                    //   are safely soft-deleted. If ANY field differs, the migration refuses
+                    //   with a clear diagnostic so no financial data is silently altered.
+                    val dupCheckSql = """
+                        SELECT operation_id, restaurant_id, COUNT(*), MIN(id)
+                        FROM bill_payments
+                        WHERE operation_id IS NOT NULL AND operation_id != '' AND is_deleted = 0
+                        GROUP BY restaurant_id, operation_id
+                        HAVING COUNT(*) > 1
+                    """.trimIndent()
+                    db.query(dupCheckSql).use { cursor ->
+                        var exactDuplicateGroups = 0
+                        while (cursor.moveToNext()) {
+                            val opId = cursor.getString(0)
+                            val restId = cursor.getLong(1)
+                            val keepId = cursor.getLong(3)
+
+                            // Load all rows in this duplicate group to compare semantic fields.
+                            val groupSql = """
+                                SELECT id, bill_id, COALESCE(bill_public_token, ''),
+                                       amount, payment_mode, COALESCE(terminal_id, ''),
+                                       COALESCE(gateway_txn_id, ''), COALESCE(gateway_status, ''), verified_by
+                                FROM bill_payments
+                                WHERE operation_id = ? AND restaurant_id = ?
+                                  AND is_deleted = 0
+                                ORDER BY id
+                            """.trimIndent()
+                            val groupRows = mutableListOf<Array<String?>>()
+                            db.query(groupSql, arrayOf(opId, restId)).use { groupCursor ->
+                                while (groupCursor.moveToNext()) {
+                                    groupRows.add(Array(9) { i -> groupCursor.getString(i) })
+                                }
+                            }
+
+                            // Compare all rows to the kept row (MIN id).
+                            val keep = groupRows.firstOrNull { it[0] == keepId.toString() }
+                                ?: continue // safety: keep row gone, skip
+                            val semanticFields = intArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+                            var allExact = true
+                            for (row in groupRows) {
+                                if (row[0] == keepId.toString()) continue
+                                for (field in semanticFields) {
+                                    val keepVal = keep[field] ?: ""
+                                    val rowVal = row[field] ?: ""
+                                    if (keepVal != rowVal) {
+                                        android.util.Log.e("AppDatabase",
+                                            "MIGRATION_61_62: CONFLICTING duplicate (restaurant=$restId opId=$opId): " +
+                                            "id=${keepId} $keepVal vs id=${row[0]} $rowVal on field index $field")
+                                        allExact = false
+                                        break
+                                    }
+                                }
+                                if (!allExact) break
+                            }
+
+                            if (allExact) {
+                                // Exact duplicates: soft-delete later rows.
+                                db.execSQL(
+                                    """
+                                    UPDATE bill_payments SET is_deleted = 1
+                                    WHERE operation_id = ? AND restaurant_id = ?
+                                      AND is_deleted = 0 AND id != ?
+                                    """.trimIndent(),
+                                    arrayOf(opId, restId, keepId)
+                                )
+                                exactDuplicateGroups++
+                            } else {
+                                // Conflicting duplicates: abort migration.
+                                val errMsg = "MIGRATION_61_62 FAILED: Conflicting payment rows share " +
+                                    "operation_id='$opId' in restaurant $restId. " +
+                                    "Cannot migrate with conflicting financial data. " +
+                                    "Manually reconcile bill_payments rows and re-run migration."
+                                android.util.Log.e("AppDatabase", errMsg)
+                                throw IllegalStateException(errMsg)
+                            }
+                        }
+                        if (exactDuplicateGroups > 0) {
+                            android.util.Log.w("AppDatabase",
+                                "MIGRATION_61_62: soft-deleted $exactDuplicateGroups exact duplicate operation_id group(s)")
+                        }
+                    }
+
+                    // Create the partial unique index.
+                    // WHERE clause excludes nulls and empty strings.
+                    // Soft-deleted rows are also excluded so operation_ids can be reused
+                    // after a payment row is soft-deleted (e.g., during reconciliation).
+                    db.execSQL(
+                        """
+                        CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation`
+                        ON `bill_payments` (`restaurant_id`, `operation_id`)
+                        WHERE `operation_id` IS NOT NULL AND `operation_id` != '' AND `is_deleted` = 0
+                        """.trimIndent()
+                    )
+                    android.util.Log.i("AppDatabase", "MIGRATION_61_62 complete: partial unique index on (restaurant_id, operation_id) for bill_payments")
+                }
+            }
 
         val MIGRATION_55_56 = object : Migration(55, 56) {
             override fun migrate(db: SupportSQLiteDatabase) {

@@ -452,9 +452,15 @@ class TenantBillDao @Inject constructor(
     override suspend fun deleteBillItemById(id: Long) = dao.deleteBillItemById(id)
     override suspend fun insertBillPayments(payments: List<BillPaymentEntity>) = dao.insertBillPayments(payments)
     override suspend fun insertBillPayment(payment: BillPaymentEntity) = dao.insertBillPayment(payment)
+    override suspend fun updateBillPayments(payments: List<BillPaymentEntity>) = dao.updateBillPayments(payments)
     override suspend fun getBillById(id: Long, restaurantId: Long): BillEntity? = dao.getBillById(id, restaurantId)
     override suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity? =
         dao.getOperationalBillById(id, restaurantId, terminalId)
+    override suspend fun getRestorablePendingOnlineBillWithItems(
+        id: Long,
+        restaurantId: Long,
+        terminalId: String
+    ): BillWithItems? = dao.getRestorablePendingOnlineBillWithItems(id, restaurantId, terminalId)
     override suspend fun reconcileLocalRecordScope(restaurantId: Long, terminalId: String): Int =
         dao.reconcileLocalRecordScope(restaurantId, terminalId)
     override suspend fun countActiveBillsByDailyIdAndDate(
@@ -486,6 +492,8 @@ class TenantBillDao @Inject constructor(
         runFlow { it.billDao().getDraftBills(restaurantId, terminalId) }
     override fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>> =
         runFlow { it.billDao().getActiveDraftBillsFlow(restaurantId, terminalId) }
+    override fun getActionableDraftBillsWithItemsFlow(restaurantId: Long, terminalId: String): Flow<List<BillWithItems>> =
+        runFlow { it.billDao().getActionableDraftBillsWithItemsFlow(restaurantId, terminalId) }
     override suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity> = dao.getUnsentItemsForBill(billId, restaurantId)
     override suspend fun markItemsSentToKot(itemIds: List<Long>, restaurantId: Long) = dao.markItemsSentToKot(itemIds, restaurantId)
     override suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, terminalId: String): BillEntity? = dao.getLatestPendingOnlineBill(restaurantId, ownerUserId, terminalId)
@@ -516,6 +524,58 @@ class TenantBillDao @Inject constructor(
     override suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long, terminalId: String): Int = dao.cancelStalePendingOnlineDrafts(reason, updatedAt, restaurantId, terminalId)
     override fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long, terminalId: String): Flow<List<BillEntity>> = runFlow { it.billDao().getBillsByDateRange(startMillis, endMillis, restaurantId, terminalId) }
     override suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems? = dao.getBillWithItemsById(id, restaurantId)
+    override suspend fun getActivePaymentsForBill(billId: Long, restaurantId: Long): List<BillPaymentEntity> =
+        dao.getActivePaymentsForBill(billId, restaurantId)
+    override suspend fun discardUnverifiedLocalPayments(
+        billId: Long,
+        restaurantId: Long,
+        updatedAt: Long
+    ): Int = dao.discardUnverifiedLocalPayments(billId, restaurantId, updatedAt)
+    override suspend fun getPaymentsByOperationIds(
+        operationIds: List<String>,
+        restaurantId: Long
+    ): List<BillPaymentEntity> = dao.getPaymentsByOperationIds(operationIds, restaurantId)
+    override suspend fun getDuplicatePaymentOperationIdCounts(
+        restaurantId: Long
+    ): List<OperationIdDuplicate> = dao.getDuplicatePaymentOperationIdCounts(restaurantId)
+    override suspend fun finalizeOnlineBillAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        requestedPayments: List<BillPaymentEntity>,
+        completedAt: Long
+    ): com.khanabook.lite.pos.data.local.relation.BillFinalizationResult = dao.finalizeOnlineBillAtomically(
+        billId,
+        restaurantId,
+        terminalId,
+        requestedPayments,
+        completedAt
+    )
+    override suspend fun recoverPartialPaymentAndFinalizeAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        recoveryPayment: BillPaymentEntity,
+        completedAt: Long
+    ): com.khanabook.lite.pos.data.local.relation.BillFinalizationResult =
+        dao.recoverPartialPaymentAndFinalizeAtomically(
+            billId,
+            restaurantId,
+            terminalId,
+            recoveryPayment,
+            completedAt
+        )
+    override suspend fun resetUnverifiedPaymentRecoveryAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        updatedAt: Long
+    ) = dao.resetUnverifiedPaymentRecoveryAtomically(
+        billId,
+        restaurantId,
+        terminalId,
+        updatedAt
+    )
     override suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long, terminalId: String): BillWithItems? = dao.getBillWithItemsByInvoiceNumber(invoiceNumber, restaurantId, terminalId)
 
     override suspend fun insertFullBill(bill: BillEntity, items: List<BillItemEntity>, payments: List<BillPaymentEntity>): Long =

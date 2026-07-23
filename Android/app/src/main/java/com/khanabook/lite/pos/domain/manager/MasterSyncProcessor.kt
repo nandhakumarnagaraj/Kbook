@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.data.remote.dto.*
 import com.khanabook.lite.pos.domain.util.AppAssetStore
+import com.khanabook.lite.pos.domain.util.BackendErrorParser
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,59 +57,141 @@ class MasterSyncProcessor @Inject constructor(
      * The [transform] lambda converts each entity to its DTO immediately before
      * the batch is sent — no entity objects ever reach Retrofit/Moshi directly.
      */
-    private suspend fun <T, R> pushBatches(
+    internal suspend fun <T, R> pushBatches(
         label: String,
         records: List<T>,
+        localId: (T) -> Long,
         transform: (T) -> R,
         push: suspend (List<R>) -> PushSyncResponse,
         markSynced: suspend (List<Long>) -> Unit,
-        onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null
+        onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null,
+        isolateHttpConflicts: Boolean = false
     ): List<Long> {
         if (records.isEmpty()) return emptyList()
 
         val batches = records.chunked(50)
         val successfulIds = mutableListOf<Long>()
+        val failedIds = mutableListOf<Long>()
+        val failedReasons = mutableMapOf<Long, String>()
         logInfo("Pushing ${records.size} $label record(s) in ${batches.size} batch(es)")
 
         batches.forEachIndexed { index, batch ->
-            try {
-                val response = push(batch.map(transform))
-                markSynced(response.successfulLocalIds)
-                successfulIds += response.successfulLocalIds
-                response.localToServerIdMap?.takeIf { it.isNotEmpty() }?.let { onServerIds?.invoke(it) }
+            val result = pushBatch(
+                label = label,
+                batchName = "${index + 1}/${batches.size}",
+                batch = batch,
+                localId = localId,
+                transform = transform,
+                push = push,
+                markSynced = markSynced,
+                onServerIds = onServerIds,
+                isolateHttpConflicts = isolateHttpConflicts
+            )
+            successfulIds += result.successfulIds
+            failedIds += result.failedIds
+            failedReasons += result.failedReasons
+        }
+        if (failedIds.isNotEmpty()) {
+            throw SyncConflictException(
+                IllegalStateException("Server rejected $label localIds=${failedIds.joinToString(",")}"),
+                failedLocalIds = failedIds.distinct(),
+                failedReasons = failedReasons,
+                syncEntityLabel = label
+            )
+        }
+        return successfulIds
+    }
 
-                logInfo(
-                    "Pushed $label batch ${index + 1}/${batches.size}: success=${response.successfulLocalIds.size}, failed=${response.failedLocalIds.size}"
+    private data class BatchPushResult(
+        val successfulIds: List<Long> = emptyList(),
+        val failedIds: List<Long> = emptyList(),
+        val failedReasons: Map<Long, String> = emptyMap()
+    )
+
+    private suspend fun <T, R> pushBatch(
+        label: String,
+        batchName: String,
+        batch: List<T>,
+        localId: (T) -> Long,
+        transform: (T) -> R,
+        push: suspend (List<R>) -> PushSyncResponse,
+        markSynced: suspend (List<Long>) -> Unit,
+        onServerIds: (suspend (Map<Long, Long>) -> Unit)?,
+        isolateHttpConflicts: Boolean
+    ): BatchPushResult {
+        try {
+            val response = push(batch.map(transform))
+            markSynced(response.successfulLocalIds)
+            response.localToServerIdMap?.takeIf { it.isNotEmpty() }?.let { onServerIds?.invoke(it) }
+            val responseReasons = response.failedReasons.orEmpty()
+            logInfo(
+                "Pushed $label batch $batchName: success=${response.successfulLocalIds.size}, failed=${response.failedLocalIds.size}"
+            )
+            if (response.failedLocalIds.isNotEmpty()) {
+                logWarn(
+                    "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")} reasons=$responseReasons"
                 )
-
-                if (response.failedLocalIds.isNotEmpty()) {
-                    val failedReasons = response.failedReasons.orEmpty()
-                    logWarn(
-                        "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")} reasons=$failedReasons"
-                    )
+            }
+            return BatchPushResult(
+                successfulIds = response.successfulLocalIds,
+                failedIds = response.failedLocalIds,
+                failedReasons = responseReasons
+            )
+        } catch (e: Exception) {
+            if (e is HttpException && e.code() == 409) {
+                val errorBody = runCatching { e.response()?.errorBody()?.string() }.getOrNull()
+                val reason = BackendErrorParser.parse(errorBody, e.code()).message
+                    ?: "Server rejected $label after automatic conflict recovery"
+                if (!isolateHttpConflicts) {
+                    logError("Conflict while pushing $label batch $batchName. Body: $errorBody", e)
                     throw SyncConflictException(
-                        IllegalStateException(
-                            "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")}"
-                        ),
-                        failedLocalIds = response.failedLocalIds,
-                        failedReasons = failedReasons,
+                        cause = e,
+                        failedLocalIds = batch.map(localId),
+                        failedReasons = batch.associate { localId(it) to reason },
                         syncEntityLabel = label
                     )
                 }
-            } catch (e: Exception) {
-                if (e is HttpException && e.code() == 409) {
-                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
-                    Log.e("MasterSyncProcessor", "Conflict while pushing $label batch ${index + 1}/${batches.size}. Body: $errorBody", e)
-                    throw SyncConflictException(e)
+                if (batch.size == 1) {
+                    val failedId = localId(batch.single())
+                    logWarn("Isolated conflicting $label localId=$failedId reason=$reason")
+                    return BatchPushResult(
+                        failedIds = listOf(failedId),
+                        failedReasons = mapOf(failedId to reason)
+                    )
                 }
-                logError(
-                    "Failed pushing $label batch ${index + 1}/${batches.size}",
-                    e
+
+                val midpoint = batch.size / 2
+                val left = pushBatch(
+                    label,
+                    "$batchName-L",
+                    batch.subList(0, midpoint),
+                    localId,
+                    transform,
+                    push,
+                    markSynced,
+                    onServerIds,
+                    true
                 )
-                throw e
+                val right = pushBatch(
+                    label,
+                    "$batchName-R",
+                    batch.subList(midpoint, batch.size),
+                    localId,
+                    transform,
+                    push,
+                    markSynced,
+                    onServerIds,
+                    true
+                )
+                return BatchPushResult(
+                    successfulIds = left.successfulIds + right.successfulIds,
+                    failedIds = left.failedIds + right.failedIds,
+                    failedReasons = left.failedReasons + right.failedReasons
+                )
             }
+            logError("Failed pushing $label batch $batchName", e)
+            throw e
         }
-        return successfulIds
     }
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
@@ -216,6 +299,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "bill",
             records = listOf(bill),
+            localId = BillEntity::id,
             transform = { it.toSyncDto(serverCreatedBy) },
             push = api::pushBills,
             markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
@@ -226,13 +310,23 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "bill items",
             records = billDao.getUnsyncedBillItems(restaurantId).filter { it.billId == billLocalId },
+            localId = BillItemEntity::id,
             transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
             markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) }
         )
     }
 
-    suspend fun pushAll(onStepChange: ((SyncStep) -> Unit)? = null): Boolean {
+    suspend fun pushAll(onStepChange: ((SyncStep) -> Unit)? = null): Boolean =
+        pushAllInternal(onStepChange, isolateHttpConflicts = false)
+
+    suspend fun pushAllAfterConflictRecovery(): Boolean =
+        pushAllInternal(onStepChange = null, isolateHttpConflicts = true)
+
+    private suspend fun pushAllInternal(
+        onStepChange: ((SyncStep) -> Unit)?,
+        isolateHttpConflicts: Boolean
+    ): Boolean {
         // Guard: never push data with an invalid tenant
         val restaurantId = sessionManager.getRestaurantId()
         if (restaurantId <= 0L) {
@@ -249,10 +343,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "restaurant profiles",
             records = validProfiles,
+            localId = RestaurantProfileEntity::id,
             transform = RestaurantProfileEntity::toSyncDto,
             push = api::pushRestaurantProfiles,
             markSynced = restaurantDao::markRestaurantProfilesAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         val unsyncedUsers = userDao.getUnsyncedUsers()
@@ -260,10 +356,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "users",
             records = validUsers,
+            localId = UserEntity::id,
             transform = UserEntity::toSyncDto,
             push = api::pushUsers,
             markSynced = userDao::markUsersAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> userDao.updateServerIdByLocalId(localId, serverId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> userDao.updateServerIdByLocalId(localId, serverId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         val unsyncedCategories = categoryDao.getUnsyncedCategories(restaurantId)
@@ -271,10 +369,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "categories",
             records = validCategories,
+            localId = CategoryEntity::id,
             transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
             markSynced = { ids -> categoryDao.markCategoriesAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> categoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> categoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         val unsyncedMenuItems = menuDao.getUnsyncedMenuItems(restaurantId)
@@ -282,10 +382,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "menu items",
             records = validMenuItems,
+            localId = MenuItemEntity::id,
             transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
             markSynced = { ids -> menuDao.markMenuItemsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateMenuItemServerIdByLocalId(localId, serverId, restaurantId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateMenuItemServerIdByLocalId(localId, serverId, restaurantId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         val unsyncedVariants = menuDao.getUnsyncedItemVariants(restaurantId)
@@ -293,10 +395,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "item variants",
             records = validVariants,
+            localId = ItemVariantEntity::id,
             transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
             markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         onStepChange?.invoke(SyncStep.PushStockLogs)
@@ -305,10 +409,12 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "stock logs",
             records = validStockLogs,
+            localId = StockLogEntity::id,
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
             markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
+            isolateHttpConflicts = isolateHttpConflicts
         )
 
         // ── Reconcile any bills that were pushed successfully in a previous cycle
@@ -328,35 +434,59 @@ class MasterSyncProcessor @Inject constructor(
             Log.w("MasterSyncProcessor", "Skipping $skippedBills bill(s) with mismatched restaurantId (expected=$restaurantId)")
         }
         val userMap = userDao.getAllUsersOnce().associate { it.id to it.serverId }
-        pushBatches(
-            label = "bills",
-            records = validBills,
-            transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
-            push = api::pushBills,
-            markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
-        )
+        val isolatedConflicts = mutableListOf<SyncConflictException>()
+        try {
+            pushBatches(
+                label = "bills",
+                records = validBills,
+                localId = BillEntity::id,
+                transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
+                push = api::pushBills,
+                markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
+                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
+                isolateHttpConflicts = isolateHttpConflicts
+            )
+        } catch (conflict: SyncConflictException) {
+            isolatedConflicts += conflict
+            logWarn("Bill failures isolated; continuing children for acknowledged parents", conflict)
+        }
 
         backfillChildServerBillIds(restaurantId)
         val unsyncedBillItems = billDao.getUnsyncedBillItemsWithSyncedParent(restaurantId)
-        pushBatches(
-            label = "bill items",
-            records = unsyncedBillItems,
-            transform = BillItemEntity::toSyncDto,
-            push = api::pushBillItems,
-            markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillItemServerIdByLocalId(localId, serverId, restaurantId) } }
-        )
+        try {
+            pushBatches(
+                label = "bill items",
+                records = unsyncedBillItems,
+                localId = BillItemEntity::id,
+                transform = BillItemEntity::toSyncDto,
+                push = api::pushBillItems,
+                markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) },
+                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillItemServerIdByLocalId(localId, serverId, restaurantId) } },
+                isolateHttpConflicts = isolateHttpConflicts
+            )
+        } catch (conflict: SyncConflictException) {
+            isolatedConflicts += conflict
+            logWarn("Bill item failures isolated; continuing unrelated payment work", conflict)
+        }
 
         val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsWithSyncedParent(restaurantId)
-        pushBatches(
-            label = "bill payments",
-            records = unsyncedBillPayments,
-            transform = BillPaymentEntity::toSyncDto,
-            push = api::pushBillPayments,
-            markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillPaymentServerIdByLocalId(localId, serverId, restaurantId) } }
-        )
+        try {
+            pushBatches(
+                label = "bill payments",
+                records = unsyncedBillPayments,
+                localId = BillPaymentEntity::id,
+                transform = BillPaymentEntity::toSyncDto,
+                push = api::pushBillPayments,
+                markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) },
+                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillPaymentServerIdByLocalId(localId, serverId, restaurantId) } },
+                isolateHttpConflicts = isolateHttpConflicts
+            )
+        } catch (conflict: SyncConflictException) {
+            isolatedConflicts += conflict
+            logWarn("Bill payment failures isolated from other acknowledged work", conflict)
+        }
+
+        isolatedConflicts.firstOrNull()?.let { throw it }
 
         return true
     }

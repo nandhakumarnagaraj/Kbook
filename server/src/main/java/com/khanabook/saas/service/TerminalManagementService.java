@@ -30,6 +30,19 @@ public class TerminalManagementService {
     private static final Logger log = LoggerFactory.getLogger(TerminalManagementService.class);
     private static final int MAX_ACTIVE_TERMINALS = 5;
 
+    /** Number-matching recovery challenge: lifetime and wrong-attempt cap. */
+    private static final long CHALLENGE_TTL_MS = 5 * 60 * 1000L;
+    private static final int MAX_CHALLENGE_ATTEMPTS = 3;
+    private static final java.security.SecureRandom CHALLENGE_RANDOM = new java.security.SecureRandom();
+
+    /** Outcome of validating a submitted number-matching challenge. */
+    public enum ChallengeResult { OK, MISMATCH, EXPIRED, LOCKED }
+
+    /** Generates a two-digit challenge in the inclusive range 01–99. */
+    private static String generateChallenge() {
+        return String.format("%02d", CHALLENGE_RANDOM.nextInt(99) + 1);
+    }
+
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository restaurantProfileRepository;
     private final DeviceRegistrationRequestRepository requestRepository;
@@ -60,7 +73,16 @@ public class TerminalManagementService {
         // Idempotent: reuse existing pending request
         var existing = requestRepository.findByRestaurantIdAndDeviceIdAndStatus(restaurantId, deviceId, "PENDING");
         if (existing.isPresent()) {
-            return existing.get();
+            DeviceRegistrationRequest req = existing.get();
+            // Refresh an expired/missing challenge so the device always has a live number.
+            if (req.getChallengeCode() == null || req.getChallengeExpiresAt() == null
+                    || System.currentTimeMillis() > req.getChallengeExpiresAt()) {
+                req.setChallengeCode(generateChallenge());
+                req.setChallengeExpiresAt(System.currentTimeMillis() + CHALLENGE_TTL_MS);
+                req.setChallengeAttempts(0);
+                req = requestRepository.save(req);
+            }
+            return req;
         }
 
         // Rejection cooldown: check if a recent rejection exists for this device
@@ -88,6 +110,9 @@ public class TerminalManagementService {
         request.setMatchedTerminalId(matchedTerminalId);
         request.setRequestedAt(now);
         request.setCreatedAt(now);
+        request.setChallengeCode(generateChallenge());
+        request.setChallengeExpiresAt(now + CHALLENGE_TTL_MS);
+        request.setChallengeAttempts(0);
         return requestRepository.save(request);
     }
 
@@ -110,6 +135,56 @@ public class TerminalManagementService {
     public java.util.Optional<DeviceRegistrationRequest> getRequestStatus(Long requestId, Long restaurantId) {
         return requestRepository.findById(requestId)
                 .filter(r -> r.getRestaurantId().equals(restaurantId));
+    }
+
+    // ── Number-matching challenge ─────────────────────────────────────────────────
+
+    /**
+     * Validates a number-matching challenge submitted by the approver against the
+     * value shown on the requesting device. Returns a result instead of throwing so
+     * that a wrong-attempt increment (and lockout after {@link #MAX_CHALLENGE_ATTEMPTS})
+     * is persisted; throwing would roll the increment back.
+     *
+     * Legacy rows created before challenges were introduced remain approvable when
+     * both challenge fields are absent. Any request with challenge state must match.
+     */
+    @Transactional
+    public ChallengeResult verifyChallenge(Long requestId, Long restaurantId, String submitted) {
+        DeviceRegistrationRequest request = requestRepository.findByIdWithLock(requestId)
+                .filter(r -> r.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+
+        long now = System.currentTimeMillis();
+        if (request.getChallengeCode() == null && request.getChallengeExpiresAt() == null) {
+            return ChallengeResult.OK;
+        }
+        if (request.getChallengeCode() == null || request.getChallengeExpiresAt() == null
+                || now > request.getChallengeExpiresAt()) {
+            return ChallengeResult.EXPIRED;
+        }
+
+        int attempts = request.getChallengeAttempts() == null ? 0 : request.getChallengeAttempts();
+        if (attempts >= MAX_CHALLENGE_ATTEMPTS) {
+            request.setChallengeCode(null);
+            request.setChallengeExpiresAt(null);
+            requestRepository.save(request);
+            return ChallengeResult.LOCKED;
+        }
+
+        if (!request.getChallengeCode().equals(submitted == null ? null : submitted.trim())) {
+            int next = attempts + 1;
+            request.setChallengeAttempts(next);
+            if (next >= MAX_CHALLENGE_ATTEMPTS) {
+                request.setChallengeCode(null);
+                request.setChallengeExpiresAt(null);
+            }
+            requestRepository.save(request);
+            securityAuditService.record("TERMINAL_APPROVE_CHALLENGE_MISMATCH", "BLOCKED",
+                    null, request.getDeviceId());
+            return next >= MAX_CHALLENGE_ATTEMPTS ? ChallengeResult.LOCKED : ChallengeResult.MISMATCH;
+        }
+
+        return ChallengeResult.OK;
     }
 
     // ── Approval ────────────────────────────────────────────────────────────────

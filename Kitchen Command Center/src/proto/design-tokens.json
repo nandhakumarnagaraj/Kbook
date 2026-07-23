@@ -1,0 +1,241 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "meta": {
+    "name": "KhanaBook Web Admin",
+    "version": "1.0.0",
+    "concept": "Service Pass (Balanced SaaS) + selective Warm Kitchen on OWNER dashboard",
+    "colorSpace": "oklch",
+    "referenceHex": "sRGB approximations for hand-off tools"
+  },
+  "color": {
+    "background": {
+      "value": "oklch(0.976 0.008 78)",
+      "hex": "#FAF7F2",
+      "role": "Application background (warm off-white)"
+    },
+    "foreground": {
+      "value": "oklch(0.185 0.012 55)",
+      "hex": "#1C1A17",
+      "role": "Primary text / ink"
+    },
+    "surface": {
+      "value": "oklch(1 0 0)",
+      "hex": "#FFFFFF",
+      "role": "Cards, popovers, dialog, drawer"
+    },
+    "surface-2": {
+      "value": "oklch(0.982 0.006 78)",
+      "hex": "#F8F5EF",
+      "role": "Table header, raised subtle"
+    },
+    "muted": {
+      "value": "oklch(0.955 0.008 78)",
+      "hex": "#F1EDE4",
+      "role": "Chips, inline muted fill"
+    },
+    "muted-foreground": {
+      "value": "oklch(0.48 0.012 55)",
+      "hex": "#6B655C",
+      "role": "Secondary text / labels"
+    },
+    "border": {
+      "value": "oklch(0.92 0.012 78)",
+      "hex": "#EFE9DE",
+      "role": "Divider / input border"
+    },
+    "border-strong": {
+      "value": "oklch(0.86 0.014 78)",
+      "hex": "#E1D9CA",
+      "role": "Emphasised divider"
+    },
+    "input": { "value": "oklch(0.92 0.012 78)", "hex": "#EFE9DE", "role": "Form input border" },
+    "ring": { "value": "oklch(0.72 0.16 55 / 0.4)", "hex": "#E87A1E66", "role": "Focus ring" },
+
+    "espresso": {
+      "value": "oklch(0.24 0.02 55)",
+      "hex": "#2A1F17",
+      "role": "Sidebar, strong ink accents"
+    },
+    "espresso-foreground": {
+      "value": "oklch(0.96 0.01 78)",
+      "hex": "#F1ECDF",
+      "role": "Cream on espresso"
+    },
+    "cream": { "value": "oklch(0.965 0.015 78)", "hex": "#F5EFE3", "role": "Warm neutral" },
+
+    "saffron": {
+      "value": "oklch(0.72 0.16 55)",
+      "hex": "#E87A1E",
+      "role": "Primary action / focus accent"
+    },
+    "turmeric": {
+      "value": "oklch(0.82 0.14 85)",
+      "hex": "#E4B233",
+      "role": "Secondary warm accent"
+    },
+    "burnt": {
+      "value": "oklch(0.62 0.16 45)",
+      "hex": "#D2643A",
+      "role": "Hospitality accent, hero-gradient end"
+    },
+
+    "primary": { "value": "oklch(0.72 0.16 55)", "hex": "#E87A1E", "role": "Primary CTA" },
+    "primary-foreground": { "value": "oklch(1 0 0)", "hex": "#FFFFFF", "role": "Text on primary" },
+    "primary-hover": { "value": "oklch(0.66 0.17 52)", "hex": "#D66A18", "role": "Primary hover" },
+    "primary-soft": {
+      "value": "oklch(0.96 0.04 78)",
+      "hex": "#FDF0E0",
+      "role": "Primary badge/soft background"
+    },
+
+    "success": {
+      "value": "oklch(0.55 0.13 152)",
+      "hex": "#2F855A",
+      "role": "Paid / Active / Connected"
+    },
+    "success-soft": { "value": "oklch(0.95 0.04 152)", "hex": "#E7F4EC" },
+    "warning": { "value": "oklch(0.68 0.14 75)", "hex": "#B7791F", "role": "Pending / Incomplete" },
+    "warning-soft": { "value": "oklch(0.96 0.05 85)", "hex": "#FBF3DF" },
+    "danger": {
+      "value": "oklch(0.58 0.19 28)",
+      "hex": "#C0392B",
+      "role": "Destructive / Refunded / Recovery"
+    },
+    "danger-soft": { "value": "oklch(0.955 0.03 28)", "hex": "#F9E7E3" },
+    "info": {
+      "value": "oklch(0.58 0.14 245)",
+      "hex": "#2B6CB0",
+      "role": "Informational / Card badges"
+    },
+    "info-soft": { "value": "oklch(0.955 0.03 245)", "hex": "#E5EEF7" }
+  },
+  "gradient": {
+    "hero": {
+      "value": "linear-gradient(135deg, oklch(0.72 0.16 55) 0%, oklch(0.62 0.16 45) 100%)",
+      "role": "OWNER dashboard hero-KPI only"
+    },
+    "cream": {
+      "value": "linear-gradient(180deg, oklch(0.98 0.012 78) 0%, oklch(0.965 0.015 78) 100%)",
+      "role": "OWNER dashboard 'Setup progress' card only"
+    }
+  },
+  "typography": {
+    "font-sans": {
+      "value": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "role": "All UI, tables, forms, KPIs"
+    },
+    "font-display": {
+      "value": "Instrument Serif, Iowan Old Style, Georgia, serif",
+      "role": "OWNER dashboard welcome heading + hero KPI value + 'Setup progress' heading ONLY"
+    },
+    "font-mono": {
+      "value": "JetBrains Mono, ui-monospace, SF Mono, Menlo, monospace",
+      "role": "Order IDs, device IDs, secrets, references"
+    },
+    "scale": {
+      "meta-label": { "size": 11, "weight": 600, "case": "uppercase", "tracking": "0.05em" },
+      "caption": { "size": 11, "weight": 400 },
+      "body-xs": { "size": 12, "weight": 400 },
+      "body-sm": { "size": 13, "weight": 400 },
+      "body": { "size": 14, "weight": 400 },
+      "body-strong": { "size": 14, "weight": 500 },
+      "section-title": { "size": 18, "weight": 600, "tracking": "-0.01em" },
+      "page-title": { "size": 24, "weight": 600, "tracking": "-0.02em" },
+      "kpi-value": { "size": 30, "weight": 600, "features": "tabular-nums", "tracking": "-0.02em" },
+      "hero-value": {
+        "size": 38,
+        "weight": 400,
+        "family": "font-display",
+        "role": "OWNER hero KPI only"
+      },
+      "welcome": {
+        "size": 32,
+        "weight": 400,
+        "family": "font-display",
+        "role": "OWNER dashboard welcome only"
+      }
+    }
+  },
+  "spacing": {
+    "unit": 4,
+    "scale": {
+      "0": 0,
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "5": 20,
+      "6": 24,
+      "8": 32,
+      "10": 40,
+      "12": 48,
+      "16": 64
+    }
+  },
+  "radius": {
+    "sm": { "value": 4, "role": "chips, badges" },
+    "md": { "value": 6, "role": "dense inputs, small buttons" },
+    "lg": { "value": 8, "role": "inputs default, buttons" },
+    "xl": { "value": 12, "role": "cards, tables, drawer" },
+    "2xl": { "value": 16, "role": "OWNER hero KPI, warm cards" },
+    "full": { "value": 9999, "role": "state-switcher pill" }
+  },
+  "shadow": {
+    "xs": { "value": "0 1px 2px oklch(0.24 0.02 55 / 0.04)", "role": "Cards at rest" },
+    "sm": {
+      "value": "0 1px 3px oklch(0.24 0.02 55 / 0.06), 0 1px 2px oklch(0.24 0.02 55 / 0.04)",
+      "role": "Card hover, dropdown"
+    },
+    "md": { "value": "0 4px 12px oklch(0.24 0.02 55 / 0.08)", "role": "Sticky pill, toast" },
+    "lg": { "value": "0 12px 32px oklch(0.24 0.02 55 / 0.12)", "role": "Dialog, drawer" },
+    "warm": { "value": "0 6px 20px oklch(0.36 0.08 45 / 0.08)", "role": "OWNER hero KPI only" }
+  },
+  "breakpoint": {
+    "xs": { "value": 320, "role": "Base mobile — stacked cards, mobile drawer nav" },
+    "sm": { "value": 640, "role": "2-column KPI, still card-style tables" },
+    "md": { "value": 768, "role": "Tables switch to full rows, side-by-side forms" },
+    "lg": { "value": 1024, "role": "Sidebar visible, 3-col chart+aside" },
+    "xl": { "value": 1280, "role": "4-col KPI row" },
+    "2xl": { "value": 1536, "role": "Content max-width 1400 stays centred" }
+  },
+  "motion": {
+    "duration": {
+      "instant": { "value": 80, "role": "Hover feedback" },
+      "fast": { "value": 150, "role": "Colour, small transforms" },
+      "base": { "value": 200, "role": "Dropdowns, pills, toggles" },
+      "slow": { "value": 300, "role": "Drawer, dialog fade + slide" }
+    },
+    "easing": {
+      "standard": { "value": "cubic-bezier(0.2, 0, 0.2, 1)" },
+      "decelerate": { "value": "cubic-bezier(0, 0, 0.2, 1)" },
+      "accelerate": { "value": "cubic-bezier(0.4, 0, 1, 1)" }
+    },
+    "reducedMotion": "Honour prefers-reduced-motion — remove transforms, keep opacity < 100ms"
+  },
+  "zIndex": {
+    "base": { "value": 0 },
+    "raised": { "value": 10, "role": "Sticky page header content" },
+    "sticky": { "value": 20, "role": "Sticky table header" },
+    "topbar": { "value": 30, "role": "App topbar" },
+    "backdrop": { "value": 40, "role": "Dialog / drawer scrim" },
+    "modal": { "value": 50, "role": "Dialog / drawer surface / state-switcher" },
+    "toast": { "value": 60, "role": "Toast stack" }
+  },
+  "layout": {
+    "sidebar-width": { "value": 240, "role": "Desktop sidebar" },
+    "sidebar-collapsed": { "value": 64, "role": "Icon-only rail (spec — not shipped)" },
+    "topbar-height": { "value": 56 },
+    "page-title-block": { "value": 80, "role": "Approximate min-height of page header" },
+    "content-max-width": { "value": 1400 },
+    "page-padding-x-mobile": { "value": 16 },
+    "page-padding-x-desktop": { "value": 32 },
+    "page-padding-y": { "value": 24 },
+    "card-padding": { "value": 20 },
+    "drawer-widths": { "sm": 420, "md": 560, "lg": 720 },
+    "dialog-widths": { "sm": 384, "md": 448, "lg": 512 }
+  },
+  "touchTarget": {
+    "minimum-square": { "value": 40 },
+    "primary-mobile": { "value": 44, "role": "Primary CTAs on mobile — use min-h-11" }
+  }
+}

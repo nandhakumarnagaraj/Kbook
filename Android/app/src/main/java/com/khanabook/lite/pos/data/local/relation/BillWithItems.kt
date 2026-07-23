@@ -39,4 +39,15 @@ data class BillWithItems(
     }
 }
 
+enum class BillFinalizationOutcome {
+    FINALIZED_NOW,
+    ALREADY_FINALIZED_IDEMPOTENT,
+    CONSTRAINT_RECOVERED_IDEMPOTENT
+}
+
+data class BillFinalizationResult(
+    val billWithItems: BillWithItems,
+    val outcome: BillFinalizationOutcome
+)
+
 

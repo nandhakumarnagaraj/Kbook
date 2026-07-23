@@ -166,7 +166,7 @@ class UserRepository(
                 sessionManager.setInitialSyncCompleted(true)
             }
 
-            setCurrentUser(localUser)
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -216,7 +216,7 @@ class UserRepository(
                 sessionManager.setInitialSyncCompleted(true)
             }
 
-            setCurrentUser(localUser)
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -267,7 +267,7 @@ class UserRepository(
                 sessionManager.setInitialSyncCompleted(true)
             }
 
-            setCurrentUser(localUser)
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -298,14 +298,19 @@ class UserRepository(
         }
     }
 
-    fun setCurrentUser(user: UserEntity?) {
+    fun setCurrentUser(
+        user: UserEntity?,
+        scheduleBackgroundSync: Boolean = true
+    ) {
         _currentUser.value = user
         if (user != null) {
             sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
             sessionManager.saveActiveUserId(user.id)
             sessionManager.saveActiveUserRole(normalizeAllowedRole(user.role))
             sessionManager.setSessionState(SessionManager.SessionState.READY)
-            triggerBackgroundSync()
+            if (scheduleBackgroundSync) {
+                triggerBackgroundSync()
+            }
         } else {
             sessionManager.clearPersistedLoginId()
             sessionManager.clearLocalUserSession()

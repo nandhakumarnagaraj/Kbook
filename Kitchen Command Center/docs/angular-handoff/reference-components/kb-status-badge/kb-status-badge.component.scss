@@ -1,0 +1,54 @@
+/*
+  REFERENCE ONLY — NOT IMPLEMENTED OR VERIFIED IN THE KHANABOOK ANGULAR APPLICATION.
+*/
+:host {
+  display: inline-flex;
+}
+
+.kb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kb-space-1);
+  font-family: var(--kb-font-sans);
+  font-weight: var(--kb-fw-medium);
+  border-radius: var(--kb-radius-sm);
+  white-space: nowrap;
+}
+
+.kb-badge--sm {
+  height: 20px;
+  padding: 0 6px;
+  font-size: var(--kb-fs-caption);
+}
+
+.kb-badge--md {
+  height: 24px;
+  padding: 0 8px;
+  font-size: var(--kb-fs-body-xs);
+  border-radius: var(--kb-radius-md);
+}
+
+.kb-badge--neutral {
+  background: var(--kb-color-muted);
+  color: var(--kb-color-foreground);
+}
+.kb-badge--success {
+  background: var(--kb-color-success-soft);
+  color: var(--kb-color-success);
+}
+.kb-badge--warning {
+  background: var(--kb-color-warning-soft);
+  color: var(--kb-color-warning);
+}
+.kb-badge--danger {
+  background: var(--kb-color-danger-soft);
+  color: var(--kb-color-danger);
+}
+.kb-badge--info {
+  background: var(--kb-color-info-soft);
+  color: var(--kb-color-info);
+}
+.kb-badge--primary {
+  background: var(--kb-color-primary-soft);
+  color: var(--kb-color-primary);
+}

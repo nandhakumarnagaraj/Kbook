@@ -492,19 +492,70 @@ public class GenericSyncService {
 							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
 						}
 					} else {
-							// Idempotency guard: a gateway bill payment carries a globally-unique
-							// gateway_txn_id. If WorkManager retries a push after a dropped response,
+							// Idempotency guards for bill payments:
+							// 1. gateway_txn_id: globally-unique gateway transaction ID.
+							// 2. operation_id: device-generated payment component identity,
+							//    scoped to (restaurant_id, operation_id) via partial unique index.
+							// Both scenarios: WorkManager retries a push after a dropped response,
 							// the retry arrives as a "new" record (fresh localId) but the row already
-							// exists. Skip the insert instead of letting saveAll trip the partial
-							// unique index (uq_bill_payments_gateway_txn) and fail the whole batch.
+							// exists. When the identity already exists, we MUST compare the full
+							// semantic fields: if they match exactly, return idempotent success;
+							// if any field differs (amount, mode, bill, gateway identity), reject
+							// with an explicit conflict to prevent silent data corruption.
 							if (incomingRecord instanceof BillPayment newBillPayment) {
 								String txnId = newBillPayment.getGatewayTxnId();
-								if (txnId != null && !txnId.isBlank()
-										&& billPaymentRepository.existsByRestaurantIdAndGatewayTxnId(targetTenantId, txnId)) {
-									log.info("Skipping duplicate gateway bill payment insert localId={} txnId={} tenantId={}",
-											newBillPayment.getLocalId(), txnId, targetTenantId);
-									successfulLocalIds.add(newBillPayment.getLocalId());
-									continue;
+								if (txnId != null && !txnId.isBlank()) {
+									java.util.Optional<BillPayment> existingGateway =
+											billPaymentRepository.findByRestaurantIdAndGatewayTxnId(targetTenantId, txnId);
+									if (existingGateway.isPresent()) {
+										BillPayment existing = existingGateway.get();
+										if (isExactPaymentMatch(existing, newBillPayment)) {
+											log.info("Idempotent gateway payment retry localId={} txnId={} tenantId={}",
+													newBillPayment.getLocalId(), txnId, targetTenantId);
+											successfulLocalIds.add(newBillPayment.getLocalId());
+											localToServerIdMap.put(newBillPayment.getLocalId(), existing.getId());
+											continue;
+										} else {
+											log.error("CONFLICT: Gateway txnId={} reused with different semantics on restaurant={}: " +
+														"existing billId={} amount={} mode={} vs incoming localId={} billId={} amount={} mode={}",
+													txnId, targetTenantId,
+													existing.getBillId(), existing.getAmount(), existing.getPaymentMode(),
+													newBillPayment.getLocalId(), newBillPayment.getBillId(),
+													newBillPayment.getAmount(), newBillPayment.getPaymentMode());
+											failedLocalIds.add(newBillPayment.getLocalId());
+											failedReasons.put(newBillPayment.getLocalId(),
+													"Payment gateway transaction ID conflicts with an existing payment with different details. Contact support.");
+											continue;
+										}
+									}
+								}
+								// Operation ID dedup (Android-generated payment component identity).
+								// Uses the scoped unique index as the final authority.
+								String opId = newBillPayment.getOperationId();
+								if (opId != null && !opId.isBlank()) {
+									java.util.Optional<BillPayment> existingOp =
+											billPaymentRepository.findByRestaurantIdAndOperationId(targetTenantId, opId);
+									if (existingOp.isPresent()) {
+										BillPayment existing = existingOp.get();
+										if (isExactPaymentMatch(existing, newBillPayment)) {
+											log.info("Idempotent operation payment retry localId={} opId={} tenantId={}",
+													newBillPayment.getLocalId(), opId, targetTenantId);
+											successfulLocalIds.add(newBillPayment.getLocalId());
+											localToServerIdMap.put(newBillPayment.getLocalId(), existing.getId());
+											continue;
+										} else {
+											log.error("CONFLICT: Operation opId={} reused with different semantics on restaurant={}: " +
+														"existing billId={} amount={} mode={} vs incoming localId={} billId={} amount={} mode={}",
+													opId, targetTenantId,
+													existing.getBillId(), existing.getAmount(), existing.getPaymentMode(),
+													newBillPayment.getLocalId(), newBillPayment.getBillId(),
+													newBillPayment.getAmount(), newBillPayment.getPaymentMode());
+											failedLocalIds.add(newBillPayment.getLocalId());
+											failedReasons.put(newBillPayment.getLocalId(),
+													"Payment operation identity conflicts with an existing payment with different details. Contact support.");
+											continue;
+										}
+									}
 								}
 							}
 
@@ -636,6 +687,66 @@ public class GenericSyncService {
 		response.setLocalToServerIdMap(localToServerIdMap);
 		response.setFailedReasons(failedReasons);
 		return response;
+	}
+
+	/**
+	 * Compares immutable financial semantics of two BillPayment records
+	 * to determine whether they represent the exact same logical payment.
+	 *
+	 * Matching fields:
+	 *   - restaurant_id (already enforced by the caller)
+	 *   - bill_id (or server_bill_id)
+	 *   - amount (normalized BigDecimal comparison)
+	 *   - payment_mode
+	 *   - gateway_txn_id (null-safe)
+	 *   - gateway_status (null-safe)
+	 *   - verified_by
+	 *   - is_deleted state
+	 *
+	 * Ignores:
+	 *   - local primary key (id)
+	 *   - timestamps
+	 *   - sync metadata (server_updated_at, is_synced, sync_status)
+	 *   - server ID populated later
+	 */
+	private boolean isExactPaymentMatch(BillPayment existing, BillPayment incoming) {
+		// isDeleted: treat null as false (active) to match Android's default.
+		// If one is deleted and the other is active (or null = active), they conflict.
+		boolean existingDeleted = existing.getIsDeleted() != null && existing.getIsDeleted();
+		boolean incomingDeleted = incoming.getIsDeleted() != null && incoming.getIsDeleted();
+		if (existingDeleted != incomingDeleted) {
+			return false;
+		}
+		// Bill identity: match either bill_id (local FK) or server_bill_id.
+		boolean billMatch = Objects.equals(existing.getBillId(), incoming.getBillId())
+				|| (existing.getServerBillId() != null && incoming.getServerBillId() != null
+					&& existing.getServerBillId().equals(incoming.getServerBillId()));
+		if (!billMatch) {
+			return false;
+		}
+		// Amount: compare BigDecimal values, not scale.
+		if (existing.getAmount() == null && incoming.getAmount() != null) return false;
+		if (existing.getAmount() != null && incoming.getAmount() == null) return false;
+		if (existing.getAmount() != null && existing.getAmount().compareTo(incoming.getAmount()) != 0) {
+			return false;
+		}
+		// Payment mode.
+		if (!Objects.equals(existing.getPaymentMode(), incoming.getPaymentMode())) {
+			return false;
+		}
+		// Gateway transaction ID (null-safe).
+		if (!Objects.equals(existing.getGatewayTxnId(), incoming.getGatewayTxnId())) {
+			return false;
+		}
+		// Gateway status (null-safe).
+		if (!Objects.equals(existing.getGatewayStatus(), incoming.getGatewayStatus())) {
+			return false;
+		}
+		// Verification source.
+		if (!Objects.equals(existing.getVerifiedBy(), incoming.getVerifiedBy())) {
+			return false;
+		}
+		return true;
 	}
 
 	private String sanitizeFailureReason(String message) {

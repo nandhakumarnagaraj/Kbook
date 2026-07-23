@@ -1,0 +1,74 @@
+/*
+  REFERENCE ONLY — NOT IMPLEMENTED OR VERIFIED IN THE KHANABOOK ANGULAR APPLICATION.
+*/
+:host {
+  display: block;
+}
+
+.kb-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kb-space-2);
+  padding: var(--kb-card-padding);
+  background: var(--kb-color-surface);
+  border: 1px solid var(--kb-color-border);
+  border-radius: var(--kb-radius-xl);
+  box-shadow: var(--kb-shadow-xs);
+  color: var(--kb-color-foreground);
+  transition: box-shadow var(--kb-duration-fast) var(--kb-ease-standard);
+}
+
+.kb-kpi-card__label {
+  font-size: var(--kb-fs-meta-label);
+  font-weight: var(--kb-fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--kb-tracking-wide);
+  color: var(--kb-color-muted-foreground);
+}
+
+.kb-kpi-card__value {
+  font-size: var(--kb-fs-kpi-value);
+  font-weight: var(--kb-fw-semibold);
+  letter-spacing: var(--kb-tracking-tight);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--kb-lh-tight);
+}
+
+.kb-kpi-card__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kb-space-1);
+  font-size: var(--kb-fs-body-sm);
+  color: var(--kb-color-muted-foreground);
+}
+.kb-kpi-card__delta--up {
+  color: var(--kb-color-success);
+}
+.kb-kpi-card__delta--down {
+  color: var(--kb-color-danger);
+}
+
+/* Hero variant — OWNER dashboard hero KPI ONLY. Do not use elsewhere. */
+.kb-kpi-card--hero {
+  background: var(--kb-gradient-hero);
+  color: var(--kb-color-primary-foreground);
+  border-color: transparent;
+  border-radius: var(--kb-radius-2xl);
+  box-shadow: var(--kb-shadow-warm);
+}
+.kb-kpi-card--hero .kb-kpi-card__label {
+  color: rgba(255, 255, 255, 0.85);
+}
+.kb-kpi-card--hero .kb-kpi-card__value {
+  font-family: var(--kb-font-display);
+  font-size: var(--kb-fs-hero-value);
+  font-weight: var(--kb-fw-regular);
+}
+.kb-kpi-card--hero .kb-kpi-card__delta {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.kb-kpi-card--loading .kb-kpi-card__value,
+.kb-kpi-card--loading .kb-kpi-card__delta {
+  opacity: 0.4;
+}

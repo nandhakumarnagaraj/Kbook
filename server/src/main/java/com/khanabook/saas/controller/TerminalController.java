@@ -142,7 +142,13 @@ public class TerminalController {
 			case "EXPIRED" -> "Request has expired";
 			default -> "Unknown status";
 		};
-		return ResponseEntity.ok(new TerminalPendingResponse(status, requestId, message));
+		// Surface the number-matching challenge while pending so the device can display it.
+		boolean challengeLive = "PENDING".equals(status) && req.getChallengeCode() != null
+				&& req.getChallengeExpiresAt() != null
+				&& System.currentTimeMillis() <= req.getChallengeExpiresAt();
+		return ResponseEntity.ok(new TerminalPendingResponse(status, requestId, message,
+				challengeLive ? req.getChallengeCode() : null,
+				challengeLive ? req.getChallengeExpiresAt() : null));
 	}
 
 	/**
@@ -312,7 +318,8 @@ public class TerminalController {
 
 			return ResponseEntity.status(HttpStatus.ACCEPTED)
 					.body(new TerminalPendingResponse("PENDING_APPROVAL", recoveryRequest.getId(),
-							"Terminal recovery requires admin approval"));
+							"Terminal recovery requires admin approval",
+							recoveryRequest.getChallengeCode(), recoveryRequest.getChallengeExpiresAt()));
 		}
 
 		// ── Case 4: First-ever terminal for a new restaurant ──
@@ -374,7 +381,8 @@ public class TerminalController {
 
 		return ResponseEntity.status(HttpStatus.ACCEPTED)
 				.body(new TerminalPendingResponse("PENDING_APPROVAL", pending.getId(),
-						"Device registration is pending admin approval"));
+						"Device registration is pending admin approval",
+						pending.getChallengeCode(), pending.getChallengeExpiresAt()));
 	}
 
 	/**
@@ -441,7 +449,12 @@ public class TerminalController {
 			Boolean isActive, Long registeredAt, Long lastVerifiedAt, String terminalToken) {
 	}
 
-	public record TerminalPendingResponse(String status, Long requestId, String message) {
+	public record TerminalPendingResponse(String status, Long requestId, String message,
+			String challengeCode, Long challengeExpiresAt) {
+		/** Backward-compatible constructor for responses that carry no challenge. */
+		public TerminalPendingResponse(String status, Long requestId, String message) {
+			this(status, requestId, message, null, null);
+		}
 	}
 
 	public record TerminalTransferRequest(String billPublicToken, String targetTerminalSeries) {

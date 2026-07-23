@@ -11,6 +11,12 @@ import java.util.List;
 public interface BillPaymentRepository extends SyncRepository<BillPayment, Long> {
     boolean existsByRestaurantIdAndGatewayTxnId(Long restaurantId, String gatewayTxnId);
 
+    java.util.Optional<BillPayment> findByRestaurantIdAndGatewayTxnId(Long restaurantId, String gatewayTxnId);
+
+    boolean existsByRestaurantIdAndOperationId(Long restaurantId, String operationId);
+
+    java.util.Optional<BillPayment> findByRestaurantIdAndOperationId(Long restaurantId, String operationId);
+
     List<BillPayment> findByRestaurantIdAndServerBillIdIn(Long restaurantId, List<Long> serverBillIds);
 
     List<BillPayment> findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(Long restaurantId, List<Long> serverBillIds, Long serverUpdatedAt);

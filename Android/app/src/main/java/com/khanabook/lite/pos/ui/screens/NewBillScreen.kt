@@ -53,6 +53,7 @@ import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
+import com.khanabook.lite.pos.domain.manager.PaymentRecoveryAssessment
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.manager.QrCodeManager
@@ -95,6 +96,24 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 
+internal enum class BillingBackAction {
+    EXIT,
+    STEP_ONE,
+    STEP_TWO
+}
+
+internal fun resolveBillingBackAction(
+    currentStep: Int,
+    initialStep: Int,
+    editingDraft: Boolean
+): BillingBackAction =
+    when {
+        editingDraft && currentStep <= initialStep -> BillingBackAction.EXIT
+        currentStep == 2 -> BillingBackAction.STEP_ONE
+        currentStep == 3 -> BillingBackAction.STEP_TWO
+        else -> BillingBackAction.EXIT
+    }
+
 @Composable
 fun NewBillScreen(
         onBack: () -> Unit,
@@ -135,6 +154,13 @@ fun NewBillScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val performBack: () -> Unit = {
+        when (resolveBillingBackAction(step, initialStep, draftBillId != null)) {
+            BillingBackAction.EXIT -> onBack()
+            BillingBackAction.STEP_ONE -> step = 1
+            BillingBackAction.STEP_TWO -> step = 2
+        }
+    }
 
     // Keep users inside the billing flow while an online payment is actively
     // being confirmed, otherwise online and offline paths can diverge.
@@ -145,11 +171,7 @@ fun NewBillScreen(
             }
             return@BackHandler
         }
-        when (step) {
-            2 -> step = 1
-            3 -> step = 2
-            else -> onBack() // step 4 (success) and step 5 (failed): exit screen
-        }
+        performBack()
     }
 
     LaunchedEffect(draftBillId, resumePendingPayment) {
@@ -236,7 +258,7 @@ fun NewBillScreen(
                             enabled = !paymentFlowLocked,
                             onClick = {
                                 if (paymentFlowLocked) return@IconButton
-                                if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()
+                                performBack()
                             }
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
@@ -290,7 +312,7 @@ fun NewBillScreen(
                             MenuSelectionStep(
                                     billingViewModel,
                                     menuViewModel,
-                                    onBack = { step = 1 },
+                                    onBack = performBack,
                                     onProceedToPayment = { step = 3 },
                                     total = summary.total.toDoubleOrNull() ?: 0.0,
                                     itemCount = cartItems.sumOf { it.quantity },
@@ -302,7 +324,7 @@ fun NewBillScreen(
                             PaymentStep(
                                     billingViewModel,
                                     settingsViewModel,
-                                    onBackToMenu = { step = 2 },
+                                    onBackToMenu = performBack,
                                     onComplete = { step = 4 },
                                     onFailed = { step = 5 },
                                     onFlowLockChange = { paymentFlowLocked = it },
@@ -325,7 +347,9 @@ fun NewBillScreen(
             }
 
             KhanaBookLoadingOverlay(
-                visible = isLoading && step != 3,
+                // Show loading on PaymentStep too when loading a draft bill,
+                // preventing a flash of zero total while data loads.
+                visible = isLoading && (step != 3 || draftBillId != null),
                 type = LoadingType.SAVING
             )
 
@@ -1356,15 +1380,32 @@ fun PaymentStep(
     resumePendingPayment: Boolean = false
 ) {
     val summary by viewModel.billSummary.collectAsStateWithLifecycle()
+    val persistedPaymentTotal by viewModel.persistedPaymentTotal.collectAsStateWithLifecycle()
+    val paymentRecovery by viewModel.paymentRecovery.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val enabledModes =
             remember(profile) {
                 profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
             }
-    var selectedMode by remember(enabledModes) {
+    val partialRecovery = paymentRecovery as? PaymentRecoveryAssessment.Partial
+    val selectableModes = remember(enabledModes, partialRecovery) {
+        if (partialRecovery == null) {
+            enabledModes
+        } else {
+            enabledModes.filter {
+                it in setOf(PaymentMode.CASH, PaymentMode.UPI, PaymentMode.POS) &&
+                    it.dbValue !in partialRecovery.usedModes
+            }
+        }
+    }
+    var selectedMode by remember(selectableModes) {
         mutableStateOf(
-            if (enabledModes.contains(PaymentMode.CASH)) PaymentMode.CASH else enabledModes.firstOrNull() ?: PaymentMode.CASH
+            if (selectableModes.contains(PaymentMode.CASH)) {
+                PaymentMode.CASH
+            } else {
+                selectableModes.firstOrNull() ?: PaymentMode.CASH
+            }
         )
     }
     var expanded by remember { mutableStateOf(false) }
@@ -1377,14 +1418,16 @@ fun PaymentStep(
     var p2Text by remember { mutableStateOf("") }
     var resumedPendingBillId by remember { mutableStateOf<Long?>(null) }
     var isCreatingPaymentAttempt by remember { mutableStateOf(false) }
+    var recoveryAutoFinalizeStarted by remember { mutableStateOf(false) }
+    var showResetRecoveryDialog by remember { mutableStateOf(false) }
     val latestPaymentEvent by PaymentReturnManager.latestEvent.collectAsStateWithLifecycle()
 
     
-    LaunchedEffect(enabledModes) {
-        if (enabledModes.isNotEmpty()) {
+    LaunchedEffect(selectableModes) {
+        if (selectableModes.isNotEmpty()) {
             selectedMode = when {
-                enabledModes.contains(PaymentMode.CASH) -> PaymentMode.CASH
-                else -> enabledModes.first()
+                selectableModes.contains(PaymentMode.CASH) -> PaymentMode.CASH
+                else -> selectableModes.first()
             }
         }
     }
@@ -1403,9 +1446,15 @@ fun PaymentStep(
         }
     }
 
-    LaunchedEffect(resumePendingPayment, restoredPaymentMode, restoredPartAmount1, restoredPartAmount2, enabledModes) {
+    LaunchedEffect(
+        resumePendingPayment,
+        restoredPaymentMode,
+        restoredPartAmount1,
+        restoredPartAmount2,
+        selectableModes
+    ) {
         if (!resumePendingPayment) return@LaunchedEffect
-        if (enabledModes.contains(restoredPaymentMode)) {
+        if (selectableModes.contains(restoredPaymentMode)) {
             selectedMode = restoredPaymentMode
         }
         p1Text = restoredPartAmount1
@@ -1415,8 +1464,11 @@ fun PaymentStep(
     // UPI transaction limit: most Indian banks cap single UPI transactions at ₹1,00,000.
     // Amounts exceeding this should use a split payment mode where UPI covers up to ₹1L
     // and the remainder is collected via another payment method (cash or POS).
+    val paymentTotal = persistedPaymentTotal?.takeIf { it.toBigDecimalOrNull() != null }
+        ?: summary.total
+    val payableNow = partialRecovery?.remainingAmount ?: paymentTotal
     val upiMaxAmount = PaymentLimits.UPI_SINGLE_TRANSACTION_MAX.toDouble()
-    val totalAmount = summary.total.toDoubleOrNull() ?: 0.0
+    val totalAmount = payableNow.toDoubleOrNull() ?: 0.0
     val isUpiMode =
             selectedMode == PaymentMode.UPI ||
                     selectedMode == PaymentMode.PART_CASH_UPI ||
@@ -1433,26 +1485,26 @@ fun PaymentStep(
     LaunchedEffect(upiExceedsLimit) {
         if (upiExceedsLimit) {
             val cashMode = PaymentMode.PART_CASH_UPI
-            if (enabledModes.contains(cashMode)) {
+            if (selectableModes.contains(cashMode)) {
                 selectedMode = cashMode
             }
         }
     }
 
-    LaunchedEffect(selectedMode, summary.total, resumePendingPayment) {
+    LaunchedEffect(selectedMode, payableNow, resumePendingPayment) {
         if (isSplitMode && !resumePendingPayment) {
             val split = when (selectedMode) {
                 PaymentMode.PART_CASH_UPI -> if (totalAmount > upiMaxAmount) {
-                    BillCalculator.splitCashUpiWithUpiCap(summary.total)
+                    BillCalculator.splitCashUpiWithUpiCap(payableNow)
                 } else {
-                    BillCalculator.splitPartPayment(summary.total)
+                    BillCalculator.splitPartPayment(payableNow)
                 }
                 PaymentMode.PART_UPI_POS -> if (totalAmount > upiMaxAmount) {
-                    BillCalculator.splitUpiPosWithUpiCap(summary.total)
+                    BillCalculator.splitUpiPosWithUpiCap(payableNow)
                 } else {
-                    BillCalculator.splitPartPayment(summary.total)
+                    BillCalculator.splitPartPayment(payableNow)
                 }
-                else -> BillCalculator.splitPartPayment(summary.total)
+                else -> BillCalculator.splitPartPayment(payableNow)
             }
             p1Text = split.first
             p2Text = split.second
@@ -1465,11 +1517,11 @@ fun PaymentStep(
             when (selectedMode) {
                 PaymentMode.PART_CASH_UPI -> p2
                 PaymentMode.PART_UPI_POS -> p1
-                else -> summary.total.toDoubleOrNull() ?: 0.0
+                else -> payableNow.toDoubleOrNull() ?: 0.0
             }
     val isAmountValid =
             if (isSplitMode) {
-                BillCalculator.validatePartPayment(p1Text, p2Text, summary.total)
+                BillCalculator.validatePartPayment(p1Text, p2Text, payableNow)
             } else true
     val canGenerateAmountQr =
         isUpiMode &&
@@ -1478,8 +1530,29 @@ fun PaymentStep(
             upiPayableAmount <= upiMaxAmount &&
             !profile?.upiHandle.isNullOrBlank()
     val requiresOnlineAttempt = isUpiMode && viewModel.editingBillId == null
-    val paymentAttemptReady = !requiresOnlineAttempt || resumedPendingBillId != null
-    val controlsLocked = false
+    val recoveryConflict = paymentRecovery as? PaymentRecoveryAssessment.Conflicting
+    val controlsLocked = recoveryConflict != null
+    val paymentAttemptReady =
+        recoveryConflict == null &&
+            selectableModes.isNotEmpty() &&
+            (!requiresOnlineAttempt || resumedPendingBillId != null)
+
+    LaunchedEffect(paymentRecovery, viewModel.editingBillId) {
+        val billId = viewModel.editingBillId
+        if (
+            paymentRecovery is PaymentRecoveryAssessment.Complete &&
+            billId != null &&
+            !recoveryAutoFinalizeStarted
+        ) {
+            recoveryAutoFinalizeStarted = true
+            if (viewModel.finalizeRecoveredPaymentSet(billId)) {
+                viewModel.clearActiveSession()
+                onComplete()
+            } else {
+                recoveryAutoFinalizeStarted = false
+            }
+        }
+    }
 
     LaunchedEffect(canGenerateAmountQr, selectedMode, p1Text, p2Text, resumePendingPayment) {
         if (
@@ -1499,8 +1572,51 @@ fun PaymentStep(
         }
     }
 
+    // Keep ViewModel payment state in sync when split amounts change after draft creation.
+    // Prevents finalizeOnlineBill from using stale _partAmount1/_partAmount2 values.
+    LaunchedEffect(selectedMode, p1Text, p2Text) {
+        if (resumedPendingBillId != null || viewModel.editingBillId != null) {
+            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+        }
+    }
+
     val relocationRequester = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
+
+    if (showResetRecoveryDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetRecoveryDialog = false },
+            title = { Text("Reset payment attempt?") },
+            text = {
+                Text(
+                    "Legacy payment identities will be repaired when possible. Only unsynced manual records can be removed; synced amounts and gateway references are preserved."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val billId = viewModel.editingBillId
+                        showResetRecoveryDialog = false
+                        if (billId != null) {
+                            scope.launch {
+                                viewModel.resetPaymentRecovery(billId)
+                            }
+                        }
+                    }
+                ) {
+                    Text("Reset", color = DangerRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetRecoveryDialog = false }) {
+                    Text("Keep payment records")
+                }
+            },
+            containerColor = DarkBrown2,
+            titleContentColor = TextLight,
+            textContentColor = TextGold
+        )
+    }
 
     // Generate UPI QR locally with ZXing. This must not wait for the background payment-attempt save.
     val context = LocalContext.current
@@ -1567,6 +1683,57 @@ fun PaymentStep(
                 Text("Go Back", color = DarkBrown1)
             }
         } else {
+            partialRecovery?.let { recovery ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = WarningYellow.copy(alpha = 0.12f)
+                    ),
+                    border = BorderStroke(1.dp, WarningYellow.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Text(
+                            "Partial payment found",
+                            color = WarningYellow,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            "Recorded ${CurrencyUtils.formatPrice(recovery.paidAmount)}. Collect only ${CurrencyUtils.formatPrice(recovery.remainingAmount)} to complete this order.",
+                            color = TextLight,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(spacing.medium))
+            }
+
+            recoveryConflict?.let { recovery ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = DangerRed.copy(alpha = 0.12f)
+                    ),
+                    border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Text(
+                            "Payment records need repair",
+                            color = DangerRed,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            recovery.reason,
+                            color = TextLight,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        TextButton(onClick = { showResetRecoveryDialog = true }) {
+                            Text("Repair payment records", color = WarningYellow)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(spacing.medium))
+            }
+
             if (showQrCode) {
                 Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -1697,9 +1864,13 @@ fun PaymentStep(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Payable Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                    "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
+                                if (partialRecovery != null) "Remaining Amount" else "Payable Amount",
+                                color = TextGold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                    "₹${"%.2f".format(payableNow.toDoubleOrNull() ?: 0.0)}",
                                     color = PrimaryGold,
                                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
                             )
@@ -1761,7 +1932,7 @@ fun PaymentStep(
                             onDismissRequest = { expanded = false },
                             modifier = Modifier.background(DarkBrown2)
                     ) {
-                        enabledModes.forEach { mode ->
+                        selectableModes.forEach { mode ->
                             DropdownMenuItem(
                                     text = { Text(mode.displayLabel, color = TextLight) },
                                     onClick = {
@@ -1771,6 +1942,15 @@ fun PaymentStep(
                             )
                         }
                     }
+                }
+
+                if (selectableModes.isEmpty()) {
+                    Text(
+                        "No unused configured payment mode is available. Reset this attempt or configure another payment method.",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = spacing.small)
+                    )
                 }
 
                 if (isSplitMode) {
@@ -1834,7 +2014,7 @@ fun PaymentStep(
 
                     if (!isAmountValid) {
                         Text(
-                                "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
+                                "Sum must equal ${CurrencyUtils.formatPrice(payableNow)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
                                 color = DangerRed,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = spacing.extraSmall).align(Alignment.Start)
@@ -1877,8 +2057,19 @@ fun PaymentStep(
                             val success = when {
                                 resumedPendingBillId != null ->
                                     viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.SUCCESS)
+                                partialRecovery != null && viewModel.editingBillId != null ->
+                                    viewModel.recoverPartialDraftPayment(
+                                        viewModel.editingBillId!!,
+                                        selectedMode
+                                    )
                                 viewModel.editingBillId != null ->
-                                    viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.SUCCESS)
+                                    viewModel.settleDraftOrder(
+                                        billId = viewModel.editingBillId!!,
+                                        paymentMode = selectedMode,
+                                        status = PaymentStatus.SUCCESS,
+                                        partAmount1 = p1Text,
+                                        partAmount2 = p2Text
+                                    )
                                 else ->
                                     viewModel.completeOrder(PaymentStatus.SUCCESS)
                             }
@@ -1900,7 +2091,11 @@ fun PaymentStep(
                     enabled = isAmountValid && paymentAttemptReady
             ) {
                 Text(
-                        "Payment Successful",
+                        if (partialRecovery != null) {
+                            "Confirm Remaining Payment"
+                        } else {
+                            "Payment Successful"
+                        },
                         color = Color.White,
                         style = MaterialTheme.typography.titleMedium
                 )
@@ -1909,6 +2104,10 @@ fun PaymentStep(
             TextButton(
                     onClick = {
                         scope.launch {
+                            if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
+                                onBackToMenu()
+                                return@launch
+                            }
                             viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                             when {
                                 resumedPendingBillId != null ->
@@ -1928,7 +2127,11 @@ fun PaymentStep(
                     enabled = paymentAttemptReady
             ) {
                 Text(
-                    "Payment Failed / Cancelled",
+                    if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
+                        "Keep Pending & Go Back"
+                    } else {
+                        "Payment Failed / Cancelled"
+                    },
                     color = DangerRed,
                     style = MaterialTheme.typography.bodyMedium
                 )

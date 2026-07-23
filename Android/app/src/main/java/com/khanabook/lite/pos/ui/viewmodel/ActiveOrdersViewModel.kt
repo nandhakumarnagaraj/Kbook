@@ -27,6 +27,7 @@ data class ActiveOrderSummaryRow(
     val bill: BillEntity,
     val itemCount: Int,
     val hasNewKitchenItems: Boolean,
+    val requiresPaymentRecovery: Boolean,
     val singleItemName: String? = null
 )
 
@@ -45,11 +46,11 @@ class ActiveOrdersViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            billRepository.getActiveDraftBillsFlow().collectLatest { bills ->
-                _rows.value = withContext(Dispatchers.IO) {
-                    bills.map { bill ->
-                        val detail = billRepository.getBillWithItemsById(bill.id)
-                        val items = detail?.items ?: emptyList()
+            billRepository.getActionableDraftBillsWithItemsFlow().collectLatest { bills ->
+                _rows.value = withContext(Dispatchers.Default) {
+                    bills.map { detail ->
+                        val bill = detail.bill
+                        val items = detail.items.filterNot { it.isDeleted }
                         val qty = items.sumOf { it.quantity }
                         val singleItemName = if (qty == 1) {
                             val singleItem = items.firstOrNull { it.quantity > 0 }
@@ -61,7 +62,8 @@ class ActiveOrdersViewModel @Inject constructor(
                         ActiveOrderSummaryRow(
                             bill = bill,
                             itemCount = qty,
-                            hasNewKitchenItems = detail?.items?.any { !it.sentToKot } == true,
+                            hasNewKitchenItems = items.any { !it.sentToKot },
+                            requiresPaymentRecovery = detail.payments.any { !it.isDeleted },
                             singleItemName = singleItemName
                         )
                     }

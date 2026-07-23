@@ -306,7 +306,7 @@ private fun ActiveOrderCard(
                                 filled = true
                             )
                             KhanaStatusBadge(
-                                text = "Unpaid",
+                                text = if (row.requiresPaymentRecovery) "Payment recovery" else "Unpaid",
                                 kind = KhanaStatusKind.Warning,
                                 filled = true
                             )
@@ -333,7 +333,11 @@ private fun ActiveOrderCard(
                         ) {
                             Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(spacing.extraSmall))
-                            Text("Payment", color = TextLight, style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                if (row.requiresPaymentRecovery) "Recover" else "Payment",
+                                color = TextLight,
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                         OutlinedButton(
                             onClick = onPrint,

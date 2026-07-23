@@ -330,7 +330,13 @@ fun ActiveOrderScreen(
                         coroutineScope.launch {
                             billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                             billingViewModel.appendItemsToDraft(draftBillId)
-                            val settled = billingViewModel.settleDraftOrder(draftBillId, selectedMode, PaymentStatus.SUCCESS)
+                            val settled = billingViewModel.settleDraftOrder(
+                                billId = draftBillId,
+                                paymentMode = selectedMode,
+                                status = PaymentStatus.SUCCESS,
+                                partAmount1 = p1Text,
+                                partAmount2 = p2Text
+                            )
                             if (settled) {
                                 billingViewModel.clearActiveSession()
                                 onOrderCompleted()

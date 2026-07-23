@@ -12,6 +12,7 @@ class HiltTestRunner : AndroidJUnitRunner() {
     }
 
     override fun callApplicationOnCreate(app: Application) {
+        System.loadLibrary("sqlcipher")
         try {
             WorkManager.getInstance(app)
         } catch (_: IllegalStateException) {

@@ -66,4 +66,20 @@ public class DeviceRegistrationRequest {
 
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
+
+    /**
+     * Two-digit number-matching challenge (e.g. "07", "52") shown on the requesting
+     * device. The approver must enter the matching value in the web admin. Null once
+     * consumed/invalidated or for legacy requests created before this feature.
+     */
+    @Column(name = "challenge_code")
+    private String challengeCode;
+
+    /** Epoch millis after which {@link #challengeCode} is no longer valid. */
+    @Column(name = "challenge_expires_at")
+    private Long challengeExpiresAt;
+
+    /** Wrong-number attempts; the challenge is invalidated after a small maximum. */
+    @Column(name = "challenge_attempts")
+    private Integer challengeAttempts = 0;
 }

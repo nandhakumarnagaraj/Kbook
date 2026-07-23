@@ -10,42 +10,22 @@ class PerformanceReproductionTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun testUpdateSummaryDebouncing() = runTest {
-        var summaryUpdateCount = 0
+    fun `billing inputs reach summary calculation without an artificial delay`() = runTest {
+        var latestItems = emptyList<String>()
         val cartItems = MutableStateFlow<List<String>>(emptyList())
 
-        
         backgroundScope.launch {
-            cartItems
-                .debounce(300)
-                .onEach { 
-                    summaryUpdateCount++ 
-                }
-                .collect()
+            cartItems.collect { latestItems = it }
         }
+        runCurrent()
+        assertEquals(emptyList<String>(), latestItems)
 
-        
         cartItems.value = listOf("Item 1")
-        advanceTimeBy(100)
-        cartItems.value = listOf("Item 1", "Item 2")
-        advanceTimeBy(100)
-        cartItems.value = listOf("Item 1", "Item 2", "Item 3")
-        
-        
-        assertEquals(0, summaryUpdateCount)
+        runCurrent()
+        assertEquals(listOf("Item 1"), latestItems)
 
-        
-        advanceTimeBy(301)
-        
-        
-        assertEquals(1, summaryUpdateCount)
-        
-        
-        advanceTimeBy(1000)
-        cartItems.value = listOf("Item 1", "Item 2", "Item 3", "Item 4")
-        advanceTimeBy(301)
-        
-        
-        assertEquals(2, summaryUpdateCount)
+        cartItems.value = listOf("Item 1", "Item 2")
+        runCurrent()
+        assertEquals(listOf("Item 1", "Item 2"), latestItems)
     }
 }

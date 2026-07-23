@@ -57,13 +57,15 @@ class SyncManagerTest {
 
     @Test
     fun `performFullSync returns success when conflict recovery pull succeeds`() = runTest {
-        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException() andThen true
+        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
+        coEvery { masterSyncProcessor.pushAllAfterConflictRecovery() } returns true
         coEvery { api.pullMasterSync(any(), any(), any(), any(), any(), any()) } returns MasterSyncResponse(serverTimestamp = 42L, hasMore = false)
 
         val result = syncManager.performFullSync()
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 2) { masterSyncProcessor.pushAll() }
+        coVerify(exactly = 1) { masterSyncProcessor.pushAll() }
+        coVerify(exactly = 1) { masterSyncProcessor.pushAllAfterConflictRecovery() }
         coVerify(exactly = 1) { masterSyncProcessor.insertMasterData(match { it.serverTimestamp == 42L }) }
         verify(sessionManager, times(1)).saveLastSyncTimestamp(42L)
     }

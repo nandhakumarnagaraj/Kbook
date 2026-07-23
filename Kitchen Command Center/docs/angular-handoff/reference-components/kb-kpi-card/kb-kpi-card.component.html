@@ -1,0 +1,23 @@
+<!--
+  REFERENCE ONLY — NOT IMPLEMENTED OR VERIFIED IN THE KHANABOOK ANGULAR APPLICATION.
+-->
+<section
+  class="kb-kpi-card"
+  [class.kb-kpi-card--hero]="variant === 'hero'"
+  [class.kb-kpi-card--loading]="loading"
+  [attr.aria-busy]="loading || null"
+>
+  <div class="kb-kpi-card__label">{{ label }}</div>
+
+  <div class="kb-kpi-card__value" *ngIf="!loading">
+    {{ value }}
+  </div>
+
+  <div class="kb-kpi-card__delta" *ngIf="trendText && !loading" [ngClass]="trendClass">
+    <span aria-hidden="true">{{ (delta ?? 0) >= 0 ? "▲" : "▼" }}</span>
+    <span>{{ trendText }}</span>
+    <span class="kb-kpi-card__delta-label" *ngIf="deltaLabel"> · {{ deltaLabel }}</span>
+  </div>
+
+  <ng-content select="[slot=footer]"></ng-content>
+</section>

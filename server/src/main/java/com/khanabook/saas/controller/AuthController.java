@@ -4,8 +4,10 @@ import com.khanabook.saas.entity.TokenBlocklist;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
 import com.khanabook.saas.security.TokenRevocationCache;
 import com.khanabook.saas.service.AuthService;
+import com.khanabook.saas.service.DbRateLimiter;
 import com.khanabook.saas.service.LoginRateLimiter;
 import com.khanabook.saas.service.OtpRateLimiter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import com.khanabook.saas.service.WebAdminPasswordResetService;
 import com.khanabook.saas.utility.JwtUtility;
 import com.khanabook.saas.webadmin.dto.RequestOtpRequest;
@@ -21,7 +23,6 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @Validated
 @RequestMapping("/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
 	private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -42,12 +42,49 @@ public class AuthController {
 	private final TokenRevocationCache tokenRevocationCache;
 	private final OtpRateLimiter otpRateLimiter;
 	private final LoginRateLimiter loginRateLimiter;
+	private final DbRateLimiter otpRateLimiterDb;
+	private final DbRateLimiter loginRateLimiterDb;
 	private final WebAdminPasswordResetService webAdminPasswordResetService;
+
+	public AuthController(AuthService authService,
+	                      JwtUtility jwtUtility,
+	                      TokenBlocklistRepository tokenBlocklistRepository,
+	                      TokenRevocationCache tokenRevocationCache,
+	                      OtpRateLimiter otpRateLimiter,
+	                      LoginRateLimiter loginRateLimiter,
+	                      @Qualifier("otpRateLimiterDb") DbRateLimiter otpRateLimiterDb,
+	                      @Qualifier("loginRateLimiterDb") DbRateLimiter loginRateLimiterDb,
+	                      WebAdminPasswordResetService webAdminPasswordResetService) {
+		this.authService = authService;
+		this.jwtUtility = jwtUtility;
+		this.tokenBlocklistRepository = tokenBlocklistRepository;
+		this.tokenRevocationCache = tokenRevocationCache;
+		this.otpRateLimiter = otpRateLimiter;
+		this.loginRateLimiter = loginRateLimiter;
+		this.otpRateLimiterDb = otpRateLimiterDb;
+		this.loginRateLimiterDb = loginRateLimiterDb;
+		this.webAdminPasswordResetService = webAdminPasswordResetService;
+	}
+
+	/**
+	 * Returns true if the action is under all configured rate limits.
+	 * Checks both the in-memory (legacy) and DB-backed rate limiters.
+	 */
+	private boolean isOtpAllowed(String key) {
+		return otpRateLimiter.tryConsume(key) && otpRateLimiterDb.tryConsume(key);
+	}
+
+	/**
+	 * Returns true if the login action is under all configured rate limits.
+	 */
+	private boolean isLoginAllowed(String ip) {
+		return loginRateLimiter.tryConsume(ip) && loginRateLimiterDb.tryConsume(ip);
+	}
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 		String ip = getClientIp(httpRequest);
-		if (!loginRateLimiter.tryConsume(ip)) {
+		if (!isLoginAllowed(ip)) {
 			log.warn("Login rate limit exceeded ip={}", ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
@@ -71,7 +108,7 @@ public class AuthController {
 
 	@PostMapping("/signup/request")
 	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request) {
-		if (!otpRateLimiter.tryConsume(request.getPhoneNumber())) {
+		if (!isOtpAllowed(request.getPhoneNumber())) {
 			log.warn("OTP rate limit exceeded for signup phone={}***", request.getPhoneNumber().substring(0, 3));
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
@@ -83,7 +120,7 @@ public class AuthController {
 	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request,
 			HttpServletRequest httpRequest) {
 		String ip = getClientIp(httpRequest);
-		if (!loginRateLimiter.tryConsume(ip)) {
+		if (!isLoginAllowed(ip)) {
 			log.warn("Google login rate limit exceeded ip={}", ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
@@ -126,7 +163,7 @@ public class AuthController {
 
 	@PostMapping("/reset-password/request")
 	public ResponseEntity<Void> requestResetPasswordOtp(@Valid @RequestBody PasswordResetOtpRequest request) {
-		if (!otpRateLimiter.tryConsume(request.getPhoneNumber())) {
+		if (!isOtpAllowed(request.getPhoneNumber())) {
 			log.warn("OTP rate limit exceeded for reset phone={}***", request.getPhoneNumber().substring(0, 3));
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
@@ -139,7 +176,7 @@ public class AuthController {
 	@PostMapping("/forgot-password/request-otp")
 	public ResponseEntity<?> forgotPasswordRequestOtp(@Valid @RequestBody RequestOtpRequest request, HttpServletRequest httpRequest) {
 		String ip = getClientIp(httpRequest);
-		if (!otpRateLimiter.tryConsume(request.phone())) {
+		if (!isOtpAllowed(request.phone())) {
 			log.warn("OTP rate limit exceeded for forgot-password phone={}*** ip={}", request.phone().substring(0, 3), ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}

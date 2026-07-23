@@ -285,6 +285,48 @@ import { formatDate } from '../../shared/formatters';
         </section>
       </div>
 
+      <div class="modal-backdrop" *ngIf="approvingRequest() as req" (click)="closeApprove()">
+        <section
+          class="modal-box"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="approve-title"
+          (click)="$event.stopPropagation()"
+        >
+          <h3 id="approve-title">Confirm device number</h3>
+          <p class="muted">
+            Enter the number shown on
+            "{{ req.deviceName || req.deviceId || 'the device' }}" to approve it.
+          </p>
+          <div class="filter-group">
+            <label for="approve-challenge">Number on device</label>
+            <input
+              id="approve-challenge"
+              class="field-control"
+              [(ngModel)]="challengeCode"
+              inputmode="numeric"
+              maxlength="2"
+              placeholder="e.g. 52"
+              autocomplete="off"
+              autofocus
+            />
+          </div>
+          <p class="muted" *ngIf="challengeSecondsLeft() as _left">Expires in {{ challengeCountdown() }}</p>
+          <p class="error-text" role="alert" *ngIf="challengeError()">{{ challengeError() }}</p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeApprove()">Cancel</button>
+            <button
+              type="button"
+              class="primary-btn"
+              [disabled]="saving() || !challengeCode.trim()"
+              (click)="submitApprove()"
+            >
+              {{ saving() ? 'Approving...' : 'Approve device' }}
+            </button>
+          </div>
+        </section>
+      </div>
+
       <app-confirm-dialog
         *ngIf="reactivatingTerminal()"
         title="Reactivate Terminal"
@@ -383,6 +425,11 @@ export class TerminalsPageComponent {
   readonly reactivatingTerminal = signal<BusinessTerminal | null>(null);
   readonly deactivatingTerminal = signal<BusinessTerminal | null>(null);
   readonly rejectingRequest = signal<TerminalRequest | null>(null);
+  readonly approvingRequest = signal<TerminalRequest | null>(null);
+  readonly challengeError = signal<string | null>(null);
+  readonly challengeNow = signal(Date.now());
+  challengeCode = '';
+  private challengeTimer: ReturnType<typeof setInterval> | null = null;
   readonly recoveringTerminal = signal<BusinessTerminal | null>(null);
   readonly recoveryResult = signal<RecoverTerminalResponse | null>(null);
   readonly recoveryError = signal('');
@@ -579,20 +626,88 @@ export class TerminalsPageComponent {
   }
 
   approve(req: TerminalRequest): void {
+    // Number-matching: if the device is showing a code, collect it first.
+    if (req.challengeRequired) {
+      this.challengeCode = '';
+      this.challengeError.set(null);
+      this.approvingRequest.set(req);
+      this.challengeNow.set(Date.now());
+      this.challengeTimer = setInterval(() => this.challengeNow.set(Date.now()), 1000);
+      return;
+    }
+    this.sendApprove(req, undefined);
+  }
+
+  closeApprove(): void {
+    if (this.challengeTimer) {
+      clearInterval(this.challengeTimer);
+      this.challengeTimer = null;
+    }
+    this.approvingRequest.set(null);
+    this.challengeCode = '';
+    this.challengeError.set(null);
+  }
+
+  submitApprove(): void {
+    const req = this.approvingRequest();
+    if (!req) return;
+    const code = this.challengeCode.trim();
+    if (!/^\d{1,2}$/.test(code)) {
+      this.challengeError.set('Enter the 1–2 digit number shown on the device.');
+      return;
+    }
+    this.sendApprove(req, code.padStart(2, '0'));
+  }
+
+  /** Remaining seconds on the challenge, or null when no live challenge. */
+  challengeSecondsLeft(): number | null {
+    const req = this.approvingRequest();
+    if (!req?.challengeExpiresAt) return null;
+    return Math.max(0, Math.round((req.challengeExpiresAt - this.challengeNow()) / 1000));
+  }
+
+  challengeCountdown(): string {
+    const s = this.challengeSecondsLeft();
+    if (s === null) return '';
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  private sendApprove(req: TerminalRequest, challengeCode: string | undefined): void {
     this.saving.set(true);
-    this.api.approveTerminalRequest(req.id).subscribe({
+    this.api.approveTerminalRequest(req.id, challengeCode).subscribe({
       next: () => {
         this.requests.update((list) =>
           list.map((r) => (r.id === req.id ? { ...r, status: 'APPROVED' } : r))
         );
         this.saving.set(false);
+        this.closeApprove();
         this.notify('Device request approved');
       },
       error: (err) => {
         this.saving.set(false);
-        this.fail(this.errMsg(err, 'Approval failed'));
+        const code = (err as { headers?: { get(name: string): string | null } })?.headers?.get('X-Error-Code');
+        const message = this.challengeErrorMessage(code) ?? this.errMsg(err, 'Approval failed');
+        if (this.approvingRequest()) {
+          this.challengeError.set(message);
+        } else {
+          this.fail(message);
+        }
       }
     });
+  }
+
+  private challengeErrorMessage(code: string | null | undefined): string | null {
+    switch (code) {
+      case 'RECOVERY_CHALLENGE_MISMATCH':
+        return 'That number does not match the one on the device. Check and try again.';
+      case 'RECOVERY_CHALLENGE_EXPIRED':
+        return 'The number has expired. Ask the device to generate a new one.';
+      case 'RECOVERY_CHALLENGE_LOCKED':
+        return 'Too many wrong attempts. Ask the device to generate a new number.';
+      default:
+        return null;
+    }
   }
 
   reject(req: TerminalRequest): void {

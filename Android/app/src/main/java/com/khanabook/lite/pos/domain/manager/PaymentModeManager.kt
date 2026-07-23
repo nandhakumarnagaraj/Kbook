@@ -4,6 +4,11 @@ package com.khanabook.lite.pos.domain.manager
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.PaymentMode
 
+data class PaymentComponent(
+    val mode: PaymentMode,
+    val amount: String
+)
+
 object PaymentModeManager {
 
     fun getEnabledModes(profile: RestaurantProfileEntity): List<PaymentMode> {
@@ -40,6 +45,29 @@ object PaymentModeManager {
 
     fun getDisplayLabel(mode: PaymentMode): String {
         return mode.displayLabel
+    }
+
+    fun getPaymentComponents(
+        mode: PaymentMode,
+        totalAmount: String,
+        partAmount1: String,
+        partAmount2: String
+    ): List<PaymentComponent> {
+        return when (mode) {
+            PaymentMode.PART_CASH_UPI -> listOf(
+                PaymentComponent(PaymentMode.CASH, partAmount1),
+                PaymentComponent(PaymentMode.UPI, partAmount2)
+            )
+            PaymentMode.PART_CASH_POS -> listOf(
+                PaymentComponent(PaymentMode.CASH, partAmount1),
+                PaymentComponent(PaymentMode.POS, partAmount2)
+            )
+            PaymentMode.PART_UPI_POS -> listOf(
+                PaymentComponent(PaymentMode.UPI, partAmount1),
+                PaymentComponent(PaymentMode.POS, partAmount2)
+            )
+            else -> listOf(PaymentComponent(mode, totalAmount))
+        }
     }
 }
 

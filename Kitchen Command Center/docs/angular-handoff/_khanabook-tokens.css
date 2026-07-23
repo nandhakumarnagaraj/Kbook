@@ -1,0 +1,203 @@
+/* =============================================================================
+ * KhanaBook Web Admin — Design Tokens
+ * Concept: Service Pass (Balanced SaaS) + selective Warm Kitchen on OWNER dashboard
+ * Source: src/proto/design-tokens.json (Lovable React prototype)
+ *
+ * Drop-in for Angular. Import from a global stylesheet, e.g.:
+ *   @import "./styles/_khanabook-tokens.css";
+ *
+ * REFERENCE ONLY — values match the approved prototype. Adjust semantic
+ * mappings to fit the existing Angular project's token conventions if needed.
+ * All colours expressed as sRGB hex for maximum tool compatibility; original
+ * OKLCH values are preserved in comments for wide-gamut authoring.
+ * ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------- */
+  /* Core neutrals & surfaces                                               */
+  /* ---------------------------------------------------------------------- */
+  --kb-color-bg-app: #faf7f2; /* oklch(0.976 0.008 78) warm off-white */
+  --kb-color-foreground: #1c1a17; /* oklch(0.185 0.012 55) */
+  --kb-color-surface: #ffffff;
+  --kb-color-surface-2: #f8f5ef; /* table header / raised subtle */
+  --kb-color-muted: #f1ede4; /* chips / inline muted */
+  --kb-color-muted-foreground: #6b655c;
+  --kb-color-border: #efe9de;
+  --kb-color-border-strong: #e1d9ca;
+  --kb-color-input: #efe9de;
+  --kb-color-ring: rgba(232, 122, 30, 0.4); /* focus ring */
+
+  /* ---------------------------------------------------------------------- */
+  /* Brand                                                                   */
+  /* ---------------------------------------------------------------------- */
+  --kb-color-espresso: #2a1f17; /* sidebar / strong ink */
+  --kb-color-espresso-foreground: #f1ecdf;
+  --kb-color-cream: #f5efe3;
+  --kb-color-saffron: #e87a1e; /* primary action */
+  --kb-color-turmeric: #e4b233;
+  --kb-color-burnt: #d2643a; /* hero-gradient end */
+
+  /* ---------------------------------------------------------------------- */
+  /* Semantic — primary action                                              */
+  /* ---------------------------------------------------------------------- */
+  --kb-color-primary: #e87a1e;
+  --kb-color-primary-foreground: #ffffff;
+  --kb-color-primary-hover: #d66a18;
+  --kb-color-primary-soft: #fdf0e0;
+
+  /* ---------------------------------------------------------------------- */
+  /* Semantic — status                                                       */
+  /* ---------------------------------------------------------------------- */
+  --kb-color-success: #2f855a;
+  --kb-color-success-soft: #e7f4ec;
+  --kb-color-warning: #b7791f;
+  --kb-color-warning-soft: #fbf3df;
+  --kb-color-danger: #c0392b;
+  --kb-color-danger-soft: #f9e7e3;
+  --kb-color-info: #2b6cb0;
+  --kb-color-info-soft: #e5eef7;
+
+  /* ---------------------------------------------------------------------- */
+  /* Gradients (OWNER dashboard ONLY — do not leak elsewhere)               */
+  /* ---------------------------------------------------------------------- */
+  --kb-gradient-hero: linear-gradient(135deg, #e87a1e 0%, #d2643a 100%);
+  --kb-gradient-cream: linear-gradient(180deg, #fbf8f1 0%, #f5efe3 100%);
+
+  /* ---------------------------------------------------------------------- */
+  /* Typography                                                              */
+  /* ---------------------------------------------------------------------- */
+  --kb-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --kb-font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --kb-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale — sizes in px, rem-equivalents where useful */
+  --kb-fs-meta-label: 11px; /* uppercase, 600, tracking 0.05em */
+  --kb-fs-caption: 11px;
+  --kb-fs-body-xs: 12px;
+  --kb-fs-body-sm: 13px;
+  --kb-fs-body: 14px;
+  --kb-fs-body-strong: 14px; /* weight 500 */
+  --kb-fs-section-title: 18px; /* 600, tracking -0.01em */
+  --kb-fs-page-title: 24px; /* 600, tracking -0.02em */
+  --kb-fs-kpi-value: 30px; /* 600, tabular-nums, tracking -0.02em */
+  --kb-fs-hero-value: 38px; /* display, 400 — OWNER hero KPI only */
+  --kb-fs-welcome: 32px; /* display, 400 — OWNER welcome only */
+
+  --kb-fw-regular: 400;
+  --kb-fw-medium: 500;
+  --kb-fw-semibold: 600;
+
+  --kb-lh-tight: 1.15;
+  --kb-lh-snug: 1.3;
+  --kb-lh-normal: 1.5;
+
+  --kb-tracking-tight: -0.02em;
+  --kb-tracking-snug: -0.01em;
+  --kb-tracking-normal: 0;
+  --kb-tracking-wide: 0.05em;
+
+  /* ---------------------------------------------------------------------- */
+  /* Spacing (4px unit)                                                     */
+  /* ---------------------------------------------------------------------- */
+  --kb-space-0: 0;
+  --kb-space-1: 4px;
+  --kb-space-2: 8px;
+  --kb-space-3: 12px;
+  --kb-space-4: 16px;
+  --kb-space-5: 20px;
+  --kb-space-6: 24px;
+  --kb-space-8: 32px;
+  --kb-space-10: 40px;
+  --kb-space-12: 48px;
+  --kb-space-16: 64px;
+
+  /* ---------------------------------------------------------------------- */
+  /* Radii                                                                   */
+  /* ---------------------------------------------------------------------- */
+  --kb-radius-sm: 4px; /* chips, badges */
+  --kb-radius-md: 6px; /* dense inputs, small buttons */
+  --kb-radius-lg: 8px; /* inputs / buttons default */
+  --kb-radius-xl: 12px; /* cards, tables, drawer */
+  --kb-radius-2xl: 16px; /* OWNER hero KPI, warm cards */
+  --kb-radius-full: 9999px;
+
+  /* ---------------------------------------------------------------------- */
+  /* Shadows                                                                 */
+  /* ---------------------------------------------------------------------- */
+  --kb-shadow-xs: 0 1px 2px rgba(42, 31, 23, 0.04);
+  --kb-shadow-sm: 0 1px 3px rgba(42, 31, 23, 0.06), 0 1px 2px rgba(42, 31, 23, 0.04);
+  --kb-shadow-md: 0 4px 12px rgba(42, 31, 23, 0.08);
+  --kb-shadow-lg: 0 12px 32px rgba(42, 31, 23, 0.12);
+  --kb-shadow-warm: 0 6px 20px rgba(210, 100, 58, 0.08); /* OWNER hero KPI only */
+
+  /* ---------------------------------------------------------------------- */
+  /* Breakpoints (reference — Angular typically uses media queries directly) */
+  /* ---------------------------------------------------------------------- */
+  --kb-bp-xs: 320px;
+  --kb-bp-sm: 640px;
+  --kb-bp-md: 768px;
+  --kb-bp-lg: 1024px;
+  --kb-bp-xl: 1280px;
+  --kb-bp-2xl: 1536px;
+
+  /* ---------------------------------------------------------------------- */
+  /* Motion                                                                  */
+  /* ---------------------------------------------------------------------- */
+  --kb-duration-instant: 80ms;
+  --kb-duration-fast: 150ms;
+  --kb-duration-base: 200ms;
+  --kb-duration-slow: 300ms;
+
+  --kb-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --kb-ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --kb-ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---------------------------------------------------------------------- */
+  /* Z-index                                                                 */
+  /* ---------------------------------------------------------------------- */
+  --kb-z-base: 0;
+  --kb-z-raised: 10;
+  --kb-z-sticky: 20;
+  --kb-z-topbar: 30;
+  --kb-z-backdrop: 40;
+  --kb-z-modal: 50;
+  --kb-z-toast: 60;
+
+  /* ---------------------------------------------------------------------- */
+  /* Layout                                                                  */
+  /* ---------------------------------------------------------------------- */
+  --kb-sidebar-width: 240px;
+  --kb-sidebar-collapsed: 64px; /* spec — icon-only rail (optional) */
+  --kb-topbar-height: 56px;
+  --kb-page-title-block: 80px;
+  --kb-content-max-width: 1400px;
+  --kb-page-padding-x-mobile: 16px;
+  --kb-page-padding-x-desktop: 32px;
+  --kb-page-padding-y: 24px;
+  --kb-card-padding: 20px;
+
+  --kb-drawer-width-sm: 420px;
+  --kb-drawer-width-md: 560px;
+  --kb-drawer-width-lg: 720px;
+
+  --kb-dialog-width-sm: 384px;
+  --kb-dialog-width-md: 448px;
+  --kb-dialog-width-lg: 512px;
+
+  /* ---------------------------------------------------------------------- */
+  /* Touch targets                                                           */
+  /* ---------------------------------------------------------------------- */
+  --kb-touch-min: 40px;
+  --kb-touch-primary: 44px; /* primary CTAs on mobile */
+}
+
+/* Reduced-motion honouring — global fallback (page-level animations should
+   also respect this). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --kb-duration-instant: 0ms;
+    --kb-duration-fast: 0ms;
+    --kb-duration-base: 0ms;
+    --kb-duration-slow: 0ms;
+  }
+}

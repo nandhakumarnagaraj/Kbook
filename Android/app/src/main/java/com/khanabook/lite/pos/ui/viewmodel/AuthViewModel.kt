@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
@@ -14,7 +13,6 @@ import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.BackendException
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
-import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -36,7 +34,6 @@ constructor(
         @ApplicationContext private val context: Context,
         private val userRepository: UserRepository,
         private val restaurantRepository: RestaurantRepository,
-        private val databaseProvider: DatabaseProvider,
         private val syncManager: SyncManager,
         private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
         private val authManager: AuthManager
@@ -125,18 +122,16 @@ constructor(
     }
 
     private suspend fun performLogin(loginId: String, password: String) {
-        val result = userRepository.remoteLogin(loginId, password)
+        val startedAt = System.nanoTime()
+        val result = withContext(Dispatchers.IO) {
+            userRepository.remoteLogin(loginId, password)
+        }
 
         result.onSuccess { user ->
-            val setupResult = handleLoginSuccess(user)
-            if (setupResult.isSuccess) {
-                _loginStatus.value = LoginResult.Success(user)
-            } else {
-                _loginStatus.value = loginError(
-                    "Login successful but failed to restore your data. Please check your internet and try again.",
-                    LoginErrorCode.GOOGLE_SYNC_FAILED
-                )
-            }
+            sessionManager.clearLockout()
+            _loginStatus.value = LoginResult.Success(user)
+            Log.i(TAG, "Login ready in ${(System.nanoTime() - startedAt) / 1_000_000}ms")
+            schedulePostLoginWork()
         }.onFailure { e ->
             Log.e(TAG, "Remote login failed: ${e.message}.", e)
 
@@ -178,26 +173,14 @@ constructor(
         }
     }
 
-    private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
-        sessionManager.clearLockout()
-        withContext(Dispatchers.IO) {
-            databaseProvider.warmUpDatabase()
-        }
-        // Initialization (first-time vs re-login) is now handled inside
-        // UserRepository.remoteLogin() — the restaurantId is only published
-        // AFTER the target database is open and ready, and the sync state
-        // (timestamp, initialSyncCompleted, profile seed) is already set.
-        //
-        // Here we only schedule the periodic sync job and trigger an
-        // immediate push for any pending offline data on re-login.
-        if (sessionManager.canUsePos()) {
-            MasterSyncWorker.schedule(context)
-            val restaurantId = user.restaurantId
-            if (databaseProvider.isDatabaseFileExists(restaurantId)) {
-                androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(initialDelaySeconds = 10)
+    private fun schedulePostLoginWork() {
+        if (!sessionManager.canUsePos()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            if (sessionManager.isInitialSyncCompleted()) {
+                androidx.work.WorkManager.getInstance(context)
+                    .enqueueMasterSyncOnce(initialDelaySeconds = 10)
             }
         }
-        return Result.success(Unit)
     }
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
@@ -377,17 +360,15 @@ constructor(
     fun loginWithGoogleToken(idToken: String) {
         _loginStatus.value = LoginResult.Loading
         viewModelScope.launch {
-            val result = userRepository.remoteGoogleLogin(idToken)
+            val startedAt = System.nanoTime()
+            val result = withContext(Dispatchers.IO) {
+                userRepository.remoteGoogleLogin(idToken)
+            }
             result.onSuccess { user ->
-                val setupResult = handleLoginSuccess(user)
-                if (setupResult.isSuccess) {
-                    _loginStatus.value = LoginResult.Success(user)
-                } else {
-                    _loginStatus.value = loginError(
-                        "Login successful but failed to restore your data. Please check your internet and try again.",
-                        LoginErrorCode.GOOGLE_SYNC_FAILED
-                    )
-                }
+                sessionManager.clearLockout()
+                _loginStatus.value = LoginResult.Success(user)
+                Log.i(TAG, "Google login ready in ${(System.nanoTime() - startedAt) / 1_000_000}ms")
+                schedulePostLoginWork()
             }.onFailure { e ->
                 Log.e(TAG, "Remote Google login failed: ${e.message}", e)
                 val statusCode = when (e) {

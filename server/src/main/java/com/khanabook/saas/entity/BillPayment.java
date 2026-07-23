@@ -44,4 +44,10 @@ public class BillPayment extends BaseSyncEntity {
 
 	@Column(name = "verified_by", columnDefinition = "TEXT DEFAULT 'manual'")
 	private String verifiedBy;
+
+	// Operation identity from the originating Android device.
+	// Nullable so legacy clients without operation_id continue to sync without conflict.
+	// Unique index (with restaurant_id) enforced via Flyway partial index.
+	@Column(name = "operation_id")
+	private String operationId;
 }

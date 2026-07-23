@@ -34,9 +34,35 @@ class SyncManager @Inject constructor(
     private var isSyncing = false
     private var hasPendingSync = false
 
+    // ── Sync debounce ───────────────────────────────────────────────────────
+    // Throttles rapid triggerImmediateSync() calls (e.g. during bill creation
+    // where 3-4 sequential syncs fire within seconds). Only the last caller
+    // within the cooldown window triggers a deferred sync.
+    private val debounceMutex = Mutex()
+    private var lastSyncStartTime = 0L
+    private var deferredSyncJob: kotlinx.coroutines.Job? = null
+    private val syncDebounceWindowMs = 5_000L // 5-second cooldown
+
     fun triggerImmediateSync() {
         syncScope.launch {
-            performFullSync()
+            val now = System.currentTimeMillis()
+            val shouldSkip = debounceMutex.withLock {
+                if (now - lastSyncStartTime < syncDebounceWindowMs) {
+                    // Too soon — schedule a deferred sync instead
+                    deferredSyncJob?.cancel()
+                    deferredSyncJob = syncScope.launch {
+                        kotlinx.coroutines.delay(syncDebounceWindowMs)
+                        performFullSync()
+                    }
+                    true
+                } else {
+                    lastSyncStartTime = now
+                    false
+                }
+            }
+            if (!shouldSkip) {
+                performFullSync()
+            }
         }
     }
 
@@ -309,7 +335,7 @@ class SyncManager @Inject constructor(
             return Result.failure(exception.withRecoveryStatus(false))
         }
 
-        return runCatching { masterSyncProcessor.pushAll() }
+        return runCatching { masterSyncProcessor.pushAllAfterConflictRecovery() }
             .fold(
                 onSuccess = { pushSucceeded ->
                     if (pushSucceeded) Result.success(Unit)

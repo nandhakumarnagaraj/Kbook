@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
 import android.content.Context
-import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
@@ -38,7 +37,6 @@ class AuthViewModelTest {
     private val context: Context = mockk(relaxed = true)
     private val userRepository: UserRepository = mockk(relaxed = true)
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
-    private val databaseProvider: DatabaseProvider = mockk(relaxed = true)
     private val syncManager: SyncManager = mockk(relaxed = true)
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private val authManager: AuthManager = mockk(relaxed = true)
@@ -52,12 +50,10 @@ class AuthViewModelTest {
         Dispatchers.setMain(testDispatcher)
         io.mockk.mockkStatic(android.util.Log::class)
         every { android.util.Log.d(any(), any()) } returns 0
+        every { android.util.Log.i(any(), any()) } returns 0
         every { android.util.Log.e(any(), any()) } returns 0
         every { android.util.Log.e(any(), any(), any()) } returns 0
         every { userRepository.currentUser } returns MutableStateFlow(null)
-
-        every { context.getDatabasePath(any()) } returns java.io.File("non_existent_path")
-        every { databaseProvider.warmUpDatabase() } returns Unit
 
         io.mockk.mockkStatic(androidx.work.WorkManager::class)
         val mockWorkManager = mockk<androidx.work.WorkManager>(relaxed = true)
@@ -67,7 +63,6 @@ class AuthViewModelTest {
             context,
             userRepository,
             restaurantRepository,
-            databaseProvider,
             syncManager,
             sessionManager,
             authManager
@@ -131,7 +126,7 @@ class AuthViewModelTest {
         coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(httpException)
 
         viewModel.login(email, password)
-        advanceUntilIdle()
+        awaitLoginTerminalState()
 
         val result = viewModel.loginStatus.value
         assertTrue("Expected login to fail with INCORRECT_PASSWORD", result is AuthViewModel.LoginResult.Error)
@@ -149,7 +144,7 @@ class AuthViewModelTest {
         coEvery { userRepository.getUserByLoginId(email) } returns null
 
         viewModel.login(email, password)
-        advanceUntilIdle()
+        awaitLoginTerminalState()
 
         val result = viewModel.loginStatus.value
         assertTrue("Expected login to fail with ACCOUNT_NOT_FOUND", result is AuthViewModel.LoginResult.Error)

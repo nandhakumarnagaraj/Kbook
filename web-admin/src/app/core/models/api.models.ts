@@ -162,6 +162,8 @@ export interface TerminalRequest {
   processedAt: number | null;
   rejectionReason: string | null;
   assignedTerminalId: number | null;
+  challengeRequired?: boolean;
+  challengeExpiresAt?: number | null;
 }
 
 export interface RenameTerminalRequest {
@@ -170,6 +172,10 @@ export interface RenameTerminalRequest {
 
 export interface RejectTerminalRequest {
   reason?: string;
+}
+
+export interface ApproveTerminalRequest {
+  challengeCode?: string;
 }
 
 export interface RecoverTerminalRequest {

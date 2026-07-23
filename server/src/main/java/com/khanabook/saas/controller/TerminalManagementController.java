@@ -86,11 +86,33 @@ public class TerminalManagementController {
     }
 
     @PostMapping("/terminal-requests/{requestId}/approve")
-    public ResponseEntity<ApprovalResponse> approveRequest(@PathVariable Long requestId) {
+    public ResponseEntity<ApprovalResponse> approveRequest(
+            @PathVariable Long requestId, @RequestBody(required = false) ApproveRequest body) {
         Long restaurantId = TenantContext.getCurrentTenant();
         Long userId = TenantContext.getCurrentUserId();
         String role = TenantContext.getCurrentRole();
         if (restaurantId == null) return ResponseEntity.badRequest().build();
+
+        TerminalManagementService.ChallengeResult verdict =
+                terminalManagementService.verifyChallenge(
+                        requestId,
+                        restaurantId,
+                        body != null ? body.challengeCode() : null);
+        switch (verdict) {
+            case MISMATCH -> {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .header("X-Error-Code", "RECOVERY_CHALLENGE_MISMATCH").build();
+            }
+            case EXPIRED -> {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .header("X-Error-Code", "RECOVERY_CHALLENGE_EXPIRED").build();
+            }
+            case LOCKED -> {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .header("X-Error-Code", "RECOVERY_CHALLENGE_LOCKED").build();
+            }
+            default -> { /* OK — fall through to approval */ }
+        }
 
         TerminalManagementService.ActivationResult result = terminalManagementService.approveRequest(
                 requestId, restaurantId, userId != null ? userId : 0L, role != null ? role : "OWNER");
@@ -100,6 +122,11 @@ public class TerminalManagementController {
                 result.terminal().getTerminalSeries(),
                 result.terminal().getTerminalName(),
                 result.terminal().getStatus()));
+    }
+
+    /** Backward-compatible overload for existing callers/tests that approve without a challenge. */
+    public ResponseEntity<ApprovalResponse> approveRequest(Long requestId) {
+        return approveRequest(requestId, null);
     }
 
     @PostMapping("/terminal-requests/{requestId}/reject")
@@ -147,7 +174,11 @@ public class TerminalManagementController {
     public record RequestDto(Long id, String deviceId, String deviceModel, String deviceName,
                              String requestType, String status, Long matchedTerminalId,
                              Long requestedAt, Long processedAt, String rejectionReason,
-                             Long assignedTerminalId) {
+                             Long assignedTerminalId,
+                             boolean challengeRequired, Long challengeExpiresAt) {
+    }
+
+    public record ApproveRequest(String challengeCode) {
     }
 
     public record RenameRequest(String name) {
@@ -174,9 +205,14 @@ public class TerminalManagementController {
     }
 
     private RequestDto toRequestDto(DeviceRegistrationRequest r) {
+        // Expose only whether a live challenge exists and when it expires — never the
+        // code itself, so the approver must read it off the device (number matching).
+        boolean challengeLive = r.getChallengeCode() != null && r.getChallengeExpiresAt() != null
+                && System.currentTimeMillis() <= r.getChallengeExpiresAt();
         return new RequestDto(r.getId(), r.getDeviceId(), r.getDeviceModel(), r.getDeviceName(),
                 r.getRequestType(), r.getStatus(), r.getMatchedTerminalId(),
                 r.getRequestedAt(), r.getProcessedAt(), r.getRejectionReason(),
-                r.getAssignedTerminalId());
+                r.getAssignedTerminalId(),
+                challengeLive, challengeLive ? r.getChallengeExpiresAt() : null);
     }
 }

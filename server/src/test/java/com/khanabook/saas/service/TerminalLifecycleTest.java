@@ -280,8 +280,14 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         assertThat(pendingResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         var pending = (TerminalController.TerminalPendingResponse) pendingResponse.getBody();
 
-        // Admin approves
-        var approvalResponse = managementController.approveRequest(pending.requestId());
+        // Approval without the number must be rejected.
+        assertThat(managementController.approveRequest(pending.requestId()).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+
+        // Admin approves with the number shown on Device 2.
+        var approvalResponse = managementController.approveRequest(
+                pending.requestId(),
+                new TerminalManagementController.ApproveRequest(pending.challengeCode()));
         assertThat(approvalResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(approvalResponse.getBody().terminalSeries()).isEqualTo("B");
 
@@ -325,8 +331,10 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
                 new TerminalController.TerminalActivationRequest("device-comp-2", null));
         var pending = (TerminalController.TerminalPendingResponse) pendingResponse.getBody();
 
-        // Approve
-        managementController.approveRequest(pending.requestId());
+        // Approve with the number shown on the requesting device.
+        managementController.approveRequest(
+                pending.requestId(),
+                new TerminalManagementController.ApproveRequest(pending.challengeCode()));
 
         // A different device tries to complete — must be rejected
         var wrongDeviceResponse = terminalController.completeActivation(

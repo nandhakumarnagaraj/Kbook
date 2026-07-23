@@ -29,4 +29,5 @@ public class BillPaymentDTO {
     private String gatewayTxnId;
     private String gatewayStatus;
     private String verifiedBy;
+    private String operationId;
 }

@@ -11,8 +11,12 @@ import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.entity.KotEventEntity
 import com.khanabook.lite.pos.data.local.entity.KotEventType
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.relation.BillFinalizationOutcome
+import com.khanabook.lite.pos.data.local.relation.BillFinalizationResult
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
+import com.khanabook.lite.pos.domain.manager.PaymentRecoveryAssessment
+import com.khanabook.lite.pos.domain.manager.PaymentSetValidator
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -44,7 +48,8 @@ class BillRepository(
     suspend fun insertFullBill(
             bill: BillEntity,
             items: List<BillItemEntity>,
-            payments: List<BillPaymentEntity>
+            payments: List<BillPaymentEntity>,
+            scheduleDurableSync: Boolean = true
     ): Long {
         val billId = billDao.insertFullBill(bill, items, payments)
         billDao.getBillWithItemsById(billId, sessionManager.getRestaurantId())?.let {
@@ -57,7 +62,7 @@ class BillRepository(
             inventoryConsumptionManager?.consumeMaterialsForBill(items)
         }
         
-        triggerBackgroundSync()
+        if (scheduleDurableSync) triggerBackgroundSync()
         return billId
     }
 
@@ -73,12 +78,19 @@ class BillRepository(
         return billDao.getBillWithItemsById(id, sessionManager.getRestaurantId())
     }
 
-    suspend fun updateBill(bill: BillEntity) {
+    suspend fun getRestorablePendingOnlineBillWithItems(id: Long): BillWithItems? =
+        billDao.getRestorablePendingOnlineBillWithItems(
+            id,
+            sessionManager.getRestaurantId(),
+            currentTerminalScope()
+        )
+
+    suspend fun updateBill(bill: BillEntity, scheduleDurableSync: Boolean = true) {
         // Terminal ownership isolation (defense-in-depth): only locally-owned operational
         // bills may be mutated. Server-imported / marketplace-imported history is read-only.
         if (!isLocallyOwned(bill)) return
         billDao.updateBill(bill)
-        triggerBackgroundSync()
+        if (scheduleDurableSync) triggerBackgroundSync()
     }
 
     suspend fun addBillPayment(payment: BillPaymentEntity) {
@@ -123,12 +135,99 @@ class BillRepository(
 
     suspend fun settleDraftBill(
         bill: BillEntity,
-        payments: List<BillPaymentEntity>
+        payments: List<BillPaymentEntity>,
+        scheduleDurableSync: Boolean = true
     ) {
         // Terminal ownership isolation (defense-in-depth).
         if (!isLocallyOwned(bill)) return
         billDao.settleDraftBill(bill, payments)
-        triggerBackgroundSync()
+        if (scheduleDurableSync) triggerBackgroundSync()
+    }
+
+    suspend fun finalizeOnlineBill(
+        billId: Long,
+        payments: List<BillPaymentEntity>,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val finalized = billDao.finalizeOnlineBillAtomically(
+            billId = billId,
+            restaurantId = sessionManager.getRestaurantId(),
+            terminalId = currentTerminalScope(),
+            requestedPayments = payments,
+            completedAt = completedAt
+        )
+        if (finalized.outcome == BillFinalizationOutcome.FINALIZED_NOW) {
+            inventoryConsumptionManager?.consumeMaterialsForBill(finalized.billWithItems.items)
+        }
+        return finalized
+    }
+
+    suspend fun getPaymentRecoveryAssessment(billId: Long): PaymentRecoveryAssessment {
+        val restaurantId = sessionManager.getRestaurantId()
+        val bill = billDao.getOperationalBillById(
+            billId,
+            restaurantId,
+            currentTerminalScope()
+        ) ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        val payments = billDao.getActivePaymentsForBill(bill.id, restaurantId)
+        return PaymentSetValidator.assessForRecovery(payments, bill.totalAmount)
+    }
+
+    suspend fun finalizeExistingPaymentSet(
+        billId: Long,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val restaurantId = sessionManager.getRestaurantId()
+        val payments = billDao.getActivePaymentsForBill(billId, restaurantId)
+        return finalizeOnlineBill(billId, payments, completedAt)
+    }
+
+    suspend fun recoverPartialPayment(
+        billId: Long,
+        paymentMode: String,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val restaurantId = sessionManager.getRestaurantId()
+        val bill = billDao.getOperationalBillById(
+            billId,
+            restaurantId,
+            currentTerminalScope()
+        ) ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        val identityBase = bill.operationId
+            ?: bill.publicToken?.let { "bill:$it" }
+            ?: "bill:${bill.id}"
+        val finalized = billDao.recoverPartialPaymentAndFinalizeAtomically(
+            billId = bill.id,
+            restaurantId = restaurantId,
+            terminalId = currentTerminalScope(),
+            recoveryPayment = BillPaymentEntity(
+                billId = bill.id,
+                paymentMode = paymentMode,
+                amount = "0.0",
+                restaurantId = restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                operationId = "$identityBase:recovery:$paymentMode",
+                createdAt = completedAt,
+                updatedAt = completedAt
+            ),
+            completedAt = completedAt
+        )
+        if (finalized.outcome == BillFinalizationOutcome.FINALIZED_NOW) {
+            inventoryConsumptionManager?.consumeMaterialsForBill(finalized.billWithItems.items)
+        }
+        return finalized
+    }
+
+    suspend fun resetUnverifiedPaymentRecovery(billId: Long): PaymentRecoveryAssessment {
+        billDao.resetUnverifiedPaymentRecoveryAtomically(
+            billId = billId,
+            restaurantId = sessionManager.getRestaurantId(),
+            terminalId = currentTerminalScope(),
+            updatedAt = System.currentTimeMillis()
+        )
+        return getPaymentRecoveryAssessment(billId)
     }
 
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
@@ -184,6 +283,27 @@ class BillRepository(
         val isBecomingDeducted = status.equals("completed", ignoreCase = true) || 
                                  status.equals("paid", ignoreCase = true)
 
+        // Payment-integrity guard (mirrors the settlement invariant): a bill that CARRIES
+        // active payment rows may only be marked completed/paid if those rows form a valid,
+        // complete payment set. This blocks the payment-recovery bypass — one-tap
+        // "Completed" on a draft holding stale/partial/duplicate UPI rows, which would
+        // otherwise produce an inconsistent completed+pending bill and deduct inventory
+        // without validation. Clean completion (no active payment rows) is unaffected, and
+        // an already-valid completed set stays idempotent. Reject before any write,
+        // inventory deduction, or sync so malformed rows are preserved for recovery.
+        if (isBecomingDeducted) {
+            val existingPayments = billDao.getActivePaymentsForBill(id, restaurantId)
+            if (existingPayments.isNotEmpty()) {
+                PaymentSetValidator.validate(existingPayments, current.totalAmount).getOrElse { cause ->
+                    throw IllegalStateException(
+                        "This order has incomplete payment records and cannot be completed automatically. " +
+                            "Review or contact support.",
+                        cause
+                    )
+                }
+            }
+        }
+
         billDao.updateBill(
             current.copy(
                 orderStatus = status,
@@ -200,12 +320,12 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun cancelOrder(id: Long, reason: String) {
+    suspend fun cancelOrder(id: Long, reason: String, scheduleDurableSync: Boolean = true) {
         val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
         if (!isLocallyOwned(current)) return
         billDao.cancelBill(id, reason, System.currentTimeMillis(), sessionManager.getRestaurantId())
         kitchenPrintQueueRepository?.deleteByBillId(id)
-        triggerBackgroundSync()
+        if (scheduleDurableSync) triggerBackgroundSync()
     }
 
     suspend fun cancelStalePendingOnlineDrafts(): Int {
@@ -401,6 +521,12 @@ class BillRepository(
     fun getActiveDraftBillsFlow(): kotlinx.coroutines.flow.Flow<List<BillEntity>> {
         return billDao.getActiveDraftBillsFlow(sessionManager.getRestaurantId(), currentTerminalScope())
     }
+
+    fun getActionableDraftBillsWithItemsFlow(): Flow<List<BillWithItems>> =
+        billDao.getActionableDraftBillsWithItemsFlow(
+            sessionManager.getRestaurantId(),
+            currentTerminalScope()
+        )
 
     private suspend fun recordKotEvent(
         bill: BillEntity,

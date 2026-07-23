@@ -89,8 +89,9 @@ export class BusinessApiService {
     });
   }
 
-  approveTerminalRequest(requestId: number) {
-    return this.http.post<void>(`${API_BASE_URL}/business/terminal-requests/${requestId}/approve`, {});
+  approveTerminalRequest(requestId: number, challengeCode?: string) {
+    const body = challengeCode ? { challengeCode } : {};
+    return this.http.post<void>(`${API_BASE_URL}/business/terminal-requests/${requestId}/approve`, body);
   }
 
   rejectTerminalRequest(requestId: number, payload?: RejectTerminalRequest) {

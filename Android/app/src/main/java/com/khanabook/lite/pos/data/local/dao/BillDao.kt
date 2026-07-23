@@ -8,6 +8,10 @@ import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.relation.BillFinalizationOutcome
+import com.khanabook.lite.pos.data.local.relation.BillFinalizationResult
+import com.khanabook.lite.pos.domain.manager.PaymentRecoveryAssessment
+import com.khanabook.lite.pos.domain.manager.PaymentSetValidator
 import kotlinx.coroutines.flow.Flow
 
 data class BillIdDuplicateGroup(
@@ -27,6 +31,11 @@ data class BillIdConflictBill(
     val paymentMode: String,
     val totalAmount: String,
     val createdAt: Long
+)
+
+data class OperationIdDuplicate(
+    val operation_id: String,
+    val cnt: Int
 )
 
 @Dao
@@ -93,6 +102,26 @@ interface BillDao {
     """)
 fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
+    @Transaction
+    @Query("""
+        SELECT * FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND is_deleted = 0
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
+        ORDER BY updated_at DESC
+    """)
+    fun getActionableDraftBillsWithItemsFlow(
+        restaurantId: Long,
+        terminalId: String
+    ): Flow<List<BillWithItems>>
+
     @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
     suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity>
 
@@ -109,11 +138,60 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
     @Query("DELETE FROM bill_items WHERE id = :id")
     suspend fun deleteBillItemById(id: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBillPayments(payments: List<BillPaymentEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBillPayment(payment: BillPaymentEntity)
+
+    @Update
+    suspend fun updateBillPayments(payments: List<BillPaymentEntity>)
+
+    @Query("""
+        SELECT * FROM bill_payments
+        WHERE bill_id = :billId AND restaurant_id = :restaurantId AND is_deleted = 0
+        ORDER BY id
+    """)
+    suspend fun getActivePaymentsForBill(billId: Long, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("""
+        UPDATE bill_payments
+        SET is_deleted = 1,
+            is_synced = 1,
+            sync_status = 'synced',
+            updated_at = :updatedAt
+        WHERE bill_id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND is_synced = 0
+          AND server_id IS NULL
+          AND verified_by = 'manual'
+          AND gateway_txn_id IS NULL
+    """)
+    suspend fun discardUnverifiedLocalPayments(
+        billId: Long,
+        restaurantId: Long,
+        updatedAt: Long
+    ): Int
+
+    @Query("""
+        SELECT * FROM bill_payments
+        WHERE operation_id IN (:operationIds)
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+    """)
+    suspend fun getPaymentsByOperationIds(operationIds: List<String>, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("""
+        SELECT operation_id, COUNT(*) AS cnt
+        FROM bill_payments
+        WHERE operation_id IS NOT NULL AND operation_id != ''
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+        GROUP BY operation_id
+        HAVING COUNT(*) > 1
+    """)
+    suspend fun getDuplicatePaymentOperationIdCounts(restaurantId: Long): List<com.khanabook.lite.pos.data.local.dao.OperationIdDuplicate>
 
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
@@ -134,6 +212,29 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
         LIMIT 1
     """)
     suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+    @Transaction
+    @Query("""
+        SELECT * FROM bills
+        WHERE id = :id
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos')
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
+        LIMIT 1
+    """)
+    suspend fun getRestorablePendingOnlineBillWithItems(
+        id: Long,
+        restaurantId: Long,
+        terminalId: String
+    ): BillWithItems?
 
     // Runtime reconciliation (post-migration / post-activation). The authoritative terminal is
     // only known at runtime, so this corrects the migration's conservative backfill: this
@@ -368,6 +469,20 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
                 syncStatus = if (it.isSynced) "synced" else "pending"
             )
         }
+        // Pre-check: verify no existing payments share the same operation_id within this restaurant.
+        val paymentOpIds = paymentsWithId.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+        if (paymentOpIds.isNotEmpty()) {
+            val conflicting = getPaymentsByOperationIds(paymentOpIds, bill.restaurantId)
+            if (conflicting.any { it.billId != billId }) {
+                val details = conflicting.joinToString("; ") {
+                    "payment id=${it.id} billId=${it.billId} opId=${it.operationId}"
+                }
+                throw IllegalStateException(
+                    "Cannot insert payments with operation_id(s) that already exist " +
+                    "on other bills (restaurant ${bill.restaurantId}). Conflicting rows: $details"
+                )
+            }
+        }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
         return billId
@@ -378,6 +493,17 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         bill: BillEntity,
         payments: List<BillPaymentEntity>
     ) {
+        // Defense-in-depth: reject settlement when active payment rows exist.
+        // The caller should route through finalizeOnlineBillAtomically() for
+        // proper validation, idempotent retry detection, and inventory boundary.
+        val existingActive = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        if (existingActive.isNotEmpty()) {
+            throw IllegalStateException(
+                "Bill ${bill.id} has ${existingActive.size} active payment row(s). " +
+                "Settlement requires zero existing rows. " +
+                "Use finalizeOnlineBillAtomically or contact support."
+            )
+        }
         val paymentsWithId = payments.map {
             it.copy(
                 billId = bill.id,
@@ -389,8 +515,271 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
                 syncStatus = if (it.isSynced) "synced" else "pending"
             )
         }
+        // Pre-check operation_id uniqueness within the restaurant.
+        val paymentOpIds = paymentsWithId.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+        if (paymentOpIds.isNotEmpty()) {
+            val conflicting = getPaymentsByOperationIds(paymentOpIds, bill.restaurantId)
+            if (conflicting.any { it.billId != bill.id }) {
+                throw IllegalStateException(
+                    "Cannot settle draft with operation_id(s) that already exist " +
+                    "on other bills (restaurant ${bill.restaurantId})."
+                )
+            }
+        }
         insertBillPayments(paymentsWithId)
         updateBill(bill)
+    }
+
+    @Transaction
+    suspend fun finalizeOnlineBillAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        requestedPayments: List<BillPaymentEntity>,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        val normalized = requestedPayments.map { payment ->
+            payment.copy(
+                billId = bill.id,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                isSynced = false,
+                syncStatus = "pending",
+                updatedAt = completedAt
+            )
+        }
+        PaymentSetValidator.validate(normalized, bill.totalAmount).getOrThrow()
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+
+        if (bill.orderStatus == "completed" && bill.paymentStatus == "success") {
+            if (!PaymentSetValidator.equivalent(existing, normalized, bill.totalAmount)) {
+                throw IllegalStateException("Bill is completed with a different or incomplete payment set.")
+            }
+            val reloaded = getBillWithItemsById(bill.id, bill.restaurantId)
+                ?: throw IllegalStateException("Completed bill could not be reloaded.")
+            return BillFinalizationResult(
+                reloaded,
+                BillFinalizationOutcome.ALREADY_FINALIZED_IDEMPOTENT
+            )
+        }
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        if (existing.isNotEmpty() &&
+            !PaymentSetValidator.equivalent(existing, normalized, bill.totalAmount)
+        ) {
+            throw IllegalStateException("Bill contains a malformed or conflicting payment set.")
+        }
+        var recoveredFromConstraint = false
+        if (existing.isEmpty()) {
+            // Pre-check operation_id uniqueness within the restaurant before inserting.
+            val normalizedOpIds = normalized.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+            if (normalizedOpIds.isNotEmpty()) {
+                val opIdConflicts = getPaymentsByOperationIds(normalizedOpIds, restaurantId)
+                if (opIdConflicts.any { it.billId != billId }) {
+                    throw IllegalStateException(
+                        "Cannot finalize bill: operation_id(s) already exist on other bills " +
+                        "(restaurant $restaurantId)."
+                    )
+                }
+            }
+            // Attempt the insert. ABORT strategy means a concurrent (same-bill, same-opId)
+            // insert from another thread will throw SQLiteConstraintException rather than
+            // silently overwrite. We catch that and recover by comparing the actually-inserted
+            // set against the requested set.
+            try {
+                insertBillPayments(normalized)
+            } catch (e: android.database.sqlite.SQLiteConstraintException) {
+                // A concurrent writer inserted a payment with the same operation_id on this
+                // same bill between our pre-check and this insert. Load the existing set and
+                // compare semantically.
+                android.util.Log.w("BillDao",
+                    "finalizeOnlineBillAtomically: constraint violation inserting payments for " +
+                    "bill=$billId restaurant=$restaurantId — recovering with semantic comparison")
+                val recoveredExisting = getActivePaymentsForBill(bill.id, bill.restaurantId)
+                if (recoveredExisting.isEmpty()) {
+                    // The constraint was not from our operation_id index — rethrow.
+                    throw e
+                }
+                if (!PaymentSetValidator.equivalent(
+                        recoveredExisting, normalized, bill.totalAmount)) {
+                    throw IllegalStateException(
+                        "Bill ${bill.id} has ${recoveredExisting.size} concurrent payment row(s) " +
+                        "that do not match the requested payment set. " +
+                        "Cannot complete with conflicting payments."
+                    )
+                }
+                // Existing payments are semantically equivalent to the requested set.
+                // The concurrent writer already inserted them — do NOT insert again.
+                // Set flag so the return outcome reflects the recovery.
+                recoveredFromConstraint = true
+            }
+        }
+        val outcome = if (recoveredFromConstraint) {
+            BillFinalizationOutcome.CONSTRAINT_RECOVERED_IDEMPOTENT
+        } else {
+            BillFinalizationOutcome.FINALIZED_NOW
+        }
+        updateBill(
+            bill.copy(
+                paymentMode = when (normalized.map { it.paymentMode }.toSet()) {
+                    setOf("cash", "upi") -> "part_cash_upi"
+                    setOf("cash", "pos") -> "part_cash_pos"
+                    setOf("upi", "pos") -> "part_upi_pos"
+                    else -> normalized.single().paymentMode
+                },
+                paymentStatus = "success",
+                orderStatus = "completed",
+                paymentAttemptStatus = "succeeded",
+                paidAt = completedAt,
+                cancelReason = "",
+                isSynced = false,
+                syncStatus = "pending",
+                syncFailureReason = null,
+                syncFailedAt = null,
+                updatedAt = completedAt
+            )
+        )
+        val reloaded = getBillWithItemsById(bill.id, bill.restaurantId)
+            ?: throw IllegalStateException("Finalized bill could not be reloaded.")
+        return BillFinalizationResult(reloaded, outcome)
+    }
+
+    @Transaction
+    suspend fun recoverPartialPaymentAndFinalizeAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        recoveryPayment: BillPaymentEntity,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        val assessment = PaymentSetValidator.assessForRecovery(existing, bill.totalAmount)
+        if (assessment !is PaymentRecoveryAssessment.Partial) {
+            throw IllegalStateException("Bill does not contain a recoverable partial payment.")
+        }
+        require(recoveryPayment.paymentMode !in assessment.usedModes) {
+            "Choose a payment mode that has not already been recorded."
+        }
+        require(!recoveryPayment.operationId.isNullOrBlank()) {
+            "Payment identity is required."
+        }
+
+        val normalizedRecovery = recoveryPayment.copy(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            deviceId = bill.deviceId,
+            terminalId = bill.terminalId,
+            billPublicToken = bill.publicToken,
+            amount = assessment.remainingAmount,
+            isSynced = false,
+            syncStatus = "pending",
+            updatedAt = completedAt
+        )
+        val conflicting = getPaymentsByOperationIds(
+            listOf(normalizedRecovery.operationId!!),
+            restaurantId
+        )
+        if (conflicting.isNotEmpty()) {
+            throw IllegalStateException("Recovery payment identity is already in use.")
+        }
+
+        val completedSet = existing + normalizedRecovery
+        PaymentSetValidator.validate(completedSet, bill.totalAmount).getOrThrow()
+        insertBillPayment(normalizedRecovery)
+        return finalizeOnlineBillAtomically(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            terminalId = terminalId,
+            requestedPayments = completedSet,
+            completedAt = completedAt
+        )
+    }
+
+    @Transaction
+    suspend fun resetUnverifiedPaymentRecoveryAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        updatedAt: Long
+    ) {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        require(existing.isNotEmpty()) { "No payment recovery data exists." }
+        val canReset = existing.all {
+            !it.isSynced &&
+                it.serverId == null &&
+                it.verifiedBy == "manual" &&
+                it.gatewayTxnId == null
+        }
+        if (!canReset) {
+            require(existing.any { it.operationId.isNullOrBlank() }) {
+                "Synced or gateway-verified payments cannot be reset on this device."
+            }
+            val identityBase = bill.operationId?.takeIf { it.isNotBlank() }
+                ?: "${bill.restaurantId}:${bill.terminalId}:${bill.publicToken}:finalize"
+            val repaired = existing.map { payment ->
+                if (payment.operationId.isNullOrBlank()) {
+                    payment.copy(
+                        operationId = "$identityBase:payment:${payment.paymentMode}",
+                        isSynced = false,
+                        syncStatus = "pending",
+                        updatedAt = updatedAt
+                    )
+                } else {
+                    payment
+                }
+            }
+            PaymentSetValidator.validate(repaired, bill.totalAmount).getOrThrow()
+            val repairedOperationIds = repaired.mapNotNull { it.operationId }
+            val conflicts = getPaymentsByOperationIds(repairedOperationIds, restaurantId)
+            require(conflicts.none { it.billId != bill.id }) {
+                "A repaired payment identity already belongs to another bill."
+            }
+            updateBillPayments(
+                repaired.filter { repairedPayment ->
+                    existing.first { it.id == repairedPayment.id }.operationId.isNullOrBlank()
+                }
+            )
+            return
+        }
+        val discarded = discardUnverifiedLocalPayments(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            updatedAt = updatedAt
+        )
+        require(discarded == existing.size) {
+            "Payment recovery changed while it was being reset."
+        }
+        updateBill(
+            bill.copy(
+                paymentAttemptStatus = "none",
+                paymentAttemptStartedAt = null,
+                partAmount1 = "0.0",
+                partAmount2 = "0.0",
+                isSynced = false,
+                syncStatus = "pending",
+                syncFailureReason = null,
+                syncFailedAt = null,
+                updatedAt = updatedAt
+            )
+        )
     }
 
     // Duplicate detection keys on the GST invoice_number, not the legacy lifetime_order_id.

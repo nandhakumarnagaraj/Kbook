@@ -14,7 +14,9 @@ import com.google.gson.annotations.SerializedName
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["bill_id"])]
+    indices = [
+        Index(value = ["bill_id"])
+    ]
 )
 data class BillPaymentEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
