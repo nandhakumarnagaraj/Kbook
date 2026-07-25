@@ -42,9 +42,8 @@ object QrCodeManager {
      */
     fun generateUpiQr(vpa: String, name: String, amount: Double, size: Int = 512): Bitmap? {
         val encodedVpa = URLEncoder.encode(vpa.trim(), "UTF-8")
-        val encodedName = URLEncoder.encode(name.trim(), "UTF-8")
         val encodedAmount = String.format(Locale.US, "%.2f", amount.coerceAtLeast(0.0))
-        val uri = "upi://pay?pa=$encodedVpa&pn=$encodedName&am=$encodedAmount&cu=INR"
+        val uri = "upi://pay?pa=$encodedVpa&am=$encodedAmount&cu=INR"
         return generateQr(uri, size)
     }
 

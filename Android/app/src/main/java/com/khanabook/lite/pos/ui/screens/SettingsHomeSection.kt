@@ -59,41 +59,23 @@ fun SettingsHomeSection(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             if (isWideScreen) {
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Store, text = "Shop Configuration") {
-                            onSectionSelected("shop")
-                        }
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {
-                            onSectionSelected("menu_config")
-                        }
-                    }
+                SettingsItem(icon = Icons.Filled.Store, text = "Shop Configuration") {
+                    onSectionSelected("shop")
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") {
-                            onSectionSelected("payment")
-                        }
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") {
-                            onSectionSelected("printer")
-                        }
-                    }
+                SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {
+                    onSectionSelected("menu_config")
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
-                            onSectionSelected("tax")
-                        }
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
-                            onSectionSelected("security")
-                        }
-                    }
+                SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") {
+                    onSectionSelected("payment")
+                }
+                SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") {
+                    onSectionSelected("printer")
+                }
+                SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
+                    onSectionSelected("tax")
+                }
+                SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
+                    onSectionSelected("security")
                 }
             } else {
                 SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {

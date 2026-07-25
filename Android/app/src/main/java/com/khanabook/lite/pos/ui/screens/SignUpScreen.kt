@@ -70,6 +70,7 @@ fun SignUpScreen(
     val confirmPasswordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
 
 
     val isNameValid = ValidationUtils.isValidName(shopName)
@@ -154,14 +155,15 @@ fun SignUpScreen(
         ) {
             Column(
                     modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier.fillMaxWidth(layout.dialogWidthFraction)
+                                    .widthIn(max = layout.dialogMaxWidth)
                                     .statusBarsPadding()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
                                     .navigationBarsPadding()
                                     .padding(horizontal = spacing.large, vertical = spacing.medium),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Top
             ) {
                 Image(
                         painter = painterResource(id = R.drawable.khanabook_logo),

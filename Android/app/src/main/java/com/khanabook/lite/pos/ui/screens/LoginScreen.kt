@@ -130,6 +130,8 @@ fun LoginScreen(
         }
     }
 
+    val layout = KhanaBookTheme.layout
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -138,14 +140,15 @@ fun LoginScreen(
     ) {
         Column(
                 modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier.fillMaxWidth(layout.dialogWidthFraction)
+                                .widthIn(max = layout.dialogMaxWidth)
                                 .verticalScroll(rememberScrollState())
                                 .statusBarsPadding()
                                 .navigationBarsPadding()
                                 .imePadding()
                                 .padding(horizontal = spacing.large, vertical = spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
         ) {
             Image(
                     painter = painterResource(id = R.drawable.khanabook_logo),
