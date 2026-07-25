@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.IOException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -283,6 +284,79 @@ class AppDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    @Throws(IOException::class)
+    fun migrate60To62_addsPaymentAttemptColumnsAndOperationIndex() {
+        val db = helper.createDatabase(TEST_DB, 60)
+        insertV59Bill(
+            db,
+            id = 1,
+            restaurantId = 100,
+            isSynced = 0,
+            orderStatus = "draft",
+            paymentStatus = "pending",
+            createdTerminalId = "A",
+            publicToken = "tok-payment"
+        )
+        insertPaymentV60(db, id = 1, billId = 1, operationId = "payment-op-1")
+        db.close()
+
+        val migrated = helper.runMigrationsAndValidate(
+            TEST_DB,
+            62,
+            true,
+            AppDatabase.MIGRATION_60_61,
+            AppDatabase.MIGRATION_61_62
+        )
+
+        migrated.query("PRAGMA table_info(bills)").use { cursor ->
+            val columns = mutableSetOf<String>()
+            while (cursor.moveToNext()) columns += cursor.getString(1)
+            assertTrue(columns.contains("payment_attempt_status"))
+            assertTrue(columns.contains("payment_attempt_started_at"))
+        }
+        migrated.query("SELECT payment_attempt_status FROM bills WHERE id = 1").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("none", cursor.getString(0))
+        }
+        assertTrue(hasUniqueIndex(migrated, "idx_bill_payments_restaurant_operation"))
+        migrated.close()
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate60To62_softDeletesExactDuplicatePaymentOperations() {
+        val db = helper.createDatabase(TEST_DB, 60)
+        insertV59Bill(db, id = 1, restaurantId = 100, publicToken = "tok-payment")
+        insertPaymentV60(db, id = 1, billId = 1, operationId = "duplicate-op")
+        insertPaymentV60(db, id = 2, billId = 1, operationId = "duplicate-op")
+        db.close()
+
+        val migrated = helper.runMigrationsAndValidate(
+            TEST_DB,
+            62,
+            true,
+            AppDatabase.MIGRATION_60_61,
+            AppDatabase.MIGRATION_61_62
+        )
+
+        migrated.query(
+            "SELECT COUNT(*) FROM bill_payments WHERE operation_id = 'duplicate-op' AND is_deleted = 0"
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.getInt(0))
+        }
+        // The soft-deleted duplicate has its operation_id set to NULL by the migration
+        // (to avoid colliding with the non-partial unique index). Verify by is_deleted + bill_id.
+        migrated.query(
+            "SELECT COUNT(*) FROM bill_payments WHERE bill_id = 1 AND is_deleted = 1"
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals(1, cursor.getInt(0))
+        }
+        migrated.close()
+    }
+
     private fun insertV59Bill(
         db: SupportSQLiteDatabase,
         id: Long,
@@ -318,6 +392,33 @@ class AppDatabaseMigrationTest {
                 financialYear, "A", id, invoiceNumber, sourceChannel, refundAmount, cancelReason
             )
         )
+    }
+
+    private fun insertPaymentV60(
+        db: SupportSQLiteDatabase,
+        id: Long,
+        billId: Long,
+        operationId: String
+    ) {
+        db.execSQL(
+            """
+            INSERT INTO bill_payments(
+                id, bill_id, payment_mode, amount, created_at, restaurant_id, device_id,
+                terminal_id, bill_public_token, operation_id, sync_status, is_synced,
+                updated_at, is_deleted, server_updated_at, version
+            ) VALUES(?, ?, 'cash', '100.00', 1000, 100, 'device-A', 'A', 'tok-payment', ?, 'pending', 0, 1000, 0, 0, 0)
+            """.trimIndent(),
+            arrayOf(id, billId, operationId)
+        )
+    }
+
+    private fun hasUniqueIndex(db: SupportSQLiteDatabase, expectedName: String): Boolean {
+        db.query("PRAGMA index_list('bill_payments')").use { cursor ->
+            while (cursor.moveToNext()) {
+                if (cursor.getString(1) == expectedName && cursor.getInt(2) == 1) return true
+            }
+        }
+        return false
     }
 
     private fun originFor(db: SupportSQLiteDatabase, id: Long): Pair<String, String> {

@@ -15,7 +15,12 @@ import com.google.gson.annotations.SerializedName
         )
     ],
     indices = [
-        Index(value = ["bill_id"])
+        Index(value = ["bill_id"]),
+        Index(
+            name = "idx_bill_payments_restaurant_operation",
+            value = ["restaurant_id", "operation_id"],
+            unique = true
+        )
     ]
 )
 data class BillPaymentEntity(

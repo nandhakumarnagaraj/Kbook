@@ -42,30 +42,6 @@ abstract class AppDatabase : RoomDatabase() {
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
 
-        /**
-         * Callback for clean-install databases. Room's @Entity annotations cannot
-         * represent partial (conditional) unique indexes, so we create the partial
-         * unique index on (restaurant_id, operation_id) here for fresh installs.
-         *
-         * This ensures clean-install and migrated (v61→62) databases have the
-         * same constraint. Without this callback, a clean-install would lack the
-         * index entirely (since the entity annotation has no index declaration).
-         */
-        val CLEAN_INSTALL_CALLBACK = object : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                db.execSQL(
-                    """
-                    CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation`
-                    ON `bill_payments` (`restaurant_id`, `operation_id`)
-                    WHERE `operation_id` IS NOT NULL AND `operation_id` != '' AND `is_deleted` = 0
-                    """.trimIndent()
-                )
-                android.util.Log.i("AppDatabase",
-                    "Clean-install callback: created partial unique index on (restaurant_id, operation_id)")
-            }
-        }
-
             val MIGRATION_52_53 = object : Migration(52, 53) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     if (!db.hasColumn("restaurant_profile", "order_payment_flow_mode")) {
@@ -879,12 +855,14 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
 
         val MIGRATION_61_62 = object : Migration(61, 62) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // Add scoped unique index for payment operation_id to prevent duplicate payment
-                    // identities across bills within the same restaurant.
-                    //
-                    // The index is PARTIAL (WHERE clause) so that:
-                    //   - Historical rows with NULL or empty operation_id are not rejected.
-                    //   - Future rows with non-null, non-empty operation_id are constrained.
+                    // Normalize legacy blank/deleted identities before enforcing the
+                    // Room-declared unique index. SQLite permits multiple NULL values,
+                    // so historical rows remain compatible without allowing blank
+                    // identities to collide.
+                    db.execSQL(
+                        "UPDATE bill_payments SET operation_id = NULL " +
+                            "WHERE operation_id IS NOT NULL AND (operation_id = '' OR is_deleted = 1)"
+                    )
                     //
                     // Pre-migration duplicate resolution:
                     //   At version 61, operation_id was added with DEFAULT NULL (via MIGRATION_57_58),
@@ -953,7 +931,7 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                                 // Exact duplicates: soft-delete later rows.
                                 db.execSQL(
                                     """
-                                    UPDATE bill_payments SET is_deleted = 1
+                                    UPDATE bill_payments SET is_deleted = 1, operation_id = NULL
                                     WHERE operation_id = ? AND restaurant_id = ?
                                       AND is_deleted = 0 AND id != ?
                                     """.trimIndent(),
@@ -976,15 +954,12 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                         }
                     }
 
-                    // Create the partial unique index.
-                    // WHERE clause excludes nulls and empty strings.
-                    // Soft-deleted rows are also excluded so operation_ids can be reused
-                    // after a payment row is soft-deleted (e.g., during reconciliation).
+                    // The entity declares this as a regular unique index. Historical
+                    // blank/deleted identities were normalized to NULL above.
                     db.execSQL(
                         """
                         CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation`
                         ON `bill_payments` (`restaurant_id`, `operation_id`)
-                        WHERE `operation_id` IS NOT NULL AND `operation_id` != '' AND `is_deleted` = 0
                         """.trimIndent()
                     )
                     android.util.Log.i("AppDatabase", "MIGRATION_61_62 complete: partial unique index on (restaurant_id, operation_id) for bill_payments")

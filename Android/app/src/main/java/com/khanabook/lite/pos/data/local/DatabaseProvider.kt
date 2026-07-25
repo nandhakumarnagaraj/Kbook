@@ -142,7 +142,6 @@ class DatabaseProvider @Inject constructor(
             dbName
         )
             .openHelperFactory(factory)
-            .addCallback(AppDatabase.CLEAN_INSTALL_CALLBACK)
             .addMigrations(
                 AppDatabase.MIGRATION_17_18,
                 AppDatabase.MIGRATION_18_19,

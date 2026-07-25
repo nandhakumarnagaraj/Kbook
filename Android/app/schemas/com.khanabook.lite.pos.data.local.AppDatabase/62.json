@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 62,
-    "identityHash": "dc8a0c4295d2f7c218c1b3b1e3b4f494",
+    "identityHash": "bdcaaea6a75d4e2f341da6fafde7512b",
     "entities": [
       {
         "tableName": "users",
@@ -2046,6 +2046,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_bill_payments_bill_id` ON `${TABLE_NAME}` (`bill_id`)"
+          },
+          {
+            "name": "idx_bill_payments_restaurant_operation",
+            "unique": true,
+            "columnNames": [
+              "restaurant_id",
+              "operation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation` ON `${TABLE_NAME}` (`restaurant_id`, `operation_id`)"
           }
         ],
         "foreignKeys": [
@@ -2477,7 +2487,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dc8a0c4295d2f7c218c1b3b1e3b4f494')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bdcaaea6a75d4e2f341da6fafde7512b')"
     ]
   }
 }

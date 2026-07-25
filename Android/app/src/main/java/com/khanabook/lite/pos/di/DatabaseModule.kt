@@ -108,7 +108,6 @@ object DatabaseModule {
             AppDatabase.DATABASE_NAME
         )
             .openHelperFactory(factory)
-            .addCallback(AppDatabase.CLEAN_INSTALL_CALLBACK)
             .addMigrations(
                 AppDatabase.MIGRATION_17_18,
                 AppDatabase.MIGRATION_18_19,
