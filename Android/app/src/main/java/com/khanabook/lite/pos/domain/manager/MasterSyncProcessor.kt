@@ -296,15 +296,44 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         val serverCreatedBy = bill.createdBy?.let { userDao.getUserById(it)?.serverId }
+        val changedDuringPush = mutableSetOf<Long>()
         pushBatches(
             label = "bill",
             records = listOf(bill),
             localId = BillEntity::id,
             transform = { it.toSyncDto(serverCreatedBy) },
             push = api::pushBills,
-            markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
+            markSynced = { ids ->
+                changedDuringPush += acknowledgeUnchangedBills(
+                    listOf(bill),
+                    ids,
+                    restaurantId
+                )
+            },
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
+        if (billLocalId in changedDuringPush) {
+            val latestBill = billDao.getBillById(billLocalId, restaurantId)
+            if (latestBill != null && !latestBill.isSynced) {
+                val latestServerCreatedBy =
+                    latestBill.createdBy?.let { userDao.getUserById(it)?.serverId }
+                pushBatches(
+                    label = "bill follow-up",
+                    records = listOf(latestBill),
+                    localId = BillEntity::id,
+                    transform = { it.toSyncDto(latestServerCreatedBy) },
+                    push = api::pushBills,
+                    markSynced = { ids ->
+                        acknowledgeUnchangedBills(listOf(latestBill), ids, restaurantId)
+                    },
+                    onServerIds = { map ->
+                        map.forEach { (localId, serverId) ->
+                            billDao.updateServerIdByLocalId(localId, serverId, restaurantId)
+                        }
+                    }
+                )
+            }
+        }
 
         backfillChildServerBillIds(restaurantId)
         pushBatches(
@@ -320,15 +349,23 @@ class MasterSyncProcessor @Inject constructor(
     suspend fun pushAll(onStepChange: ((SyncStep) -> Unit)? = null): Boolean =
         pushAllInternal(onStepChange, isolateHttpConflicts = false)
 
+    internal suspend fun pushAllForTest(restaurantId: Long): Boolean =
+        pushAllInternal(
+            onStepChange = null,
+            isolateHttpConflicts = false,
+            restaurantIdOverride = restaurantId
+        )
+
     suspend fun pushAllAfterConflictRecovery(): Boolean =
         pushAllInternal(onStepChange = null, isolateHttpConflicts = true)
 
     private suspend fun pushAllInternal(
         onStepChange: ((SyncStep) -> Unit)?,
-        isolateHttpConflicts: Boolean
+        isolateHttpConflicts: Boolean,
+        restaurantIdOverride: Long? = null
     ): Boolean {
         // Guard: never push data with an invalid tenant
-        val restaurantId = sessionManager.getRestaurantId()
+        val restaurantId = restaurantIdOverride ?: sessionManager.getRestaurantId()
         if (restaurantId <= 0L) {
             Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
             return false
@@ -417,24 +454,16 @@ class MasterSyncProcessor @Inject constructor(
             isolateHttpConflicts = isolateHttpConflicts
         )
 
-        // ── Reconcile any bills that were pushed successfully in a previous cycle
-        // but whose local isSynced flag was never flipped (e.g. response lost mid-air).
-        // reconcileServerAcknowledgedBills() also catches the 409-loop case where the
-        // server already has the bill (server_id is set via updateServerIdByLocalId)
-        // but the local row still shows isSynced=false.
-        val reconciledCount = billDao.reconcileServerAcknowledgedBills(restaurantId)
-        if (reconciledCount > 0) {
-            Log.i("MasterSyncProcessor", "Reconciled $reconciledCount bill(s) that had server_id but were still marked unsynced")
-        }
-
         val unsyncedBills = billDao.getUnsyncedBills(restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
+        val pushedBillsById = validBills.associateBy(BillEntity::id)
         val skippedBills = unsyncedBills.size - validBills.size
         if (skippedBills > 0) {
             Log.w("MasterSyncProcessor", "Skipping $skippedBills bill(s) with mismatched restaurantId (expected=$restaurantId)")
         }
         val userMap = userDao.getAllUsersOnce().associate { it.id to it.serverId }
         val isolatedConflicts = mutableListOf<SyncConflictException>()
+        val changedDuringBillPush = mutableSetOf<Long>()
         try {
             pushBatches(
                 label = "bills",
@@ -442,10 +471,41 @@ class MasterSyncProcessor @Inject constructor(
                 localId = BillEntity::id,
                 transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
                 push = api::pushBills,
-                markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
+                markSynced = { ids ->
+                    changedDuringBillPush += acknowledgeUnchangedBills(
+                        bills = ids.mapNotNull(pushedBillsById::get),
+                        successfulIds = ids,
+                        restaurantId = restaurantId
+                    )
+                },
                 onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
                 isolateHttpConflicts = isolateHttpConflicts
             )
+            val followUpBills = changedDuringBillPush
+                .mapNotNull { billDao.getBillById(it, restaurantId) }
+                .filterNot(BillEntity::isSynced)
+            if (followUpBills.isNotEmpty()) {
+                pushBatches(
+                    label = "bills follow-up",
+                    records = followUpBills,
+                    localId = BillEntity::id,
+                    transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
+                    push = api::pushBills,
+                    markSynced = { ids ->
+                        acknowledgeUnchangedBills(
+                            bills = followUpBills,
+                            successfulIds = ids,
+                            restaurantId = restaurantId
+                        )
+                    },
+                    onServerIds = { map ->
+                        map.forEach { (localId, serverId) ->
+                            billDao.updateServerIdByLocalId(localId, serverId, restaurantId)
+                        }
+                    },
+                    isolateHttpConflicts = isolateHttpConflicts
+                )
+            }
         } catch (conflict: SyncConflictException) {
             isolatedConflicts += conflict
             logWarn("Bill failures isolated; continuing children for acknowledged parents", conflict)
@@ -489,6 +549,60 @@ class MasterSyncProcessor @Inject constructor(
         isolatedConflicts.firstOrNull()?.let { throw it }
 
         return true
+    }
+
+    internal suspend fun acknowledgeUnchangedBills(
+        bills: List<BillEntity>,
+        successfulIds: List<Long>,
+        restaurantId: Long
+    ): List<Long> {
+        if (successfulIds.isEmpty()) return emptyList()
+        val successfulIdSet = successfulIds.toHashSet()
+        val changedBillIds = mutableListOf<Long>()
+        bills.asSequence()
+            .filter { it.id in successfulIdSet }
+            .forEach { pushedBill ->
+                val acknowledged = billDao.markBillAsSyncedIfUnchanged(
+                    billId = pushedBill.id,
+                    restaurantId = restaurantId,
+                    pushedUpdatedAt = pushedBill.updatedAt,
+                    pushedOrderStatus = pushedBill.orderStatus,
+                    pushedPaymentStatus = pushedBill.paymentStatus
+                )
+                if (acknowledged == 0) {
+                    changedBillIds += pushedBill.id
+                }
+            }
+        return changedBillIds
+    }
+
+    internal suspend fun reconcilePulledBillsByClientFingerprint(
+        pulledBills: List<BillEntity>,
+        restaurantId: Long
+    ): Int {
+        var reconciled = 0
+        pulledBills.forEach { pulledBill ->
+            val localBill = pulledBill.serverId
+                ?.let { billDao.getBillByServerId(it, restaurantId) }
+                ?: pulledBill.publicToken
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { billDao.getBillByPublicToken(it, restaurantId) }
+                ?: billDao.getBillByLocalId(
+                    pulledBill.id,
+                    pulledBill.deviceId,
+                    restaurantId
+                )
+            if (localBill != null) {
+                reconciled += billDao.markBillAsSyncedIfUnchanged(
+                    billId = localBill.id,
+                    restaurantId = restaurantId,
+                    pushedUpdatedAt = pulledBill.updatedAt,
+                    pushedOrderStatus = pulledBill.orderStatus,
+                    pushedPaymentStatus = pulledBill.paymentStatus
+                )
+            }
+        }
+        return reconciled
     }
 
     private suspend fun backfillChildServerBillIds(restaurantId: Long) {
@@ -1027,8 +1141,7 @@ class MasterSyncProcessor @Inject constructor(
 
         if (masterData.bills.isNotEmpty()) {
             val repairedBills = mutableListOf<String>()
-            billDao.insertSyncedBills(
-                masterData.bills.map { remoteBill ->
+            val resolvedBills = masterData.bills.map { remoteBill ->
                     val resolvedCreatedBy = remoteBill.createdBy?.toLong()?.let { remoteId ->
                         remoteUserIdToLocalId[remoteId] ?: remoteId
                     }?.takeIf { mappedUserId ->
@@ -1121,60 +1234,16 @@ BillEntity(
                         }
                     )
                 }
-            )
+            billDao.insertSyncedBills(resolvedBills)
             logRepairedRecords(label = "bill", repaired = repairedBills)
 
-            // ── Post-pull reconciliation ─────────────────────────────────────────
-            // The pull upserts bills by the server-assigned ID (which may differ from
-            // the device-local primary key). This can leave the ORIGINAL local rows
-            // (created offline) still marked isSynced=false, causing an endless 409 loop
-            // on the next push. Fix in TWO tiers:
-            //
-            // 1. Reconcile by (deviceId, localId) — the ORIGINAL device-local ID that
-            //    was used when the bill was first created. This is the most reliable
-            //    identifier because it never changes and is always present in the pull
-            //    response (localId field). We group by the ORIGINAL deviceId from the
-            //    server response (not the current session deviceId) so this also works
-            //    when the deviceId has changed (reinstall, new device, etc.).
-            //
-            // 2. Reconcile by server_id IS NOT NULL — catches any bills that were
-            //    previously pushed successfully but whose isSynced flag was never set.
-            val billsByDevice = masterData.bills.groupBy { it.deviceId }
-            for ((deviceId, deviceBills) in billsByDevice) {
-                val deviceLocalIds = deviceBills.map { it.id }.filter { it > 0L }
-                if (deviceLocalIds.isNotEmpty()) {
-                    val reconciled = billDao.markBillsSyncedByDeviceIdAndLocalIds(
-                        deviceId = deviceId,
-                        restaurantId = restaurantId,
-                        localIds = deviceLocalIds
-                    )
-                    if (reconciled > 0) {
-                        Log.i("MasterSyncProcessor", "Post-pull: marked $reconciled orphaned local bill(s) as synced via (deviceId=$deviceId, localId) match")
-                    }
-                }
-            }
-
-            val publicTokenReconciled = masterData.bills
-                .mapNotNull { remoteBill ->
-                    val token = remoteBill.publicToken?.takeIf { it.isNotBlank() }
-                    val serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L
-                    if (token == null || serverUpdatedAt <= 0L) null else token to serverUpdatedAt
-                }
-                .distinct()
-                .sumOf { (token, serverUpdatedAt) ->
-                    billDao.markBillSyncedByPublicToken(
-                        restaurantId = restaurantId,
-                        publicToken = token,
-                        serverUpdatedAt = serverUpdatedAt
-                    )
-                }
-            if (publicTokenReconciled > 0) {
-                Log.i("MasterSyncProcessor", "Post-pull: marked $publicTokenReconciled orphaned local bill(s) as synced via public_token match")
-            }
-
-            val reconciledByServerId = billDao.reconcileServerAcknowledgedBills(restaurantId)
-            if (reconciledByServerId > 0) {
-                Log.i("MasterSyncProcessor", "Post-pull: reconciled $reconciledByServerId bill(s) that had server_id but were still unsynced")
+            val reconciledByClientFingerprint =
+                reconcilePulledBillsByClientFingerprint(resolvedBills, restaurantId)
+            if (reconciledByClientFingerprint > 0) {
+                Log.i(
+                    "MasterSyncProcessor",
+                    "Post-pull: reconciled $reconciledByClientFingerprint bill(s) by client fingerprint"
+                )
             }
         }
 

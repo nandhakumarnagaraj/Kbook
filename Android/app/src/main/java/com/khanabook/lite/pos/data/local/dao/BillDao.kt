@@ -65,6 +65,7 @@ interface BillDao {
         UPDATE bills
         SET is_deleted = 1,
             server_id = NULL,
+            public_token = NULL,
             is_synced = 1,
             sync_status = 'synced',
             sync_failure_reason = NULL,
@@ -893,50 +894,6 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     """)
     suspend fun getMaxInvoiceSequence(restaurantId: Long, invoiceSeries: String): Long
 
-    // ── Sync reconciliation ────────────────────────────────────────────────────
-
-    /**
-     * Marks any bill that has a server_id assigned (from a successful push
-     * round-trip or from a server pull) as synced. Catches bills where the push
-     * network response was lost but the server actually saved the record.
-     */
-    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE is_synced = 0 AND server_id IS NOT NULL AND updated_at <= server_updated_at AND restaurant_id = :restaurantId")
-    suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int
-
-    /**
-     * After a pull, the server returns bills with their server-assigned IDs.
-     * For bills created on THIS device, the original local row (with device-local pk)
-     * may still be isSynced=0 because the pull upserted a NEW row keyed by the
-     * server ID. This query finds those orphaned local rows by matching on the
-     * immutable public_token (canonical bill identity) and marks them synced.
-     *
-     * IMPORTANT: Only mark synced when updated_at <= server_updated_at, meaning the
-     * server already has the latest version of this bill. If the local bill was modified
-     * after the server last updated it (e.g., order_status changed to 'completed' offline),
-     * we must NOT mark it synced — otherwise the pending local change is silently dropped.
-     */
-    @Query("""
-        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
-        WHERE is_synced = 0
-          AND restaurant_id = :restaurantId
-          AND public_token IN (:publicTokens)
-          AND updated_at <= server_updated_at
-    """)
-    suspend fun markBillsSyncedByPublicTokens(restaurantId: Long, publicTokens: List<String>): Int
-
-    @Query("""
-        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
-        WHERE is_synced = 0
-          AND restaurant_id = :restaurantId
-          AND public_token = :publicToken
-          AND updated_at <= :serverUpdatedAt
-    """)
-    suspend fun markBillSyncedByPublicToken(
-        restaurantId: Long,
-        publicToken: String,
-        serverUpdatedAt: Long
-    ): Int
-
     // ── Unsynced queries ───────────────────────────────────────────────────────
 
     @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId AND sync_status != 'failed_permanent'")
@@ -962,34 +919,26 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND owner_user_id = :userId AND restaurant_id = :restaurantId")
     fun getUnsyncedCountForUser(userId: Long, restaurantId: Long): Flow<Int>
 
-    /**
-     * After a pull, the server returns bills with the ORIGINAL device-local IDs
-     * in their `localId` field. For rows where isMyDevice=false (deviceId changed,
-     * reinstall, etc.), the upsert uses the serverId as the Room primary key, so
-     * the ORIGINAL local row (with the old device-local ID) remains isSynced=false.
-     *
-     * This query finds those orphaned rows by matching on (device_id, local_id)
-     * and marks them synced. This is more reliable than lifetimeOrderId because
-     * localId is always the original device-local primary key.
-     *
-     * IMPORTANT: Only mark synced when updated_at <= server_updated_at, meaning the
-     * server already has the latest version of this bill. If the local bill was modified
-     * after the server last updated it (e.g., order_status changed to 'completed' offline),
-     * we must NOT mark it synced — otherwise the pending local change is silently dropped
-     * and the draft status on the server is never corrected.
-     */
     @Query("""
-        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
-        WHERE is_synced = 0
-          AND device_id = :deviceId
+        UPDATE bills
+        SET is_synced = 1,
+            sync_status = 'synced',
+            sync_failure_reason = NULL,
+            sync_failed_at = NULL
+        WHERE id = :billId
           AND restaurant_id = :restaurantId
-          AND id IN (:localIds)
-          AND updated_at <= server_updated_at
+          AND is_synced = 0
+          AND updated_at = :pushedUpdatedAt
+          AND order_status = :pushedOrderStatus
+          AND payment_status = :pushedPaymentStatus
     """)
-    suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int
-
-    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
-    suspend fun markBillsAsSynced(billIds: List<Long>, restaurantId: Long)
+    suspend fun markBillAsSyncedIfUnchanged(
+        billId: Long,
+        restaurantId: Long,
+        pushedUpdatedAt: Long,
+        pushedOrderStatus: String,
+        pushedPaymentStatus: String
+    ): Int
 
     @Query("""
         UPDATE bills
@@ -1050,12 +999,15 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
                 insertBill(bill)
             } else {
                 // Present locally. Check if we should overwrite it.
-                // We overwrite if local is already synced, OR if remote updatedAt is strictly newer.
+                // A synced local row may accept an equal-timestamp server refresh.
                 // Note: record_origin/record_scope intentionally come from the remote here —
                 // getOperationalBillById uses currentOwnerTerminalId (not those labels) to
                 // determine editability, so there is no need to preserve stale local labels.
-                if (localBill.isSynced || (bill.updatedAt > localBill.updatedAt)) {
-                    insertBill(bill.copy(id = localBill.id))
+                val shouldOverwrite =
+                    bill.updatedAt > localBill.updatedAt ||
+                        (bill.updatedAt == localBill.updatedAt && localBill.isSynced)
+                if (shouldOverwrite) {
+                    updateBill(bill.copy(id = localBill.id))
                 } else {
                     // Preserve newer local fields, but still merge server identity from the pull.
                     // Bill items link through serverBillId -> bills.server_id; without this repair
@@ -1066,7 +1018,7 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
                         publicToken = localBill.publicToken ?: bill.publicToken
                     )
                     if (repairedLocalBill != localBill) {
-                        insertBill(repairedLocalBill)
+                        updateBill(repairedLocalBill)
                     }
                 }
             }

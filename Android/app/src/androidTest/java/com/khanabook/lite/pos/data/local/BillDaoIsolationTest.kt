@@ -161,6 +161,380 @@ class BillDaoIsolationTest {
         assertEquals(R1, r1Pending.first().restaurantId)
     }
 
+    @Test
+    fun stalePendingPushAcknowledgement_doesNotMarkFinalizedBillSynced() = runBlocking {
+        val billId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "draft",
+                paymentStatus = "pending",
+                paymentMode = "part_cash_upi"
+            ).copy(
+                updatedAt = 1_000,
+                isSynced = false,
+                syncStatus = "pending"
+            )
+        )
+        val pushedDraft = billDao.getBillById(billId, R1)!!
+
+        billDao.updateBill(
+            pushedDraft.copy(
+                orderStatus = "completed",
+                paymentStatus = "success",
+                paidAt = 2_000,
+                updatedAt = pushedDraft.updatedAt,
+                isSynced = false,
+                syncStatus = "pending"
+            )
+        )
+
+        val staleAckCount = billDao.markBillAsSyncedIfUnchanged(
+            billId = billId,
+            restaurantId = R1,
+            pushedUpdatedAt = pushedDraft.updatedAt,
+            pushedOrderStatus = pushedDraft.orderStatus,
+            pushedPaymentStatus = pushedDraft.paymentStatus
+        )
+        val finalized = billDao.getBillById(billId, R1)!!
+
+        assertEquals(0, staleAckCount)
+        assertEquals("completed", finalized.orderStatus)
+        assertEquals("success", finalized.paymentStatus)
+        assertEquals(false, finalized.isSynced)
+    }
+
+    @Test
+    fun pendingPull_preservesFreshLocalSplitPaymentsAndCompletedState() = runBlocking {
+        val publicToken = "split-payment-race"
+        val billId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "completed",
+                paymentStatus = "success",
+                paymentMode = "part_cash_upi"
+            ).copy(
+                partAmount1 = "40.00",
+                partAmount2 = "60.00",
+                publicToken = publicToken,
+                updatedAt = 2_000,
+                isSynced = false,
+                syncStatus = "pending"
+            )
+        )
+        billDao.insertBillPayments(
+            listOf(
+                BillPaymentEntity(
+                    billId = billId,
+                    restaurantId = R1,
+                    deviceId = "dev-A",
+                    paymentMode = "cash",
+                    amount = "40.00",
+                    operationId = "$publicToken:payment:cash"
+                ),
+                BillPaymentEntity(
+                    billId = billId,
+                    restaurantId = R1,
+                    deviceId = "dev-A",
+                    paymentMode = "upi",
+                    amount = "60.00",
+                    operationId = "$publicToken:payment:upi"
+                )
+            )
+        )
+
+        val pendingServerCopy = billDao.getBillById(billId, R1)!!.copy(
+            orderStatus = "draft",
+            paymentStatus = "pending",
+            paidAt = null,
+            updatedAt = 1_000,
+            isSynced = true,
+            syncStatus = "synced",
+            serverId = 500L,
+            serverUpdatedAt = 3_000
+        )
+        billDao.insertSyncedBills(listOf(pendingServerCopy))
+
+        val preservedBill = billDao.getBillById(billId, R1)!!
+        val preservedPayments = billDao.getActivePaymentsForBill(billId, R1)
+
+        assertEquals("completed", preservedBill.orderStatus)
+        assertEquals("success", preservedBill.paymentStatus)
+        assertEquals(false, preservedBill.isSynced)
+        assertEquals(500L, preservedBill.serverId)
+        assertEquals(2, preservedPayments.size)
+        assertEquals(setOf("cash", "upi"), preservedPayments.map { it.paymentMode }.toSet())
+    }
+
+    @Test
+    fun unchangedPushAcknowledgement_marksBillSynced() = runBlocking {
+        val billId = billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                updatedAt = 2_000,
+                isSynced = false,
+                syncStatus = "pending"
+            )
+        )
+        val pushed = billDao.getBillById(billId, R1)!!
+
+        val acknowledged = billDao.markBillAsSyncedIfUnchanged(
+            billId = billId,
+            restaurantId = R1,
+            pushedUpdatedAt = pushed.updatedAt,
+            pushedOrderStatus = pushed.orderStatus,
+            pushedPaymentStatus = pushed.paymentStatus
+        )
+
+        assertEquals(1, acknowledged)
+        assertEquals(true, billDao.getBillById(billId, R1)!!.isSynced)
+    }
+
+    @Test
+    fun staleAcknowledgement_refusesWhenUpdatedAtAdvanced() = runBlocking {
+        val billId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "draft",
+                paymentStatus = "pending"
+            ).copy(updatedAt = 1_000, isSynced = false)
+        )
+        val pushed = billDao.getBillById(billId, R1)!!
+        billDao.updateBill(
+            pushed.copy(
+                orderStatus = "completed",
+                paymentStatus = "success",
+                updatedAt = 2_000,
+                isSynced = false
+            )
+        )
+
+        val acknowledged = billDao.markBillAsSyncedIfUnchanged(
+            billId = billId,
+            restaurantId = R1,
+            pushedUpdatedAt = pushed.updatedAt,
+            pushedOrderStatus = pushed.orderStatus,
+            pushedPaymentStatus = pushed.paymentStatus
+        )
+
+        assertEquals(0, acknowledged)
+        assertEquals(false, billDao.getBillById(billId, R1)!!.isSynced)
+    }
+
+    @Test
+    fun stalePulledClientFingerprint_doesNotAcknowledgeNewerLocalBill() = runBlocking {
+        val publicToken = "stale-pull-fingerprint"
+        val billId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "completed",
+                paymentStatus = "success",
+                paymentMode = "part_cash_upi"
+            ).copy(
+                publicToken = publicToken,
+                updatedAt = 2_000,
+                isSynced = false
+            )
+        )
+        val staleRemote = billDao.getBillById(billId, R1)!!.copy(
+            orderStatus = "draft",
+            paymentStatus = "pending",
+            updatedAt = 1_000,
+            serverUpdatedAt = 3_000,
+            serverId = 500L,
+            isSynced = true
+        )
+
+        billDao.insertSyncedBills(listOf(staleRemote))
+        val acknowledged = billDao.markBillAsSyncedIfUnchanged(
+            billId = billId,
+            restaurantId = R1,
+            pushedUpdatedAt = staleRemote.updatedAt,
+            pushedOrderStatus = staleRemote.orderStatus,
+            pushedPaymentStatus = staleRemote.paymentStatus
+        )
+        val local = billDao.getBillById(billId, R1)!!
+
+        assertEquals(0, acknowledged)
+        assertEquals("completed", local.orderStatus)
+        assertEquals("success", local.paymentStatus)
+        assertEquals(false, local.isSynced)
+        assertEquals(3_000L, local.serverUpdatedAt)
+    }
+
+    @Test
+    fun overwriteNewerRemote_preservesUnsyncedLocalPayments() = runBlocking {
+        val billId = billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                publicToken = "newer-remote",
+                updatedAt = 1_000,
+                isSynced = true
+            )
+        )
+        billDao.insertBillPayment(
+            BillPaymentEntity(
+                billId = billId,
+                restaurantId = R1,
+                deviceId = "dev-A",
+                paymentMode = "cash",
+                amount = "100.00",
+                operationId = "newer-remote:payment:cash",
+                isSynced = false
+            )
+        )
+        val newerRemote = billDao.getBillById(billId, R1)!!.copy(
+            customerWhatsapp = "9000000099",
+            updatedAt = 2_000,
+            serverUpdatedAt = 3_000,
+            serverId = 501L,
+            isSynced = true
+        )
+
+        billDao.insertSyncedBills(listOf(newerRemote))
+
+        assertEquals("9000000099", billDao.getBillById(billId, R1)!!.customerWhatsapp)
+        val payments = billDao.getActivePaymentsForBill(billId, R1)
+        assertEquals(1, payments.size)
+        assertEquals(false, payments.single().isSynced)
+    }
+
+    @Test
+    fun staleOlderRemote_doesNotOverwriteSyncedLocalBill() = runBlocking {
+        val billId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "completed",
+                paymentStatus = "success"
+            ).copy(
+                publicToken = "stale-remote",
+                updatedAt = 2_000,
+                isSynced = true
+            )
+        )
+        val staleRemote = billDao.getBillById(billId, R1)!!.copy(
+            orderStatus = "draft",
+            paymentStatus = "pending",
+            updatedAt = 1_000,
+            serverUpdatedAt = 3_000,
+            serverId = 502L,
+            isSynced = true
+        )
+
+        billDao.insertSyncedBills(listOf(staleRemote))
+        val local = billDao.getBillById(billId, R1)!!
+
+        assertEquals("completed", local.orderStatus)
+        assertEquals("success", local.paymentStatus)
+        assertEquals(2_000L, local.updatedAt)
+        assertEquals(502L, local.serverId)
+    }
+
+    @Test
+    fun duplicateIdentityOverwrite_retiresTokenAndPreservesPayments() = runBlocking {
+        val survivorId = billDao.insertBill(
+            bill(R1, createdAt = 1_000, deviceId = "dev-A").copy(
+                id = 100L,
+                publicToken = null,
+                updatedAt = 1_000,
+                isSynced = true
+            )
+        )
+        val duplicateId = billDao.insertBill(
+            bill(R1, createdAt = 1_100, deviceId = "dev-old").copy(
+                id = 200L,
+                publicToken = "canonical-token",
+                serverId = 600L,
+                updatedAt = 1_500,
+                isSynced = true
+            )
+        )
+        billDao.insertBillPayment(
+            BillPaymentEntity(
+                billId = duplicateId,
+                restaurantId = R1,
+                deviceId = "dev-old",
+                paymentMode = "upi",
+                amount = "100.00",
+                operationId = "canonical-token:payment:upi"
+            )
+        )
+        val incoming = bill(R1, createdAt = 1_000, deviceId = "dev-A").copy(
+            id = survivorId,
+            publicToken = "canonical-token",
+            serverId = 600L,
+            updatedAt = 2_000,
+            serverUpdatedAt = 3_000,
+            isSynced = true
+        )
+
+        billDao.insertSyncedBills(listOf(incoming))
+
+        val survivor = billDao.getBillById(survivorId, R1)!!
+        val duplicate = billDao.getBillById(duplicateId, R1)!!
+        assertEquals("canonical-token", survivor.publicToken)
+        assertEquals(600L, survivor.serverId)
+        assertEquals(true, duplicate.isDeleted)
+        assertNull(duplicate.publicToken)
+        assertNull(duplicate.serverId)
+        assertEquals(1, billDao.getActivePaymentsForBill(survivorId, R1).size)
+    }
+
+    @Test
+    fun duplicateIdentityPreserve_retiresTokenAndKeepsNewerLocalState() = runBlocking {
+        val survivorId = billDao.insertBill(
+            bill(
+                R1,
+                createdAt = 1_000,
+                orderStatus = "completed",
+                paymentStatus = "success",
+                deviceId = "dev-A"
+            ).copy(
+                id = 300L,
+                publicToken = null,
+                updatedAt = 3_000,
+                isSynced = false
+            )
+        )
+        val duplicateId = billDao.insertBill(
+            bill(R1, createdAt = 1_100, deviceId = "dev-old").copy(
+                id = 400L,
+                publicToken = "preserve-token",
+                serverId = 700L,
+                updatedAt = 1_500,
+                isSynced = true
+            )
+        )
+        val incoming = bill(
+            R1,
+            createdAt = 1_000,
+            orderStatus = "draft",
+            paymentStatus = "pending",
+            deviceId = "dev-A"
+        ).copy(
+            id = survivorId,
+            publicToken = "preserve-token",
+            serverId = 700L,
+            updatedAt = 2_000,
+            serverUpdatedAt = 4_000,
+            isSynced = true
+        )
+
+        billDao.insertSyncedBills(listOf(incoming))
+
+        val survivor = billDao.getBillById(survivorId, R1)!!
+        val duplicate = billDao.getBillById(duplicateId, R1)!!
+        assertEquals("completed", survivor.orderStatus)
+        assertEquals("success", survivor.paymentStatus)
+        assertEquals(false, survivor.isSynced)
+        assertEquals("preserve-token", survivor.publicToken)
+        assertEquals(700L, survivor.serverId)
+        assertEquals(true, duplicate.isDeleted)
+        assertNull(duplicate.publicToken)
+    }
+
     // ── Terminal ownership isolation (record_scope / record_origin) ──────────────
     //
     // A bill created on Terminal A and pulled onto Terminal B during sync must NOT
@@ -405,6 +779,9 @@ class BillDaoIsolationTest {
             bill(R1, 1_000, "draft", "pending", "upi")
                 .copy(operationId = "duplicate", publicToken = "duplicate-token")
         )
+        // Simulate pre-constraint malformed data: two rows for the same UPI payment.
+        // The second uses NULL operation_id (legacy/unidentified) to avoid the new
+        // unique constraint while still representing a duplicate-mode scenario.
         billDao.insertBillPayments(
             listOf(
                 BillPaymentEntity(
@@ -419,7 +796,7 @@ class BillDaoIsolationTest {
                     restaurantId = R1,
                     paymentMode = "upi",
                     amount = "50.00",
-                    operationId = "duplicate:payment:upi"
+                    operationId = null
                 )
             )
         )
@@ -476,19 +853,22 @@ class BillDaoIsolationTest {
 
     @Test
     fun finalizeOnlineBillAtomically_rejectsDuplicateModeExtraRowAndChangedAmount() = runBlocking {
+        var callId = 0
         suspend fun rejected(existing: List<BillPaymentEntity>, requested: List<BillPaymentEntity>) {
+            callId++
             val token = "malformed-${System.nanoTime()}"
             val billId = billDao.insertBill(
                 bill(R1, System.nanoTime(), "draft", "pending", "part_cash_upi")
                     .copy(operationId = token, publicToken = token)
             )
-            billDao.insertBillPayments(existing.map { it.copy(billId = billId, restaurantId = R1) })
+            // Scope operation_ids per call to avoid cross-call uniqueness collisions
+            billDao.insertBillPayments(existing.map { it.copy(billId = billId, restaurantId = R1, operationId = "${it.operationId}:$callId") })
             val result = runCatching {
                 billDao.finalizeOnlineBillAtomically(
                     billId,
                     R1,
                     "A",
-                    requested.map { it.copy(billId = billId) },
+                    requested.map { it.copy(billId = billId, operationId = "${it.operationId}:$callId") },
                     System.currentTimeMillis()
                 )
             }

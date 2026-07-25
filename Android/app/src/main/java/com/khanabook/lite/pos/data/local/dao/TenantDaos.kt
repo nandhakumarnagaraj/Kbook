@@ -594,12 +594,6 @@ class TenantBillDao @Inject constructor(
     override suspend fun getMaxDailyOrderIdForTerminalToday(restaurantId: Long, terminalId: String, startTime: Long, endTime: Long): Long =
         dao.getMaxDailyOrderIdForTerminalToday(restaurantId, terminalId, startTime, endTime)
 
-    override suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int = dao.reconcileServerAcknowledgedBills(restaurantId)
-    override suspend fun markBillsSyncedByPublicTokens(restaurantId: Long, publicTokens: List<String>): Int = dao.markBillsSyncedByPublicTokens(restaurantId, publicTokens)
-    override suspend fun markBillSyncedByPublicToken(restaurantId: Long, publicToken: String, serverUpdatedAt: Long): Int =
-        dao.markBillSyncedByPublicToken(restaurantId, publicToken, serverUpdatedAt)
-
-    override suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int = dao.markBillsSyncedByDeviceIdAndLocalIds(deviceId, restaurantId, localIds)
     override suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity> = dao.getUnsyncedBills(restaurantId)
     override suspend fun getUnsyncedBillsPaged(restaurantId: Long, limit: Int): List<BillEntity> = dao.getUnsyncedBillsPaged(restaurantId, limit)
     override suspend fun getUnsyncedBillsForUser(userId: Long, restaurantId: Long): List<BillEntity> = dao.getUnsyncedBillsForUser(userId, restaurantId)
@@ -607,9 +601,19 @@ class TenantBillDao @Inject constructor(
     override suspend fun getUnsyncedBillPaymentsForUser(userId: Long, restaurantId: Long): List<BillPaymentEntity> = dao.getUnsyncedBillPaymentsForUser(userId, restaurantId)
     override fun getUnsyncedCountForUser(userId: Long, restaurantId: Long): Flow<Int> = runFlow { it.billDao().getUnsyncedCountForUser(userId, restaurantId) }
 
-    override suspend fun markBillsAsSynced(billIds: List<Long>, restaurantId: Long) {
-        dao.markBillsAsSynced(billIds, restaurantId)
-    }
+    override suspend fun markBillAsSyncedIfUnchanged(
+        billId: Long,
+        restaurantId: Long,
+        pushedUpdatedAt: Long,
+        pushedOrderStatus: String,
+        pushedPaymentStatus: String
+    ): Int = dao.markBillAsSyncedIfUnchanged(
+        billId,
+        restaurantId,
+        pushedUpdatedAt,
+        pushedOrderStatus,
+        pushedPaymentStatus
+    )
 
     override suspend fun markBillSyncFailedPermanently(
         billId: Long,
