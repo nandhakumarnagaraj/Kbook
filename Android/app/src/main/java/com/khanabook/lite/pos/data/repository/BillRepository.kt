@@ -283,16 +283,20 @@ class BillRepository(
         val isBecomingDeducted = status.equals("completed", ignoreCase = true) || 
                                  status.equals("paid", ignoreCase = true)
 
-        // Payment-integrity guard (mirrors the settlement invariant): a bill that CARRIES
-        // active payment rows may only be marked completed/paid if those rows form a valid,
-        // complete payment set. This blocks the payment-recovery bypass — one-tap
-        // "Completed" on a draft holding stale/partial/duplicate UPI rows, which would
-        // otherwise produce an inconsistent completed+pending bill and deduct inventory
-        // without validation. Clean completion (no active payment rows) is unaffected, and
-        // an already-valid completed set stays idempotent. Reject before any write,
-        // inventory deduction, or sync so malformed rows are preserved for recovery.
+        // Payment-integrity guard: a bill transitioning to completed/paid must have a
+        // valid, complete payment set. This blocks both:
+        // (a) Payment-recovery bypass — drafts holding stale/partial/duplicate rows.
+        // (b) Empty-payment bypass — a positive-value draft completed with no payment
+        //     rows at all (no complimentary/credit/write-off mode exists in the product).
+        // Reject before any write, inventory deduction, or sync.
         if (isBecomingDeducted) {
             val existingPayments = billDao.getActivePaymentsForBill(id, restaurantId)
+            val payableAmount = current.totalAmount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
+            if (existingPayments.isEmpty() && payableAmount > java.math.BigDecimal.ZERO) {
+                throw IllegalStateException(
+                    "This order has no payment records. Complete it from the payment screen."
+                )
+            }
             if (existingPayments.isNotEmpty()) {
                 PaymentSetValidator.validate(existingPayments, current.totalAmount).getOrElse { cause ->
                     throw IllegalStateException(

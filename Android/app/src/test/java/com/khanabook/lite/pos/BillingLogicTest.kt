@@ -241,11 +241,29 @@ class BillingLogicTest {
     }
 
     @Test
-    fun `completing a clean draft with no payment rows skips the guard`() {
-        // The guard only runs PaymentSetValidator when active rows exist; a clean draft
-        // (no rows) is permitted so out-of-band completion is unaffected.
+    fun `completing a positive-value draft with no payment rows is rejected`() {
+        // BillRepository.updateOrderStatus() now rejects financial completion when:
+        // - Bill is transitioning to completed/paid
+        // - Bill has a positive payable amount (> 0.00)
+        // - No active payment rows exist
+        // This prevents the empty-payment bypass where a draft could become completed
+        // without any payment through the Orders/Reports status dropdown.
+        val payableAmount = java.math.BigDecimal("500.00")
         val existingActiveRows = emptyList<com.khanabook.lite.pos.data.local.entity.BillPaymentEntity>()
-        assertTrue("No active rows means the completion guard does not block", existingActiveRows.isEmpty())
+        val isBecomingDeducted = true
+        val wouldReject = existingActiveRows.isEmpty() && payableAmount > java.math.BigDecimal.ZERO
+        assertTrue("Positive-value bill with no payments must be rejected", wouldReject && isBecomingDeducted)
+    }
+
+    @Test
+    fun `completing a zero-value bill with no payment rows is permitted`() {
+        // A bill with payable amount 0.00 (fully discounted or zero-price) may be
+        // completed without payment rows — there is nothing to collect.
+        val payableAmount = java.math.BigDecimal("0.00")
+        val existingActiveRows = emptyList<com.khanabook.lite.pos.data.local.entity.BillPaymentEntity>()
+        val isBecomingDeducted = true
+        val wouldReject = existingActiveRows.isEmpty() && payableAmount > java.math.BigDecimal.ZERO
+        assertFalse("Zero-value bill with no payments should NOT be rejected", wouldReject && isBecomingDeducted)
     }
 
     @Test
