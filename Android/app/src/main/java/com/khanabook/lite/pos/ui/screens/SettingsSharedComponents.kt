@@ -146,6 +146,18 @@ fun ConfigActionButtons(
         horizontalArrangement = Arrangement.spacedBy(spacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.weight(1f).height(56.dp),
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = PrimaryGold,
+                disabledContentColor = TextGold.copy(alpha = 0.45f)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Back", style = MaterialTheme.typography.titleMedium)
+        }
         Button(
             onClick = onSave,
             enabled = saveEnabled && !isSaving,
@@ -170,18 +182,6 @@ fun ConfigActionButtons(
                 text = if (isSaving) "Saving..." else "Save",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
-        }
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.weight(1f).height(56.dp),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = PrimaryGold,
-                disabledContentColor = TextGold.copy(alpha = 0.45f)
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Back", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

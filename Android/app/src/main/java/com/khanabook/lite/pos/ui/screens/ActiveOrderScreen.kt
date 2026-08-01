@@ -96,6 +96,13 @@ fun ActiveOrderScreen(
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
 
+    LaunchedEffect(error) {
+        error?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            billingViewModel.clearError()
+        }
+    }
+
     val total = summary.total.toDoubleOrNull() ?: 0.0
     val itemCount = cartItems.sumOf { it.quantity }
 
@@ -329,7 +336,8 @@ fun ActiveOrderScreen(
                     onClick = {
                         coroutineScope.launch {
                             billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            billingViewModel.appendItemsToDraft(draftBillId)
+                            val appended = billingViewModel.appendItemsToDraft(draftBillId)
+                            if (!appended) return@launch
                             val settled = billingViewModel.settleDraftOrder(
                                 billId = draftBillId,
                                 paymentMode = selectedMode,
@@ -357,9 +365,15 @@ fun ActiveOrderScreen(
                     onClick = {
                         coroutineScope.launch {
                             billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            billingViewModel.settleDraftOrder(draftBillId, selectedMode, PaymentStatus.FAILED)
-                            billingViewModel.clearActiveSession()
-                            onBack()
+                            val cancelled = billingViewModel.settleDraftOrder(
+                                draftBillId,
+                                selectedMode,
+                                PaymentStatus.FAILED
+                            )
+                            if (cancelled) {
+                                billingViewModel.clearActiveSession()
+                                onBack()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -374,8 +388,10 @@ fun ActiveOrderScreen(
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            billingViewModel.appendItemsToDraft(draftBillId)
-                            onBack()
+                            if (billingViewModel.appendItemsToDraft(draftBillId)) {
+                                KhanaToast.show("Draft updated", ToastKind.Success)
+                                onBack()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),

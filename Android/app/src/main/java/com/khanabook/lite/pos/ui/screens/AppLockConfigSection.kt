@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
@@ -57,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +85,9 @@ import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
@@ -151,6 +156,18 @@ fun SettingsListView(
                 icon = Icons.Filled.TextIncrease,
                 text = "Display",
                 onClick = { onSelectItem("ui_scale") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                text = "Interaction Feedback",
+                onClick = { onSelectItem("interaction_feedback") }
             )
         }
 
@@ -416,6 +433,7 @@ fun ChangePasswordView(
                 localError = null
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
+                KhanaToast.show("Password changed successfully", ToastKind.Success)
                 authViewModel.clearResetStatus()
                 onBack()
             }
@@ -664,6 +682,7 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
 @Composable
 fun HelpSupportView(viewModel: SettingsViewModel) {
     val context = LocalContext.current
+    val toastScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
     val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
@@ -724,7 +743,8 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             retryingIds = retryingIds,
             onRefresh = viewModel::refreshFailedBillSyncs,
             onRetry = viewModel::retryFailedBillSync,
-            onRetryAll = viewModel::retryAllFailedBillSyncs
+            onRetryAll = viewModel::retryAllFailedBillSyncs,
+            onRepair = viewModel::repairFailedBillSync
         )
 
         Button(
@@ -732,7 +752,11 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
                 val url = "https://wa.me/$SUPPORT_WHATSAPP?text=Hi%2C%20I%20need%20help%20with%20KhanaBook%20POS"
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                    toastScope.launch {
+                        KhanaToast.show("WhatsApp is not available", ToastKind.Error)
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366), contentColor = Color.White),
@@ -755,7 +779,11 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
                 }
                 try {
                     context.startActivity(intent)
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                    toastScope.launch {
+                        KhanaToast.show("No email app is available", ToastKind.Error)
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.6f)),
@@ -896,7 +924,8 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
             retryingIds = retryingIds,
             onRefresh = viewModel::refreshFailedBillSyncs,
             onRetry = viewModel::retryFailedBillSync,
-            onRetryAll = viewModel::retryAllFailedBillSyncs
+            onRetryAll = viewModel::retryAllFailedBillSyncs,
+            onRepair = viewModel::repairFailedBillSync
         )
 
         QuarantineIssuesCard(
@@ -1308,7 +1337,8 @@ private fun SyncIssuesCard(
     retryingIds: Set<Long>,
     onRefresh: () -> Unit,
     onRetry: (Long) -> Unit,
-    onRetryAll: () -> Unit
+    onRetryAll: () -> Unit,
+    onRepair: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
@@ -1363,7 +1393,8 @@ private fun SyncIssuesCard(
                     FailedBillSyncRow(
                         bill = bill,
                         isRetrying = retryingIds.contains(bill.id),
-                        onRetry = { onRetry(bill.id) }
+                        onRetry = { onRetry(bill.id) },
+                        onRepair = { onRepair(bill.id) }
                     )
                 }
             }
@@ -1375,7 +1406,8 @@ private fun SyncIssuesCard(
 private fun FailedBillSyncRow(
     bill: BillEntity,
     isRetrying: Boolean,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onRepair: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(
@@ -1396,15 +1428,22 @@ private fun FailedBillSyncRow(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
-            TextButton(onClick = onRetry, enabled = !isRetrying) {
-                if (isRetrying) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = PrimaryGold
-                    )
-                } else {
-                    Text("Retry", color = PrimaryGold, style = MaterialTheme.typography.labelMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                if (bill.syncFailureReason?.contains("Duplicate order", ignoreCase = true) == true) {
+                    TextButton(onClick = onRepair, enabled = !isRetrying) {
+                        Text("Repair", color = SuccessGreen, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                TextButton(onClick = onRetry, enabled = !isRetrying) {
+                    if (isRetrying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = PrimaryGold
+                        )
+                    } else {
+                        Text("Retry", color = PrimaryGold, style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         }

@@ -970,6 +970,94 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     @Query("SELECT * FROM bills WHERE sync_status = 'failed_permanent' AND restaurant_id = :restaurantId ORDER BY sync_failed_at DESC")
     suspend fun getPermanentlyFailedBills(restaurantId: Long): List<BillEntity>
 
+    @Query("""
+        SELECT COUNT(*)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND id != :billId
+          AND is_deleted = 0
+          AND last_reset_date = :date
+          AND daily_order_id = :dailyOrderId
+          AND COALESCE(terminal_series, '') = COALESCE(:terminalSeries, '')
+    """)
+    suspend fun countDailyOrderIdentityConflicts(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        dailyOrderId: Long,
+        terminalSeries: String?
+    ): Int
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND id != :billId
+          AND is_deleted = 0
+          AND last_reset_date = :date
+          AND COALESCE(terminal_series, '') = COALESCE(:terminalSeries, '')
+    """)
+    suspend fun getMaxDailyOrderIdForIdentity(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        terminalSeries: String?
+    ): Long
+
+    @Transaction
+    suspend fun repairFailedDailyOrderIdentity(
+        billId: Long,
+        restaurantId: Long,
+        correctedDate: String,
+        updatedAt: Long
+    ): BillEntity {
+        val bill = getBillById(billId, restaurantId)
+            ?: throw IllegalStateException("Bill not found.")
+        check(!bill.isSynced && bill.serverId == null) {
+            "Only a local unsynced bill can be repaired."
+        }
+        check(bill.recordOrigin == "local_created" && bill.recordScope == "terminal_operational") {
+            "Server history cannot be changed from this terminal."
+        }
+        check(bill.syncFailureReason?.contains("Duplicate order", ignoreCase = true) == true) {
+            "This bill does not have a repairable daily-order conflict."
+        }
+
+        val hasConflict = countDailyOrderIdentityConflicts(
+            restaurantId,
+            billId,
+            correctedDate,
+            bill.dailyOrderId,
+            bill.terminalSeries
+        ) > 0
+        val repairedDailyOrderId = if (hasConflict) {
+            getMaxDailyOrderIdForIdentity(
+                restaurantId,
+                billId,
+                correctedDate,
+                bill.terminalSeries
+            ) + 1L
+        } else {
+            bill.dailyOrderId
+        }
+        val displayCounter = repairedDailyOrderId.toString().padStart(2, '0')
+        val repairedDisplay = bill.terminalSeries
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it-$displayCounter" }
+            ?: displayCounter
+        val repaired = bill.copy(
+            dailyOrderId = repairedDailyOrderId,
+            dailyOrderDisplay = repairedDisplay,
+            lastResetDate = correctedDate,
+            syncStatus = "pending",
+            syncFailureReason = null,
+            syncFailedAt = null,
+            updatedAt = updatedAt
+        )
+        updateBill(repaired)
+        return repaired
+    }
+
     @Query("UPDATE bills SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
     suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 

@@ -16,12 +16,16 @@ enum class WindowWidthTier {
 @Immutable
 data class ResponsiveLayout(
     val screenWidthDp: Int,
-    val widthTier: WindowWidthTier
+    val widthTier: WindowWidthTier,
+    val screenHeightDp: Int = 640
 ) {
     val isCompact: Boolean = widthTier == WindowWidthTier.Compact
     val isMedium: Boolean = widthTier == WindowWidthTier.Medium
     val isExpanded: Boolean = widthTier == WindowWidthTier.Expanded
     val isCompactForm: Boolean = screenWidthDp < 400
+    val isCompactHeight: Boolean = screenHeightDp < 480
+    val isLandscape: Boolean = screenWidthDp > screenHeightDp
+    val reportDetailItemListMaxHeight: Dp = if (isCompactHeight) 120.dp else 200.dp
     val isWideListDetail: Boolean = screenWidthDp >= 840
     val menuGridColumns: Int = when {
         screenWidthDp >= 1200 -> 3
@@ -47,6 +51,7 @@ data class ResponsiveLayout(
 
 internal fun responsiveLayoutForWindowSizeClass(
     screenWidthDp: Int,
+    screenHeightDp: Int,
     widthSizeClass: WindowWidthSizeClass
 ): ResponsiveLayout {
     val tier = when (widthSizeClass) {
@@ -56,10 +61,11 @@ internal fun responsiveLayoutForWindowSizeClass(
     }
     return ResponsiveLayout(
         screenWidthDp = screenWidthDp,
-        widthTier = tier
+        widthTier = tier,
+        screenHeightDp = screenHeightDp
     )
 }
 
 val LocalResponsiveLayout = staticCompositionLocalOf {
-    ResponsiveLayout(screenWidthDp = 360, widthTier = WindowWidthTier.Compact)
+    ResponsiveLayout(screenWidthDp = 360, widthTier = WindowWidthTier.Compact, screenHeightDp = 640)
 }

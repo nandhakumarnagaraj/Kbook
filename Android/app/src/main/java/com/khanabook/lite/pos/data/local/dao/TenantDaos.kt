@@ -174,8 +174,12 @@ class TenantRestaurantDao @Inject constructor(
     override suspend fun getTerminalDailyCounterValue(restaurantId: Long, terminalId: String, date: String): Long? =
         dao.getTerminalDailyCounterValue(restaurantId, terminalId, date)
 
-    override suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long =
-        dao.incrementAndGetTerminalDailyCounter(restaurantId, terminalId)
+    override suspend fun incrementAndGetTerminalDailyCounter(
+        restaurantId: Long,
+        terminalId: String,
+        terminalSeries: String,
+        date: String
+    ): Long = dao.incrementAndGetTerminalDailyCounter(restaurantId, terminalId, terminalSeries, date)
 
     override suspend fun getAllTerminalCountersForDate(restaurantId: Long, date: String): List<TerminalDailyCounterEntity> =
         dao.getAllTerminalCountersForDate(restaurantId, date)
@@ -189,6 +193,12 @@ class TenantRestaurantDao @Inject constructor(
     ) {
         dao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, date, counter, updatedAt)
     }
+
+    override suspend fun getMaxDailyOrderIdAcrossAllBills(
+        restaurantId: Long,
+        date: String,
+        terminalSeries: String
+    ): Long = dao.getMaxDailyOrderIdAcrossAllBills(restaurantId, date, terminalSeries)
 
     override suspend fun getUnsyncedTerminalDailyCounters(): List<TerminalDailyCounterEntity> =
         dao.getUnsyncedTerminalDailyCounters()
@@ -627,6 +637,39 @@ class TenantBillDao @Inject constructor(
 
     override suspend fun getPermanentlyFailedBills(restaurantId: Long): List<BillEntity> =
         dao.getPermanentlyFailedBills(restaurantId)
+
+    override suspend fun countDailyOrderIdentityConflicts(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        dailyOrderId: Long,
+        terminalSeries: String?
+    ): Int = dao.countDailyOrderIdentityConflicts(
+        restaurantId,
+        billId,
+        date,
+        dailyOrderId,
+        terminalSeries
+    )
+
+    override suspend fun getMaxDailyOrderIdForIdentity(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        terminalSeries: String?
+    ): Long = dao.getMaxDailyOrderIdForIdentity(restaurantId, billId, date, terminalSeries)
+
+    override suspend fun repairFailedDailyOrderIdentity(
+        billId: Long,
+        restaurantId: Long,
+        correctedDate: String,
+        updatedAt: Long
+    ): BillEntity = dao.repairFailedDailyOrderIdentity(
+        billId,
+        restaurantId,
+        correctedDate,
+        updatedAt
+    )
 
     override suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long) {
         dao.updateServerIdByLocalId(localId, serverId, restaurantId)

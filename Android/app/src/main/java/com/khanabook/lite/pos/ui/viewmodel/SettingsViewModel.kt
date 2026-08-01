@@ -16,7 +16,11 @@ import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
+import com.khanabook.lite.pos.domain.manager.PrinterTransportDispatcher
+import com.khanabook.lite.pos.domain.model.PrinterConnectionType
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.domain.model.connectionTargetKey
+import com.khanabook.lite.pos.domain.model.connectionTypeValue
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
@@ -25,12 +29,15 @@ import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -48,6 +55,17 @@ data class DuplicateIdHealth(
         get() = duplicateInvoiceGroups.size + duplicateDailyGroups.size
 }
 
+sealed interface PrinterUiEvent {
+    data object Connected : PrinterUiEvent
+    data object ConnectionFailed : PrinterUiEvent
+    data object WifiSaved : PrinterUiEvent
+    data object WifiSaveFailed : PrinterUiEvent
+    data object TestPrintSent : PrinterUiEvent
+    data object TestPrintFailed : PrinterUiEvent
+    data object NotConfigured : PrinterUiEvent
+    data object InvalidWifiAddress : PrinterUiEvent
+}
+
 @HiltViewModel
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 class SettingsViewModel @Inject constructor(
@@ -58,6 +76,7 @@ class SettingsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val billDao: BillDao,
     private val btManager: BluetoothPrinterManager,
+    private val printerTransport: PrinterTransportDispatcher,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val sessionManager: SessionManager,
     private val syncManager: SyncManager
@@ -97,6 +116,9 @@ class SettingsViewModel @Inject constructor(
     private val _btConnectResult = MutableStateFlow<Boolean?>(null)
     val btConnectResult: StateFlow<Boolean?> = _btConnectResult.asStateFlow()
 
+    private val _printerEvents = MutableSharedFlow<PrinterUiEvent>(extraBufferCapacity = 4)
+    val printerEvents: SharedFlow<PrinterUiEvent> = _printerEvents.asSharedFlow()
+
     /** MAC address of the currently connected Bluetooth printer, or null if disconnected. */
     val connectedPrinterMac: StateFlow<String?> = btManager.connectedDeviceMac
 
@@ -108,7 +130,13 @@ class SettingsViewModel @Inject constructor(
         connectedPrinterMacs
     ) { profiles, liveMacs ->
         profiles
-            .filter { !it.macAddress.isNullOrBlank() && liveMacs.contains(it.macAddress) }
+            .filter {
+                when (it.connectionTypeValue()) {
+                    PrinterConnectionType.BLUETOOTH ->
+                        it.macAddress.isNotBlank() && liveMacs.contains(it.macAddress)
+                    PrinterConnectionType.WIFI -> false
+                }
+            }
             .map { it.role }
             .toSet()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
@@ -298,6 +326,60 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun repairFailedBillSync(billId: Long) {
+        viewModelScope.launch {
+            _retryingFailedBillIds.value = _retryingFailedBillIds.value + billId
+            _syncCenterMessage.value = null
+            try {
+                val (original, repaired) = withContext(Dispatchers.IO) {
+                    val restaurantId = sessionManager.getRestaurantId()
+                    check(restaurantId > 0L) { "Restaurant is not ready yet." }
+                    val original = billDao.getBillById(billId, restaurantId)
+                        ?: throw IllegalStateException("Bill not found.")
+                    val correctedDate = java.time.Instant.ofEpochMilli(original.createdAt)
+                        .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
+                        .toLocalDate()
+                        .toString()
+                    val repaired = billDao.repairFailedDailyOrderIdentity(
+                        billId = billId,
+                        restaurantId = restaurantId,
+                        correctedDate = correctedDate,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    val today = java.time.LocalDate.now(
+                        java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
+                    ).toString()
+                    repaired.createdTerminalId
+                        ?.takeIf { correctedDate == today }
+                        ?.let { terminalId ->
+                            restaurantRepository.raiseTerminalDailyCounterAtLeast(
+                                terminalId = terminalId,
+                                counter = repaired.dailyOrderId,
+                                date = correctedDate
+                            )
+                        }
+                    original to repaired
+                }
+                syncManager.pushUnsyncedDataWithResult()
+                _syncCenterMessage.value = if (original.dailyOrderId == repaired.dailyOrderId) {
+                    "Bill ${repaired.dailyOrderDisplay} date repaired and synced again."
+                } else {
+                    "Bill renumbered to ${repaired.dailyOrderDisplay} and synced again."
+                }
+            } catch (e: Exception) {
+                _syncCenterMessage.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Unable to repair this bill."
+                )
+            } finally {
+                _retryingFailedBillIds.value = _retryingFailedBillIds.value - billId
+                refreshFailedBillSyncs()
+                refreshDuplicateIdHealth()
+                refreshLastSyncTimestamp()
+            }
+        }
+    }
+
     fun retryAllFailedBillSyncs() {
         viewModelScope.launch {
             val billsToRetry = _failedBillSyncs.value
@@ -324,28 +406,34 @@ class SettingsViewModel @Inject constructor(
 
     fun testPrint(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
-            val printer = printerProfileRepository.getByRole(role.name)
-            if (printer == null) {
-                _btConnectResult.value = false
-                return@launch
-            }
-            if (!btManager.connect(printer.macAddress)) {
-                _btConnectResult.value = false
-                return@launch
-            }
-            val testData = (
-                "\u001b\u0040" +
-                "\u001b\u0061\u0001" +
-                "KHANABOOK\n" +
-                "${role.name} PRINTER TEST OK\n" +
-                "--------------------------------\n" +
-                "\n\n\n\n" +
-                "\u001d\u0056\u0042\u0000"
-            ).toByteArray(Charsets.US_ASCII)
             try {
-                btManager.printBytesTo(printer.macAddress, testData)
-            } finally {
-                btManager.disconnect(printer.macAddress)
+                val printer = printerProfileRepository.getByRole(role.name)
+                if (printer == null) {
+                    _printerEvents.emit(PrinterUiEvent.NotConfigured)
+                    return@launch
+                }
+                val testData = (
+                    "\u001b\u0040" +
+                    "\u001b\u0061\u0001" +
+                    "KHANABOOK\n" +
+                    "${role.name} PRINTER TEST OK\n" +
+                    "--------------------------------\n" +
+                    "\n\n\n\n" +
+                    "\u001d\u0056\u0042\u0000"
+                ).toByteArray(Charsets.US_ASCII)
+                val printed = try {
+                    printerTransport.print(printer, testData)
+                } finally {
+                    if (printer.connectionTypeValue() == PrinterConnectionType.BLUETOOTH) {
+                        btManager.disconnect(printer.macAddress)
+                    }
+                }
+                _printerEvents.emit(
+                    if (printed) PrinterUiEvent.TestPrintSent else PrinterUiEvent.TestPrintFailed
+                )
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Test print failed for ${role.name}", e)
+                _printerEvents.emit(PrinterUiEvent.TestPrintFailed)
             }
         }
     }
@@ -371,10 +459,13 @@ class SettingsViewModel @Inject constructor(
         _btConnectResult.value = null
         _btIsConnecting.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            val ok = btManager.connect(device)
-            _btIsConnecting.value = false
-            _btConnectResult.value = ok
-            if (ok) {
+            try {
+                val ok = btManager.connect(device)
+                _btConnectResult.value = ok
+                if (!ok) {
+                    _printerEvents.emit(PrinterUiEvent.ConnectionFailed)
+                    return@launch
+                }
                 val name = try { device.name ?: "BT Printer" } catch (_: Exception) { "BT Printer" }
                 val mac  = device.address
                 val existing = printerProfileRepository.getByRole(role.name)
@@ -384,6 +475,9 @@ class SettingsViewModel @Inject constructor(
                         role = role.name,
                         name = name,
                         macAddress = mac,
+                        connectionType = PrinterConnectionType.BLUETOOTH.name,
+                        host = null,
+                        port = 9100,
                         enabled = true,
                         autoPrint = existing?.autoPrint ?: true,
                         paperSize = paperSize,
@@ -400,6 +494,79 @@ class SettingsViewModel @Inject constructor(
                 } else if (role == PrinterRole.KITCHEN) {
                     kitchenPrintQueueManager.flushPendingForPrinter(mac)
                 }
+                _printerEvents.emit(PrinterUiEvent.Connected)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Printer connection failed for ${role.name}", e)
+                _btConnectResult.value = false
+                _printerEvents.emit(PrinterUiEvent.ConnectionFailed)
+            } finally {
+                _btIsConnecting.value = false
+            }
+        }
+    }
+
+    fun saveWifiPrinter(
+        role: PrinterRole,
+        name: String,
+        host: String,
+        port: Int,
+        autoPrint: Boolean,
+        paperSize: String,
+        includeLogo: Boolean
+    ) {
+        val normalizedHost = host.trim()
+        if (normalizedHost.isBlank() || port !in 1..65535) {
+            _printerEvents.tryEmit(PrinterUiEvent.InvalidWifiAddress)
+            return
+        }
+        _btConnectResult.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val existing = printerProfileRepository.getByRole(role.name)
+                existing
+                    ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH }
+                    ?.macAddress
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { btManager.disconnect(it) }
+                val defaultName = when (role) {
+                    PrinterRole.CUSTOMER -> "Customer Receipt Wi-Fi Printer"
+                    PrinterRole.KITCHEN -> "Kitchen Wi-Fi Printer"
+                }
+                val profile = PrinterProfileEntity(
+                    id = existing?.id ?: 0,
+                    role = role.name,
+                    name = name.trim().ifBlank { defaultName },
+                    macAddress = "",
+                    connectionType = PrinterConnectionType.WIFI.name,
+                    host = normalizedHost,
+                    port = port,
+                    enabled = true,
+                    autoPrint = autoPrint,
+                    paperSize = paperSize,
+                    includeLogo = includeLogo,
+                    copies = existing?.copies ?: 1,
+                    createdAt = existing?.createdAt ?: System.currentTimeMillis()
+                )
+                printerProfileRepository.saveProfile(profile)
+                if (role == PrinterRole.CUSTOMER) {
+                    restaurantRepository.getProfile()?.copy(
+                        printerEnabled = true,
+                        printerName = profile.name,
+                        printerMac = null,
+                        paperSize = paperSize,
+                        autoPrintOnSuccess = autoPrint,
+                        includeLogoInPrint = includeLogo,
+                        isSynced = false,
+                        updatedAt = System.currentTimeMillis()
+                    )?.let { restaurantRepository.saveProfile(it) }
+                }
+                if (role == PrinterRole.KITCHEN) {
+                    kitchenPrintQueueManager.flushPendingForPrinter(profile.connectionTargetKey())
+                }
+                _printerEvents.emit(PrinterUiEvent.WifiSaved)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Wi-Fi printer save failed for ${role.name}", e)
+                _printerEvents.emit(PrinterUiEvent.WifiSaveFailed)
             }
         }
     }
@@ -437,7 +604,10 @@ class SettingsViewModel @Inject constructor(
     fun removePrinter(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
             val existing = printerProfileRepository.getByRole(role.name)
-            existing?.macAddress?.let { mac -> btManager.disconnect(mac) }
+            existing
+                ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH }
+                ?.macAddress
+                ?.let { mac -> btManager.disconnect(mac) }
             printerProfileRepository.deleteByRole(role.name)
             if (role == PrinterRole.CUSTOMER) {
                 restaurantRepository.getProfile()?.copy(
@@ -516,19 +686,23 @@ class SettingsViewModel @Inject constructor(
             _saveProfileError.value = null
             _saveProfileSuccess.value = false
 
-            val newNumber = profile.whatsappNumber ?: ""
-
-            restaurantRepository.saveProfile(profile)
-            
-            userRepository.currentUser.value?.let { current ->
-                userRepository.updateWhatsappNumber(current.id, newNumber)
-                
-                userRepository.setCurrentUser(current.copy(
-                    whatsappNumber = newNumber
-                ))
+            try {
+                val newNumber = profile.whatsappNumber ?: ""
+                restaurantRepository.saveProfile(profile)
+                userRepository.currentUser.value?.let { current ->
+                    userRepository.updateWhatsappNumber(current.id, newNumber)
+                    userRepository.setCurrentUser(current.copy(whatsappNumber = newNumber))
+                }
+                _saveProfileSuccess.value = true
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Profile save failed", e)
+                _saveProfileError.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Couldn't save settings. Please try again."
+                )
+            } finally {
+                _saveProfileLoading.value = false
             }
-            _saveProfileSuccess.value = true
-            _saveProfileLoading.value = false
         }
     }
 

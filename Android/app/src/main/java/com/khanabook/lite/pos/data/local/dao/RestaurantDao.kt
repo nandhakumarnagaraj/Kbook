@@ -165,27 +165,42 @@ interface RestaurantDao {
     )
     suspend fun getTerminalDailyCounterValue(restaurantId: Long, terminalId: String, date: String): Long?
 
-    @Query("SELECT COALESCE(MAX(daily_order_id), 0) FROM bills WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND created_at BETWEEN :startOfDay AND :endOfDay")
-    suspend fun getMaxDailyOrderIdForTerminal(restaurantId: Long, terminalId: String, startOfDay: Long, endOfDay: Long): Long
-
     @Transaction
-    suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long {
-        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-        val today = java.time.LocalDate.now(zoneId).toString()
+    suspend fun incrementAndGetTerminalDailyCounter(
+        restaurantId: Long,
+        terminalId: String,
+        terminalSeries: String,
+        date: String
+    ): Long {
         val now = System.currentTimeMillis()
-        val startOfDay = java.time.LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant().toEpochMilli()
-        val endOfDay = startOfDay + java.time.Duration.ofDays(1).toMillis() - 1
 
-        insertOrIncrementTerminalDailyCounter(restaurantId, terminalId, today, now)
-        val counter = getTerminalDailyCounterValue(restaurantId, terminalId, today) ?: 1L
-        val maxExisting = getMaxDailyOrderIdForTerminal(restaurantId, terminalId, startOfDay, endOfDay)
-        return maxOf(counter, maxExisting + 1)
+        val maxExistingDaily = getMaxDailyOrderIdAcrossAllBills(restaurantId, date, terminalSeries)
+        if (maxExistingDaily > 0L) {
+            raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, date, maxExistingDaily, now)
+        }
+
+        insertOrIncrementTerminalDailyCounter(restaurantId, terminalId, date, now)
+        return getTerminalDailyCounterValue(restaurantId, terminalId, date) ?: 1L
     }
 
     @Query(
         "SELECT * FROM terminal_daily_counter WHERE restaurant_id = :restaurantId AND date = :date"
     )
     suspend fun getAllTerminalCountersForDate(restaurantId: Long, date: String): List<TerminalDailyCounterEntity>
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND last_reset_date = :date
+          AND COALESCE(terminal_series, '') = COALESCE(:terminalSeries, '')
+    """)
+    suspend fun getMaxDailyOrderIdAcrossAllBills(
+        restaurantId: Long,
+        date: String,
+        terminalSeries: String
+    ): Long
 
     // Atomic create-or-raise: seeds the counter to at least :counter (used after a pull /
     // migration when the local counter row is empty or behind the server). Single UPSERT so

@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -49,6 +51,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,13 +64,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.domain.model.PrinterConnectionType
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.domain.model.connectionTypeValue
 import com.khanabook.lite.pos.ui.designsystem.KhanaButtonRow
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaPrimaryButton
 import com.khanabook.lite.pos.ui.designsystem.KhanaSecondaryButton
@@ -87,6 +95,7 @@ import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import com.khanabook.lite.pos.ui.viewmodel.PrinterUiEvent
 
 @OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @Composable
@@ -99,23 +108,34 @@ fun PrinterConfigView(
     val spacing = KhanaBookTheme.spacing
     val customerPrinter by viewModel.customerPrinter.collectAsStateWithLifecycle()
     val kitchenPrinter by viewModel.kitchenPrinter.collectAsStateWithLifecycle()
-    var enabled by remember { mutableStateOf(profile?.printerEnabled ?: false) }
-    var paper58 by remember { mutableStateOf((profile?.paperSize ?: "58mm") == "58mm") }
-    var autoPrint by remember { mutableStateOf(profile?.autoPrintOnSuccess ?: false) }
-    var includeLogo by remember { mutableStateOf(profile?.includeLogoInPrint ?: true) }
+    var enabled by remember(customerPrinter?.id, customerPrinter?.enabled, profile?.printerEnabled) {
+        mutableStateOf(customerPrinter?.enabled ?: profile?.printerEnabled ?: false)
+    }
+    var paper58 by remember(customerPrinter?.id, customerPrinter?.paperSize, profile?.paperSize) {
+        mutableStateOf((customerPrinter?.paperSize ?: profile?.paperSize ?: "58mm") == "58mm")
+    }
+    var autoPrint by remember(customerPrinter?.id, customerPrinter?.autoPrint, profile?.autoPrintOnSuccess) {
+        mutableStateOf(customerPrinter?.autoPrint ?: profile?.autoPrintOnSuccess ?: false)
+    }
+    var includeLogo by remember(customerPrinter?.id, customerPrinter?.includeLogo, profile?.includeLogoInPrint) {
+        mutableStateOf(customerPrinter?.includeLogo ?: profile?.includeLogoInPrint ?: true)
+    }
     var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
     val context = LocalContext.current
     var isBtActive by remember { mutableStateOf(viewModel.isBluetoothEnabled(context)) }
     var pendingRole by remember { mutableStateOf(PrinterRole.CUSTOMER) }
+    var showWifiDialog by remember { mutableStateOf(false) }
+    var wifiPrinterName by remember { mutableStateOf("Customer Receipt Wi-Fi Printer") }
+    var wifiHost by remember { mutableStateOf("") }
+    var wifiPort by remember { mutableStateOf("9100") }
 
     val btDevices by viewModel.btDevices.collectAsStateWithLifecycle()
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
     val connectedPrinterMac by viewModel.connectedPrinterMac.collectAsStateWithLifecycle()
     val printerStatusRoles by viewModel.printerStatusRoles.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
-    val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -146,11 +166,29 @@ fun PrinterConfigView(
         }
     }
 
-    LaunchedEffect(btConnectResult) {
-        btConnectResult?.let {
-            snackbarMessageRes = if (it) R.string.toast_printer_connected else R.string.toast_printer_connect_failed
-            if (it) showBtSheet = false
-            viewModel.clearBtConnectResult()
+    LaunchedEffect(viewModel) {
+        viewModel.printerEvents.collect { event ->
+            val (message, kind) = when (event) {
+                PrinterUiEvent.Connected -> {
+                    showBtSheet = false
+                    context.getString(R.string.toast_printer_connected) to ToastKind.Success
+                }
+                PrinterUiEvent.ConnectionFailed ->
+                    context.getString(R.string.toast_printer_connect_failed) to ToastKind.Error
+                PrinterUiEvent.WifiSaved ->
+                    "Wi-Fi printer saved" to ToastKind.Success
+                PrinterUiEvent.WifiSaveFailed ->
+                    "Couldn't save Wi-Fi printer. Please try again." to ToastKind.Error
+                PrinterUiEvent.TestPrintSent ->
+                    "Test print sent" to ToastKind.Success
+                PrinterUiEvent.TestPrintFailed ->
+                    "Test print failed. Check the printer connection." to ToastKind.Error
+                PrinterUiEvent.NotConfigured ->
+                    "Configure this printer before testing" to ToastKind.Warning
+                PrinterUiEvent.InvalidWifiAddress ->
+                    "Enter a valid printer address and port" to ToastKind.Warning
+            }
+            KhanaToast.show(message, kind)
         }
     }
 
@@ -184,13 +222,22 @@ fun PrinterConfigView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Bluetooth Printers", color = TextGold, style = MaterialTheme.typography.titleMedium)
+                    Text("Receipt and Kitchen Printers", color = TextGold, style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
                 PrinterTargetCard(
                     title = "Customer Receipt Printer",
                     printerName = customerPrinter?.name ?: "No Printer",
-                    macAddress = customerPrinter?.macAddress,
+                    connectionDescription = customerPrinter?.let { printer ->
+                        when (printer.connectionTypeValue()) {
+                            PrinterConnectionType.BLUETOOTH -> printer.macAddress
+                                .takeIf { it.isNotBlank() }
+                                ?.let { "Bluetooth · $it" }
+                            PrinterConnectionType.WIFI -> printer.host
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { "Wi-Fi · $it:${printer.port}" }
+                        }
+                    },
                     enabled = enabled,
                     autoPrint = autoPrint,
                     showAutoPrintToggle = true,
@@ -203,6 +250,20 @@ fun PrinterConfigView(
                     onPaperSizeChange = { paper58 = it },
                     onIncludeLogoChange = { includeLogo = it },
                     helperText = null,
+                    onConfigureWifi = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        wifiPrinterName = customerPrinter?.name ?: "Customer Receipt Wi-Fi Printer"
+                        wifiHost = customerPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.host
+                            .orEmpty()
+                        wifiPort = customerPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.port
+                            ?.toString()
+                            ?: "9100"
+                        showWifiDialog = true
+                    },
                     onSelectPrinter = {
                         pendingRole = PrinterRole.CUSTOMER
                         if (!viewModel.hasBluetoothPermissions(context)) {
@@ -225,7 +286,16 @@ fun PrinterConfigView(
                 PrinterTargetCard(
                     title = "Kitchen Ticket Printer",
                     printerName = kitchenPrinter?.name ?: "No Printer",
-                    macAddress = kitchenPrinter?.macAddress,
+                    connectionDescription = kitchenPrinter?.let { printer ->
+                        when (printer.connectionTypeValue()) {
+                            PrinterConnectionType.BLUETOOTH -> printer.macAddress
+                                .takeIf { it.isNotBlank() }
+                                ?.let { "Bluetooth · $it" }
+                            PrinterConnectionType.WIFI -> printer.host
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { "Wi-Fi · $it:${printer.port}" }
+                        }
+                    },
                     enabled = kitchenEnabled,
                     autoPrint = true,
                     showAutoPrintToggle = false,
@@ -237,7 +307,21 @@ fun PrinterConfigView(
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },
                     onIncludeLogoChange = {},
-                    helperText = "Used only for first-time billing. Reprint stays customer receipt only.",
+                    helperText = "Receives new and updated KOT items. Receipt printing remains on the customer printer.",
+                    onConfigureWifi = {
+                        pendingRole = PrinterRole.KITCHEN
+                        wifiPrinterName = kitchenPrinter?.name ?: "Kitchen Wi-Fi Printer"
+                        wifiHost = kitchenPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.host
+                            .orEmpty()
+                        wifiPort = kitchenPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.port
+                            ?.toString()
+                            ?: "9100"
+                        showWifiDialog = true
+                    },
                     onSelectPrinter = {
                         pendingRole = PrinterRole.KITCHEN
                         if (!viewModel.hasBluetoothPermissions(context)) {
@@ -350,6 +434,66 @@ fun PrinterConfigView(
             }
         }
     }
+
+    if (showWifiDialog) {
+        val parsedPort = wifiPort.toIntOrNull()
+        val isValid = wifiHost.isNotBlank() && parsedPort != null && parsedPort in 1..65535
+        val roleLabel = if (pendingRole == PrinterRole.CUSTOMER) "Customer Receipt" else "Kitchen Ticket"
+        KhanaBookDialog(
+            onDismissRequest = { showWifiDialog = false },
+            title = "$roleLabel Wi-Fi Printer",
+            message = "Enter the printer's local-network address and raw TCP port. Most thermal printers use port 9100.",
+            content = {
+                KhanaBookInputField(
+                    value = wifiPrinterName,
+                    onValueChange = { wifiPrinterName = it },
+                    label = "Printer name",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                KhanaBookInputField(
+                    value = wifiHost,
+                    onValueChange = { wifiHost = it.trim().take(253) },
+                    label = "IP address or host",
+                    placeholder = "192.168.1.50",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                KhanaBookInputField(
+                    value = wifiPort,
+                    onValueChange = { value -> wifiPort = value.filter(Char::isDigit).take(5) },
+                    label = "Port",
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = wifiPort.isNotEmpty() && parsedPort !in 1..65535,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            },
+            actions = {
+                TextButton(onClick = { showWifiDialog = false }) {
+                    Text("Cancel", color = TextGold)
+                }
+                TextButton(
+                    enabled = isValid,
+                    onClick = {
+                        viewModel.saveWifiPrinter(
+                            role = pendingRole,
+                            name = wifiPrinterName,
+                            host = wifiHost,
+                            port = parsedPort ?: 9100,
+                            autoPrint = pendingRole != PrinterRole.CUSTOMER || autoPrint,
+                            paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                if (paper58) "58mm" else "80mm"
+                            } else {
+                                if (kitchenPaper58) "58mm" else "80mm"
+                            },
+                            includeLogo = pendingRole == PrinterRole.CUSTOMER && includeLogo
+                        )
+                        showWifiDialog = false
+                    }
+                ) {
+                    Text("Save", color = PrimaryGold)
+                }
+            }
+        )
+    }
 }
 
 
@@ -358,7 +502,7 @@ fun PrinterConfigView(
 private fun PrinterTargetCard(
     title: String,
     printerName: String,
-    macAddress: String?,
+    connectionDescription: String?,
     enabled: Boolean,
     autoPrint: Boolean,
     showAutoPrintToggle: Boolean,
@@ -367,6 +511,7 @@ private fun PrinterTargetCard(
     showLogoToggle: Boolean,
     isConnected: Boolean,
     helperText: String?,
+    onConfigureWifi: (() -> Unit)?,
     onEnabledChange: (Boolean) -> Unit,
     onAutoPrintChange: (Boolean) -> Unit,
     onPaperSizeChange: (Boolean) -> Unit,
@@ -399,15 +544,15 @@ private fun PrinterTargetCard(
                     Spacer(modifier = Modifier.width(spacing.small))
                     Box(modifier = Modifier.size(8.dp).background(if (isConnected) SuccessGreen else DangerRed, CircleShape))
                 }
-                Text("MAC: ${macAddress ?: "---"}", color = TextGold, style = MaterialTheme.typography.labelSmall)
+                Text("Connection: ${connectionDescription ?: "---"}", color = TextGold, style = MaterialTheme.typography.labelSmall)
                 KhanaStatusBadge(
                     text = when {
-                        macAddress.isNullOrBlank() -> "No printer"
+                        connectionDescription.isNullOrBlank() -> "No printer"
                         isConnected -> "Connected"
                         else -> "Ready"
                     },
                     kind = when {
-                        macAddress.isNullOrBlank() -> KhanaStatusKind.Neutral
+                        connectionDescription.isNullOrBlank() -> KhanaStatusKind.Neutral
                         isConnected -> KhanaStatusKind.Success
                         else -> KhanaStatusKind.Warning
                     },
@@ -429,18 +574,41 @@ private fun PrinterTargetCard(
                     RadioButton(selected = !paper58, onClick = { onPaperSizeChange(false) }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
                     Text("80mm", color = TextGold)
                 }
-                KhanaButtonRow {
-                    KhanaSecondaryButton(
-                        text = "Select Printer",
-                        onClick = onSelectPrinter,
-                        modifier = Modifier.weight(1f)
-                    )
+                if (onConfigureWifi != null) {
+                    KhanaButtonRow {
+                        KhanaSecondaryButton(
+                            text = "Bluetooth",
+                            onClick = onSelectPrinter,
+                            leadingIcon = Icons.Default.Bluetooth,
+                            modifier = Modifier.weight(1f)
+                        )
+                        KhanaSecondaryButton(
+                            text = "Wi-Fi",
+                            onClick = onConfigureWifi,
+                            leadingIcon = Icons.Default.Wifi,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                     KhanaPrimaryButton(
                         text = "Test Printer",
                         onClick = onTestPrint,
-                        enabled = !macAddress.isNullOrBlank(),
-                        modifier = Modifier.weight(1f)
+                        enabled = !connectionDescription.isNullOrBlank(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+                } else {
+                    KhanaButtonRow {
+                        KhanaSecondaryButton(
+                            text = "Select Printer",
+                            onClick = onSelectPrinter,
+                            modifier = Modifier.weight(1f)
+                        )
+                        KhanaPrimaryButton(
+                            text = "Test Printer",
+                            onClick = onTestPrint,
+                            enabled = !connectionDescription.isNullOrBlank(),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }

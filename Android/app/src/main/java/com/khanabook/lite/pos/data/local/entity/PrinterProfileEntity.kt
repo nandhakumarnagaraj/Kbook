@@ -18,6 +18,12 @@ data class PrinterProfileEntity(
     val name: String,
     @ColumnInfo(name = "mac_address")
     val macAddress: String,
+    @ColumnInfo(name = "connection_type", defaultValue = "'BLUETOOTH'")
+    val connectionType: String = "BLUETOOTH",
+    @ColumnInfo(name = "host")
+    val host: String? = null,
+    @ColumnInfo(name = "port", defaultValue = "9100")
+    val port: Int = 9100,
     val enabled: Boolean = true,
     @ColumnInfo(name = "auto_print")
     val autoPrint: Boolean = true,

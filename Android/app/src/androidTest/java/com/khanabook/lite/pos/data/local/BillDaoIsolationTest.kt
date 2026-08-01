@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.data.local.dao.KitchenPrintQueueDao
+import com.khanabook.lite.pos.data.local.dao.RestaurantDao
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintDispatchStatus
@@ -34,6 +35,7 @@ class BillDaoIsolationTest {
     private lateinit var db: AppDatabase
     private lateinit var billDao: BillDao
     private lateinit var kdsDao: KitchenPrintQueueDao
+    private lateinit var restaurantDao: RestaurantDao
 
     private val R1 = 101L
     private val R2 = 202L
@@ -48,6 +50,7 @@ class BillDaoIsolationTest {
             .build()
         billDao = db.billDao()
         kdsDao = db.kitchenPrintQueueDao()
+        restaurantDao = db.restaurantDao()
     }
 
     @After
@@ -1028,5 +1031,131 @@ class BillDaoIsolationTest {
         val pending = billDao.getBillsWithPendingKds(R1, "A")
         assertEquals(1, pending.size)
         assertEquals("A", pending.first().createdTerminalId)
+    }
+
+    @Test
+    fun repairFailedDailyOrderIdentity_correctsStaleDateWithoutRenumbering() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "L-01",
+                lastResetDate = "2026-07-23",
+                terminalSeries = "L",
+                isSynced = true,
+                syncStatus = "synced",
+                serverId = 305L
+            )
+        )
+        val failedId = billDao.insertBill(
+            bill(R1, createdAt = 2_000).copy(
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "L-01",
+                lastResetDate = "2026-07-23",
+                terminalSeries = "L",
+                isSynced = false,
+                syncStatus = "failed_permanent",
+                syncFailureReason = "Duplicate order #L-01 already exists for 2026-07-23."
+            )
+        )
+
+        val repaired = billDao.repairFailedDailyOrderIdentity(
+            billId = failedId,
+            restaurantId = R1,
+            correctedDate = "2026-07-28",
+            updatedAt = 3_000
+        )
+
+        assertEquals(1L, repaired.dailyOrderId)
+        assertEquals("L-01", repaired.dailyOrderDisplay)
+        assertEquals("2026-07-28", repaired.lastResetDate)
+        assertEquals("completed", repaired.orderStatus)
+        assertEquals("pending", repaired.syncStatus)
+        assertNull(repaired.syncFailureReason)
+    }
+
+    @Test
+    fun repairFailedDailyOrderIdentity_renumbersWhenCorrectedIdentityIsOccupied() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "L-01",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "L",
+                isSynced = true,
+                syncStatus = "synced",
+                serverId = 305L
+            )
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 2_000).copy(
+                dailyOrderId = 4L,
+                dailyOrderDisplay = "L-04",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "L",
+                isSynced = true,
+                syncStatus = "synced",
+                serverId = 308L
+            )
+        )
+        val failedId = billDao.insertBill(
+            bill(R1, createdAt = 3_000).copy(
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "L-01",
+                lastResetDate = "2026-07-23",
+                terminalSeries = "L",
+                isSynced = false,
+                syncStatus = "failed_permanent",
+                syncFailureReason = "Duplicate order #L-01 already exists for 2026-07-23."
+            )
+        )
+
+        val repaired = billDao.repairFailedDailyOrderIdentity(
+            billId = failedId,
+            restaurantId = R1,
+            correctedDate = "2026-07-28",
+            updatedAt = 4_000
+        )
+
+        assertEquals(5L, repaired.dailyOrderId)
+        assertEquals("L-05", repaired.dailyOrderDisplay)
+        assertEquals("2026-07-28", repaired.lastResetDate)
+        assertEquals("pending", repaired.syncStatus)
+    }
+
+    @Test
+    fun terminalDailyCounter_startsAfterMaximumForSameServerIdentityDateAndSeries() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                dailyOrderId = 99L,
+                dailyOrderDisplay = "L-99",
+                lastResetDate = "2026-07-23",
+                terminalSeries = "L"
+            )
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 2_000).copy(
+                dailyOrderId = 4L,
+                dailyOrderDisplay = "L-04",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "L"
+            )
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 3_000).copy(
+                dailyOrderId = 8L,
+                dailyOrderDisplay = "M-08",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "M"
+            )
+        )
+
+        val allocated = restaurantDao.incrementAndGetTerminalDailyCounter(
+            restaurantId = R1,
+            terminalId = "terminal-L",
+            terminalSeries = "L",
+            date = "2026-07-28"
+        )
+
+        assertEquals(5L, allocated)
     }
 }

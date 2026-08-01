@@ -1466,12 +1466,12 @@ fun ManualMenuView(
                 }
             }
             item {
-                IconButton(
+                KhanaSecondaryButton(
+                    text = "Add Category",
                     onClick = { showAddCategoryDialog = true },
+                    leadingIcon = Icons.Default.Add,
                     modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
-                ) {
-                    Icon(Icons.Default.Add, null, tint = PrimaryGold)
-                }
+                )
             }
         }
 

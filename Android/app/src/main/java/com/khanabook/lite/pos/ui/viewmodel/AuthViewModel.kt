@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import com.khanabook.lite.pos.domain.manager.SessionManager
+
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -351,6 +353,14 @@ constructor(
         sessionManager.clearSession()
         userRepository.setCurrentUser(null)
         sessionManager.clearLockout()
+        _loginStatus.value = null
+        _signUpStatus.value = null
+        _resetPasswordStatus.value = null
+    }
+
+    fun handleSessionExpiry() {
+        userRepository.setCurrentUser(null)
+        sessionManager.setSessionState(SessionManager.SessionState.INACTIVE)
         _loginStatus.value = null
         _signUpStatus.value = null
         _resetPasswordStatus.value = null

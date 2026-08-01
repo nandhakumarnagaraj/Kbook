@@ -634,9 +634,13 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 }
                 // UPI QR generation and payment capture must work offline. Reserve the bill
                 // number locally, then let background sync reconcile with the server later.
-                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
+                    terminalIdentity.terminalId,
+                    terminalIdentity.terminalSeries,
+                    today
+                )
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
@@ -677,7 +681,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     createdBy = sessionManager.getActiveUserId(),
                     createdAt = createdAt,
                     paidAt = null,
-                    lastResetDate = profile.lastResetDate ?: "",
+                    lastResetDate = today,
                     publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
                     ownerRestaurantId = sessionManager.getRestaurantId(),
@@ -833,9 +837,13 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     return@withLock false
                 }
 
-                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
+                    terminalIdentity.terminalId,
+                    terminalIdentity.terminalSeries,
+                    today
+                )
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
@@ -876,7 +884,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     createdBy = sessionManager.getActiveUserId(),
                     createdAt = createdAt,
                     paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
-                    lastResetDate = profile.lastResetDate ?: "",
+                    lastResetDate = today,
                     publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
                     ownerRestaurantId = sessionManager.getRestaurantId(),
@@ -1055,9 +1063,13 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 val finalSummary = computeSummary(_cartItems.value, profile)
                 _billSummary.value = finalSummary
 
-                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
+                    terminalIdentity.terminalId,
+                    terminalIdentity.terminalSeries,
+                    today
+                )
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
@@ -1095,7 +1107,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     createdBy = sessionManager.getActiveUserId(),
                     createdAt = createdAt,
                     paidAt = null,
-                    lastResetDate = profile.lastResetDate ?: "",
+                    lastResetDate = today,
                     publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
                     ownerRestaurantId = sessionManager.getRestaurantId(),
@@ -1629,6 +1641,10 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
         _error.value = null
     }
 
+    fun clearPrintStatus() {
+        _printStatus.value = null
+    }
+
     fun reportError(message: String) {
         _error.value = message
     }
@@ -1666,9 +1682,6 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
             try {
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
                 if (result.attempted == 0 && result.failures.isEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
-                    }
                     openBillPdfFallback(
                         bill = bill,
                         profile = profile,
@@ -1677,13 +1690,10 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 } else if (result.failures.isNotEmpty()) {
                     if (result.succeeded > 0) {
                         withContext(Dispatchers.Main) {
-                            _error.value = result.failures.joinToString()
+                            _error.value = null
                             _printStatus.value = "Receipt reprinted with some failures."
                         }
                     } else {
-                        withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
-                        }
                         openBillPdfFallback(
                             bill = bill,
                             profile = profile,
@@ -1697,14 +1707,10 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Manual receipt print failed", e)
-                withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
-                }
                 openBillPdfFallback(
                     bill = bill,
                     profile = profile,
-                    statusMessage = appContext.getString(R.string.toast_printer_opening_pdf),
-                    errorMessage = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
+                    statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
                 )
             } finally {
                 _receiptPrinting.value = false
@@ -1729,12 +1735,12 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_KITCHEN_ONLY)
                 if (result.attempted == 0) {
                     withContext(Dispatchers.Main) {
-                        _error.value = "No kitchen printer configured."
+                        _error.value = null
                         _printStatus.value = "No KDS printer configured."
                     }
                 } else if (result.failures.isNotEmpty()) {
                     withContext(Dispatchers.Main) {
-                        _error.value = result.failures.joinToString()
+                        _error.value = null
                         _printStatus.value = if (result.succeeded > 0) {
                             "KDS reprinted with some failures."
                         } else {
@@ -1749,8 +1755,11 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
             } catch (e: Exception) {
                 Log.w(TAG, "Manual kitchen print failed", e)
                 withContext(Dispatchers.Main) {
-                    _error.value = UserMessageSanitizer.sanitize(e, "Unable to print kitchen ticket.")
-                    _printStatus.value = "KDS reprint failed."
+                    _error.value = null
+                    _printStatus.value = UserMessageSanitizer.sanitize(
+                        e,
+                        "Unable to print kitchen ticket."
+                    )
                 }
             } finally {
                 kitchenPrintInFlight.set(false)
@@ -1785,8 +1794,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
     private suspend fun openBillPdfFallback(
         bill: BillWithItems,
         profile: RestaurantProfileEntity?,
-        statusMessage: String,
-        errorMessage: String? = null
+        statusMessage: String
     ) {
         val pdfIntent = try {
             withContext(Dispatchers.IO) {
@@ -1804,30 +1812,22 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                _error.value = errorMessage
+                _error.value = UserMessageSanitizer.sanitize(e, "Unable to prepare invoice.")
                 _printStatus.value = null
-                android.widget.Toast.makeText(
-                    appContext,
-                    UserMessageSanitizer.sanitize(e, "Unable to prepare invoice."),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
             }
             return
         }
 
         withContext(Dispatchers.Main) {
-            _error.value = errorMessage
+            _error.value = null
             _printStatus.value = statusMessage
             try {
                 appContext.startActivity(Intent.createChooser(pdfIntent, "Open PDF to Print").apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             } catch (e: Exception) {
-                android.widget.Toast.makeText(
-                    appContext,
-                    UserMessageSanitizer.sanitize(e, "Unable to open invoice."),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                _printStatus.value = null
+                _error.value = UserMessageSanitizer.sanitize(e, "Unable to open invoice.")
             }
         }
     }

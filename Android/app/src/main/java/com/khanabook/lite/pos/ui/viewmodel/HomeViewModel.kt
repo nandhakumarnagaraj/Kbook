@@ -12,9 +12,17 @@ import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.domain.model.PrinterConnectionType
+import com.khanabook.lite.pos.domain.model.connectionTargetKey
+import com.khanabook.lite.pos.domain.model.connectionTypeValue
+import com.khanabook.lite.pos.domain.model.isConnectionConfigured
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.ui.feedback.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import java.time.LocalTime
@@ -76,17 +84,20 @@ class HomeViewModel @Inject constructor(
         printerManager.connectedDeviceMacs
     ) { profile, profiles, liveMacs ->
         val customerPrinter = profiles.firstOrNull {
-            it.role == PrinterRole.CUSTOMER.name && it.enabled && it.macAddress.isNotBlank()
+            it.role == PrinterRole.CUSTOMER.name && it.enabled && it.isConnectionConfigured()
         }
         val kitchenPrinter = profiles.firstOrNull {
-            it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress.isNotBlank()
+            it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
         }
         val legacyPrinterEnabled = profile?.printerEnabled == true && !profile.printerMac.isNullOrBlank()
         val legacyPrinterConnected = profile?.printerMac?.let(liveMacs::contains) == true
 
         PrinterReadiness(
             customerConfigured = customerPrinter != null,
-            customerConnected = customerPrinter?.macAddress?.let(liveMacs::contains) == true,
+            customerConnected = customerPrinter?.let {
+                it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH &&
+                    liveMacs.contains(it.macAddress)
+            } == true,
             customerName = customerPrinter?.name,
             customerAutoPrint = customerPrinter?.autoPrint == true,
             legacyReceiptConfigured = legacyPrinterEnabled,
@@ -94,7 +105,10 @@ class HomeViewModel @Inject constructor(
             legacyReceiptName = profile?.printerName,
             legacyReceiptAutoPrint = profile?.autoPrintOnSuccess == true,
             kitchenConfigured = kitchenPrinter != null,
-            kitchenConnected = kitchenPrinter?.macAddress?.let(liveMacs::contains) == true,
+            kitchenConnected = kitchenPrinter?.let {
+                it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH &&
+                    liveMacs.contains(it.macAddress)
+            } == true,
             kitchenName = kitchenPrinter?.name,
             kitchenAutoPrint = kitchenPrinter?.autoPrint == true
         )
@@ -173,8 +187,8 @@ class HomeViewModel @Inject constructor(
             initialValue = HomeStats()
         )
 
-    private val _message = MutableSharedFlow<String>()
-    val message: SharedFlow<String> = _message.asSharedFlow()
+    private val _message = MutableSharedFlow<UiMessage>()
+    val message: SharedFlow<UiMessage> = _message.asSharedFlow()
 
     init {
         connectConfiguredPrinters(showMessage = false)
@@ -187,24 +201,24 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val pendingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
             if (pendingCount == 0) {
-                _message.emit("No pending KDS tickets.")
+                _message.emit(UiMessage("No pending KDS tickets.", ToastKind.Info))
                 return@launch
             }
 
             val kitchenPrinter = printerProfileRepository.getProfiles().firstOrNull {
-                it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress.isNotBlank()
+                it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
             }
             if (kitchenPrinter == null) {
-                _message.emit("No kitchen printer configured.")
+                _message.emit(UiMessage("No kitchen printer configured.", ToastKind.Warning))
                 return@launch
             }
 
-            kitchenPrintQueueManager.flushPendingForPrinter(kitchenPrinter.macAddress)
+            kitchenPrintQueueManager.flushPendingForPrinter(kitchenPrinter.connectionTargetKey())
             val remainingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
             if (remainingCount == 0) {
-                _message.emit("KDS tickets reprinted.")
+                _message.emit(UiMessage("KDS tickets reprinted.", ToastKind.Success))
             } else {
-                _message.emit("$remainingCount KDS ticket(s) still pending.")
+                _message.emit(UiMessage("$remainingCount KDS ticket(s) still pending.", ToastKind.Warning))
             }
         }
     }
@@ -212,7 +226,7 @@ class HomeViewModel @Inject constructor(
     fun cancelPendingOnlinePayment(billId: Long) {
         viewModelScope.launch {
             billRepository.cancelOrder(billId, "Payment attempt cancelled by cashier")
-            _message.emit("Pending payment cancelled.")
+            _message.emit(UiMessage("Pending payment cancelled.", ToastKind.Success))
         }
     }
 
@@ -220,12 +234,12 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val current = restaurantRepository.getProfile()
             if (current == null) {
-                _message.emit("Restaurant profile is not ready.")
+                _message.emit(UiMessage("Restaurant profile is not ready.", ToastKind.Warning))
                 return@launch
             }
             if (current.orderPaymentFlowMode == mode.dbValue) return@launch
             restaurantRepository.saveProfile(current.copy(orderPaymentFlowMode = mode.dbValue))
-            _message.emit("${mode.displayLabel} enabled.")
+            _message.emit(UiMessage("${mode.displayLabel} enabled.", ToastKind.Success))
         }
     }
 
@@ -235,30 +249,59 @@ class HomeViewModel @Inject constructor(
 
     private fun connectConfiguredPrinters(showMessage: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            val printers = printerProfileRepository.getProfiles().filter {
-                it.enabled && it.macAddress.isNotBlank()
+            val configuredPrinters = printerProfileRepository.getProfiles().filter {
+                it.enabled && it.isConnectionConfigured()
+            }
+            val printers = configuredPrinters.filter {
+                it.enabled &&
+                    it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH &&
+                    it.macAddress.isNotBlank()
             }
             val legacyPrinter = profileFlow.first()?.takeIf {
                 it.printerEnabled && !it.printerMac.isNullOrBlank()
             }
             if (printers.isEmpty()) {
-                if (legacyPrinter == null) {
-                    if (showMessage) _message.emit("No printer configured.")
+                if (configuredPrinters.any { it.connectionTypeValue() == PrinterConnectionType.WIFI }) {
+                    if (showMessage) {
+                        _message.emit(UiMessage("Wi-Fi printer configured.", ToastKind.Success))
+                    }
                     return@launch
                 }
-                if (showMessage) _message.emit("Checking printer connection.")
-                if (!printerManager.isConnectedTo(legacyPrinter.printerMac!!)) {
+                if (legacyPrinter == null) {
+                    if (showMessage) _message.emit(UiMessage("No printer configured.", ToastKind.Warning))
+                    return@launch
+                }
+                val connected = printerManager.isConnectedTo(legacyPrinter.printerMac!!) ||
                     printerManager.connect(legacyPrinter.printerMac!!)
+                if (showMessage) {
+                    _message.emit(
+                        if (connected) {
+                            UiMessage("Printer connected.", ToastKind.Success)
+                        } else {
+                            UiMessage("Couldn't connect printer.", ToastKind.Error)
+                        }
+                    )
                 }
                 return@launch
             }
-            if (showMessage) _message.emit("Checking printer connection.")
-            printers.forEach { printer ->
-                launch {
-                    if (!printerManager.isConnectedTo(printer.macAddress)) {
+            val results = printers.map { printer ->
+                async {
+                    printerManager.isConnectedTo(printer.macAddress) ||
                         printerManager.connect(printer.macAddress)
-                    }
                 }
+            }.awaitAll()
+            if (showMessage) {
+                val connectedCount = results.count { it }
+                _message.emit(
+                    when {
+                        connectedCount == printers.size ->
+                            UiMessage("Printers connected.", ToastKind.Success)
+                        connectedCount == 0 ->
+                            UiMessage("Couldn't connect configured printers.", ToastKind.Error)
+                        else ->
+                            UiMessage("$connectedCount of ${printers.size} printers connected.", ToastKind.Warning)
+                    }
+                )
             }
         }
     }

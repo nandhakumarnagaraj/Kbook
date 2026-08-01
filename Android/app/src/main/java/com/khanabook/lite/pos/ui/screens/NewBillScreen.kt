@@ -62,6 +62,11 @@ import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
+import com.khanabook.lite.pos.ui.feedback.performMenuItemAdd
+import com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackPreferences
+import com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackSettings
+import com.khanabook.lite.pos.ui.feedback.rememberMenuItemAddFeedback
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -152,7 +157,9 @@ fun NewBillScreen(
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val activeDraftBills by billingViewModel.activeDraftBillsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val menuFeedbackPreferences = rememberMenuFeedbackPreferences()
+    val menuFeedbackSettings by rememberMenuFeedbackSettings(menuFeedbackPreferences)
+    val playMenuItemAddFeedback = rememberMenuItemAddFeedback(menuFeedbackSettings)
     val coroutineScope = rememberCoroutineScope()
     val performBack: () -> Unit = {
         when (resolveBillingBackAction(step, initialStep, draftBillId != null)) {
@@ -167,7 +174,7 @@ fun NewBillScreen(
     androidx.activity.compose.BackHandler(enabled = paymentFlowLocked || step > 1) {
         if (paymentFlowLocked) {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar("Payment confirmation in progress. Please wait.")
+                KhanaToast.show("Payment confirmation in progress. Please wait.", ToastKind.Info)
             }
             return@BackHandler
         }
@@ -188,17 +195,8 @@ fun NewBillScreen(
 
     LaunchedEffect(error) {
         error?.let {
-            coroutineScope.launch { snackbarHostState.showSnackbar(it) }
+            coroutineScope.launch { KhanaToast.show(it, ToastKind.Error) }
             billingViewModel.clearError()
-        }
-    }
-
-    LaunchedEffect(step) {
-        if (step == 4) {
-            coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.toast_order_placed)) }
-        }
-        if (step == 5) {
-            coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.toast_payment_failed)) }
         }
     }
 
@@ -242,7 +240,6 @@ fun NewBillScreen(
 
     Scaffold(
         containerColor = DarkBrown1,
-        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
             Column(modifier = Modifier.background(DarkBrown1)) {
                 CenterAlignedTopAppBar(
@@ -314,11 +311,17 @@ fun NewBillScreen(
                                     menuViewModel,
                                     onBack = performBack,
                                     onProceedToPayment = { step = 3 },
+                                    onShowMessage = { message ->
+                                        coroutineScope.launch {
+                                            KhanaToast.show(message, ToastKind.Warning)
+                                        }
+                                    },
                                     total = summary.total.toDoubleOrNull() ?: 0.0,
                                     itemCount = cartItems.sumOf { it.quantity },
                                     hideHeader = true,
                                     navController = navController,
-                                    onReturnToTableList = returnToNewBillTables
+                                    onReturnToTableList = returnToNewBillTables,
+                                    onItemAddedFeedback = playMenuItemAddFeedback
                             )
                     3 ->
                             PaymentStep(
@@ -335,7 +338,11 @@ fun NewBillScreen(
                                     billingViewModel,
                                     settingsViewModel,
                                     onDone = returnToCompletedOrders,
-                                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                                    onShowMessage = { msg ->
+                                        coroutineScope.launch {
+                                            KhanaToast.show(msg, printFeedbackKind(msg))
+                                        }
+                                    }
                             )
                     else ->
                             FailedStep(
@@ -732,7 +739,8 @@ fun MenuSelectionStep(
         itemCount: Int,
         hideHeader: Boolean = false,
         navController: NavController? = null,
-        onReturnToTableList: () -> Unit = {}
+        onReturnToTableList: () -> Unit = {},
+        onItemAddedFeedback: () -> Unit = {}
 ) {
     val categories by menuViewModel.categories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
@@ -758,6 +766,12 @@ fun MenuSelectionStep(
     val paymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
     val canSaveTableOrder = currentOrderType == "dine_in" &&
         (paymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD || billingViewModel.editingBillId != null)
+    val addItemWithFeedback = { addToCart: () -> Unit ->
+        performMenuItemAdd(
+            addToCart = addToCart,
+            playFeedback = onItemAddedFeedback
+        )
+    }
 
     LaunchedEffect(categories) {
         if (selectedCategoryId == null && categories.isNotEmpty()) {
@@ -957,7 +971,11 @@ fun MenuSelectionStep(
                                 if (itemAvailable) {
                                     QuantitySelector(
                                             quantity = cartItem?.quantity ?: 0,
-                                            onAdd = { billingViewModel.addToCart(item) },
+                                            onAdd = {
+                                                addItemWithFeedback {
+                                                    billingViewModel.addToCart(item)
+                                                }
+                                            },
                                             onRemove = { billingViewModel.removeFromCart(item) }
                                     )
                                 }
@@ -1015,7 +1033,11 @@ fun MenuSelectionStep(
                                                 )
                                                 QuantitySelector(
                                                         quantity = variantCartItem?.quantity ?: 0,
-                                                        onAdd = { billingViewModel.addToCart(item, variant) },
+                                                        onAdd = {
+                                                            addItemWithFeedback {
+                                                                billingViewModel.addToCart(item, variant)
+                                                            }
+                                                        },
                                                         onRemove = { billingViewModel.removeFromCart(item, variant) }
                                                 )
                                             } else {
@@ -1034,7 +1056,9 @@ fun MenuSelectionStep(
                                 variants = variants,
                                 onDismiss = { showVariantPicker = false },
                                 onSelect = { variant ->
-                                    billingViewModel.addToCart(item, variant)
+                                    addItemWithFeedback {
+                                        billingViewModel.addToCart(item, variant)
+                                    }
                                     showVariantPicker = false
                                 }
                         )

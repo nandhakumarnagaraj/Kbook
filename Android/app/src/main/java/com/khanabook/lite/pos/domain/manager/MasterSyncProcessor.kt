@@ -893,6 +893,9 @@ class MasterSyncProcessor @Inject constructor(
                         com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
                         remoteProfile.restaurantId ?: restaurantId
                     )
+                    if (existing?.connectionType.equals("WIFI", ignoreCase = true)) {
+                        return@let
+                    }
                     printerProfileDao.upsert(
                         PrinterProfileEntity(
                             id = existing?.id ?: 0,
@@ -1421,6 +1424,7 @@ BillEntity(
             com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
             profile.restaurantId
         )
+        if (kitchen?.connectionType.equals("WIFI", ignoreCase = true)) return
         val mac = kitchen?.macAddress?.takeIf { it.isNotBlank() }
 
         val unchanged = profile.kitchenPrinterMac == mac &&

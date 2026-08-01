@@ -10,6 +10,8 @@ import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.domain.model.connectionTargetKey
+import com.khanabook.lite.pos.domain.model.isConnectionConfigured
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -39,12 +41,33 @@ data class PrintDispatchResult(
 class PrintRouter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val printerProfileRepository: PrinterProfileRepository,
-    private val printerManager: BluetoothPrinterManager,
+    private val printerTransport: PrinterTransportDispatcher,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val billDao: BillDao,
     private val kotEventDao: KotEventDao,
     private val sessionManager: SessionManager
 ) {
+    internal constructor(
+        context: Context,
+        printerProfileRepository: PrinterProfileRepository,
+        printerManager: BluetoothPrinterManager,
+        kitchenPrintQueueManager: KitchenPrintQueueManager,
+        billDao: BillDao,
+        kotEventDao: KotEventDao,
+        sessionManager: SessionManager
+    ) : this(
+        context,
+        printerProfileRepository,
+        PrinterTransportDispatcher(
+            BluetoothPrinterTransport(printerManager),
+            WifiPrinterTransport()
+        ),
+        kitchenPrintQueueManager,
+        billDao,
+        kotEventDao,
+        sessionManager
+    )
+
     companion object {
         private const val TAG = "PrintRouter"
     }
@@ -65,7 +88,7 @@ class PrintRouter @Inject constructor(
         if (mode == PrintDispatchMode.AUTO) {
             val kitchenProfile = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
             if (kitchenProfile?.enabled == true) {
-                if (kitchenProfile.macAddress.isBlank()) {
+                if (!kitchenProfile.isConnectionConfigured()) {
                     kitchenPrintQueueManager.enqueueUnassigned(
                         bill.bill.id,
                         "kitchen printer not configured during billing",
@@ -144,14 +167,10 @@ class PrintRouter @Inject constructor(
                     if (!claimedQueuedJob && isKitchenTarget && mode == PrintDispatchMode.AUTO) {
                         claimedQueuedJob = kitchenPrintQueueManager.claimPendingForDirectPrint(
                             bill.bill.id,
-                            target.macAddress
+                            target.connectionTargetKey()
                         )
                     }
                     try {
-                        if (!printerManager.connect(target.macAddress)) {
-                            errorMsg = "connection failed"
-                            return@repeat
-                        }
                         val printProfile = restaurantProfile?.copy(
                             paperSize = target.paperSize,
                             includeLogoInPrint = target.includeLogo
@@ -160,7 +179,7 @@ class PrintRouter @Inject constructor(
                             PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
                             PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target, itemsToPrint)
                         }
-                        if (printerManager.printBytesTo(target.macAddress, bytes)) {
+                        if (printerTransport.print(target, bytes)) {
                             success = true
                         } else {
                             errorMsg = "print failed"
@@ -219,7 +238,7 @@ class PrintRouter @Inject constructor(
         mode: PrintDispatchMode
     ): List<PrinterProfileEntity> {
         val stored = printerProfileRepository.getProfiles()
-            .filter { it.enabled && it.macAddress.isNotBlank() }
+            .filter { it.enabled && it.isConnectionConfigured() }
             .filter { profile ->
                 when (mode) {
                     PrintDispatchMode.AUTO ->
@@ -262,7 +281,7 @@ class PrintRouter @Inject constructor(
         if (mode == PrintDispatchMode.AUTO && target.role == PrinterRole.KITCHEN.name) {
             kitchenPrintQueueManager.enqueue(
                 billId = bill.bill.id,
-                printerMac = target.macAddress,
+                printerMac = target.connectionTargetKey(),
                 error = error,
                 incrementAttempts = incrementAttempts,
                 publicToken = latestKotEventPublicToken(bill),
@@ -286,7 +305,7 @@ class PrintRouter @Inject constructor(
         target: PrinterProfileEntity
     ) {
         if (target.role == PrinterRole.KITCHEN.name) {
-            kitchenPrintQueueManager.markPrinted(billId, target.macAddress)
+            kitchenPrintQueueManager.markPrinted(billId, target.connectionTargetKey())
         }
     }
 }

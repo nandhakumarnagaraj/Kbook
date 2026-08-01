@@ -34,6 +34,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _restaurantId = MutableStateFlow(getRestaurantId())
     val restaurantId: StateFlow<Long> = _restaurantId
 
+    private val _terminalScope = MutableStateFlow(resolveTerminalScope())
+    val terminalScope: StateFlow<String?> = _terminalScope
+
     // ── Session state gate ─────────────────────────────────────────────────
     // Guards against repository/database access when no user is authenticated.
     // INACTIVE after logout; READY after login completes and DB is switched.
@@ -107,6 +110,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     fun saveRestaurantId(restaurantId: Long) {
         prefs.edit().putLong("restaurant_id", restaurantId).apply()
         _restaurantId.value = restaurantId
+        _terminalScope.value = resolveTerminalScope()
     }
 
     private fun scopedKey(baseKey: String): String {
@@ -124,6 +128,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         val restaurantId = getRestaurantId()
         if (restaurantId > 0L) {
             prefs.edit().putString(scopedKey("terminal_series"), series).apply()
+            _terminalScope.value = resolveTerminalScope()
         }
     }
 
@@ -174,7 +179,12 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         if (!identity.terminalToken.isNullOrBlank()) {
             securePrefs.putString(scopedKey("terminal_token"), identity.terminalToken)
         }
+        _terminalScope.value = resolveTerminalScope()
     }
+
+    private fun resolveTerminalScope(): String? =
+        getTerminalId()?.takeIf { it.isNotBlank() }
+            ?: getTerminalSeries()?.takeIf { it.isNotBlank() }
 
     fun isTerminalReady(): Boolean {
         val identity = getTerminalIdentity() ?: return false
@@ -374,6 +384,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         securePrefs.remove(scopedKey("terminal_token"))
         prefs.edit().clear().apply()
         _restaurantId.value = 0L
+        _terminalScope.value = null
         _isSessionExpired.value = true
     }
 

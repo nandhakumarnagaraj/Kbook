@@ -78,6 +78,10 @@ class ReportsViewModel @Inject constructor(
         _selectedBillDetails.value = null
     }
 
+    fun clearError() {
+        _error.value = null
+    }
+
     private fun updateDateRangeAndLoad(filter: String) {
         val cal = Calendar.getInstance()
         val to = cal.timeInMillis

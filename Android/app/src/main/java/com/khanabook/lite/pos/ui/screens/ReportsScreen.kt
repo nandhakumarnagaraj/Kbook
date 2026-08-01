@@ -44,6 +44,7 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
@@ -63,8 +64,16 @@ fun ReportsScreen(
     val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val reportError by viewModel.error.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
+
+    LaunchedEffect(reportError) {
+        reportError?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            viewModel.clearError()
+        }
+    }
     val scope = rememberCoroutineScope()
 
     // Staggered entry animation — same pattern used across all screens
@@ -237,7 +246,10 @@ fun ReportsScreen(
                             }
                             context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
                         } catch (e: Exception) {
-                            KhanaToast.show("Report export failed: ${e.message}", ToastKind.Error)
+                            KhanaToast.show(
+                                UserMessageSanitizer.sanitize(e, "Report export failed. Please try again."),
+                                ToastKind.Error
+                            )
                         } finally {
                             isExporting = false
                         }
@@ -592,6 +604,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
 
             Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
+                    onClick = { onViewDetails(row.billId) },
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
                     shape = RoundedCornerShape(4.dp)
@@ -620,14 +633,20 @@ fun OrderDetailsDialog(
     onCancelOrder: ((BillWithItems) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    val dialogWidthModifier = if (layout.isWideListDetail) {
+        Modifier
+            .fillMaxWidth(layout.dialogWidthFraction)
+            .widthIn(max = layout.dialogMaxWidth)
+    } else {
+        Modifier.fillMaxWidth(0.94f)
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         KhanaBookCard(
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .widthIn(max = 900.dp)
+            modifier = dialogWidthModifier
                 .padding(spacing.medium),
             colors = CardDefaults.cardColors(containerColor = DarkBrown1),
             shape = RoundedCornerShape(16.dp)
@@ -705,12 +724,12 @@ fun OrderDetailsDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 40.dp, max = 200.dp)
+                                .heightIn(min = 40.dp, max = layout.reportDetailItemListMaxHeight)
                         ) {
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 200.dp),
+                                    .heightIn(max = layout.reportDetailItemListMaxHeight),
                                 verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 items(items) { item ->

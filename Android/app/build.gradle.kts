@@ -48,6 +48,7 @@ val hasReleaseSigning =
         signingStorePassword.isNotBlank() &&
         signingKeyAlias.isNotBlank() &&
         signingKeyPassword.isNotBlank()
+val signDebugWithRelease = configValue("SIGN_DEBUG_WITH_RELEASE", "true").toBooleanStrictOrNull() ?: true
 val hasExplicitReleaseVersion =
     configValue("RELEASE_VERSION_CODE").isNotBlank() &&
         configValue("RELEASE_VERSION_NAME").isNotBlank()
@@ -79,13 +80,13 @@ java {
 
 android {
     namespace = "com.khanabook.lite.pos"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "com.piquantservices.khanabooklite"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = releaseVersionCode
         versionName = releaseVersionName
 
@@ -109,7 +110,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            if (hasReleaseSigning) {
+            if (hasReleaseSigning && signDebugWithRelease) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }

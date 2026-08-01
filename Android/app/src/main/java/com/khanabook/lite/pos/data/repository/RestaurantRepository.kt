@@ -114,9 +114,18 @@ class RestaurantRepository(
 
     // ── Terminal Daily Counter (per-terminal isolation) ────────────────────────
 
-    suspend fun incrementAndGetTerminalDailyCounter(terminalId: String): Long {
+    suspend fun incrementAndGetTerminalDailyCounter(
+        terminalId: String,
+        terminalSeries: String,
+        date: String
+    ): Long {
         val restaurantId = sessionManager.getRestaurantId()
-        val dailyCounter = restaurantDao.incrementAndGetTerminalDailyCounter(restaurantId, terminalId)
+        val dailyCounter = restaurantDao.incrementAndGetTerminalDailyCounter(
+            restaurantId,
+            terminalId,
+            terminalSeries,
+            date
+        )
         triggerBackgroundSync()
         return dailyCounter
     }

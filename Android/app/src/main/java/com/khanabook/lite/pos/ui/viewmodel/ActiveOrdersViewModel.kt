@@ -9,6 +9,8 @@ import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.ui.feedback.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,8 +43,8 @@ class ActiveOrdersViewModel @Inject constructor(
     private val _rows = MutableStateFlow<List<ActiveOrderSummaryRow>>(emptyList())
     val rows: StateFlow<List<ActiveOrderSummaryRow>> = _rows.asStateFlow()
 
-    private val _message = MutableSharedFlow<String>()
-    val message: SharedFlow<String> = _message.asSharedFlow()
+    private val _message = MutableSharedFlow<UiMessage>()
+    val message: SharedFlow<UiMessage> = _message.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -79,11 +81,15 @@ class ActiveOrdersViewModel @Inject constructor(
                 val profile = restaurantRepository.getProfile()
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
                 _message.emit(
-                    if (result.succeeded > 0) "Bill printed" else "No bill printer configured"
+                    if (result.succeeded > 0) {
+                        UiMessage("Bill printed", ToastKind.Success)
+                    } else {
+                        UiMessage("No bill printer configured", ToastKind.Warning)
+                    }
                 )
             } catch (e: Exception) {
                 Log.e("ActiveOrdersViewModel", "Failed to print bill", e)
-                _message.emit("Unable to print bill")
+                _message.emit(UiMessage("Unable to print bill", ToastKind.Error))
             }
         }
     }

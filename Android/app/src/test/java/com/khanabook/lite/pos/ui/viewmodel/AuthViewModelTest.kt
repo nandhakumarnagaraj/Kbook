@@ -12,6 +12,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,6 +86,15 @@ class AuthViewModelTest {
             }
             Thread.sleep(10)
         }
+    }
+
+    @Test
+    fun `session expiry preserves tenant and terminal session`() {
+        viewModel.handleSessionExpiry()
+
+        verify(exactly = 0) { sessionManager.clearSession() }
+        verify { userRepository.setCurrentUser(null) }
+        verify { sessionManager.setSessionState(SessionManager.SessionState.INACTIVE) }
     }
 
     @Test

@@ -7,6 +7,8 @@ import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.domain.model.connectionTargetKey
+import com.khanabook.lite.pos.domain.model.isConnectionConfigured
 import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,8 +28,29 @@ class KitchenPrintQueueManager @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val printerProfileRepository: PrinterProfileRepository,
     private val printerManager: BluetoothPrinterManager,
+    private val printerTransport: PrinterTransportDispatcher,
     private val kotEventDao: KotEventDao
 ) {
+    internal constructor(
+        queueRepository: KitchenPrintQueueRepository,
+        billRepository: BillRepository,
+        restaurantRepository: RestaurantRepository,
+        printerProfileRepository: PrinterProfileRepository,
+        printerManager: BluetoothPrinterManager,
+        kotEventDao: KotEventDao
+    ) : this(
+        queueRepository,
+        billRepository,
+        restaurantRepository,
+        printerProfileRepository,
+        printerManager,
+        PrinterTransportDispatcher(
+            BluetoothPrinterTransport(printerManager),
+            WifiPrinterTransport()
+        ),
+        kotEventDao
+    )
+
     companion object {
         private const val TAG = "KitchenPrintQueue"
     }
@@ -46,6 +69,14 @@ class KitchenPrintQueueManager @Inject constructor(
             kotlinx.coroutines.delay(2000)
             val mac = printerManager.connectedDeviceMac.value ?: return@launch
             if (mac.isNotBlank()) flushPendingForPrinter(mac)
+        }
+
+        scope.launch {
+            kotlinx.coroutines.delay(2000)
+            val kitchen = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
+            if (kitchen?.enabled == true && kitchen.isConnectionConfigured()) {
+                flushPendingForPrinter(kitchen.connectionTargetKey())
+            }
         }
     }
 
@@ -132,13 +163,8 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             try {
-                if (!printerManager.isConnectedTo(printerMac) && !printerManager.connect(printerMac)) {
-                    queueRepository.markPending(job.id, "connection failed")
-                    break
-                }
-
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
-                if (printerManager.printBytesTo(printerMac, bytes)) {
+                if (printerTransport.print(printerProfile, bytes)) {
                     queueRepository.markSent(job.id)
                     if (job.publicToken != null && job.kotRevision != null) {
                         kotEventDao.markPrinted(job.publicToken, job.kotRevision)
@@ -158,7 +184,10 @@ class KitchenPrintQueueManager @Inject constructor(
     private suspend fun resolveKitchenPrinter(printerMac: String): PrinterProfileEntity? {
         val stored = printerProfileRepository.getProfiles()
         return stored.firstOrNull {
-            it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress == printerMac
+            it.role == PrinterRole.KITCHEN.name &&
+                it.enabled &&
+                it.isConnectionConfigured() &&
+                it.connectionTargetKey() == printerMac
         }
     }
 }

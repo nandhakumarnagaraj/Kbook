@@ -39,14 +39,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -57,7 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.util.DateUtils
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.KhanaStatusBadge
 import com.khanabook.lite.pos.ui.designsystem.KhanaStatusKind
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
@@ -75,7 +73,6 @@ import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.theme.WarningYellow
 import com.khanabook.lite.pos.ui.viewmodel.ActiveOrderSummaryRow
 import com.khanabook.lite.pos.ui.viewmodel.ActiveOrdersViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun ActiveOrdersScreen(
@@ -85,19 +82,16 @@ fun ActiveOrdersScreen(
     viewModel: ActiveOrdersViewModel = hiltViewModel()
 ) {
     val activeRows by viewModel.rows.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
 
     LaunchedEffect(Unit) {
-        viewModel.message.collect { message ->
-            scope.launch { snackbarHostState.showSnackbar(message) }
+        viewModel.message.collect { event ->
+            KhanaToast.show(event.message, event.kind)
         }
     }
 
     Scaffold(
         containerColor = DarkBrown1,
-        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {

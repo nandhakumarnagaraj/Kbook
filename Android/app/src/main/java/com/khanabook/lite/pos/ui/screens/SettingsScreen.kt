@@ -54,7 +54,10 @@ fun SettingsScreen(
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
+    val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
     var section by rememberSaveable(initialSection) { mutableStateOf(initialSection) }
+    var pendingSaveSection by remember { mutableStateOf<String?>(null) }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -72,10 +75,41 @@ fun SettingsScreen(
         screenVisible = true
     }
 
-    val toastScope = rememberCoroutineScope()
     val ctx = LocalContext.current
 
-    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app", "sync_center")
+    LaunchedEffect(saveProfileSuccess, pendingSaveSection) {
+        val savedSection = pendingSaveSection
+        if (saveProfileSuccess && savedSection != null) {
+            val message = when (savedSection) {
+                "payment" -> ctx.getString(R.string.toast_payment_settings_saved)
+                "printer" -> ctx.getString(R.string.toast_printer_settings_saved)
+                "tax" -> ctx.getString(R.string.toast_tax_settings_saved)
+                else -> ctx.getString(R.string.toast_profile_saved)
+            }
+            KhanaToast.show(message, ToastKind.Success)
+            viewModel.clearSaveProfileState()
+            pendingSaveSection = null
+            section = "menu"
+        }
+    }
+
+    LaunchedEffect(saveProfileError, pendingSaveSection) {
+        val error = saveProfileError
+        if (error != null && pendingSaveSection != null) {
+            KhanaToast.show(error, ToastKind.Error)
+            viewModel.clearSaveProfileState()
+            pendingSaveSection = null
+        }
+    }
+
+    val settingsSubSections = setOf(
+        "app_lock",
+        "change_password",
+        "interaction_feedback",
+        "help_support",
+        "about_app",
+        "sync_center"
+    )
 
     BackHandler {
         when {
@@ -116,6 +150,7 @@ fun SettingsScreen(
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"
                 "ui_scale" -> "Display"
+                "interaction_feedback" -> "Interaction Feedback"
                 "security" -> "Settings"
                 "app_lock" -> "App Lock"
                 "change_password" -> "Change Password"
@@ -157,27 +192,27 @@ fun SettingsScreen(
                     "payment" -> {
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
                         PaymentConfigView(profile, saveProfileLoading = saveProfileLoading, onSave = {
+                            pendingSaveSection = "payment"
                             viewModel.saveProfile(it)
-                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_payment_settings_saved), ToastKind.Success) }
-                            section = "menu"
                         }, onBack = { section = "menu" })
                     }
                     "printer" -> {
                         PrinterConfigView(profile, onSave = {
+                            pendingSaveSection = "printer"
                             viewModel.saveProfile(it)
-                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_printer_settings_saved), ToastKind.Success) }
-                            section = "menu"
                         }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {
                         TaxConfigView(profile, onSave = {
+                            pendingSaveSection = "tax"
                             viewModel.saveProfile(it)
-                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_tax_settings_saved), ToastKind.Success) }
-                            section = "menu"
                         }, onBack = { section = "menu" })
                     }
                     "ui_scale" -> {
                         DisplayScaleView(viewModel = viewModel)
+                    }
+                    "interaction_feedback" -> {
+                        InteractionFeedbackView()
                     }
                     "security" -> {
                         SettingsListView(onSelectItem = { section = it })
@@ -206,6 +241,7 @@ fun SettingsScreen(
 @Composable
 private fun DisplayScaleView(viewModel: SettingsViewModel) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val displayScale by viewModel.displayScaleState.collectAsStateWithLifecycle()
     val scaleLabels = listOf("Small", "Default", "Large", "X-Large")
     val scaleValues = listOf(0.85f, 1.0f, 1.15f, 1.3f)
@@ -217,6 +253,36 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
             .padding(horizontal = spacing.medium)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = KhanaShapes.medium
+        ) {
+            Column(modifier = Modifier.padding(spacing.large)) {
+                Text("Automatic Layout", color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                Text(
+                    text = buildString {
+                        append(if (layout.isWideListDetail) "Tablet" else "Phone")
+                        append(" · ${layout.screenWidthDp} × ${layout.screenHeightDp} dp")
+                        append(if (layout.isLandscape) " · Landscape" else " · Portrait")
+                    },
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (layout.isCompactHeight) {
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
+                    Text(
+                        "Compact-height layouts are enabled automatically.",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(spacing.medium))
 
         KhanaBookCard(

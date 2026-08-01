@@ -325,7 +325,13 @@ fun CallCustomerScreen(
                                         val intent =
                                                 Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
                                         TrustedExternalAppReturn.mark(context)
-                                        context.startActivity(intent)
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            scope.launch {
+                                                KhanaToast.show("No phone app is available", ToastKind.Error)
+                                            }
+                                        }
                                     }
                                 },
                                 enabled = currentResult.bill.customerWhatsapp != null,

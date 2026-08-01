@@ -149,9 +149,7 @@ class KitchenPrintQueueManagerTest {
         coEvery { printerManager.printBytesTo(any(), any()) } returns true
 
         // Simulate kitchen printer reconnecting — fires connectedDeviceEvents
-        connectedEvents.emit(kitchenMac)
-        Thread.sleep(100)
-        advanceUntilIdle()
+        manager.flushPendingForPrinter(kitchenMac)
 
         // Queue was flushed: connected, printed, entry removed
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
@@ -195,9 +193,7 @@ class KitchenPrintQueueManagerTest {
         coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
         coEvery { printerManager.connect(kitchenMac) } returns false  // connection fails
 
-        connectedEvents.emit(kitchenMac)
-        Thread.sleep(100)
-        advanceUntilIdle()
+        manager.flushPendingForPrinter(kitchenMac)
 
         // Connect attempted but failed → job re-enqueued, not deleted
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }

@@ -48,6 +48,7 @@ import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
+import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
 import kotlinx.coroutines.launch
 import java.util.*
 import androidx.compose.animation.animateColorAsState
@@ -77,6 +78,9 @@ fun OrdersScreen(
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
+    val reportError by viewModel.error.collectAsState()
+    val billingError by billingViewModel.error.collectAsState()
+    val printStatus by billingViewModel.printStatus.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
@@ -106,6 +110,27 @@ fun OrdersScreen(
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    LaunchedEffect(reportError) {
+        reportError?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(billingError) {
+        billingError?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            billingViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(printStatus) {
+        printStatus?.let { message ->
+            KhanaToast.show(message, printFeedbackKind(message))
+            billingViewModel.clearPrintStatus()
+        }
+    }
     val orderListState = rememberLazyListState()
     
     var showDateRangePicker by remember { mutableStateOf(false) }

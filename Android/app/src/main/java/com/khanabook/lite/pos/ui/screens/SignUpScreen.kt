@@ -93,6 +93,7 @@ fun SignUpScreen(
             is AuthViewModel.SignUpResult.Loading -> {}
             is AuthViewModel.SignUpResult.Success -> {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                KhanaToast.show("Account created successfully", ToastKind.Success)
             }
             is AuthViewModel.SignUpResult.OtpSent -> {
                 otpSent = true

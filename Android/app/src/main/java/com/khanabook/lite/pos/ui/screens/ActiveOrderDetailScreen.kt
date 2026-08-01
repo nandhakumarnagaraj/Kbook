@@ -41,7 +41,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -50,7 +49,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +64,7 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.PaymentStatus
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.util.DateUtils
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.KhanaStatusBadge
 import com.khanabook.lite.pos.ui.designsystem.KhanaStatusKind
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
@@ -83,7 +81,6 @@ import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.theme.VegGreen
 import com.khanabook.lite.pos.ui.viewmodel.ActiveOrderDetailViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun ActiveOrderDetailScreen(
@@ -94,19 +91,16 @@ fun ActiveOrderDetailScreen(
 ) {
     val billWithItems by viewModel.bill.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     var showCancelDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.message.collect { message ->
-            snackbarHostState.showSnackbar(message)
+        viewModel.message.collect { event ->
+            KhanaToast.show(event.message, event.kind)
         }
     }
 
     Scaffold(
         containerColor = DarkBrown1,
-        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -155,13 +149,7 @@ fun ActiveOrderDetailScreen(
                             hasNewItems = newItems.isNotEmpty(),
                             hasSentItems = sentItems.isNotEmpty(),
                             onAddItems = { onAddItems(detail.bill.id) },
-                            onUpdateKot = {
-                                if (newItems.isEmpty()) {
-                                    scope.launch { snackbarHostState.showSnackbar("No new items to send") }
-                                } else {
-                                    viewModel.updateKot()
-                                }
-                            },
+                            onUpdateKot = viewModel::updateKot,
                             onPayment = { onCollectPayment(detail.bill.id) },
                             onPrintBill = viewModel::printBill,
                             onReprintKot = viewModel::reprintKot,

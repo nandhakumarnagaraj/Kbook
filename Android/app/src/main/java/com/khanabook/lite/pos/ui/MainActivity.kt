@@ -223,7 +223,7 @@ class MainActivity : FragmentActivity() {
                     if (isSessionExpired) {
                         val dest = navController.currentDestination?.route
                         if (dest != null && dest != "login" && dest != "splash" && dest != "signup") {
-                            authViewModel.logout()
+                            authViewModel.handleSessionExpiry()
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
                             }

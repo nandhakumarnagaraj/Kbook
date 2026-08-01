@@ -25,7 +25,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class
                 ],
-        version = 62,
+        version = 63,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -965,6 +965,22 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     android.util.Log.i("AppDatabase", "MIGRATION_61_62 complete: partial unique index on (restaurant_id, operation_id) for bill_payments")
                 }
             }
+
+        val MIGRATION_62_63 = object : Migration(62, 63) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("printer_profiles", "connection_type")) {
+                    db.execSQL(
+                        "ALTER TABLE `printer_profiles` ADD COLUMN `connection_type` TEXT NOT NULL DEFAULT 'BLUETOOTH'"
+                    )
+                }
+                if (!db.hasColumn("printer_profiles", "host")) {
+                    db.execSQL("ALTER TABLE `printer_profiles` ADD COLUMN `host` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("printer_profiles", "port")) {
+                    db.execSQL("ALTER TABLE `printer_profiles` ADD COLUMN `port` INTEGER NOT NULL DEFAULT 9100")
+                }
+            }
+        }
 
         val MIGRATION_55_56 = object : Migration(55, 56) {
             override fun migrate(db: SupportSQLiteDatabase) {

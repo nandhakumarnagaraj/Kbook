@@ -20,7 +20,28 @@ import com.khanabook.lite.pos.domain.manager.PaymentSetValidator
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun <T> terminalScopedFlow(
+    restaurantIds: Flow<Long>,
+    terminalScopes: Flow<String?>,
+    query: (Long, String) -> Flow<List<T>>
+): Flow<List<T>> =
+    combine(restaurantIds, terminalScopes) { restaurantId, terminalId ->
+        restaurantId to terminalId
+    }
+        .distinctUntilChanged()
+        .flatMapLatest { (restaurantId, terminalId) ->
+            if (restaurantId <= 0L || terminalId.isNullOrBlank()) {
+                flowOf(emptyList())
+            } else {
+                query(restaurantId, terminalId)
+            }
+        }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BillRepository(
@@ -522,15 +543,15 @@ class BillRepository(
         }
     }
 
-    fun getActiveDraftBillsFlow(): kotlinx.coroutines.flow.Flow<List<BillEntity>> {
-        return billDao.getActiveDraftBillsFlow(sessionManager.getRestaurantId(), currentTerminalScope())
-    }
+    fun getActiveDraftBillsFlow(): Flow<List<BillEntity>> =
+        terminalScopedFlow(sessionManager.restaurantId, sessionManager.terminalScope) { restaurantId, terminalId ->
+            billDao.getActiveDraftBillsFlow(restaurantId, terminalId)
+        }
 
     fun getActionableDraftBillsWithItemsFlow(): Flow<List<BillWithItems>> =
-        billDao.getActionableDraftBillsWithItemsFlow(
-            sessionManager.getRestaurantId(),
-            currentTerminalScope()
-        )
+        terminalScopedFlow(sessionManager.restaurantId, sessionManager.terminalScope) { restaurantId, terminalId ->
+            billDao.getActionableDraftBillsWithItemsFlow(restaurantId, terminalId)
+        }
 
     private suspend fun recordKotEvent(
         bill: BillEntity,

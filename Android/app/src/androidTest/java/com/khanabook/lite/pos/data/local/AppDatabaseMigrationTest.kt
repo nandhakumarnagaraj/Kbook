@@ -357,6 +357,42 @@ class AppDatabaseMigrationTest {
         migrated.close()
     }
 
+    @Test
+    @Throws(IOException::class)
+    fun migrate62To63_preservesPrinterAndAddsWifiConnectionFields() {
+        val db = helper.createDatabase(TEST_DB, 62)
+        db.execSQL(
+            """
+            INSERT INTO printer_profiles
+                (id, role, restaurant_id, name, mac_address, enabled, auto_print,
+                 paper_size, include_logo, copies, created_at, updated_at)
+            VALUES
+                (1, 'KITCHEN', 100, 'Existing Kitchen Printer', 'AA:BB:CC:DD:EE:FF',
+                 1, 1, '58mm', 0, 1, 1, 1)
+            """.trimIndent()
+        )
+        db.close()
+
+        val migrated = helper.runMigrationsAndValidate(
+            TEST_DB,
+            63,
+            true,
+            AppDatabase.MIGRATION_62_63
+        )
+
+        migrated.query(
+            "SELECT name, mac_address, connection_type, host, port FROM printer_profiles WHERE id = 1"
+        ).use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Existing Kitchen Printer", cursor.getString(0))
+            assertEquals("AA:BB:CC:DD:EE:FF", cursor.getString(1))
+            assertEquals("BLUETOOTH", cursor.getString(2))
+            assertTrue(cursor.isNull(3))
+            assertEquals(9100, cursor.getInt(4))
+        }
+        migrated.close()
+    }
+
     private fun insertV59Bill(
         db: SupportSQLiteDatabase,
         id: Long,

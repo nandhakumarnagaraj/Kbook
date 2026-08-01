@@ -91,8 +91,8 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.message.collect { message ->
-            KhanaToast.show(message, ToastKind.Info)
+        viewModel.message.collect { event ->
+            KhanaToast.show(event.message, event.kind)
         }
     }
 

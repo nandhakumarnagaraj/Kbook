@@ -61,6 +61,7 @@ fun KhanaBookLiteTheme(
     }
     val responsiveLayout = responsiveLayoutForWindowSizeClass(
         screenWidthDp = configuration.screenWidthDp,
+        screenHeightDp = configuration.screenHeightDp,
         widthSizeClass = widthSizeClass
     )
     val appTypography = typographyForSdk(Build.VERSION.SDK_INT)

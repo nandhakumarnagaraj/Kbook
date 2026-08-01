@@ -33,7 +33,7 @@ import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
-import kotlinx.coroutines.delay
+import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -57,6 +57,8 @@ fun ReprintKdsScreen(
     val vmResult by searchViewModel.searchResult.collectAsStateWithLifecycle()
     val vmHasSearched by searchViewModel.hasSearched.collectAsStateWithLifecycle()
     val isKitchenPrinting by billingViewModel.kitchenPrinting.collectAsStateWithLifecycle()
+    val billingError by billingViewModel.error.collectAsStateWithLifecycle()
+    val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val scope = rememberCoroutineScope()
@@ -81,9 +83,23 @@ fun ReprintKdsScreen(
         }
     }
 
-    LaunchedEffect(vmResult, vmHasSearched) {
-        if (vmHasSearched && vmResult == null) {
-            KhanaToast.show("No pending KDS found", ToastKind.Warning)
+    LaunchedEffect(billingError) {
+        billingError?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            billingViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(printStatus) {
+        printStatus?.let { message ->
+            val kind = printFeedbackKind(message)
+            KhanaToast.show(message, kind)
+            billingViewModel.clearPrintStatus()
+            if (kind == ToastKind.Success) {
+                searchViewModel.clearSearch()
+                invoiceQuery = ""
+                dailyId = ""
+            }
         }
     }
 
@@ -247,12 +263,6 @@ fun ReprintKdsScreen(
                     isPrinting = isKitchenPrinting,
                     onPrint = {
                         billingViewModel.printKitchenTicket(it)
-                        scope.launch {
-                            delay(800)
-                            searchViewModel.clearSearch()
-                            invoiceQuery = ""
-                            dailyId = ""
-                        }
                     }
                 )
             } ?: run {

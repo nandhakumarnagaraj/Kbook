@@ -39,6 +39,7 @@ import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.animation.*
@@ -66,6 +67,8 @@ fun SearchScreen(
     val result by viewModel.searchResult.collectAsState()
     val hasSearched by viewModel.hasSearched.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val billingError by billingViewModel.error.collectAsState()
+    val printStatus by billingViewModel.printStatus.collectAsState()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -76,6 +79,20 @@ fun SearchScreen(
         "No orders found"
     } else {
         "Bill not found"
+    }
+
+    LaunchedEffect(billingError) {
+        billingError?.let { message ->
+            KhanaToast.show(message, ToastKind.Error)
+            billingViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(printStatus) {
+        printStatus?.let { message ->
+            KhanaToast.show(message, printFeedbackKind(message))
+            billingViewModel.clearPrintStatus()
+        }
     }
     fun submitDailySearch() {
         if (dailyId.isBlank() || dailyDate.isBlank()) return
