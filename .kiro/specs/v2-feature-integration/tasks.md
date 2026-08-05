@@ -169,20 +169,25 @@ Hard ordering constraints:
   - _Note: `ops/flyway_reconcile_checksums.sh` validated end-to-end against live history — 35/35 reconcile (exit 0). Checksum mirrors Flyway 11.7.2 ChecksumCalculator (CRC-32 over readLine outputs, BOM-only first-line strip, signed int). psql CRLF + Windows python stub handled._
 
 - [ ] 6. Implement FeatureFlagService
-- [ ] 6.1 Add `FeatureFlag`, `FeatureFlagOverride`, `FeatureFlagAudit` entities and repositories
+- [x] 6.1 Add `FeatureFlag`, `FeatureFlagOverride`, `FeatureFlagAudit` entities and repositories
   - _Requirements: 30.3, 30.5_
-- [ ] 6.2 Implement `resolve` in the five-step order: row absent → config guard → `kill_switched` → override → `default_enabled`
+- [x] 6.2 Implement `resolve` in the five-step order: row absent → config guard → `kill_switched` → override → `default_enabled`
   - _Requirements: 30.6, 30.7, 30.8, 30.10, 30.11_
-- [ ] 6.3 Implement `FeatureConfigGuard` per flag and wire it as resolution step 2 so absent configuration overrides persisted state
+  - _Note: implemented in `FeatureFlagServiceImpl.computeEnabled`; absent rows are never cached, so an externally-created row is honoured without a restart._
+- [x] 6.3 Implement `FeatureConfigGuard` per flag and wire it as resolution step 2 so absent configuration overrides persisted state
   - _Requirements: 27.7, 30.10_
-- [ ] 6.4 Add the Caffeine cache with `expireAfterWrite` bound to `propagation-deadline-seconds`, plus eager invalidation on write
+  - _Note: `easebuzz_payments` requires EASEBUZZ_MERCHANT_KEY+EASEBUZZ_SALT; `notifications` requires a Firebase credential (FIREBASE_CREDENTIALS_PATH or FIREBASE_REFRESH_TOKEN); `marketplace_orders` constant true (per-restaurant keys)._
+- [x] 6.4 Add the Caffeine cache with `expireAfterWrite` bound to `propagation-deadline-seconds`, plus eager invalidation on write
   - _Requirements: 30.13, 30.15_
-- [ ] 6.5 Implement `isProviderProcessable` as the global tier: row present, not kill-switched, config guard satisfied — with no restaurant resolution
+  - _Note: instance-owned Caffeine (design D4), key `flagKey:restaurantId`, max 10k entries; global writes invalidate every cached value for the flag, restaurant writes invalidate that restaurant._
+- [x] 6.5 Implement `isProviderProcessable` as the global tier: row present, not kill-switched, config guard satisfied — with no restaurant resolution
   - _Requirements: 33.35_
-- [ ] 6.6 Write the audit row on every mutation, capturing flag, scope, previous state, new state, actor, timestamp
+- [x] 6.6 Write the audit row on every mutation, capturing flag, scope, previous state, new state, actor, timestamp
   - _Requirements: 30.20_
-- [ ] 6.7 Add tests for the six operational states including single-restaurant pilot, kill-switch dominance, and config-forces-disabled
+  - _Note: actor from TenantContext (userId + role); audit persistence is best-effort and never rolls back the flag transition._
+- [x] 6.7 Add tests for the six operational states including single-restaurant pilot, kill-switch dominance, and config-forces-disabled
   - _Requirements: 30.28, 30.29, 30.30_
+  - _Note: 11 tests, all green (full suite 236 pass); config-forces-disabled ordered last to avoid cache poisoning. Boot validated against real V48 PostgreSQL (entities map cleanly, health UP)._
 
 - [ ] 7. Implement Flag_Admin_Surface
 - [ ] 7.1 Add the six `/admin/feature-flags` endpoints, each annotated `@RequireRole(UserRole.KBOOK_ADMIN)`

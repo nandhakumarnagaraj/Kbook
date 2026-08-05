@@ -103,6 +103,12 @@
             <version>8.7.0</version>
         </dependency>
 
+        <!-- Feature flag resolution cache (Requirement 30.13) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Google API (FIXED commons-logging issue) -->
         <dependency>
             <groupId>com.google.api-client</groupId>
