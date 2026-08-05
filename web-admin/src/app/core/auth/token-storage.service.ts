@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { AuthSession } from '../models/session.model';
 
-const STORAGE_KEY = 'khanabook.webAdmin.session';
+const STORAGE_KEY = 'khanabook.webAdmin.v1.session';
 
 @Injectable({ providedIn: 'root' })
 export class TokenStorageService {
