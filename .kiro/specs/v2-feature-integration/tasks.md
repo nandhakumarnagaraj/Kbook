@@ -156,10 +156,10 @@ Hard ordering constraints:
 
 ### Phase 2 — Integration foundation (V48)
 
-- [ ] 5. Author V48 migration
-- [ ] 5.1 Write `V46__feature_flags_and_webhook_inbox.sql` creating `feature_flag` (`kill_switched` default TRUE, `default_enabled` default FALSE), `feature_flag_override`, `feature_flag_audit`, and `webhook_inbox` including `claim_token`, `claimed_by`, `claimed_at`, `lease_expires_at`, `next_attempt_at`; additive operations only
+- [x] 5. Author V48 migration
+- [x] 5.1 Write `V46__feature_flags_and_webhook_inbox.sql` creating `feature_flag` (`kill_switched` default TRUE, `default_enabled` default FALSE), `feature_flag_override`, `feature_flag_audit`, and `webhook_inbox` including `claim_token`, `claimed_by`, `claimed_at`, `lease_expires_at`, `next_attempt_at`; additive operations only
   - _Requirements: 2.3, 2.7, 2.8, 30.3, 30.4, 33.4_
-- [ ] 5.2 Seed one `feature_flag` row per key with both columns at their safe defaults; add a comment recording why the orphan V6/V7/V8 tables are left untouched
+- [x] 5.2 Seed one `feature_flag` row per key with both columns at their safe defaults; add a comment recording why the orphan V6/V7/V8 tables are left untouched
   - _Requirements: 30.9, 2.6, 2.8_
 - [ ] 5.3 Add the `PostgresMigrationSmokeTest` case applying V1–V48 to an empty Testcontainers database, and a test asserting the Baseline_Tag server image starts against a V48 schema
   - _Requirements: 2.10, 2.14, 2.15_
