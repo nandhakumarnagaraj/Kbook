@@ -2,6 +2,7 @@ package com.khanabook.saas.sync.dto.payload;
 
 import lombok.Data;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class MasterSyncResponseDTO {
@@ -17,4 +18,7 @@ public class MasterSyncResponseDTO {
     private List<BillPaymentDTO> billPayments;
     private Boolean hasMore;
     private Integer nextPage;
+
+    /** Effective feature-flag state for this restaurant (Requirement 30.23). */
+    private Map<String, Boolean> enabledFeatures;
 }

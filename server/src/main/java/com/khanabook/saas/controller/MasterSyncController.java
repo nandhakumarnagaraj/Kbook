@@ -38,6 +38,7 @@ public class MasterSyncController {
 	private final BillPaymentService billPaymentService;
 	private final BillItemRepository billItemRepository;
 	private final BillPaymentRepository billPaymentRepository;
+	private final FeatureFlagService featureFlagService;
 
 	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
 	// strict=true: a missing terminal token rejects terminal-operational pulls.
@@ -116,6 +117,12 @@ public class MasterSyncController {
 
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
+
+		// Effective feature-flag state for this restaurant (Req 30.23). Additive:
+		// sent on page 0 once, omitted from follow-up pages.
+		if (page == 0) {
+			response.setEnabledFeatures(featureFlagService.resolveAllForRestaurant(tenantId));
+		}
 
 		if (page == 0) {
 			response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));

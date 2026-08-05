@@ -364,7 +364,8 @@ export class SidebarLayoutComponent {
     if (role === 'KBOOK_ADMIN') {
       return [
         { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' }
+        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' },
+        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑' }
       ];
     }
     if (role === 'SHOP_ADMIN') {

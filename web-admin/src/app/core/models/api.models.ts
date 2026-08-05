@@ -8,6 +8,27 @@ export interface AdminDashboardSummary {
   refundedAmount: number;
 }
 
+export interface FeatureFlagAdminItem {
+  flagKey: string;
+  killSwitched: boolean;
+  defaultEnabled: boolean;
+  description: string | null;
+  updatedAt: number;
+  effectiveState: boolean;
+}
+
+export interface FeatureFlagAuditItem {
+  id: number;
+  flagKey: string;
+  scope: 'KILL_SWITCH' | 'DEFAULT' | 'OVERRIDE';
+  restaurantId: number | null;
+  previousState: string | null;
+  newState: string;
+  actorUserId: number | null;
+  actorUsername: string | null;
+  changedAt: number;
+}
+
 export interface AdminBusinessListItem {
   restaurantId: number;
   shopName: string | null;
