@@ -300,3 +300,194 @@ No discrepancy from task 2.1's findings. Independent re-verification confirms:
 
 **Task 2.2 is formally CLOSED.** No source code change was required or made. This
 verification pass found nothing needing escalation.
+
+## 7. Task 2.3 — `google-services.json` intent and credential-sensitivity review
+
+Spec: `.kiro/specs/v2-feature-integration` — Phase 0, task 2.3
+Requirements: 27.5, 27.6
+
+### 7.0 Re-verification that there is no pending modification on `v3`
+
+Re-run independently (not taken on trust from section 4 above):
+
+```
+PS> git status --porcelain
+ M .kiro/specs/v2-feature-integration/tasks.md
+PS> git diff origin/main HEAD -- Android/app/google-services.json
+(no output)
+```
+
+Confirmed directly: `v3`'s only dirty file is the `tasks.md` bookkeeping edit; the
+`google-services.json` diff against `origin/main` is empty. There is no pending
+modification to this file on `v3` today. This task is therefore a confirm/deny review of
+the file's *current, already-committed* state, not a review of an in-flight change — the
+same conclusion section 4 reached, independently re-checked here.
+
+History check, so "already committed" isn't just asserted:
+
+```
+PS> git log --diff-filter=A --oneline -- Android/app/google-services.json
+8805b173 Fix auth identity and sync persistence across Android and server
+PS> git log --oneline -- Android/app/google-services.json | Select-Object -First 5
+93919eb0 fix: correct debug SHA-1 fingerprint 926b10 in google-services.json
+d35b2bff fix: add debug SHA-1 to Firebase for Google Sign-In
+657d6100 Update Android startup config and clean repo files
+4e7d9a8d feat: add UI display scale control, improve error sanitization and crash handler
+8e63e465 Update billing, dashboard, and Android auth components with web-admin improvements
+```
+
+The file has been tracked and edited through ordinary commits for a long time, including
+commits explicitly about adding/correcting debug SHA-1 fingerprints for Google Sign-In —
+i.e. the same category of change the archive's extra entries represent, just done the
+normal way (one hash at a time, in a reviewed commit) rather than as an unexplained bulk
+addition in an uncommitted tree.
+
+### 7.1 Field catalog — current `v3` file
+
+`Android/app/google-services.json` contains three `client` blocks (one per
+`applicationId` variant built from this module: release `com.piquantservices.khanabook`,
+lite-release `com.piquantservices.khanabooklite`, and lite-debug
+`com.piquantservices.khanabooklite.debug`), plus one shared `project_info` block and a
+`configuration_version` field.
+
+| Field path | Present | Value / shape | Category |
+|---|---|---|---|
+| `project_info.project_number` | yes (top-level, shared) | `836086274000` | Public project identifier — appears in every Firebase REST call, visible in network traffic |
+| `project_info.project_id` | yes | `new-khanabook-li` | Public project identifier |
+| `project_info.storage_bucket` | yes | `new-khanabook-li.firebasestorage.app` | Public bucket name — access is governed by Firebase Storage security rules, not by the name being secret |
+| `client[].client_info.mobilesdk_app_id` | yes, one per variant | `1:836086274000:android:<hex>` | Public per-app-variant identifier, deterministic from project number + a registration hash |
+| `client[].client_info.android_client_info.package_name` | yes, one per variant | `com.piquantservices.khanabook` / `...khanabooklite` / `...khanabooklite.debug` | Public — identical to the `applicationId` already declared in `build.gradle.kts` and visible on the Play Store listing |
+| `client[].oauth_client[].client_type: 1` (Android) | yes — 1 entry (release), 2 entries (lite-release), 1 entry (lite-debug) = 4 total | `client_id` + `android_info.package_name` + `android_info.certificate_hash` (SHA-1) | Client-configuration binding, not a credential — see 7.3 |
+| `client[].oauth_client[].client_type: 3` (Web) | yes — 1 entry per variant, same `client_id` (`...csivf8ms...`) repeated across all three | `client_id` only, no `client_secret` field present anywhere in the file | Public OAuth client identifier used for the "web/server" audience in Google Sign-In token requests; carries no secret — see 7.3 |
+| `client[].api_key[].current_key` | yes, one per variant, all three identical: `AIzaSyBGp7pbYCV7RBLecpXmq5VUoTznreNZnKY` | Restricted Android API key | Client configuration, not a server-side credential — see 7.2 |
+| `client[].services.appinvite_service.other_platform_oauth_client` | yes, one per variant, duplicates the `client_type: 3` entry | Same web client id | Public, redundant with the entry above |
+| `configuration_version` | yes | `"1"` | Format-version marker, not data |
+
+Nothing in the file has any of the shapes that would indicate a server-side credential:
+no `private_key`, no `client_secret`, no `client_email`/service-account fields (the shape
+Firebase Admin SDK service-account JSON uses), no database connection string, no bearer
+token, no refresh token. Every field is either a public identifier or a client-side
+API key explicitly designed by Google to be restricted by binding rather than by secrecy.
+
+### 7.2 Baseline: is this how the file has always shipped?
+
+Checked whether `google-services.json` is excluded anywhere:
+
+```
+PS> Select-String -Path Android\.gitignore -Pattern "google-services"
+(no match)
+PS> Select-String -Path .gitignore -Pattern "google-services"
+(no match)
+```
+
+Neither `.gitignore` (root or `Android/`) excludes `google-services.json`. Both do exclude
+genuine secrets in the same area — `*.jks`, `*.keystore`, `keystore.properties`,
+`signing.properties`, `secrets.properties`, `local.properties` — which shows the project's
+`.gitignore` authors deliberately distinguish "things that must never be committed"
+(signing keys, keystore passwords, local secrets file) from `google-services.json`, which
+sits right alongside them in the same directory and is not on that list. That's a
+meaningful signal of intent, not an oversight: the exclusion list is specific and
+security-conscious, and it stops short of this file on purpose.
+
+The file has been committed and repeatedly edited by ordinary commits since at least
+`8805b173` (see 7.0), already contains a live API key and four Android OAuth client
+registrations plus a web OAuth client id on the currently-deployed `origin/main`, and
+Google Sign-In (`GoogleSignIn`/`GoogleSignInOptions` in `LoginScreen.kt`, confirmed present
+in section 4 above) and Firebase are already live, shipped features. This is not a new or
+unusual state being introduced — it is the same pattern the app has used in production
+all along. `AGENTS.md`'s "do not commit secrets" line names `google-services.json`
+explicitly alongside `.env`/`local.properties`/keystores, but that project convention is
+more conservative than what Google's own guidance treats as required — see the Firebase
+documentation and community consensus retrieved during this review: Firebase API keys
+"restricted to Firebase services do not need to be treated as secrets, and it's safe to
+include them in your code or configuration files" ([Firebase docs](https://firebase.google.com/docs/projects/api-keys)),
+and the general community answer to "should `google-services.json` be synced in my team
+repository" is "yes... it is something that should be shared among engineers on your team"
+([Firebase Talk / Google Groups](https://groups.google.com/g/firebase-talk/c/bamCgTDajkw)).
+Content rephrased for compliance with licensing restrictions. This project's own history
+of committing and iterating on the file through normal commits is consistent with that
+standard practice, and the `.gitignore` split (secrets excluded, this file not) shows the
+codebase already treats it that way in practice, whatever the aspirational line in
+`AGENTS.md` says.
+
+### 7.3 OAuth-client binding reasoning
+
+An `oauth_client` entry with `client_type: 1` (Android) is a *registration record*, not a
+bearer credential. It ties together three things Google's servers check on every Google
+Sign-In request: the requesting app's package name, the SHA-1 fingerprint of the
+certificate that signed the APK, and this `client_id`. Google issues a token only when a
+live signature check against the actual installed, signed APK matches the fingerprint
+registered against that `client_id`/package pair. Possessing the JSON text of the entry —
+`client_id`, package name, and even the SHA-1 hash string — grants nothing by itself: it
+cannot be replayed, cannot authenticate a request, and cannot be used to sign anything,
+because the entry contains a fingerprint *of* the private signing key, not the key itself,
+and no possessor of this file also automatically possesses the corresponding `.jks`
+keystore (which is separately `.gitignore`'d, per 7.2). This is the standard, documented
+security model for this file type, corroborated by the sources reviewed above.
+
+The `client_type: 3` (Web) entry present in this file carries only `client_id`, with no
+`client_secret` field anywhere in the JSON (confirmed by the field catalog in 7.1). Web
+OAuth clients *can* have a secret, but when one is required by the app's flow it is issued
+and held server-side, never embedded in `google-services.json` — its absence here is
+expected and correct, not a gap.
+
+Applying this to the entries actually present in the current `v3` file: four
+`client_type: 1` entries (one release, two lite-release, one lite-debug) and three
+identical `client_type: 3` entries (one per variant, same web client id) — all bindings,
+none usable without the matching private signing key for the Android entries, and none
+carrying a secret for the Web entry.
+
+Applying the same reasoning to the archive's five *extra* entries (not present on `v3`,
+not being ported — see section 4): each is the same shape, `client_type: 1`, bound to the
+debug package with its own `certificate_hash`. If they were ever added, they would
+represent additional debug-keystore registrations for other developer machines — the same
+low-sensitivity category as the four entries already present, not a service-account
+private key or an API secret. Nothing about their *kind* changes the risk category; what
+was actually unresolved in section 4 was provenance/authorization (whose debug keystores
+they are), not sensitivity classification. That provenance question remains open and is
+explicitly not resolved or closed by this task, consistent with section 4's DEFER and
+"Explicitly not claimed" notes — this task only had to determine sensitivity category, not
+authorize the entries.
+
+### 7.4 Determination — current `v3` file
+
+**Yes.** `v3`'s current, already-committed `Android/app/google-services.json` is intended
+client configuration and contains no server-side credential.
+
+Reasoning: every field present (7.1) is either a public project/app identifier, an
+Android-restricted API key whose security model is binding-based rather than
+secrecy-based, or an OAuth-client binding record that is inert without a private signing
+key never itself present in this file or this repository in committed form. This matches
+Google's documented intent for the file (7.2), matches this project's own long history of
+committing and iterating on it through ordinary reviewed commits (7.0), and is consistent
+with the project's own `.gitignore`, which excludes true secrets from this same directory
+while deliberately not excluding this file (7.2). No field resembles a service-account
+private key, API secret, or any other server-side credential. Nothing here rises to the
+level requiring escalation.
+
+### 7.5 Determination — archived variant's extra entries (informational, not ported)
+
+**Yes, also client configuration in kind** — the five extra entries on
+`archive/v2-wip-v1-backport` are, by shape and field content, the same category as the
+entries already present on `v3`: `client_type: 1` Android OAuth-client bindings with no
+secret material, inert without a matching private signing key (7.3). They are not, in
+kind, server-side credentials. This does **not** reopen or resolve the *provenance*
+question section 4 deferred — whose keystores these five hashes belong to and whether they
+were ever deliberately registered is still unknown and still not this task's or this
+spec's decision to make. It only answers the narrower question task 2.3 actually asks:
+whether they are the *kind* of thing that would constitute a server-side credential. They
+are not. Per section 4 and the task instructions, they remain un-ported; no action is
+taken on the archive.
+
+### 7.6 Escalation check
+
+No private key material, no service-account JSON, no API secret (as distinct from a
+restricted API key), no database credential, and no bearer/refresh token were found
+anywhere in the current `v3` file or in the archive's differing entries. Nothing here
+meets the escalation bar this task set. No escalation is raised.
+
+### 7.7 Result
+
+**Task 2.3 is formally CLOSED.** No code change was required or made; no porting was
+performed. This closes the open question section 4 raised without merging anything from
+the archive.
