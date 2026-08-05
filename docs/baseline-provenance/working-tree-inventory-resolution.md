@@ -194,3 +194,109 @@ git diff origin/main archive/v2-wip-v1-backport -- Android/gradle/wrapper/gradle
 git diff origin/main archive/v2-wip-v1-backport -- Android/app/google-services.json
 git diff origin/main HEAD -- Android/app/google-services.json                            # empty on v3
 ```
+
+## 6. Task 2.2 closure verification
+
+Spec: `.kiro/specs/v2-feature-integration` — Phase 0, task 2.2
+Requirements: 1.6
+
+Task 2.1 (section 2-3 above) already found the launcher-icon migration and the
+build-config drift both **CLOSED — no action needed** on `v3`. This section
+independently re-verifies those findings rather than trusting them, per task 2.2's
+instructions, and formally closes the task.
+
+### 6.1 Launcher icons — `.webp` search
+
+```powershell
+PS Android> git ls-files -- "Android/app/src/main/res/mipmap-*" | Select-String "webp"
+# (no output)
+PS Android> Get-ChildItem -Path "Android/app/src/main/res" -Filter "mipmap-*" -Directory |
+    ForEach-Object { Get-ChildItem $_.FullName -Filter "*.webp" }
+# (no output)
+```
+
+Zero `.webp` files anywhere under `Android/app/src/main/res/mipmap-*`, checked against
+both the git index and the actual filesystem (not tracked files alone). Confirms 2.1's
+finding independently.
+
+### 6.2 Expected `.png` variants per density
+
+Directory listing of all five `mipmap-*` density folders:
+
+| Density | `ic_launcher.png` | `ic_launcher_round.png` | `ic_launcher_foreground.png` |
+|---|---|---|---|
+| hdpi | present | present | present |
+| mdpi | present | present | present |
+| xhdpi | present | present | present |
+| xxhdpi | present | present | present |
+| xxxhdpi | present | present | present |
+
+All 15 expected raster files are present. Additionally, `mipmap-anydpi-v26/` carries
+`ic_launcher.xml` and `ic_launcher_round.xml`, both adaptive-icon XML files referencing
+`@drawable/ic_launcher_background` and `@mipmap/ic_launcher_foreground` — the foreground
+drawable resolves to the per-density `ic_launcher_foreground.png` files confirmed above,
+and the background resolves to `drawable/ic_launcher_background.xml`, which exists.
+
+### 6.3 Manifest reference resolution
+
+```
+AndroidManifest.xml:44:  android:icon="@mipmap/ic_launcher"
+AndroidManifest.xml:46:  android:roundIcon="@mipmap/ic_launcher_round"
+```
+
+Both references resolve: for API 26+ devices, `@mipmap/ic_launcher` and
+`@mipmap/ic_launcher_round` resolve to the adaptive-icon XML in `mipmap-anydpi-v26/`
+(verified present and internally consistent above); for pre-26 (moot given min SDK 26 per
+`AGENTS.md`, but checked anyway) they'd resolve to the per-density `.png` files, also
+present. No dangling reference to a removed `.webp` resource exists in either path.
+
+### 6.4 Gradle wrapper / AGP pairing sanity check
+
+```
+Android/gradle/wrapper/gradle-wrapper.properties:
+  distributionUrl=https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
+
+Android/gradle/libs.versions.toml:
+  agp = "8.9.1"
+  kotlin = "2.0.21"
+```
+
+Gradle 8.11.1 supports AGP up to the 8.x series inclusive of 8.9.x (AGP 8.9 requires
+Gradle 8.11.1+, which is exactly what's pinned) — not a broken pairing.
+
+Ran the wrapper itself rather than just eyeballing version strings:
+
+```powershell
+PS Android> .\gradlew.bat :app:tasks --console=plain --offline
+...
+BUILD SUCCESSFUL in 37s
+1 actionable task: 1 executed
+```
+
+`--offline` was used to keep the check fast and side-effect-free (no dependency
+re-resolution/download); it still exercises the actual wrapper JAR, downloads/verifies
+the Gradle 8.11.1 distribution if not already cached, boots the AGP 8.9.1 plugin, and
+evaluates the full project including `:app`, printing the real task graph
+(`assembleDebug`, `testDebugUnitTest`, `lint`, etc.). This confirms the wrapper is
+functional and not corrupted, and that AGP loads cleanly under the pinned Gradle version.
+A full `assembleDebug`/sync was not run here since it's unnecessary to establish wrapper
+health and would be materially slower; that level of build verification belongs to the
+Per-Phase Gate (task 3.1), not to this provenance-closure task.
+
+### 6.5 Result
+
+No discrepancy from task 2.1's findings. Independent re-verification confirms:
+
+- No `.webp` files under `mipmap-*` (git index and filesystem both checked).
+- All 15 expected per-density `.png` variants present, plus a consistent adaptive-icon
+  XML pair for API 26+.
+- `AndroidManifest.xml`'s `android:icon`/`android:roundIcon` resolve cleanly with no
+  dangling webp reference.
+- `build.gradle.kts` (root and `app/`) and `libs.versions.toml` — unchanged since 2.1's
+  byte-identical comparison against `origin/main`; not re-diffed here since 2.1 already
+  established zero drift and nothing has touched these files since.
+- `gradle-wrapper.properties` pins Gradle 8.11.1, a valid pairing for AGP 8.9.1, and the
+  wrapper itself invokes successfully.
+
+**Task 2.2 is formally CLOSED.** No source code change was required or made. This
+verification pass found nothing needing escalation.
