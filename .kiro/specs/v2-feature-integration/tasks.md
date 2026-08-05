@@ -161,10 +161,12 @@ Hard ordering constraints:
   - _Requirements: 2.3, 2.7, 2.8, 30.3, 30.4, 33.4_
 - [x] 5.2 Seed one `feature_flag` row per key with both columns at their safe defaults; add a comment recording why the orphan V6/V7/V8 tables are left untouched
   - _Requirements: 30.9, 2.6, 2.8_
-- [ ] 5.3 Add the `PostgresMigrationSmokeTest` case applying V1–V48 to an empty Testcontainers database, and a test asserting the Baseline_Tag server image starts against a V48 schema
+- [x] 5.3 Add the `PostgresMigrationSmokeTest` case applying V1–V48 to an empty Testcontainers database, and a test asserting the Baseline_Tag server image starts against a V48 schema
   - _Requirements: 2.10, 2.14, 2.15_
-- [ ] 5.4 Add the Flyway_History checksum reconciliation script
+  - _Note: V1–V48 chain proven empirically against throwaway PostgreSQL 18 (35 SQL rows, head = 48) in place of Testcontainers; test authored and compiling, skipped locally (no Docker)._
+- [x] 5.4 Add the Flyway_History checksum reconciliation script
   - _Requirements: 2.13_
+  - _Note: `ops/flyway_reconcile_checksums.sh` validated end-to-end against live history — 35/35 reconcile (exit 0). Checksum mirrors Flyway 11.7.2 ChecksumCalculator (CRC-32 over readLine outputs, BOM-only first-line strip, signed int). psql CRLF + Windows python stub handled._
 
 - [ ] 6. Implement FeatureFlagService
 - [ ] 6.1 Add `FeatureFlag`, `FeatureFlagOverride`, `FeatureFlagAudit` entities and repositories
