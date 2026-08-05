@@ -138,20 +138,20 @@ Hard ordering constraints:
 
 ### Phase 1 — Preservation harness
 
-- [ ] 4. Build the regression gate before any feature work
-- [ ] 4.1 Add a Room 62→62 no-op migration test seeded with unsynced bills, bill items, and payments, asserting every row survives
+- [x] 4. Build the regression gate before any feature work
+- [x] 4.1 Add a Room 62→62 no-op migration test seeded with unsynced bills, bill items, and payments, asserting every row survives
   - _Requirements: 3.6, 3.11_
-- [ ] 4.2 Add a legacy sync replay test that plays a captured Base_Branch request set and asserts response schema conformance
+- [x] 4.2 Add a legacy sync replay test that plays a captured Base_Branch request set and asserts response schema conformance
   - _Requirements: 14.1, 14.8_
-- [ ] 4.3 Add a test asserting `RequireRoleAspect` is active in the Spring application context
+- [x] 4.3 Add a test asserting `RequireRoleAspect` is active in the Spring application context
   - _Requirements: 5.7_
-- [ ] 4.4 Add a test asserting the Room migration lists in `DatabaseProvider.buildDatabaseWithName` and `DatabaseModule.buildDatabase` are identical
+- [x] 4.4 Add a test asserting the Room migration lists in `DatabaseProvider.buildDatabaseWithName` and `DatabaseModule.buildDatabase` are identical
   - _Requirements: 3.3_
-- [ ] 4.5 Add or confirm at least one passing test for each preservation requirement 4 through 12, and record the result set as the Phase 1 baseline
+- [x] 4.5 Add or confirm at least one passing test for each preservation requirement 4 through 12, and record the result set as the Phase 1 baseline
   - _Requirements: 29.1, 29.2_
-- [ ] 4.6 Add CI greps failing the build on `DbCheck`, `QuickDbCheck`, `dev-debug`, `dev-refresh`, or any `Storefront`-named source file
+- [x] 4.6 Add CI greps failing the build on `DbCheck`, `QuickDbCheck`, `dev-debug`, `dev-refresh`, or any `Storefront`-named source file
   - _Requirements: 16.2, 16.3, 26.3_
-- [ ] 4.7 Add a CI check failing on a newly tracked credential-filename pattern
+- [x] 4.7 Add a CI check failing on a newly tracked credential-filename pattern
   - _Requirements: 27.4_
 
 ### Phase 2 — Integration foundation (V48)
