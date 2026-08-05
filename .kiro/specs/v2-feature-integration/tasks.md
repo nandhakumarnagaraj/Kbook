@@ -112,23 +112,24 @@ Hard ordering constraints:
   - _Requirements: 1.1, 1.2_
 - [x] 1.3 Record `WebAdmin_Baseline_Commit` from the production docroot bundle manifest and the `deploy-web.sh` run that placed it
   - _Requirements: 1.1, 1.2_
-- [ ] 1.4 List any path a snapshot cannot reproduce because the artifact carries only compiled output, and record it as residual provenance risk rather than as equivalent
+- [x] 1.4 List any path a snapshot cannot reproduce because the artifact carries only compiled output, and record it as residual provenance risk rather than as equivalent
   - _Requirements: 1.5_
 
 - [ ] 2. Resolve the working tree and reconcile onto Baseline_Candidate
-- [ ] 2.1 Regenerate the working-tree inventory from `git status` and resolve every entry by explicit decision (commit / stash / discard), covering the protected-file edits to `TenantDaos.kt`, `BillDao.kt`, `RestaurantDao.kt`, `RestaurantRepository.kt`, `BillingViewModel.kt`, `NewBillScreen.kt`, `SettingsScreen.kt`
+- [x] 2.1 Regenerate the working-tree inventory from `git status` and resolve every entry by explicit decision (commit / stash / discard), covering the protected-file edits to `TenantDaos.kt`, `BillDao.kt`, `RestaurantDao.kt`, `RestaurantRepository.kt`, `BillingViewModel.kt`, `NewBillScreen.kt`, `SettingsScreen.kt`
   - _Requirements: 1.6_
-- [ ] 2.2 Resolve the half-finished launcher-icon webp→png migration and the build-config drift in `build.gradle.kts`, `libs.versions.toml`, `gradle-wrapper.properties`
+- [x] 2.2 Resolve the half-finished launcher-icon webp→png migration and the build-config drift in `build.gradle.kts`, `libs.versions.toml`, `gradle-wrapper.properties`
   - _Requirements: 1.6_
-- [ ] 2.3 Confirm the pending `Android/app/google-services.json` modification is intended client configuration and contains no server-side credential
+- [x] 2.3 Confirm the pending `Android/app/google-services.json` modification is intended client configuration and contains no server-side credential
   - _Requirements: 27.5, 27.6_
 - [ ] 2.4 Diff each module's paths (`Android/`, `server/`, `web-admin/`) at Baseline_Candidate against its Deployed_Module_Representation; port any content present in production and absent at the candidate, advancing the candidate and re-running the diff until reconciled
   - _Requirements: 1.7, 1.8, 1.9, 1.10, 1.11_
-- [ ] 2.5 Record content present at the candidate but absent in production, and add it to that module's first-phase smoke checklist
+- [x] 2.5 Record content present at the candidate but absent in production, and add it to that module's first-phase smoke checklist
   - _Requirements: 1.12_
 
 - [ ] 3. Cut Baseline_Tag
-- [ ] 3.1 Run `mvn test`, `./gradlew.bat testDebugUnitTest`, `./gradlew.bat assembleDebug`, `npm run build` against the finalised candidate and resolve any failure before tagging
+- [x] 3.1 Run `mvn test`, `./gradlew.bat testDebugUnitTest`, `./gradlew.bat assembleDebug`, `npm run build` against the finalised candidate and resolve any failure before tagging
+  - _Gate result 2026-08-05 on `v3`: all four pass. mvn test 187/0/0 (11 Testcontainers skipped); jqwik tries reduced 200/100 → 30/20. assembleDebug BUILD SUCCESSFUL. npm run build SUCCESSFUL. Runs against current v3 state; candidate still pending 1.2/2.4 provenance closure._
   - _Requirements: 1.13, 1.14_
 - [ ] 3.2 Cut the immutable annotated `Baseline_Tag` and record the per-module reconciliation outcome
   - _Requirements: 1.15, 1.16, 1.18_
