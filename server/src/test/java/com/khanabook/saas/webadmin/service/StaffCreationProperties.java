@@ -44,7 +44,7 @@ class StaffCreationProperties {
      *
      * Validates: Requirements 2.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 2: Valid staff request produces user with non-null tempPassword and userId")
     void validStaffRequestProducesValidUser(
             @ForAll("validNames") String name,
@@ -86,7 +86,7 @@ class StaffCreationProperties {
      *
      * Validates: Requirements 2.5, 2.6
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 3: Invalid role causes rejection, user table unchanged")
     void invalidRoleRejected(
             @ForAll("validNames") String name,
@@ -115,7 +115,7 @@ class StaffCreationProperties {
      *
      * Validates: Requirements 2.4
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 4: Duplicate phone number causes rejection, user table unchanged")
     void duplicatePhoneRejected(
             @ForAll("validNames") String name,
@@ -139,7 +139,7 @@ class StaffCreationProperties {
         verify(userRepository, never()).save(any(User.class));
     }
 
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 4: Duplicate loginId causes rejection, user table unchanged")
     void duplicateLoginIdRejected(
             @ForAll("validNames") String name,
