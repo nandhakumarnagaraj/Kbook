@@ -278,3 +278,54 @@ cd web-admin && npx tsc --noEmit                        # type-check confirms no
 # Server — confirm still blocked
 # (no command run: Server_Baseline_Commit does not exist until task 1.2 resolves)
 ```
+
+---
+
+## 5. Task 2.5 — candidate-only content
+
+Spec: `.kiro/specs/v2-feature-integration` — Phase 0, task 2.5
+Requirements: 1.12
+
+Criterion 12 asks the inverse of criterion 10: is there content present at
+Baseline_Candidate but **absent** in a module's Deployed_Module_Representation? Any such
+content needs recording, and adding to that module's first-phase smoke checklist (since
+it exists only at the candidate and its behaviour in production was never verified).
+
+### Web_Admin (`web-admin/`)
+
+Re-checked:
+
+```
+git diff ad0d2623050c6cef61ffcbd87042f8a60bb7d6b2 -- web-admin/
+```
+
+This is **not empty** — it still shows the one-line `STORAGE_KEY` change. That is expected
+and is not new candidate-only content: as §2.3 above already established, diffing against
+the *raw* `ad0d2623` commit will always show that line, because the true
+Deployed_Module_Representation is `ad0d2623` **plus** the one-line patch, not the bare
+commit. §2.3's worktree check (candidate vs. `ad0d2623` with the patch applied — the
+actual Deployed_Module_Representation) already found **no difference**. That is the
+correct criterion-12 comparison, and it returned nothing.
+
+**No content was found present at Baseline_Candidate and absent in production for
+`web-admin/`.**
+
+### Android / Server
+
+Same blockers as task 2.4: Android has no Deployed_Module_Representation (task 1.1
+unresolved) and Server has no Deployed_Module_Representation (task 1.2 unresolved).
+Criterion 12 cannot be evaluated for either module — there is no representation to
+compare the candidate against. This is recorded as **blocked**, not skipped, consistent
+with §1 and §3 above.
+
+### Summary
+
+| Module | Candidate-only content found | Added to smoke checklist |
+|---|---|---|
+| Android (`Android/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.1 unresolved) | **Blocked** — pending task 1.1 |
+| Web_Admin (`web-admin/`) | None | No smoke checklist entry needed |
+| Server (`server/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.2 unresolved) | **Blocked** — pending task 1.2 |
+
+Task 2.5 is therefore complete for the one module where it could run (Web_Admin, with a
+plain "nothing found" result) and blocked for the other two, for the same upstream reasons
+as task 2.4.
