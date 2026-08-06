@@ -71,7 +71,7 @@ Each environment keeps its own DB + server (owner rule).
 - [ ] v2 stack (`v2`): still running during harvest; after §3 freeze, stand down server container,
       retain its DB as read-only archive (or snapshot before shutdown)
 - [ ] v3 stack: fresh Postgres + server deploy; DB migrated only through the shipped Flyway chain
-      (V1–V52 by design), additive-only, orphan V6/V7/V8 tables left in place as documented in V48
+      (V1–V54 by design; V49–V52 landed with the FSSAI/notifications port, V53 marketplace, V54 onboarding), additive-only, orphan V6/V7/V8 tables left in place as documented in V48
 - [ ] Confirm no cross-stack sharing of DB credentials/config; `.env` per stack
 - [ ] Health verified on all live stacks post-deploy
 

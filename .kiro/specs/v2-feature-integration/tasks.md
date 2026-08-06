@@ -23,9 +23,9 @@ Phase 4  (11 → 12)                         V49, Room 63, notifications
    ▼
 Phase 5  (13)                              V50, FSSAI  [Pay Now blocked until Phase 8]
    ▼
-Phase 6  (14)                              V51, marketplace
+Phase 6  (14)                              V53, marketplace
    ▼
-Phase 7  (15 → 16 → 17)                    V52, onboarding + KYC
+Phase 7  (15 → 16 → 17)                    V54, onboarding + KYC
    ▼
 Phase 8  (18 → 19, 20)                     Easebuzz payments, no migration
    ▼
@@ -299,10 +299,10 @@ Hard ordering constraints:
 - [ ] 13.7 Add the `business/compliance` web-admin page showing FSSAI and GST expiry status
   - _Requirements: 18.9_
 
-### Phase 6 — Marketplace orders (V51)
+### Phase 6 — Marketplace orders (V53)
 
 - [ ] 14. Marketplace ingestion and actions
-- [ ] 14.1 Author `V51` creating `marketplace_order` and `marketplace_order_item` with a unique external-order-id per provider and restaurant, subsuming v2 V25/V27
+- [ ] 14.1 Author `V53` creating `marketplace_order` and `marketplace_order_item` with a unique external-order-id per provider and restaurant, subsuming v2 V25/V27
   - _Requirements: 2.3, 2.5, 2.6, 19.3, 19.4_
 - [ ] 14.2 Add Swiggy and Zomato `WebhookDescriptor` implementations with signature verification and the marketplace aggregate format
   - _Requirements: 19.5, 33.2, 33.12_
@@ -321,10 +321,10 @@ Hard ordering constraints:
 - [ ] 14.9 Add the `business/marketplace-orders` web-admin page
   - _Requirements: 15.7_
 
-### Phase 7 — Easebuzz onboarding and KYC (V52)
+### Phase 7 — Easebuzz onboarding and KYC (V54)
 
 - [ ] 15. Sub-merchant onboarding
-- [ ] 15.1 Author `V52` creating `easebuzz_sub_merchant`, `easebuzz_post_split` with `UNIQUE (gateway_txn_id)`, and `easebuzz_payout` with `UNIQUE (payout_reference)`, subsuming v2 V22/V23/V24/V26/V34/V35 as one corrected migration and recording the mapping
+- [ ] 15.1 Author `V54` creating `easebuzz_sub_merchant`, `easebuzz_post_split` with `UNIQUE (gateway_txn_id)`, and `easebuzz_payout` with `UNIQUE (payout_reference)`, subsuming v2 V22/V23/V24/V26/V34/V35 as one corrected migration and recording the mapping
   - _Requirements: 2.3, 2.5, 2.6, 20.9_
 - [ ] 15.2 Add an entity for the existing orphan `restaurant_payment_config` rather than creating a new credential table
   - _Requirements: 2.8, 20.15_
@@ -476,7 +476,7 @@ Three requirements have no component and would vanish without explicit task cove
 |---|---|---|
 | 21 — WIRE platform | `DEFERRED` to a follow-up spec | 23.1 |
 | 23 — refresh token rotation | `DEFERRED`; 30-day JWT retained | 23.2 |
-| 25.1, 25.3, 25.4 — 17 fintech admin pages | `DEFERRED`; migrations excluded from V48–V52 | 23.3 |
+| 25.1, 25.3, 25.4 — 17 fintech admin pages | `DEFERRED`; migrations excluded from V48–V54 | 23.3 |
 | 26.1, 26.2 — storefront customer orders | `DROP`; table retained under Requirement 2.8 | 4.6 |
 
 ### Preservation requirements 4 through 12
@@ -497,8 +497,8 @@ These generate no feature tasks because their design disposition is "no change".
 | 2 | V48 | none | unchanged |
 | 3 | none | none | unchanged |
 | 4 | V49 | 62→63 | bump above 20 |
-| 5 | V50 | none | unchanged |
-| 6 | V51 | none | unchanged |
-| 7 | V52 | none | unchanged |
+| 5 | V50, V51, V52 | none | unchanged |
+| 6 | V53 | none | unchanged |
+| 7 | V54 | none | unchanged |
 | 8 | none | none | bump |
 | 9, 10, 11 | none | none | as needed |

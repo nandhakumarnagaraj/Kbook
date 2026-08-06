@@ -38,7 +38,7 @@ Three consequences:
 2. The `'easebuzz'` payment mode is **already legal in production**. V16 documents the intended semantics: `payment_mode='easebuzz'` together with `verified_by='easebuzz'`. No migration is needed to permit the mode.
 3. Android already carries dormant gateway plumbing: `BillPaymentEntity` has the three gateway fields (Room 39→40), `PaymentSetValidator.equivalent` already compares all three, and `BillingViewModel` has `_gatewayTxnId`/`_gatewayStatus`/`setGatewayResult()`/`clearGatewayResult()`. `buildPaymentEntities` hardcodes `verifiedBy = "manual"` and never reads them.
 
-**D1 — reuse the existing gateway columns and the already-legal `'easebuzz'` mode instead of adding payment schema.** This removes the payment-schema tranche entirely. New Easebuzz *sub-merchant* and *settlement* schema is still required (V52); new *payment* schema is not.
+**D1 — reuse the existing gateway columns and the already-legal `'easebuzz'` mode instead of adding payment schema.** This removes the payment-schema tranche entirely. New Easebuzz *sub-merchant* and *settlement* schema is still required (V54); new *payment* schema is not.
 
 **D2 — do not adopt `easebuzz_webhook_events` or `payment_webhook_logs` as `Webhook_Inbox`.** `easebuzz_webhook_events` is keyed `UNIQUE(restaurant_id, txn_id)`, not the `(provider_identity, provider_event_id)` pair Requirement 33.8 mandates, and retrofitting would require dropping a unique constraint — forbidden by Requirement 2.8. A purpose-built `webhook_inbox` is created at V48; both orphans are left untouched.
 
@@ -48,7 +48,7 @@ Three consequences:
 Android (Kotlin/Compose, Room 62→63, SQLCipher, per-tenant DB)
    │  HTTPS + JWT + X-Terminal-Token
    ▼
-Apache ──/api/v1/──▶ 127.0.0.1:8081  Spring Boot 3.5.x ──▶ PostgreSQL (Flyway V1→V52)
+Apache ──/api/v1/──▶ 127.0.0.1:8081  Spring Boot 3.5.x ──▶ PostgreSQL (Flyway V1→V54)
    └──/──▶ static docroot (Angular 18)
 ```
 
@@ -482,7 +482,7 @@ An `UNRESOLVED` row has no `restaurant_id`, so Tier 2 cannot resolve a flag for 
 
 D1 removes the payment-schema work, but the Android payment surface still needs deliberate expansion across five areas.
 
-#### 3.1 Server schema (V52, Phase 7)
+#### 3.1 Server schema (V54, Phase 7)
 
 `easebuzz_sub_merchant`, `easebuzz_payout`, and `easebuzz_post_split` are genuinely new, authored fresh against V45 state per Requirement 2.3/2.5. v2 needed six migrations here (its V22, V23, V24, V26 corrective FK fix, V34, V35); this collapses them into one correct migration, which Requirement 2.5 mandates and 2.6 requires recorded.
 
@@ -726,15 +726,17 @@ New pages, all following the established hand-rolled pattern (`signal()` state, 
 
 ### Flyway allocation
 
-| Version | Phase | Contents | Subsumes v2 |
-|---|---|---|---|
-| V48 | 2 | `feature_flag`, `feature_flag_override`, `feature_flag_audit`, `webhook_inbox` | none (new) |
-| V49 | 4 | `device_token`, `notification_event`, `notification_template` | v2 V36, V39 |
-| V50 | 5 | `fssai_tracker`, `fssai_renewal`, nullable compliance expiry columns | v2 V28, V37, V38 |
-| V51 | 6 | `marketplace_order`, `marketplace_order_item` | v2 V25, V27 |
-| V52 | 7 | `easebuzz_sub_merchant`, `easebuzz_post_split`, `easebuzz_payout` | v2 V22, V23, V24, V26, V34, V35 |
-| — | 8 | none — D1 | v2 payment migrations dropped entirely |
-| — | 9 | none | — |
+| Version | Phase | Contents | Subsumes v2 | Status |
+|---|---|---|---|---|
+| V48 | 2 | `feature_flag`, `feature_flag_override`, `feature_flag_audit`, `webhook_inbox` | none (new) | ✅ shipped |
+| V49 | 4 | `device_token`, `notification_event`, `notification_template` | v2 V36, V39 | ✅ shipped |
+| V50 | 5 | `fssai_tracker` | v2 V37 | ✅ shipped |
+| V51 | 5 | `fssai_renewal` (paid renewal flow deferred) | v2 V38 | ✅ shipped |
+| V52 | 5 | nullable compliance/notification columns on `restaurantprofiles` (`fssai_expiry_date`, `custom_welcome_message`, `custom_fssai_message`; v2's `gst_expiry_date` **not ported**) | v2 V28 (partial), V39 | ✅ shipped |
+| V53 | 6 | `marketplace_order`, `marketplace_order_item` | v2 V25, V27 | ⬜ pending |
+| V54 | 7 | `easebuzz_sub_merchant`, `easebuzz_post_split`, `easebuzz_payout` | v2 V22, V23, V24, V26, V34, V35 | ⬜ pending |
+| — | 8 | none — D1 | v2 payment migrations dropped entirely | — |
+| — | 9 | none | — | — |
 
 Excluded per Requirement 25.3/25.4: chargebacks (v2 V30), customer profiles (V31, V33), webhook retry jobs (V32 — superseded by `webhook_inbox`), refresh tokens (V29 — Requirement 23 defers).
 
@@ -814,7 +816,7 @@ Every requirement gets an explicit row, including deferrals and exclusions, so n
 | Req | Title | Design location | Disposition |
 |---|---|---|---|
 | 1 | One-Way Integration Direction | Phase 0 / Baseline Precondition; no `Source_Branch` merge parent anywhere in the plan | **Process constraint** — enforced by branch protocol and a CI check that `git log --merges` names no v2 commit |
-| 2 | Forward-Only Additive Schema | Data Models → Flyway allocation | V48–V52, additive only |
+| 2 | Forward-Only Additive Schema | Data Models → Flyway allocation | V48–V54, additive only |
 | 3 | Room Migration Chain | Data Models → Room allocation; D16 | 62→63 only |
 | 4 | Multi-Terminal Preservation | Testing Strategy → Phase 1 | No design change; existing tests are the gate |
 | 5 | Role/Authorization Preservation | §1 Flag_Admin_Surface (`@RequireRole`); Phase 1 aspect-active test | `aop` retained, `SHOP_ADMIN` retained |
@@ -833,11 +835,11 @@ Every requirement gets an explicit row, including deferrals and exclusions, so n
 | 18 | FSSAI/GST Compliance | §6 | In scope, Phase 5 |
 | 19 | Marketplace Orders | §4; D12, D13 | In scope, Phase 6 |
 | 20 | Easebuzz Gateway | §3; D1, D10, D11, D17 | Onboarding Phase 7, payments Phase 8 |
-| 21 | WIRE Platform | *No design section by intent* | **DEFERRED** — excluded from V52; follow-up spec |
+| 21 | WIRE Platform | *No design section by intent* | **DEFERRED** — excluded from V54; follow-up spec |
 | 22 | Operational Infrastructure | §10; D15 | Phase 3, non-flagged |
 | 23 | Refresh Token Rotation | *No design section by intent* | **DEFERRED** — 30-day JWT retained; follow-up spec |
 | 24 | KYC Document Upload | §7 | In scope, Phase 7 |
-| 25 | Fintech Admin Tranche | §11 — only `admin/sub-merchants` and `business/settings` | 17 pages **DEFERRED**; their migrations excluded from V48–V52 |
+| 25 | Fintech Admin Tranche | §11 — only `admin/sub-merchants` and `business/settings` | 17 pages **DEFERRED**; their migrations excluded from V48–V54 |
 | 26 | Storefront Exclusion | Open Risk 4 — table retained, feature excluded | **DROP** + CI grep on `Storefront` |
 | 27 | Secrets and Configuration | §1 `FeatureConfigGuard`; property keys throughout; Open Risk 6 | 27.5 scopes out `google-services.json` |
 | 28 | Phased Delivery and Rollback | Flyway/Room allocation tables; §1 emergency-kill row | Rollback step 1 = `kill_switched = true`, one `UPDATE`, no schema change |
