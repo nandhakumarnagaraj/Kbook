@@ -53,19 +53,26 @@ public class GstFssaiLookupService {
             return result;
         }
         try {
-            String url = "https://api.fssai.gov.in/firm/" + fssaiNo;
+            String url = "https://pcts.tech/api/details/lic-info.php?lic_num=" + fssaiNo;
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            if (response != null) {
+            if (response != null && response.containsKey("license")) {
+                Map<String, Object> license = (Map<String, Object>) response.get("license");
+                @SuppressWarnings("unchecked")
+                Map<String, Object> details = 
+                    (Map<String, Object>) response.getOrDefault("details", new HashMap<String, Object>());
                 result.put("valid", true);
-                result.put("businessName", response.getOrDefault("businessName", ""));
-                result.put("address", response.getOrDefault("businessAddress", ""));
-                result.put("fssaiStatus", response.getOrDefault("status", ""));
-                result.put("expiryDate", response.getOrDefault("expiryDate", 
-                                         response.getOrDefault("validUpto", 
-                                         response.getOrDefault("validTo", ""))));
+                result.put("businessName", String.valueOf(details.getOrDefault("companyName", "")).trim());
+                result.put("address", String.valueOf(details.getOrDefault("addressPremises", "")).trim());
+                result.put("state", String.valueOf(details.getOrDefault("statePremises", "")).trim());
+                result.put("pincode", String.valueOf(details.getOrDefault("pincodePremises", "")).trim());
+                result.put("fssaiStatus", String.valueOf(details.getOrDefault("licenseCategoryName", "")).trim());
+                result.put("expiryDate", String.valueOf(license.getOrDefault("expiryDate", "")).trim());
             } else {
+                String error = (response != null && response.get("error") != null)
+                        ? String.valueOf(response.get("error"))
+                        : "No data found";
                 result.put("valid", false);
-                result.put("error", "No data found");
+                result.put("error", error);
             }
         } catch (Exception e) {
             log.warn("FSSAI lookup failed for {}: {}", fssaiNo, e.getMessage());

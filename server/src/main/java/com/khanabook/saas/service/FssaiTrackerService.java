@@ -1,45 +1,43 @@
 package com.khanabook.saas.service;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.khanabook.saas.entity.FssaiTracker;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.FssaiTrackerRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class FssaiTrackerService {
 
     private static final Logger log = LoggerFactory.getLogger(FssaiTrackerService.class);
-    private static final String TRACKER_URL = "https://iadv.in/tracker/dist/response.php?application_id=";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private final RestaurantProfileRepository restaurantProfileRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
     private final PushNotificationService pushNotificationService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final GstFssaiLookupService fssaiLookupService;
 
     @Autowired
     public FssaiTrackerService(RestaurantProfileRepository restaurantProfileRepo,
                                FssaiTrackerRepository fssaiTrackerRepo,
-                               PushNotificationService pushNotificationService) {
+                               PushNotificationService pushNotificationService,
+                               GstFssaiLookupService fssaiLookupService) {
         this.restaurantProfileRepo = restaurantProfileRepo;
         this.fssaiTrackerRepo = fssaiTrackerRepo;
         this.pushNotificationService = pushNotificationService;
+        this.fssaiLookupService = fssaiLookupService;
     }
 
     /**
@@ -68,54 +66,40 @@ public class FssaiTrackerService {
 
                 tracker.setFssaiNumber(fssaiNo);
 
-                // 1. Fetch current status from FSSAI Tracker API
-                String url = TRACKER_URL + fssaiNo;
-                ResponseEntity<FssaiAppResponse[]> responseEntity = restTemplate.getForEntity(url, FssaiAppResponse[].class);
-                FssaiAppResponse[] apps = responseEntity.getBody();
-
+                // 1. Fetch current license info (authoritative expiry) from pcts.tech
+                Map<String, Object> licInfo = fssaiLookupService.lookupFssai(fssaiNo);
                 boolean isRenewed = false;
-                if (apps != null && apps.length > 0) {
-                    FssaiAppResponse app = apps[0];
-                    log.info("FSSAI Tracker response for restaurantId={} ({}): statusDesc={}, lastUpdatedOn={}",
-                        profile.getRestaurantId(), fssaiNo, app.getStatusDesc(), app.getLastUpdatedOn());
+                if (Boolean.TRUE.equals(licInfo.get("valid"))) {
+                    log.info("FSSAI license info for restaurantId={} ({}): expiryDate={}, status={}",
+                        profile.getRestaurantId(), fssaiNo, licInfo.get("expiryDate"), licInfo.get("fssaiStatus"));
 
-                    tracker.setStatus(app.getStatusDesc() != null ? app.getStatusDesc().toUpperCase() : "UNKNOWN");
-                    tracker.setCompanyName(app.getCompanyName());
-                    
-                    if (app.getAppSubmissionDate() != null) {
+                    tracker.setStatus(String.valueOf(licInfo.getOrDefault("fssaiStatus", "UNKNOWN")).toUpperCase());
+                    tracker.setCompanyName(String.valueOf(licInfo.getOrDefault("businessName", "")));
+                    tracker.setAddress(String.valueOf(licInfo.getOrDefault("address", "")));
+
+                    String expiryStr = String.valueOf(licInfo.getOrDefault("expiryDate", "")).trim();
+                    if (!expiryStr.isEmpty()) {
                         try {
-                            tracker.setApplicationSubmissionDate(LocalDate.parse(app.getAppSubmissionDate(), DATE_FORMATTER));
-                        } catch (Exception e) {
-                            log.warn("Failed to parse appSubmissionDate: {}", app.getAppSubmissionDate());
-                        }
-                    }
+                            LocalDate expiryDate = LocalDate.parse(expiryStr, DATE_FORMATTER);
+                            tracker.setExpiryDate(expiryDate);
 
-                    if (app.getLastUpdatedOn() != null) {
-                        try {
-                            LocalDate lastUpdateDate = LocalDate.parse(app.getLastUpdatedOn(), DATE_FORMATTER);
-                            tracker.setLastUpdatedOn(lastUpdateDate);
-
-                            // If renewal has completed and license is issued, calculate new expiry date
-                            if ("License Issued".equalsIgnoreCase(app.getStatusDesc())) {
-                                LocalDate calculatedExpiry = lastUpdateDate.plusYears(1); // Default FSSAI renewal duration: 1 year
-                                tracker.setExpiryDate(calculatedExpiry);
-
-                                // Sync the updated expiry date back to the RestaurantProfile
-                                if (profile.getFssaiExpiryDate() == null || calculatedExpiry.isAfter(profile.getFssaiExpiryDate())) {
-                                    profile.setFssaiExpiryDate(calculatedExpiry);
-                                    profile.setUpdatedAt(System.currentTimeMillis());
-                                    profile.setServerUpdatedAt(System.currentTimeMillis());
-                                    restaurantProfileRepo.save(profile);
-                                    isRenewed = true;
-                                    log.info("Auto-updated profile FSSAI expiry date to {} for restaurantId={}", calculatedExpiry, profile.getRestaurantId());
-                                }
+                            // Sync the authoritative expiry date back to the RestaurantProfile
+                            if (profile.getFssaiExpiryDate() == null || expiryDate.isAfter(profile.getFssaiExpiryDate())) {
+                                profile.setFssaiExpiryDate(expiryDate);
+                                profile.setUpdatedAt(System.currentTimeMillis());
+                                profile.setServerUpdatedAt(System.currentTimeMillis());
+                                restaurantProfileRepo.save(profile);
+                                isRenewed = true;
+                                log.info("Auto-updated profile FSSAI expiry date to {} for restaurantId={}", expiryDate, profile.getRestaurantId());
                             }
                         } catch (Exception e) {
-                            log.warn("Failed to parse lastUpdatedOn: {}", app.getLastUpdatedOn());
+                            log.warn("Failed to parse expiryDate {} for restaurantId={}: {}", expiryStr, profile.getRestaurantId(), e.getMessage());
                         }
                     }
                 } else {
-                    // Fall back to profile's expiry date if not found in tracker API
+                    // Fall back to profile's expiry date if license lookup failed
+                    log.warn("FSSAI license lookup failed for restaurantId={} ({}): {}",
+                        profile.getRestaurantId(), fssaiNo, licInfo.get("error"));
                     if (profile.getFssaiExpiryDate() != null && tracker.getExpiryDate() == null) {
                         tracker.setExpiryDate(profile.getFssaiExpiryDate());
                     }
@@ -179,15 +163,5 @@ public class FssaiTrackerService {
             severity,                 // referenceType acts as severity payload
             BigDecimal.ZERO
         );
-    }
-
-    @Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class FssaiAppResponse {
-        private String statusDesc;
-        private String appSubmissionDate;
-        private String lastUpdatedOn;
-        private String apptypeDesc;
-        private String companyName;
     }
 }
