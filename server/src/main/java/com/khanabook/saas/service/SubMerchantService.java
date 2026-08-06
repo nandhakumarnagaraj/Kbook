@@ -260,8 +260,8 @@ public class SubMerchantService {
                 subMerchantRepo.save(sm);
                 
                 try {
-                    String statusMessage = "True".equalsIgnoreCase(kycStatus) ? "Approved & Activated! ≡ƒÜÇ" :
-                                           "False".equalsIgnoreCase(kycStatus) ? "Rejected/Needs attention ΓÜá∩╕Å" : "Pending Verification ΓÅ│";
+                    String statusMessage = "True".equalsIgnoreCase(kycStatus) ? "Approved & Activated! 🚀" :
+                                           "False".equalsIgnoreCase(kycStatus) ? "Rejected/Needs attention ⚠️" : "Pending Verification ⏳";
                     pushNotificationService.pushToRestaurant(
                         sm.getRestaurantId(),
                         "KYC Status Update",
@@ -536,7 +536,7 @@ public class SubMerchantService {
     }
 
     /**
-     * Public delete ΓÇö only allows removing DRAFT or FAILED records.
+     * Public delete — only allows removing DRAFT or FAILED records.
      * PENDING_KYC / ACTIVE sub-merchants are live on Easebuzz and cannot be deleted locally.
      */
     @Transactional

@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant POS as KhanaBook POS
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+    participant SET as Easebuzz Settlement
+
+    POS->>KB: Create payment request for restaurant order
+    KB->>KB: Validate tenant and payment eligibility
+    KB->>EB: Initiate payment with restaurant sub-merchant context
+    EB-->>KB: Return payment access token or payment URL
+    KB-->>POS: Return payment parameters
+    Customer->>EB: Complete payment
+    EB-->>KB: Send payment status webhook
+    KB->>KB: Verify webhook hash and update payment status
+    KB->>EB: Submit post-transaction split configuration
+    EB-->>KB: Confirm split status
+    SET-->>Customer: Customer receives payment or refund updates as applicable
+    SET-->>KB: Settlement and payout status available for reconciliation
+

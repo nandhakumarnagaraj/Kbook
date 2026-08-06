@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    actor User as Restaurant Staff or Operations User
+    participant UI as KhanaBook Interface
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+
+    User->>UI: Request refund for paid order
+    UI->>KB: Submit refund amount and reason
+    KB->>KB: Validate payment, tenant, and refundable amount
+    KB->>EB: Initiate refund
+    EB-->>KB: Return refund identifier and status
+    KB-->>UI: Show refund initiated
+    EB-->>KB: Send refund status webhook
+    KB->>KB: Verify webhook and update refund status
+

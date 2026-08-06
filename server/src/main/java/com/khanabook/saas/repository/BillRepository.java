@@ -132,9 +132,11 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     java.util.List<Object[]> findCommissionSummary();
 
     @org.springframework.data.jpa.repository.Query(value = """
-            SELECT b.restaurant_id, COUNT(b.id) AS order_count,
-                   COALESCE(SUM(b.settled_amount), 0) AS total_settled
-            FROM bills b WHERE b.is_deleted = false
+            SELECT b.restaurant_id, COALESCE(SUM(b.settled_amount), 0) AS total_settled,
+                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
+                   COUNT(b.id) AS order_count, MAX(b.settled_at) AS last_settled_at
+            FROM bills b
+            WHERE b.settled_amount IS NOT NULL
             GROUP BY b.restaurant_id ORDER BY b.restaurant_id
             """, nativeQuery = true)
     java.util.List<Object[]> findSettlementSummary();
@@ -156,4 +158,23 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt BETWEEN :from AND :to AND LOWER(b.paymentStatus) IN ('success','paid') GROUP BY b.paymentMode")
     java.util.List<Object[]> countSuccessfulByModeBetween(@org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
+    // ─── v2 port: settlement / metrics finders not present in the v1 repository ───
+    java.util.List<Bill> findBySettledAmountIsNotNull();
+
+    java.util.List<Bill> findByRestaurantIdAndSettledAmountIsNotNull(Long restaurantId);
+
+    Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.paymentMode")
+    java.util.List<Object[]> countByPaymentMode();
+
+    // Bills updated since lastSync, excluding own-device bills UNLESS they are deleted.
+    @org.springframework.data.jpa.repository.Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId "
+            + "AND b.serverUpdatedAt > :lastSyncTimestamp "
+            + "AND (b.deviceId != :deviceId OR b.isDeleted = true)")
+    java.util.List<Bill> findUpdatedExcludingOwnActiveOnly(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastSyncTimestamp") Long lastSyncTimestamp,
+            @Param("deviceId") String deviceId);
 }

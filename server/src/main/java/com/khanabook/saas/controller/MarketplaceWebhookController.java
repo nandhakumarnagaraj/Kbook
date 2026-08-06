@@ -87,6 +87,18 @@ public class MarketplaceWebhookController {
      */
     private boolean verifySignature(String body, String signature, String platform) {
         if (signature == null || signature.isBlank()) {
+            // Onboarding mode: if NO restaurant has a webhook secret configured for this
+            // platform, skip verification so the first test webhooks are accepted. Once a
+            // secret is saved, all subsequent requests MUST carry a valid signature.
+            List<com.khanabook.saas.entity.RestaurantProfile> profiles = profileRepo.findAllByIsDeletedFalseOrderByUpdatedAtDesc();
+            boolean anySecretConfigured = profiles.stream().anyMatch(p -> {
+                String s = "SWIGGY".equals(platform) ? p.getSwiggyWebhookSecret() : p.getZomatoWebhookSecret();
+                return s != null && !s.isBlank();
+            });
+            if (!anySecretConfigured) {
+                log.info("Webhook signature absent but no {} secret configured for any restaurant — onboarding mode, accepting", platform);
+                return true;
+            }
             return false;
         }
         String hexSig;

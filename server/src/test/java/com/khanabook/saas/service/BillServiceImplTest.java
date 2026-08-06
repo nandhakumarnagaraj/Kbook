@@ -39,11 +39,11 @@ import static org.mockito.Mockito.*;
 class BillServiceImplTest {
 
     @Mock private BillRepository billRepository;
+    @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private RestaurantProfileRepository profileRepository;
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private CategoryRepository categoryRepository;
-    @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
 
@@ -61,10 +61,10 @@ class BillServiceImplTest {
     void setUp() {
         genericSyncService = new GenericSyncService(
             billRepository,
+            billPaymentRepository,
             menuItemRepository,
             itemVariantRepository,
             categoryRepository,
-            billPaymentRepository,
             terminalRepository,
             securityAuditService
         );

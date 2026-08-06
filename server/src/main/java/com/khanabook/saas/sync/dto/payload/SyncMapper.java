@@ -61,6 +61,11 @@ public class SyncMapper {
                 if (entity.getFssaiExpiryDate() != null) {
                     dto.setFssaiExpiryDate(entity.getFssaiExpiryDate().toString());
                 }
+                // gstExpiryDate is LocalDate on the entity and String on the DTO, so
+                // BeanUtils cannot copy it - convert explicitly (mirrors fssaiExpiryDate).
+                if (entity.getGstExpiryDate() != null) {
+                    dto.setGstExpiryDate(entity.getGstExpiryDate().toString());
+                }
                 if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
                     dto.setOrderPaymentFlowMode("pay_before_food");
                 }
@@ -169,6 +174,50 @@ public class SyncMapper {
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setShopName(dto.getShopName());
+                entity.setShopAddress(dto.getShopAddress());
+                entity.setWhatsappNumber(dto.getWhatsappNumber());
+                entity.setEmail(dto.getEmail());
+                entity.setFssaiNumber(dto.getFssaiNumber());
+                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isEmpty()) {
+                    entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
+                } else {
+                    entity.setFssaiExpiryDate(null);
+                }
+                if (dto.getGstExpiryDate() != null && !dto.getGstExpiryDate().isEmpty()) {
+                    entity.setGstExpiryDate(java.time.LocalDate.parse(dto.getGstExpiryDate()));
+                } else {
+                    entity.setGstExpiryDate(null);
+                }
+                entity.setLogoPath(dto.getLogoPath());
+                entity.setLogoUrl(dto.getLogoUrl());
+                entity.setLogoVersion(dto.getLogoVersion());
+                entity.setCountry(dto.getCountry());
+                entity.setCustomWelcomeMessage(dto.getCustomWelcomeMessage());
+                entity.setCustomFssaiMessage(dto.getCustomFssaiMessage());
+                entity.setCurrency(dto.getCurrency());
+                entity.setTimezone(dto.getTimezone());
+                entity.setGstEnabled(dto.getGstEnabled());
+                entity.setGstin(dto.getGstin());
+                entity.setIsTaxInclusive(dto.getIsTaxInclusive());
+                entity.setGstPercentage(dto.getGstPercentage());
+                entity.setCustomTaxName(dto.getCustomTaxName());
+                entity.setCustomTaxNumber(dto.getCustomTaxNumber());
+                entity.setCustomTaxPercentage(dto.getCustomTaxPercentage());
+                entity.setUpiEnabled(dto.getUpiEnabled());
+                entity.setUpiQrPath(dto.getUpiQrPath());
+                entity.setUpiQrUrl(dto.getUpiQrUrl());
+                entity.setUpiQrVersion(dto.getUpiQrVersion());
+                entity.setUpiHandle(dto.getUpiHandle());
+                entity.setUpiMobile(dto.getUpiMobile());
+                entity.setCashEnabled(dto.getCashEnabled());
+                entity.setPosEnabled(dto.getPosEnabled());
+                entity.setPrinterEnabled(dto.getPrinterEnabled());
+                entity.setPrinterName(dto.getPrinterName());
+                entity.setPrinterMac(dto.getPrinterMac());
+                entity.setPaperSize(dto.getPaperSize());
+                entity.setAutoPrintOnSuccess(dto.getAutoPrintOnSuccess());
+                entity.setIncludeLogoInPrint(dto.getIncludeLogoInPrint());
                 entity.setDailyOrderCounter(dto.getDailyOrderCounter());
                 entity.setLifetimeOrderCounter(dto.getLifetimeOrderCounter());
                 entity.setLastResetDate(dto.getLastResetDate());
