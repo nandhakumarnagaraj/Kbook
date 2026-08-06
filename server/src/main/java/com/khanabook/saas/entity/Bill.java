@@ -116,6 +116,25 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "public_token", nullable = false, columnDefinition = "UUID DEFAULT gen_random_uuid()")
 	private java.util.UUID publicToken;
 
+	// --- Easebuzz gateway fields (v2 port) ---
+	@Column(name = "gateway_txn_id")
+	private String gatewayTxnId;
+
+	@Column(name = "gateway_status")
+	private String gatewayStatus;
+
+	@Column(name = "refund_id")
+	private String refundId;
+
+	@Column(name = "settled_amount", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal settledAmount;
+
+	@Column(name = "settled_at")
+	private Long settledAt;
+
+	@Column(name = "commission_amount", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal commissionAmount;
+
 	@PrePersist
 	void ensurePublicToken() {
 		if (publicToken == null) {

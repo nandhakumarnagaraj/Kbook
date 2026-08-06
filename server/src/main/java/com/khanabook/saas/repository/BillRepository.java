@@ -117,4 +117,43 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("deviceId") String deviceId,
             @Param("localId") Long localId,
             @Param("terminalSeries") String terminalSeries);
+
+    // --- Easebuzz / metrics queries (v2 port) ---
+    Optional<Bill> findByGatewayTxnId(String gatewayTxnId);
+
+    @org.springframework.data.jpa.repository.Query(value = """
+            SELECT b.restaurant_id, COUNT(b.id) AS order_count,
+                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
+                   COALESCE(SUM(b.total_amount), 0) AS total_revenue
+            FROM bills b
+            WHERE b.commission_amount IS NOT NULL AND b.is_deleted = false
+            GROUP BY b.restaurant_id ORDER BY b.restaurant_id
+            """, nativeQuery = true)
+    java.util.List<Object[]> findCommissionSummary();
+
+    @org.springframework.data.jpa.repository.Query(value = """
+            SELECT b.restaurant_id, COUNT(b.id) AS order_count,
+                   COALESCE(SUM(b.settled_amount), 0) AS total_settled
+            FROM bills b WHERE b.is_deleted = false
+            GROUP BY b.restaurant_id ORDER BY b.restaurant_id
+            """, nativeQuery = true)
+    java.util.List<Object[]> findSettlementSummary();
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.paymentMode = :mode AND LOWER(b.paymentStatus) IN ('success','paid')")
+    long countSuccessfulByMode(@org.springframework.data.repository.query.Param("mode") String mode);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.paymentMode = :mode")
+    long countByMode(@org.springframework.data.repository.query.Param("mode") String mode);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.isDeleted = false AND b.createdAt >= :since AND LOWER(b.paymentStatus) IN ('success','paid')")
+    java.math.BigDecimal sumRevenueSince(@org.springframework.data.repository.query.Param("since") long since);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt >= :since")
+    long countSince(@org.springframework.data.repository.query.Param("since") long since);
+
+    @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, b.paymentStatus, COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt BETWEEN :from AND :to GROUP BY b.paymentMode, b.paymentStatus")
+    java.util.List<Object[]> countByModeAndStatusBetween(@org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
+    @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt BETWEEN :from AND :to AND LOWER(b.paymentStatus) IN ('success','paid') GROUP BY b.paymentMode")
+    java.util.List<Object[]> countSuccessfulByModeBetween(@org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
 }

@@ -109,6 +109,24 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <!-- Spring Cache (Caffeine provider) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Email notifications (v2 port) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- Thymeleaf template engine for invoice + email templates -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
         <!-- Google API (FIXED commons-logging issue) -->
         <dependency>
             <groupId>com.google.api-client</groupId>

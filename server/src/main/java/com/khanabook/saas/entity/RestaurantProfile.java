@@ -207,6 +207,13 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "last_reset_date_proper")
 	private java.time.LocalDate lastResetDateProper;
 
+
+	// --- Easebuzz + compliance fields (v2 port) ---
+	@Column(name = "easebuzz_enabled")
+	private Boolean easebuzzEnabled;
+
+	@Column(name = "gst_expiry_date")
+	private java.time.LocalDate gstExpiryDate;
 	@jakarta.persistence.PrePersist
 	@jakarta.persistence.PreUpdate
 	public void syncDates() {
