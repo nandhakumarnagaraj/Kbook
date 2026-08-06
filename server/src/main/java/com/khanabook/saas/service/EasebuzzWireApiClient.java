@@ -48,7 +48,7 @@ public class EasebuzzWireApiClient {
     }
 
     // ============================================================
-    // Auth helpers ΓÇö WIRE uses Authorization header + WIRE-API-KEY
+    // Auth helpers — WIRE uses Authorization header + WIRE-API-KEY
     // ============================================================
 
     private HttpHeaders buildWireHeaders() {
@@ -63,7 +63,7 @@ public class EasebuzzWireApiClient {
 
     /**
      * WIRE auth hash: SHA-512("{key}|{salt}")
-     * This is simpler than the payment APIs ΓÇö just key and salt with a pipe.
+     * This is simpler than the payment APIs — just key and salt with a pipe.
      */
     private String generateWireAuthHash() {
         String raw = props.getMerchantKey() + "|" + props.getSalt();

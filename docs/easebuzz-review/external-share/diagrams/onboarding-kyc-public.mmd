@@ -1,0 +1,13 @@
+flowchart TD
+    A["Restaurant partner applies for online payments"] --> B["KhanaBook validates business, contact, bank, and food-license details"]
+    B --> C["KhanaBook creates or updates Easebuzz sub-merchant"]
+    C --> D{"Sub-merchant created?"}
+    D -->|No| E["Show correction required to operations or restaurant owner"]
+    D -->|Yes| F["Generate Easebuzz KYC access link"]
+    F --> G["Restaurant owner completes KYC on Easebuzz hosted portal"]
+    G --> H["Easebuzz sends KYC status webhook"]
+    H --> I{"KYC status"}
+    I -->|Approved| J["Enable online payment routing for the restaurant"]
+    I -->|Pending| K["Keep onboarding under review"]
+    I -->|Rejected| L["Request corrected details and resubmission"]
+

@@ -1,0 +1,251 @@
+{
+  "info": {
+    "name": "KhanaBook - Easebuzz Master Collection",
+    "description": "Unified Master collection for KhanaBook v2 Easebuzz integration.\n\nCovers:\n1. Auth (Login & Dev Signup - bypass OTP)\n2. Sub-Merchant Onboarding (Create, Submit, KYC, OTP)\n3. Payments & Refunds (V2, Status, Cancel)\n4. Automated Split Management\n5. Settlements & Payouts (V2, On-Demand)\n6. Webhook Simulations (Reverse Hash verified)\n\nBase URL: http://localhost:8081/api/v2\nSandbox Credentials:\n- Key: ADNX3KYX5\n- Salt: Z4UFP4939\n\nNOTE: Large IDs (RestaurantId) are now sent as Strings to prevent JavaScript precision loss in Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081/api/v2" },
+    { "key": "token", "value": "" },
+    { "key": "admin_login", "value": "admin@kbook.com" },
+    { "key": "admin_password", "value": "admin123" },
+    { "key": "owner_login", "value": "7000000001" },
+    { "key": "owner_password", "value": "admin123" },
+    { "key": "restaurant_id", "value": "1" },
+    { "key": "sub_merchant_record_id", "value": "" },
+    { "key": "easebuzz_sub_merchant_id", "value": "" },
+    { "key": "bill_id", "value": "1" },
+    { "key": "txnid", "value": "KB_TEST_001" },
+    { "key": "amount", "value": "100.00" },
+    { "key": "merchant_request_id", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login (Owner) - stores token & restaurant_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);",
+                  "if (json.restaurantId) pm.collectionVariables.set('restaurant_id', String(json.restaurantId));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{owner_login}}\",\n  \"password\": \"{{owner_password}}\",\n  \"deviceId\": \"POSTMAN\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Dev Signup (Bypass OTP) - New Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);",
+                  "if (json.restaurantId) pm.collectionVariables.set('restaurant_id', String(json.restaurantId));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{$randomPhoneNumber}}\",\n  \"name\": \"Dev Test Restaurant\",\n  \"password\": \"admin123\",\n  \"deviceId\": \"POSTMAN_DEV\"\n}"
+            },
+            "url": "{{base_url}}/auth/signup/dev"
+          }
+        },
+        {
+          "name": "Login (Admin) - stores token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loginId\": \"{{admin_login}}\",\n  \"password\": \"{{admin_password}}\",\n  \"deviceId\": \"POSTMAN\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Sub-Merchant Management",
+      "item": [
+        {
+          "name": "List All Sub-Merchants",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/sub-merchants"
+          }
+        },
+        {
+          "name": "Create Sub-Merchant Draft - stores record ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('sub_merchant_record_id', String(json.id));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"businessName\": \"Postman Test Restaurant\",\n  \"businessType\": \"SOLE_PROPRIETORSHIP\",\n  \"pan\": \"ABCDE1234F\",\n  \"gst\": \"29ABCDE1234F1Z5\",\n  \"bankAccountNo\": \"1234567890\",\n  \"ifsc\": \"HDFC0000123\",\n  \"bankName\": \"HDFC Bank\",\n  \"branchName\": \"Main Branch\",\n  \"beneficiaryName\": \"Test Owner\",\n  \"businessAddress\": \"123 Test Street, Bengaluru, Karnataka\",\n  \"contactEmail\": \"merchant@example.com\",\n  \"contactPhone\": \"9876543210\",\n  \"commissionRate\": 3.0,\n  \"upiDeductionLtLimit\": 0.25,\n  \"dcDeductionGtTwoThousand\": 1.25\n}"
+            },
+            "url": "{{base_url}}/admin/sub-merchants"
+          }
+        },
+        {
+          "name": "Submit to Easebuzz - stores Easebuzz sub_merchant_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const ebId = json.subMerchantId || json.sub_merchant_id;",
+                  "if (ebId) pm.collectionVariables.set('easebuzz_sub_merchant_id', String(ebId));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/sub-merchants/{{sub_merchant_record_id}}/submit-to-easebuzz"
+          }
+        },
+        {
+          "name": "Generate KYC Link",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/sub-merchants/{{sub_merchant_record_id}}/kyc-access-key"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/admin/sub-merchants/{{sub_merchant_record_id}}/verify-otp"
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/sub-merchants/{{sub_merchant_record_id}}/resend-otp"
+          }
+        },
+        {
+          "name": "Create Split Label",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/sub-merchants/{{sub_merchant_record_id}}/split-label"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Payments & Refunds",
+      "item": [
+        {
+          "name": "Create Order for Bill",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billId\": {{bill_id}},\n  \"restaurantId\": \"{{restaurant_id}}\"\n}"
+            },
+            "url": "{{base_url}}/payments/easebuzz/create-order"
+          }
+        },
+        {
+          "name": "Check Status (polling)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/payments/easebuzz/status/{{bill_id}}"
+          }
+        },
+        {
+          "name": "Manual Verify",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/payments/easebuzz/verify/{{bill_id}}"
+          }
+        },
+        {
+          "name": "Initiate Refund",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"10.00\",\n  \"reason\": \"Postman sandbox refund test\"\n}"
+            },
+            "url": "{{base_url}}/payments/easebuzz/refund/{{bill_id}}"
+          }
+        },
+        {
+          "name": "Get Refund Status (V2)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/payments/easebuzz/refund-status/{{bill_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

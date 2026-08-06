@@ -1,0 +1,67 @@
+flowchart LR
+    subgraph Client["Client Surfaces"]
+        POS["Android POS\nCompose + Retrofit\nEasebuzz SDK V2"]
+        ADMIN["Angular Web Admin\nPlatform operations"]
+        OWNER["Business/Owner Console\nTenant scoped settings"]
+    end
+
+    subgraph API["KhanaBook Spring Boot API\n/api/v2"]
+        JWT["JWT Filter\nTenantContext"]
+        PAYCTRL["PaymentController\n/payments/easebuzz"]
+        RESTCFG["RestaurantPaymentConfigController\n/restaurants/payment-config/easebuzz"]
+        ADMCTRL["AdminSubMerchantController\n/admin/sub-merchants"]
+        PAYSRV["EasebuzzPaymentService"]
+        SMSRV["SubMerchantService"]
+        WHSRV["EasebuzzWebhookService"]
+        SPLIT["PostSplitService\n@Async postSplitExecutor"]
+        EBCLIENT["EasebuzzApiClient"]
+        WIRE["EasebuzzWireApiClient"]
+    end
+
+    subgraph DB["PostgreSQL"]
+        BILL["bill\npayment/gateway/refund fields"]
+        SM["easebuzz_sub_merchant"]
+        WHEVENT["easebuzz_webhook_events"]
+        SMWHEVENT["easebuzz_sub_merchant_webhook_event"]
+        PAYOUT["easebuzz_payout"]
+        PROFILE["restaurant_profile\neasebuzzEnabled"]
+    end
+
+    subgraph EB["Easebuzz"]
+        PAY["pay.easebuzz.in\npayment/initiateLink\ntransaction APIs"]
+        DASH["dashboard.easebuzz.in\nsubmerchant, KYC, split,\nrefund, settlement, payout"]
+        KYC["Hosted KYC Portal"]
+        WEBHOOK["Webhook Delivery"]
+        SETTLE["Settlement Engine"]
+    end
+
+    POS --> JWT
+    OWNER --> JWT
+    ADMIN --> JWT
+    JWT --> PAYCTRL
+    JWT --> RESTCFG
+    JWT --> ADMCTRL
+
+    PAYCTRL --> PAYSRV
+    RESTCFG --> SMSRV
+    ADMCTRL --> SMSRV
+    PAYSRV --> EBCLIENT
+    SMSRV --> EBCLIENT
+    SMSRV --> WIRE
+    WHSRV --> SPLIT
+    SPLIT --> EBCLIENT
+
+    PAYSRV <--> BILL
+    SMSRV <--> SM
+    SMSRV <--> PROFILE
+    WHSRV <--> WHEVENT
+    WHSRV <--> SMWHEVENT
+    SMSRV <--> PAYOUT
+
+    EBCLIENT --> PAY
+    EBCLIENT --> DASH
+    WIRE --> DASH
+    DASH --> KYC
+    WEBHOOK --> PAYCTRL
+    DASH --> SETTLE
+

@@ -77,11 +77,11 @@ public class EasebuzzWebhookService {
 
                         // Send push notification for payment received
                         String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId;
-                        String amountDisplay = amountStr != null ? "Γé╣" + amountStr : "";
+                        String amountDisplay = amountStr != null ? "₹" + amountStr : "";
                         pushNotificationService.pushToRestaurant(
                             bill.getRestaurantId(),
                             "Payment Received",
-                            "Order " + displayOrder + " ΓÇö " + amountDisplay + " paid successfully",
+                            "Order " + displayOrder + " — " + amountDisplay + " paid successfully",
                             "payment_received",
                             String.valueOf(billId),
                             "bill",
@@ -131,7 +131,7 @@ public class EasebuzzWebhookService {
             pushNotificationService.pushToRestaurant(
                     renewal.getRestaurantId(),
                     "FSSAI Renewal Paid",
-                    "Your FSSAI renewal payment of Γé╣" + amountStr + " was received successfully. We are processing your compliance renewal.",
+                    "Your FSSAI renewal payment of ₹" + amountStr + " was received successfully. We are processing your compliance renewal.",
                     "system",
                     renewal.getFssaiNumber(),
                     "fssai",
@@ -227,11 +227,11 @@ public class EasebuzzWebhookService {
 
             // Push refund-completed notification to restaurant
             String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
-            String amountDisplay = refundAmount != null ? "Γé╣" + refundAmount : "";
+            String amountDisplay = refundAmount != null ? "₹" + refundAmount : "";
             pushNotificationService.pushToRestaurant(
                 bill.getRestaurantId(),
                 "Refund Completed",
-                "Order " + displayOrder + " ΓÇö " + amountDisplay + " refunded to customer",
+                "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
                 "refund",
                 String.valueOf(bill.getId()),
                 "bill",
@@ -297,7 +297,7 @@ public class EasebuzzWebhookService {
                 log.info("Updated payout record {} to status={}", requestId, status);
                 
                 try {
-                    String amountDisplay = payout.getAmount() != null ? "Γé╣" + payout.getAmount() : "";
+                    String amountDisplay = payout.getAmount() != null ? "₹" + payout.getAmount() : "";
                     pushNotificationService.pushToRestaurant(
                         payout.getRestaurantId(),
                         "Payout Status Updated",

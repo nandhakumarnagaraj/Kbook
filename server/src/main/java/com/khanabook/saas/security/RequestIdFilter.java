@@ -18,8 +18,9 @@ public class RequestIdFilter extends OncePerRequestFilter {
 	private static final String MDC_KEY = "requestId";
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
+	protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request,
+			@org.springframework.lang.NonNull HttpServletResponse response,
+			@org.springframework.lang.NonNull FilterChain filterChain) throws ServletException, IOException {
 		String requestId = request.getHeader(HEADER_NAME);
 		if (requestId == null || requestId.isBlank()) {
 			requestId = UUID.randomUUID().toString().substring(0, 12);

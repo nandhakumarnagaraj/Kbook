@@ -64,7 +64,7 @@ public class PostSplitService {
             return;
         }
 
-        // Generate merchantRequestId ONCE ΓÇö reused across all retry attempts.
+        // Generate merchantRequestId ONCE — reused across all retry attempts.
         // Easebuzz deduplicates on their side when same merchantRequestId is replayed.
         // Using billId + easebuzzId prefix ensures uniqueness per transaction.
         String idSuffix = easebuzzId.length() >= 8 ? easebuzzId.substring(0, 8) : easebuzzId;

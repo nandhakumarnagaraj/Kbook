@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
-<title>Invoice ΓÇô <th:block th:text="${shopName}">Shop</th:block></title>
+<title>Invoice – <th:block th:text="${shopName}">Shop</th:block></title>
 <style>
-/* ΓöÇΓöÇ Reset & tokens ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Reset & tokens ─────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --brand:#C85A00;
@@ -33,11 +33,11 @@
   --shadow-sm:0 2px 8px rgba(26,21,16,.06);
 }
 
-/* ΓöÇΓöÇ Base ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Base ───────────────────────────────────────────────────── */
 html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.4;-webkit-font-smoothing:antialiased;font-size:14px}
 .wrap{min-height:100dvh;display:flex;justify-content:center;align-items:flex-start;padding:20px 12px}
 
-/* ΓöÇΓöÇ Receipt card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Receipt card ───────────────────────────────────────────── */
 .receipt{
   width:100%;max-width:500px;
   background:var(--card);
@@ -47,13 +47,13 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
   overflow:hidden;
 }
 
-/* ΓöÇΓöÇ Brand stripe at top ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Brand stripe at top ────────────────────────────────────── */
 .brand-stripe{
   height:4px;
   background:linear-gradient(90deg,var(--brand),var(--brand-light));
 }
 
-/* ΓöÇΓöÇ Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Header ─────────────────────────────────────────────────── */
 .header{
   text-align:center;
   padding:24px 24px 18px;
@@ -76,13 +76,13 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .biz-meta{font-size:11.5px;color:var(--muted);margin-bottom:3px;overflow-wrap:anywhere;line-height:1.5}
 .biz-meta strong{font-weight:600;color:var(--text)}
 
-/* ΓöÇΓöÇ Meta section ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Meta section ───────────────────────────────────────────── */
 .meta-section{padding:14px 24px;border-bottom:1px dashed var(--line);background:var(--surface)}
 .meta-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0;font-size:13px}
 .meta-row .mk{color:var(--muted);flex:0 0 auto;font-size:12px}
 .meta-row .mv{font-weight:700;color:var(--text);text-align:right;overflow-wrap:anywhere}
 
-/* ΓöÇΓöÇ Status pill ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Status pill ────────────────────────────────────────────── */
 .pill{
   display:inline-flex;align-items:center;gap:4px;
   border-radius:var(--radius-pill);
@@ -99,7 +99,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .pill.failed{background:var(--failed-bg);color:var(--failed)}
 .pill.failed::before{background:var(--failed)}
 
-/* ΓöÇΓöÇ Items table ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Items table ────────────────────────────────────────────── */
 .items-wrap{padding:0 24px}
 .items{width:100%;border-collapse:collapse;margin:14px 0 0;font-size:13px}
 .items thead tr{border-bottom:1.5px solid var(--line)}
@@ -125,7 +125,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .variant{font-size:11.5px;color:var(--muted);display:block;margin-top:1px}
 .item-note{font-size:11px;color:var(--brand);display:block;margin-top:2px;font-style:italic}
 
-/* ΓöÇΓöÇ Totals ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Totals ─────────────────────────────────────────────────── */
 .totals{padding:10px 24px 0}
 .t-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;color:var(--muted)}
 .t-row.sub{color:var(--text)}
@@ -137,7 +137,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 }
 .t-row.grand span:last-child{color:var(--brand)}
 
-/* ΓöÇΓöÇ Payment section ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Payment section ────────────────────────────────────────── */
 .payment{
   padding:14px 24px;
   border-top:1px dashed var(--line);
@@ -154,7 +154,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 }
 .pay-method{font-weight:700;color:var(--text)}
 
-/* ΓöÇΓöÇ Footer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Footer ─────────────────────────────────────────────────── */
 .footer{
   border-top:1px dashed var(--line);
   padding:18px 24px 20px;
@@ -177,7 +177,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .qr-ref{font-size:10px;color:var(--tertiary);word-break:break-all}
 .qr-valid{font-size:10px;color:var(--tertiary);margin-top:3px}
 
-/* ΓöÇΓöÇ Action buttons ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Action buttons ─────────────────────────────────────────── */
 .action-row{display:flex;gap:8px;margin-bottom:16px}
 .btn{
   flex:1;
@@ -202,7 +202,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .btn-brand{background:var(--brand-dim);border-color:rgba(200,90,0,.25);color:var(--brand)}
 .btn-brand:hover{background:rgba(200,90,0,.15)}
 
-/* ΓöÇΓöÇ Thanks & powered ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Thanks & powered ───────────────────────────────────────── */
 .thanks{font-size:13px;color:var(--muted);margin-bottom:10px;white-space:pre-line;line-height:1.5}
 .review-link{
   display:inline-flex;align-items:center;gap:4px;
@@ -221,7 +221,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 .powered a{color:var(--brand);text-decoration:none;font-weight:600}
 .powered a:hover{text-decoration:underline}
 
-/* ΓöÇΓöÇ Responsive ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Responsive ─────────────────────────────────────────────── */
 @media(max-width:520px){
   .wrap{padding:12px 8px}
   .receipt{border-radius:14px}
@@ -230,7 +230,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
   .btn{font-size:11.5px;padding:9px 6px}
 }
 
-/* ΓöÇΓöÇ Print ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── Print ──────────────────────────────────────────────────── */
 @media print{
   @page{margin:8mm}
   body{background:#fff;font-size:12px}
@@ -261,12 +261,12 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
     <p class="outlet-name" th:text="${address != null and !address.isEmpty() ? address : 'Main Outlet'}">Main Outlet</p>
     <p class="biz-meta" th:if="${(gstin != null and !gstin.isEmpty()) or (fssai != null and !fssai.isEmpty())}">
       <span th:if="${gstin != null and !gstin.isEmpty()}"><strong>GSTIN:</strong> <span th:text="${gstin}"></span></span>
-      <span th:if="${(gstin != null and !gstin.isEmpty()) and (fssai != null and !fssai.isEmpty())}">&ensp;┬╖&ensp;</span>
+      <span th:if="${(gstin != null and !gstin.isEmpty()) and (fssai != null and !fssai.isEmpty())}">&ensp;·&ensp;</span>
       <span th:if="${fssai != null and !fssai.isEmpty()}"><strong>FSSAI:</strong> <span th:text="${fssai}"></span></span>
     </p>
     <p class="biz-meta" th:if="${(email != null and !email.isEmpty()) or (phone != null and !phone.isEmpty())}">
       <span th:if="${email != null and !email.isEmpty()}"><strong>Email:</strong> <span th:text="${email}"></span></span>
-      <span th:if="${(email != null and !email.isEmpty()) and (phone != null and !phone.isEmpty())}">&ensp;┬╖&ensp;</span>
+      <span th:if="${(email != null and !email.isEmpty()) and (phone != null and !phone.isEmpty())}">&ensp;·&ensp;</span>
       <span th:if="${phone != null and !phone.isEmpty()}"><strong>Ph:</strong> <span th:text="${phone}"></span></span>
     </p>
   </header>
@@ -306,7 +306,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
                   th:text="${item.variantName}"></span>
           </td>
           <td th:text="${item.quantity}">1</td>
-          <td th:text="${currencySymbol + item.itemTotalFormatted}">Γé╣0.00</td>
+          <td th:text="${currencySymbol + item.itemTotalFormatted}">₹0.00</td>
         </tr>
       </tbody>
     </table>
@@ -316,23 +316,23 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
   <section class="totals" aria-label="Bill totals">
     <div class="t-row sub">
       <span>Subtotal</span>
-      <span th:text="${currencySymbol + subtotalFormatted}">Γé╣0.00</span>
+      <span th:text="${currencySymbol + subtotalFormatted}">₹0.00</span>
     </div>
     <div class="t-row" th:if="${hasAnyTax and hasGst}">
       <span th:text="'CGST @ ' + ${halfGstPct} + '%'">CGST</span>
-      <span th:text="${currencySymbol + cgstFormatted}">Γé╣0.00</span>
+      <span th:text="${currencySymbol + cgstFormatted}">₹0.00</span>
     </div>
     <div class="t-row" th:if="${hasAnyTax and hasGst}">
       <span th:text="'SGST @ ' + ${halfGstPct} + '%'">SGST</span>
-      <span th:text="${currencySymbol + sgstFormatted}">Γé╣0.00</span>
+      <span th:text="${currencySymbol + sgstFormatted}">₹0.00</span>
     </div>
     <div class="t-row" th:if="${hasAnyTax and hasCustomTax}">
       <span th:text="${customTaxName}">Custom Tax</span>
-      <span th:text="${currencySymbol + customTaxFormatted}">Γé╣0.00</span>
+      <span th:text="${currencySymbol + customTaxFormatted}">₹0.00</span>
     </div>
     <div class="t-row grand">
       <span>Total Payable</span>
-      <span th:text="${currencySymbol + totalFormatted}">Γé╣0.00</span>
+      <span th:text="${currencySymbol + totalFormatted}">₹0.00</span>
     </div>
   </section>
 
@@ -340,7 +340,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
   <section class="payment" aria-label="Payment details">
     <div class="payment-label">Payment</div>
     <div class="pay-chip">
-      <span aria-hidden="true">≡ƒÆ│</span>
+      <span aria-hidden="true">💳</span>
       <span class="pay-method" th:text="${paymentMode}">UPI</span>
       <span th:if="${statusClass == 'paid'}"   class="pill success">Paid</span>
       <span th:if="${statusClass == 'pending'}" class="pill pending">Pending</span>
@@ -368,20 +368,20 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
          target="_blank"
          rel="noopener noreferrer"
          aria-label="Share invoice on WhatsApp">
-        <span aria-hidden="true">≡ƒô▓</span> WhatsApp
+        <span aria-hidden="true">📲</span> WhatsApp
       </a>
       <button class="btn btn-brand"
               type="button"
               onclick="window.print()"
               aria-label="Download invoice as PDF">
-        <span aria-hidden="true">Γ¼ç</span> PDF
+        <span aria-hidden="true">⬇</span> PDF
       </button>
       <button class="btn"
               type="button"
               th:attr="data-copy-url=${canonicalPublicUrl}"
-              onclick="var u=this.getAttribute('data-copy-url');navigator.clipboard&&navigator.clipboard.writeText(u).then(function(){var b=document.querySelector('.btn[data-copy-url]');if(b){var t=b.textContent;b.textContent='Γ£ô Copied';setTimeout(function(){b.textContent=t},1500)}})"
+              onclick="var u=this.getAttribute('data-copy-url');navigator.clipboard&&navigator.clipboard.writeText(u).then(function(){var b=document.querySelector('.btn[data-copy-url]');if(b){var t=b.textContent;b.textContent='✓ Copied';setTimeout(function(){b.textContent=t},1500)}})"
               aria-label="Copy invoice link to clipboard">
-        <span aria-hidden="true">≡ƒöù</span> Copy
+        <span aria-hidden="true">🔗</span> Copy
       </button>
     </div>
 
@@ -395,7 +395,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
        target="_blank"
        rel="noopener noreferrer"
        aria-label="Leave a Google review (opens in new tab)">
-      Γ¡É Leave a Google Review
+      ⭐ Leave a Google Review
     </a>
 
     <div class="powered">

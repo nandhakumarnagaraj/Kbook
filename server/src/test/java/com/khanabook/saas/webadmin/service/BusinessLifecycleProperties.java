@@ -6,6 +6,7 @@ import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.exception.BusinessSuspendedException;
+import com.khanabook.saas.repository.RefreshTokenRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.impl.AuthServiceImpl;
@@ -33,6 +34,7 @@ class BusinessLifecycleProperties {
     private JwtUtility jwtUtility;
     private PasswordEncoder passwordEncoder;
     private com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
+    private RefreshTokenRepository refreshTokenRepository;
     private AuthServiceImpl authService;
 
     private void setupAdminWriteService() {
@@ -46,7 +48,8 @@ class BusinessLifecycleProperties {
         jwtUtility = mock(JwtUtility.class);
         passwordEncoder = mock(PasswordEncoder.class);
         passwordResetOtpService = mock(com.khanabook.saas.service.PasswordResetOtpService.class);
-        authService = new AuthServiceImpl(userRepository, profileRepository, jwtUtility, passwordEncoder, passwordResetOtpService);
+        refreshTokenRepository = mock(RefreshTokenRepository.class);
+        authService = new AuthServiceImpl(userRepository, profileRepository, refreshTokenRepository, jwtUtility, passwordEncoder, passwordResetOtpService);
     }
 
     // ─── Property 17: Business Suspend/Activate Round-Trip ──────────────────────

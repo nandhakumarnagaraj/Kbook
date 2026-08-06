@@ -94,7 +94,7 @@ public class EasebuzzPaymentService {
         data.put("surl", props.getReturnUrl());
         data.put("furl", props.getReturnUrl());
 
-        // Look up sub-merchant ΓÇö use its ID and contact info if available
+        // Look up sub-merchant — use its ID and contact info if available
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
             boolean subMerchantActive = "ACTIVE".equals(sm.getStatus());
@@ -119,7 +119,7 @@ public class EasebuzzPaymentService {
         // Set phone after sub-merchant fallback, then email fallback
         data.put("phone", phone);
 
-        // Email is mandatory for Easebuzz ΓÇö fallback if not set
+        // Email is mandatory for Easebuzz — fallback if not set
         if (!data.containsKey("email") || data.get("email") == null || data.get("email").isBlank()) {
             data.put("email", "customer@khanabook.in");
         }
@@ -341,7 +341,7 @@ public class EasebuzzPaymentService {
             return Map.of("status", "failure", "error", "fssaiNumber must be 14 digits");
         }
 
-        BigDecimal amount = new BigDecimal(years).multiply(new BigDecimal("1000.00")); // Γé╣1000 per year
+        BigDecimal amount = new BigDecimal(years).multiply(new BigDecimal("1000.00")); // ₹1000 per year
         String amountStr = String.format("%.2f", amount);
 
         // Generate unique txnid: max 40 chars

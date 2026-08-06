@@ -255,13 +255,13 @@ public class EasebuzzApiClient {
 		checkCredentials();
 
 		// Compliance (EaseBuzz CPV): the business name registered must be the verified
-		// legal entity name matching PAN/GST ΓÇö a display/trade name causes CPV mismatch.
+		// legal entity name matching PAN/GST — a display/trade name causes CPV mismatch.
 		String legalName = (legalEntityName != null && !legalEntityName.isBlank())
 				? legalEntityName : subMerchantName;
 		String sanitizedLegalName = sanitizeName(legalName);
 		String sanitizedDisplayName = sanitizeName(subMerchantName);
 
-		// Do not submit placeholder data to a CPV pipeline ΓÇö fail fast on missing essentials.
+		// Do not submit placeholder data to a CPV pipeline — fail fast on missing essentials.
 		if (sanitizedLegalName == null || sanitizedLegalName.isBlank())
 			throw new IllegalArgumentException("Legal entity name is required for sub-merchant onboarding");
 		if (businessAddress == null || businessAddress.isBlank())

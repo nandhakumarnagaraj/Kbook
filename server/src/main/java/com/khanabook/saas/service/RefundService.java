@@ -60,14 +60,14 @@ public class RefundService {
         }
         BigDecimal existingRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
         if (existingRefund.compareTo(bill.getTotalAmount()) >= 0) {
-            throw new BusinessRuleException("Bill is already fully refunded (Γé╣" + existingRefund + " of Γé╣" + bill.getTotalAmount() + ")");
+            throw new BusinessRuleException("Bill is already fully refunded (₹" + existingRefund + " of ₹" + bill.getTotalAmount() + ")");
         }
         if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleException("Refund amount must be positive");
         }
         BigDecimal remainingRefundable = bill.getTotalAmount().subtract(existingRefund);
         if (refundAmount.compareTo(remainingRefundable) > 0) {
-            throw new BusinessRuleException("Refund amount (Γé╣" + refundAmount + ") exceeds remaining refundable amount (Γé╣" + remainingRefundable + ")");
+            throw new BusinessRuleException("Refund amount (₹" + refundAmount + ") exceeds remaining refundable amount (₹" + remainingRefundable + ")");
         }
 
         log.info("Initiating refund billId={} amount={} reason={}", billId, refundAmount, reason);

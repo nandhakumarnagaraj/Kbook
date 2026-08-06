@@ -99,10 +99,10 @@ public class RestaurantPaymentConfigController {
         }
     }
 
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ─────────────────────────────────────────────────────────────────────────
     // Owner-driven onboarding & KYC (POS app). All actions are scoped to the
     // current tenant, so an owner can only ever act on their own sub-merchant.
-    // ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Create (or re-onboard a DRAFT/FAILED) sub-merchant from the POS app and submit to EaseBuzz.
@@ -131,7 +131,7 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(subMerchantService.generateKycAccessKey(id));
     }
 
-    /** Verify the onboarding OTP sent by EaseBuzz (LIVE only ΓÇö not supported in sandbox). */
+    /** Verify the onboarding OTP sent by EaseBuzz (LIVE only — not supported in sandbox). */
     @PostMapping("/verify-otp")
     public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, Object> body) {
         Long restaurantId = TenantContext.getCurrentTenant();
@@ -140,7 +140,7 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(subMerchantService.verifyOtp(id, otp));
     }
 
-    /** Resend the onboarding OTP (LIVE only ΓÇö not supported in sandbox). */
+    /** Resend the onboarding OTP (LIVE only — not supported in sandbox). */
     @PostMapping("/resend-otp")
     public ResponseEntity<Map<String, Object>> resendOtp() {
         Long restaurantId = TenantContext.getCurrentTenant();

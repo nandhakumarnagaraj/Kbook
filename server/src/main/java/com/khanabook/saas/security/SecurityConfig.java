@@ -44,7 +44,7 @@ public class SecurityConfig {
 		// Global config for all other endpoints.
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
-				? List.of()
+				? List.of("http://localhost:4200")
 				: List.of(allowedOriginsRaw.split(","))
 						.stream()
 						.map(String::trim)
@@ -97,8 +97,8 @@ public class SecurityConfig {
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
 				.headers(headers -> headers
-						.frameOptions(fo -> fo.deny())
-						.contentTypeOptions(ct -> ct.and())
+						.frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
+						.contentTypeOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.ContentTypeOptionsConfig::disable)
 						.httpStrictTransportSecurity(hsts -> hsts
 								.includeSubDomains(true)
 								.maxAgeInSeconds(31536000))
@@ -124,17 +124,23 @@ public class SecurityConfig {
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						// Public auth endpoints (rate-limited separately)
-						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/request",
+						.requestMatchers("/auth/login", "/auth/refresh", "/auth/signup", "/auth/signup/**",
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/auth/forgot-password/request-otp",
 								"/auth/forgot-password/verify-otp",
 								"/auth/forgot-password/reset-password",
 							"/public/**",
+							"/cdn/**",
 							"/error",
 							"/notifications/test/direct-push",
 							"/webhooks/swiggy",
 							"/webhooks/zomato",
+							// Easebuzz server-to-server callbacks (v2 port): must be unauthenticated.
+							// create-order is deliberately NOT public - the app sends a bearer token.
+							"/payments/easebuzz/webhook",
+							"/payments/easebuzz/*/webhook",
+							"/payments/easebuzz/return",
 							"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 					.permitAll()
 

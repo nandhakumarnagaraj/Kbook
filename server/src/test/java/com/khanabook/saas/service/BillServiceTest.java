@@ -37,7 +37,10 @@ class BillServiceTest {
 
     @Mock
     private BillRepository billRepository;
-    
+
+    @Mock
+    private BillPaymentRepository billPaymentRepository;
+
     @Mock
     private RestaurantProfileRepository profileRepository;
 
@@ -49,9 +52,6 @@ class BillServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
-
-    @Mock
-    private BillPaymentRepository billPaymentRepository;
 
     @Mock
     private RestaurantTerminalRepository terminalRepository;
@@ -72,10 +72,10 @@ class BillServiceTest {
     void setUp() {
         genericSyncService = new GenericSyncService(
             billRepository,
+            billPaymentRepository,
             menuItemRepository,
             itemVariantRepository,
             categoryRepository,
-            billPaymentRepository,
             terminalRepository,
             securityAuditService
         );

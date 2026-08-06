@@ -41,6 +41,8 @@ public abstract class BaseIntegrationTest {
         registry.add("GOOGLE_CLIENT_ID", () -> "test-google-client-id");
         registry.add("payment.crypto.secret", () -> "integration-payment-secret-32-bytes-minimum-xxxx");
         registry.add("APP_BASE_URL", () -> "https://test.khanabook.app");
+        registry.add("easebuzz.merchant-key", () -> "TEST_MERCHANT_KEY");
+        registry.add("easebuzz.salt", () -> "TEST_SALT");
         registry.add("easebuzz.base-url", () -> "https://testpay.easebuzz.in");
 
         registry.add("spring.flyway.enabled",             () -> "false");

@@ -12,4 +12,6 @@ public interface MenuExtractionJobRepository extends JpaRepository<MenuExtractio
     List<MenuExtractionJob> findByRestaurantId(Long restaurantId);
 
     Optional<MenuExtractionJob> findByIdAndRestaurantId(Long id, Long restaurantId);
+    List<MenuExtractionJob> findByRestaurantIdOrderByCreatedAtDesc(Long restaurantId);
+
 }
