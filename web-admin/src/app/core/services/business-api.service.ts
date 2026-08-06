@@ -12,6 +12,7 @@ import {
   CreateStaffRequest,
   MarketplaceConfig,
   MarketplaceConfigRequest,
+  MarketplaceOrder,
   MenuExtractionJob,
   OrderDetailResponse,
   RecoverTerminalRequest,
@@ -25,6 +26,7 @@ import {
   UpdateStaffRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
+import { Observable } from 'rxjs';
 
 const API_BASE_URL = environment.apiBaseUrl;
 
@@ -49,6 +51,37 @@ export class BusinessApiService {
 
   saveMarketplaceConfig(payload: MarketplaceConfigRequest) {
     return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`, payload);
+  }
+
+  getMarketplaceOrders(): Observable<MarketplaceOrder[]> {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders`);
+  }
+
+  getPendingMarketplaceOrders(): Observable<MarketplaceOrder[]> {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders/pending`);
+  }
+
+  getMarketplaceOrderCounts(): Observable<{ [k: string]: number }> {
+    return this.http.get<{ [k: string]: number }>(`${API_BASE_URL}/business/marketplace-orders/counts`);
+  }
+
+  acceptMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/accept`, null);
+  }
+
+  rejectMarketplaceOrder(orderId: number, reason: string | null): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(
+      `${API_BASE_URL}/business/marketplace-orders/${orderId}/reject`,
+      reason ? { reason } : {}
+    );
+  }
+
+  markReadyMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, null);
+  }
+
+  completeMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/complete`, null);
   }
 
   getOrders() {

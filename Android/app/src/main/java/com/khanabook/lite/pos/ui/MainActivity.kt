@@ -515,6 +515,12 @@ class MainActivity : FragmentActivity() {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+                    composable("marketplace_orders") {
+                        MarketplaceOrdersScreen(
+                            onBack = { navController.popBackStack() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
                 KhanaBookSnackbarHost(
                     hostState = KhanaToast.host,

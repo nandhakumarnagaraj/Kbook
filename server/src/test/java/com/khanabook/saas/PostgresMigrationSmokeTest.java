@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Migration smoke test (Requirement 2.14): applies the full Flyway_Migration_Set
- * (V1-V48) to an empty Testcontainers PostgreSQL and asserts the server starts,
- * the migration history head is V48, and the Phase 2 tables exist with their
+ * (V1-V53) to an empty Testcontainers PostgreSQL and asserts the server starts,
+ * the migration history head is V53, and the Phase 2 tables exist with their
  * seed state (Requirements 30.3, 30.4, 30.9, 33.4).
  */
 @Testcontainers(disabledWithoutDocker = true)
@@ -56,12 +56,12 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
-    void migrationHistoryHeadIsV48() {
+    void migrationHistoryHeadIsV53() {
         List<String> versions = jdbcTemplate.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC",
                 String.class);
         assertThat(versions).isNotEmpty();
-        assertThat(versions.get(0)).isEqualTo("48");
+        assertThat(versions.get(0)).isEqualTo("53");
     }
 
     @Test
@@ -85,5 +85,18 @@ class PostgresMigrationSmokeTest {
                 "SELECT COUNT(*) FROM pg_indexes WHERE indexname IN ('idx_webhook_inbox_claim', 'idx_webhook_inbox_review')",
                 Integer.class);
         assertThat(partialIndexes).isEqualTo(2);
+
+        // Requirement 19 (Phase 6, V53): marketplace_orders table + the status columns
+        // the merchant-action endpoints depend on. Marketplace orders live in their own
+        // table and are never pulled as operational bills (Requirement 19.1, design D12).
+        Integer marketplaceTable = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'marketplace_orders'",
+                Integer.class);
+        assertThat(marketplaceTable).isEqualTo(1);
+
+        List<String> orderColumns = jdbcTemplate.queryForList(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'marketplace_orders' AND column_name IN ('order_status','accepted_at','rejected_at','ready_at','completed_at')",
+                String.class);
+        assertThat(orderColumns).hasSize(5);
     }
 }

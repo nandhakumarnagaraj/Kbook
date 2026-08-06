@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Phone
@@ -191,9 +192,21 @@ fun SettingsListView(
             shape = RoundedCornerShape(12.dp)
         ) {
             SettingsItem(
-                icon = Icons.Filled.Notifications,
+                icon = Icons.Default.Notifications,
                 text = "Notifications",
                 onClick = { onSelectItem("notifications") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.Default.ReceiptLong,
+                text = "Marketplace Orders",
+                onClick = { onSelectItem("marketplace_orders") }
             )
         }
 

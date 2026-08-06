@@ -139,6 +139,28 @@ interface KhanaBookApi {
         // ── FSSAI ──────────────────────────────────────────────────────────
         @GET("api/v1/business/lookup/fssai")
         suspend fun lookupFssai(@Query("fssaiNo") fssaiNo: String): Map<String, Any>
+
+        // ── Marketplace orders ────────────────────────────────────────────
+        @GET("api/v1/business/marketplace-orders")
+        suspend fun listMarketplaceOrders(): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/pending")
+        suspend fun listPendingMarketplaceOrders(): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/counts")
+        suspend fun getMarketplaceOrderCounts(): Map<String, Long>
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/accept")
+        suspend fun acceptMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/reject")
+        suspend fun rejectMarketplaceOrder(@Path("orderId") orderId: Long, @Body reason: Map<String, String>): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/mark-ready")
+        suspend fun markReadyMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/complete")
+        suspend fun completeMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
 }
 
 data class TerminalListItem(

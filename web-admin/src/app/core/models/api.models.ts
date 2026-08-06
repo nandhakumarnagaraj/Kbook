@@ -159,6 +159,39 @@ export interface MarketplaceConfigRequest {
   swiggyEnabled?: boolean;
 }
 
+export interface MarketplaceOrder {
+  id: number;
+  restaurantId: number;
+  billId: number | null;
+  platform: 'ZOMATO' | 'SWIGGY';
+  platformOrderId: string;
+  platformStatus: string | null;
+  orderStatus: 'pending' | 'accepted' | 'preparing' | 'ready' | 'completed' | 'rejected';
+  customerName: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  subtotal: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  paymentMode: string | null;
+  acceptedAt: number | null;
+  rejectedAt: number | null;
+  rejectedReason: string | null;
+  readyAt: number | null;
+  completedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+  syncedAt: number | null;
+}
+
+export interface MarketplaceOrderCounts {
+  pending: number;
+  accepted: number;
+  ready: number;
+  completed: number;
+  rejected: number;
+}
+
 export interface BusinessTerminal {
   id: number;
   terminalSeries: string | null;

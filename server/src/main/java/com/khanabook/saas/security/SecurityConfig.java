@@ -130,11 +130,13 @@ public class SecurityConfig {
 								"/auth/forgot-password/request-otp",
 								"/auth/forgot-password/verify-otp",
 								"/auth/forgot-password/reset-password",
-								"/public/**",
-								"/error",
-								"/notifications/test/direct-push",
-								"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.permitAll()
+							"/public/**",
+							"/error",
+							"/notifications/test/direct-push",
+							"/webhooks/swiggy",
+							"/webhooks/zomato",
+							"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+					.permitAll()
 
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")

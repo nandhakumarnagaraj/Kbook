@@ -235,6 +235,12 @@ fun SettingsScreen(
                             navController.navigate("notifications")
                         }
                     }
+                    "marketplace_orders" -> {
+                        LaunchedEffect(Unit) {
+                            section = "menu"
+                            navController.navigate("marketplace_orders")
+                        }
+                    }
                     "about_app" -> {
                         AboutAppView()
                     }

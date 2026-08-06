@@ -375,6 +375,7 @@ export class SidebarLayoutComponent {
       { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
       { label: 'Reports', path: '/business/reports', icon: '◔' },
       { label: 'Orders', path: '/business/orders', icon: '▤' },
+      { label: 'Marketplace Orders', path: '/business/marketplace-orders', icon: '▧' },
       { label: 'Menu', path: '/business/menu', icon: '◈' },
       { label: 'Staff', path: '/business/staff', icon: '◍' },
       { label: 'Integrations', path: '/business/marketplace', icon: '◇' },
