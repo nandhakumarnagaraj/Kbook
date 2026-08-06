@@ -24,6 +24,8 @@ data class RestaurantProfileEntity(
     val logoVersion: Int = 0,
     @ColumnInfo(name = "fssai_number")
     val fssaiNumber: String? = null,
+    @ColumnInfo(name = "fssai_expiry_date")
+    val fssaiExpiryDate: String? = null,
     @ColumnInfo(name = "email_invoice_consent", defaultValue = "0")
     val emailInvoiceConsent: Boolean = false,
 

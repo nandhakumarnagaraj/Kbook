@@ -132,6 +132,7 @@ public class SecurityConfig {
 								"/auth/forgot-password/reset-password",
 								"/public/**",
 								"/error",
+								"/notifications/test/direct-push",
 								"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 						.permitAll()
 

@@ -229,6 +229,12 @@ fun SettingsScreen(
                     "sync_center" -> {
                         SyncCenterView(viewModel)
                     }
+                    "notifications" -> {
+                        LaunchedEffect(Unit) {
+                            section = "security"
+                            navController.navigate("notifications")
+                        }
+                    }
                     "about_app" -> {
                         AboutAppView()
                     }

@@ -828,6 +828,7 @@ class MasterSyncProcessor @Inject constructor(
                         logoUrl = if (useRemoteLogo) remoteProfile.logoUrl else localProfile?.logoUrl,
                         logoVersion = maxOf(remoteProfile.logoVersion, localProfile?.logoVersion ?: 0),
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
+                        fssaiExpiryDate = remoteProfile.fssaiExpiryDate,
                         emailInvoiceConsent = remoteProfile.emailInvoiceConsent ?: false,
                         country = remoteProfile.country.orFallback(currentLocalProfile?.country ?: "India"),
                         gstEnabled = remoteProfile.gstEnabled ?: false,

@@ -58,6 +58,9 @@ public class SyncMapper {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                if (entity.getFssaiExpiryDate() != null) {
+                    dto.setFssaiExpiryDate(entity.getFssaiExpiryDate().toString());
+                }
                 if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
                     dto.setOrderPaymentFlowMode("pay_before_food");
                 }
@@ -171,6 +174,13 @@ public class SyncMapper {
                 entity.setLastResetDate(dto.getLastResetDate());
                 if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
                     entity.setOrderPaymentFlowMode("pay_before_food");
+                }
+                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isBlank()) {
+                    try {
+                        entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
+                    } catch (Exception e) {
+                        log.warn("Failed to parse fssaiExpiryDate from sync payload: {}", dto.getFssaiExpiryDate());
+                    }
                 }
                 // Copy all other fields via BeanUtils is already handled above
             } else if (source instanceof StockLogDTO dto) {

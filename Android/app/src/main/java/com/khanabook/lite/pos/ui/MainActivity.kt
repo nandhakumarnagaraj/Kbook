@@ -401,6 +401,7 @@ class MainActivity : FragmentActivity() {
                             onSearchBill = { navController.navigate("search_bill") },
                             onReprintKds = { navController.navigate("reprint_kds") },
                             onCallCustomer = { navController.navigate("call_customer") },
+                            onOpenNotifications = { navController.navigate("notifications") },
                             menuViewModel = menuViewModel,
                             onScanClick = { categoryName ->
                                 navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", categoryName)
@@ -504,6 +505,12 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("reprint_kds") {
                         ReprintKdsScreen(
+                            onBack = { navController.popBackStack() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable("notifications") {
+                        NotificationsScreen(
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize()
                         )

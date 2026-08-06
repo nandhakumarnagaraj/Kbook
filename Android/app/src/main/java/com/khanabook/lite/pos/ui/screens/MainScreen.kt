@@ -49,6 +49,7 @@ fun MainScreen(
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onCallCustomer: () -> Unit,
+    onOpenNotifications: () -> Unit = {},
     menuViewModel: MenuViewModel,
     onScanClick: (String?) -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel()
@@ -108,7 +109,8 @@ fun MainScreen(
                     onOpenPrinterSettings = onOpenPrinterSettings,
                     onSearchBill = onSearchBill,
                     onReprintKds = onReprintKds,
-                    onCallCustomer = onCallCustomer
+                    onCallCustomer = onCallCustomer,
+                    onOpenNotifications = onOpenNotifications
                 )
                 "Reports" -> ReportsScreen(onBack = backToHome)
                 "Orders" -> OrdersScreen(
