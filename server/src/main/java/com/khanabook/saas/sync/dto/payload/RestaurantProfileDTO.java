@@ -29,6 +29,9 @@ public class RestaurantProfileDTO {
     private String logoUrl;
     private Integer logoVersion;
     private String fssaiNumber;
+    private String fssaiExpiryDate;
+    private String customWelcomeMessage;
+    private String customFssaiMessage;
     private Boolean emailInvoiceConsent;
     private String country;
     private Boolean gstEnabled;

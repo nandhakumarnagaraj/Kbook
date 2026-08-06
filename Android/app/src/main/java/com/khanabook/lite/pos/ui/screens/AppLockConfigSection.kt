@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.TextIncrease
@@ -181,6 +182,18 @@ fun SettingsListView(
                 icon = Icons.Filled.SyncProblem,
                 text = "Sync Center",
                 onClick = { onSelectItem("sync_center") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.Filled.Notifications,
+                text = "Notifications",
+                onClick = { onSelectItem("notifications") }
             )
         }
 

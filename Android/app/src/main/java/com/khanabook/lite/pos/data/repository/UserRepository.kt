@@ -37,7 +37,8 @@ class UserRepository(
         private val workManager: WorkManager,
         private val api: KhanaBookApi,
         private val databaseProvider: DatabaseProvider,
-        private val restaurantDao: RestaurantDao
+        private val restaurantDao: RestaurantDao,
+        private val notificationRepository: NotificationRepository
 ) {
     private fun normalizeAllowedRole(role: String?): String {
         return when (role?.uppercase()) {
@@ -167,6 +168,7 @@ class UserRepository(
             }
 
             setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -217,6 +219,7 @@ class UserRepository(
             }
 
             setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -268,6 +271,7 @@ class UserRepository(
             }
 
             setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -283,6 +287,7 @@ class UserRepository(
             if (user != null) {
                 sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
                 sessionManager.setSessionState(SessionManager.SessionState.READY)
+                notificationRepository.registerCurrentDeviceTokenInBackground()
             }
         } else {
             val loginId = sessionManager.getPersistedLoginId()
@@ -293,6 +298,7 @@ class UserRepository(
                     sessionManager.saveActiveUserId(it.id)
                     sessionManager.saveActiveUserRole(normalizeAllowedRole(it.role))
                     sessionManager.setSessionState(SessionManager.SessionState.READY)
+                    notificationRepository.registerCurrentDeviceTokenInBackground()
                 }
             }
         }
