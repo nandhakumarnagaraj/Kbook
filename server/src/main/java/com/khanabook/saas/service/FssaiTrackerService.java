@@ -66,22 +66,16 @@ public class FssaiTrackerService {
 
                 tracker.setFssaiNumber(fssaiNo);
 
-                // 1. Fetch current license info (authoritative expiry) from pcts.tech
+                // 1. Fetch authoritative expiry date from pcts.tech
                 Map<String, Object> licInfo = fssaiLookupService.lookupFssai(fssaiNo);
-                boolean isRenewed = false;
                 if (Boolean.TRUE.equals(licInfo.get("valid"))) {
-                    log.info("FSSAI license info for restaurantId={} ({}): expiryDate={}, status={}",
-                        profile.getRestaurantId(), fssaiNo, licInfo.get("expiryDate"), licInfo.get("fssaiStatus"));
-
-                    tracker.setStatus(String.valueOf(licInfo.getOrDefault("fssaiStatus", "UNKNOWN")).toUpperCase());
-                    tracker.setCompanyName(String.valueOf(licInfo.getOrDefault("businessName", "")));
-                    tracker.setAddress(String.valueOf(licInfo.getOrDefault("address", "")));
-
                     String expiryStr = String.valueOf(licInfo.getOrDefault("expiryDate", "")).trim();
                     if (!expiryStr.isEmpty()) {
                         try {
                             LocalDate expiryDate = LocalDate.parse(expiryStr, DATE_FORMATTER);
                             tracker.setExpiryDate(expiryDate);
+                            log.info("Tracked FSSAI expiry {} for restaurantId={} ({}): {}",
+                                fssaiNo, profile.getRestaurantId(), expiryDate, licInfo.get("fssaiStatus"));
 
                             // Sync the authoritative expiry date back to the RestaurantProfile
                             if (profile.getFssaiExpiryDate() == null || expiryDate.isAfter(profile.getFssaiExpiryDate())) {
@@ -89,7 +83,6 @@ public class FssaiTrackerService {
                                 profile.setUpdatedAt(System.currentTimeMillis());
                                 profile.setServerUpdatedAt(System.currentTimeMillis());
                                 restaurantProfileRepo.save(profile);
-                                isRenewed = true;
                                 log.info("Auto-updated profile FSSAI expiry date to {} for restaurantId={}", expiryDate, profile.getRestaurantId());
                             }
                         } catch (Exception e) {
