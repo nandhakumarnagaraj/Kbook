@@ -26,7 +26,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         TerminalDailyCounterEntity::class,
                         NotificationEntity::class
                 ],
-        version = 64,
+        version = 65,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -980,6 +980,14 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 }
                 if (!db.hasColumn("printer_profiles", "port")) {
                     db.execSQL("ALTER TABLE `printer_profiles` ADD COLUMN `port` INTEGER NOT NULL DEFAULT 9100")
+                }
+            }
+        }
+
+        val MIGRATION_64_65 = object : Migration(64, 65) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("restaurant_profile", "fssai_expiry_date")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `fssai_expiry_date` TEXT")
                 }
             }
         }
