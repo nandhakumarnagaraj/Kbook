@@ -351,20 +351,15 @@ class BluetoothPrinterManager(private val context: Context) {
 
                 bluetoothAdapter?.cancelDiscovery()
 
-                var socket: BluetoothSocket? = null
-                try {
-                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                    socket.connect()
-                } catch (e: Exception) {
-                    socket?.close()
-                    // Fallback to insecure RFCOMM — common for thermal printers.
-                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                    socket.connect()
-                }
+                // OEM Bluetooth stacks (Samsung, MediaTek, Xiaomi) frequently fail the first
+                // RFCOMM connect with a transient error. Retry secure→insecure across a few
+                // attempts with backoff before giving up.
+                val socket = connectWithRetry(device)
+                    ?: throw java.io.IOException("Unable to open RFCOMM socket to $mac after retries")
 
                 // Phase 3 (fast, global mutex): register the new socket.
                 printerMutex.withLock {
-                    activeSockets[mac] = socket!!
+                    activeSockets[mac] = socket
                     outputStreams[mac] = socket.outputStream
                     lastConnectedMac = mac
                     _isConnected.value = true
@@ -382,8 +377,53 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    suspend fun connect(address: String): Boolean {
-        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
+    /**
+     * Opens an RFCOMM socket with retries. Many OEM Bluetooth stacks
+     * (Samsung, MediaTek, Xiaomi) fail the first connect attempt with a transient
+     * error, so each attempt tries the secure socket first and then the insecure
+     * variant that most thermal printers expose. A short backoff between attempts
+     * gives the stack time to settle.
+     */
+    @Suppress("MissingPermission")
+    private suspend fun connectWithRetry(
+        device: BluetoothDevice,
+        attempts: Int = 3
+    ): BluetoothSocket? {
+        var lastError: Exception? = null
+        repeat(attempts) { attempt ->
+            // Secure RFCOMM first.
+            var socket: BluetoothSocket? = null
+            try {
+                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                socket.connect()
+                return socket
+            } catch (e: Exception) {
+                lastError = e
+                runCatching { socket?.close() }
+            }
+
+            // Insecure RFCOMM fallback — common for cheap thermal printers.
+            var insecure: BluetoothSocket? = null
+            try {
+                insecure = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                insecure.connect()
+                return insecure
+            } catch (e: Exception) {
+                lastError = e
+                runCatching { insecure?.close() }
+            }
+
+            if (attempt < attempts - 1) {
+                val backoffMs = 800L * (attempt + 1)
+                Log.w(TAG, "RFCOMM connect attempt ${attempt + 1}/$attempts failed, retrying in ${backoffMs}ms", lastError)
+                kotlinx.coroutines.delay(backoffMs)
+            }
+        }
+        Log.e(TAG, "All $attempts RFCOMM connect attempts failed", lastError)
+        return null
+    }
+
+    suspend fun connect(address: String): Boolean {        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
         return connect(device)
     }
 
