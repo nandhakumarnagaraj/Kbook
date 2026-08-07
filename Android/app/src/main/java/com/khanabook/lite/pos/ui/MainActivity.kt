@@ -100,12 +100,34 @@ class MainActivity : FragmentActivity() {
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
+    private val notificationPermissionLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+            Log.i("MainActivity", "POST_NOTIFICATIONS granted=$granted")
+        }
+
+    /**
+     * Android 13+ (API 33) requires runtime permission for notifications.
+     * Without this, push notifications are silently blocked on fresh installs.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val alreadyGranted = androidx.core.content.ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!alreadyGranted) {
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
+
+        requestNotificationPermissionIfNeeded()
 
         val token = sessionManager.getAuthToken()
         if (!token.isNullOrBlank()) {

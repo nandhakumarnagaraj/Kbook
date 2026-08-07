@@ -67,7 +67,9 @@ constructor(
     fun schedule(context: Context) {
       val constraints = Constraints.Builder()
               .setRequiredNetworkType(NetworkType.CONNECTED)
-              .setRequiresBatteryNotLow(true)
+              // NOTE: setRequiresBatteryNotLow is intentionally NOT set.
+              // Bills are revenue-critical data — sync must run even at low battery,
+              // otherwise a food truck / stall device on battery silently stops syncing.
               .build()
 
       val syncRequest =
