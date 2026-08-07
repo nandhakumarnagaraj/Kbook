@@ -474,7 +474,7 @@ fun PartPaymentCard(
             Text(
                 "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",
                 color = TextLight.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)
+                style = MaterialTheme.typography.labelSmall
 
 
             )
@@ -593,7 +593,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                         Text(
                             row.cancelReason,
                             color = DangerRed.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                            style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

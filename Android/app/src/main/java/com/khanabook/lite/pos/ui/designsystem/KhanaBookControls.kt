@@ -81,7 +81,7 @@ fun KhanaStatusBadge(
         Text(
             text = text,
             color = if (filled) content else container,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
             maxLines = 1,
             lineHeight = 10.sp,

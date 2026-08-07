@@ -1138,7 +1138,7 @@ fun MenuSelectionStep(
                                         Text(
                                             "Update Table",
                                             color = Color.White,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp)
+                                            style = MaterialTheme.typography.titleSmall
                                         )
                                     }
                                 } else {
@@ -1162,7 +1162,7 @@ fun MenuSelectionStep(
                                         Text(
                                             "Save Table",
                                             color = Color.White,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp)
+                                            style = MaterialTheme.typography.titleSmall
                                         )
                                     }
                                 }
@@ -2375,7 +2375,7 @@ fun SuccessStep(
                         Text(
                             text = lastBill?.let { PaymentMode.fromDbValue(it.bill.paymentMode).displayLabel } ?: "N/A",
                             color = Color.White,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall)
                         )
                     }
@@ -2865,7 +2865,7 @@ fun StepItem(
                 Spacer(modifier = Modifier.weight(1f))
             }
         }
-        Text(label, color = color, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp))
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall)
     }
 }
 

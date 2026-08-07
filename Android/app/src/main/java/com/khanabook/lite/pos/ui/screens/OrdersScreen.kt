@@ -607,7 +607,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
         text = text,
         modifier = Modifier.weight(weight),
         color = TextGold,
-        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
         textAlign = TextAlign.Center,
         lineHeight = 12.sp
     )
@@ -690,7 +690,7 @@ fun OrderTableRow(
                     Text(
                         text = row.payMode.displayLabel,
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         maxLines = 1
@@ -730,7 +730,7 @@ fun OrderTableRow(
                             else -> "Draft"
                         },
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                        style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         lineHeight = 10.sp
