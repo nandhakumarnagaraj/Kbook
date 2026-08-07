@@ -396,7 +396,8 @@ class SyncManager @Inject constructor(
                 stockLogs = acc.stockLogs + page.stockLogs,
                 bills = acc.bills + page.bills,
                 billItems = acc.billItems + page.billItems,
-                billPayments = acc.billPayments + page.billPayments
+                billPayments = acc.billPayments + page.billPayments,
+                grantedPermissions = acc.grantedPermissions ?: page.grantedPermissions
             )
         }
     }
