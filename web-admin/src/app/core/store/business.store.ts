@@ -14,11 +14,11 @@ export class BusinessStore {
   readonly dashboard = this._dashboard.asReadonly();
   readonly dashboardLoading = this._dashboardLoading.asReadonly();
 
-  loadDashboard(restaurantId: number, force = false) {
+  loadDashboard(force = false) {
     const now = Date.now();
     if (!force && this._dashboard() && now - this._dashboardFetchedAt < 60_000) return;
     this._dashboardLoading.set(true);
-    this.api.getDashboard(restaurantId).subscribe({
+    this.api.getDashboard().subscribe({
       next: (data) => { this._dashboard.set(data); this._dashboardFetchedAt = Date.now(); this._dashboardLoading.set(false); },
       error: () => this._dashboardLoading.set(false),
     });

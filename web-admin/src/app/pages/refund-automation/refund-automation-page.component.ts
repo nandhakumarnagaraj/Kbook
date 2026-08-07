@@ -5,22 +5,10 @@ import { of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-refund-automation-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatTableModule, MatChipsModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -84,8 +72,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 })
 export class RefundAutomationPageComponent {
   private readonly api = inject(AdminApiService);
-  private readonly snack = inject(MatSnackBar);
-
   readonly data = toSignal(this.api.getRefundSummary().pipe(catchError(() => of(null))));
   readonly refundableOrders = signal<any[]>([]);
   constructor() {
@@ -94,8 +80,8 @@ export class RefundAutomationPageComponent {
 
   refundOrder(billId: number, totalAmount: number) {
     this.api.initiateRefund(billId, totalAmount, 'CUSTOMER_REQUEST').subscribe({
-      next: () => { this.snack.open('Refund initiated', 'Close', { duration: 3000 }); this.refundableOrders.set([]); },
-      error: () => this.snack.open('Refund failed', 'Close', { duration: 3000 })
+      next: () => { void 0; this.refundableOrders.set([]); },
+      error: () => void 0
     });
   }
 

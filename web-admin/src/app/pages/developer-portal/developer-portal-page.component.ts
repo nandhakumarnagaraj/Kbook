@@ -4,17 +4,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-developer-portal-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatChipsModule, MatExpansionModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">

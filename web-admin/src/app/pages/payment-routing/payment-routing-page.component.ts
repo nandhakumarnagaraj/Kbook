@@ -4,16 +4,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-payment-routing-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatChipsModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Payment Routing</h1><p class="page-subtitle">Smart recommendations to maximize payment success rates.</p></div></div>

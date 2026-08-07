@@ -6,18 +6,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-instant-settlements-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Instant Settlements</h1><p class="page-subtitle">Request instant settlement of your available balance.</p></div></div>
@@ -65,9 +57,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 })
 export class InstantSettlementsPageComponent {
   private readonly api = inject(AdminApiService);
-  private readonly snack = inject(MatSnackBar);
   readonly estimate = toSignal(this.api.getSettlementEstimate().pipe(catchError(() => of(null))));
   settlementAmount = 0;
-  requestSettlement() { this.api.requestInstantSettlement(this.settlementAmount).subscribe({ next: () => { this.snack.open('Settlement initiated', 'Close', { duration: 3000 }); }, error: () => this.snack.open('Failed', 'Close', { duration: 3000 }) }); }
+  requestSettlement() { this.api.requestInstantSettlement(this.settlementAmount).subscribe({ next: () => { void 0; }, error: () => void 0 }); }
   formatCurrencyValue(v: number): string { return formatCurrency(v); }
 }

@@ -6,18 +6,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-tax-compliance-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatProgressSpinnerModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Tax Compliance</h1><p class="page-subtitle">GST reports, quarterly returns, and tax summary.</p></div></div>

@@ -1,8 +1,5 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { BreadcrumbComponent } from './breadcrumb.component';
 import { ErrorStateComponent } from './error-state.component';
 import { EmptyStateComponent } from './empty-state.component';
@@ -19,9 +16,6 @@ export interface BreadcrumbItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    MatIconModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
     BreadcrumbComponent,
     ErrorStateComponent,
     EmptyStateComponent,

@@ -1,9 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-
 export interface BreadcrumbItem {
   label: string;
   path?: string;
@@ -13,7 +10,7 @@ export interface BreadcrumbItem {
   selector: 'app-breadcrumb',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <nav class="breadcrumb" aria-label="Breadcrumb navigation">
       <a class="crumb home-link" routerLink="/admin/dashboard" matTooltip="Home">

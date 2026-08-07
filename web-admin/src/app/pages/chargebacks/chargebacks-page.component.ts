@@ -5,16 +5,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-chargebacks-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Chargeback Prevention</h1><p class="page-subtitle">Fraud scoring, chargeback tracking, and resolution workflow.</p></div></div>

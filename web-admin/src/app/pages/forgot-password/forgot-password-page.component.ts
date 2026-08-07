@@ -4,14 +4,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { environment } from '../../../environments/environment';
 
 const API_BASE_URL = environment.apiBaseUrl;
@@ -23,16 +15,7 @@ const API_BASE_URL = environment.apiBaseUrl;
     CommonModule, 
     ReactiveFormsModule, 
     FormsModule,
-    RouterModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule
-  ],
+    RouterModule],
   template: `
     <div class="login-shell">
       <div class="login-container">
@@ -732,8 +715,6 @@ export class ForgotPasswordPageComponent {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly snackBar = inject(MatSnackBar);
-
   readonly step = signal<'request' | 'reset'>('request');
   readonly loading = signal(false);
   readonly error = signal('');
@@ -826,8 +807,7 @@ export class ForgotPasswordPageComponent {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
-        this.snackBar.open('Password reset successful!', 'Sign In', { duration: 5000 })
-          .onAction().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.router.navigate(['/login']));
+        // snackbar action removed
         setTimeout(() => this.router.navigate(['/login']), 2000);
       },
       error: (err) => {

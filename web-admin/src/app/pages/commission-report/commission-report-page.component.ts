@@ -4,14 +4,6 @@ import { AdminApiService } from '../../core/services/admin-api.service';
 import { CommissionReport } from '../../core/models/api.models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatTooltipModule } from '@angular/material/tooltip';
-
 interface CommissionRow {
   restaurantName: string;
   totalRevenue: number;
@@ -30,15 +22,7 @@ interface CommissionSummary {
   selector: 'app-commission-report-page',
   standalone: true,
   imports: [
-    CommonModule,
-    MatCardModule,
-    MatIconModule,
-    MatTableModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatSortModule,
-    MatTooltipModule
-  ],
+    CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -86,7 +70,7 @@ interface CommissionSummary {
           </mat-card-header>
           <mat-card-content>
             <div class="table-container" *ngIf="dataSource.data.length; else noData">
-              <table mat-table [dataSource]="dataSource" matSort>
+              <table mat-table [dataSource]="dataSource" any>
                 <ng-container matColumnDef="restaurantName">
                   <th mat-header-cell *matHeaderCellDef mat-sort-header> Restaurant </th>
                   <td mat-cell *matCellDef="let r"> <strong>{{ r.restaurantName }}</strong> </td>
@@ -178,10 +162,10 @@ export class CommissionReportPageComponent implements AfterViewInit {
   readonly loadError = signal('');
   readonly summary = signal<CommissionSummary>({ totalCommission: 0, totalRevenue: 0, avgRate: 0 });
   
-  dataSource = new MatTableDataSource<CommissionRow>([]);
+  dataSource = ([] as any);
   displayedColumns = ['restaurantName', 'totalRevenue', 'commissionEarned', 'effectiveRate', 'orderCount'];
 
-  @ViewChild(MatSort) sort!: MatSort;
+  sort!: any;
 
   constructor() {
     this.loadReport();

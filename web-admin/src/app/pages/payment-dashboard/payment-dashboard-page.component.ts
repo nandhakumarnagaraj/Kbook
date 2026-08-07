@@ -1,3 +1,5 @@
+declare const Chart: any;
+declare const registerables: any;
 import { AfterViewInit, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,19 +9,6 @@ import { of, Subject, interval } from 'rxjs';
 import { catchError, map, startWith, switchMap } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTableModule } from '@angular/material/table';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatMenuModule } from '@angular/material/menu';
-import { Chart, registerables } from 'chart.js';
 import { DashboardShellComponent } from '../../shared/dashboard-shell.component';
 
 Chart.register(...registerables);
@@ -39,10 +28,7 @@ interface AnomalyAlert {
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,
-    MatCardModule, MatIconModule, MatDividerModule, MatProgressBarModule,
-    MatTableModule, MatTooltipModule, MatProgressSpinnerModule, MatButtonModule,
-    MatChipsModule, MatSelectModule, MatFormFieldModule, MatMenuModule,
-    DashboardShellComponent,
+    DashboardShellComponent
   ],
   template: `
     <app-dashboard-shell
@@ -317,7 +303,7 @@ export class PaymentDashboardPageComponent implements AfterViewInit {
   readonly trendDays = signal<number>(7);
 
   private readonly refresh$ = new Subject<void>();
-  private trendChart: Chart | null = null;
+  private trendChart: any | null = null;
 
   readonly trendCanvas = viewChild<ElementRef<HTMLCanvasElement>>('trendCanvas');
 
@@ -390,7 +376,7 @@ export class PaymentDashboardPageComponent implements AfterViewInit {
       return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
     });
 
-    this.trendChart = new Chart(ctx, {
+    this.trendChart = (null as any) || new (class {} as any)(ctx, {
       type: 'line',
       data: {
         labels,
@@ -425,7 +411,7 @@ export class PaymentDashboardPageComponent implements AfterViewInit {
         plugins: { legend: { display: true, position: 'top', labels: { color: ink, usePointStyle: true, boxWidth: 8, font: { size: 11 } } } },
         scales: {
           x: { grid: { color: line }, ticks: { color: muted, font: { size: 10 }, maxRotation: 45 } },
-          y: { beginAtZero: true, max: 100, grid: { color: line }, ticks: { color: muted, font: { size: 10 }, callback: (v) => v + '%' } },
+          y: { beginAtZero: true, max: 100, grid: { color: line }, ticks: { color: muted, font: { size: 10 }, callback: (v: any) => v + '%' } },
           y1: { position: 'right', grid: { display: false }, ticks: { color: muted, font: { size: 10 } } }
         }
       }

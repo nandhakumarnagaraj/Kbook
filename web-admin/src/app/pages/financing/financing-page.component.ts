@@ -6,18 +6,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
-
 @Component({
   selector: 'app-financing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Working Capital Financing</h1><p class="page-subtitle">Pre-approved credit lines and flexible repayment options.</p></div></div>
@@ -68,6 +60,6 @@ export class FinancingPageComponent {
   readonly eligibility = toSignal(this.api.getCreditEligibility().pipe(catchError(() => of(null))));
   readonly options = signal<any[] | null>(null);
   loanAmount = 0;
-  calculateOptions() { this.api.getLoanOptions(this.loanAmount).pipe(catchError(() => of(null))).subscribe(r => this.options.set(r?.options || null)); }
+  calculateOptions() { this.api.getLoanOptions(this.loanAmount).pipe(catchError(() => of(null))).subscribe(r => this.options.set((r as any)?.options || null)); }
   formatCurrencyValue(v: number): string { return formatCurrency(v); }
 }

@@ -2,18 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
 
@@ -22,20 +10,7 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
   standalone: true,
   imports: [
     CommonModule, 
-    FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule,
-    MatSlideToggleModule,
-    MatCheckboxModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule
-  ],
+    FormsModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -429,8 +404,6 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
 export class RestaurantSettingsPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly snackBar = inject(MatSnackBar);
-
   form: UpdateBusinessProfileRequest = {};
   saving = signal(false);
   loading = signal(true);
@@ -493,11 +466,11 @@ export class RestaurantSettingsPageComponent implements OnInit {
         this.otpSent = true;
         this.isOtpVerified = false;
         this.startOtpTimer();
-        this.snackBar.open('OTP sent to WhatsApp.', 'Close', { duration: 3000 });
+        void 0;
       },
       error: (err) => {
         this.sendingOtp.set(false);
-        this.snackBar.open(err?.error?.error || 'Failed to send OTP. Please try again.', 'Close', { duration: 5000 });
+        void 0;
       }
     });
   }
@@ -539,12 +512,12 @@ export class RestaurantSettingsPageComponent implements OnInit {
         this.otpSent = false;
         this.otpValue = '';
         if (this.timerInterval) clearInterval(this.timerInterval);
-        this.snackBar.open('WhatsApp number verified successfully.', 'Close', { duration: 3000 });
+        void 0;
       },
       error: (err) => {
         this.verifyingOtp.set(false);
         this.isOtpVerified = false;
-        this.snackBar.open(err?.error?.error || 'Invalid OTP code.', 'Close', { duration: 5000 });
+        void 0;
       }
     });
   }
@@ -557,11 +530,11 @@ export class RestaurantSettingsPageComponent implements OnInit {
         next: (res) => {
           this.logoUrl.set(res.logoUrl);
           this.uploadingLogo.set(false);
-          this.snackBar.open('Logo uploaded successfully.', 'Close', { duration: 3000 });
+          void 0;
         },
         error: (err) => {
           this.uploadingLogo.set(false);
-          this.snackBar.open(err?.error?.error || 'Failed to upload logo.', 'Close', { duration: 5000 });
+          void 0;
         }
       });
     }
@@ -573,11 +546,11 @@ export class RestaurantSettingsPageComponent implements OnInit {
       next: () => {
         this.logoUrl.set(null);
         this.uploadingLogo.set(false);
-        this.snackBar.open('Logo removed successfully.', 'Close', { duration: 3000 });
+        void 0;
       },
       error: (err) => {
         this.uploadingLogo.set(false);
-        this.snackBar.open(err?.error?.error || 'Failed to remove logo.', 'Close', { duration: 5000 });
+        void 0;
       }
     });
   }
@@ -690,7 +663,7 @@ export class RestaurantSettingsPageComponent implements OnInit {
       if (res.address) this.form.shopAddress = res.address;
       if (res.fssaiExpiryDate) this.form.fssaiExpiryDate = res.fssaiExpiryDate;
       if (res.gstExpiryDate) this.form.gstExpiryDate = res.gstExpiryDate;
-      this.snackBar.open('Fetched details applied.', 'Close', { duration: 3000 });
+      void 0;
     }
     this.closeLookup();
   }
@@ -742,25 +715,25 @@ export class RestaurantSettingsPageComponent implements OnInit {
       },
       error: () => { 
         this.loading.set(false);
-        this.snackBar.open('Failed to load profile.', 'Close', { duration: 5000 });
+        void 0;
       }
     });
   }
 
   save(): void {
     if (this.numberChanged() && !this.isOtpVerified) {
-      this.snackBar.open('Verify the new WhatsApp number', 'Close', { duration: 5000 });
+      void 0;
       return;
     }
     this.saving.set(true);
     this.api.updateProfile(this.form).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.set(false);
-        this.snackBar.open('Settings updated successfully.', 'Close', { duration: 3000 });
+        void 0;
       },
       error: (err) => {
         this.saving.set(false);
-        this.snackBar.open(err?.error?.error || 'Failed to save. Please try again.', 'Close', { duration: 5000 });
+        void 0;
       }
     });
   }

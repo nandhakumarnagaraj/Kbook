@@ -5,14 +5,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-unified-commerce-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Unified Commerce Hub</h1><p class="page-subtitle">Cross-channel operations: POS, Swiggy, and Zomato in one view.</p></div></div>

@@ -4,18 +4,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-webhook-health-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatTableModule, MatChipsModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -63,7 +55,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 })
 export class WebhookHealthPageComponent {
   private readonly api = inject(AdminApiService);
-  private readonly snack = inject(MatSnackBar);
   readonly health = toSignal(this.api.getWebhookHealth().pipe(catchError(() => of(null))));
   readonly dlq = signal<any[]>([]);
   constructor() {
@@ -71,8 +62,8 @@ export class WebhookHealthPageComponent {
   }
   replay(id: number) {
     this.api.replayDeadLetter(id).subscribe({
-      next: () => { this.snack.open('Replayed', 'Close', { duration: 2000 }); this.dlq.set([]); },
-      error: () => this.snack.open('Failed', 'Close', { duration: 2000 })
+      next: () => { void 0; this.dlq.set([]); },
+      error: () => void 0
     });
   }
 }

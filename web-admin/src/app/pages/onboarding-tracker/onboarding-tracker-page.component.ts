@@ -5,17 +5,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-onboarding-tracker-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule, MatSnackBarModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -67,8 +60,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 })
 export class OnboardingTrackerPageComponent {
   private readonly api = inject(AdminApiService);
-  private readonly snack = inject(MatSnackBar);
   readonly progress = toSignal(this.api.getOnboardingProgress().pipe(catchError(() => of(null))));
-  prefill() { this.api.prefillFromProfile().subscribe({ next: () => { this.snack.open('Profile prefilled', 'Close', { duration: 2000 }); }, error: () => this.snack.open('Failed', 'Close', { duration: 2000 }) }); }
+  prefill() { this.api.prefillFromProfile().subscribe({ next: () => { void 0; }, error: () => void 0 }); }
   formatCurrencyValue(v: number): string { return formatCurrency(v); }
 }

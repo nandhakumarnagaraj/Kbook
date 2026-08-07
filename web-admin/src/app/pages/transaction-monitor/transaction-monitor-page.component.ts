@@ -5,19 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { AdminTransaction } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTooltipModule } from '@angular/material/tooltip';
-
 // Use the shared AdminTransaction type — no local duplicate needed
 type Transaction = AdminTransaction;
 
@@ -26,20 +13,7 @@ type Transaction = AdminTransaction;
   standalone: true,
   imports: [
     CommonModule, 
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatCardModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatButtonModule,
-    MatTooltipModule
-  ],
+    FormsModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -142,7 +116,7 @@ type Transaction = AdminTransaction;
         <mat-paginator [length]="totalCount"
                        [pageSize]="pageSize"
                        [pageSizeOptions]="[10, 25, 50, 100]"
-                       (page)="onPageEvent($event)"
+                       (page)="onany($event)"
                        aria-label="Select page">
         </mat-paginator>
       </div>
@@ -181,7 +155,7 @@ export class TransactionMonitorPageComponent implements OnInit {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
 
-  dataSource = new MatTableDataSource<Transaction>([]);
+  dataSource = ([] as any);
   displayedColumns = ['txnId', 'restaurant', 'amount', 'status', 'mode', 'date'];
   
   readonly loaded = signal(false);
@@ -215,7 +189,7 @@ export class TransactionMonitorPageComponent implements OnInit {
     this.loadTransactions();
   }
 
-  onPageEvent(event: PageEvent): void {
+  onany(event: any): void {
     this.currentPage = event.pageIndex;
     this.pageSize = event.pageSize;
     this.loadTransactions();

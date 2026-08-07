@@ -3,13 +3,6 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency, formatDate } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
-
 interface Settlement {
   restaurantId: number;
   shopName: string;
@@ -23,14 +16,7 @@ interface Settlement {
   selector: 'app-settlement-reports-page',
   standalone: true,
   imports: [
-    CommonModule,
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule
-  ],
+    CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row">
@@ -298,7 +284,7 @@ export class SettlementReportsPageComponent implements OnInit {
     this.api.getSettlements().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         // Map AdminSettlement → local Settlement UI shape
-        const mapped: Settlement[] = data.map(s => ({
+        const mapped: any[] = data.map(s => ({
           restaurantId: s.restaurantId,
           shopName: s.shopName ?? 'Unknown',
           totalSettled: s.amount,

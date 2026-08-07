@@ -26,7 +26,7 @@ import {
   UpdateStaffRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 const API_BASE_URL = environment.apiBaseUrl;
 
@@ -188,4 +188,14 @@ export class BusinessApiService {
     return this.http.get<OrderDetailResponse>(`${API_BASE_URL}/business/orders/${billId}`);
   }
 
+  // ── Restaurant settings stub methods ──────────────────────────────────────
+  requestUpdateMobileOtp(...args: any[]): Observable<any> { return of(null); }
+  confirmUpdateMobile(...args: any[]): Observable<any> { return of(null); }
+  uploadLogo(file: File): Observable<any> { return of(null); }
+  deleteLogo(): Observable<any> { return of(null); }
+  lookupFssai(number: string): Observable<any> { return of(null); }
+  lookupGst(number: string): Observable<any> { return of(null); }
+  lookupBoth(fssai: string, gst: string): Observable<any> { return of(null); }
+  getProfile(): Observable<any> { return of(null); }
+  updateProfile(payload: any): Observable<any> { return of(null); }
 }

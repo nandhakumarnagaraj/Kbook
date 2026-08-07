@@ -5,16 +5,10 @@ import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency } from '../../shared/formatters';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
 @Component({
   selector: 'app-customer-cdp-page',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatChipsModule, MatTableModule, MatProgressSpinnerModule],
+  imports: [CommonModule],
   template: `
     <div class="page-container">
       <div class="header-row"><div><h1 class="page-title">Customer Data Platform</h1><p class="page-subtitle">Unified customer profiles, segments, and churn risk analysis.</p></div></div>
