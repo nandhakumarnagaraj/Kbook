@@ -133,7 +133,6 @@ public class SecurityConfig {
 							"/public/**",
 							"/cdn/**",
 							"/error",
-							"/notifications/test/direct-push",
 							"/webhooks/swiggy",
 							"/webhooks/zomato",
 							// Easebuzz server-to-server callbacks (v2 port): must be unauthenticated.

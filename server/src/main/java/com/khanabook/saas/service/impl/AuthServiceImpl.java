@@ -42,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
 
-    @Value("${jwt.expiration.ms:2592000000}")
+    @Value("${jwt.expiration.ms:900000}")
     private long accessTokenExpMs;
 
     @Autowired(required = false)

@@ -23,7 +23,7 @@ public class JwtUtility {
 	@Value("${jwt.secret}")
 	private String secret;
 
-	@Value("${jwt.expiration.ms:36000000}")
+	@Value("${jwt.expiration.ms:900000}")
 	private long expirationMs;
 
 	@Value("${jwt.terminal.expiration.ms:2592000000}")
