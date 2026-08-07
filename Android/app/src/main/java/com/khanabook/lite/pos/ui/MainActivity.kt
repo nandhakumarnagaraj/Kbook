@@ -349,12 +349,27 @@ class MainActivity : FragmentActivity() {
                     composable("initial_sync") {
                         InitialSyncScreen(
                             onSyncCompleteNavigateToMain = {
-                                navController.navigate(authenticatedStartDestination()) {
+                                val next = if (!sessionManager.isBackgroundReliabilityPromptShown()) {
+                                    "background_reliability"
+                                } else {
+                                    authenticatedStartDestination()
+                                }
+                                navController.navigate(next) {
                                     popUpTo("initial_sync") { inclusive = true }
                                 }
                             },
                             onNavigateToLogin = {
                                 navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                            }
+                        )
+                    }
+                    composable("background_reliability") {
+                        BackgroundReliabilityScreen(
+                            onDone = {
+                                sessionManager.setBackgroundReliabilityPromptShown(true)
+                                navController.navigate(authenticatedStartDestination()) {
+                                    popUpTo("background_reliability") { inclusive = true }
+                                }
                             }
                         )
                     }

@@ -208,6 +208,17 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         return prefs.getBoolean("initial_sync_completed_$restaurantId", false)
     }
 
+    /**
+     * Tracks whether the one-time background-reliability setup guidance
+     * (battery optimization + OEM auto-start) has been shown to this user.
+     */
+    fun isBackgroundReliabilityPromptShown(): Boolean =
+        prefs.getBoolean(scopedKey("background_reliability_prompt_shown"), false)
+
+    fun setBackgroundReliabilityPromptShown(shown: Boolean) {
+        prefs.edit().putBoolean(scopedKey("background_reliability_prompt_shown"), shown).apply()
+    }
+
     fun isBillItemBackfillCompleted(): Boolean =
         prefs.getBoolean(scopedKey("bill_item_backfill_completed_v3"), false)
 
