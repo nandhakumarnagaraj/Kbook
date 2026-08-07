@@ -76,6 +76,83 @@ class PermissionManager @Inject constructor(
         _permissionsLoaded.value = false
     }
 
+    // ── Request Access Flow ──────────────────────────────────────────────────
+
+    private val _requestInFlight = MutableStateFlow(false)
+    val requestInFlight: StateFlow<Boolean> = _requestInFlight.asStateFlow()
+
+    private val _lastRequestResult = MutableStateFlow<RequestResult?>(null)
+    val lastRequestResult: StateFlow<RequestResult?> = _lastRequestResult.asStateFlow()
+
+    /**
+     * Submit a permission request to the server.
+     * Returns success/failure via lastRequestResult StateFlow.
+     */
+    suspend fun requestAccess(api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi, permissionKey: String, reason: String? = null) {
+        _requestInFlight.value = true
+        try {
+            val body = com.khanabook.lite.pos.data.remote.api.PermissionRequestBody(permissionKey, reason)
+            val response = api.requestPermission(body)
+            val requestId = (response["requestId"] as? Number)?.toLong()
+            _lastRequestResult.value = RequestResult.Success(permissionKey, requestId)
+            Log.i(tag, "Permission request submitted: $permissionKey → requestId=$requestId")
+        } catch (e: Exception) {
+            Log.e(tag, "Permission request failed: $permissionKey", e)
+            val message = when {
+                e.message?.contains("already have") == true -> "You already have this permission"
+                e.message?.contains("already pending") == true -> "A request is already pending"
+                else -> "Request failed. Try again later."
+            }
+            _lastRequestResult.value = RequestResult.Error(permissionKey, message)
+        } finally {
+            _requestInFlight.value = false
+        }
+    }
+
+    fun clearRequestResult() {
+        _lastRequestResult.value = null
+    }
+
+    /**
+     * Get display name for a permission key (for UI).
+     */
+    fun getDisplayName(permissionKey: String): String {
+        return PERMISSION_DISPLAY_NAMES[permissionKey] ?: permissionKey
+    }
+
+    sealed class RequestResult {
+        data class Success(val permissionKey: String, val requestId: Long?) : RequestResult()
+        data class Error(val permissionKey: String, val message: String) : RequestResult()
+    }
+
+    private val PERMISSION_DISPLAY_NAMES = mapOf(
+        BILLING_CREATE to "Create Bills",
+        BILLING_EDIT to "Edit Bills",
+        BILLING_VOID to "Cancel/Void Bills",
+        BILLING_DISCOUNT to "Apply Discounts",
+        BILLING_REFUND to "Process Refunds",
+        BILLING_SETTLE to "Mark Payment Received",
+        MENU_VIEW to "View Menu",
+        MENU_TOGGLE_AVAILABILITY to "Toggle Availability",
+        MENU_EDIT_PRICE to "Change Prices",
+        MENU_ADD_ITEM to "Add Items",
+        MENU_DELETE_ITEM to "Remove Items",
+        ORDERS_VIEW to "View Orders",
+        ORDERS_KOT_VIEW to "Kitchen Queue",
+        ORDERS_KOT_READY to "Mark Ready",
+        REPORTS_DAY_SUMMARY to "Day Summary",
+        REPORTS_FULL to "Full Reports",
+        REPORTS_GST to "GST Reports",
+        REPORTS_EXPORT to "Export Data",
+        STAFF_VIEW to "View Staff",
+        STAFF_ADD to "Add Staff",
+        STAFF_PERMISSIONS to "Manage Permissions",
+        SETTINGS_SHOP_PROFILE to "Shop Profile",
+        SETTINGS_PAYMENT to "Payment Settings",
+        SETTINGS_PRINTER to "Printer Settings",
+        SETTINGS_TERMINAL to "Manage Devices"
+    )
+
     // ── Permission key constants (mirrors server PermissionKey enum) ──────────
 
     companion object {

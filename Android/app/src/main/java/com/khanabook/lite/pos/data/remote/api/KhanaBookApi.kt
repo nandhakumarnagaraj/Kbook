@@ -161,6 +161,29 @@ interface KhanaBookApi {
 
         @POST("api/v1/business/marketplace-orders/{orderId}/complete")
         suspend fun completeMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
+
+        // ── Permissions ──────────────────────────────────────────────────────────
+
+        @GET("api/v1/permissions/me")
+        suspend fun getMyPermissions(): PermissionSyncResponse
+
+        @POST("api/v1/permissions/request")
+        suspend fun requestPermission(@Body body: PermissionRequestBody): Map<String, Any>
+
+        @GET("api/v1/permissions/requests/pending")
+        suspend fun getPendingPermissionRequests(): List<PermissionRequestDto>
+
+        @POST("api/v1/permissions/requests/{requestId}/resolve")
+        suspend fun resolvePermissionRequest(
+            @Path("requestId") requestId: Long,
+            @Body body: PermissionResolveBody
+        )
+
+        @POST("api/v1/permissions/grant")
+        suspend fun grantPermission(@Body body: PermissionGrantBody)
+
+        @POST("api/v1/permissions/revoke")
+        suspend fun revokePermission(@Body body: PermissionRevokeBody)
 }
 
 data class TerminalListItem(
