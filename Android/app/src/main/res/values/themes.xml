@@ -6,7 +6,15 @@
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
     </style>
 
-    <style name="Theme.KhanaBookLite.Launch" parent="Theme.KhanaBookLite">
+    <!--
+        Launch theme used for the cold-start window.
+        - Android 8-11: uses windowBackground (gradient + centered logo)
+        - Android 12+:  uses the SplashScreen API attributes below
+    -->
+    <style name="Theme.KhanaBookLite.Launch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1A0A0A</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/khanabook_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.KhanaBookLite</item>
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
     </style>
 

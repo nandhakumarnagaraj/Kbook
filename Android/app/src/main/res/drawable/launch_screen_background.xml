@@ -9,4 +9,12 @@
                 android:endColor="#3A1812" />
         </shape>
     </item>
+    <item
+        android:gravity="center"
+        android:width="140dp"
+        android:height="140dp">
+        <bitmap
+            android:src="@drawable/khanabook_logo"
+            android:gravity="center" />
+    </item>
 </layer-list>
