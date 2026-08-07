@@ -309,7 +309,7 @@ private fun ActiveOrderActionGrid(
             ) {
                 Button(
                     onClick = onAddItems,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryGold,
                         contentColor = DarkBrown1
@@ -323,7 +323,7 @@ private fun ActiveOrderActionGrid(
                 Button(
                     onClick = onUpdateKot,
                     enabled = hasNewItems,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryGold,
                         contentColor = DarkBrown1,
@@ -353,7 +353,7 @@ private fun ActiveOrderActionGrid(
             ) {
                 Button(
                     onClick = onPayment,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SuccessGreen,
                         contentColor = TextLight
@@ -366,7 +366,7 @@ private fun ActiveOrderActionGrid(
                 }
                 OutlinedButton(
                     onClick = onPrintBill,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                     border = BorderStroke(1.dp, BorderGold),
                     shape = KhanaRadii.md

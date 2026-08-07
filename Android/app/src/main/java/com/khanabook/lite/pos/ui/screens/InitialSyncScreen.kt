@@ -146,7 +146,7 @@ fun InitialSyncScreen(
                         onClick = { onNavigateToLogin() },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
                     ) {
                         Text(
                             "Login Again",
@@ -205,7 +205,7 @@ fun InitialSyncScreen(
                         onClick = { viewModel.pollRequestStatus() },
                         border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
                         shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
                     ) {
                         Text(
                             "Check Again",
@@ -235,7 +235,7 @@ fun InitialSyncScreen(
                         onClick = { viewModel.startInitialSync() },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
                     ) {
                         Text(
                             "Retry",

@@ -376,7 +376,7 @@ fun ShopConfigView(
                             onClick = {
                                 if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                             },
-                            modifier = Modifier.padding(end = spacing.extraSmall).height(56.dp),
+                            modifier = Modifier.padding(end = spacing.extraSmall).height(KhanaBookTheme.spacing.buttonHeightLarge),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = KhanaRadii.xl,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),

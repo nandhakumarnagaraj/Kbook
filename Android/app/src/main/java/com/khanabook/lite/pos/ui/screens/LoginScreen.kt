@@ -284,7 +284,7 @@ fun LoginScreen(
                     text = "Forgot Password?",
                     color = PrimaryGold,
                     style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp).clickable { showForgotDialog = true }.padding(end = spacing.medium),
+                    modifier = Modifier.align(Alignment.End).heightIn(min = KhanaBookTheme.spacing.buttonHeightCompact).clickable { showForgotDialog = true }.padding(end = spacing.medium),
                     fontWeight = FontWeight.Medium
             )
 
@@ -311,7 +311,7 @@ fun LoginScreen(
                             viewModel.login(loginId, password) 
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
                     colors =
                             ButtonDefaults.buttonColors(
                                     containerColor =
@@ -502,7 +502,7 @@ fun ForgotPasswordDialog(
             if (step == 1) {
                 Button(
                     onClick = { if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset") },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeight),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
                     shape = KhanaRadii.lg,
                     enabled = isPhoneValid && !isResetLoading
@@ -527,7 +527,7 @@ fun ForgotPasswordDialog(
                                 viewModel.clearResetStatus()
                             }
                         },
-                        modifier = Modifier.weight(1f).height(52.dp),
+                        modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeight),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
                         shape = KhanaRadii.lg
@@ -541,7 +541,7 @@ fun ForgotPasswordDialog(
                                     viewModel.resetPassword(phone, otp, newPassword)
                             }
                         },
-                        modifier = Modifier.weight(2f).height(52.dp),
+                        modifier = Modifier.weight(2f).height(KhanaBookTheme.spacing.buttonHeight),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
                         shape = KhanaRadii.lg,
                         enabled = when (step) {

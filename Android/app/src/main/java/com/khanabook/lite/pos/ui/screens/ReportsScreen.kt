@@ -788,7 +788,7 @@ fun OrderDetailsDialog(
 
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = KhanaRadii.lg
                 ) {

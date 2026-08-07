@@ -499,7 +499,7 @@ fun SignUpScreen(
                                 viewModel.signUp(shopName, phoneNumber, otp, newPassword)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isFormValid) PrimaryGold else TextMuted,
                             contentColor = DarkBrown1

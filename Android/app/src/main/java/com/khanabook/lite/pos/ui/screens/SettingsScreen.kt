@@ -492,7 +492,7 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
     val iconSize = KhanaBookTheme.iconSize
     Column(modifier = Modifier.fillMaxWidth().padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
-        Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = KhanaRadii.lg) {
+        Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = KhanaRadii.lg) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
             Text("Sign Out", style = MaterialTheme.typography.labelLarge)

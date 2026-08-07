@@ -261,7 +261,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         Button(
             onClick = { if (!isLoading) showConfirmDialog = true },
             enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
             colors = ButtonDefaults.buttonColors(
                 containerColor = DangerRed,
                 disabledContainerColor = DangerRed.copy(alpha = 0.4f)

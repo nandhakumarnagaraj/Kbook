@@ -103,7 +103,7 @@ fun BackgroundReliabilityScreen(
 
             Button(
                 onClick = onDone,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeight),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                 shape = KhanaRadii.button
             ) {
@@ -166,7 +166,7 @@ private fun SetupStepCard(
             OutlinedButton(
                 onClick = onAction,
                 enabled = actionEnabled,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = KhanaBookTheme.spacing.buttonHeightCompact),
                 shape = KhanaRadii.button,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                 border = androidx.compose.foundation.BorderStroke(

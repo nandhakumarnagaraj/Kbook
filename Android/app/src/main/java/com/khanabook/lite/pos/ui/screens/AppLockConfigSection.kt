@@ -581,7 +581,7 @@ fun ChangePasswordView(
                         if (step == 2) { otp = "" }
                         step -= 1
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
                     shape = KhanaRadii.pill,
                     enabled = !isLoading
@@ -615,7 +615,7 @@ fun ChangePasswordView(
                         }
                     }
                 },
-                modifier = Modifier.weight(2f).height(56.dp),
+                modifier = Modifier.weight(2f).height(KhanaBookTheme.spacing.buttonHeightLarge),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
                 shape = KhanaRadii.pill,
                 enabled = !isLoading

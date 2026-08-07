@@ -669,7 +669,7 @@ fun DeviceRow(
 @Composable
 private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -351,7 +351,7 @@ fun ActiveOrderScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeight),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isAmountValid) SuccessGreen else Color.Gray
                     ),
@@ -376,7 +376,7 @@ fun ActiveOrderScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
                     border = BorderStroke(1.dp, DangerRed),
                     shape = KhanaRadii.lg,
@@ -394,7 +394,7 @@ fun ActiveOrderScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                     colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                     shape = KhanaRadii.lg,
                     enabled = itemCount > 0 && !isLoading
@@ -834,7 +834,7 @@ private fun PaymentModeSelector(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(KhanaBookTheme.spacing.buttonHeightCompact)
             .background(BrownSelected, KhanaRadii.md)
             .border(1.dp, BorderGold)
             .clickable { onExpandedChange(true) }

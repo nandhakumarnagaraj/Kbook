@@ -466,7 +466,7 @@ fun ReviewDetectedItemsScreen(
                                 onClick = { showDiscardConfirm = true },
                                 border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
-                                modifier = Modifier.weight(1f).height(56.dp),
+                                modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
                                 shape = KhanaRadii.lg
                             ) {
                                 Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -478,7 +478,7 @@ fun ReviewDetectedItemsScreen(
                                     containerColor = PrimaryGold,
                                     contentColor = DarkBrown1
                                 ),
-                                modifier = Modifier.weight(2f).height(56.dp),
+                                modifier = Modifier.weight(2f).height(KhanaBookTheme.spacing.buttonHeightLarge),
                                 shape = KhanaRadii.lg
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
@@ -720,7 +720,7 @@ internal fun ReviewDetectedItemsOverlay(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
                             modifier = Modifier
                                 .weight(1f)
-                                .height(56.dp)
+                                .height(KhanaBookTheme.spacing.buttonHeightLarge)
                                 .testTag(MenuConfigurationTags.reviewOverlayDiscard),
                             shape = KhanaRadii.lg
                         ) {
@@ -743,7 +743,7 @@ internal fun ReviewDetectedItemsOverlay(
                             ),
                             modifier = Modifier
                                 .weight(2f)
-                                .height(56.dp)
+                                .height(KhanaBookTheme.spacing.buttonHeightLarge)
                                 .testTag(MenuConfigurationTags.reviewOverlayConfirm),
                             shape = KhanaRadii.lg
                         ) {
@@ -858,7 +858,7 @@ private fun ConflictResolutionDialog(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(KhanaBookTheme.spacing.buttonHeight)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictOverwrite),
             shape = KhanaRadii.lg
         ) {
@@ -870,7 +870,7 @@ private fun ConflictResolutionDialog(
             border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.7f)),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(KhanaBookTheme.spacing.buttonHeight)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictMerge),
             shape = KhanaRadii.lg
         ) {
@@ -882,7 +882,7 @@ private fun ConflictResolutionDialog(
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(KhanaBookTheme.spacing.buttonHeightCompact)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictCancel),
             shape = KhanaRadii.lg
         ) {

@@ -153,7 +153,7 @@ fun KhanaSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(KhanaBookTheme.spacing.buttonHeightLarge),
         border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = PrimaryGold,
@@ -181,7 +181,7 @@ fun KhanaDestructiveButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(KhanaBookTheme.spacing.buttonHeightLarge),
         colors = ButtonDefaults.buttonColors(
             containerColor = DangerRed,
             contentColor = TextLight,

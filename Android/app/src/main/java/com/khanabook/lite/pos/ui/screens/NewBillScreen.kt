@@ -697,7 +697,7 @@ fun CustomerInfoStep(
                 onClick = { if (isNextEnabled) onNext(name, whatsapp) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(KhanaBookTheme.spacing.buttonHeightLarge),
                 colors =
                         ButtonDefaults.buttonColors(
                                 containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
@@ -1288,7 +1288,7 @@ fun MenuSelectionStep(
                                                 }
                                             }
                                         },
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0
@@ -1309,7 +1309,7 @@ fun MenuSelectionStep(
                                                 }
                                             }
                                         },
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0
@@ -1323,7 +1323,7 @@ fun MenuSelectionStep(
                             if (!canSaveTableOrder) {
                                 Button(
                                     onClick = onProceedToPayment,
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaRadii.lg,
                                     enabled = derivedItemCount > 0
@@ -1949,7 +1949,7 @@ fun PaymentStep(
                 Box(
                         modifier =
                                 Modifier.fillMaxWidth()
-                                        .height(56.dp)
+                                        .height(KhanaBookTheme.spacing.buttonHeightLarge)
                                         .background(BrownSelected, KhanaRadii.md)
                                         .border(1.dp, BorderGold)
                                         .clickable(enabled = !controlsLocked) { expanded = true }
@@ -2119,7 +2119,7 @@ fun PaymentStep(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(KhanaBookTheme.spacing.buttonHeightLarge),
                     colors =
                             ButtonDefaults.buttonColors(
                                     containerColor = if (isAmountValid) SuccessGreen else Color.Gray
@@ -2160,7 +2160,7 @@ fun PaymentStep(
                             onFailed()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                     enabled = paymentAttemptReady
             ) {
                 Text(
@@ -2244,7 +2244,7 @@ fun FailedStep(
         // "Back to Home" button
         OutlinedButton(
             onClick = onNewBill,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
             border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
             shape = KhanaRadii.lg
         ) {
@@ -2468,7 +2468,7 @@ fun SuccessStep(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = WhatsAppGreen,
                     contentColor = Color.White,

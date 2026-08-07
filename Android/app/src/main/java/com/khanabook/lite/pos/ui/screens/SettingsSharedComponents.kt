@@ -150,7 +150,7 @@ fun ConfigActionButtons(
     ) {
         OutlinedButton(
             onClick = onBack,
-            modifier = Modifier.weight(1f).height(56.dp),
+            modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = PrimaryGold,
@@ -163,7 +163,7 @@ fun ConfigActionButtons(
         Button(
             onClick = onSave,
             enabled = saveEnabled && !isSaving,
-            modifier = Modifier.weight(1f).height(56.dp),
+            modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
             colors = ButtonDefaults.buttonColors(
                 containerColor = SuccessGreen,
                 contentColor = Color.White,
