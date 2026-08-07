@@ -31,11 +31,13 @@ node_modules/
 server/.env*
 !server/.env.example
 .env
+.env.v2
 !.env.example
 
 # Android secrets (use secrets.properties.example as template)
 Android/secrets.properties
 Android/local.properties
+Android/release-key.jks
 
 # Android app build outputs
 Android/app/build/
