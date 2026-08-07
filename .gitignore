@@ -46,6 +46,7 @@ Android/app/*.aab
 
 # Python scripts (one-time utilities)
 *.py
+!ops/*.py
 
 # Local dev CDN uploads (not for VCS)
 /cdn/
