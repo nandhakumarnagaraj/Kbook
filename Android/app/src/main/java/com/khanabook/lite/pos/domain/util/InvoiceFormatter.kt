@@ -223,7 +223,7 @@ object InvoiceFormatter {
 
         add(BOLD_ON)
         add("$doubleLine\n")
-        add(leftPad + formatRow("TOTAL:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
+        add(leftPad + formatRow("GRAND TOTAL:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
         add(BOLD_OFF)
         add("$doubleLine\n")
 
