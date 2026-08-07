@@ -237,7 +237,7 @@ fun LoginScreen(
                                         else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
                                 tint = PrimaryGold,
-                                modifier = Modifier.clickable { showPassword = !showPassword }
+                                modifier = Modifier.size(48.dp).clickable { showPassword = !showPassword }.padding(12.dp)
                         )
                     },
                     visualTransformation =
@@ -284,7 +284,7 @@ fun LoginScreen(
                     text = "Forgot Password?",
                     color = PrimaryGold,
                     style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.align(Alignment.End).clickable { showForgotDialog = true }.padding(end = spacing.medium),
+                    modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp).clickable { showForgotDialog = true }.padding(end = spacing.medium),
                     fontWeight = FontWeight.Medium
             )
 

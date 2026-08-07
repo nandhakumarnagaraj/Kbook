@@ -112,6 +112,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
@@ -467,7 +468,12 @@ fun SyncStatusHeader(
                     unsyncedCount > 0 -> Icons.Default.Sync
                     else -> Icons.Default.CloudDone
                 },
-                contentDescription = null,
+                contentDescription = when {
+                    !isOnline -> "Offline - no internet connection"
+                    !isSessionValid -> "Session expired - login required"
+                    unsyncedCount > 0 -> "$unsyncedCount items pending sync"
+                    else -> "All data synced to cloud"
+                },
                 tint = containerColor,
                 modifier = Modifier
                     .size(iconSize.small)

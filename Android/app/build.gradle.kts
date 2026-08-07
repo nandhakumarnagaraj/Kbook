@@ -62,7 +62,6 @@ plugins {
     // alias(libs.plugins.room)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
-    kotlin("kapt")
 }
 
 kotlin {
