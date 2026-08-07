@@ -200,6 +200,19 @@ fun NewBillScreen(
         }
     }
 
+    val navigateToHome: () -> Unit = {
+        if (navController != null) {
+            navController.navigate("main/0") {
+                popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        } else {
+            onBack()
+        }
+    }
+
     val returnToCompletedOrders: () -> Unit = {
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
@@ -337,7 +350,7 @@ fun NewBillScreen(
                             SuccessStep(
                                     billingViewModel,
                                     settingsViewModel,
-                                    onDone = returnToCompletedOrders,
+                                    onDone = navigateToHome,
                                     onShowMessage = { msg ->
                                         coroutineScope.launch {
                                             KhanaToast.show(msg, printFeedbackKind(msg))
@@ -348,7 +361,7 @@ fun NewBillScreen(
                             FailedStep(
                                     viewModel = billingViewModel,
                                     onRetryPayment = { step = 3 },
-                                    onNewBill = returnToCompletedOrders
+                                    onNewBill = navigateToHome
                             )
                 }
             }

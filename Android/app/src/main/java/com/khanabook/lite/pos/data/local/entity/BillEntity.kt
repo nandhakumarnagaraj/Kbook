@@ -162,6 +162,7 @@ fun BillEntity.getInvoiceNumberDisplay(): String {
     if (lifetimeOrderId != null && lifetimeOrderId > 0) {
         return "INV$lifetimeOrderId"
     }
+    if (!dailyOrderDisplay.isNullOrBlank()) return dailyOrderDisplay
     val prefix = terminalSeries ?: "DRAFT"
     return "$prefix-LOC-$id"
 }
