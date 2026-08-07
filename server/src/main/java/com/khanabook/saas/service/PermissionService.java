@@ -33,7 +33,7 @@ public class PermissionService {
     public boolean hasPermission(Long restaurantId, Long userId, String permissionKey) {
         var user = userRepo.findById(userId).orElse(null);
         if (user == null) return false;
-        if (UserRole.OWNER.name().equals(user.getRole())) return true;
+        if (UserRole.OWNER == user.getRole()) return true;
 
         return permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .map(StaffPermission::getGranted)
@@ -42,7 +42,7 @@ public class PermissionService {
 
     public List<String> getGrantedPermissions(Long restaurantId, Long userId) {
         var user = userRepo.findById(userId).orElse(null);
-        if (user != null && UserRole.OWNER.name().equals(user.getRole())) {
+        if (user != null && UserRole.OWNER == user.getRole()) {
             return Arrays.stream(PermissionKey.values())
                     .map(PermissionKey::getKey)
                     .collect(Collectors.toList());
@@ -205,7 +205,7 @@ public class PermissionService {
                 ))
                 .collect(Collectors.toList());
 
-        return new UserPermissionsResponse(userId, user.getName(), user.getRole(), permResponses);
+        return new UserPermissionsResponse(userId, user.getName(), user.getRole().name(), permResponses);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
