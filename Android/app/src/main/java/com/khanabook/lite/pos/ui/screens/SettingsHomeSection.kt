@@ -51,12 +51,12 @@ fun SettingsHomeSection(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = spacing.medium)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = spacing.medium, vertical = spacing.small)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
-            Spacer(modifier = Modifier.height(spacing.small))
             ProfileCard(currentUser, profile, lastSyncTimestamp)
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(spacing.small))
 
             if (isWideScreen) {
                 SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {
@@ -98,7 +98,7 @@ fun SettingsHomeSection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(spacing.small))
 
             KhanaBookCard(
                 modifier = Modifier
@@ -109,7 +109,7 @@ fun SettingsHomeSection(
             ) {
                 LogoutSection(logoutViewModel)
             }
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
     }
 }
