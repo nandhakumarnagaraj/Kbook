@@ -45,6 +45,11 @@ export class AuthService {
 
   logout(): void {
     const token = this.tokenStorage.getToken();
+    // Preserve last login identifier for display on login page
+    const session = this.session();
+    if (session?.loginId) {
+      sessionStorage.setItem('last_login_id', session.loginId);
+    }
     if (token) {
       this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({
         error: (err) => console.warn('Logout revocation call failed', err)

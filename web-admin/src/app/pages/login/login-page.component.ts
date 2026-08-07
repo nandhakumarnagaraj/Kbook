@@ -381,6 +381,10 @@ export class LoginPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const lastLoginId = sessionStorage.getItem('last_login_id');
+    if (lastLoginId) {
+      this.form.patchValue({ loginId: lastLoginId });
+    }
     this.initGoogle();
   }
 
