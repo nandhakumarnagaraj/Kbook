@@ -55,6 +55,7 @@ class BillingViewModel @Inject constructor(
     private val printRouter: PrintRouter,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
+    private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -809,6 +810,10 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
     suspend fun completeOrder(status: PaymentStatus, cancelReason: String = ""): Boolean = withContext(Dispatchers.IO) {
         orderMutex.withLock {
+            if (!permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.BILLING_CREATE)) {
+                _error.value = "You don't have permission to create bills. Request access from your owner."
+                return@withLock false
+            }
             if (_cartItems.value.isEmpty()) {
                 _error.value = "Add at least one item before completing the bill."
                 return@withLock false
