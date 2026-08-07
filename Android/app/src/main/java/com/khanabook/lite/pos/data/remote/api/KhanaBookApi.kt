@@ -184,6 +184,12 @@ interface KhanaBookApi {
 
         @POST("api/v1/permissions/revoke")
         suspend fun revokePermission(@Body body: PermissionRevokeBody)
+
+        @GET("api/v1/business/staff")
+        suspend fun getStaffList(): List<StaffListItem>
+
+        @GET("api/v1/permissions/users/{userId}")
+        suspend fun getUserPermissions(@Path("userId") userId: Long): UserPermissionsResponse
 }
 
 data class TerminalListItem(

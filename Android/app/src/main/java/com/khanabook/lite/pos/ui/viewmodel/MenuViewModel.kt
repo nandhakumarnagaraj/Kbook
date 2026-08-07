@@ -29,9 +29,20 @@ import javax.inject.Inject
 class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
-    private val databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
+    private val databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider,
+    private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
 ) : ViewModel() {
     private val ocrDebugTag = "OCR_DEBUG"
+
+    private val _permissionError = MutableStateFlow<String?>(null)
+    val permissionError: StateFlow<String?> = _permissionError.asStateFlow()
+
+    fun clearPermissionError() { _permissionError.value = null }
+
+    /** Check if current user can perform menu edits */
+    fun canEditMenu(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_EDIT_PRICE)
+    fun canAddItem(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
+    fun canDeleteItem(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_DELETE_ITEM)
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -112,6 +123,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun addItem(categoryId: Long, name: String, price: Double, foodType: String, description: String? = null) {
+        if (!canAddItem()) {
+            _permissionError.value = "You don't have permission to add menu items."
+            return
+        }
         viewModelScope.launch {
             menuRepository.insertItem(
                 MenuItemEntity(
@@ -168,6 +183,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun deleteItem(item: MenuItemEntity) {
+        if (!canDeleteItem()) {
+            _permissionError.value = "You don't have permission to delete menu items."
+            return
+        }
         viewModelScope.launch {
             menuRepository.deleteItem(item)
         }

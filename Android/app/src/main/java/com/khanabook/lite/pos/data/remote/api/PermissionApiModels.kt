@@ -40,3 +40,27 @@ data class PermissionRequestDto(
     @SerializedName("resolvedAt") val resolvedAt: Long?,
     @SerializedName("rejectionReason") val rejectionReason: String?
 )
+
+
+data class StaffListItem(
+    @SerializedName("userId") val userId: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("loginId") val loginId: String?,
+    @SerializedName("role") val role: String,
+    @SerializedName("active") val active: Boolean
+)
+
+data class UserPermissionsResponse(
+    @SerializedName("userId") val userId: Long,
+    @SerializedName("userName") val userName: String?,
+    @SerializedName("role") val role: String?,
+    @SerializedName("permissions") val permissions: List<PermissionItemDto>
+)
+
+data class PermissionItemDto(
+    @SerializedName("permissionKey") val permissionKey: String,
+    @SerializedName("displayName") val displayName: String,
+    @SerializedName("category") val category: String,
+    @SerializedName("granted") val granted: Boolean,
+    @SerializedName("grantedAt") val grantedAt: Long?
+)
