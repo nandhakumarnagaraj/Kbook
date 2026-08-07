@@ -128,6 +128,10 @@ export class BusinessApiService {
     return this.http.post<void>(`${API_BASE_URL}/business/staff/${userId}/deactivate`, {});
   }
 
+  activateStaff(userId: number) {
+    return this.http.post<void>(`${API_BASE_URL}/business/staff/${userId}/activate`, {});
+  }
+
   // Menu CRUD
   createMenuItem(payload: CreateMenuItemRequest) {
     return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu`, payload);

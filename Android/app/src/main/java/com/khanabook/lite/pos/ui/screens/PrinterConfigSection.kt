@@ -567,7 +567,11 @@ private fun PrinterTargetCard(
                 if (showLogoToggle) {
                     PrinterOptionRow("Include Logo", includeLogo) { onIncludeLogoChange(it) }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
+                ) {
                     RadioButton(selected = paper58, onClick = { onPaperSizeChange(true) }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
                     Text("58mm", color = TextGold)
                     Spacer(modifier = Modifier.width(spacing.large))

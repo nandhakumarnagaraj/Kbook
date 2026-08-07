@@ -136,6 +136,19 @@ public class BusinessWriteService {
         log.info("Staff deactivated: userId={}", userId);
     }
 
+    @Transactional
+    public void activateStaff(Long restaurantId, Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(u -> restaurantId.equals(u.getRestaurantId()) && !Boolean.TRUE.equals(u.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Staff member not found"));
+
+        user.setIsActive(true);
+        user.setTokenInvalidatedAt(null);
+        touch(user, System.currentTimeMillis());
+        userRepository.save(user);
+        log.info("Staff activated: userId={}", userId);
+    }
+
     // ─── Menu CRUD ───────────────────────────────────────────────────────────────
 
     @Transactional

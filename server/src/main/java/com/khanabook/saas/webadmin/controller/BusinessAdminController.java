@@ -90,6 +90,13 @@ public class BusinessAdminController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/staff/{userId}/activate")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> activateStaff(@PathVariable Long userId) {
+        businessWriteService.activateStaff(requireTenant(), userId);
+        return ResponseEntity.ok().build();
+    }
+
     // ─── Menu Write Endpoints ────────────────────────────────────────────────────
 
     @PostMapping("/menu")

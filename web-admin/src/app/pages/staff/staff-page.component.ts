@@ -375,6 +375,11 @@ import { formatDate } from '../../shared/formatters';
               <td *ngIf="isOwner">
                 <div class="action-cell">
                   <button class="action-btn" (click)="openEditModal(item)">Edit</button>
+                  <button
+                    class="action-btn action-btn--success"
+                    *ngIf="!item.active && !isSelf(item)"
+                    (click)="activateStaff(item)"
+                  >Activate</button>
                   <span class="tooltip-wrapper" *ngIf="isSelf(item); else deactivateEnabled">
                     <button class="action-btn action-btn--danger" disabled>Deactivate</button>
                     <span class="tooltip-text">Cannot deactivate yourself</span>
@@ -615,6 +620,18 @@ export class StaffPageComponent {
   requestDeactivate(item: BusinessStaffItem): void {
     if (this.isSelf(item)) return;
     this.staffToDeactivate = item;
+  }
+
+  activateStaff(item: BusinessStaffItem): void {
+    this.api.activateStaff(item.userId).subscribe({
+      next: () => {
+        this.toast.show(`${item.name} has been reactivated`, 'success');
+        this.loadStaff();
+      },
+      error: () => {
+        this.toast.show('Failed to activate staff. Please try again.', 'error');
+      }
+    });
   }
 
   confirmDeactivate(): void {
