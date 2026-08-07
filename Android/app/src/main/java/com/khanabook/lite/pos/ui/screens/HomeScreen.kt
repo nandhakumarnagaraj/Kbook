@@ -113,8 +113,8 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
@@ -304,7 +304,7 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 148.dp)
+                                .heightIn(min = 120.dp)
                                 .padding(spacing.large),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
