@@ -961,7 +961,7 @@ fun DraftItemRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(14.dp)
+                        .size(KhanaBookTheme.iconSize.xsmall)
                         .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
                         .padding(2.dp),
                     contentAlignment = Alignment.Center
@@ -1458,7 +1458,7 @@ fun ManualMenuView(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit Category",
                                 modifier = Modifier
-                                    .size(14.dp)
+                                    .size(KhanaBookTheme.iconSize.xsmall)
                                     .clickable { showEditCategoryDialog = category },
                                 tint = DarkBrown1
                             )

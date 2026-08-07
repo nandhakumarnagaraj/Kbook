@@ -178,7 +178,7 @@ fun InitialSyncScreen(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.large))
@@ -258,7 +258,7 @@ fun InitialSyncScreen(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))

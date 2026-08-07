@@ -282,7 +282,7 @@ fun AppLockView(
                         Icons.Filled.Lock,
                         contentDescription = null,
                         tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge)
                     )
                 }
                 Text(
@@ -674,7 +674,7 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
             Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
             Spacer(modifier = Modifier.width(4.dp))
             Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
         }

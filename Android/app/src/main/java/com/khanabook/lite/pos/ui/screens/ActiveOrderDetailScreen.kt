@@ -316,7 +316,7 @@ private fun ActiveOrderActionGrid(
                     ),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Add Items", fontWeight = FontWeight.Bold)
                 }
@@ -332,7 +332,7 @@ private fun ActiveOrderActionGrid(
                     ),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Update KOT", fontWeight = FontWeight.Bold)
                 }
@@ -360,7 +360,7 @@ private fun ActiveOrderActionGrid(
                     ),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.Payments, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Payments, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Payment", fontWeight = FontWeight.Bold)
                 }
@@ -371,7 +371,7 @@ private fun ActiveOrderActionGrid(
                     border = BorderStroke(1.dp, BorderGold),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.Print, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Print, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Print Bill", fontWeight = FontWeight.Bold)
                 }
@@ -404,7 +404,7 @@ private fun ActiveOrderActionGrid(
                     ),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.LocalPrintshop, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.LocalPrintshop, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Reprint KOT")
                 }
@@ -415,7 +415,7 @@ private fun ActiveOrderActionGrid(
                     border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f)),
                     shape = KhanaRadii.md
                 ) {
-                    Icon(Icons.Default.Cancel, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Cancel, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
                     Text("Cancel Order")
                 }

@@ -72,6 +72,7 @@ import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.ErrorPink
+import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.ParchmentBG
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 
@@ -448,7 +449,7 @@ private fun ScanControls(
                         ) {
                             if (isProcessing) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(KhanaBookTheme.iconSize.small),
                                     color = DarkBrown1,
                                     strokeWidth = 2.dp
                                 )

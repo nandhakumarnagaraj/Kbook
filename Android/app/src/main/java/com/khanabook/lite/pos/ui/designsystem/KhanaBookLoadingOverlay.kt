@@ -120,7 +120,7 @@ fun KhanaBookLoadingOverlay(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(80.dp)
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))

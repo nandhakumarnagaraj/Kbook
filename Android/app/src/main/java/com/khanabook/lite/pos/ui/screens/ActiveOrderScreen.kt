@@ -575,11 +575,11 @@ private fun ActiveOrderItemCard(
             modifier = Modifier.background(PrimaryGold, KhanaRadii.sm).height(28.dp)
         ) {
             IconButton(onClick = onDecrement, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
             }
             Text("${cartItem.quantity}", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
             IconButton(onClick = onIncrement, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
             }
         }
 
@@ -758,7 +758,7 @@ private fun CompactMenuSection(
                                         if (variantAvailable) {
                                             IconButton(
                                                 onClick = { billingViewModel.addToCart(item, variant) },
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
                                             ) {
                                                 Icon(Icons.Default.Add, null, tint = PrimaryGold, modifier = Modifier.size(16.dp))
                                             }

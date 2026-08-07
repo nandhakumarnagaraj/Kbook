@@ -136,7 +136,7 @@ fun AppLockScreen(
                 Icons.Default.Lock,
                 contentDescription = "App locked",
                 tint = PrimaryGold,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
             )
 
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -288,7 +288,7 @@ fun PinNumpad(
                                 Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Delete",
                                 tint = TextLight,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
                             )
                         }
                         else -> PinKey(onClick = {
@@ -345,7 +345,7 @@ fun InlinePinEntry(
                 val filled = index < pin.length
                 Box(
                     modifier = Modifier
-                        .size(14.dp)
+                        .size(KhanaBookTheme.iconSize.xsmall)
                         .background(
                             color = if (filled) PrimaryGold else Color.Transparent,
                             shape = CircleShape

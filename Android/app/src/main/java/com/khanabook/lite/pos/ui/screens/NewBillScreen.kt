@@ -930,7 +930,7 @@ fun MenuSelectionStep(
                             androidx.compose.material.icons.Icons.Default.SearchOff,
                             contentDescription = null,
                             tint = TextGold.copy(alpha = 0.3f),
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge)
                         )
                         Spacer(Modifier.height(spacing.small))
                         Text(
@@ -1233,12 +1233,12 @@ fun MenuSelectionStep(
                                         style = MaterialTheme.typography.bodySmall,
                                         maxLines = 1
                                     )
-                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(32.dp)) {
+                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
                                         Icon(
                                             if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
                                             contentDescription = "Add note",
                                             tint = if (cartItem.note.isNotBlank()) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(KhanaBookTheme.iconSize.small)
                                         )
                                     }
                                 }
@@ -1395,11 +1395,11 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.background(PrimaryGold, KhanaRadii.sm).height(32.dp)
         ) {
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
                 Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
             Text("$quantity", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            IconButton(onClick = onAdd, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onAdd, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
                 Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
         }
@@ -2581,7 +2581,7 @@ private fun PaymentSuccessBadge() {
         // Outer Ripple 1
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(KhanaBookTheme.iconSize.hero)
                 .graphicsLayer(
                     scaleX = ripple1Scale.value,
                     scaleY = ripple1Scale.value,
@@ -2594,7 +2594,7 @@ private fun PaymentSuccessBadge() {
         // Outer Ripple 2
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(KhanaBookTheme.iconSize.hero)
                 .graphicsLayer(
                     scaleX = ripple2Scale.value,
                     scaleY = ripple2Scale.value,
@@ -2607,7 +2607,7 @@ private fun PaymentSuccessBadge() {
         // Main Checkmark Circle
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(KhanaBookTheme.iconSize.hero)
                 .graphicsLayer(
                     scaleX = scale.value,
                     scaleY = scale.value
@@ -2711,7 +2711,7 @@ fun VariantPickerDialog(
 fun FoodTypeIcon(type: String) {
     val color = if (type == "veg") VegGreen else NonVegRed
     Box(
-            modifier = Modifier.size(14.dp).border(1.dp, color).padding(2.dp),
+            modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall).border(1.dp, color).padding(2.dp),
             contentAlignment = Alignment.Center
     ) { Box(modifier = Modifier.fillMaxSize().background(color, RoundedCornerShape(100.dp))) }
 }
@@ -2834,7 +2834,7 @@ fun StepItem(
                     contentDescription = null,
                     tint = color,
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(KhanaBookTheme.iconSize.small)
                         .then(
                             if (icon == Icons.AutoMirrored.Filled.List) {
                                 Modifier.offset(x = (-1).dp)
@@ -2844,7 +2844,7 @@ fun StepItem(
                 if (isCompleted) {
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(KhanaBookTheme.iconSize.xsmall)
                             .align(Alignment.BottomEnd)
                             .background(VegGreen, CircleShape),
                         contentAlignment = Alignment.Center

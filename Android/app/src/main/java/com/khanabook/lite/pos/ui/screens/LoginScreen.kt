@@ -237,7 +237,7 @@ fun LoginScreen(
                                         else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
                                 tint = PrimaryGold,
-                                modifier = Modifier.size(48.dp).clickable { showPassword = !showPassword }.padding(12.dp)
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge).clickable { showPassword = !showPassword }.padding(12.dp)
                         )
                     },
                     visualTransformation =
@@ -362,7 +362,7 @@ fun LoginScreen(
             ) {
                 Surface(
                         modifier =
-                                Modifier.size(52.dp)
+                                Modifier.size(KhanaBookTheme.iconSize.avatar)
                                         .border(1.dp, BorderGold, CircleShape)
                                         .clickable(enabled = !isLoading) {
                                             isGoogleLogin = true
@@ -476,7 +476,7 @@ fun ForgotPasswordDialog(
                 Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
                 Spacer(Modifier.width(4.dp))
                 Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
             }

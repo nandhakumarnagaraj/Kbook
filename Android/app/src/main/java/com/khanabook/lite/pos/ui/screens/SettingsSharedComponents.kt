@@ -71,7 +71,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
         ) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(KhanaBookTheme.iconSize.xxlarge)
                     .background(PrimaryGold, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
