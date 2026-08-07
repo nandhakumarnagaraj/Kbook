@@ -59,7 +59,7 @@ fun SettingsHomeSection(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             if (isWideScreen) {
-                SettingsItem(icon = Icons.Filled.Store, text = "Shop Configuration") {
+                SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {
                     onSectionSelected("shop")
                 }
                 SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {

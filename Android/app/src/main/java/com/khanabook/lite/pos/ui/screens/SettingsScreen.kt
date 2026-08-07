@@ -145,7 +145,7 @@ fun SettingsScreen(
     ) {
         KhanaBookScreenScaffold(
             title = when (section) {
-                "shop" -> "Shop Configuration"
+                "shop" -> "Restaurant Configuration"
                 "payment" -> "Payment Configuration"
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"

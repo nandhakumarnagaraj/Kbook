@@ -187,14 +187,15 @@ fun MenuConfigurationScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = when (ocrUiState.configMode) {
                                 "manual" -> "Manual Entry"
                                 else -> "Menu Configuration"
                             },
                             color = PrimaryGold,
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center
                         )
                         if (ocrUiState.configMode == "manual") {
                             Text(
