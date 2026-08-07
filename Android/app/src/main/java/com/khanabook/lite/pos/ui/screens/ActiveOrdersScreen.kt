@@ -2,6 +2,8 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -212,7 +214,7 @@ private fun ActiveOrderCard(
         onClick = onOpen,
         colors = CardDefaults.cardColors(containerColor = CardBG),
         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.26f)),
-        shape = RoundedCornerShape(10.dp)
+        shape = KhanaRadii.md
     ) {
         Row(
             modifier = Modifier
@@ -323,7 +325,7 @@ private fun ActiveOrderCard(
                                 .weight(1.3f)
                                 .height(40.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = KhanaRadii.md
                         ) {
                             Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -340,7 +342,7 @@ private fun ActiveOrderCard(
                                 .height(40.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                             border = BorderStroke(1.dp, BorderGold),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = KhanaRadii.md
                         ) {
                             Icon(Icons.Default.LocalPrintshop, contentDescription = "Print", tint = PrimaryGold, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(spacing.extraSmall))

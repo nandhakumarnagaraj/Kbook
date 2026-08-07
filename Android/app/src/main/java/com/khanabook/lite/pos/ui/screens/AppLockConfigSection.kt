@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -125,7 +127,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.Filled.Lock,
@@ -137,7 +139,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.Filled.Password,
@@ -150,7 +152,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.Filled.TextIncrease,
@@ -162,7 +164,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.AutoMirrored.Filled.VolumeUp,
@@ -175,7 +177,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.Filled.SyncProblem,
@@ -188,7 +190,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.AutoMirrored.Filled.HelpOutline,
@@ -200,7 +202,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             SettingsItem(
                 icon = Icons.Filled.Info,
@@ -255,7 +257,7 @@ fun AppLockView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(16.dp)
+            shape = KhanaRadii.xl
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(spacing.large),
@@ -310,7 +312,7 @@ fun AppLockView(
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text("PIN Options", color = TextLight, style = MaterialTheme.typography.titleSmall)
@@ -318,7 +320,7 @@ fun AppLockView(
                         onClick = { viewModel.startChangePin() },
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(1.dp, BorderGold),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = KhanaRadii.md
                     ) {
                         Icon(Icons.Filled.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
                         Spacer(modifier = Modifier.width(spacing.small))
@@ -581,7 +583,7 @@ fun ChangePasswordView(
                     },
                     modifier = Modifier.weight(1f).height(56.dp),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = KhanaRadii.pill,
                     enabled = !isLoading
                 ) {
                     Text("Back", color = TextGold)
@@ -615,7 +617,7 @@ fun ChangePasswordView(
                 },
                 modifier = Modifier.weight(2f).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-                shape = RoundedCornerShape(28.dp),
+                shape = KhanaRadii.pill,
                 enabled = !isLoading
             ) {
                 if (isLoading) {
@@ -661,7 +663,7 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SuccessGreen.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .background(SuccessGreen.copy(alpha = 0.08f), KhanaRadii.md)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -760,7 +762,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366), contentColor = Color.White),
-            shape = RoundedCornerShape(14.dp),
+            shape = KhanaRadii.lg,
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
             Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(28.dp))
@@ -787,7 +789,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.6f)),
-            shape = RoundedCornerShape(14.dp),
+            shape = KhanaRadii.lg,
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
             Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
@@ -803,7 +805,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -947,7 +949,7 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Column(
                 modifier = Modifier.padding(spacing.medium),
@@ -982,7 +984,7 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
                     },
                     modifier = Modifier.fillMaxWidth(),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Refresh, null, tint = PrimaryGold)
                     Spacer(modifier = Modifier.width(spacing.small))
@@ -1010,7 +1012,7 @@ private fun OrderIdHealthCard(
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -1090,7 +1092,7 @@ private fun OrderIdHealthCard(
                 enabled = !isRepairing,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                shape = RoundedCornerShape(10.dp)
+                shape = KhanaRadii.md
             ) {
                 if (isRepairing) {
                     CircularProgressIndicator(
@@ -1121,7 +1123,7 @@ private fun DuplicateConflictBillRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .background(DarkBrown1.copy(alpha = 0.45f), KhanaRadii.md)
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {
@@ -1195,7 +1197,7 @@ private fun DuplicateIdRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .background(DarkBrown1.copy(alpha = 0.45f), KhanaRadii.md)
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {
@@ -1223,7 +1225,7 @@ private fun QuarantineIssuesCard(
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -1268,7 +1270,7 @@ private fun QuarantineRecordRow(record: SyncQuarantineEntity) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .background(DarkBrown1.copy(alpha = 0.45f), KhanaRadii.md)
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {
@@ -1310,7 +1312,7 @@ private fun SyncCenterStatCard(
     KhanaBookCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Column(
             modifier = Modifier.padding(spacing.medium),
@@ -1344,7 +1346,7 @@ private fun SyncIssuesCard(
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -1413,7 +1415,7 @@ private fun FailedBillSyncRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .background(DarkBrown1.copy(alpha = 0.45f), KhanaRadii.md)
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {

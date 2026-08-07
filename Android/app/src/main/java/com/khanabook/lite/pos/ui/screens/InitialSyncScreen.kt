@@ -145,7 +145,7 @@ fun InitialSyncScreen(
                     Button(
                         onClick = { onNavigateToLogin() },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = KhanaRadii.lg,
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(
@@ -204,7 +204,7 @@ fun InitialSyncScreen(
                     OutlinedButton(
                         onClick = { viewModel.pollRequestStatus() },
                         border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = KhanaRadii.lg,
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(
@@ -234,7 +234,7 @@ fun InitialSyncScreen(
                     Button(
                         onClick = { viewModel.startInitialSync() },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = KhanaRadii.lg,
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(

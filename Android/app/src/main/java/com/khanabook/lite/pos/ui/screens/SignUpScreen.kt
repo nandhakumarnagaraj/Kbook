@@ -206,7 +206,7 @@ fun SignUpScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = KhanaRadii.xl,
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
@@ -255,7 +255,7 @@ fun SignUpScreen(
                                 onNext = { if (otpSent) runCatching { otpFocusRequester.requestFocus() } }
                             ),
                             modifier = Modifier.fillMaxWidth().focusRequester(phoneFocusRequester),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = KhanaRadii.xl,
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
@@ -290,7 +290,7 @@ fun SignUpScreen(
                                                     ButtonDefaults.buttonColors(
                                                             containerColor = PrimaryGold
                                                     ),
-                                            shape = RoundedCornerShape(20.dp),
+                                            shape = KhanaRadii.xl,
                                             contentPadding = PaddingValues(horizontal = 12.dp),
                                             enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
                                     ) {
@@ -335,7 +335,7 @@ fun SignUpScreen(
                                     onNext = { runCatching { passwordFocusRequester.requestFocus() } }
                                 ),
                                 modifier = Modifier.fillMaxWidth().focusRequester(otpFocusRequester),
-                                shape = RoundedCornerShape(24.dp),
+                                shape = KhanaRadii.xl,
                                 colors = outlinedTextFieldColors(),
                                 singleLine = true,
                                 enabled = !isLoading,
@@ -391,7 +391,7 @@ fun SignUpScreen(
                                     if (showNewPassword) VisualTransformation.None
                                     else PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = KhanaRadii.xl,
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
@@ -454,7 +454,7 @@ fun SignUpScreen(
                                     if (showConfirmPassword) VisualTransformation.None
                                     else PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth().focusRequester(confirmPasswordFocusRequester),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = KhanaRadii.xl,
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
@@ -504,7 +504,7 @@ fun SignUpScreen(
                             containerColor = if (isFormValid) PrimaryGold else TextMuted,
                             contentColor = DarkBrown1
                         ),
-                        shape = RoundedCornerShape(28.dp),
+                        shape = KhanaRadii.pill,
                         enabled = isFormValid
                 ) {
                     if (isLoading && signUpStatus is AuthViewModel.SignUpResult.Loading) {

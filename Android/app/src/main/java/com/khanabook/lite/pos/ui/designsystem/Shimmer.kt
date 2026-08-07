@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -69,7 +71,7 @@ fun ShimmerBox(
     modifier: Modifier = Modifier,
     width: Dp = Dp.Unspecified,
     height: Dp = 16.dp,
-    shape: Shape = RoundedCornerShape(8.dp)
+    shape: Shape = KhanaRadii.md
 ) {
     val widthModifier = if (width == Dp.Unspecified) Modifier.fillMaxWidth() else Modifier.width(width)
     Box(
@@ -162,7 +164,7 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8, colum
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             repeat(3) {
-                ShimmerBox(width = 72.dp, height = 32.dp, shape = RoundedCornerShape(16.dp))
+                ShimmerBox(width = 72.dp, height = 32.dp, shape = KhanaRadii.xl)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -197,7 +199,7 @@ fun SkeletonMenuScreen(modifier: Modifier = Modifier, itemCount: Int = 6) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Search bar
-        ShimmerBox(height = 48.dp, shape = RoundedCornerShape(12.dp))
+        ShimmerBox(height = 48.dp, shape = KhanaRadii.lg)
         Spacer(modifier = Modifier.height(16.dp))
 
         // Item list

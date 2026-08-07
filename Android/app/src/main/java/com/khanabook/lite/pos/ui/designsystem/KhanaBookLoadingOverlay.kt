@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.annotation.RawRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -97,7 +99,7 @@ fun KhanaBookLoadingOverlay(
                     .padding(horizontal = spacing.extraLarge)
                     .fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                shape = RoundedCornerShape(20.dp)
+                shape = KhanaRadii.xl
             ) {
                 Column(
                     modifier = Modifier

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +71,7 @@ fun <T> KhanaBookSelectionDialog(
                                 onOptionSelected(option.value)
                             },
                         color = if (isSelected) option.selectedAccent.copy(alpha = 0.14f) else Color.Transparent,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = KhanaRadii.md,
                         border = BorderStroke(
                             1.dp,
                             if (isSelected) option.selectedAccent else BorderGold.copy(alpha = 0.3f)

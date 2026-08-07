@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -323,7 +325,7 @@ fun ShopConfigView(
                 OutlinedButton(
                     onClick = { logoLauncher.launch("image/*") },
                     border = BorderStroke(1.dp, PrimaryGold),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = KhanaRadii.xl,
                     enabled = !logoUploadLoading
                 ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = PrimaryGold) }
             }
@@ -376,7 +378,7 @@ fun ShopConfigView(
                             },
                             modifier = Modifier.padding(end = spacing.extraSmall).height(56.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = KhanaRadii.xl,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                             enabled = isPhoneValid && !isUserChecking && userExistsError == null
                         ) {
@@ -525,8 +527,8 @@ private fun RestaurantPaymentFlowSelector(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), RoundedCornerShape(12.dp))
-            .background(DarkBrown2.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
+            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.small)
     ) {

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,7 +55,7 @@ fun KhanaBookDialog(
             modifier = modifier
                 .fillMaxWidth(layout.dialogWidthFraction)
                 .widthIn(max = layout.dialogMaxWidth),
-            shape = RoundedCornerShape(20.dp),
+            shape = KhanaRadii.xl,
             color = DarkBrown1,
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
         ) {

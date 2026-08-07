@@ -393,14 +393,14 @@ fun ReviewDetectedItemsScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(ReviewSheetLayout.CHECKBOX_WIDTH)
-                                            .clip(RoundedCornerShape(6.dp))
+                                            .clip(KhanaRadii.sm)
                                             .background(
                                                 if (allInCategorySelected) PrimaryGold else Color.Transparent
                                             )
                                             .border(
                                                 1.5.dp,
                                                 if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                                RoundedCornerShape(6.dp)
+                                                KhanaRadii.sm
                                             )
                                             .clickable {
                                                 val targetSelection = !allInCategorySelected
@@ -467,7 +467,7 @@ fun ReviewDetectedItemsScreen(
                                 border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
                                 modifier = Modifier.weight(1f).height(56.dp),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = KhanaRadii.lg
                             ) {
                                 Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             }
@@ -479,7 +479,7 @@ fun ReviewDetectedItemsScreen(
                                     contentColor = DarkBrown1
                                 ),
                                 modifier = Modifier.weight(2f).height(56.dp),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = KhanaRadii.lg
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                                 Spacer(Modifier.width(10.dp))
@@ -538,7 +538,7 @@ internal fun ReviewDetectedItemsOverlay(
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
-            shape = RoundedCornerShape(28.dp),
+            shape = KhanaRadii.pill,
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -629,12 +629,12 @@ internal fun ReviewDetectedItemsOverlay(
                                 Box(
                                     modifier = Modifier
                                         .size(ReviewSheetLayout.CHECKBOX_WIDTH)
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .clip(KhanaRadii.sm)
                                         .background(if (allInCategorySelected) PrimaryGold else Color.Transparent)
                                         .border(
                                             1.5.dp,
                                             if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                            RoundedCornerShape(6.dp)
+                                            KhanaRadii.sm
                                         )
                                         .clickable {
                                             val targetSelection = !allInCategorySelected
@@ -722,7 +722,7 @@ internal fun ReviewDetectedItemsOverlay(
                                 .weight(1f)
                                 .height(56.dp)
                                 .testTag(MenuConfigurationTags.reviewOverlayDiscard),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = KhanaRadii.lg
                         ) {
                             Text(
                                 if (showDiscardConfirm) "Confirming..." else "Discard",
@@ -745,7 +745,7 @@ internal fun ReviewDetectedItemsOverlay(
                                 .weight(2f)
                                 .height(56.dp)
                                 .testTag(MenuConfigurationTags.reviewOverlayConfirm),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = KhanaRadii.lg
                         ) {
                             Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                             Spacer(Modifier.width(10.dp))
@@ -860,7 +860,7 @@ private fun ConflictResolutionDialog(
                 .fillMaxWidth()
                 .height(52.dp)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictOverwrite),
-            shape = RoundedCornerShape(14.dp)
+            shape = KhanaRadii.lg
         ) {
             Text("Overwrite All", fontWeight = FontWeight.Bold, maxLines = 1)
         }
@@ -872,7 +872,7 @@ private fun ConflictResolutionDialog(
                 .fillMaxWidth()
                 .height(52.dp)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictMerge),
-            shape = RoundedCornerShape(14.dp)
+            shape = KhanaRadii.lg
         ) {
             Text("Merge & Skip", fontWeight = FontWeight.Bold, maxLines = 1)
         }
@@ -884,7 +884,7 @@ private fun ConflictResolutionDialog(
                 .fillMaxWidth()
                 .height(48.dp)
                 .testTag(MenuConfigurationTags.reviewOverlayConflictCancel),
-            shape = RoundedCornerShape(14.dp)
+            shape = KhanaRadii.lg
         ) {
             Text("Cancel", fontWeight = FontWeight.Medium)
         }
@@ -912,12 +912,12 @@ fun DraftItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(rowRequester)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(KhanaRadii.lg)
             .background(bgColor)
             .border(
                 width = 0.5.dp,
                 color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             )
             .clickable { onToggleSelection() }
             .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp)
@@ -929,14 +929,14 @@ fun DraftItemRow(
             Box(
                 modifier = Modifier
                     .size(ReviewSheetLayout.CHECKBOX_WIDTH)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(KhanaRadii.sm)
                     .background(
                         if (draft.isSelected) PrimaryGold else Color.Transparent
                     )
                     .border(
                         1.2.dp,
                         if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
-                        RoundedCornerShape(6.dp)
+                        KhanaRadii.sm
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -1019,7 +1019,7 @@ fun DraftItemRow(
                 Row(
                     modifier = Modifier
                         .width(ReviewSheetLayout.PRICE_WIDTH)
-                        .background(DarkBrown1.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .background(DarkBrown1.copy(alpha = 0.3f), KhanaRadii.sm)
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1113,7 +1113,7 @@ fun DraftItemRow(
                         Row(
                             modifier = Modifier
                                 .width(72.dp)
-                                .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .background(DarkBrown1.copy(alpha = 0.4f), KhanaRadii.md)
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1177,7 +1177,7 @@ fun ModeSelectionView(
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Categories", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
@@ -1189,7 +1189,7 @@ fun ModeSelectionView(
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Total Items", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
@@ -1275,7 +1275,7 @@ fun ModeSelectionView(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Smart AI", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Surface(color = PrimaryGold, shape = RoundedCornerShape(4.dp)) {
+                            Surface(color = PrimaryGold, shape = KhanaRadii.sm) {
                                 Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
                             }
                         }
@@ -1338,7 +1338,7 @@ fun SmartAIOption(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(KhanaRadii.lg)
             .clickable { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .padding(12.dp),
@@ -1433,7 +1433,7 @@ fun ManualMenuView(
                 val isSelected = category.id == selectedCategoryId
                 Surface(
                     onClick = { onCategorySelect(category.id) },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = KhanaRadii.md,
                     color = if (isSelected) PrimaryGold else DarkBrown2,
                     border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
                     contentColor = if (isSelected) DarkBrown1 else TextLight
@@ -1589,7 +1589,7 @@ fun ManualMenuView(
                             contentColor = DarkBrown1
                         ),
                         enabled = selectedCategoryId != null,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = KhanaRadii.lg
                     ) {
                         Icon(Icons.Default.Add, null)
                         Spacer(modifier = Modifier.width(8.dp))

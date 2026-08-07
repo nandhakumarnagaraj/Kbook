@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +61,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(20.dp)
+        shape = KhanaRadii.xl
     ) {
         Row(
             modifier = Modifier
@@ -97,7 +99,7 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
             .padding(vertical = spacing.small - spacing.hairline),
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Row(
             modifier = Modifier
@@ -124,7 +126,7 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
             .fillMaxWidth()
             .padding(bottom = spacing.medium),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp),
+        shape = KhanaRadii.lg,
         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(spacing.large)) { content() }
@@ -154,7 +156,7 @@ fun ConfigActionButtons(
                 contentColor = PrimaryGold,
                 disabledContentColor = TextGold.copy(alpha = 0.45f)
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Text("Back", style = MaterialTheme.typography.titleMedium)
         }
@@ -168,7 +170,7 @@ fun ConfigActionButtons(
                 disabledContainerColor = Color(0xFF5F5F5F),
                 disabledContentColor = Color.White.copy(alpha = 0.65f)
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             if (isSaving) {
                 CircularProgressIndicator(

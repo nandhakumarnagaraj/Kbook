@@ -19,7 +19,13 @@ data class Spacing(
     val huge: Dp = 48.dp,
     val extraHuge: Dp = 64.dp,
     val screenContentPadding: Dp = 16.dp,
-    val bottomListPadding: Dp = 88.dp
+    val bottomListPadding: Dp = 88.dp,
+
+    // Standard control heights (all >= 48dp minimum touch target)
+    val buttonHeightCompact: Dp = 48.dp,
+    val buttonHeight: Dp = 52.dp,
+    val buttonHeightLarge: Dp = 56.dp,
+    val inputHeight: Dp = 56.dp
 )
 
 val LocalSpacing = staticCompositionLocalOf { Spacing() }

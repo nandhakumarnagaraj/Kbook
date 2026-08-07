@@ -291,7 +291,7 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = KhanaRadii.md,
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
         contentColor = contentColor
@@ -311,7 +311,7 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
     Surface(
         onClick = onClick,
         modifier = modifier.height(44.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = KhanaRadii.md,
         color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
         border = if (isSelected) BorderStroke(1.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
         contentColor = if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.7f)
@@ -466,7 +466,7 @@ fun PartPaymentCard(
     KhanaBookCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = GreenReportBg.copy(alpha = 0.4f)),
-        shape = RoundedCornerShape(8.dp)
+        shape = KhanaRadii.md
     ) {
         Column(modifier = Modifier.padding(spacing.small)) {
             Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = VegGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
@@ -564,7 +564,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
         modifier = Modifier.fillMaxWidth(),
         onClick = { onViewDetails(row.billId) },
         colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
-        shape = RoundedCornerShape(4.dp)
+        shape = KhanaRadii.sm
     ) {
         Row(
             modifier = Modifier
@@ -607,7 +607,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                     onClick = { onViewDetails(row.billId) },
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
-                    shape = RoundedCornerShape(4.dp)
+                    shape = KhanaRadii.sm
                 ) {
                     Text(
                         "View",
@@ -649,7 +649,7 @@ fun OrderDetailsDialog(
             modifier = dialogWidthModifier
                 .padding(spacing.medium),
             colors = CardDefaults.cardColors(containerColor = DarkBrown1),
-            shape = RoundedCornerShape(16.dp)
+            shape = KhanaRadii.xl
         ) {
             Column(
                 modifier = Modifier
@@ -790,7 +790,7 @@ fun OrderDetailsDialog(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = KhanaRadii.lg
                 ) {
                     Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }

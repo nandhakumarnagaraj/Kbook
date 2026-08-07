@@ -560,7 +560,7 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = KhanaRadii.md,
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
         contentColor = contentColor,
@@ -629,7 +629,7 @@ fun OrderTableRow(
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
-    val rowShape = RoundedCornerShape(4.dp)
+    val rowShape = KhanaRadii.sm
     val rowBackground = when {
         isHighlighted -> PrimaryGold.copy(alpha = 0.18f)
         isCancelled -> DarkBrown1.copy(alpha = 0.15f)
@@ -684,7 +684,7 @@ fun OrderTableRow(
                 Surface(
                     onClick = { if (canEdit) payModeExpanded = true },
                     color = color,
-                    shape = RoundedCornerShape(4.dp),
+                    shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.hairline)
                 ) {
                     Text(
@@ -720,7 +720,7 @@ fun OrderTableRow(
                 Surface(
                     onClick = { if (canEdit) statusExpanded = true },
                     color = statusColor,
-                    shape = RoundedCornerShape(4.dp),
+                    shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)
                 ) {
                     Text(

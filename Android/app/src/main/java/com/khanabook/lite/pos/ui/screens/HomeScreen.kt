@@ -193,7 +193,7 @@ fun HomeScreen(
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = WarningYellow.copy(alpha = 0.14f)),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = KhanaRadii.lg
                         ) {
                             Column(
                                 modifier = Modifier
@@ -256,7 +256,7 @@ fun HomeScreen(
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = PrimaryGold.copy(alpha = 0.12f)),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = KhanaRadii.lg
                         ) {
                             Row(
                                 modifier = Modifier
@@ -299,7 +299,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onNewBill() },
                         colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = KhanaRadii.xl
                     ) {
                         Row(
                             modifier = Modifier
@@ -443,7 +443,7 @@ fun SyncStatusHeader(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(KhanaRadii.xl)
     ) {
         // Subtle glow effect behind the pill when syncing
         if (unsyncedCount > 0 && isOnline && isSessionValid) {
@@ -539,7 +539,7 @@ fun HomeActionCard(
         modifier = modifier,
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Row(
             modifier = Modifier

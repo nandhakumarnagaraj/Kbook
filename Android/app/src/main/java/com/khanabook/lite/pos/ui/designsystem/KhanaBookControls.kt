@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,7 +78,7 @@ fun KhanaStatusBadge(
         color = if (filled) container else container.copy(alpha = 0.16f),
         contentColor = if (filled) content else container,
         border = if (filled) null else BorderStroke(1.dp, container.copy(alpha = 0.65f)),
-        shape = RoundedCornerShape(4.dp)
+        shape = KhanaRadii.sm
     ) {
         Text(
             text = text,
@@ -123,7 +125,7 @@ fun KhanaPrimaryButton(
             disabledContainerColor = PrimaryGold.copy(alpha = 0.35f),
             disabledContentColor = DarkBrown1.copy(alpha = 0.65f)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         if (isLoading) {
             KhanaInlineLoader(color = DarkBrown1)
@@ -157,7 +159,7 @@ fun KhanaSecondaryButton(
             contentColor = PrimaryGold,
             disabledContentColor = TextGold.copy(alpha = 0.45f)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         if (leadingIcon != null) {
             Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
@@ -186,7 +188,7 @@ fun KhanaDestructiveButton(
             disabledContainerColor = DangerRed.copy(alpha = 0.35f),
             disabledContentColor = TextLight.copy(alpha = 0.65f)
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         if (leadingIcon != null) {
             Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,7 +26,7 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 fun KhanaBookCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    shape: Shape = RoundedCornerShape(12.dp),
+    shape: Shape = KhanaRadii.lg,
     colors: CardColors = CardDefaults.cardColors(containerColor = DarkBrown2),
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     content: @Composable ColumnScope.() -> Unit

@@ -307,7 +307,7 @@ fun SearchScreen(
                     KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     colors = CardDefaults.cardColors(containerColor = CardBG),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = KhanaRadii.xl
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium).wrapContentHeight()) {
                         
@@ -434,7 +434,7 @@ fun SearchScreen(
                                         Text("Payment Mode", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Surface(
                                             color = DarkBrown1.copy(alpha = 0.5f),
-                                            shape = RoundedCornerShape(6.dp),
+                                            shape = KhanaRadii.sm,
                                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                                         ) {
                                             Text(

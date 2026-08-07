@@ -298,7 +298,7 @@ private fun KdsBillCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Column(modifier = Modifier.padding(spacing.medium)) {
                 Row(

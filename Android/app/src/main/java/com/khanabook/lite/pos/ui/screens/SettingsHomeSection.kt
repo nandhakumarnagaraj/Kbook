@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -105,7 +107,7 @@ fun SettingsHomeSection(
                     .fillMaxWidth()
                     .padding(vertical = spacing.small),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 LogoutSection(logoutViewModel)
             }

@@ -2,6 +2,8 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -229,7 +231,7 @@ private fun ActiveOrderSummaryCard(detail: BillWithItems) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(10.dp),
+        shape = KhanaRadii.md,
         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.24f))
     ) {
         Column(
@@ -312,7 +314,7 @@ private fun ActiveOrderActionGrid(
                         containerColor = PrimaryGold,
                         contentColor = DarkBrown1
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -328,7 +330,7 @@ private fun ActiveOrderActionGrid(
                         disabledContainerColor = PrimaryGold.copy(alpha = 0.25f),
                         disabledContentColor = DarkBrown1.copy(alpha = 0.5f)
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -356,7 +358,7 @@ private fun ActiveOrderActionGrid(
                         containerColor = SuccessGreen,
                         contentColor = TextLight
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Payments, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -367,7 +369,7 @@ private fun ActiveOrderActionGrid(
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                     border = BorderStroke(1.dp, BorderGold),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Print, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -400,7 +402,7 @@ private fun ActiveOrderActionGrid(
                         width = 1.dp,
                         color = if (hasSentItems) BorderGold else BorderGold.copy(alpha = 0.25f)
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.LocalPrintshop, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -411,7 +413,7 @@ private fun ActiveOrderActionGrid(
                     modifier = Modifier.weight(1f).height(46.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
                     border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f)),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Icon(Icons.Default.Cancel, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -436,13 +438,13 @@ private fun ItemSection(
             .fillMaxWidth()
             .then(
                 if (highlighted) {
-                    Modifier.border(1.dp, PrimaryGold.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    Modifier.border(1.dp, PrimaryGold.copy(alpha = 0.5f), KhanaRadii.md)
                 } else {
                     Modifier
                 }
             ),
         colors = CardDefaults.cardColors(containerColor = bg),
-        shape = RoundedCornerShape(10.dp)
+        shape = KhanaRadii.md
     ) {
         Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
             Text(

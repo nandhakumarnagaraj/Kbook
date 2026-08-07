@@ -312,8 +312,8 @@ fun ActiveOrderScreen(
                         modifier = Modifier
                             .size(160.dp)
                             .align(Alignment.CenterHorizontally)
-                            .background(Color.White, RoundedCornerShape(12.dp))
-                            .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
+                            .background(Color.White, KhanaRadii.lg)
+                            .border(2.dp, PrimaryGold, KhanaRadii.lg)
                             .padding(spacing.small),
                         contentAlignment = Alignment.Center
                     ) {
@@ -355,7 +355,7 @@ fun ActiveOrderScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isAmountValid) SuccessGreen else Color.Gray
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     enabled = isAmountValid && itemCount > 0 && !isLoading
                 ) {
                     Text("Payment Successful — ${CurrencyUtils.formatPrice(total)}", color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -379,7 +379,7 @@ fun ActiveOrderScreen(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
                     border = BorderStroke(1.dp, DangerRed),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     enabled = !isLoading
                 ) {
                     Text("Payment Failed / Cancel", style = MaterialTheme.typography.bodyMedium)
@@ -396,7 +396,7 @@ fun ActiveOrderScreen(
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     enabled = itemCount > 0 && !isLoading
                 ) {
                     Text("Update Items Only (Save Draft)", color = Color.White, style = MaterialTheme.typography.titleSmall)
@@ -457,7 +457,7 @@ private fun BillInfoHeader(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -572,7 +572,7 @@ private fun ActiveOrderItemCard(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.background(PrimaryGold, RoundedCornerShape(4.dp)).height(28.dp)
+            modifier = Modifier.background(PrimaryGold, KhanaRadii.sm).height(28.dp)
         ) {
             IconButton(onClick = onDecrement, modifier = Modifier.size(28.dp)) {
                 Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(14.dp))
@@ -634,7 +634,7 @@ private fun CompactMenuSection(
         modifier = Modifier.fillMaxWidth(),
         colors = menuTextFieldColors(),
         singleLine = true,
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     )
 
     if (searchQuery.isBlank() && categories.isNotEmpty()) {
@@ -700,7 +700,7 @@ private fun CompactMenuSection(
                     colors = CardDefaults.cardColors(
                         containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     if (variants.isEmpty()) {
                         Row(
@@ -793,7 +793,7 @@ private fun BillSummaryDisplay(summary: BillSummary) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-        shape = RoundedCornerShape(12.dp)
+        shape = KhanaRadii.lg
     ) {
         Column(modifier = Modifier.padding(spacing.medium)) {
             SummaryRow("Subtotal", CurrencyUtils.formatPrice(subtotal), TextGold)
@@ -835,7 +835,7 @@ private fun PaymentModeSelector(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .background(BrownSelected, RoundedCornerShape(8.dp))
+            .background(BrownSelected, KhanaRadii.md)
             .border(1.dp, BorderGold)
             .clickable { onExpandedChange(true) }
             .padding(horizontal = spacing.medium),

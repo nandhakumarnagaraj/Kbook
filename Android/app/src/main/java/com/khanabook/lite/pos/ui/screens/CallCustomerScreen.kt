@@ -25,6 +25,7 @@ import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
@@ -272,7 +273,7 @@ fun CallCustomerScreen(
                 KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = CardBG),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        shape = KhanaRadii.xl
                 ) {
                     Column(
                             modifier = Modifier.padding(spacing.large),

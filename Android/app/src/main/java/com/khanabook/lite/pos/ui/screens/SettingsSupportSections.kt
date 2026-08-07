@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -264,7 +266,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 containerColor = DangerRed,
                 disabledContainerColor = DangerRed.copy(alpha = 0.4f)
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))

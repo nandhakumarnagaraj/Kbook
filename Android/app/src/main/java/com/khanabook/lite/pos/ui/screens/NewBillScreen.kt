@@ -478,7 +478,7 @@ fun CustomerInfoStep(
             if (activeDraftBills.isEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     color = DarkBrown2,
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
                 ) {
@@ -498,7 +498,7 @@ fun CustomerInfoStep(
                 ) {
                     activeDraftBills.forEach { bill ->
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = KhanaRadii.lg,
                             color = DarkBrown2,
                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                         ) {
@@ -563,7 +563,7 @@ fun CustomerInfoStep(
                             whatsapp = phone
                             name = customerName
                         },
-                        shape = RoundedCornerShape(20.dp),
+                        shape = KhanaRadii.xl,
                         color = DarkBrown2,
                         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                     ) {
@@ -608,7 +608,7 @@ fun CustomerInfoStep(
                                 name = customerName
                                 billingViewModel?.setCustomerInfo(customerName, phone)
                             },
-                            shape = RoundedCornerShape(20.dp),
+                            shape = KhanaRadii.xl,
                             color = DarkBrown2,
                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                         ) {
@@ -702,7 +702,7 @@ fun CustomerInfoStep(
                         ButtonDefaults.buttonColors(
                                 containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
                         ),
-                shape = RoundedCornerShape(12.dp),
+                shape = KhanaRadii.lg,
                 enabled = isNextEnabled
             ) {
                 Text(
@@ -722,7 +722,7 @@ fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onCli
                     modifier.height(40.dp)
                             .background(
                                     if (isSelected) PrimaryGold else Color.Transparent,
-                                    RoundedCornerShape(8.dp)
+                                    KhanaRadii.md
                             )
                             .clickable { onClick() },
             contentAlignment = Alignment.Center
@@ -873,7 +873,7 @@ fun MenuSelectionStep(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small),
                 colors = menuTextFieldColors(),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             )
 
             if (searchQuery.isBlank() && categories.isNotEmpty()) {
@@ -958,7 +958,7 @@ fun MenuSelectionStep(
                             colors = CardDefaults.cardColors(
                                 containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = KhanaRadii.lg
                     ) {
                         if (variants.isEmpty()) {
                             val cartItem =
@@ -1090,7 +1090,7 @@ fun MenuSelectionStep(
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium, vertical = spacing.small),
                     colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = KhanaRadii.xl,
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Row(
@@ -1131,7 +1131,7 @@ fun MenuSelectionStep(
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = KhanaRadii.md,
                                         contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
                                         enabled = derivedItemCount > 0
                                     ) {
@@ -1155,7 +1155,7 @@ fun MenuSelectionStep(
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = KhanaRadii.md,
                                         contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
                                         enabled = derivedItemCount > 0
                                     ) {
@@ -1172,7 +1172,7 @@ fun MenuSelectionStep(
                                 Button(
                                         onClick = onProceedToPayment,
                                         colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = KhanaRadii.md,
                                         contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
                                         enabled = derivedItemCount > 0
                                     ) {
@@ -1290,7 +1290,7 @@ fun MenuSelectionStep(
                                         },
                                         modifier = Modifier.fillMaxWidth().height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0
                                     ) {
                                         Text("Update Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -1311,7 +1311,7 @@ fun MenuSelectionStep(
                                         },
                                         modifier = Modifier.fillMaxWidth().height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0
                                     ) {
                                         Text("Save Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -1325,7 +1325,7 @@ fun MenuSelectionStep(
                                     onClick = onProceedToPayment,
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = KhanaRadii.lg,
                                     enabled = derivedItemCount > 0
                                 ) {
                                     Text(
@@ -1366,7 +1366,7 @@ fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> U
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 maxLines = 3,
-                shape = RoundedCornerShape(8.dp)
+                shape = KhanaRadii.md
             )
         }
     ) {
@@ -1393,7 +1393,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
     } else {
         Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.background(PrimaryGold, RoundedCornerShape(4.dp)).height(32.dp)
+                modifier = Modifier.background(PrimaryGold, KhanaRadii.sm).height(32.dp)
         ) {
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
@@ -1715,7 +1715,7 @@ fun PaymentStep(
             Button(
                 onClick = onBackToMenu,
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 Text("Go Back", color = DarkBrown1)
             }
@@ -1778,8 +1778,8 @@ fun PaymentStep(
                 Box(
                     modifier =
                     Modifier.size(200.dp)
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
+                        .background(Color.White, KhanaRadii.lg)
+                        .border(2.dp, PrimaryGold, KhanaRadii.lg)
                         .padding(spacing.smallMedium)
                         .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
@@ -1839,7 +1839,7 @@ fun PaymentStep(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
-                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .background(Color.White, KhanaRadii.lg)
                                 .padding(spacing.medium),
                             contentAlignment = Alignment.Center
                         ) {
@@ -1893,7 +1893,7 @@ fun PaymentStep(
                         .fillMaxWidth()
                         .padding(vertical = spacing.small),
                     colors = CardDefaults.cardColors(containerColor = CardBG),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium)) {
@@ -1950,7 +1950,7 @@ fun PaymentStep(
                         modifier =
                                 Modifier.fillMaxWidth()
                                         .height(56.dp)
-                                        .background(BrownSelected, RoundedCornerShape(8.dp))
+                                        .background(BrownSelected, KhanaRadii.md)
                                         .border(1.dp, BorderGold)
                                         .clickable(enabled = !controlsLocked) { expanded = true }
                                         .padding(horizontal = spacing.medium),
@@ -2124,7 +2124,7 @@ fun PaymentStep(
                             ButtonDefaults.buttonColors(
                                     containerColor = if (isAmountValid) SuccessGreen else Color.Gray
                             ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     enabled = isAmountValid && paymentAttemptReady
             ) {
                 Text(
@@ -2246,7 +2246,7 @@ fun FailedStep(
             onClick = onNewBill,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Icon(Icons.Default.Home, null, tint = PrimaryGold)
             Spacer(modifier = Modifier.width(spacing.small))
@@ -2335,7 +2335,7 @@ fun SuccessStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = spacing.medium)
-                .border(BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)), RoundedCornerShape(12.dp)),
+                .border(BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)), KhanaRadii.lg),
             colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.25f))
         ) {
             Column(
@@ -2370,7 +2370,7 @@ fun SuccessStep(
                     Text("Payment Mode:", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     Surface(
                         color = lastBill?.let { getPayModeColor(PaymentMode.fromDbValue(it.bill.paymentMode)) } ?: Color.Gray,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = KhanaRadii.sm
                     ) {
                         Text(
                             text = lastBill?.let { PaymentMode.fromDbValue(it.bill.paymentMode).displayLabel } ?: "N/A",
@@ -2416,7 +2416,7 @@ fun SuccessStep(
         if (liveStatus.isNotEmpty()) {
             Surface(
                 color = if (liveStatus.contains("failed") || liveStatus == "Offline") DangerRed.copy(alpha = 0.15f) else PrimaryGold.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(8.dp),
+                shape = KhanaRadii.md,
                 border = BorderStroke(1.dp, if (liveStatus.contains("failed") || liveStatus == "Offline") DangerRed.copy(alpha = 0.35f) else PrimaryGold.copy(alpha = 0.35f)),
                 modifier = Modifier.padding(vertical = spacing.small)
             ) {
@@ -2475,7 +2475,7 @@ fun SuccessStep(
                     disabledContainerColor = WhatsAppGreen.copy(alpha = 0.35f),
                     disabledContentColor = Color.White.copy(alpha = 0.65f)
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = KhanaRadii.lg,
                 enabled = lastBill != null && !isSharingInvoice
             ) {
                 if (isSharingInvoice) {

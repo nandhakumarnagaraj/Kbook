@@ -185,7 +185,7 @@ fun LoginScreen(
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = KhanaRadii.xl,
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = DarkBrown2,
                         focusedContainerColor = DarkBrown2,
@@ -244,7 +244,7 @@ fun LoginScreen(
                             if (showPassword) VisualTransformation.None
                             else PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = KhanaRadii.xl,
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = DarkBrown2,
                         focusedContainerColor = DarkBrown2,
@@ -318,7 +318,7 @@ fun LoginScreen(
                                             if (isLoginEnabled) PrimaryGold else TextMuted,
                                     contentColor = DarkBrown1
                             ),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = KhanaRadii.pill,
                     enabled = isLoginEnabled
             ) {
                 if (isLoading && !isGoogleLogin) {
@@ -465,7 +465,7 @@ fun ForgotPasswordDialog(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SuccessGreen.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+                .background(SuccessGreen.copy(alpha = 0.08f), KhanaRadii.md)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -504,7 +504,7 @@ fun ForgotPasswordDialog(
                     onClick = { if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset") },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KhanaRadii.lg,
                     enabled = isPhoneValid && !isResetLoading
                 ) {
                     if (isResetLoading)
@@ -530,7 +530,7 @@ fun ForgotPasswordDialog(
                         modifier = Modifier.weight(1f).height(52.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = KhanaRadii.lg
                     ) { Text("Back", style = MaterialTheme.typography.labelLarge) }
 
                     Button(
@@ -543,7 +543,7 @@ fun ForgotPasswordDialog(
                         },
                         modifier = Modifier.weight(2f).height(52.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = KhanaRadii.lg,
                         enabled = when (step) {
                             2 -> otp.length == 6
                             3 -> newPassword.isNotBlank() && newPassword == confirmPassword
@@ -714,7 +714,7 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
                     isActive -> PrimaryGold.copy(alpha = 0.18f)
                     else -> DarkBrown2
                 },
-                shape = RoundedCornerShape(14.dp),
+                shape = KhanaRadii.lg,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     when {

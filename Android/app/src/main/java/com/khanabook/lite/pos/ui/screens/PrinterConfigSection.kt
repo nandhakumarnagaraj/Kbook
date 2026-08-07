@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -523,7 +525,7 @@ private fun PrinterTargetCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, BorderGold.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .border(1.dp, BorderGold.copy(alpha = 0.3f), KhanaRadii.md)
             .padding(spacing.medium)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -638,10 +640,10 @@ fun DeviceRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
         onClick = if (!isConnecting) onClick else null,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(8.dp)
+        shape = KhanaRadii.md
     ) {
         if (border != null) {
-            Modifier.border(border, RoundedCornerShape(8.dp))
+            Modifier.border(border, KhanaRadii.md)
         }
         Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
             Icon(

@@ -288,7 +288,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Column(modifier = Modifier.padding(spacing.large)) {
                 Text("UI Scale", color = TextLight, style = MaterialTheme.typography.titleMedium)
@@ -340,7 +340,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
 
                 KhanaBookCard(
                     colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = KhanaRadii.md
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium)) {
                         Text(
@@ -492,7 +492,7 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
     val iconSize = KhanaBookTheme.iconSize
     Column(modifier = Modifier.fillMaxWidth().padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
-        Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = RoundedCornerShape(12.dp)) {
+        Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = KhanaRadii.lg) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
             Text("Sign Out", style = MaterialTheme.typography.labelLarge)
@@ -532,7 +532,7 @@ private fun LegacyAppLockConfigViewUnused(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.lg
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -568,7 +568,7 @@ private fun LegacyAppLockConfigViewUnused(
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp)
+                shape = KhanaRadii.lg
             ) {
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text("PIN Options", color = TextLight, style = MaterialTheme.typography.titleSmall)
@@ -576,7 +576,7 @@ private fun LegacyAppLockConfigViewUnused(
                         onClick = { viewModel.startChangePin() },
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(1.dp, BorderGold),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = KhanaRadii.md
                     ) {
                         Icon(Icons.Filled.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
                         Spacer(modifier = Modifier.width(spacing.small))
