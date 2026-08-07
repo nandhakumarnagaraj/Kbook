@@ -963,7 +963,7 @@ fun DraftItemRow(
                     modifier = Modifier
                         .size(KhanaBookTheme.iconSize.xsmall)
                         .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
-                        .padding(2.dp),
+                        .padding(KhanaBookTheme.spacing.hairline),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -1179,7 +1179,7 @@ fun ModeSelectionView(
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
                 shape = KhanaRadii.lg
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
                     Text("Categories", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalCategoriesCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -1191,7 +1191,7 @@ fun ModeSelectionView(
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
                 shape = KhanaRadii.lg
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
                     Text("Total Items", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalItemsCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -1232,7 +1232,7 @@ fun ModeSelectionView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(KhanaBookTheme.spacing.medium),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     SmartAIOption(
@@ -1288,7 +1288,7 @@ fun ModeSelectionView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(KhanaBookTheme.spacing.medium),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         SmartAIOption(
@@ -1341,7 +1341,7 @@ fun SmartAIOption(
             .clip(KhanaRadii.lg)
             .clickable { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .padding(12.dp),
+            .padding(KhanaBookTheme.spacing.smallMedium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -1351,7 +1351,7 @@ fun SmartAIOption(
             modifier = Modifier.size(44.dp),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.2f))
         ) {
-            Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(12.dp))
+            Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium))
         }
         Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
         Text(
@@ -1485,7 +1485,7 @@ fun ManualMenuView(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
+                    modifier = Modifier.padding(KhanaBookTheme.spacing.extraLarge)
                 ) {
                     Box(
                         modifier = Modifier
@@ -1720,7 +1720,7 @@ fun MenuItemRow(
         )
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(

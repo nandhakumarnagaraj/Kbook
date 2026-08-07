@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -46,7 +48,7 @@ fun KhanaBookSwitch(
             .background(trackColor, CircleShape)
             .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
             .clickable { onCheckedChange(!checked) }
-            .padding(2.dp),
+            .padding(KhanaBookTheme.spacing.hairline),
         contentAlignment = Alignment.CenterStart
     ) {
         Box(

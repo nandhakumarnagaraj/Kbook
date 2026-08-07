@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+
 import com.khanabook.lite.pos.ui.theme.KhanaRadii
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -64,10 +66,10 @@ fun KhanaBookCard(
 fun KhanaBookCardPreview() {
     KhanaBookLiteTheme {
         KhanaBookCard(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(KhanaBookTheme.spacing.medium),
             onClick = {}
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
                 Text("Hello Preview", color = androidx.compose.ui.graphics.Color.White)
             }
         }

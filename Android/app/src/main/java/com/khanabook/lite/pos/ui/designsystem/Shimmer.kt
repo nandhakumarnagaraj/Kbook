@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+
 import com.khanabook.lite.pos.ui.theme.KhanaRadii
 
 import androidx.compose.animation.core.LinearEasing
@@ -110,7 +112,7 @@ fun SkeletonListItem(modifier: Modifier = Modifier) {
 @Composable
 fun SkeletonCard(modifier: Modifier = Modifier) {
     KhanaBookCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
             ShimmerBox(height = 12.dp, modifier = Modifier.fillMaxWidth(0.4f))
             Spacer(modifier = Modifier.height(12.dp))
             ShimmerBox(height = 24.dp, modifier = Modifier.fillMaxWidth(0.6f))
@@ -145,7 +147,7 @@ fun SkeletonTableRow(modifier: Modifier = Modifier, columns: Int = 4) {
  */
 @Composable
 fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8, columns: Int = 5) {
-    Column(modifier = modifier.padding(16.dp)) {
+    Column(modifier = modifier.padding(KhanaBookTheme.spacing.medium)) {
         // Summary cards
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -186,7 +188,7 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8, colum
  */
 @Composable
 fun SkeletonMenuScreen(modifier: Modifier = Modifier, itemCount: Int = 6) {
-    Column(modifier = modifier.padding(16.dp)) {
+    Column(modifier = modifier.padding(KhanaBookTheme.spacing.medium)) {
         // Category tabs
         Row(
             modifier = Modifier.fillMaxWidth(),

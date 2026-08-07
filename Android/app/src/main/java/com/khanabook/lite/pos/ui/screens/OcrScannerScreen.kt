@@ -356,7 +356,7 @@ private fun ScanControls(
     onRetake: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp).navigationBarsPadding(),
+        modifier = Modifier.fillMaxSize().padding(KhanaBookTheme.spacing.medium).navigationBarsPadding(),
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(
@@ -364,7 +364,7 @@ private fun ScanControls(
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(KhanaBookTheme.spacing.medium)) {
                 Text(
                     when {
                         !hasCapturedPhoto && !returnBarcode -> buildString {
@@ -470,7 +470,7 @@ private fun ScanControls(
 fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(KhanaBookTheme.spacing.large),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

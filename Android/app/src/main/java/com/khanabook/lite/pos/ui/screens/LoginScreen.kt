@@ -237,7 +237,7 @@ fun LoginScreen(
                                         else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
                                 tint = PrimaryGold,
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge).clickable { showPassword = !showPassword }.padding(12.dp)
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge).clickable { showPassword = !showPassword }.padding(KhanaBookTheme.spacing.smallMedium)
                         )
                     },
                     visualTransformation =

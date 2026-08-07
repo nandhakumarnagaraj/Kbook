@@ -2711,7 +2711,7 @@ fun VariantPickerDialog(
 fun FoodTypeIcon(type: String) {
     val color = if (type == "veg") VegGreen else NonVegRed
     Box(
-            modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall).border(1.dp, color).padding(2.dp),
+            modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall).border(1.dp, color).padding(KhanaBookTheme.spacing.hairline),
             contentAlignment = Alignment.Center
     ) { Box(modifier = Modifier.fillMaxSize().background(color, RoundedCornerShape(100.dp))) }
 }
