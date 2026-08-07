@@ -53,6 +53,7 @@ public class MasterSyncController {
 	private final BillItemRepository billItemRepository;
 	private final BillPaymentRepository billPaymentRepository;
 	private final FeatureFlagService featureFlagService;
+	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
 	// strict=true: a missing terminal token rejects terminal-operational pulls.
@@ -142,6 +143,10 @@ public class MasterSyncController {
 		// sent on page 0 once, omitted from follow-up pages.
 		if (page == 0) {
 			response.setEnabledFeatures(featureFlagService.resolveAllForRestaurant(tenantId));
+			Long currentUserId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
+			if (currentUserId != null) {
+				response.setGrantedPermissions(permissionService.getGrantedPermissions(tenantId, currentUserId));
+			}
 		}
 
 		if (page == 0) {

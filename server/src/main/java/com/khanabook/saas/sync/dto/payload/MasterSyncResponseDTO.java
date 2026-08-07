@@ -21,4 +21,7 @@ public class MasterSyncResponseDTO {
 
     /** Effective feature-flag state for this restaurant (Requirement 30.23). */
     private Map<String, Boolean> enabledFeatures;
+
+    /** Granted permission keys for the requesting user (lightweight sync). */
+    private List<String> grantedPermissions;
 }
