@@ -42,7 +42,9 @@ class InitialSyncViewModel @Inject constructor(
         viewModelScope.launch {
             _syncState.value = InitialSyncState.Syncing
             try {
-                val result = syncManager.performFullSync()
+                // Use pull-only on initial sync — no local data exists to push yet.
+                // This saves 1-2 seconds and avoids unnecessary push overhead.
+                val result = syncManager.performMasterPull()
 
                 if (result.isSuccess) {
                     sessionManager.setInitialSyncCompleted(true)

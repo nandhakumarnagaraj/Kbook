@@ -308,6 +308,10 @@ class BillingViewModel @Inject constructor(
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
         viewModelScope.launch {
             val latestItem = menuRepository.getItemById(item.id) ?: item
+            if (!latestItem.isAvailable) {
+                _error.value = "${latestItem.name} is no longer available."
+                return@launch
+            }
             _cartItems.update { current ->
                 val mutable = current.toMutableList()
                 val existingInUpdate = mutable.find { it.item.id == item.id && it.variant?.id == variant?.id }
@@ -809,6 +813,17 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 _error.value = "Add at least one item before completing the bill."
                 return@withLock false
             }
+
+            val unavailableItems = _cartItems.value.filter { cartItem ->
+                val latest = menuRepository.getItemById(cartItem.item.id)
+                latest == null || !latest.isAvailable
+            }
+            if (unavailableItems.isNotEmpty()) {
+                val names = unavailableItems.joinToString(", ") { it.item.name }
+                _error.value = "These items are now unavailable: $names. Please remove them to continue."
+                return@withLock false
+            }
+
             _isLoading.value = true
             try {
                 // Use cached profile — no extra DB read needed

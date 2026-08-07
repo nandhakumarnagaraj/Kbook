@@ -963,6 +963,15 @@ class MasterSyncProcessor @Inject constructor(
                 )
             }
             userDao.insertSyncedUsers(usersToInsert)
+
+            // Propagate role change to active session if current user's role was updated
+            val activeUserId = sessionManager.getActiveUserId()
+            val currentRole = sessionManager.getActiveUserRole()
+            val updatedCurrentUser = usersToInsert.find { it.id == activeUserId }
+            if (updatedCurrentUser != null && updatedCurrentUser.role != currentRole) {
+                Log.w("MasterSyncProcessor", "Role changed for active user: $currentRole → ${updatedCurrentUser.role}")
+                sessionManager.saveActiveUserRole(updatedCurrentUser.role)
+            }
         }
 
         val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()

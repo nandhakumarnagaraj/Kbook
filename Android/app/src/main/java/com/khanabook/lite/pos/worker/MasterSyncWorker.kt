@@ -116,6 +116,8 @@ constructor(
               return@withContext Result.failure()
             }
             if (e.code() == 403) {
+              logWarn("403 Forbidden — possible role change or terminal deactivation. Invalidating session.")
+              sessionManager.invalidateAuthSession()
               return@withContext Result.failure()
             }
           }
