@@ -102,6 +102,11 @@ import { formatCurrency, formatDate } from './formatters';
             No line items found.
           </div>
         </div>
+
+        <div class="order-modal__footer">
+          <button type="button" class="ghost-btn" (click)="copyInvoiceLink()">📋 Copy Invoice Link</button>
+          <button type="button" class="ghost-btn" (click)="close()">Close</button>
+        </div>
       </section>
     </div>
   `,
@@ -275,6 +280,14 @@ import { formatCurrency, formatDate } from './formatters';
       font-size: 0.9rem;
     }
 
+    .order-modal__footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem 1.25rem;
+      border-top: 1px solid var(--line);
+    }
+
     @media (max-width: 480px) {
       .order-modal__card {
         max-height: 95vh;
@@ -353,5 +366,17 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
       this.previouslyFocused.focus();
       this.previouslyFocused = null;
     }
+  }
+
+  copyInvoiceLink(): void {
+    if (!this.order) return;
+    // Public invoice links require restaurantId + publicToken which aren't in the
+    // order detail response yet. For now, copy the order code as reference.
+    const text = `Order ${this.order.order.orderCode} — Total: ${this.fmtCurrency(this.order.order.totalAmount)}`;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Order info copied! Full invoice links will be available in a future update.');
+    }).catch(() => {
+      prompt('Copy this:', text);
+    });
   }
 }

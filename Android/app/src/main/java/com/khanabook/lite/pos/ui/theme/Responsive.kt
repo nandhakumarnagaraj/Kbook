@@ -26,12 +26,22 @@ data class ResponsiveLayout(
     val isCompactHeight: Boolean = screenHeightDp < 480
     val isLandscape: Boolean = screenWidthDp > screenHeightDp
     val reportDetailItemListMaxHeight: Dp = if (isCompactHeight) 120.dp else 200.dp
+
+    // Layout decisions — single source of truth for all screens
     val isWideListDetail: Boolean = screenWidthDp >= 840
+
+    // Grid layout: capped at 3 columns max for POS tap-target usability.
+    // Screens use GridCells.Fixed(menuGridColumns).
     val menuGridColumns: Int = when {
-        screenWidthDp >= 1200 -> 3
+        screenWidthDp >= 840 -> 3
         screenWidthDp >= 600 -> 2
         else -> 1
     }
+
+    // Bottom navigation is used on all sizes (intentional product decision for v1).
+    // NavigationRail may be evaluated for v2 on expanded widths.
+    val useBottomNavigation: Boolean = true
+
     val contentPadding: Dp = when (widthTier) {
         WindowWidthTier.Compact -> 16.dp
         WindowWidthTier.Medium -> 20.dp

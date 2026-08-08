@@ -81,11 +81,24 @@ public class AuthController {
 		return loginRateLimiter.tryConsume(ip) && loginRateLimiterDb.tryConsume(ip);
 	}
 
+	/**
+	 * Per-account login rate limit — blocks brute-force on a specific account
+	 * even from distributed IPs. Limit: 5 attempts per 15 minutes per loginId.
+	 */
+	private boolean isAccountLoginAllowed(String loginId) {
+		if (loginId == null || loginId.isBlank()) return true;
+		return loginRateLimiterDb.tryConsume("acct:" + loginId.toLowerCase().trim());
+	}
+
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 		String ip = getClientIp(httpRequest);
 		if (!isLoginAllowed(ip)) {
 			log.warn("Login rate limit exceeded ip={}", ip);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		if (!isAccountLoginAllowed(request.getLoginId())) {
+			log.warn("Login rate limit exceeded account={}", request.getLoginId() != null ? request.getLoginId().substring(0, Math.min(4, request.getLoginId().length())) + "***" : "null");
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
 		log.debug("Login attempt identifierLen={} ip={}", request.getLoginId() == null ? 0 : request.getLoginId().length(), ip);
@@ -107,9 +120,10 @@ public class AuthController {
 	}
 
 	@PostMapping("/signup/request")
-	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request) {
-		if (!isOtpAllowed(request.getPhoneNumber())) {
-			log.warn("OTP rate limit exceeded for signup phone={}***", request.getPhoneNumber().substring(0, 3));
+	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request, HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!isOtpAllowed(request.getPhoneNumber()) || !isOtpAllowed("ip:" + ip)) {
+			log.warn("OTP rate limit exceeded for signup phone={}*** ip={}", request.getPhoneNumber().substring(0, 3), ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
 		authService.requestSignupOtp(request.getPhoneNumber());
@@ -129,10 +143,12 @@ public class AuthController {
 
 	@GetMapping("/check-user")
 	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
+		// Always returns true to prevent user enumeration attacks.
+		// The Android client handles both existing and new user flows gracefully.
 		if (phoneNumber == null || !phoneNumber.matches("^\\d{10}$")) {
 			return ResponseEntity.ok(false);
 		}
-		return ResponseEntity.ok(authService.checkUserExists(phoneNumber));
+		return ResponseEntity.ok(true);
 	}
 
 	@PostMapping("/reset-password")
@@ -162,9 +178,10 @@ public class AuthController {
 	}
 
 	@PostMapping("/reset-password/request")
-	public ResponseEntity<Void> requestResetPasswordOtp(@Valid @RequestBody PasswordResetOtpRequest request) {
-		if (!isOtpAllowed(request.getPhoneNumber())) {
-			log.warn("OTP rate limit exceeded for reset phone={}***", request.getPhoneNumber().substring(0, 3));
+	public ResponseEntity<Void> requestResetPasswordOtp(@Valid @RequestBody PasswordResetOtpRequest request, HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!isOtpAllowed(request.getPhoneNumber()) || !isOtpAllowed("ip:" + ip)) {
+			log.warn("OTP rate limit exceeded for reset phone={}*** ip={}", request.getPhoneNumber().substring(0, 3), ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
 		authService.requestPasswordResetOtp(request.getPhoneNumber());

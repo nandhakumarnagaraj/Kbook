@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -10,6 +11,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-menu-page',
@@ -219,12 +221,34 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           </div>
           <div class="field">
             <label>Category</label>
-            <select class="field-select" [(ngModel)]="formCategoryId">
-              <option [ngValue]="null" disabled>Select a category</option>
-              <option *ngFor="let category of categories" [ngValue]="category.categoryId">
-                {{ category.name }}
-              </option>
-            </select>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <select class="field-select" [(ngModel)]="formCategoryId" style="flex:1;">
+                <option [ngValue]="null" disabled>Select a category</option>
+                <option *ngFor="let category of categories" [ngValue]="category.categoryId">
+                  {{ category.name }}
+                </option>
+              </select>
+              <button type="button" class="ghost-btn" style="white-space:nowrap;" (click)="showNewCategoryInput = !showNewCategoryInput">
+                {{ showNewCategoryInput ? 'Cancel' : '+ New' }}
+              </button>
+            </div>
+            <div *ngIf="showNewCategoryInput" style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+              <input
+                type="text"
+                class="field-control"
+                [(ngModel)]="newCategoryName"
+                placeholder="New category name"
+                style="flex:1;"
+              />
+              <button
+                type="button"
+                class="primary-btn"
+                [disabled]="!newCategoryName.trim() || creatingCategory"
+                (click)="createCategory()"
+              >
+                {{ creatingCategory ? 'Adding...' : 'Add' }}
+              </button>
+            </div>
           </div>
           <div class="field">
             <label>Food Type *</label>
@@ -280,79 +304,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         (confirmed)="confirmDelete()"
         (cancelled)="closeDeleteConfirm()"
       ></app-confirm-dialog>
-
-      <section class="panel filter-panel ocr-panel">
-        <div class="toolbar">
-          <div>
-            <h3>Import Menu from File</h3>
-            <p class="muted">Upload a menu PDF or image (JPG/PNG, max 10 MB). We extract the item table and show a preview.</p>
-          </div>
-          <label class="primary-btn upload-btn">
-            {{ uploading() ? 'Uploading...' : 'Choose file' }}
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event)" [disabled]="uploading()" hidden />
-          </label>
-        </div>
-
-        <div class="ocr-state ocr-state--progress" *ngIf="uploading()" role="status" aria-live="polite"><span class="spinner"></span><div><strong>Uploading menu</strong><p>Keep this page open while the file is transferred securely.</p></div></div>
-        <div class="ocr-state ocr-state--error" *ngIf="ocrUploadError()" role="alert"><strong>Upload could not start</strong><p>{{ ocrUploadError() }}</p></div>
-
-        <div class="ocr-state ocr-state--progress" *ngIf="job() && (job()!.status === 'PENDING' || job()!.status === 'PROCESSING')" role="status" aria-live="polite">
-          <span class="spinner"></span><div><strong>{{ job()!.status === 'PENDING' ? 'Queued for extraction' : 'Reading menu items' }}</strong><p>Recognition can take a few moments. Status refreshes automatically.</p></div>
-        </div>
-
-        <div class="ocr-error" *ngIf="job() && job()!.status === 'FAILED'">
-          <p class="error-text" role="alert">Extraction failed: {{ job()!.errorMessage || 'Unknown error' }}</p>
-          <button class="ghost-btn" (click)="resetJob()">Try another file</button>
-        </div>
-
-        <div class="ocr-result" *ngIf="job() && job()!.status === 'COMPLETED'">
-          <div class="result-header">
-            <p class="muted">{{ extractedItems().length }} items extracted.</p>
-            <span class="chip">Preview only</span>
-          </div>
-          <p class="hint-text">
-            Review the extracted items below. Importing into the live menu happens on the
-            Android POS app (sync). This web preview is read-only for v1.
-          </p>
-
-          <div class="panel table-wrap extracted-table" *ngIf="extractedItems().length">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Half</th>
-                  <th>Full</th>
-                  <th>Price</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of extractedItems()">
-                  <td><strong>{{ row.itemName }}</strong></td>
-                  <td>{{ row.halfPrice || '-' }}</td>
-                  <td>{{ row.fullPrice || '-' }}</td>
-                  <td>{{ row.price || '-' }}</td>
-                  <td class="muted">{{ row.description || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="mobile-data-list" aria-label="Extracted menu items">
-              <article class="mobile-data-card" *ngFor="let row of extractedItems()">
-                <div class="mobile-data-card__head"><strong>{{ row.itemName }}</strong><span class="chip">Preview</span></div>
-                <p>{{ row.description || 'No description detected' }}</p>
-                <dl><div><dt>Half</dt><dd>{{ row.halfPrice || '-' }}</dd></div><div><dt>Full</dt><dd>{{ row.fullPrice || row.price || '-' }}</dd></div></dl>
-              </article>
-            </div>
-          </div>
-
-          <div class="ocr-state ocr-state--warning" *ngIf="!extractedItems().length" role="status"><strong>Extraction completed with no items</strong><p>Try a clearer image or a PDF where item names and prices are easy to read.</p></div>
-
-          <div class="modal-actions">
-            <button class="ghost-btn" (click)="resetJob()">Done</button>
-          </div>
-        </div>
-      </section>
-
     </div>
   `,
   styles: [`
@@ -393,6 +344,8 @@ export class MenuPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly zone = inject(NgZone);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = environment.apiBaseUrl;
 
   items: BusinessMenuItem[] = [];
   categories: BusinessCategory[] = [];
@@ -415,6 +368,11 @@ export class MenuPageComponent implements OnDestroy {
   formDescription = '';
   formError = '';
   formSaving = false;
+
+  // New category inline creation
+  showNewCategoryInput = false;
+  newCategoryName = '';
+  creatingCategory = false;
 
   // Delete state
   deleteTarget: BusinessMenuItem | null = null;
@@ -486,6 +444,45 @@ export class MenuPageComponent implements OnDestroy {
         this.categories = [];
         this.loadError = 'Unable to load the menu. Check your connection and try again.';
         this.loaded = true;
+      }
+    });
+  }
+
+  // --- Category Creation ---
+
+  createCategory(): void {
+    const name = this.newCategoryName.trim();
+    if (!name || this.creatingCategory) return;
+    this.creatingCategory = true;
+    // Use the sync push endpoint to create a category
+    const now = Date.now();
+    const payload = [{
+      name,
+      isVeg: null,
+      sortOrder: this.categories.length,
+      isActive: true,
+      localId: now,
+      deviceId: 'web-admin',
+      restaurantId: 0,
+      updatedAt: now,
+      createdAt: now,
+      isDeleted: false,
+      serverUpdatedAt: 0
+    }];
+    this.http.post<any>(`${this.apiBaseUrl}/sync/menu/categories/push`, payload).subscribe({
+      next: () => {
+        this.creatingCategory = false;
+        this.newCategoryName = '';
+        this.showNewCategoryInput = false;
+        this.toast.show('Category created successfully', 'success');
+        // Reload categories
+        this.api.getMenuCategories().subscribe({
+          next: (cats) => { this.categories = cats; }
+        });
+      },
+      error: () => {
+        this.creatingCategory = false;
+        this.toast.show('Failed to create category. Try again.', 'error');
       }
     });
   }

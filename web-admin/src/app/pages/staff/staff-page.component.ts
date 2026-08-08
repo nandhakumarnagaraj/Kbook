@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { HttpErrorResponse } from '@angular/common/http';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { BusinessStaffItem, StaffCreatedResponse } from '../../core/models/api.models';
+import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -211,8 +211,11 @@ import { formatDate } from '../../shared/formatters';
               <div class="form-group">
                 <label for="staff-role-select">Role *</label>
                 <select id="staff-role-select" class="field-select" formControlName="role">
-                  <option value="OWNER">Owner</option>
-                  <option value="SHOP_ADMIN">Terminal Administrator</option>
+                  <option value="" disabled>Select a role</option>
+                  <option value="WAITER">Waiter</option>
+                  <option value="CASHIER">Cashier</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="SHOP_ADMIN">Admin</option>
                 </select>
               </div>
 
@@ -265,8 +268,10 @@ import { formatDate } from '../../shared/formatters';
             <div class="form-group">
               <label for="edit-staff-role">Role *</label>
               <select id="edit-staff-role" class="field-select" formControlName="role">
-                <option value="OWNER">Owner</option>
-                <option value="SHOP_ADMIN">Terminal Administrator</option>
+                <option value="WAITER">Waiter</option>
+                <option value="CASHIER">Cashier</option>
+                <option value="MANAGER">Manager</option>
+                <option value="SHOP_ADMIN">Admin</option>
               </select>
               <div class="role-disabled-note" *ngIf="isEditingSelf">
                 Cannot change your own role
@@ -470,16 +475,16 @@ export class StaffPageComponent {
   staffToDeactivate: BusinessStaffItem | null = null;
 
   staffForm = this.fb.group({
-    name: ['', [Validators.required]],
+    name: ['', [Validators.required, Validators.minLength(2)]],
     phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    role: ['OWNER' as 'OWNER' | 'SHOP_ADMIN', [Validators.required]],
+    role: ['', [Validators.required]],
     email: ['', [Validators.email]]
   });
 
   editForm = this.fb.group({
     name: ['', [Validators.required]],
     phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    role: ['OWNER' as 'OWNER' | 'SHOP_ADMIN', [Validators.required]],
+    role: ['SHOP_ADMIN' as StaffRole, [Validators.required]],
     email: ['', [Validators.email]]
   });
 
@@ -508,7 +513,7 @@ export class StaffPageComponent {
     this.showCreateModal = true;
     this.createError = '';
     this.createdStaff = null;
-    this.staffForm.reset({ name: '', phone: '', role: 'OWNER', email: '' });
+    this.staffForm.reset({ name: '', phone: '', role: '', email: '' });
   }
 
   closeCreateModal(): void {
@@ -530,7 +535,7 @@ export class StaffPageComponent {
     const payload = {
       name: formValue.name!,
       phone: formValue.phone!,
-      role: formValue.role! as 'OWNER' | 'SHOP_ADMIN',
+      role: formValue.role! as StaffRole,
       ...(formValue.email ? { email: formValue.email } : {})
     };
 
@@ -563,7 +568,7 @@ export class StaffPageComponent {
     this.editForm.reset({
       name: item.name,
       phone: item.whatsappNumber || item.loginId,
-      role: item.role as 'OWNER' | 'SHOP_ADMIN',
+      role: item.role as StaffRole,
       email: item.email || ''
     });
 
@@ -591,7 +596,7 @@ export class StaffPageComponent {
     const payload = {
       name: formValue.name!,
       phone: formValue.phone!,
-      role: formValue.role! as 'OWNER' | 'SHOP_ADMIN',
+      role: formValue.role! as StaffRole,
       ...(formValue.email ? { email: formValue.email } : {})
     };
 

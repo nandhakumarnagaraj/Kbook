@@ -132,7 +132,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           <ng-container *ngIf="forgotStep === 'otp'">
             <header class="auth-head">
               <h2>Enter OTP</h2>
-              <p class="muted">Enter the 6-digit code sent to your phone.</p>
+              <p class="muted">If this number is registered, you'll receive a 6-digit code shortly.</p>
             </header>
             <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form">
               <label class="field">
@@ -459,10 +459,14 @@ export class LoginPageComponent implements OnInit {
       next: () => {
         this.forgotLoading = false;
         this.forgotStep = 'otp';
+        this.forgotError = '';
       },
-      error: (err) => {
+      error: () => {
+        // Server always returns 200 to prevent user enumeration.
+        // Move to OTP step regardless — if the number isn't registered, no OTP arrives.
         this.forgotLoading = false;
-        this.forgotError = err?.error?.error || err?.error?.message || 'Failed to send OTP. Please try again.';
+        this.forgotStep = 'otp';
+        this.forgotError = '';
       }
     });
   }

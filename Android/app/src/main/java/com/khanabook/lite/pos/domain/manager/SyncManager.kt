@@ -52,7 +52,11 @@ class SyncManager @Inject constructor(
                     deferredSyncJob?.cancel()
                     deferredSyncJob = syncScope.launch {
                         kotlinx.coroutines.delay(syncDebounceWindowMs)
-                        performFullSync()
+                        val result = performFullSync()
+                        if (result.isFailure) {
+                            // Deferred sync failed — ensure WorkManager picks it up
+                            logWarn("Deferred sync failed, relying on periodic WorkManager retry")
+                        }
                     }
                     true
                 } else {
@@ -135,10 +139,12 @@ class SyncManager @Inject constructor(
                         val pending = if (!body.isNullOrBlank()) {
                             gson.fromJson(body, com.khanabook.lite.pos.data.remote.api.TerminalPendingResponse::class.java)
                         } else null
-                        Log.w(tag, "Terminal activation pending approval: requestId=${pending?.requestId}")
+                        Log.w(tag, "Terminal activation pending approval: requestId=${pending?.requestId} challengeCode=${pending?.challengeCode}")
                         throw com.khanabook.lite.pos.domain.util.TerminalPendingApprovalException(
                             requestId = pending?.requestId,
                             rejectionCooldown = false,
+                            challengeCode = pending?.challengeCode,
+                            challengeExpiresAt = pending?.challengeExpiresAt,
                             message = pending?.message ?: "Device registration is pending admin approval"
                         )
                     }

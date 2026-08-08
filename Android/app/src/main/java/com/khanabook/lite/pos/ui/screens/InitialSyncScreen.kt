@@ -199,6 +199,60 @@ fun InitialSyncScreen(
                         textAlign = TextAlign.Center
                     )
 
+                    // ── Challenge code display ──────────────────────────────────
+                    if (pendingState.challengeCode != null) {
+                        Spacer(modifier = Modifier.height(spacing.large))
+
+                        Text(
+                            "Confirm this number on the admin panel:",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        Surface(
+                            color = PrimaryGold.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(horizontal = spacing.extraLarge)
+                        ) {
+                            Text(
+                                text = pendingState.challengeCode,
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.displayMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = spacing.medium)
+                            )
+                        }
+
+                        // Countdown timer
+                        if (pendingState.challengeExpiresAt != null) {
+                            val remainingSeconds = remember(pendingState.challengeExpiresAt) {
+                                ((pendingState.challengeExpiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+                            }
+                            var timeLeft by remember(pendingState.challengeExpiresAt) { mutableStateOf(remainingSeconds) }
+                            LaunchedEffect(pendingState.challengeExpiresAt) {
+                                while (timeLeft > 0) {
+                                    delay(1000L)
+                                    timeLeft = ((pendingState.challengeExpiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Text(
+                                text = if (timeLeft > 0) "Expires in ${timeLeft / 60}:${(timeLeft % 60).toString().padStart(2, '0')}"
+                                       else "Code expired — waiting for new code...",
+                                color = if (timeLeft > 0) TextGold.copy(alpha = 0.5f) else ErrorPink.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(spacing.extraLarge))
 
                     OutlinedButton(

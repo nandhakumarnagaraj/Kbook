@@ -217,10 +217,12 @@ export interface MenuExtractionItem {
   description?: string;
 }
 
+export type StaffRole = 'OWNER' | 'SHOP_ADMIN' | 'WAITER' | 'CASHIER' | 'MANAGER';
+
 export interface CreateStaffRequest {
   name: string;
   phone: string;
-  role: 'OWNER' | 'SHOP_ADMIN';
+  role: StaffRole;
   email?: string;
 }
 
@@ -236,7 +238,7 @@ export interface UpdateStaffRequest {
   name: string;
   phone: string;
   email?: string;
-  role: 'OWNER' | 'SHOP_ADMIN';
+  role: StaffRole;
 }
 
 export interface CreateMenuItemRequest {

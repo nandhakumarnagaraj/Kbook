@@ -27,6 +27,9 @@ public interface UserRepository extends SyncRepository<User, Long> {
 
 	Optional<User> findByPhoneNumber(String phoneNumber);
 
+	@Query("SELECT u FROM User u WHERE u.phoneNumber = :identifier OR u.loginId = :identifier OR u.email = :identifier OR u.whatsappNumber = :identifier")
+	Optional<User> findByAnyIdentifier(@org.springframework.data.repository.query.Param("identifier") String identifier);
+
 	List<User> findByRestaurantIdAndRoleAndIsDeletedFalse(Long restaurantId, UserRole role);
 
 	List<User> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);

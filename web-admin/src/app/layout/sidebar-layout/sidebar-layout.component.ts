@@ -372,10 +372,13 @@ export class SidebarLayoutComponent {
     }
     return [
       { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
+      { label: 'Active Orders', path: '/business/active-orders', icon: '🔴' },
+      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰' },
       { label: 'Reports', path: '/business/reports', icon: '◔' },
       { label: 'Orders', path: '/business/orders', icon: '▤' },
       { label: 'Menu', path: '/business/menu', icon: '◈' },
       { label: 'Staff', path: '/business/staff', icon: '◍' },
+      { label: 'Settings', path: '/business/settings', icon: '⚙' },
       { label: 'Integrations', path: '/business/marketplace', icon: '◇' },
       { label: 'Devices', path: '/business/terminals', icon: '▣' }
     ];

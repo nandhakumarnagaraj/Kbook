@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.khanabook.saas.security.TenantContext;
 
+import com.khanabook.saas.sync.validation.SyncPushGuard;
+
 @RestController
 @RequestMapping("/sync/bills/items")
 @RequiredArgsConstructor
@@ -21,6 +23,7 @@ public class BillItemController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItemDTO> payload) {
+		SyncPushGuard.validateBatchSize(payload);
 		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
 				TenantContext.getCurrentTenant());
 		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),

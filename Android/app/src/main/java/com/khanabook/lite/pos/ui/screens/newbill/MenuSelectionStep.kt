@@ -105,7 +105,6 @@ fun MenuSelectionStep(
     
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
-    val gridColumns = layout.menuGridColumns
     val scope = rememberCoroutineScope()
     val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
     val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
@@ -274,9 +273,18 @@ fun MenuSelectionStep(
                         )
                     }
                 }
-            } else LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.weight(1f).padding(spacing.medium),
+            } else BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                // Compute columns from actual available pane width (not global screen width).
+                // This handles split-pane correctly: when the cart panel takes ~40% of 840dp,
+                // the grid pane is only ~500dp wide and should show 2 columns, not 3.
+                val paneColumns = when {
+                    maxWidth >= 640.dp -> 3
+                    maxWidth >= 420.dp -> 2
+                    else -> 1
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(paneColumns),
+                    modifier = Modifier.fillMaxSize().padding(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.smallMedium),
                     horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
             ) {
@@ -411,10 +419,11 @@ fun MenuSelectionStep(
                     }
                 }
                 
-                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(gridColumns) }) {
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(paneColumns) }) {
                     Spacer(modifier = Modifier.height(if (isWideScreen) spacing.medium else spacing.bottomListPadding))
                 }
             }
+            } // close BoxWithConstraints
 
 
             if (!isWideScreen) {

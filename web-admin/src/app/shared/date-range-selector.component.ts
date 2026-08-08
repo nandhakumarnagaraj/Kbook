@@ -79,7 +79,7 @@ export function getPresetDateRange(
 
     .date-range__presets {
       display: grid;
-      grid-template-columns: repeat(4, minmax(max-content, 1fr));
+      grid-template-columns: repeat(2, minmax(max-content, 1fr));
       gap: 0.5rem;
     }
 
@@ -184,8 +184,6 @@ export class DateRangeSelectorComponent {
 
   presets = [
     { label: 'Today', value: 'today' as DatePreset },
-    { label: 'This Week', value: 'this-week' as DatePreset },
-    { label: 'This Month', value: 'this-month' as DatePreset },
     { label: 'Custom', value: 'custom' as DatePreset }
   ];
 

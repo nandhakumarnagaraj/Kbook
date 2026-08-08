@@ -20,7 +20,11 @@ sealed class InitialSyncState {
     object Syncing : InitialSyncState()
     object Success : InitialSyncState()
     object SessionExpired : InitialSyncState()
-    data class PendingApproval(val requestId: Long?) : InitialSyncState()
+    data class PendingApproval(
+        val requestId: Long?,
+        val challengeCode: String? = null,
+        val challengeExpiresAt: Long? = null
+    ) : InitialSyncState()
     data class Error(val message: String) : InitialSyncState()
 }
 
@@ -51,7 +55,11 @@ class InitialSyncViewModel @Inject constructor(
                     val error = result.exceptionOrNull()
                     Log.e("InitialSyncViewModel", "Master pull failed", error)
                     if (error is TerminalPendingApprovalException) {
-                        _syncState.value = InitialSyncState.PendingApproval(error.requestId)
+                        _syncState.value = InitialSyncState.PendingApproval(
+                            requestId = error.requestId,
+                            challengeCode = error.challengeCode,
+                            challengeExpiresAt = error.challengeExpiresAt
+                        )
                     } else if (error is HttpException && error.code() == 401) {
                         sessionManager.invalidateAuthSession()
                         _syncState.value = InitialSyncState.SessionExpired
@@ -67,7 +75,11 @@ class InitialSyncViewModel @Inject constructor(
                 }
             } catch (e: TerminalPendingApprovalException) {
                 Log.w("InitialSyncViewModel", "Terminal pending approval: requestId=${e.requestId}")
-                _syncState.value = InitialSyncState.PendingApproval(e.requestId)
+                _syncState.value = InitialSyncState.PendingApproval(
+                    requestId = e.requestId,
+                    challengeCode = e.challengeCode,
+                    challengeExpiresAt = e.challengeExpiresAt
+                )
             } catch (e: Exception) {
                 Log.e("InitialSyncViewModel", "Unexpected error during initial sync", e)
                 if (e is HttpException && e.code() == 401) {
@@ -123,7 +135,14 @@ class InitialSyncViewModel @Inject constructor(
                         )
                     }
                     "PENDING" -> {
-                        // Still pending — no state change needed
+                        // Update challenge code if server sent a fresh one
+                        if (pendingResponse.challengeCode != null) {
+                            _syncState.value = InitialSyncState.PendingApproval(
+                                requestId = requestId,
+                                challengeCode = pendingResponse.challengeCode,
+                                challengeExpiresAt = pendingResponse.challengeExpiresAt
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {

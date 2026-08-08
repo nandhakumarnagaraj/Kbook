@@ -39,8 +39,14 @@ class CartManager(
 
     val currentItems: List<BillingViewModel.CartItem> get() = _cartItems.value
 
-    suspend fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
+    suspend fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null): String? {
         val latestItem = menuRepository.getItemById(item.id) ?: item
+        if (!latestItem.isAvailable) {
+            return "${latestItem.name} is currently unavailable"
+        }
+        if (variant != null && !variant.isAvailable) {
+            return "${variant.variantName} is currently unavailable"
+        }
         _cartItems.update { current ->
             val mutable = current.toMutableList()
             val existing = mutable.find { it.item.id == item.id && it.variant?.id == variant?.id }
@@ -53,6 +59,7 @@ class CartManager(
             }
             mutable
         }
+        return null
     }
 
     fun removeFromCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
@@ -84,7 +91,6 @@ class CartManager(
         val menuItem = menuRepository.getMenuItemByCode(barcode)
         return if (menuItem != null) {
             addToCart(menuItem)
-            null
         } else {
             "No item found for barcode: $barcode"
         }

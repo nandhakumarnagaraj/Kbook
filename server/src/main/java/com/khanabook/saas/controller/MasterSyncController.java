@@ -49,7 +49,7 @@ public class MasterSyncController {
 	@Value("${terminal.sync.compatibility:true}")
 	private boolean terminalCompatibility;
 
-	@org.springframework.transaction.annotation.Transactional(readOnly = true)
+	@org.springframework.transaction.annotation.Transactional(readOnly = true, timeout = 30)
 	@GetMapping("/pull")
 	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
 			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
@@ -61,6 +61,9 @@ public class MasterSyncController {
 
 		Long tenantId = TenantContext.getCurrentTenant();
 		String role = TenantContext.getCurrentRole();
+
+		// Clamp page size to prevent OOM on oversized requests
+		int effectiveSize = Math.min(Math.max(size, 1), 500);
 
 		if ("KBOOK_ADMIN".equals(role) && restaurantId != null) {
 			String adminUsername = org.springframework.security.core.context.SecurityContextHolder
@@ -79,7 +82,7 @@ public class MasterSyncController {
 		boolean transactionalCrossDevice = ignoreDeviceId;
 
 		org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
-				page, size, org.springframework.data.domain.Sort.by("id").ascending());
+				page, effectiveSize, org.springframework.data.domain.Sort.by("id").ascending());
 
 		// Terminal identity is always taken from the authenticated X-Terminal-Token, never
 		// from the client query parameter. A supplied query terminal id is only honoured as a

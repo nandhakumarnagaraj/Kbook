@@ -43,10 +43,22 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/reports/reports-page.component').then(m => m.ReportsPageComponent)
       },
       {
+        path: 'business/daily-closing',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/daily-closing/daily-closing-page.component').then(m => m.DailyClosingPageComponent)
+      },
+      {
         path: 'business/orders',
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/orders/orders-page.component').then(m => m.OrdersPageComponent)
+      },
+      {
+        path: 'business/active-orders',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/active-orders/active-orders-page.component').then(m => m.ActiveOrdersPageComponent)
       },
       {
         path: 'business/menu',
@@ -71,6 +83,12 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['OWNER', 'SHOP_ADMIN'] },
         loadComponent: () => import('./pages/terminals/terminals-page.component').then(m => m.TerminalsPageComponent)
+      },
+      {
+        path: 'business/settings',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/business-settings/business-settings-page.component').then(m => m.BusinessSettingsPageComponent)
       },
       {
         path: '',

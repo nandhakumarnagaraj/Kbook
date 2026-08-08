@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.khanabook.saas.security.TenantContext;
 
+import com.khanabook.saas.sync.validation.SyncPushGuard;
+
 @RestController
 @RequestMapping("/sync/bills/payments")
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class BillPaymentController {
 
     @PostMapping("/push")
     public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillPaymentDTO> payload) {
+        SyncPushGuard.validateBatchSize(payload);
         return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
                 SyncMapper.mapToEntityList(payload, BillPayment.class)));
     }

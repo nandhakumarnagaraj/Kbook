@@ -44,12 +44,14 @@ public class InvoiceController {
         try {
             uuid = java.util.UUID.fromString(token);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid token");
+            return ResponseEntity.notFound().build();
         }
 
         Bill bill = billRepository.findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
                 restaurantId, deviceId, localBillId).orElse(null);
-        if (bill == null || !uuid.equals(bill.getPublicToken())) {
+        if (bill == null || !java.security.MessageDigest.isEqual(
+                uuid.toString().getBytes(),
+                (bill.getPublicToken() != null ? bill.getPublicToken().toString() : "").getBytes())) {
             return ResponseEntity.notFound().build();
         }
 
@@ -70,12 +72,14 @@ public class InvoiceController {
         try {
             uuid = java.util.UUID.fromString(token);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid token");
+            return ResponseEntity.notFound().build();
         }
 
         Bill bill = billRepository.findById(billId).orElse(null);
         if (bill == null || !bill.getRestaurantId().equals(restaurantId)
-                || !uuid.equals(bill.getPublicToken())
+                || !java.security.MessageDigest.isEqual(
+                        uuid.toString().getBytes(),
+                        (bill.getPublicToken() != null ? bill.getPublicToken().toString() : "").getBytes())
                 || Boolean.TRUE.equals(bill.getIsDeleted())) {
             return ResponseEntity.notFound().build();
         }

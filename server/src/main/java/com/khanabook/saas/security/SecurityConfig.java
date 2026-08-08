@@ -107,7 +107,7 @@ public class SecurityConfig {
 						.contentSecurityPolicy(csp -> csp
 								.policyDirectives(
 									"default-src 'self';" +
-									"script-src 'self' https://accounts.google.com 'unsafe-inline';" +
+									"script-src 'self' https://accounts.google.com;" +
 									"style-src 'self' https://fonts.googleapis.com 'unsafe-inline';" +
 									"font-src 'self' https://fonts.gstatic.com;" +
 									"img-src 'self' data: https://cdn.kbook.iadv.cloud;" +

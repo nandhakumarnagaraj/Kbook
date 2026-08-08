@@ -151,7 +151,9 @@ data class TerminalActivationResponse(
 data class TerminalPendingResponse(
     @SerializedName("status") val status: String,
     @SerializedName("requestId") val requestId: Long?,
-    @SerializedName("message") val message: String?
+    @SerializedName("message") val message: String?,
+    @SerializedName("challengeCode") val challengeCode: String? = null,
+    @SerializedName("challengeExpiresAt") val challengeExpiresAt: Long? = null
 )
 
 data class CompleteActivationRequest(

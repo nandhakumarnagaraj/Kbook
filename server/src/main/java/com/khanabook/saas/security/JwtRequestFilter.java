@@ -32,6 +32,18 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	@Value("${admin.allowed-ips:}")
 	private String adminAllowedIpsRaw;
 
+	private volatile List<String> cachedAdminAllowedIps = null;
+
+	private List<String> getAdminAllowedIps() {
+		if (cachedAdminAllowedIps == null && adminAllowedIpsRaw != null && !adminAllowedIpsRaw.isBlank()) {
+			cachedAdminAllowedIps = Arrays.stream(adminAllowedIpsRaw.split(","))
+					.map(String::trim)
+					.filter(s -> !s.isBlank())
+					.toList();
+		}
+		return cachedAdminAllowedIps;
+	}
+
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
 	private final RestaurantProfileRepository restaurantProfileRepository;
@@ -47,6 +59,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
+		try {
 
 		final String authorizationHeader = request.getHeader("Authorization");
 
@@ -78,10 +91,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 					if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-						User user = userRepository.findByPhoneNumber(username)
-								.or(() -> userRepository.findByLoginId(username))
-								.or(() -> userRepository.findByEmail(username))
-								.or(() -> userRepository.findByWhatsappNumber(username))
+						User user = userRepository.findByAnyIdentifier(username)
 								.orElse(null);
 
 						if (user != null && Boolean.TRUE.equals(user.getIsActive())) {
@@ -110,8 +120,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 								response.setContentType("application/json");
 								response.getWriter().write(
 										"{\"error\":\"BUSINESS_SUSPENDED\",\"message\":\"Business is suspended\"}");
-								TenantContext.clear();
-								SecurityContextHolder.clearContext();
 								return;
 							}
 
@@ -125,10 +133,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							}
 
 							// Admin IP allowlist — block admin from unauthorized IPs
-							if ("KBOOK_ADMIN".equals(role) && adminAllowedIpsRaw != null && !adminAllowedIpsRaw.isBlank()) {
-								List<String> allowed = Arrays.asList(adminAllowedIpsRaw.split(","));
+							if ("KBOOK_ADMIN".equals(role) && getAdminAllowedIps() != null && !getAdminAllowedIps().isEmpty()) {
 								String clientIp = getClientIp(request);
-								if (allowed.stream().noneMatch(ip -> ip.trim().equals(clientIp))) {
+								if (getAdminAllowedIps().stream().noneMatch(ip -> ip.equals(clientIp))) {
 									logger.warn("Admin blocked from IP={} user={}", clientIp, username);
 									response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access not allowed from this IP");
 									return;
@@ -152,12 +159,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 		}
 
 
-		try {
 			chain.doFilter(request, response);
 		} finally {
-
 			TenantContext.clear();
-			SecurityContextHolder.clearContext();
+			// SecurityContext lifecycle is managed by Spring's SecurityContextHolderFilter.
+			// Clearing it here breaks @Async authentication and Spring's built-in mechanisms.
 		}
-	}
+}
+
 }

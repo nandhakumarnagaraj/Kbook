@@ -171,7 +171,7 @@ export function filterBusinessOrders(
               class="field-control"
               type="text"
               [(ngModel)]="orderSearchTerm"
-              placeholder="Search by order, customer, contact, or payment"
+              placeholder="Search by order code, customer, or invoice number"
             />
           </div>
           <div class="filter-group">
@@ -275,7 +275,14 @@ export function filterBusinessOrders(
                   >
                     Manual Refund
                   </button>
-                  <span *ngIf="!order.manualRefundAllowed" class="muted">-</span>
+                  <button
+                    *ngIf="order.orderStatus === 'draft' || order.orderStatus === 'completed'"
+                    class="ghost-btn danger-btn"
+                    (click)="cancelOrder(order); $event.stopPropagation()"
+                  >
+                    Cancel
+                  </button>
+                  <span *ngIf="!order.manualRefundAllowed && order.orderStatus !== 'draft'" class="muted">-</span>
                 </div>
               </td>
             </tr>
@@ -452,11 +459,18 @@ export class OrdersPageComponent {
         this.serverTotalPages = data.totalPages;
         this.ordersLoaded = true;
       },
-      error: () => {
+      error: (err) => {
         this.orders = [];
         this.serverTotalElements = 0;
         this.serverTotalPages = 1;
-        this.ordersError = 'Unable to load orders. Check your connection and try again.';
+        // If 404 or empty response, treat as "no orders" (not a connection error)
+        if (err?.status === 404 || err?.status === 0) {
+          this.ordersError = err?.status === 0
+            ? 'Unable to load orders. Check your connection and try again.'
+            : '';
+        } else {
+          this.ordersError = 'Unable to load orders. Check your connection and try again.';
+        }
         this.ordersLoaded = true;
       }
     });
@@ -492,6 +506,22 @@ export class OrdersPageComponent {
     this.dateRangeLabel = `${range.from} → ${range.to}`;
     this.orderCurrentPage = 1;
     this.loadOrders();
+  }
+
+  // --- Cancel Order ---
+
+  cancelOrder(order: BusinessOrder): void {
+    const reason = prompt('Enter cancellation reason:');
+    if (reason === null) return; // user clicked Cancel
+    this.api.manualRefundOrder(order.orderId, { refundAmount: 0, reason: reason || 'Cancelled by admin' }).subscribe({
+      next: () => {
+        this.toast.show('Order cancelled.', 'success');
+        this.loadOrders();
+      },
+      error: () => {
+        this.toast.show('Failed to cancel order.', 'error');
+      }
+    });
   }
 
   // --- Order detail modal ---

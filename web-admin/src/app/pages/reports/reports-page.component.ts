@@ -23,6 +23,9 @@ import { formatCurrency } from '../../shared/formatters';
           <button type="button" class="ghost-btn" [disabled]="refreshing()" (click)="refresh()">
             {{ refreshing() ? 'Refreshing\u2026' : 'Refresh' }}
           </button>
+          <button type="button" class="ghost-btn" (click)="exportCsv()" *ngIf="report()">
+            Export CSV
+          </button>
         </div>
       </section>
 
@@ -240,6 +243,32 @@ export class ReportsPageComponent {
     this.trigger$.next();
   }
   refresh(): void { this.trigger$.next(); }
+
+  exportCsv(): void {
+    const data = this.report();
+    if (!data) return;
+    const range = this.selectedRange();
+    const rows = [
+      ['Metric', 'Value'],
+      ['Revenue', data.revenue],
+      ['Bill Count', String(data.billCount)],
+      ['Pending Payments', String(data.pendingPayments)],
+      ['Refunded Orders', String(data.refundedOrders)],
+      ['Refunded Amount', data.refundedAmount],
+      ['Net Revenue', data.netRevenue],
+      ['Refund Rate', data.refundRate],
+      ['Period', range ? `${range.from} to ${range.to}` : 'All time']
+    ];
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `khanabook-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   private readRange(): { from: string; to: string } | null {
     try {
       const raw = sessionStorage.getItem(ReportsPageComponent.RANGE_KEY);

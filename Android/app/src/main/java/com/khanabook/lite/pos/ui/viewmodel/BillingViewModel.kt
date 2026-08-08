@@ -256,7 +256,10 @@ class BillingViewModel @Inject constructor(
 
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
         viewModelScope.launch {
-            cartManager.addToCart(item, variant)
+            val errorMsg = cartManager.addToCart(item, variant)
+            if (errorMsg != null) {
+                _error.value = errorMsg
+            }
         }
     }
 

@@ -101,7 +101,10 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    val effectiveFontScale = if (Build.VERSION.SDK_INT >= 36) 1f else density.fontScale
+    // Respect the user's system font scale on all SDK levels for accessibility.
+    // Android 16 (SDK 36) applies non-linear font scaling automatically — we should
+    // not override it. Layouts must accommodate larger text via scrolling and wrapping.
+    val effectiveFontScale = density.fontScale
     val effectiveDensity = density.density * displayScale
     CompositionLocalProvider(
         LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),
