@@ -19,24 +19,6 @@ KhanaBook is an offline-first restaurant billing and operations system for small
   reconciliation, business settings, order cancellation, CSV report export,
   and inline category creation.
 
-## Current v1 Highlights
-
-- Android billing delegates cart, payment, printing, and sync responsibilities
-  to focused managers while preserving offline-first behavior.
-- Pending terminal activation shows the recovery challenge code and status.
-- Deferred sync failures are handed back to WorkManager for retry.
-- Menu selection uses pane-aware responsive sizing and respects Android font
-  scaling accessibility settings.
-- Public invoice token comparison is constant-time and invalid invoice requests
-  return a uniform response.
-- Auth lookups use one identifier query; login and OTP throttling cover both
-  account and IP abuse cases.
-- Sync push batches are capped, pull sizes are clamped to `1..500`, and pull
-  transactions have a bounded timeout.
-- The web admin includes active-order monitoring, payment-mode closing totals,
-  cash reconciliation, business profile/settings management, and improved
-  empty/error states.
-
 ## Multi-Device POS Model
 
 KhanaBook supports one restaurant account running on multiple Android devices.
