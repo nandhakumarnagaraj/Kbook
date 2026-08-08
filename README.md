@@ -2,27 +2,40 @@
 
 KhanaBook is an offline-first restaurant billing and operations system for small food businesses. The repository contains the Android POS app, the Spring Boot backend, and an Angular web admin dashboard.
 
-## Repository Layout
-
-```text
-Android/      Android POS app built with Kotlin and Jetpack Compose
-server/       Spring Boot SaaS backend and REST APIs
-web-admin/    Angular admin dashboard
-ops/          Production backup, restore, and deployment notes
-```
-
 ## Core Features
 
 - Offline-first billing with background bidirectional sync.
 - Multi-device restaurant ordering with per-terminal invoice series.
 - Kitchen Order Ticket (KOT) event tracking for new, added, and voided items.
-- Menu, category, variant, inventory, and staff management.
+- Menu, category, variant, inventory, and staff management with waiter, cashier,
+  manager, and shop-admin roles.
 - GST-aware billing, part payments, refunds, and order reports.
 - Bluetooth thermal printer support with ESC/POS output.
 - OCR menu import using CameraX and Google ML Kit.
-- Multi-tenant backend with JWT authentication and tenant isolation.
+- Multi-tenant backend with JWT authentication, tenant isolation, request-size
+  guards, rate limiting, bounded sync pagination, and token revocation.
 - Public storefront and customer order APIs.
-- Web admin dashboard for platform and business administration.
+- Web admin dashboard with active orders, daily closing and cash
+  reconciliation, business settings, order cancellation, CSV report export,
+  and inline category creation.
+
+## Current v1 Highlights
+
+- Android billing delegates cart, payment, printing, and sync responsibilities
+  to focused managers while preserving offline-first behavior.
+- Pending terminal activation shows the recovery challenge code and status.
+- Deferred sync failures are handed back to WorkManager for retry.
+- Menu selection uses pane-aware responsive sizing and respects Android font
+  scaling accessibility settings.
+- Public invoice token comparison is constant-time and invalid invoice requests
+  return a uniform response.
+- Auth lookups use one identifier query; login and OTP throttling cover both
+  account and IP abuse cases.
+- Sync push batches are capped, pull sizes are clamped to `1..500`, and pull
+  transactions have a bounded timeout.
+- The web admin includes active-order monitoring, payment-mode closing totals,
+  cash reconciliation, business profile/settings management, and improved
+  empty/error states.
 
 ## Multi-Device POS Model
 
@@ -82,193 +95,6 @@ hardware-sensitive.
 - Angular
 - TypeScript
 - Standalone Angular components
-
-## Getting Started After Changing Laptops
-
-This project is already connected to GitHub through the `origin` remote:
-
-```bash
-git remote -v
-```
-
-Expected remote:
-
-```text
-origin  https://github.com/nandhakumarnagaraj/Kbook.git (fetch)
-origin  https://github.com/nandhakumarnagaraj/Kbook.git (push)
-```
-
-To refresh the project on a new laptop:
-
-```bash
-git fetch origin
-git status
-git pull origin main
-```
-
-If GitHub asks for authentication, sign in with Git Credential Manager or use a GitHub personal access token for HTTPS authentication.
-
-## Android Setup
-
-Requirements:
-
-- Android Studio Ladybug or newer
-- JDK 17
-- A real Android device for printer, camera, and full POS testing
-
-Create `Android/local.properties` from `Android/secrets.properties.example` and keep secrets out of Git:
-
-```properties
-BACKEND_URL=https://your-api-domain.com/
-GOOGLE_WEB_CLIENT_ID=your_google_web_client_id.apps.googleusercontent.com
-SIGNING_STORE_FILE=app/release-key.jks
-SIGNING_STORE_PASSWORD=your_keystore_password
-SIGNING_KEY_ALIAS=your_key_alias
-SIGNING_KEY_PASSWORD=your_key_password
-```
-
-Run the app:
-
-1. Open the `Android` folder in Android Studio.
-2. Sync Gradle.
-3. Select a device.
-4. Run the app.
-
-Do not commit `local.properties`, keystores, signing files, or production credentials.
-
-## Backend Setup
-
-Requirements:
-
-- JDK 17
-- Maven
-- PostgreSQL
-
-Create a local backend config from the example:
-
-```bash
-cp server/src/main/resources/application-dev.properties.example server/src/main/resources/application-dev.properties
-```
-
-Run the backend:
-
-```bash
-cd server
-./mvnw spring-boot:run
-```
-
-On Windows PowerShell:
-
-```powershell
-cd server
-.\mvnw spring-boot:run
-```
-
-## Web Admin Setup
-
-Requirements:
-
-- Node.js
-- npm
-
-Run the Angular dashboard:
-
-```bash
-cd web-admin
-npm install
-npm start
-```
-
-Update `web-admin/src/environments/environment.ts` if the backend API URL is different in your local setup.
-
-## Docker
-
-Local stack:
-
-```bash
-docker compose up --build
-```
-
-Production stack:
-
-```bash
-docker compose -f docker-compose.production.yml up --build -d
-```
-
-Review `ops/PRODUCTION_STACK.md` before deploying production services.
-
-## Testing
-
-Backend tests:
-
-```bash
-cd server
-./mvnw test
-```
-
-Android unit tests:
-
-```bash
-cd Android
-./gradlew test
-```
-
-Focused KOT repository tests:
-
-```bash
-cd Android
-./gradlew testDebugUnitTest --tests com.khanabook.lite.pos.BillRepositoryTest
-```
-
-Android instrumented tests:
-
-```bash
-cd Android
-./gradlew connectedAndroidTest
-```
-
-Web admin tests:
-
-```bash
-cd web-admin
-npm test
-```
-
-## Multi-Device Acceptance Test
-
-Use this checklist before releasing multi-device/KOT changes:
-
-1. Install the same APK on two Android devices.
-2. Log in to the same restaurant on both devices.
-3. Confirm each device has a different terminal series, for example `A1` and `A2`.
-4. Create an order on Device A and confirm invoice numbering uses Device A's series.
-5. Create an order on Device B and confirm invoice numbering uses Device B's series.
-6. Print KOT from Device A and confirm it prints once.
-7. Sync Device B and confirm Device B does not duplicate-print Device A's KOT.
-8. Add an item on Device A and confirm only the new item prints.
-9. Reduce or remove an item and confirm the `VOID` event is recorded.
-10. Settle orders from both devices and confirm the backend/admin shows both bills.
-
-## Git Workflow
-
-Check your branch and pending files:
-
-```bash
-git status
-```
-
-Commit changes:
-
-```bash
-git add README.md
-git commit -m "Update README"
-```
-
-Push to GitHub:
-
-```bash
-git push origin main
-```
 
 ## License
 
