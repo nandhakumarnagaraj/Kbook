@@ -34,8 +34,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 	public void addInterceptors(InterceptorRegistry registry) {
 		if (!Arrays.asList(env.getActiveProfiles()).contains("test")) {
 			registry.addInterceptor(rateLimitingInterceptor)
-					.addPathPatterns("/auth/**", "/sync/**")
-					.excludePathPatterns("/auth/google");
+					.addPathPatterns("/auth/**", "/sync/**");
 		}
 	}
 }

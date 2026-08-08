@@ -132,12 +132,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           <ng-container *ngIf="forgotStep === 'otp'">
             <header class="auth-head">
               <h2>Enter OTP</h2>
-              <p class="muted">Enter the 4-digit code sent to your phone.</p>
+              <p class="muted">Enter the 6-digit code sent to your phone.</p>
             </header>
             <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form">
               <label class="field">
                 <span class="field-label">OTP code</span>
-                <input class="field-input" formControlName="otp" placeholder="4-digit OTP" maxlength="4" inputmode="numeric">
+                <input class="field-input" formControlName="otp" placeholder="6-digit OTP" maxlength="6" inputmode="numeric">
               </label>
               <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading">
@@ -356,7 +356,7 @@ export class LoginPageComponent implements OnInit {
   });
 
   readonly otpForm = this.fb.nonNullable.group({
-    otp: ['', [Validators.required, Validators.pattern(/^\d{4}$/)]]
+    otp: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
   });
 
   readonly passwordForm = this.fb.nonNullable.group({

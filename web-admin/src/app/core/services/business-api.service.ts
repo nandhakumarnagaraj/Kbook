@@ -14,6 +14,7 @@ import {
   MarketplaceConfigRequest,
   MenuExtractionJob,
   OrderDetailResponse,
+  PaginatedOrdersResponse,
   RecoverTerminalRequest,
   RecoverTerminalResponse,
   RefundOrderRequest,
@@ -53,6 +54,14 @@ export class BusinessApiService {
 
   getOrders() {
     return this.http.get<BusinessOrder[]>(`${API_BASE_URL}/business/orders`);
+  }
+
+  getOrdersPaginated(page: number, size: number, status?: string, from?: string, to?: string) {
+    let params = new HttpParams().set('page', page).set('size', size);
+    if (status) params = params.set('status', status);
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get<PaginatedOrdersResponse>(`${API_BASE_URL}/business/orders/page`, { params });
   }
 
   getMenu() {

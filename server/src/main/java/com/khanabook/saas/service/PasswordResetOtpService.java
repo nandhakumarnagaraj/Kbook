@@ -81,7 +81,7 @@ public class PasswordResetOtpService {
 
 	@Transactional
 	public void issueWebAdminOtp(String phoneNumber) {
-		issueOtp(WEB_PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, 4);
+		issueOtp(WEB_PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, 6);
 	}
 
 	@Transactional
@@ -90,14 +90,21 @@ public class PasswordResetOtpService {
 	}
 
 	private void issueOtp(String challengeKey, String phoneNumber, int digits) {
+		// Cooldown: reject if last OTP was issued less than 60 seconds ago
+		OtpRequest existing = otpRequestRepository.findByChallengeKey(challengeKey).orElse(null);
+		if (existing != null && existing.getCreatedAt() != null
+				&& existing.getCreatedAt() > System.currentTimeMillis() - 60_000L) {
+			throw new IllegalArgumentException("Please wait 60 seconds before requesting a new code.");
+		}
+
 		int upperBound = digits == 4 ? 10_000 : 1_000_000;
 		String format = digits == 4 ? "%04d" : "%06d";
 		String otp = String.format(format,
 				java.util.concurrent.ThreadLocalRandom.current().nextInt(0, upperBound));
 
 		long now = System.currentTimeMillis();
-		OtpRequest request = otpRequestRepository.findByChallengeKey(challengeKey)
-				.orElseGet(() -> OtpRequest.builder().challengeKey(challengeKey).build());
+		OtpRequest request = existing != null ? existing
+				: OtpRequest.builder().challengeKey(challengeKey).build();
 
 		request.setPhoneNumber(phoneNumber);
 		request.setOtp(passwordEncoder.encode(otp));

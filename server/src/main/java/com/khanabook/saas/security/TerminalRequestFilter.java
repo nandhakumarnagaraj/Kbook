@@ -64,6 +64,11 @@ public class TerminalRequestFilter extends OncePerRequestFilter {
 
 				String terminalId = jwtUtility.extractTerminalId(terminalToken);
 				String terminalSeries = jwtUtility.extractTerminalSeries(terminalToken);
+				if (terminalId == null || terminalId.isBlank()) {
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+							"Terminal token is missing a terminal identity");
+					return;
+				}
 
 				// Credential version check: reject tokens issued before a recovery/deactivation.
 				// Legacy tokens (pre-credVer deployment) lack the credVer claim.
@@ -73,52 +78,57 @@ public class TerminalRequestFilter extends OncePerRequestFilter {
 				//   credVer absent + DB credential_version > 1 → reject (rotation occurred, legacy token is stale)
 				//   terminal not ACTIVE → always reject
 				Long tokenCredVer = jwtUtility.extractCredentialVersion(terminalToken);
-				if (terminalId != null) {
-					try {
-						Long dbTerminalId = Long.parseLong(terminalId);
-						var terminalOpt = terminalRepository.findById(dbTerminalId);
-						if (terminalOpt.isPresent()) {
-							var terminal = terminalOpt.get();
-
-							// State check: non-active terminals are always rejected
-							if (!"ACTIVE".equals(terminal.getStatus())) {
-								log.warn("Terminal token rejected: terminal {} is {}", terminalId, terminal.getStatus());
-								response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-										"Terminal has been deactivated");
-								return;
-							}
-
-							long dbCredVer = terminal.getCredentialVersion() != null ? terminal.getCredentialVersion() : 1L;
-
-							if (tokenCredVer != null) {
-								// New token with credVer: must match DB credential_version exactly.
-								// A token represents one specific credential generation.
-								// Reject both older versions (revoked) and future versions (invalid/forged).
-								if (!tokenCredVer.equals(dbCredVer)) {
-									log.warn("Terminal token rejected: credVer mismatch terminal={} token={} db={}",
-											terminalId, tokenCredVer, dbCredVer);
-									response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-											"Terminal token credential version mismatch");
-									return;
-								}
-							} else {
-								// Legacy token without credVer: only accepted if terminal is still at version 1
-								// (no rotation has ever occurred). Once any rotation happens (recovery,
-								// deactivation, replacement), credential_version > 1 and legacy tokens
-								// are immediately invalid.
-								if (dbCredVer > 1L) {
-									log.warn("Legacy terminal token rejected: terminal={} has credVer={} but token has no credVer claim",
-											terminalId, dbCredVer);
-									response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-											"Legacy terminal token has been superseded by credential rotation");
-									return;
-								}
-							}
-						}
-					} catch (NumberFormatException e) {
-						// terminalId might not be numeric for very old legacy tokens — skip check
-						// This path should only exist for pre-migration tokens that will expire naturally
+				try {
+					Long dbTerminalId = Long.parseLong(terminalId);
+					var terminalOpt = terminalRepository.findById(dbTerminalId);
+					if (terminalOpt.isEmpty()
+							|| !tokenRestaurantId.equals(terminalOpt.get().getRestaurantId())) {
+						log.warn("Terminal token rejected: terminal {} not found for restaurant {}",
+								terminalId, tokenRestaurantId);
+						response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+								"Terminal token references an unknown terminal");
+						return;
 					}
+					var terminal = terminalOpt.get();
+
+					// State check: non-active terminals are always rejected
+					if (!"ACTIVE".equals(terminal.getStatus())) {
+						log.warn("Terminal token rejected: terminal {} is {}", terminalId, terminal.getStatus());
+						response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+								"Terminal has been deactivated");
+						return;
+					}
+
+					long dbCredVer = terminal.getCredentialVersion() != null ? terminal.getCredentialVersion() : 1L;
+
+					if (tokenCredVer != null) {
+						// New token with credVer: must match DB credential_version exactly.
+						// A token represents one specific credential generation.
+						// Reject both older versions (revoked) and future versions (invalid/forged).
+						if (!tokenCredVer.equals(dbCredVer)) {
+							log.warn("Terminal token rejected: credVer mismatch terminal={} token={} db={}",
+									terminalId, tokenCredVer, dbCredVer);
+							response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+									"Terminal token credential version mismatch");
+							return;
+						}
+					} else {
+						// Legacy token without credVer: only accepted if terminal is still at version 1
+						// (no rotation has ever occurred). Once any rotation happens (recovery,
+						// deactivation, replacement), credential_version > 1 and legacy tokens
+						// are immediately invalid.
+						if (dbCredVer > 1L) {
+							log.warn("Legacy terminal token rejected: terminal={} has credVer={} but token has no credVer claim",
+									terminalId, dbCredVer);
+							response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+									"Legacy terminal token has been superseded by credential rotation");
+							return;
+						}
+					}
+				} catch (NumberFormatException e) {
+					response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+							"Terminal token has an invalid terminal identity");
+					return;
 				}
 
 				TenantContext.setCurrentTerminalId(terminalId);

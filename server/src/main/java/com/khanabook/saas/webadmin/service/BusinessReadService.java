@@ -24,6 +24,7 @@ import com.khanabook.saas.webadmin.dto.MarketplaceConfigRequest;
 import com.khanabook.saas.webadmin.dto.MarketplaceConfigResponse;
 import com.khanabook.saas.webadmin.dto.OrderDetailResponse;
 import com.khanabook.saas.webadmin.dto.OrderLineItemResponse;
+import com.khanabook.saas.webadmin.dto.PaginatedOrdersResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -226,6 +227,22 @@ public class BusinessReadService {
         return buildOrders(bills).stream()
                 .sorted(Comparator.comparing(BusinessOrderListItemResponse::createdAt, Comparator.nullsLast(Long::compareTo)).reversed())
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginatedOrdersResponse getOrdersPaginated(Long restaurantId, int page, int size, String status, LocalDate from, LocalDate to) {
+        ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
+        Long fromEpoch = from != null ? from.atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
+        Long toEpoch = to != null ? to.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
+
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<Bill> billPage = billRepository.findOrdersPageable(restaurantId, status, fromEpoch, toEpoch, pageable);
+
+        List<BusinessOrderListItemResponse> content = billPage.getContent().stream()
+                .map(this::toBillOrderResponse)
+                .toList();
+
+        return new PaginatedOrdersResponse(content, billPage.getTotalElements(), billPage.getTotalPages(), page, size);
     }
 
     @Transactional(readOnly = true)

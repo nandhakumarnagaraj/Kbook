@@ -3,14 +3,10 @@ package com.khanabook.lite.pos.ui.viewmodel
 import com.khanabook.lite.pos.domain.util.AppConstants
 
 import android.content.Context
-import android.content.Intent
 import android.util.Log
-import androidx.annotation.StringRes
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.SavedStateHandle
-import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
@@ -19,14 +15,11 @@ import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.domain.manager.BillCalculator
-import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
-import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 import com.khanabook.lite.pos.domain.manager.PaymentRecoveryAssessment
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
 import com.khanabook.lite.pos.domain.model.*
-import com.khanabook.lite.pos.domain.util.PaymentLimits
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,9 +30,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.math.BigDecimal
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -92,27 +83,12 @@ class BillingViewModel @Inject constructor(
         return identity
     }
 
-    val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
-
     val connectionStatus: StateFlow<com.khanabook.lite.pos.domain.util.ConnectionStatus> =
         networkMonitor.status.stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
             com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable
         )
-
-    private val _gatewayTxnId = MutableStateFlow<String?>(null)
-    private val _gatewayStatus = MutableStateFlow<String?>(null)
-
-    fun setGatewayResult(txnId: String?, status: String?) {
-        _gatewayTxnId.value = txnId
-        _gatewayStatus.value = status
-    }
-
-    fun clearGatewayResult() {
-        _gatewayTxnId.value = null
-        _gatewayStatus.value = null
-    }
 
     companion object {
         private const val TAG = "BillingViewModel"
@@ -121,16 +97,13 @@ class BillingViewModel @Inject constructor(
 
     private val orderMutex = Mutex()
 
-    // Cache the restaurant profile reactively — avoids repeated DB reads in updateSummary
-    // and completeOrder. Stays automatically fresh because it's backed by a Flow.
-    private val _cachedProfile: StateFlow<RestaurantProfileEntity?> =
-        restaurantRepository.getProfileFlow()
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    // ── Extracted managers ──────────────────────────────────────────────────
 
     private val gson = com.google.gson.Gson()
 
-    private val _cartItems = MutableStateFlow<List<CartItem>>(
-        savedStateHandle.get<String>("cart_items")?.let { json ->
+    private val cartManager = CartManager(
+        menuRepository = menuRepository,
+        initialItems = savedStateHandle.get<String>("cart_items")?.let { json ->
             try {
                 val type = object : com.google.gson.reflect.TypeToken<List<CartItem>>() {}.type
                 gson.fromJson<List<CartItem>>(json, type)
@@ -140,7 +113,37 @@ class BillingViewModel @Inject constructor(
             }
         } ?: emptyList()
     )
-    val cartItems: StateFlow<List<CartItem>> = _cartItems
+
+    private val paymentStateManager = PaymentStateManager()
+
+    private val printCoordinator = PrintCoordinator(
+        appContext = appContext,
+        printRouter = printRouter,
+        kitchenPrintQueueRepository = kitchenPrintQueueRepository
+    )
+
+    // ── Delegated flows (public API preserved) ──────────────────────────────
+
+    // Cache the restaurant profile reactively — avoids repeated DB reads in updateSummary
+    // and completeOrder. Stays automatically fresh because it's backed by a Flow.
+    private val _cachedProfile: StateFlow<RestaurantProfileEntity?> =
+        restaurantRepository.getProfileFlow()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
+
+    val cartItems: StateFlow<List<CartItem>> = cartManager.cartItems
+    val billSummary: StateFlow<BillSummary> = cartManager.billSummary
+
+    val paymentMode: StateFlow<PaymentMode> = paymentStateManager.paymentMode
+    val partAmount1: StateFlow<String> = paymentStateManager.partAmount1
+    val partAmount2: StateFlow<String> = paymentStateManager.partAmount2
+    val persistedPaymentTotal: StateFlow<String?> = paymentStateManager.persistedPaymentTotal
+    val paymentRecovery: StateFlow<PaymentRecoveryAssessment> = paymentStateManager.paymentRecovery
+
+    val printStatus: StateFlow<String?> = printCoordinator.printStatus
+    val receiptPrinting: StateFlow<Boolean> = printCoordinator.receiptPrinting
+    val kitchenPrinting: StateFlow<Boolean> = printCoordinator.kitchenPrinting
 
     private val _customerName = MutableStateFlow(savedStateHandle.get<String>("customer_name") ?: "")
     val customerName: StateFlow<String> = _customerName
@@ -166,39 +169,11 @@ class BillingViewModel @Inject constructor(
         }
     }
 
-    private val _paymentMode = MutableStateFlow(PaymentMode.UPI)
-    val paymentMode: StateFlow<PaymentMode> = _paymentMode
-
-    private val _partAmount1 = MutableStateFlow("0.0")
-    private val _partAmount2 = MutableStateFlow("0.0")
-    val partAmount1: StateFlow<String> = _partAmount1
-    val partAmount2: StateFlow<String> = _partAmount2
-
-    private val _billSummary = MutableStateFlow(BillSummary())
-    val billSummary: StateFlow<BillSummary> = _billSummary
-
-    private val _persistedPaymentTotal = MutableStateFlow<String?>(null)
-    val persistedPaymentTotal: StateFlow<String?> = _persistedPaymentTotal
-
-    private val _paymentRecovery =
-        MutableStateFlow<PaymentRecoveryAssessment>(PaymentRecoveryAssessment.Empty)
-    val paymentRecovery: StateFlow<PaymentRecoveryAssessment> = _paymentRecovery
-    
     private val _lastBill = MutableStateFlow<BillWithItems?>(null)
     val lastBill: StateFlow<BillWithItems?> = _lastBill
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
-
-    private val _printStatus = MutableStateFlow<String?>(null)
-    val printStatus: StateFlow<String?> = _printStatus
-
-    private val _receiptPrinting = MutableStateFlow(false)
-    val receiptPrinting: StateFlow<Boolean> = _receiptPrinting
-
-    private val _kitchenPrinting = MutableStateFlow(false)
-    val kitchenPrinting: StateFlow<Boolean> = _kitchenPrinting
-    private val kitchenPrintInFlight = AtomicBoolean(false)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -214,6 +189,28 @@ class BillingViewModel @Inject constructor(
 
     val activeDraftBillsFlow: Flow<List<BillEntity>> = billRepository.getActiveDraftBillsFlow()
 
+    fun setGatewayResult(txnId: String?, status: String?) {
+        paymentStateManager.setGatewayResult(txnId, status)
+    }
+
+    fun clearGatewayResult() {
+        paymentStateManager.clearGatewayResult()
+    }
+
+    private fun validatePaymentLimits(
+        total: String,
+        mode: PaymentMode,
+        partAmount1: String,
+        partAmount2: String
+    ): Boolean {
+        val errorMsg = paymentStateManager.validatePaymentLimits(total, mode, partAmount1, partAmount2)
+        if (errorMsg != null) {
+            _error.value = errorMsg
+            return false
+        }
+        return true
+    }
+
     init {
         // Process death protection save state flows
         viewModelScope.launch {
@@ -227,7 +224,7 @@ class BillingViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            _cartItems.collect { items ->
+            cartManager.cartItems.collect { items ->
                 try {
                     val json = gson.toJson(items)
                     savedStateHandle["cart_items"] = json
@@ -237,69 +234,21 @@ class BillingViewModel @Inject constructor(
             }
         }
 
-        combine(_cartItems, _cachedProfile) { items, profile ->
-            computeSummary(items, profile)
+        combine(cartManager.cartItems, _cachedProfile) { items, profile ->
+            cartManager.computeSummary(items, profile)
         }
-            .onEach { _billSummary.value = it }
+            .onEach { summary -> cartManager.setSummary(summary) }
             .launchIn(viewModelScope)
 
         viewModelScope.launch {
             printRouter.printResults.collect { (billId, result) ->
                 val lastBillId = _lastBill.value?.bill?.id
                 if (lastBillId == billId) {
-                    val kitchenQueued = result.kitchenQueued ||
-                        kitchenPrintQueueRepository.hasPendingForBill(billId)
-                    if (result.attempted == 0) {
-                        withContext(Dispatchers.Main) {
-                            _printStatus.value = if (kitchenQueued) {
-                                when (result.kitchenQueueReason) {
-                                    "not_configured" ->
-                                        "Kitchen printer not configured. KDS queued."
-                                    else ->
-                                        "Kitchen printer offline. KDS queued."
-                                }
-                            } else {
-                                "No auto-print target configured."
-                            }
-                        }
-                    } else if (kitchenQueued && result.succeeded > 0) {
-                        withContext(Dispatchers.Main) {
-                            _printStatus.value = if (result.successTargets.contains(PrinterRole.KITCHEN.name)) {
-                                "Printed Kitchen ticket"
-                            } else {
-                                "Printed customer receipt. KDS queued."
-                            }
-                        }
-                    } else if (kitchenQueued) {
-                        withContext(Dispatchers.Main) {
-                            _printStatus.value = when (result.kitchenQueueReason) {
-                                "not_configured" ->
-                                    "Kitchen printer not configured. KDS queued."
-                                else ->
-                                    "Kitchen printer offline. KDS queued."
-                            }
-                        }
-                    } else if (result.failures.isEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            _printStatus.value = when {
-                                result.successTargets.contains(PrinterRole.KITCHEN.name) ->
-                                    "Printed Kitchen ticket"
-                                else -> buildPrintStatusMessage(
-                                    prefix = "Printed",
-                                    targets = result.successTargets
-                                )
-                            }
-                        }
-                    } else if (result.succeeded > 0) {
-                        withContext(Dispatchers.Main) {
-                            _printStatus.value = buildPartialPrintStatus(result)
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
-                            _error.value = "Auto-print failed. Bill saved."
-                            _printStatus.value = "Printing failed for all configured printers."
-                        }
+                    val errorMsg = printCoordinator.getAutoPrintError(result)
+                    if (errorMsg != null) {
+                        _error.value = errorMsg
                     }
+                    printCoordinator.handleAutoPrintResult(billId, result)
                 }
             }
         }
@@ -307,113 +256,27 @@ class BillingViewModel @Inject constructor(
 
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
         viewModelScope.launch {
-            val latestItem = menuRepository.getItemById(item.id) ?: item
-            _cartItems.update { current ->
-                val mutable = current.toMutableList()
-                val existingInUpdate = mutable.find { it.item.id == item.id && it.variant?.id == variant?.id }
-
-                if (existingInUpdate != null) {
-                    val idx = mutable.indexOf(existingInUpdate)
-                    mutable[idx] = existingInUpdate.copy(quantity = existingInUpdate.quantity + 1)
-                } else {
-                    mutable.add(CartItem(latestItem, variant, 1))
-                }
-                mutable
-            }
+            cartManager.addToCart(item, variant)
         }
     }
 
     fun removeFromCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
-        _cartItems.update { current ->
-            val mutable = current.toMutableList()
-            val existing = mutable.find { it.item.id == item.id && it.variant?.id == variant?.id }
-            if (existing != null) {
-                val index = mutable.indexOf(existing)
-                if (existing.quantity > 1) {
-                    mutable[index] = existing.copy(quantity = existing.quantity - 1)
-                } else {
-                    mutable.removeAt(index)
-                }
-            }
-            mutable
-        }
+        cartManager.removeFromCart(item, variant)
     }
 
-    
     fun handleScannedBarcode(barcode: String) {
         viewModelScope.launch {
-            val menuItem = menuRepository.getMenuItemByCode(barcode)
-            if (menuItem != null) {
-                addToCart(menuItem)
-            } else {
-                _error.value = "No item found for barcode: $barcode"
+            val errorMsg = cartManager.handleScannedBarcode(barcode)
+            if (errorMsg != null) {
+                _error.value = errorMsg
             }
         }
     }
 
-    
     fun addItemByScannedText(text: String) {
         viewModelScope.launch {
-            val allItems = menuRepository.getAllMenuItemsOnce()
-            val allVariants = menuRepository.getAllVariantsOnce()
-            
-            
-            val lines = text.split("\n", "\r").map { it.trim() }.filter { it.length > 2 }
-            
-            for (line in lines) {
-                
-                val itemMatch = allItems.find { it.name.equals(line, ignoreCase = true) }
-                if (itemMatch != null) {
-                    addToCart(itemMatch)
-                    continue
-                }
-                
-                
-                val variantMatch = allVariants.find { it.variantName.equals(line, ignoreCase = true) }
-                if (variantMatch != null) {
-                    val parentItem = allItems.find { it.id == variantMatch.menuItemId }
-                    if (parentItem != null) {
-                        addToCart(parentItem, variantMatch)
-                        continue
-                    }
-                }
-                
-                
-                val partialItem = allItems.find { line.contains(it.name, ignoreCase = true) }
-                if (partialItem != null) {
-                    
-                    val partialVariant = allVariants.filter { it.menuItemId == partialItem.id }
-                        .find { line.contains(it.variantName, ignoreCase = true) }
-                    
-                    addToCart(partialItem, partialVariant)
-                }
-            }
+            cartManager.addItemByScannedText(text)
         }
-    }
-
-    /**
-     * Pure function — computes a BillSummary from a list of cart items and a profile snapshot.
-     * Called from the init combine{} block; no DB access, no side-effects.
-     */
-    private fun computeSummary(items: List<CartItem>, profile: RestaurantProfileEntity?): BillSummary {
-        val subtotal = BillCalculator.calculateSubtotal(items.map {
-            (it.variant?.price ?: it.item.basePrice) to it.quantity
-        })
-
-        var cgst = "0.0"
-        var sgst = "0.0"
-        var customTax = "0.0"
-
-        if (profile?.gstEnabled == true) {
-            val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
-            cgst = gst.cgst
-            sgst = gst.sgst
-        } else if (profile?.customTaxPercentage != null && profile.customTaxPercentage > 0) {
-            customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
-        }
-
-        val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
-        return BillSummary(subtotal, cgst, sgst, customTax, total)
     }
 
     private fun BillItemEntity.toRestorableMenuItem(): MenuItemEntity =
@@ -447,32 +310,19 @@ class BillingViewModel @Inject constructor(
 
     fun resetForNewBill() {
         invalidateRestoration()
-        _cartItems.value = emptyList()
+        cartManager.clear()
         _customerName.value = ""
         _customerWhatsapp.value = ""
         _orderType.value = "dine_in"
-        _paymentMode.value = PaymentMode.UPI
-        _partAmount1.value = "0.0"
-        _partAmount2.value = "0.0"
-        _persistedPaymentTotal.value = null
-        _paymentRecovery.value = PaymentRecoveryAssessment.Empty
+        paymentStateManager.reset()
         _lastBill.value = null
         _error.value = null
-        _printStatus.value = null
-        clearGatewayResult()
+        printCoordinator.clearStatus()
         savedStateHandle[PENDING_ONLINE_BILL_ID] = null
     }
 
     fun setPaymentMode(mode: PaymentMode, p1: String = "0.0", p2: String = "0.0") {
-        if (mode != PaymentMode.UPI &&
-            mode != PaymentMode.PART_CASH_UPI &&
-            mode != PaymentMode.PART_UPI_POS
-        ) {
-            clearGatewayResult()
-        }
-        _paymentMode.value = mode
-        _partAmount1.value = p1.ifBlank { "0.0" }
-        _partAmount2.value = p2.ifBlank { "0.0" }
+        paymentStateManager.setPaymentMode(mode, p1, p2)
     }
 
     suspend fun getLatestPendingOnlineBillId(): Long? {
@@ -513,23 +363,9 @@ class BillingViewModel @Inject constructor(
                 }
                 return false
             }
-        // Stale response — a newer session has started. Do not mutate state.
-        if (!ownsRestorationAttempt(capturedGeneration)) return false
-
         val bill = billWithItems.bill
-        savedStateHandle[PENDING_ONLINE_BILL_ID] = localBillId
-        editingBillId = localBillId
-        _lastBill.value = billWithItems
-        _customerName.value = bill.customerName ?: ""
-        _customerWhatsapp.value = bill.customerWhatsapp ?: ""
-        _orderType.value = bill.orderType
-        _paymentMode.value = PaymentMode.fromDbValue(bill.paymentMode)
-        _partAmount1.value = bill.partAmount1
-        _partAmount2.value = bill.partAmount2
-        _persistedPaymentTotal.value = bill.totalAmount
-        _paymentRecovery.value = billRepository.getPaymentRecoveryAssessment(localBillId)
-
-        _cartItems.value = billWithItems.items.map { billItem ->
+        val paymentRecovery = billRepository.getPaymentRecoveryAssessment(localBillId)
+        val restoredItems = billWithItems.items.map { billItem ->
             val menuItem = menuRepository.getItemById(billItem.menuItemId ?: 0L)
                 ?: billItem.toRestorableMenuItem()
             val variant = billItem.variantId?.let { menuRepository.getVariantById(it) }
@@ -541,6 +377,24 @@ class BillingViewModel @Inject constructor(
                 note = billItem.specialInstruction ?: ""
             )
         }
+
+        // Stale response — a newer session has started. Do not mutate state.
+        if (!ownsRestorationAttempt(capturedGeneration)) return false
+
+        savedStateHandle[PENDING_ONLINE_BILL_ID] = localBillId
+        editingBillId = localBillId
+        _lastBill.value = billWithItems
+        _customerName.value = bill.customerName ?: ""
+        _customerWhatsapp.value = bill.customerWhatsapp ?: ""
+        _orderType.value = bill.orderType
+        paymentStateManager.setPaymentMode(
+            PaymentMode.fromDbValue(bill.paymentMode),
+            bill.partAmount1,
+            bill.partAmount2
+        )
+        paymentStateManager.setPersistedPaymentTotal(bill.totalAmount)
+        paymentStateManager.setPaymentRecovery(paymentRecovery)
+        cartManager.setItems(restoredItems)
         return true
     }
 
@@ -570,20 +424,18 @@ class BillingViewModel @Inject constructor(
         clearGatewayResult()
         editingBillId = null
         _lastBill.value = null
-        _cartItems.value = emptyList()
+        cartManager.clear()
         _customerName.value = ""
         _customerWhatsapp.value = ""
-        _partAmount1.value = "0.0"
-        _partAmount2.value = "0.0"
-        _persistedPaymentTotal.value = null
-        _paymentRecovery.value = PaymentRecoveryAssessment.Empty
-        _paymentMode.value = PaymentMode.CASH
+        paymentStateManager.setPaymentMode(PaymentMode.CASH, "0.0", "0.0")
+        paymentStateManager.setPersistedPaymentTotal(null)
+        paymentStateManager.setPaymentRecovery(PaymentRecoveryAssessment.Empty)
         Log.w(TAG, "Rejected pending online bill restoration for localBillId=$localBillId")
     }
 
     suspend fun createDraftOnlineBill(): Long? = withContext(Dispatchers.IO) {
         orderMutex.withLock {
-            if (_cartItems.value.isEmpty()) {
+            if (cartManager.currentItems.isEmpty()) {
                 _error.value = "Add at least one item before starting payment."
                 return@withLock null
             }
@@ -626,9 +478,9 @@ class BillingViewModel @Inject constructor(
                     return@withLock null
                 }
 
-                val finalSummary = computeSummary(_cartItems.value, profile)
-                _billSummary.value = finalSummary
-if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+                val finalSummary = cartManager.computeSummary(cartManager.currentItems, profile)
+                cartManager.setSummary(finalSummary)
+if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.value, paymentStateManager.partAmount1.value, paymentStateManager.partAmount2.value)) {
                     _isLoading.value = false
                     return@withLock null
                 }
@@ -672,9 +524,9 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     sgstAmount = finalSummary.sgst,
                     customTaxAmount = finalSummary.customTax,
                     totalAmount = finalSummary.total,
-                    paymentMode = _paymentMode.value.dbValue,
-                    partAmount1 = _partAmount1.value,
-                    partAmount2 = _partAmount2.value,
+                    paymentMode = paymentStateManager.paymentMode.value.dbValue,
+                    partAmount1 = paymentStateManager.partAmount1.value,
+                    partAmount2 = paymentStateManager.partAmount2.value,
                     paymentStatus = PaymentStatus.PENDING.dbValue,
                     orderStatus = OrderStatus.DRAFT.dbValue,
                     cancelReason = "",
@@ -688,7 +540,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     operationId = operationId
                 )
 
-                val items = _cartItems.value.map { cartItem ->
+                val items = cartManager.currentItems.map { cartItem ->
                     val price = cartItem.variant?.price ?: cartItem.item.basePrice
                     val itemTotal = (java.math.BigDecimal(price)
                         .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
@@ -756,19 +608,19 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     _isLoading.value = false
                     return@withLock true
                 }
-                if (!validatePaymentLimits(bill.totalAmount, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+                if (!validatePaymentLimits(bill.totalAmount, paymentStateManager.paymentMode.value, paymentStateManager.partAmount1.value, paymentStateManager.partAmount2.value)) {
                     _isLoading.value = false
                     return@withLock false
                 }
 
                 val paymentOperationBase = bill.operationId
                     ?: "${bill.restaurantId}:${bill.terminalId}:${bill.publicToken}:finalize"
-                val payments = buildPaymentEntities(
+                val payments = paymentStateManager.buildPaymentEntities(
                     billId = localBillId,
-                    paymentMode = _paymentMode.value,
+                    paymentMode = paymentStateManager.paymentMode.value,
                     totalAmount = bill.totalAmount,
-                    partAmount1 = _partAmount1.value,
-                    partAmount2 = _partAmount2.value,
+                    partAmount1 = paymentStateManager.partAmount1.value,
+                    partAmount2 = paymentStateManager.partAmount2.value,
                     operationBase = paymentOperationBase
                 )
                 val finalized = billRepository.finalizeOnlineBill(
@@ -777,7 +629,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     completedAt = System.currentTimeMillis()
                 )
                 _lastBill.value = finalized.billWithItems
-                _cartItems.value = emptyList()
+                cartManager.clear()
                 invalidateRestoration()
                 clearGatewayResult()
                 savedStateHandle[PENDING_ONLINE_BILL_ID] = null
@@ -805,7 +657,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
     suspend fun completeOrder(status: PaymentStatus, cancelReason: String = ""): Boolean = withContext(Dispatchers.IO) {
         orderMutex.withLock {
-            if (_cartItems.value.isEmpty()) {
+            if (cartManager.currentItems.isEmpty()) {
                 _error.value = "Add at least one item before completing the bill."
                 return@withLock false
             }
@@ -830,9 +682,9 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     return@withLock false
                 }
 
-                val finalSummary = computeSummary(_cartItems.value, profile)
-                _billSummary.value = finalSummary
-                if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+                val finalSummary = cartManager.computeSummary(cartManager.currentItems, profile)
+                cartManager.setSummary(finalSummary)
+                if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.value, paymentStateManager.partAmount1.value, paymentStateManager.partAmount2.value)) {
                     _isLoading.value = false
                     return@withLock false
                 }
@@ -875,9 +727,9 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     sgstAmount = finalSummary.sgst,
                     customTaxAmount = finalSummary.customTax,
                     totalAmount = finalSummary.total,
-                    paymentMode = _paymentMode.value.dbValue,
-                    partAmount1 = _partAmount1.value,
-                    partAmount2 = _partAmount2.value,
+                    paymentMode = paymentStateManager.paymentMode.value.dbValue,
+                    partAmount1 = paymentStateManager.partAmount1.value,
+                    partAmount2 = paymentStateManager.partAmount2.value,
                     paymentStatus = status.dbValue,
                     orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
                     cancelReason = if (status == PaymentStatus.FAILED) cancelReason else "",
@@ -891,7 +743,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     operationId = operationId
                 )
 
-                val items = _cartItems.value.map { cartItem ->
+                val items = cartManager.currentItems.map { cartItem ->
                     val price = cartItem.variant?.price ?: cartItem.item.basePrice
                     val itemTotal = (java.math.BigDecimal(price)
                         .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
@@ -909,12 +761,12 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     )
                 }
 
-                val payments = buildPaymentEntities(
+                val payments = paymentStateManager.buildPaymentEntities(
                     billId = 0,
-                    paymentMode = _paymentMode.value,
+                    paymentMode = paymentStateManager.paymentMode.value,
                     totalAmount = finalSummary.total,
-                    partAmount1 = _partAmount1.value,
-                    partAmount2 = _partAmount2.value,
+                    partAmount1 = paymentStateManager.partAmount1.value,
+                    partAmount2 = paymentStateManager.partAmount2.value,
                     operationBase = operationId
                 )
 
@@ -926,7 +778,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 )
                 val inserted = billRepository.getBillWithItemsById(insertedBillId)
                 _lastBill.value = inserted
-                _printStatus.value = null
+                printCoordinator.clearStatus()
                 syncManager.triggerImmediateSync()
 
                 // Launch auto-print asynchronously — never blocks bill completion
@@ -946,7 +798,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 // Clearing the cart automatically triggers the combine{} → new BillSummary(empty)
                 // No need to call updateSummary() manually.
                 invalidateRestoration()
-                _cartItems.value = emptyList()
+                cartManager.clear()
                 _error.value = null
                 _isLoading.value = false
                 true
@@ -1002,17 +854,17 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                             val totalQty = groupItems.sumOf { it.quantity }
                             first.copy(quantity = totalQty)
                         }
-                    _cartItems.value = cartList
-                    _billSummary.value = BillSummary(
+                    cartManager.setItems(cartList)
+                    cartManager.setSummary(BillSummary(
                         subtotal = billWithItems.bill.subtotal,
                         cgst = billWithItems.bill.cgstAmount,
                         sgst = billWithItems.bill.sgstAmount,
                         customTax = billWithItems.bill.customTaxAmount,
                         total = billWithItems.bill.totalAmount
-                    )
-                    _persistedPaymentTotal.value = billWithItems.bill.totalAmount
-                    _paymentRecovery.value =
-                        billRepository.getPaymentRecoveryAssessment(billId)
+                    ))
+                    paymentStateManager.setPersistedPaymentTotal(billWithItems.bill.totalAmount)
+                    paymentStateManager.setPaymentRecovery(
+                        billRepository.getPaymentRecoveryAssessment(billId))
                     onComplete()
                 }
             } catch (e: Exception) {
@@ -1027,17 +879,17 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
     fun clearActiveSession() {
         invalidateRestoration()
         editingBillId = null
-        _cartItems.value = emptyList()
+        cartManager.clear()
         _customerName.value = ""
         _customerWhatsapp.value = ""
         _orderType.value = "dine_in"
-        _persistedPaymentTotal.value = null
-        _paymentRecovery.value = PaymentRecoveryAssessment.Empty
+        paymentStateManager.setPersistedPaymentTotal(null)
+        paymentStateManager.setPaymentRecovery(PaymentRecoveryAssessment.Empty)
     }
 
     suspend fun saveDraftOrder(tableName: String): Boolean = withContext(Dispatchers.IO) {
         orderMutex.withLock {
-            if (_cartItems.value.isEmpty()) {
+            if (cartManager.currentItems.isEmpty()) {
                 _error.value = "Add at least one item before saving the draft."
                 return@withLock false
             }
@@ -1060,8 +912,8 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     return@withLock false
                 }
 
-                val finalSummary = computeSummary(_cartItems.value, profile)
-                _billSummary.value = finalSummary
+                val finalSummary = cartManager.computeSummary(cartManager.currentItems, profile)
+                cartManager.setSummary(finalSummary)
 
                 val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
@@ -1114,7 +966,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     operationId = operationId
                 )
 
-                val items = _cartItems.value.map { cartItem ->
+                val items = cartManager.currentItems.map { cartItem ->
                     val price = cartItem.variant?.price ?: cartItem.item.basePrice
                     val itemTotal = (java.math.BigDecimal(price)
                         .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
@@ -1136,7 +988,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 val insertedBillId = billRepository.insertFullBill(bill, items, emptyList(), false)
                 val inserted = billRepository.getBillWithItemsById(insertedBillId)
                 _lastBill.value = inserted
-                _printStatus.value = null
+                printCoordinator.clearStatus()
 
                 if (inserted != null) {
                     try {
@@ -1151,7 +1003,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 }
 
                 invalidateRestoration()
-                _cartItems.value = emptyList()
+                cartManager.clear()
                 _customerName.value = ""
                 _customerWhatsapp.value = ""
                 syncManager.triggerImmediateSync()
@@ -1168,7 +1020,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
     suspend fun appendItemsToDraft(billId: Long): Boolean = withContext(Dispatchers.IO) {
         orderMutex.withLock {
-            if (_cartItems.value.isEmpty()) {
+            if (cartManager.currentItems.isEmpty()) {
                 _error.value = "Cart is empty."
                 return@withLock false
             }
@@ -1205,7 +1057,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 }
 
                 val existingItems = existingWithItems.items
-                val cartItems = _cartItems.value
+                val cartItems = cartManager.currentItems
 
                 val dbTotals = existingItems.groupBy { (it.menuItemId ?: 0L) to it.variantId }
                 val processedDbKeys = mutableSetOf<Pair<Long, Long?>>()
@@ -1334,7 +1186,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
                 val inserted = billRepository.getBillWithItemsById(billId)
                 _lastBill.value = inserted
-                _printStatus.value = null
+                printCoordinator.clearStatus()
 
                 if (inserted != null) {
                     try {
@@ -1349,7 +1201,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 }
 
                 invalidateRestoration()
-                _cartItems.value = emptyList()
+                cartManager.clear()
                 syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
@@ -1395,7 +1247,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                     billRepository.cancelOrder(billId, "Payment failed/cancelled", true)
                     invalidateRestoration()
                     _lastBill.value = billRepository.getBillWithItemsById(billId)
-                    _printStatus.value = null
+                    printCoordinator.clearStatus()
                     _isLoading.value = false
                     return@withLock true
                 }
@@ -1417,7 +1269,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 // inventory consumption boundary.
                 val paymentOperationBase = existingBill.operationId
                     ?: "${existingBill.restaurantId}:${existingBill.terminalId}:${existingBill.publicToken}:finalize"
-                val payments = buildPaymentEntities(
+                val payments = paymentStateManager.buildPaymentEntities(
                     billId = billId,
                     paymentMode = paymentMode,
                     totalAmount = existingBill.totalAmount,
@@ -1436,7 +1288,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
                 invalidateRestoration()
                 _lastBill.value = finalized.billWithItems
-                _printStatus.value = null
+                printCoordinator.clearStatus()
 
                 if (finalized.outcome ==
                     com.khanabook.lite.pos.data.local.relation.BillFinalizationOutcome.FINALIZED_NOW
@@ -1511,11 +1363,11 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 val finalized = finalize()
                 invalidateRestoration()
                 _lastBill.value = finalized.billWithItems
-                _cartItems.value = emptyList()
-                _persistedPaymentTotal.value = null
-                _paymentRecovery.value = PaymentRecoveryAssessment.Empty
+                cartManager.clear()
+                paymentStateManager.setPersistedPaymentTotal(null)
+                paymentStateManager.setPaymentRecovery(PaymentRecoveryAssessment.Empty)
                 editingBillId = null
-                _printStatus.value = null
+                printCoordinator.clearStatus()
                 if (finalized.outcome ==
                     com.khanabook.lite.pos.data.local.relation.BillFinalizationOutcome.FINALIZED_NOW
                 ) {
@@ -1551,10 +1403,9 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
             _isLoading.value = true
             try {
                 val recovery = billRepository.resetUnverifiedPaymentRecovery(billId)
-                _paymentRecovery.value = recovery
+                paymentStateManager.setPaymentRecovery(recovery)
                 if (recovery is PaymentRecoveryAssessment.Empty) {
-                    _partAmount1.value = "0.0"
-                    _partAmount2.value = "0.0"
+                    paymentStateManager.setPartAmounts("0.0", "0.0")
                 }
                 syncManager.triggerImmediateSync()
                 _isLoading.value = false
@@ -1577,64 +1428,8 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
         return true
     }
 
-    private fun buildPaymentEntities(
-        billId: Long,
-        paymentMode: PaymentMode,
-        totalAmount: String,
-        partAmount1: String,
-        partAmount2: String,
-        operationBase: String,
-        deviceId: String = "",
-        restaurantId: Long = 0
-    ): List<BillPaymentEntity> {
-        return PaymentModeManager.getPaymentComponents(
-            mode = paymentMode,
-            totalAmount = totalAmount,
-            partAmount1 = partAmount1,
-            partAmount2 = partAmount2
-        ).map { component ->
-            BillPaymentEntity(
-                billId = billId,
-                paymentMode = component.mode.dbValue,
-                amount = component.amount,
-                operationId = "$operationBase:payment:${component.mode.dbValue}",
-                deviceId = deviceId,
-                restaurantId = restaurantId,
-                verifiedBy = "manual"
-            )
-        }
-    }
-
-    private fun validatePaymentLimits(
-        total: String,
-        mode: PaymentMode,
-        partAmount1: String,
-        partAmount2: String
-    ): Boolean {
-        val upiAmount = when (mode) {
-            PaymentMode.UPI -> parseAmount(total)
-            PaymentMode.PART_CASH_UPI -> parseAmount(partAmount2)
-            PaymentMode.PART_UPI_POS -> parseAmount(partAmount1)
-            else -> BigDecimal.ZERO
-        }
-        if (upiAmount > PaymentLimits.UPI_SINGLE_TRANSACTION_MAX) {
-            _error.value = PaymentLimits.UPI_LIMIT_MESSAGE
-            return false
-        }
-        return true
-    }
-
-    private fun parseAmount(value: String): BigDecimal {
-        return value.ifBlank { "0" }.toBigDecimalOrNull() ?: BigDecimal.ZERO
-    }
-
     fun updateCartItemNote(item: MenuItemEntity, variant: ItemVariantEntity?, note: String) {
-        _cartItems.update { current ->
-            current.map {
-                if (it.item.id == item.id && it.variant?.id == variant?.id) it.copy(note = note)
-                else it
-            }
-        }
+        cartManager.updateItemNote(item, variant, note)
     }
 
     fun clearError() {
@@ -1642,7 +1437,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
     }
 
     fun clearPrintStatus() {
-        _printStatus.value = null
+        printCoordinator.clearStatus()
     }
 
     fun reportError(message: String) {
@@ -1667,103 +1462,19 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
     }
 
     fun printReceipt(bill: BillWithItems) {
-        if (_receiptPrinting.value) return
-        if (bill.bill.orderStatus.equals(OrderStatus.CANCELLED.dbValue, ignoreCase = true)) {
-            _error.value = "Cannot print receipt for a cancelled order."
-            return
-        }
-        val profile = _cachedProfile.value ?: run {
-            _error.value = "Restaurant profile not loaded."
-            return
-        }
-
+        val profile = _cachedProfile.value
         viewModelScope.launch(Dispatchers.IO) {
-            _receiptPrinting.value = true
-            try {
-                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
-                if (result.attempted == 0 && result.failures.isEmpty()) {
-                    openBillPdfFallback(
-                        bill = bill,
-                        profile = profile,
-                        statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
-                    )
-                } else if (result.failures.isNotEmpty()) {
-                    if (result.succeeded > 0) {
-                        withContext(Dispatchers.Main) {
-                            _error.value = null
-                            _printStatus.value = "Receipt reprinted with some failures."
-                        }
-                    } else {
-                        openBillPdfFallback(
-                            bill = bill,
-                            profile = profile,
-                            statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
-                        )
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        _printStatus.value = "Receipt reprinted successfully."
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Manual receipt print failed", e)
-                openBillPdfFallback(
-                    bill = bill,
-                    profile = profile,
-                    statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
-                )
-            } finally {
-                _receiptPrinting.value = false
+            printCoordinator.printReceipt(bill, profile) { errorMsg ->
+                _error.value = errorMsg
             }
         }
     }
 
     fun printKitchenTicket(bill: BillWithItems) {
-        if (bill.bill.orderStatus.equals(OrderStatus.CANCELLED.dbValue, ignoreCase = true)) {
-            _error.value = "Cannot print KDS for a cancelled order."
-            return
-        }
-        val profile = _cachedProfile.value ?: run {
-            _error.value = "Restaurant profile not loaded."
-            return
-        }
-
-        if (!kitchenPrintInFlight.compareAndSet(false, true)) return
-        _kitchenPrinting.value = true
+        val profile = _cachedProfile.value
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_KITCHEN_ONLY)
-                if (result.attempted == 0) {
-                    withContext(Dispatchers.Main) {
-                        _error.value = null
-                        _printStatus.value = "No KDS printer configured."
-                    }
-                } else if (result.failures.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        _error.value = null
-                        _printStatus.value = if (result.succeeded > 0) {
-                            "KDS reprinted with some failures."
-                        } else {
-                            "KDS reprint failed."
-                        }
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        _printStatus.value = "KDS reprinted successfully."
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Manual kitchen print failed", e)
-                withContext(Dispatchers.Main) {
-                    _error.value = null
-                    _printStatus.value = UserMessageSanitizer.sanitize(
-                        e,
-                        "Unable to print kitchen ticket."
-                    )
-                }
-            } finally {
-                kitchenPrintInFlight.set(false)
-                _kitchenPrinting.value = false
+            printCoordinator.printKitchenTicket(bill, profile) { errorMsg ->
+                _error.value = errorMsg
             }
         }
     }
@@ -1773,64 +1484,6 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
     
     @Immutable
     data class BillSummary(val subtotal: String = "0.0", val cgst: String = "0.0", val sgst: String = "0.0", val customTax: String = "0.0", val total: String = "0.0")
-
-    private fun buildPrintStatusMessage(prefix: String, targets: List<String>): String {
-        val normalized = targets.distinct().map {
-            when (it) {
-                PrinterRole.CUSTOMER.name -> "customer receipt"
-                PrinterRole.KITCHEN.name -> "kitchen ticket"
-                else -> it.lowercase()
-            }
-        }
-        return "$prefix ${normalized.joinToString(" and ")}."
-    }
-
-    private fun buildPartialPrintStatus(result: com.khanabook.lite.pos.domain.manager.PrintDispatchResult): String {
-        val success = buildPrintStatusMessage("Printed", result.successTargets)
-        val failureCount = result.failures.size
-        return "$success $failureCount printer task${if (failureCount == 1) "" else "s"} failed."
-    }
-
-    private suspend fun openBillPdfFallback(
-        bill: BillWithItems,
-        profile: RestaurantProfileEntity?,
-        statusMessage: String
-    ) {
-        val pdfIntent = try {
-            withContext(Dispatchers.IO) {
-                val pdfFile = InvoicePDFGenerator(appContext).generatePDF(bill, profile)
-                val pdfUri = FileProvider.getUriForFile(
-                    appContext,
-                    "${appContext.packageName}.provider",
-                    pdfFile
-                )
-                Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(pdfUri, "application/pdf")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                _error.value = UserMessageSanitizer.sanitize(e, "Unable to prepare invoice.")
-                _printStatus.value = null
-            }
-            return
-        }
-
-        withContext(Dispatchers.Main) {
-            _error.value = null
-            _printStatus.value = statusMessage
-            try {
-                appContext.startActivity(Intent.createChooser(pdfIntent, "Open PDF to Print").apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
-            } catch (e: Exception) {
-                _printStatus.value = null
-                _error.value = UserMessageSanitizer.sanitize(e, "Unable to open invoice.")
-            }
-        }
-    }
 
     override fun onCleared() {
         super.onCleared()

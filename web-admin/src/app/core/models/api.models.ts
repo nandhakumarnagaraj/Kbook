@@ -55,6 +55,14 @@ export interface BusinessOrder {
   createdAt: number | null;
 }
 
+export interface PaginatedOrdersResponse {
+  content: BusinessOrder[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
 export interface RefundOrderRequest {
   refundAmount: number;
   reason: string;

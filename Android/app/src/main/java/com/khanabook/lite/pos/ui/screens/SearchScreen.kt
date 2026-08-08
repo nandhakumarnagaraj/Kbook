@@ -33,6 +33,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
+import com.khanabook.lite.pos.ui.screens.search.outlinedSearchFieldColors
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
@@ -514,13 +515,3 @@ fun SearchScreen(
      }
  }
 
-@Composable
-private fun outlinedSearchFieldColors() =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextLight,
-        unfocusedTextColor = TextLight,
-        focusedBorderColor = PrimaryGold,
-        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = PrimaryGold,
-        unfocusedLabelColor = TextGold
-    )

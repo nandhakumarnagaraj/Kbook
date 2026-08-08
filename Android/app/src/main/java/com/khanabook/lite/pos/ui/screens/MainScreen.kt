@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
+import com.khanabook.lite.pos.ui.screens.home.HomeScreen
+import com.khanabook.lite.pos.ui.screens.settings.SettingsScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils

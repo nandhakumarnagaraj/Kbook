@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
-package com.khanabook.lite.pos.ui.screens
+package com.khanabook.lite.pos.ui.screens.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -548,16 +548,4 @@ fun SignUpScreen(
     }
 }
 
-@Composable
-private fun outlinedTextFieldColors() =
-        OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = DarkBrown1,
-                focusedContainerColor = DarkBrown2,
-                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryGold,
-                cursorColor = PrimaryGold,
-                focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight,
-                errorBorderColor = ErrorPink,
-                errorLabelColor = ErrorPink
-        )
+

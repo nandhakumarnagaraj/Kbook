@@ -106,6 +106,28 @@ public class TerminalTokenSecurityTest extends BaseIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void deletedTerminal_tokenRejected() throws Exception {
+        RestaurantTerminal t = mkTerminal(rid, "P", "dev-deleted");
+        String tt = jwtUtility.generateTerminalToken("P", rid, "OWNER",
+                t.getId().toString(), "P", "dev-deleted", 1L);
+        terminalRepository.delete(t);
+
+        mockMvc.perform(post("/sync/bills/push").header("Authorization", "Bearer " + userToken(rid))
+                .header("X-Terminal-Token", tt).contentType(MediaType.APPLICATION_JSON).content("[]"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void malformedTerminalId_tokenRejected() throws Exception {
+        String tt = jwtUtility.generateTerminalToken("Q", rid, "OWNER",
+                "not-a-number", "Q", "dev-malformed", 1L);
+
+        mockMvc.perform(post("/sync/bills/push").header("Authorization", "Bearer " + userToken(rid))
+                .header("X-Terminal-Token", tt).contentType(MediaType.APPLICATION_JSON).content("[]"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // ── 2. Legacy token revocation ───────────────────────────────────────────────
 
     @Test

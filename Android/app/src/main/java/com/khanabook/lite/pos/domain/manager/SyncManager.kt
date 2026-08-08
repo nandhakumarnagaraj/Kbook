@@ -290,29 +290,56 @@ class SyncManager @Inject constructor(
     }
 
     /**
-     * Pulls all master data since [lastSyncTimestamp] and persists it atomically.
-     * The [sessionManager.saveLastSyncTimestamp] call happens LAST — after Room
-     * has fully committed all pulled records — ensuring the checkpoint only advances
+     * Pulls all master data since [lastSyncTimestamp] and persists each page
+     * immediately into Room. This prevents OOM on large recovery syncs by never
+     * holding all pages in memory simultaneously.
+     *
+     * The [sessionManager.saveLastSyncTimestamp] call happens LAST — after ALL
+     * pages have been pulled and persisted — ensuring the checkpoint only advances
      * when we have a complete, consistent local state.
      */
     private suspend fun pullAndPersistMasterData(lastSyncTimestamp: Long, deviceId: String) {
-        val pages = pullMasterSyncPages(lastSyncTimestamp, deviceId)
-        val mergedResponse = mergeMasterSyncPages(pages)
-        Log.i(
-            tag,
-            "Master pull received pages=${pages.size}, payloadRecords=${countPayloadRecords(mergedResponse)}, serverTimestamp=${mergedResponse.serverTimestamp}"
-        )
-        // Persist all pulled records into Room (wrapped in a DB transaction in MasterSyncProcessor).
-        masterSyncProcessor.insertMasterData(mergedResponse)
-        // Re-label this terminal's own synced bills AFTER the pull so the pull's
-        // insertSyncedBills doesn't immediately overwrite the correction.
-        // Without this, a sync-pull relabels completed local bills as
-        // server_imported/restaurant_history, making them read-only and silently
-        // blocking all local edits (payment mode, status changes).
+        val terminalId = sessionManager.getTerminalId() ?: sessionManager.getTerminalSeries()
+        var page = 0
+        var hasMore = true
+        val maxPages = 50
+        var latestServerTimestamp = 0L
+        var totalRecords = 0
+
+        while (hasMore && page < maxPages) {
+            val response = api.pullMasterSync(
+                lastSyncTimestamp = lastSyncTimestamp,
+                deviceId = deviceId,
+                terminalId = terminalId,
+                ignoreDeviceId = false,
+                page = page,
+                size = 500
+            )
+
+            val pageRecords = countPayloadRecords(response)
+            totalRecords += pageRecords
+
+            // Persist this page immediately — never accumulate all pages in memory
+            masterSyncProcessor.insertMasterData(response)
+            latestServerTimestamp = maxOf(latestServerTimestamp, response.serverTimestamp)
+
+            hasMore = response.hasMore ?: false
+            page++
+        }
+
+        if (page >= maxPages && hasMore) {
+            Log.w(tag, "Pull sync hit max page cap ($maxPages). Some records deferred to next cycle.")
+        }
+
+        Log.i(tag, "Master pull complete: pages=$page, totalRecords=$totalRecords, serverTimestamp=$latestServerTimestamp")
+
+        // Re-label this terminal's own synced bills AFTER all pages are persisted
+        // so the pull's insertSyncedBills doesn't overwrite the correction.
         masterSyncProcessor.reconcileLocalBillScope()
-        // Commit the new checkpoint ONLY after Room write fully succeeds.
-        if (mergedResponse.serverTimestamp > 0) {
-            sessionManager.saveLastSyncTimestamp(mergedResponse.serverTimestamp)
+
+        // Commit the new checkpoint ONLY after all pages succeeded
+        if (latestServerTimestamp > 0) {
+            sessionManager.saveLastSyncTimestamp(latestServerTimestamp)
         } else {
             throw IllegalStateException("Master sync response missing server timestamp")
         }
@@ -356,6 +383,7 @@ class SyncManager @Inject constructor(
             )
     }
 
+    @Deprecated("Replaced by inline streaming in pullAndPersistMasterData", level = DeprecationLevel.HIDDEN)
     private suspend fun pullMasterSyncPages(
         lastSyncTimestamp: Long,
         deviceId: String
@@ -384,6 +412,7 @@ class SyncManager @Inject constructor(
         return pages
     }
 
+    @Deprecated("Replaced by per-page persistence in pullAndPersistMasterData", level = DeprecationLevel.HIDDEN)
     private fun mergeMasterSyncPages(pages: List<MasterSyncResponse>): MasterSyncResponse {
         return pages.fold(MasterSyncResponse()) { acc, page ->
             MasterSyncResponse(

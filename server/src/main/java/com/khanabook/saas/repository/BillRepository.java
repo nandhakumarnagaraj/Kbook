@@ -2,6 +2,8 @@ package com.khanabook.saas.repository;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.sync.repository.SyncRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -98,8 +100,26 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     Optional<Bill> findByRestaurantIdAndPublicTokenAndIsDeletedFalse(Long restaurantId, java.util.UUID publicToken);
 
+    Optional<Bill> findByRestaurantIdAndPublicToken(Long restaurantId, java.util.UUID publicToken);
+
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
             Long restaurantId, String deviceId, Long localId);
+
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.isDeleted = false
+              AND (:status IS NULL OR LOWER(b.orderStatus) = LOWER(:status))
+              AND (:from IS NULL OR b.createdAt >= :from)
+              AND (:to IS NULL OR b.createdAt < :to)
+            ORDER BY b.createdAt DESC
+            """)
+    Page<Bill> findOrdersPageable(
+            @Param("restaurantId") Long restaurantId,
+            @Param("status") String status,
+            @Param("from") Long from,
+            @Param("to") Long to,
+            Pageable pageable);
 
     @Query("""
             SELECT b FROM Bill b

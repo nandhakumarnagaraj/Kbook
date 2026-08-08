@@ -275,6 +275,14 @@ public class GenericSyncService {
 								incomingRecord.getUpdatedAt() != null ? incomingRecord.getUpdatedAt() : serverTime);
 					}
 
+					// Field-level validation: reject malformed/adversarial payloads early
+					var validationResult = com.khanabook.saas.sync.validation.SyncPayloadValidator.validate(incomingRecord);
+					if (!validationResult.valid()) {
+						failedLocalIds.add(incomingRecord.getLocalId());
+						failedReasons.put(incomingRecord.getLocalId(), validationResult.reason());
+						continue;
+					}
+
 					if (incomingRecord instanceof Bill bill) {
 						if (bill.getLastResetDate() == null || bill.getLastResetDate().isEmpty()) {
 							bill.setLastResetDate(java.time.LocalDate.now().toString());
@@ -308,6 +316,29 @@ public class GenericSyncService {
 					if (incomingRecord instanceof Bill bill
 							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
 						validateBillNumberConflicts(targetTenantId, bill, billRepo);
+					}
+
+					// Idempotent bill upsert: if a bill with this publicToken already exists,
+					// treat the push as a successful no-op — return the existing server ID.
+					// This prevents duplicate bills when network timeouts cause client retries.
+					// Only applies to NEW bills (no serverId yet) — updates must flow through
+					// the normal updatedAt comparison logic below.
+					if (incomingRecord instanceof Bill incomingBill
+							&& incomingBill.getPublicToken() != null
+							&& incomingRecord.getId() == null
+							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo2) {
+						var existingByToken = billRepo2.findByRestaurantIdAndPublicToken(
+								targetTenantId, incomingBill.getPublicToken());
+						if (existingByToken.isPresent()) {
+							Bill existing = existingByToken.get();
+							successfulLocalIds.add(incomingRecord.getLocalId());
+							if (existing.getId() != null) {
+								localToServerIdMap.put(incomingRecord.getLocalId(), existing.getId());
+							}
+							log.info("Idempotent bill upsert: publicToken={} already exists serverId={}, returning success",
+									incomingBill.getPublicToken(), existing.getId());
+							continue;
+						}
 					}
 
 					T existingRecord = null;
@@ -664,6 +695,22 @@ public class GenericSyncService {
 							localToServerIdMap.put(saved.getLocalId(), saved.getId());
 						}
 					} catch (DataIntegrityViolationException recordEx) {
+						// Idempotent recovery: if this is a Bill and the publicToken already exists,
+						// treat as success (the previous push succeeded but client didn't get the response)
+						if (record instanceof Bill failedBill && failedBill.getPublicToken() != null) {
+							var idempotentMatch = billRepository.findByRestaurantIdAndPublicToken(
+									record.getRestaurantId(), failedBill.getPublicToken());
+							if (idempotentMatch.isPresent()) {
+								Bill existing = idempotentMatch.get();
+								if (record.getLocalId() != null && existing.getId() != null) {
+									localToServerIdMap.put(record.getLocalId(), existing.getId());
+								}
+								// Don't add to failedLocalIds — this is a success
+								log.info("Idempotent recovery: bill publicToken={} already persisted serverId={}",
+										failedBill.getPublicToken(), existing.getId());
+								continue;
+							}
+						}
 						String recordCause = recordEx.getMostSpecificCause() != null
 								? recordEx.getMostSpecificCause().getMessage()
 								: recordEx.getMessage();

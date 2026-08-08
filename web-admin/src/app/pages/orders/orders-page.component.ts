@@ -3,7 +3,7 @@ import { Component, HostListener, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { BusinessOrder, OrderDetailResponse } from '../../core/models/api.models';
+import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
@@ -162,7 +162,7 @@ export function filterBusinessOrders(
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <section class="panel filter-panel" *ngIf="ordersLoaded && orders.length">
+      <section class="panel filter-panel" *ngIf="ordersLoaded">
         <div class="filter-grid">
           <div class="filter-group">
             <label for="order-search">Search</label>
@@ -171,7 +171,6 @@ export function filterBusinessOrders(
               class="field-control"
               type="text"
               [(ngModel)]="orderSearchTerm"
-              (ngModelChange)="resetOrderPage()"
               placeholder="Search by order, customer, contact, or payment"
             />
           </div>
@@ -192,9 +191,9 @@ export function filterBusinessOrders(
           <div class="filter-group">
             <label for="order-size">Rows</label>
             <select id="order-size" class="field-select" [(ngModel)]="orderPageSize" (ngModelChange)="resetOrderPage()">
-              <option [ngValue]="5">5</option>
               <option [ngValue]="10">10</option>
               <option [ngValue]="20">20</option>
+              <option [ngValue]="50">50</option>
             </select>
           </div>
         </div>
@@ -207,7 +206,7 @@ export function filterBusinessOrders(
 
         <div class="filter-summary">
           <p class="muted">
-            {{ filteredOrders.length }} of {{ orders.length }} orders
+            {{ filteredOrders.length }} of {{ serverTotalElements }} orders
             <span *ngIf="dateRangeLabel" class="date-range-active">&#x1f4c5; {{ dateRangeLabel }}</span>
           </p>
           <button class="ghost-btn" (click)="clearOrderFilters()">Clear filters</button>
@@ -299,8 +298,8 @@ export function filterBusinessOrders(
           </article>
         </div>
 
-        <div class="pagination-bar" *ngIf="filteredOrders.length > orderPageSize">
-          <p class="muted">Page {{ orderCurrentPage }} of {{ orderTotalPages }}</p>
+        <div class="pagination-bar" *ngIf="serverTotalPages > 1">
+          <p class="muted">Page {{ orderCurrentPage }} of {{ orderTotalPages }} ({{ serverTotalElements }} total orders)</p>
           <div class="pagination-controls">
             <button class="ghost-btn" [disabled]="orderCurrentPage === 1" (click)="goToOrderPage(orderCurrentPage - 1)">Previous</button>
             <button class="ghost-btn" [disabled]="orderCurrentPage === orderTotalPages" (click)="goToOrderPage(orderCurrentPage + 1)">Next</button>
@@ -397,6 +396,10 @@ export class OrdersPageComponent {
   orderPageSize = 10;
   orderCurrentPage = 1;
 
+  // Server-side pagination state
+  serverTotalElements = 0;
+  serverTotalPages = 1;
+
   // Date range filter state
   dateFrom: string | null = null;
   dateTo: string | null = null;
@@ -421,33 +424,38 @@ export class OrdersPageComponent {
   get filteredOrders(): BusinessOrder[] {
     return filterBusinessOrders(this.orders, {
       searchTerm: this.orderSearchTerm,
-      statusFilter: this.orderStatusFilter,
+      statusFilter: 'ALL',
       sourceFilter: this.orderSourceFilter,
-      dateFrom: this.dateFrom,
-      dateTo: this.dateTo
+      dateFrom: null,
+      dateTo: null
     });
   }
 
   get pagedOrders(): BusinessOrder[] {
-    const start = (this.orderCurrentPage - 1) * this.orderPageSize;
-    return this.filteredOrders.slice(start, start + this.orderPageSize);
+    return this.filteredOrders;
   }
 
   get orderTotalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredOrders.length / this.orderPageSize));
+    return Math.max(1, this.serverTotalPages);
   }
 
   loadOrders(): void {
     this.ordersLoaded = false;
     this.ordersError = '';
-    this.api.getOrders().subscribe({
-      next: (data) => {
-        this.orders = data;
+    const serverStatus = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
+    const from = this.dateFrom ?? undefined;
+    const to = this.dateTo ?? undefined;
+    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, serverStatus, from, to).subscribe({
+      next: (data: PaginatedOrdersResponse) => {
+        this.orders = data.content;
+        this.serverTotalElements = data.totalElements;
+        this.serverTotalPages = data.totalPages;
         this.ordersLoaded = true;
-        this.orderCurrentPage = 1;
       },
       error: () => {
         this.orders = [];
+        this.serverTotalElements = 0;
+        this.serverTotalPages = 1;
         this.ordersError = 'Unable to load orders. Check your connection and try again.';
         this.ordersLoaded = true;
       }
@@ -456,6 +464,7 @@ export class OrdersPageComponent {
 
   resetOrderPage(): void {
     this.orderCurrentPage = 1;
+    this.loadOrders();
   }
 
   clearOrderFilters(): void {
@@ -467,10 +476,12 @@ export class OrdersPageComponent {
     this.dateFrom = null;
     this.dateTo = null;
     this.dateRangeLabel = '';
+    this.loadOrders();
   }
 
   goToOrderPage(page: number): void {
     this.orderCurrentPage = Math.min(Math.max(1, page), this.orderTotalPages);
+    this.loadOrders();
   }
 
   // --- Date range filtering ---
@@ -479,7 +490,8 @@ export class OrdersPageComponent {
     this.dateFrom = range.from;
     this.dateTo = range.to;
     this.dateRangeLabel = `${range.from} → ${range.to}`;
-    this.resetOrderPage();
+    this.orderCurrentPage = 1;
+    this.loadOrders();
   }
 
   // --- Order detail modal ---

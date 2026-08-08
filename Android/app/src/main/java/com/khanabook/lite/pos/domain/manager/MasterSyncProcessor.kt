@@ -160,6 +160,37 @@ class MasterSyncProcessor @Inject constructor(
                     )
                 }
 
+                // Attempt to parse structured failure response from server body.
+                // If the server returned failedLocalIds, use them directly instead of
+                // performing recursive binary search (saves log2(N) network round-trips).
+                if (errorBody != null) {
+                    try {
+                        val json = JSONObject(errorBody)
+                        val failedIdsArray = json.optJSONArray("failedLocalIds")
+                        if (failedIdsArray != null && failedIdsArray.length() > 0) {
+                            val parsedFailedIds = (0 until failedIdsArray.length()).map { failedIdsArray.getLong(it) }
+                            val reasonsObj = json.optJSONObject("failedReasons")
+                            val parsedReasons = mutableMapOf<Long, String>()
+                            reasonsObj?.keys()?.forEach { key ->
+                                parsedReasons[key.toLong()] = reasonsObj.optString(key, reason)
+                            }
+                            val allIds = batch.map(localId)
+                            val successIds = allIds.filter { it !in parsedFailedIds }
+                            if (successIds.isNotEmpty()) {
+                                markSynced(successIds)
+                            }
+                            logInfo("Parsed 409 body for $label: ${parsedFailedIds.size} failed, ${successIds.size} succeeded — skipping binary search")
+                            return BatchPushResult(
+                                successfulIds = successIds,
+                                failedIds = parsedFailedIds,
+                                failedReasons = parsedReasons
+                            )
+                        }
+                    } catch (parseEx: Exception) {
+                        logWarn("Could not parse 409 body as structured response for $label, falling back to binary search", parseEx)
+                    }
+                }
+
                 val midpoint = batch.size / 2
                 val left = pushBatch(
                     label,

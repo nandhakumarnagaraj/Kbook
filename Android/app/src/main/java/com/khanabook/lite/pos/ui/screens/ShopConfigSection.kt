@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.ui.screens.shopconfig.RestaurantPaymentFlowSelector
 import com.khanabook.lite.pos.ui.theme.KhanaRadii
 
 import androidx.activity.compose.BackHandler
@@ -518,68 +519,3 @@ fun ShopConfigView(
     }
 }
 
-@Composable
-private fun RestaurantPaymentFlowSelector(
-    selectedMode: OrderPaymentFlowMode,
-    onModeSelected: (OrderPaymentFlowMode) -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
-            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.small)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Billing Mode", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    if (selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
-                        "Dine-in orders can stay open until payment."
-                    } else {
-                        "Orders collect payment before food is served."
-                    },
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-        PaymentFlowToggleSwitch(
-            selectedMode = selectedMode,
-            onModeSelected = onModeSelected
-        )
-    }
-}
-
-@Composable
-private fun PaymentFlowToggleSwitch(
-    selectedMode: OrderPaymentFlowMode,
-    onModeSelected: (OrderPaymentFlowMode) -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(spacing.small)
-    ) {
-        OrderPaymentFlowMode.values().forEach { mode ->
-            val isSelected = mode == selectedMode
-            Button(
-                onClick = { onModeSelected(mode) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) PrimaryGold else DarkBrown1,
-                    contentColor = if (isSelected) DarkBrown1 else TextLight
-                )
-            ) {
-                Text(mode.displayLabel, style = MaterialTheme.typography.labelLarge)
-            }
-        }
-    }
-}

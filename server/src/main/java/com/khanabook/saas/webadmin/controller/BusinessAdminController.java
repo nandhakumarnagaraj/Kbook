@@ -40,6 +40,17 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.getOrders(requireTenant()));
     }
 
+    @GetMapping("/orders/page")
+    public ResponseEntity<PaginatedOrdersResponse> getOrdersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        size = Math.min(size, 100);
+        return ResponseEntity.ok(businessReadService.getOrdersPaginated(requireTenant(), page, size, status, from, to));
+    }
+
     @GetMapping("/orders/{billId}")
     public ResponseEntity<OrderDetailResponse> getOrderDetail(@PathVariable Long billId) {
         return ResponseEntity.ok(businessReadService.getOrderDetail(requireTenant(), billId));
