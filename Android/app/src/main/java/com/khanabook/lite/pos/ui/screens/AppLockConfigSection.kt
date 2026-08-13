@@ -106,7 +106,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.card
         ) {
             SettingsItem(
                 icon = Icons.Default.Notifications,
@@ -118,7 +118,7 @@ fun SettingsListView(
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = KhanaRadii.card
         ) {
             SettingsItem(
                 icon = Icons.Default.ReceiptLong,
