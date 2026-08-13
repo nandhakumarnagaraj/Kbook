@@ -30,7 +30,8 @@ class MasterSyncProcessor @Inject constructor(
     private val menuDao: MenuDao,
     private val inventoryDao: InventoryDao,
     private val printerProfileDao: PrinterProfileDao,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val permissionManager: PermissionManager
 ) {
     private fun normalizeUserRole(role: String?): String {
         return when (role?.uppercase()) {
@@ -1004,6 +1005,9 @@ class MasterSyncProcessor @Inject constructor(
                 sessionManager.saveActiveUserRole(updatedCurrentUser.role)
             }
         }
+
+        // Update permission cache from sync response (lightweight — just string keys)
+        permissionManager.updateFromSync(masterData.grantedPermissions)
 
         val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
 

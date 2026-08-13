@@ -24,9 +24,11 @@ import com.khanabook.lite.pos.data.local.entity.*
                         StockLogEntity::class,
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class,
-                        NotificationEntity::class
+                        NotificationEntity::class,
+                        StaffPermissionEntity::class,
+                        PermissionRequestEntity::class
                 ],
-        version = 65,
+        version = 66,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -989,6 +991,39 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 if (!db.hasColumn("restaurant_profile", "fssai_expiry_date")) {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `fssai_expiry_date` TEXT")
                 }
+            }
+        }
+
+        val MIGRATION_65_66 = object : Migration(65, 66) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `staff_permissions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL,
+                        `user_id` INTEGER NOT NULL,
+                        `permission_key` TEXT NOT NULL,
+                        `granted` INTEGER NOT NULL DEFAULT 1,
+                        `granted_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_staff_permissions_restaurant_id_user_id` ON `staff_permissions` (`restaurant_id`, `user_id`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_staff_permissions_restaurant_id_user_id_permission_key` ON `staff_permissions` (`restaurant_id`, `user_id`, `permission_key`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `permission_requests` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL,
+                        `user_id` INTEGER NOT NULL,
+                        `permission_key` TEXT NOT NULL,
+                        `status` TEXT NOT NULL DEFAULT 'PENDING',
+                        `reason` TEXT,
+                        `requested_at` INTEGER NOT NULL,
+                        `resolved_at` INTEGER,
+                        `rejection_reason` TEXT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_permission_requests_restaurant_id_user_id_status` ON `permission_requests` (`restaurant_id`, `user_id`, `status`)")
             }
         }
 
