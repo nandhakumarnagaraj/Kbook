@@ -35,7 +35,6 @@ val GreenReportBg = Color(0xFF1E3A1E)
 val Green800 = Color(0xFF2E7D32)
 
 // Payment-type badges
-val ZomatoRed = Color(0xFFB71C1C)
-val SwiggyOrange = Color(0xFFE65100)
+
 val GoogleRed = Color(0xFFDB4437)
 val WhatsAppGreen = Color(0xFF25D366)

@@ -73,9 +73,6 @@ class ReportExporter(private val context: Context) {
             if (profile.cashEnabled) add(PaymentMode.CASH)
             if (profile.upiEnabled) add(PaymentMode.UPI)
             if (profile.posEnabled) add(PaymentMode.POS)
-            if (profile.zomatoEnabled) add(PaymentMode.ZOMATO)
-            if (profile.swiggyEnabled) add(PaymentMode.SWIGGY)
-            if (profile.ownWebsiteEnabled) add(PaymentMode.OWN_WEBSITE)
         }
     }
 

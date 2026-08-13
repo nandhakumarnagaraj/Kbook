@@ -17,7 +17,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("KhanaBook SaaS API")
                         .description("Multi-Tenant SaaS backend for KhanaBook Lite")
-                        .version("v0.0.1"))
+                        .version("1.0.0"))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components()
                         .addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));

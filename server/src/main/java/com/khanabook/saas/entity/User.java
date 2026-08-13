@@ -54,4 +54,10 @@ public class User extends BaseSyncEntity {
 	@Column(name = "token_invalidated_at")
 	private Long tokenInvalidatedAt;
 
+	@Column(name = "pin_hash")
+	private String pinHash;
+
+	@Column(name = "pin_set_at")
+	private Long pinSetAt;
+
 }

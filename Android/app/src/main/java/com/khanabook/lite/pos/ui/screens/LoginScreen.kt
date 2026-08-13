@@ -151,7 +151,7 @@ fun LoginScreen(
             Image(
                     painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = "KhanaBook Lite logo",
-                    modifier = Modifier.size(120.dp).padding(bottom = spacing.medium),
+                    modifier = Modifier.size(layout.logoSize).padding(bottom = spacing.medium),
                     contentScale = ContentScale.Fit
             )
 

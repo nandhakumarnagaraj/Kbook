@@ -5,15 +5,12 @@ enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     CASH("cash", "Cash"),
     UPI("upi", "UPI"),
     POS("pos", "POS Machine"),
-    ZOMATO("zomato", "Zomato"),
-    SWIGGY("swiggy", "Swiggy"),
-    OWN_WEBSITE("own_website", "Own Website"),
     PART_CASH_UPI("part_cash_upi", "Cash + UPI"),
     PART_CASH_POS("part_cash_pos", "Cash + POS"),
     PART_UPI_POS("part_upi_pos", "UPI + POS");
 
     companion object {
-        fun fromDbValue(value: String): PaymentMode = 
+        fun fromDbValue(value: String): PaymentMode =
             values().find { it.dbValue == value } ?: CASH
     }
 }

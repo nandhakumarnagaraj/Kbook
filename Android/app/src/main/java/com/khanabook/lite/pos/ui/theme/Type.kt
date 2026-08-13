@@ -144,36 +144,56 @@ private val BaseTypography = Typography(
     )
 )
 
-private const val Android16TypographyScale = 0.92f
+// Two-zone controlled scaling per tier: headings (display/headline/title) scale a
+// little more than body/labels. Discrete breakpoints only — never continuous.
+//
+// These are intentional empirical design-system values chosen for the KhanaBook POS
+// interface. They preserve visual hierarchy across device sizes:
+//   - CompactPhone (0.90/0.95): Reduces text modestly on small/cramped screens to
+//     ensure all dashboard elements fit without scrolling.
+//   - MediumPhone (1.00/1.00): Baseline — Material 3 default sizes.
+//   - LargePhone (1.08/1.04): Headings grow 8% for stronger visual anchoring on
+//     larger screens; body grows only 4% to avoid excessive density loss.
+//   - Tablet (1.18/1.08): Headings grow 18% to maintain visual prominence on
+//     wide screens; body grows 8% for comfortable reading at tablet distances.
+//
+// The heading:body ratio gap (10-14%) reinforces visual hierarchy at every tier.
+// These values should be validated empirically on target devices before changing.
+private val TypeTierScales: Map<TypeScaleTier, Pair<Float, Float>> = mapOf(
+    TypeScaleTier.CompactPhone to (0.90f to 0.95f),
+    TypeScaleTier.MediumPhone to (1.00f to 1.00f),
+    TypeScaleTier.LargePhone to (1.08f to 1.04f),
+    TypeScaleTier.Tablet to (1.18f to 1.08f)
+)
 
-fun typographyForSdk(sdkInt: Int): Typography {
-    return if (sdkInt >= 36) BaseTypography.scaled(Android16TypographyScale) else BaseTypography
+fun typographyForTier(tier: TypeScaleTier): Typography {
+    val (headingScale, textScale) = TypeTierScales[tier] ?: (1.00f to 1.00f)
+    return BaseTypography.tiered(headingScale, textScale)
 }
 
-private fun Typography.scaled(scale: Float): Typography = copy(
-    displayLarge = displayLarge.scaled(scale),
-    displayMedium = displayMedium.scaled(scale),
-    displaySmall = displaySmall.scaled(scale),
-    headlineLarge = headlineLarge.scaled(scale),
-    headlineMedium = headlineMedium.scaled(scale),
-    headlineSmall = headlineSmall.scaled(scale),
-    titleLarge = titleLarge.scaled(scale),
-    titleMedium = titleMedium.scaled(scale),
-    titleSmall = titleSmall.scaled(scale),
-    bodyLarge = bodyLarge.scaled(scale),
-    bodyMedium = bodyMedium.scaled(scale),
-    bodySmall = bodySmall.scaled(scale),
-    labelLarge = labelLarge.scaled(scale),
-    labelMedium = labelMedium.scaled(scale),
-    labelSmall = labelSmall.scaled(scale)
+private fun Typography.tiered(headingScale: Float, textScale: Float): Typography = copy(
+    displayLarge = displayLarge.at(headingScale),
+    displayMedium = displayMedium.at(headingScale),
+    displaySmall = displaySmall.at(headingScale),
+    headlineLarge = headlineLarge.at(headingScale),
+    headlineMedium = headlineMedium.at(headingScale),
+    headlineSmall = headlineSmall.at(headingScale),
+    titleLarge = titleLarge.at(headingScale),
+    titleMedium = titleMedium.at(headingScale),
+    titleSmall = titleSmall.at(headingScale),
+    bodyLarge = bodyLarge.at(textScale),
+    bodyMedium = bodyMedium.at(textScale),
+    bodySmall = bodySmall.at(textScale),
+    labelLarge = labelLarge.at(textScale),
+    labelMedium = labelMedium.at(textScale),
+    labelSmall = labelSmall.at(textScale)
 )
 
-private fun TextStyle.scaled(scale: Float): TextStyle = copy(
-    fontSize = fontSize.scaled(scale),
-    lineHeight = lineHeight.scaled(scale),
-    letterSpacing = letterSpacing.scaled(scale)
+private fun TextStyle.at(scale: Float): TextStyle = copy(
+    fontSize = fontSize.at(scale),
+    lineHeight = lineHeight.at(scale)
 )
 
-private fun TextUnit.scaled(scale: Float): TextUnit {
+private fun TextUnit.at(scale: Float): TextUnit {
     return if (isSp) (value * scale).sp else this
 }

@@ -146,7 +146,7 @@ internal fun ScanControls(
 
                 
                 if (!hasCapturedPhoto && !returnBarcode) {
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.extraSmall))
                     Text(
                         "Tip: Ensure menu is fully in frame, well-lit, text in English.",
                         color = PrimaryGold.copy(alpha = 0.55f),
@@ -163,7 +163,7 @@ internal fun ScanControls(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.smallMedium))
 
                 if (!hasCapturedPhoto) {
                     Button(
@@ -177,13 +177,13 @@ internal fun ScanControls(
                             )
                     ) {
                         Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.size(8.dp))
+                        Spacer(modifier = Modifier.size(KhanaBookTheme.spacing.small))
                         Text("Capture Photo", fontWeight = FontWeight.Bold)
                     }
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.smallMedium)
                     ) {
                         OutlinedButton(
                             onClick = onRetake,
@@ -194,7 +194,7 @@ internal fun ScanControls(
                                 )
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.size(6.dp))
+                            Spacer(modifier = Modifier.size(KhanaBookTheme.spacing.extraSmall))
                             Text("Retake")
                         }
 
@@ -214,7 +214,7 @@ internal fun ScanControls(
                                     color = DarkBrown1,
                                     strokeWidth = 2.dp
                                 )
-                                Spacer(modifier = Modifier.size(8.dp))
+                                Spacer(modifier = Modifier.size(KhanaBookTheme.spacing.small))
                                 Text("Analysing...", fontWeight = FontWeight.Bold)
                             } else {
                                 Text("Use Photo", fontWeight = FontWeight.Bold)

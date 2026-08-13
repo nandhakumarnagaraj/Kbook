@@ -76,6 +76,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
     val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
 
@@ -98,7 +99,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(108.dp)
+                    .size(layout.logoSize)
                     .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
                     .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
@@ -224,6 +225,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
 @Composable
 fun AboutAppView() {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val currentYear = Year.now().value
 
     Column(
@@ -236,7 +238,7 @@ fun AboutAppView() {
     ) {
         Box(
             modifier = Modifier
-                .size(184.dp)
+                .size(layout.heroImageSize)
                 .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
                 .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape)
                 .clip(CircleShape),

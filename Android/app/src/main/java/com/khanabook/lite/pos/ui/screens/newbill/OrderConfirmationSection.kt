@@ -15,9 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -112,10 +110,75 @@ fun SuccessStep(
         }
     }
 
-    Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(spacing.large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    ScrollableCenteredLayout(
+        bottomBar = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                Button(
+                    onClick = {
+                        val currentBill = lastBill ?: return@Button
+                        scope.launch {
+                            isSharingInvoice = true
+                            try {
+                                if (connectionStatus == ConnectionStatus.Unavailable) {
+                                    onShowMessage("Offline. Sharing invoice text by SMS.")
+                                    sendInvoiceViaSms(context, currentBill, profile)
+                                    return@launch
+                                }
+
+                                shareInstantInvoiceLink(context, currentBill, profile)
+                            } finally {
+                                isSharingInvoice = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WhatsAppGreen,
+                        contentColor = Color.White,
+                        disabledContainerColor = WhatsAppGreen.copy(alpha = 0.35f),
+                        disabledContentColor = Color.White.copy(alpha = 0.65f)
+                    ),
+                    shape = KhanaRadii.lg,
+                    enabled = lastBill != null && !isSharingInvoice
+                ) {
+                    if (isSharingInvoice) {
+                        KhanaInlineLoader(color = Color.White)
+                        Spacer(modifier = Modifier.width(spacing.small))
+                    } else {
+                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                        Spacer(modifier = Modifier.width(spacing.small))
+                    }
+                    Text(
+                        text = if (isSharingInvoice) "Preparing Link" else "Share Invoice",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+
+                KhanaPrimaryButton(
+                    text = if (receiptPrinting) "Preparing Invoice" else "Print Invoice",
+                    onClick = { lastBill?.let { viewModel.printReceipt(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } == true && !receiptPrinting,
+                    isLoading = receiptPrinting,
+                    leadingIcon = Icons.Default.Receipt
+                )
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                KhanaSecondaryButton(
+                    text = "Back to Home",
+                    onClick = onDone,
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = Icons.Default.Home
+                )
+            }
+        }
     ) {
         PaymentSuccessBadge()
         Text(
@@ -242,70 +305,6 @@ fun SuccessStep(
         LaunchedEffect(printStatus) {
             printStatus?.let { onShowMessage(it) }
         }
-        Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Button(
-                onClick = {
-                    val currentBill = lastBill ?: return@Button
-                    scope.launch {
-                        isSharingInvoice = true
-                        try {
-                            if (connectionStatus == ConnectionStatus.Unavailable) {
-                                onShowMessage("Offline. Sharing invoice text by SMS.")
-                                sendInvoiceViaSms(context, currentBill, profile)
-                                return@launch
-                            }
-
-                            shareInstantInvoiceLink(context, currentBill, profile)
-                        } finally {
-                            isSharingInvoice = false
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = WhatsAppGreen,
-                    contentColor = Color.White,
-                    disabledContainerColor = WhatsAppGreen.copy(alpha = 0.35f),
-                    disabledContentColor = Color.White.copy(alpha = 0.65f)
-                ),
-                shape = KhanaRadii.lg,
-                enabled = lastBill != null && !isSharingInvoice
-            ) {
-                if (isSharingInvoice) {
-                    KhanaInlineLoader(color = Color.White)
-                    Spacer(modifier = Modifier.width(spacing.small))
-                } else {
-                    Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                }
-                Text(
-                    text = if (isSharingInvoice) "Preparing Link" else "Share Invoice",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            KhanaPrimaryButton(
-                text = if (receiptPrinting) "Preparing Invoice" else "Print Invoice",
-                onClick = { lastBill?.let { viewModel.printReceipt(it) } },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } == true && !receiptPrinting,
-                isLoading = receiptPrinting,
-                leadingIcon = Icons.Default.Receipt
-            )
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            KhanaSecondaryButton(
-                text = "Back to Home",
-                onClick = onDone,
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = Icons.Default.Home
-            )
-        }
     }
 }
 
@@ -371,7 +370,7 @@ private fun PaymentSuccessBadge() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
+            .size(KhanaBookTheme.layout.heroImageSize),
         contentAlignment = Alignment.Center
     ) {
         // Outer Ripple 1
@@ -512,8 +511,6 @@ private fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500
         PaymentMode.POS -> PrimaryGold
-        PaymentMode.ZOMATO -> VegGreen
-        PaymentMode.SWIGGY -> SwiggyOrange
         else -> Brown500
     }
 }

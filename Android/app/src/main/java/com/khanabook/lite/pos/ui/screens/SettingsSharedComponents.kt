@@ -5,6 +5,7 @@ import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -90,13 +91,11 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
 }
 
 @Composable
-internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) {
+internal fun SettingsItem(icon: ImageVector, text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
     KhanaBookCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = spacing.small - spacing.hairline),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = CardBG),
         shape = KhanaRadii.lg
@@ -104,16 +103,38 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(
+                    horizontal = layout.cardPaddingHorizontal,
+                    vertical = layout.cardPaddingVertical
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
-                Spacer(modifier = Modifier.size(spacing.medium))
-                Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
+            Box(
+                modifier = Modifier
+                    .size(layout.actionIconContainerSize)
+                    .background(PrimaryGold.copy(alpha = 0.15f), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(layout.actionIconSize)
+                )
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = PrimaryGold)
+            Text(
+                text = text,
+                color = TextLight,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = PrimaryGold,
+                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+            )
         }
     }
 }

@@ -24,7 +24,8 @@ import retrofit2.HttpException
 class SyncManager @Inject constructor(
     private val sessionManager: SessionManager,
     private val api: KhanaBookApi,
-    private val masterSyncProcessor: MasterSyncProcessor
+    private val masterSyncProcessor: MasterSyncProcessor,
+    private val permissionManager: PermissionManager
 ) {
     private val syncMutex = Mutex()
     private val tag = "SyncManager"
@@ -328,6 +329,11 @@ class SyncManager @Inject constructor(
             // Persist this page immediately — never accumulate all pages in memory
             masterSyncProcessor.insertMasterData(response)
             latestServerTimestamp = maxOf(latestServerTimestamp, response.serverTimestamp)
+
+            // Update permissions from first page response
+            if (page == 1) {
+                permissionManager.updateFromSync(response.grantedPermissions)
+            }
 
             hasMore = response.hasMore ?: false
             page++

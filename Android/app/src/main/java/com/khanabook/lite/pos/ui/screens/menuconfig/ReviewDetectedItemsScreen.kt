@@ -65,7 +65,7 @@ fun ReviewDetectedItemsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .padding(top = KhanaBookTheme.spacing.smallMedium)
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -82,7 +82,7 @@ fun ReviewDetectedItemsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                                .padding(horizontal = KhanaBookTheme.spacing.mediumLarge, vertical = KhanaBookTheme.spacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -111,7 +111,7 @@ fun ReviewDetectedItemsScreen(
                         ) {
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
                             Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
                             Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                         }
@@ -121,8 +121,8 @@ fun ReviewDetectedItemsScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
+                        verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.smallMedium),
+                        contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = KhanaBookTheme.spacing.smallMedium)
                     ) {
                         val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
 
@@ -133,7 +133,7 @@ fun ReviewDetectedItemsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
+                                        .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = KhanaBookTheme.spacing.small),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
@@ -205,7 +205,7 @@ fun ReviewDetectedItemsScreen(
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.smallMedium),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedButton(
@@ -228,7 +228,7 @@ fun ReviewDetectedItemsScreen(
                                 shape = KhanaRadii.lg
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
-                                Spacer(Modifier.width(10.dp))
+                                Spacer(Modifier.width(KhanaBookTheme.spacing.small))
                                 Text(
                                     "Add $selectedCount Items",
                                     fontWeight = FontWeight.Bold,
@@ -293,7 +293,7 @@ internal fun ReviewDetectedItemsOverlay(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
+                        .padding(top = KhanaBookTheme.spacing.smallMedium),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -307,7 +307,7 @@ internal fun ReviewDetectedItemsOverlay(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                        .padding(horizontal = KhanaBookTheme.spacing.mediumLarge, vertical = KhanaBookTheme.spacing.small),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -343,9 +343,9 @@ internal fun ReviewDetectedItemsOverlay(
                 ) {
                     Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
                     Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
                     Text("Item Name", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.extraSmall))
                     Text(
                         "Price",
                         color = TextGold.copy(alpha = 0.5f),
@@ -359,8 +359,8 @@ internal fun ReviewDetectedItemsOverlay(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 8.dp)
+                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
+                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = KhanaBookTheme.spacing.small)
                 ) {
                     val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
 
@@ -371,7 +371,7 @@ internal fun ReviewDetectedItemsOverlay(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
+                                    .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = KhanaBookTheme.spacing.small),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
@@ -455,8 +455,8 @@ internal fun ReviewDetectedItemsOverlay(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            .padding(horizontal = KhanaBookTheme.spacing.mediumLarge, vertical = KhanaBookTheme.spacing.smallMedium),
+                        horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.smallMedium),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
@@ -496,7 +496,7 @@ internal fun ReviewDetectedItemsOverlay(
                             shape = KhanaRadii.lg
                         ) {
                             Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(KhanaBookTheme.spacing.small))
                             Text(
                                 "Add $selectedCount Items",
                                 fontWeight = FontWeight.Bold,
@@ -546,14 +546,14 @@ private fun InlineDecisionBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = KhanaBookTheme.spacing.mediumLarge, vertical = KhanaBookTheme.spacing.smallMedium),
+            verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small)
         ) {
             Text(title, color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
             Text(message, color = TextLight, style = MaterialTheme.typography.bodySmall)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
@@ -725,7 +725,7 @@ fun DraftItemRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
 
             Column(modifier = Modifier.weight(1f)) {
                 BasicTextField(
@@ -764,7 +764,7 @@ fun DraftItemRow(
                 )
             }
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.extraSmall))
 
             if (draft.variants.size <= 1) {
                 Row(
@@ -842,7 +842,7 @@ fun DraftItemRow(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
 
                         BasicTextField(
                             value = variant.name,

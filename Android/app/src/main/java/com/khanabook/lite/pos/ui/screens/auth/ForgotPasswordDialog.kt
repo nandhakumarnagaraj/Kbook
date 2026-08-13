@@ -82,12 +82,12 @@ fun ForgotPasswordDialog(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(icon, null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(spacing.small))
                 Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(spacing.extraSmall))
                 Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
             }
         }

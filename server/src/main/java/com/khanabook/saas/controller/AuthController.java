@@ -188,6 +188,42 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	// ─── Staff PIN Login ─────────────────────────────────────────────────────────
+
+	@PostMapping("/pin/set")
+	public ResponseEntity<?> setPin(@RequestBody java.util.Map<String, String> body) {
+		Long userId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
+		if (userId == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		String pin = body.get("pin");
+		if (pin == null || !pin.matches("^\\d{4,6}$")) {
+			return ResponseEntity.badRequest().body(java.util.Map.of("error", "PIN must be 4-6 digits"));
+		}
+		authService.setPin(userId, pin);
+		return ResponseEntity.ok(java.util.Map.of("status", "PIN_SET"));
+	}
+
+	@PostMapping("/pin/login")
+	public ResponseEntity<?> pinLogin(@RequestBody java.util.Map<String, Object> body, HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!isLoginAllowed(ip)) {
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		Number restaurantIdNum = (Number) body.get("restaurantId");
+		String pin = (String) body.get("pin");
+		if (restaurantIdNum == null || pin == null || !pin.matches("^\\d{4,6}$")) {
+			return ResponseEntity.badRequest().body(java.util.Map.of("error", "restaurantId and 4-6 digit pin required"));
+		}
+		Long restaurantId = restaurantIdNum.longValue();
+		var result = authService.pinLogin(restaurantId, pin);
+		if (result == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(java.util.Map.of("error", "Invalid PIN"));
+		}
+		return ResponseEntity.ok(result);
+	}
+
 	// ─── Web Admin Forgot Password Flow ──────────────────────────────────────────
 
 	@PostMapping("/forgot-password/request-otp")

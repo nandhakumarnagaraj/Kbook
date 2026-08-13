@@ -17,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val menuRepository: com.khanabook.lite.pos.data.repository.MenuRepository
 ) : ViewModel() {
     private val debugTag = "KhanaBookDebugAuth"
 
@@ -41,6 +42,18 @@ class SplashViewModel @Inject constructor(
             val token = sessionManager.getAuthToken()
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
             val isTrustedExternalReturn = TrustedExternalAppReturn.consume(context)
+
+            // Auto-complete quick start for existing users upgrading to this version
+            if (isSyncCompleted && !sessionManager.isQuickStartCompleted()) {
+                val existingItems = try {
+                    menuRepository.getAllMenuItemsOnce()
+                } catch (_: Exception) {
+                    emptyList()
+                }
+                if (existingItems.isNotEmpty()) {
+                    sessionManager.setQuickStartCompleted(true)
+                }
+            }
 
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin

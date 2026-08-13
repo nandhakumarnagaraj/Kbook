@@ -379,7 +379,6 @@ export class SidebarLayoutComponent {
       { label: 'Menu', path: '/business/menu', icon: '◈' },
       { label: 'Staff', path: '/business/staff', icon: '◍' },
       { label: 'Settings', path: '/business/settings', icon: '⚙' },
-      { label: 'Integrations', path: '/business/marketplace', icon: '◇' },
       { label: 'Devices', path: '/business/terminals', icon: '▣' }
     ];
   });

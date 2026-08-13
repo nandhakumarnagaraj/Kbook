@@ -87,8 +87,8 @@ fun ManualMenuView(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
             items(categories) { category ->
@@ -102,7 +102,7 @@ fun ManualMenuView(
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .padding(horizontal = spacing.smallMedium, vertical = spacing.small)
                             .combinedClickable(
                                 onClick = { onCategorySelect(category.id) },
                                 onLongClick = { showEditCategoryDialog = category }
@@ -115,7 +115,7 @@ fun ManualMenuView(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                         if (isSelected) {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(spacing.extraSmall))
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit Category",
@@ -164,7 +164,7 @@ fun ManualMenuView(
                         color = TextLight,
                         style = MaterialTheme.typography.titleMedium
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
                     Text(
                         "Tap + above to create your first category,\nthen add your menu items.",
                         color = TextGold.copy(alpha = 0.6f),
@@ -178,21 +178,21 @@ fun ManualMenuView(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = spacing.bottomListPadding)
+                    .padding(horizontal = spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
+                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
             ) {
                 if (visibleMenuItems.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 48.dp),
+                                .padding(vertical = spacing.huge),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 Text(
                                     "No items in this category",
@@ -231,7 +231,7 @@ fun ManualMenuView(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -254,7 +254,7 @@ fun ManualMenuView(
                         shape = KhanaRadii.lg
                     ) {
                         Icon(Icons.Default.Add, null)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(spacing.small))
                         Text("Add New Item", fontWeight = FontWeight.Bold)
                     }
                 }
@@ -391,7 +391,7 @@ fun MenuItemRow(
                 tint = if (item.foodType == "veg") VegGreen else NonVegRed,
                 modifier = Modifier.size(12.dp)
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.name,

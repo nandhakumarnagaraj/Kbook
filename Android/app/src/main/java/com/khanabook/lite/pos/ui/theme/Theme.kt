@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -43,6 +42,9 @@ object KhanaBookTheme {
     val layout: ResponsiveLayout
         @Composable
         get() = LocalResponsiveLayout.current
+    val typeScale: TypeScaleTier
+        @Composable
+        get() = LocalTypeScale.current
 }
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -64,7 +66,7 @@ fun KhanaBookLiteTheme(
         screenHeightDp = configuration.screenHeightDp,
         widthSizeClass = widthSizeClass
     )
-    val appTypography = typographyForSdk(Build.VERSION.SDK_INT)
+    val appTypography = typographyForTier(responsiveLayout.typeScaleTier)
 
     if (BuildConfig.DEBUG) {
         LaunchedEffect(
@@ -86,7 +88,8 @@ fun KhanaBookLiteTheme(
                     "screenHeightDp=${configuration.screenHeightDp}, " +
                     "smallestWidthDp=${configuration.smallestScreenWidthDp}, " +
                     "orientation=${configuration.orientation}, " +
-                    "widthTier=${responsiveLayout.widthTier}"
+                    "widthTier=${responsiveLayout.widthTier}, " +
+                    "typeScaleTier=${responsiveLayout.typeScaleTier}"
             )
         }
     }
@@ -110,7 +113,8 @@ fun KhanaBookLiteTheme(
         LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),
         LocalSpacing provides Spacing(),
         LocalIconSize provides IconSize(),
-        LocalResponsiveLayout provides responsiveLayout
+        LocalResponsiveLayout provides responsiveLayout,
+        LocalTypeScale provides responsiveLayout.typeScaleTier
     ) {
         MaterialTheme(
             colorScheme = DarkColorScheme,

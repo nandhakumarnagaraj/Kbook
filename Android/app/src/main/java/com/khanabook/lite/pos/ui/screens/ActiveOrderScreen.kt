@@ -53,6 +53,7 @@ fun ActiveOrderScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     LaunchedEffect(draftBillId) {
         billingViewModel.loadDraftOrderForEditing(draftBillId) {
@@ -172,210 +173,220 @@ fun ActiveOrderScreen(
                 CircularProgressIndicator(color = PrimaryGold)
             }
         } else {
-            Column(
+            StickyBottomScaffold(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = spacing.medium, vertical = spacing.small),
-                verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    .padding(paddingValues),
+                bottomBar = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                                    val appended = billingViewModel.appendItemsToDraft(draftBillId)
+                                    if (!appended) return@launch
+                                    val settled = billingViewModel.settleDraftOrder(
+                                        billId = draftBillId,
+                                        paymentMode = selectedMode,
+                                        status = PaymentStatus.SUCCESS,
+                                        partAmount1 = p1Text,
+                                        partAmount2 = p2Text
+                                    )
+                                    if (settled) {
+                                        billingViewModel.clearActiveSession()
+                                        onOrderCompleted()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeight),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                            ),
+                            shape = KhanaRadii.lg,
+                            enabled = isAmountValid && itemCount > 0 && !isLoading
+                        ) {
+                            Text("Payment Successful — ${CurrencyUtils.formatPrice(total)}", color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                                    val cancelled = billingViewModel.settleDraftOrder(
+                                        draftBillId,
+                                        selectedMode,
+                                        PaymentStatus.FAILED
+                                    )
+                                    if (cancelled) {
+                                        billingViewModel.clearActiveSession()
+                                        onBack()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                            border = BorderStroke(1.dp, DangerRed),
+                            shape = KhanaRadii.lg,
+                            enabled = !isLoading
+                        ) {
+                            Text("Payment Failed / Cancel", style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    if (billingViewModel.appendItemsToDraft(draftBillId)) {
+                                        KhanaToast.show("Draft updated", ToastKind.Success)
+                                        onBack()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
+                            shape = KhanaRadii.lg,
+                            enabled = itemCount > 0 && !isLoading
+                        ) {
+                            Text("Update Items Only (Save Draft)", color = Color.White, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
             ) {
-                BillInfoHeader(
-                    customerName = customerName,
-                    customerWhatsapp = customerWhatsapp,
-                    orderType = orderType,
-                    itemCount = itemCount,
-                    total = total
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = layout.contentPadding),
+                    verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                ) {
+                    Spacer(modifier = Modifier.height(spacing.small))
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                    BillInfoHeader(
+                        customerName = customerName,
+                        customerWhatsapp = customerWhatsapp,
+                        orderType = orderType,
+                        itemCount = itemCount,
+                        total = total
+                    )
 
-                Text("Items ($itemCount)", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
 
-                if (cartItems.isEmpty()) {
-                    Text("No items. Add items from below.", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
-                } else {
-                    cartItems.forEach { cartItem ->
-                        ActiveOrderItemCard(
-                            cartItem = cartItem,
-                            onIncrement = { billingViewModel.addToCart(cartItem.item, cartItem.variant) },
-                            onDecrement = { billingViewModel.removeFromCart(cartItem.item, cartItem.variant) },
-                            onRemove = {
-                                repeat(cartItem.quantity) {
-                                    billingViewModel.removeFromCart(cartItem.item, cartItem.variant)
-                                }
-                            },
-                            onShowVariantPicker = {
-                                if (cartItem.variant != null) {
-                                    showVariantPickerFor = cartItem.item
-                                }
-                            },
-                            onShowNote = { showItemNoteFor = cartItem }
-                        )
-                    }
-                }
+                    Text("Items ($itemCount)", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-
-                Text("Add Items", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-                CompactMenuSection(
-                    menuViewModel = menuViewModel,
-                    billingViewModel = billingViewModel
-                )
-
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-
-                BillSummaryDisplay(summary = summary)
-
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-
-                Text("Payment", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-
-                PaymentModeSelector(
-                    enabledModes = enabledModes,
-                    selectedMode = selectedMode,
-                    onModeChange = { selectedMode = it },
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it }
-                )
-
-                if (isSplitMode) {
-                    val labels = when (selectedMode) {
-                        PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
-                        PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
-                        PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
-                        else -> "" to ""
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
-                    ) {
-                        ParchmentTextField(
-                            value = p1Text,
-                            onValueChange = { p1Text = it },
-                            label = labels.first,
-                            modifier = Modifier.weight(1f),
-                            isError = !isAmountValid,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    if (cartItems.isEmpty()) {
+                        Text("No items. Add items from below.", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        cartItems.forEach { cartItem ->
+                            ActiveOrderItemCard(
+                                cartItem = cartItem,
+                                onIncrement = { billingViewModel.addToCart(cartItem.item, cartItem.variant) },
+                                onDecrement = { billingViewModel.removeFromCart(cartItem.item, cartItem.variant) },
+                                onRemove = {
+                                    repeat(cartItem.quantity) {
+                                        billingViewModel.removeFromCart(cartItem.item, cartItem.variant)
+                                    }
+                                },
+                                onShowVariantPicker = {
+                                    if (cartItem.variant != null) {
+                                        showVariantPickerFor = cartItem.item
+                                    }
+                                },
+                                onShowNote = { showItemNoteFor = cartItem }
                             )
-                        )
-                        ParchmentTextField(
-                            value = p2Text,
-                            onValueChange = { p2Text = it },
-                            label = labels.second,
-                            modifier = Modifier.weight(1f),
-                            isError = !isAmountValid,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                            )
-                        )
-                    }
-                    if (!isAmountValid) {
-                        Text(
-                            "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
-                            color = DangerRed,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-
-                if (isUpiMode && canGenerateAmountQr) {
-                    Box(
-                        modifier = Modifier
-                            .size(160.dp)
-                            .align(Alignment.CenterHorizontally)
-                            .background(Color.White, KhanaRadii.lg)
-                            .border(2.dp, PrimaryGold, KhanaRadii.lg)
-                            .padding(spacing.small),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val qrBitmap = dynamicUpiQrBitmap
-                        if (qrBitmap != null) {
-                            Image(
-                                bitmap = qrBitmap.asImageBitmap(),
-                                contentDescription = "UPI QR",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            CircularProgressIndicator(color = PrimaryGold)
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(spacing.small))
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
 
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            val appended = billingViewModel.appendItemsToDraft(draftBillId)
-                            if (!appended) return@launch
-                            val settled = billingViewModel.settleDraftOrder(
-                                billId = draftBillId,
-                                paymentMode = selectedMode,
-                                status = PaymentStatus.SUCCESS,
-                                partAmount1 = p1Text,
-                                partAmount2 = p2Text
+                    Text("Add Items", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                    CompactMenuSection(
+                        menuViewModel = menuViewModel,
+                        billingViewModel = billingViewModel
+                    )
+
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+
+                    BillSummaryDisplay(summary = summary)
+
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+
+                    Text("Payment", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+
+                    PaymentModeSelector(
+                        enabledModes = enabledModes,
+                        selectedMode = selectedMode,
+                        onModeChange = { selectedMode = it },
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    )
+
+                    if (isSplitMode) {
+                        val labels = when (selectedMode) {
+                            PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
+                            PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
+                            PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
+                            else -> "" to ""
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                        ) {
+                            ParchmentTextField(
+                                value = p1Text,
+                                onValueChange = { p1Text = it },
+                                label = labels.first,
+                                modifier = Modifier.weight(1f),
+                                isError = !isAmountValid,
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                                )
                             )
-                            if (settled) {
-                                billingViewModel.clearActiveSession()
-                                onOrderCompleted()
+                            ParchmentTextField(
+                                value = p2Text,
+                                onValueChange = { p2Text = it },
+                                label = labels.second,
+                                modifier = Modifier.weight(1f),
+                                isError = !isAmountValid,
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                                )
+                            )
+                        }
+                        if (!isAmountValid) {
+                            Text(
+                                "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
+                                color = DangerRed,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+
+                    if (isUpiMode && canGenerateAmountQr) {
+                        Box(
+                            modifier = Modifier
+                                .size(layout.qrCodeSize)
+                                .align(Alignment.CenterHorizontally)
+                                .background(Color.White, KhanaRadii.lg)
+                                .border(2.dp, PrimaryGold, KhanaRadii.lg)
+                                .padding(spacing.small),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val qrBitmap = dynamicUpiQrBitmap
+                            if (qrBitmap != null) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "UPI QR",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                CircularProgressIndicator(color = PrimaryGold)
                             }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeight),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isAmountValid) SuccessGreen else Color.Gray
-                    ),
-                    shape = KhanaRadii.lg,
-                    enabled = isAmountValid && itemCount > 0 && !isLoading
-                ) {
-                    Text("Payment Successful — ${CurrencyUtils.formatPrice(total)}", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                }
+                    }
 
-                OutlinedButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            billingViewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            val cancelled = billingViewModel.settleDraftOrder(
-                                draftBillId,
-                                selectedMode,
-                                PaymentStatus.FAILED
-                            )
-                            if (cancelled) {
-                                billingViewModel.clearActiveSession()
-                                onBack()
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
-                    border = BorderStroke(1.dp, DangerRed),
-                    shape = KhanaRadii.lg,
-                    enabled = !isLoading
-                ) {
-                    Text("Payment Failed / Cancel", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(spacing.small))
                 }
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            if (billingViewModel.appendItemsToDraft(draftBillId)) {
-                                KhanaToast.show("Draft updated", ToastKind.Success)
-                                onBack()
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
-                    colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
-                    shape = KhanaRadii.lg,
-                    enabled = itemCount > 0 && !isLoading
-                ) {
-                    Text("Update Items Only (Save Draft)", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                }
-
-                Spacer(modifier = Modifier.height(spacing.bottomListPadding))
             }
         }
     }

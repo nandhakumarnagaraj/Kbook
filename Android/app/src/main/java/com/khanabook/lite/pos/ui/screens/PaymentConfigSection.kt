@@ -60,9 +60,6 @@ fun PaymentConfigView(
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
-    var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
-    var swiggyEnabled by remember { mutableStateOf(profile?.swiggyEnabled ?: false) }
-    var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
 
     val toastScope = rememberCoroutineScope()
 
@@ -106,9 +103,6 @@ fun PaymentConfigView(
             Text("Payment Methods", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
-            PaymentToggle("Zomato Orders", zomatoEnabled) { zomatoEnabled = it }
-            PaymentToggle("Swiggy Orders", swiggyEnabled) { swiggyEnabled = it }
-            PaymentToggle("Own Website", ownWebsiteEnabled) { ownWebsiteEnabled = it }
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -138,9 +132,9 @@ fun PaymentConfigView(
                             upiQrUrl = null,
                             cashEnabled = cashEnabled,
                             posEnabled = posEnabled,
-                            zomatoEnabled = zomatoEnabled,
-                            swiggyEnabled = swiggyEnabled,
-                            ownWebsiteEnabled = ownWebsiteEnabled,
+                            zomatoEnabled = false,
+                            swiggyEnabled = false,
+                            ownWebsiteEnabled = false,
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }

@@ -195,15 +195,6 @@ const W = 72, H = 24;
             <div class="quick-value">{{ data.totalMenuItems }}</div>
           </div>
         </a>
-        <a class="quick-card" (click)="navigateToMarketplace()">
-          <div class="quick-icon quick-icon--info">
-            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm6 0a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z"/></svg>
-          </div>
-          <div>
-            <div class="quick-label">Marketplace</div>
-            <div class="quick-value">{{ data.marketplaceConnected ? 'Connected' : 'Set up \u2192' }}</div>
-          </div>
-        </a>
       </div>
 
       <!-- Recent orders -->
@@ -535,10 +526,9 @@ export class BusinessDashboardPageComponent {
         const from = range?.from;
         const to = range?.to;
         return combineLatest([
-          this.api.getDashboard(from, to),
-          this.api.getMarketplaceConfig().pipe(catchError(() => of(null)))
+          this.api.getDashboard(from, to)
         ]).pipe(
-          map(([data, marketplace]) => {
+          map(([data]) => {
             this.isRefreshing.set(false);
             this.dashboardError.set('');
 
@@ -559,8 +549,6 @@ export class BusinessDashboardPageComponent {
             const deltaToday = Math.round((Math.random() * 20 + 5) * 10) / 10;
             const deltaTotal = Math.round((Math.random() * 15 + 3) * 10) / 10;
 
-            const marketplaceConnected = Boolean(marketplace?.zomatoEnabled || marketplace?.swiggyEnabled);
-
             return {
               ...data,
               shopName: data.shopName || 'Business Dashboard',
@@ -574,7 +562,6 @@ export class BusinessDashboardPageComponent {
               deltaToday,
               deltaTotal,
               trendBars,
-              marketplaceConnected,
               setupChecks: [
                 {
                   label: 'Website Checkout',
@@ -596,13 +583,6 @@ export class BusinessDashboardPageComponent {
                   detail: data.kitchenPrinterEnabled
                     ? 'Kitchen printing is configured for KDS dispatch.'
                     : 'Configure the kitchen printer so accepted online orders can print instantly.'
-                },
-                {
-                  label: 'Marketplace Intake',
-                  ready: marketplaceConnected,
-                  detail: marketplaceConnected
-                    ? 'Marketplace config active.'
-                    : 'No Zomato or Swiggy marketplace channel is enabled yet.'
                 },
                 {
                   label: 'Operating Baseline',
@@ -657,7 +637,6 @@ export class BusinessDashboardPageComponent {
   navigateToOrders(): void { this.router.navigate(['/business/orders']); }
   navigateToStaff(): void { this.router.navigate(['/business/staff']); }
   navigateToMenu(): void { this.router.navigate(['/business/menu']); }
-  navigateToMarketplace(): void { this.router.navigate(['/business/marketplace']); }
   navigateTo(route: string): void { this.router.navigate([route]); }
 
   getReadySetupCount(checks: Array<{ ready: boolean }>): number {

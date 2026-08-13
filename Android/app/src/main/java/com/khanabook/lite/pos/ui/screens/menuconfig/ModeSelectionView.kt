@@ -48,7 +48,7 @@ fun ModeSelectionView(
         // Dashboard Stats
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
             Card(
                 modifier = Modifier.weight(1f),
@@ -58,7 +58,7 @@ fun ModeSelectionView(
             ) {
                 Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
                     Text("Categories", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
                     Text("$totalCategoriesCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 }
             }
@@ -70,7 +70,7 @@ fun ModeSelectionView(
             ) {
                 Column(modifier = Modifier.padding(KhanaBookTheme.spacing.medium)) {
                     Text("Total Items", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
                     Text("$totalItemsCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 }
             }
@@ -105,7 +105,7 @@ fun ModeSelectionView(
                     }
                 }
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = spacing.mediumLarge))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,7 +151,7 @@ fun ModeSelectionView(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Smart AI", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(spacing.small))
                             Surface(color = PrimaryGold, shape = KhanaRadii.sm) {
                                 Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
                             }
@@ -161,7 +161,7 @@ fun ModeSelectionView(
                 }
 
                 Column {
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = spacing.mediumLarge))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -197,7 +197,7 @@ fun ModeSelectionView(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                            .padding(start = spacing.medium, end = spacing.medium, bottom = spacing.medium)
                     )
                 }
             }

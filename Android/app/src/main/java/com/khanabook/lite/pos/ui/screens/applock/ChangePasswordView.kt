@@ -300,7 +300,7 @@ fun ChangePasswordView(
 private fun CpStepIndicator(currentStep: Int, totalSteps: Int) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
         for (i in 1..totalSteps) {
@@ -333,12 +333,12 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
             Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall))
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.extraSmall))
             Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
         }
     }

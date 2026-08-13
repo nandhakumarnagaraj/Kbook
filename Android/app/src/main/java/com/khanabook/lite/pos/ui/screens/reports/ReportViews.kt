@@ -247,9 +247,9 @@ private val COL_DATE    = 1.8f
 
 internal fun com.khanabook.lite.pos.domain.model.OrderLevelRow.displaySourceOrModeLabel(): String {
     return when (sourceChannel.trim().lowercase()) {
-        "zomato" -> PaymentMode.ZOMATO.displayLabel
-        "swiggy" -> PaymentMode.SWIGGY.displayLabel
-        "own_website", "own website" -> PaymentMode.OWN_WEBSITE.displayLabel
+        "zomato" -> "Zomato"
+        "swiggy" -> "Swiggy"
+        "own_website", "own website" -> "Own Website"
         else -> paymentMode.displayLabel
     }
 }
@@ -259,8 +259,6 @@ internal fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500 
         PaymentMode.POS -> PrimaryGold
-        PaymentMode.ZOMATO -> VegGreen
-        PaymentMode.SWIGGY -> SwiggyOrange
         else -> Brown500
     }
 }

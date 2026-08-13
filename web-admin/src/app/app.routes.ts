@@ -72,12 +72,13 @@ export const routes: Routes = [
         data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/staff/staff-page.component').then(m => m.StaffPageComponent)
       },
-      {
-        path: 'business/marketplace',
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] },
-        loadComponent: () => import('./pages/marketplace-setup/marketplace-setup-page.component').then(m => m.MarketplaceSetupPageComponent)
-      },
+      // Marketplace route disabled — feature hidden for v1
+      // {
+      //   path: 'business/marketplace',
+      //   canActivate: [roleGuard],
+      //   data: { roles: ['OWNER'] },
+      //   loadComponent: () => import('./pages/marketplace-setup/marketplace-setup-page.component').then(m => m.MarketplaceSetupPageComponent)
+      // },
       {
         path: 'business/terminals',
         canActivate: [roleGuard],

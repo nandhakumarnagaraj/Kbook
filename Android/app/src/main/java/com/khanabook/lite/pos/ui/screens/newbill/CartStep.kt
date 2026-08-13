@@ -62,12 +62,38 @@ fun CustomerInfoStep(
         else -> false
     }
 
+    val layout = KhanaBookTheme.layout
+
+    com.khanabook.lite.pos.ui.designsystem.StickyBottomScaffold(
+        bottomBar = {
+            if (selectedOrderType != "active_order") {
+                Button(
+                    onClick = { if (isNextEnabled) onNext(name, whatsapp) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(KhanaBookTheme.spacing.buttonHeightLarge),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
+                    ),
+                    shape = KhanaRadii.lg,
+                    enabled = isNextEnabled
+                ) {
+                    Text(
+                        "Continue",
+                        color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    ) {
     Column(
             modifier =
                     Modifier.fillMaxSize()
-                            .imePadding()
                             .verticalScroll(rememberScrollState())
-                            .padding(spacing.large)
+                            .padding(horizontal = layout.contentPadding, vertical = spacing.medium)
     ) {
         if (!hideHeader) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -342,27 +368,7 @@ fun CustomerInfoStep(
             )
         }
 
-        if (selectedOrderType != "active_order") {
-            Spacer(modifier = Modifier.height(spacing.huge))
-            Button(
-                onClick = { if (isNextEnabled) onNext(name, whatsapp) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(KhanaBookTheme.spacing.buttonHeightLarge),
-                colors =
-                        ButtonDefaults.buttonColors(
-                                containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
-                        ),
-                shape = KhanaRadii.lg,
-                enabled = isNextEnabled
-            ) {
-                Text(
-                        "Continue",
-                        color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
-                        style = MaterialTheme.typography.titleMedium
-                )
-            }
-        }
+    }
     }
 }
 

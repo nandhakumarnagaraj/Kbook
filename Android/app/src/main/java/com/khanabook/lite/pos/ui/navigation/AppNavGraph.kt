@@ -114,17 +114,34 @@ internal fun AppNavGraph(
         composable("initial_sync") {
             InitialSyncScreen(
                 onSyncCompleteNavigateToMain = {
-                    val next = if (!sessionManager.isBackgroundReliabilityPromptShown()) {
-                        "background_reliability"
+                    // If this is a fresh restaurant with no menu, show quick start wizard
+                    val destination = if (!sessionManager.isQuickStartCompleted()) {
+                        "quick_start"
                     } else {
                         authenticatedStartDestination()
                     }
-                    navController.navigate(next) {
+                    navController.navigate(destination) {
                         popUpTo("initial_sync") { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
                     navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                }
+            )
+        }
+        composable("quick_start") {
+            QuickStartScreen(
+                onComplete = {
+                    navController.navigate(authenticatedStartDestination()) {
+                        popUpTo("quick_start") { inclusive = true }
+                    }
+                },
+                onSkip = {
+                    sessionManager.setQuickStartCompleted(true)
+                    sessionManager.setInitialSyncCompleted(true)
+                    navController.navigate(authenticatedStartDestination()) {
+                        popUpTo("quick_start") { inclusive = true }
+                    }
                 }
             )
         }

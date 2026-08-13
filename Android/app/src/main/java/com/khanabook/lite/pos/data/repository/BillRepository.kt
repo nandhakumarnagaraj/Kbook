@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.data.repository
 
-import android.util.Log
 import androidx.work.WorkManager
 import com.google.gson.Gson
 import com.khanabook.lite.pos.data.local.dao.BillDao
@@ -365,18 +364,9 @@ class BillRepository(
     }
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
-        val currTerminal = currentTerminalScope()
-        val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getOperationalBillById(id, restaurantId, currTerminal)
-        Log.d("BillRepo", "updatePaymentMode: id=$id mode=$mode terminal=$currTerminal restaurantId=$restaurantId bill=$current")
-        if (current == null) {
-            Log.d("BillRepo", "updatePaymentMode: getOperationalBillById returned null — checking raw bill")
-            val rawBill = billDao.getBillById(id, restaurantId)
-            Log.d("BillRepo", "updatePaymentMode: rawBill=$rawBill recordOrigin=${rawBill?.recordOrigin} recordScope=${rawBill?.recordScope} createdTerminalId=${rawBill?.createdTerminalId} currentOwnerTerminalId=${rawBill?.currentOwnerTerminalId} isSynced=${rawBill?.isSynced}")
-            return
-        }
-        if (!isLocallyOwned(current)) { Log.d("BillRepo", "updatePaymentMode: !isLocallyOwned scope=${current.recordScope} origin=${current.recordOrigin}"); return }
-        if (current.orderStatus.equals("cancelled", ignoreCase = true)) { Log.d("BillRepo", "updatePaymentMode: cancelled"); return }
+        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
+        if (!isLocallyOwned(current)) return
+        if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         billDao.updateBill(
             current.copy(
                 paymentMode = mode,
@@ -386,7 +376,6 @@ class BillRepository(
                 updatedAt = System.currentTimeMillis()
             )
         )
-        Log.d("BillRepo", "updatePaymentMode: updated successfully to mode=$mode")
         triggerBackgroundSync()
     }
 

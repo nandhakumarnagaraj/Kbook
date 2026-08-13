@@ -147,10 +147,11 @@ fun SignUpScreen(
     Scaffold(
             contentWindowInsets = WindowInsets(0),
             containerColor = DarkBrown1
-    ) { _ ->
+    ) { innerPadding ->
         Box(
                 modifier =
                         Modifier.fillMaxSize()
+                                .padding(innerPadding)
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
                 contentAlignment = Alignment.Center
         ) {
@@ -169,7 +170,7 @@ fun SignUpScreen(
                 Image(
                         painter = painterResource(id = R.drawable.khanabook_logo),
                         contentDescription = "KhanaBook Lite logo",
-                        modifier = Modifier.size(120.dp).padding(bottom = spacing.small),
+                        modifier = Modifier.size(layout.logoSize).padding(bottom = spacing.small),
                         contentScale = ContentScale.Fit
                 )
 

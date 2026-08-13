@@ -177,14 +177,14 @@ fun OrderDetailsDialog(
                     }
                     val statusColor = when (statusValue) {
                         OrderStatus.COMPLETED -> VegGreen
-                        OrderStatus.CANCELLED -> ZomatoRed
+                        OrderStatus.CANCELLED -> DangerRed
                         else -> TextGold
                     }
 
                     DetailRow("Status:", statusText, valueColor = statusColor, fontWeight = FontWeight.Bold)
                     if (statusValue == OrderStatus.CANCELLED && bill.cancelReason.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(spacing.small))
-                        DetailRow("Cancel Reason:", bill.cancelReason, valueColor = ZomatoRed, fontWeight = FontWeight.Bold)
+                        DetailRow("Cancel Reason:", bill.cancelReason, valueColor = DangerRed, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(spacing.medium))
                 }

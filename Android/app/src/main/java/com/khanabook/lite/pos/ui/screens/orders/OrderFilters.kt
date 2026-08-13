@@ -69,10 +69,7 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
 }
 
 internal fun OrderDetailRow.isOnlineOrder(): Boolean {
-    return sourceChannel.isOnlineSource() ||
-        payMode == PaymentMode.ZOMATO ||
-        payMode == PaymentMode.SWIGGY ||
-        payMode == PaymentMode.OWN_WEBSITE
+    return sourceChannel.isOnlineSource()
 }
 
 internal fun OrderDetailRow.isDineInOrder(): Boolean {
@@ -98,9 +95,9 @@ internal fun String.isOnlineSource(): Boolean {
 
 internal fun OrderDetailRow.displaySourceOrModeLabel(): String {
     return when (sourceChannel.trim().lowercase()) {
-        "zomato" -> PaymentMode.ZOMATO.displayLabel
-        "swiggy" -> PaymentMode.SWIGGY.displayLabel
-        "own_website", "own website" -> PaymentMode.OWN_WEBSITE.displayLabel
+        "zomato" -> "Zomato"
+        "swiggy" -> "Swiggy"
+        "own_website", "own website" -> "Own Website"
         else -> payMode.displayLabel
     }
 }
@@ -110,8 +107,6 @@ internal fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500 
         PaymentMode.POS -> PrimaryGold
-        PaymentMode.ZOMATO -> VegGreen
-        PaymentMode.SWIGGY -> SwiggyOrange
         else -> Brown500
     }
 }

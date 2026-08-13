@@ -252,99 +252,98 @@ fun OrdersScreen(
                 }
             }
 
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Column {
-                    PeriodTabs(
-                        selectedFilter = timeFilter,
-                        onTabSelected = {
-                            if (it == "Custom") {
-                                showDateRangePicker = true
-                            } else {
-                                viewModel.setTimeFilter(it)
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                    ) {
-                        OrderFilterChip(
-                            label = "Store Orders",
-                            isSelected = selectedSource == "STORE",
-                            onClick = { selectedSource = "STORE" },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OrderFilterChip(
-                            label = "Online Orders",
-                            isSelected = selectedSource == "ONLINE",
-                            onClick = { selectedSource = "ONLINE" },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                }
-            }
-
             val isGstEnabled = profile?.gstEnabled == true
 
-            if (isLoading) {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+            ListLayout(
+                modifier = Modifier.weight(1f),
+                filterBar = {
+                    AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                        Column {
+                            PeriodTabs(
+                                selectedFilter = timeFilter,
+                                onTabSelected = {
+                                    if (it == "Custom") {
+                                        showDateRangePicker = true
+                                    } else {
+                                        viewModel.setTimeFilter(it)
+                                    }
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(spacing.medium))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                OrderFilterChip(
+                                    label = "Store Orders",
+                                    isSelected = selectedSource == "STORE",
+                                    onClick = { selectedSource = "STORE" },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OrderFilterChip(
+                                    label = "Online Orders",
+                                    isSelected = selectedSource == "ONLINE",
+                                    onClick = { selectedSource = "ONLINE" },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                        }
+                    }
+                },
+                isEmpty = !isLoading && visibleRows.isEmpty(),
+                emptyState = {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = spacing.large)
                     ) {
-                        TableHeader(isGstEnabled = isGstEnabled)
-                        repeat(10) {
-                            SkeletonTableRow(columns = 5)
-                            Spacer(modifier = Modifier.height(2.dp))
-                        }
+                        Icon(
+                            Icons.Default.Description,
+                            contentDescription = null,
+                            tint = TextGold.copy(alpha = 0.25f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(Modifier.height(KhanaBookTheme.spacing.small))
+                        Text(
+                            when (selectedSource) {
+                                "ONLINE" -> "No online orders in this period"
+                                else -> "No store orders in this period"
+                            },
+                            color = TextGold.copy(alpha = 0.75f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(spacing.extraSmall))
+                        Text(
+                            "Try another date or source filter.",
+                            color = TextGold.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 }
-            } else if (visibleRows.isEmpty()) {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
+            ) {
+                if (isLoading) {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
                         Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(horizontal = spacing.large)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium)
                         ) {
-                            Icon(
-                                Icons.Default.Description,
-                                contentDescription = null,
-                                tint = TextGold.copy(alpha = 0.25f),
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Spacer(Modifier.height(KhanaBookTheme.spacing.small))
-                            Text(
-                                when (selectedSource) {
-                                    "ONLINE" -> "No online orders in this period"
-                                    else -> "No store orders in this period"
-                                },
-                                color = TextGold.copy(alpha = 0.75f),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(spacing.extraSmall))
-                            Text(
-                                "Try another date or source filter.",
-                                color = TextGold.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
+                            TableHeader(isGstEnabled = isGstEnabled)
+                            repeat(10) {
+                                SkeletonTableRow(columns = 5)
+                                Spacer(modifier = Modifier.height(spacing.hairline))
+                            }
                         }
                     }
-                }
-            } else {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                } else {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
                     LaunchedEffect(highlightedBillId, visibleRows) {
                         val highlightedIndex = highlightedBillId?.let { billId ->
                             visibleRows.indexOfFirst { it.billId == billId }
@@ -433,6 +432,7 @@ fun OrdersScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }

@@ -47,7 +47,7 @@ class SyncManagerTest {
         whenever(sessionManager.getTerminalSeries()).thenReturn("A1")
         whenever(sessionManager.getTerminalId()).thenReturn("1")
 
-        syncManager = SyncManager(sessionManager, api, masterSyncProcessor)
+        syncManager = SyncManager(sessionManager, api, masterSyncProcessor, mock())
     }
 
     @After

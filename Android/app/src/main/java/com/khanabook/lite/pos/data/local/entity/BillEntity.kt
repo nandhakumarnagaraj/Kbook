@@ -86,6 +86,8 @@ data class BillEntity(
         val orderStatus: String,
         @SerializedName("createdBy")
         @ColumnInfo(name = "created_by") val createdBy: Long? = null,
+        @SerializedName("createdByUserId")
+        @ColumnInfo(name = "created_by_user_id", defaultValue = "NULL") val createdByUserId: Long? = null,
         @SerializedName("createdAt")
         @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
         @SerializedName("paidAt")

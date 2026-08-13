@@ -12,10 +12,10 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
-import com.khanabook.lite.pos.ui.screens.ManualMenuView
 import com.khanabook.lite.pos.ui.screens.MenuConfigurationTags
-import com.khanabook.lite.pos.ui.screens.ModeSelectionView
-import com.khanabook.lite.pos.ui.screens.ReviewDetectedItemsOverlay
+import com.khanabook.lite.pos.ui.screens.menuconfig.ManualMenuView
+import com.khanabook.lite.pos.ui.screens.menuconfig.ModeSelectionView
+import com.khanabook.lite.pos.ui.screens.menuconfig.ReviewDetectedItemsOverlay
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import org.junit.Assert.assertEquals

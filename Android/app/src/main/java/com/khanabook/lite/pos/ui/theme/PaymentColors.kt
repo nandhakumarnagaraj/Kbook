@@ -12,9 +12,6 @@ fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500
         PaymentMode.POS -> PrimaryGold
-        PaymentMode.ZOMATO -> VegGreen
-        PaymentMode.SWIGGY -> SwiggyOrange
-        PaymentMode.OWN_WEBSITE -> BrandPurple
         PaymentMode.PART_CASH_UPI -> PrimaryGold
         PaymentMode.PART_CASH_POS -> PrimaryGold
         PaymentMode.PART_UPI_POS -> PrimaryGold
@@ -31,9 +28,6 @@ fun payModeColor(mode: String?): Color {
         "cash" -> SuccessGreen
         "upi" -> Brown500
         "pos", "card" -> PrimaryGold
-        "zomato" -> VegGreen
-        "swiggy" -> SwiggyOrange
-        "own_website" -> BrandPurple
         "part_cash_upi", "part_payment_upi_cash", "part_cash_pos", "part_payment_cash_pos", "part_upi_pos", "part_payment_upi_pos" -> PrimaryGold
         else -> Brown500
     }

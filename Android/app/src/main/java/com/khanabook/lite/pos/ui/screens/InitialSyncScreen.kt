@@ -28,6 +28,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.ui.designsystem.ScrollableCenteredLayout
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncState
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncViewModel
@@ -56,10 +57,65 @@ fun InitialSyncScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().systemBarsPadding().padding(spacing.large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        ScrollableCenteredLayout(
+            modifier = Modifier.systemBarsPadding(),
+            bottomBar = when (val state = syncState) {
+                is InitialSyncState.Error -> {
+                    {
+                        Button(
+                            onClick = { viewModel.startInitialSync() },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Retry",
+                                color = DarkBrown1,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                is InitialSyncState.PendingApproval -> {
+                    {
+                        OutlinedButton(
+                            onClick = { viewModel.pollRequestStatus() },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Check Again",
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                is InitialSyncState.SessionExpired -> {
+                    {
+                        Button(
+                            onClick = { onNavigateToLogin() },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Login Again",
+                                color = DarkBrown1,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                else -> null
+            }
         ) {
             when (val state = syncState) {
                 is InitialSyncState.Syncing, InitialSyncState.Idle -> {
@@ -88,7 +144,7 @@ fun InitialSyncScreen(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(120.dp)
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.large))
@@ -141,21 +197,6 @@ fun InitialSyncScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(spacing.extraLarge))
-                    Button(
-                        onClick = { onNavigateToLogin() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
-                    ) {
-                        Text(
-                            "Login Again",
-                            color = DarkBrown1,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
                 }
                 is InitialSyncState.PendingApproval -> {
                     val pendingState = syncState as InitialSyncState.PendingApproval
@@ -178,7 +219,7 @@ fun InitialSyncScreen(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero)
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.large))
@@ -252,23 +293,6 @@ fun InitialSyncScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(spacing.extraLarge))
-
-                    OutlinedButton(
-                        onClick = { viewModel.pollRequestStatus() },
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
-                        shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
-                    ) {
-                        Text(
-                            "Check Again",
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
                 }
                 is InitialSyncState.Error -> {
                     Icon(
@@ -284,21 +308,6 @@ fun InitialSyncScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(spacing.extraLarge))
-                    Button(
-                        onClick = { viewModel.startInitialSync() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = KhanaRadii.lg,
-                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
-                    ) {
-                        Text(
-                            "Retry",
-                            color = DarkBrown1,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
                 }
                 is InitialSyncState.Success -> {
                     val composition by rememberLottieComposition(
@@ -312,7 +321,7 @@ fun InitialSyncScreen(
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieProgress },
-                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero)
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))

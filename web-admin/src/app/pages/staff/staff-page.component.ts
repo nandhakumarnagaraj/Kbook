@@ -134,6 +134,38 @@ import { formatDate } from '../../shared/formatters';
       font-style: italic;
       margin-top: 0.25rem;
     }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--line);
+      border-radius: 22px;
+      transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
   `],
   template: `
     <div class="page-shell">
@@ -380,6 +412,7 @@ import { formatDate } from '../../shared/formatters';
               <td *ngIf="isOwner">
                 <div class="action-cell">
                   <button class="action-btn" (click)="openEditModal(item)">Edit</button>
+                  <button class="action-btn" (click)="openPermissionsModal(item)" *ngIf="!isSelf(item) && item.role !== 'OWNER'">Permissions</button>
                   <button
                     class="action-btn action-btn--success"
                     *ngIf="!item.active && !isSelf(item)"
@@ -440,6 +473,43 @@ import { formatDate } from '../../shared/formatters';
           ></app-empty-state>
         </ng-template>
       </ng-template>
+
+      <!-- Permissions Modal -->
+      <div class="modal-backdrop" *ngIf="showPermissionsModal" (click)="closePermissionsModal()">
+        <div class="modal-box modal-content" role="dialog" aria-modal="true" style="max-width:520px" (click)="$event.stopPropagation()">
+          <h3 style="margin:0 0 0.5rem">Permissions — {{ permissionsStaff?.name }}</h3>
+          <p class="muted" style="margin:0 0 1.25rem;font-size:0.85rem">
+            Role: <span class="chip">{{ permissionsStaff?.role }}</span>
+          </p>
+
+          <div *ngIf="permissionsLoading" class="loading">Loading permissions...</div>
+
+          <div *ngIf="!permissionsLoading">
+            <div style="margin-bottom:1rem;display:flex;gap:0.5rem">
+              <button class="ghost-btn" (click)="applyCounterStaffTemplate()" style="font-size:0.8rem">Counter Staff</button>
+              <button class="ghost-btn" (click)="applyManagerTemplate()" style="font-size:0.8rem">Manager</button>
+            </div>
+
+            <div *ngFor="let cat of permissionCategories" style="margin-bottom:1rem">
+              <strong style="font-size:0.8rem;color:var(--brand)">{{ cat.name }}</strong>
+              <div *ngFor="let perm of cat.items" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
+                <span style="font-size:0.875rem">{{ perm.displayName }}</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="permissionsSet.has(perm.key)" (change)="togglePermission(perm.key)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions" *ngIf="!permissionsLoading">
+            <button class="ghost-btn" (click)="closePermissionsModal()">Cancel</button>
+            <button class="primary-btn" (click)="savePermissions()" [disabled]="permissionsSaving">
+              {{ permissionsSaving ? 'Saving...' : 'Save Permissions' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   `
 })
@@ -742,5 +812,115 @@ export class StaffPageComponent {
 
   formatDateValue(value: number | null): string {
     return formatDate(value);
+  }
+
+  // ── Permissions Modal ─────────────────────────────────────────────────────
+
+  showPermissionsModal = false;
+  permissionsStaff: BusinessStaffItem | null = null;
+  permissionsLoading = false;
+  permissionsSaving = false;
+  permissionsSet = new Set<string>();
+
+  readonly permissionCategories = [
+    {
+      name: 'Billing',
+      items: [
+        { key: 'billing.create', displayName: 'Create Bills' },
+        { key: 'billing.pay', displayName: 'Collect Payment' },
+        { key: 'billing.void', displayName: 'Cancel/Void Bills' },
+        { key: 'billing.discount', displayName: 'Apply Discount' },
+        { key: 'billing.refund', displayName: 'Process Refund' },
+      ]
+    },
+    {
+      name: 'Menu',
+      items: [
+        { key: 'menu.view', displayName: 'View Menu' },
+        { key: 'menu.availability', displayName: 'Toggle Availability' },
+        { key: 'menu.edit', displayName: 'Edit Menu & Prices' },
+      ]
+    },
+    {
+      name: 'Reports',
+      items: [
+        { key: 'reports.day', displayName: "Today's Summary" },
+        { key: 'reports.full', displayName: 'Full Reports & Export' },
+      ]
+    },
+    {
+      name: 'Orders',
+      items: [
+        { key: 'orders.active', displayName: 'View Active Orders' },
+      ]
+    },
+    {
+      name: 'Settings',
+      items: [
+        { key: 'settings.all', displayName: 'App Settings' },
+      ]
+    }
+  ];
+
+  openPermissionsModal(item: BusinessStaffItem): void {
+    this.permissionsStaff = item;
+    this.showPermissionsModal = true;
+    this.permissionsLoading = true;
+    this.permissionsSet = new Set();
+
+    this.api.getUserPermissions(item.userId).subscribe({
+      next: (res) => {
+        this.permissionsSet = new Set(res.grantedPermissions);
+        this.permissionsLoading = false;
+      },
+      error: () => {
+        this.permissionsLoading = false;
+      }
+    });
+  }
+
+  closePermissionsModal(): void {
+    this.showPermissionsModal = false;
+    this.permissionsStaff = null;
+  }
+
+  togglePermission(key: string): void {
+    if (this.permissionsSet.has(key)) {
+      this.permissionsSet.delete(key);
+    } else {
+      this.permissionsSet.add(key);
+    }
+    this.permissionsSet = new Set(this.permissionsSet);
+  }
+
+  applyCounterStaffTemplate(): void {
+    this.permissionsSet = new Set([
+      'billing.create', 'billing.pay', 'menu.view', 'menu.availability',
+      'reports.day', 'orders.active'
+    ]);
+  }
+
+  applyManagerTemplate(): void {
+    this.permissionsSet = new Set([
+      'billing.create', 'billing.pay', 'billing.void', 'billing.discount',
+      'billing.refund', 'menu.view', 'menu.availability', 'menu.edit',
+      'reports.day', 'reports.full', 'orders.active'
+    ]);
+  }
+
+  savePermissions(): void {
+    if (!this.permissionsStaff) return;
+    this.permissionsSaving = true;
+    this.api.updateUserPermissions(this.permissionsStaff.userId, [...this.permissionsSet]).subscribe({
+      next: () => {
+        this.permissionsSaving = false;
+        this.closePermissionsModal();
+        this.toast.show('Permissions updated', 'success');
+      },
+      error: () => {
+        this.permissionsSaving = false;
+        this.toast.show('Failed to save permissions', 'error');
+      }
+    });
   }
 }

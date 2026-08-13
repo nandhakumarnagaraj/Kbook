@@ -16,9 +16,6 @@ object PaymentModeManager {
         if (profile.cashEnabled) modes.add(PaymentMode.CASH)
         if (profile.upiEnabled) modes.add(PaymentMode.UPI)
         if (profile.posEnabled) modes.add(PaymentMode.POS)
-        if (profile.zomatoEnabled) modes.add(PaymentMode.ZOMATO)
-        if (profile.swiggyEnabled) modes.add(PaymentMode.SWIGGY)
-        if (profile.ownWebsiteEnabled) modes.add(PaymentMode.OWN_WEBSITE)
 
         
         if (profile.cashEnabled && profile.upiEnabled) modes.add(PaymentMode.PART_CASH_UPI)

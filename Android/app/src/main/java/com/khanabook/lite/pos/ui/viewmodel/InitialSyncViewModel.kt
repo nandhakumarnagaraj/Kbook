@@ -18,7 +18,7 @@ import javax.inject.Inject
 sealed class InitialSyncState {
     object Idle : InitialSyncState()
     object Syncing : InitialSyncState()
-    object Success : InitialSyncState()
+    data class Success(val hasExistingMenu: Boolean = false) : InitialSyncState()
     object SessionExpired : InitialSyncState()
     data class PendingApproval(
         val requestId: Long?,
@@ -32,7 +32,8 @@ sealed class InitialSyncState {
 class InitialSyncViewModel @Inject constructor(
     private val sessionManager: SessionManager,
     private val syncManager: SyncManager,
-    private val api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+    private val api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi,
+    private val menuRepository: com.khanabook.lite.pos.data.repository.MenuRepository
 ) : ViewModel() {
 
     private val _syncState = MutableStateFlow<InitialSyncState>(InitialSyncState.Idle)
@@ -50,7 +51,14 @@ class InitialSyncViewModel @Inject constructor(
 
                 if (result.isSuccess) {
                     sessionManager.setInitialSyncCompleted(true)
-                    _syncState.value = InitialSyncState.Success
+                    // Check if sync pulled down existing menu items (existing restaurant on new device)
+                    val existingItems = menuRepository.getAllMenuItemsOnce()
+                    val hasExistingMenu = existingItems.isNotEmpty()
+                    if (hasExistingMenu) {
+                        // Existing restaurant — skip quick start wizard
+                        sessionManager.setQuickStartCompleted(true)
+                    }
+                    _syncState.value = InitialSyncState.Success(hasExistingMenu = hasExistingMenu)
                 } else {
                     val error = result.exceptionOrNull()
                     Log.e("InitialSyncViewModel", "Master pull failed", error)

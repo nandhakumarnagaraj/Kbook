@@ -63,7 +63,9 @@ class MainActivity : FragmentActivity() {
 
     private fun authenticatedStartDestination(): String {
         if (!sessionManager.canUsePos()) return "role_access"
-        return if (sessionManager.isInitialSyncCompleted()) "main/0" else "initial_sync"
+        if (!sessionManager.isInitialSyncCompleted()) return "initial_sync"
+        if (!sessionManager.isQuickStartCompleted()) return "quick_start"
+        return "main/0"
     }
 
     /**

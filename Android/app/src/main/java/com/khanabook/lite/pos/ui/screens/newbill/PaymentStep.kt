@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.domain.manager.BillCalculator
@@ -326,13 +327,112 @@ fun PaymentStep(
             dynamicUpiQrBitmap == null
 
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val layout = KhanaBookTheme.layout
+
+    StickyBottomScaffold(
+        bottomBar = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                if (enabledModes.isNotEmpty()) {
+                    Button(
+                        onClick = {
+                            if (!isAmountValid) return@Button
+                            scope.launch {
+                                viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                                val success = when {
+                                    resumedPendingBillId != null ->
+                                        viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.SUCCESS)
+                                    partialRecovery != null && viewModel.editingBillId != null ->
+                                        viewModel.recoverPartialDraftPayment(
+                                            viewModel.editingBillId!!,
+                                            selectedMode
+                                        )
+                                    viewModel.editingBillId != null ->
+                                        viewModel.settleDraftOrder(
+                                            billId = viewModel.editingBillId!!,
+                                            paymentMode = selectedMode,
+                                            status = PaymentStatus.SUCCESS,
+                                            partAmount1 = p1Text,
+                                            partAmount2 = p2Text
+                                        )
+                                    else ->
+                                        viewModel.completeOrder(PaymentStatus.SUCCESS)
+                                }
+                                if (success) {
+                                    viewModel.clearGatewayResult()
+                                    viewModel.clearActiveSession()
+                                    onComplete()
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(KhanaBookTheme.spacing.buttonHeightLarge),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                        ),
+                        shape = KhanaRadii.lg,
+                        enabled = isAmountValid && paymentAttemptReady
+                    ) {
+                        Text(
+                            if (partialRecovery != null) {
+                                "Confirm Remaining Payment"
+                            } else {
+                                "Payment Successful"
+                            },
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
+                                    onBackToMenu()
+                                    return@launch
+                                }
+                                viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                                when {
+                                    resumedPendingBillId != null ->
+                                        viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.FAILED, "Customer left")
+                                    viewModel.editingBillId != null ->
+                                        viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.FAILED)
+                                    else ->
+                                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                                }
+                                viewModel.clearGatewayResult()
+                                viewModel.clearActiveSession()
+                                PaymentReturnManager.clearLatestEvent()
+                                onFailed()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
+                        enabled = paymentAttemptReady
+                    ) {
+                        Text(
+                            if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
+                                "Keep Pending & Go Back"
+                            } else {
+                                "Payment Failed / Cancelled"
+                            },
+                            color = DangerRed,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    ) {
     Column(
             modifier = Modifier.fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(spacing.large)
-                    .imePadding()
-                    .navigationBarsPadding(),
+                    .padding(horizontal = layout.contentPadding, vertical = spacing.medium),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (enabledModes.isEmpty()) {
@@ -417,7 +517,7 @@ fun PaymentStep(
 
                 Box(
                     modifier =
-                    Modifier.size(200.dp)
+                    Modifier.size(layout.qrCodeSize)
                         .background(Color.White, KhanaRadii.lg)
                         .border(2.dp, PrimaryGold, KhanaRadii.lg)
                         .padding(spacing.smallMedium)
@@ -727,95 +827,6 @@ fun PaymentStep(
                 }
                 resumedPendingBillId = pendingBillId
             }
-
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
-            Button(
-                    onClick = {
-                        if (!isAmountValid) return@Button
-                        scope.launch {
-                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            val success = when {
-                                resumedPendingBillId != null ->
-                                    viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.SUCCESS)
-                                partialRecovery != null && viewModel.editingBillId != null ->
-                                    viewModel.recoverPartialDraftPayment(
-                                        viewModel.editingBillId!!,
-                                        selectedMode
-                                    )
-                                viewModel.editingBillId != null ->
-                                    viewModel.settleDraftOrder(
-                                        billId = viewModel.editingBillId!!,
-                                        paymentMode = selectedMode,
-                                        status = PaymentStatus.SUCCESS,
-                                        partAmount1 = p1Text,
-                                        partAmount2 = p2Text
-                                    )
-                                else ->
-                                    viewModel.completeOrder(PaymentStatus.SUCCESS)
-                            }
-                            if (success) {
-                                viewModel.clearGatewayResult()
-                                viewModel.clearActiveSession()
-                                onComplete()
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(KhanaBookTheme.spacing.buttonHeightLarge),
-                    colors =
-                            ButtonDefaults.buttonColors(
-                                    containerColor = if (isAmountValid) SuccessGreen else Color.Gray
-                            ),
-                    shape = KhanaRadii.lg,
-                    enabled = isAmountValid && paymentAttemptReady
-            ) {
-                Text(
-                        if (partialRecovery != null) {
-                            "Confirm Remaining Payment"
-                        } else {
-                            "Payment Successful"
-                        },
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                )
-            }
-            Spacer(modifier = Modifier.height(spacing.smallMedium))
-            TextButton(
-                    onClick = {
-                        scope.launch {
-                            if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
-                                onBackToMenu()
-                                return@launch
-                            }
-                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            when {
-                                resumedPendingBillId != null ->
-                                    viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.FAILED, "Customer left")
-                                viewModel.editingBillId != null ->
-                                    viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.FAILED)
-                                else ->
-                                    viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
-                            }
-                            viewModel.clearGatewayResult()
-                            viewModel.clearActiveSession()
-                            PaymentReturnManager.clearLatestEvent()
-                            onFailed()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
-                    enabled = paymentAttemptReady
-            ) {
-                Text(
-                    if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
-                        "Keep Pending & Go Back"
-                    } else {
-                        "Payment Failed / Cancelled"
-                    },
-                    color = DangerRed,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
         }
     }
     }
@@ -833,13 +844,19 @@ fun FailedStep(
     val orderDisplay = lastBill?.bill?.dailyOrderDisplay ?: "-"
     val spacing = KhanaBookTheme.spacing
 
-    Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(spacing.large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    ScrollableCenteredLayout(
+        bottomBar = {
+            OutlinedButton(
+                onClick = onNewBill,
+                modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
+                shape = KhanaRadii.lg
+            ) {
+                Icon(Icons.Default.Home, null, tint = PrimaryGold)
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
     ) {
         // Error icon
         Box(
@@ -882,20 +899,6 @@ fun FailedStep(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(horizontal = spacing.small)
         )
-
-        Spacer(modifier = Modifier.height(spacing.extraLarge))
-
-        // "Back to Home" button
-        OutlinedButton(
-            onClick = onNewBill,
-            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
-            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
-            shape = KhanaRadii.lg
-        ) {
-            Icon(Icons.Default.Home, null, tint = PrimaryGold)
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium)
-        }
     }
 }
 
@@ -905,8 +908,6 @@ private fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500 
         PaymentMode.POS -> PrimaryGold
-        PaymentMode.ZOMATO -> VegGreen
-        PaymentMode.SWIGGY -> SwiggyOrange
         else -> Brown500
     }
 }

@@ -116,32 +116,30 @@ fun ActiveOrdersScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        com.khanabook.lite.pos.ui.designsystem.ListLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
-                .horizontalNavigationSwipe(onSwipeRight = onBack)
+                .horizontalNavigationSwipe(onSwipeRight = onBack),
+            isEmpty = activeRows.isEmpty(),
+            emptyState = { EmptyActiveOrders() }
         ) {
-            if (activeRows.isEmpty()) {
-                EmptyActiveOrders()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    items(activeRows, key = { it.bill.id }) { row ->
-                        ActiveOrderCard(
-                            row = row,
-                            onOpen = { onOpenActiveOrder(row.bill.id) },
-                            onPayment = { onCollectPayment(row.bill.id) },
-                            onPrint = { viewModel.printBill(row.bill.id) }
-                        )
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(spacing.bottomListPadding))
-                    }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                items(activeRows, key = { it.bill.id }) { row ->
+                    ActiveOrderCard(
+                        row = row,
+                        onOpen = { onOpenActiveOrder(row.bill.id) },
+                        onPayment = { onCollectPayment(row.bill.id) },
+                        onPrint = { viewModel.printBill(row.bill.id) }
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(spacing.bottomListPadding))
                 }
             }
         }

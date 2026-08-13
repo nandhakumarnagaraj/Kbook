@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
@@ -165,8 +166,7 @@ internal fun HomeActionCard(
     subtitle: String? = null,
     onClick: () -> Unit
 ) {
-    val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
     KhanaBookCard(
         modifier = modifier,
         onClick = onClick,
@@ -176,46 +176,49 @@ internal fun HomeActionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 68.dp)
-                .padding(spacing.medium),
+                .padding(
+                    horizontal = layout.cardPaddingHorizontal,
+                    vertical = layout.cardPaddingVertical
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.medium)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .size(layout.actionIconContainerSize)
+                    .background(PrimaryGold.copy(alpha = 0.15f), shape = CircleShape),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = PrimaryGold,
-                    modifier = Modifier.size(iconSize.medium)
+                    modifier = Modifier.size(layout.actionIconSize)
                 )
-                Spacer(modifier = Modifier.width(spacing.small))
-                Column {
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = text,
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (subtitle != null) {
                     Text(
-                        text = text,
-                        color = TextLight,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = subtitle,
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                 }
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = PrimaryGold,
-                modifier = Modifier.size(iconSize.small)
+                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
             )
         }
     }

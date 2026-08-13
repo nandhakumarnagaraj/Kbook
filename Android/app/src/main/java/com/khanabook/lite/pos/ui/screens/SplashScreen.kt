@@ -47,6 +47,7 @@ fun SplashScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     var contentVisible by remember { mutableStateOf(false) }
     val floatTransition = rememberInfiniteTransition(label = "splash_float")
     val logoOffset by floatTransition.animateFloat(
@@ -94,7 +95,7 @@ fun SplashScreen(
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = glowAlpha)),
                     modifier = Modifier
-                        .size(154.dp)
+                        .size(layout.heroImageSize + 14.dp)
                         .graphicsLayer {
                             translationY = logoOffset
                         }

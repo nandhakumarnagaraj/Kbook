@@ -70,18 +70,6 @@ fun SettingsListView(
             shape = KhanaRadii.lg
         ) {
             SettingsItem(
-                icon = Icons.Filled.TextIncrease,
-                text = "Display",
-                onClick = { onSelectItem("ui_scale") }
-            )
-        }
-
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
                 icon = Icons.AutoMirrored.Filled.VolumeUp,
                 text = "Interaction Feedback",
                 onClick = { onSelectItem("interaction_feedback") }

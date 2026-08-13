@@ -104,6 +104,9 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "created_by")
 	private Long createdBy;
 
+	@Column(name = "created_by_user_id")
+	private Long createdByUserId;
+
 	@Column(name = "paid_at")
 	private Long paidAt;
 
