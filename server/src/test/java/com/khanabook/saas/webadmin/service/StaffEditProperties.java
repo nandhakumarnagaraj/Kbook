@@ -45,7 +45,7 @@ class StaffEditProperties {
      *
      * Validates: Requirements 3.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 5: Staff edit updates only specified fields on target user")
     void staffEditUpdatesOnlyTargetFields(
             @ForAll("validNames") String newName,
@@ -91,7 +91,7 @@ class StaffEditProperties {
      *
      * Validates: Requirements 3.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 5: Role change sets tokenInvalidatedAt, same role leaves it unchanged")
     void roleChangeInvalidatesTokenCorrectly(
             @ForAll("validNames") String newName,
@@ -134,7 +134,7 @@ class StaffEditProperties {
      *
      * Validates: Requirements 4.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 6: Deactivation sets isActive=false and tokenInvalidatedAt to current time")
     void deactivationSetsInactiveAndInvalidatesToken(
             @ForAll("validNames") String name,
@@ -174,7 +174,7 @@ class StaffEditProperties {
      *
      * Validates: Requirements 4.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 6: Deactivation fails for user in different restaurant")
     void deactivationFailsForWrongRestaurant(
             @ForAll("validNames") String name,

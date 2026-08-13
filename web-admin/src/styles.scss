@@ -1,0 +1,539 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+// Define palettes — aligned with Stitch DESIGN.md
+$khanabook-primary: mat.m2-define-palette(mat.$m2-deep-orange-palette, 900);
+$khanabook-accent: mat.m2-define-palette(mat.$m2-blue-palette, 800);
+$khanabook-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+// Define themes
+$light-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $khanabook-primary,
+    accent: $khanabook-accent,
+    warn: $khanabook-warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+$dark-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: $khanabook-primary,
+    accent: $khanabook-accent,
+    warn: $khanabook-warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+// Apply themes
+@include mat.all-component-themes($light-theme);
+
+.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+  
+  --bg: #121212;
+  --bg-elevated: #1E1E1E;
+  --panel: #252525;
+  --panel-hover: #333333;
+  --surface: #333333;
+  --surface-hover: #404040;
+  --ink: #F5F5F5;
+  --ink-secondary: #B3B3B3;
+  --muted: #9CA3AF;
+  --line: rgba(245, 245, 245, 0.08);
+  --line-strong: rgba(245, 245, 245, 0.16);
+  --brand: #FB923C;
+  --brand-light: #F97316;
+  --brand-dark: #D97706;
+  --brand-soft: rgba(251, 146, 60, 0.1);
+  --brand-glow: rgba(251, 146, 60, 0.2);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+
+  --success: #4ADE80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --danger: #F87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --warn: #FBBF24;
+  --warn-soft: rgba(251, 191, 36, 0.12);
+  --accent: #3B82F6;
+  --accent-light: #60A5FA;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --info: #3B82F6;
+  --info-soft: rgba(59, 130, 246, 0.12);
+  --purple: #A78BFA;
+  --purple-soft: rgba(167, 139, 250, 0.12);
+
+  /* Premium Saffron palette - Dark theme */
+  --brand-saffron: #FB923C;
+  --brand-saffron-light: #F97316;
+  --brand-saffron-dark: #D97706;
+  --brand-saffron-android: #F97316;
+
+  /* Opacity tokens */
+  --opacity-disabled: 0.38;
+  --opacity-muted: 0.72;
+  --opacity-divider: 0.12;
+  --opacity-border: 0.08;
+  --opacity-hover: 0.08;
+  --opacity-pressed: 0.12;
+  --opacity-selected: 0.16;
+  --opacity-focus: 0.20;
+  --opacity-overlay: 0.45;
+  --opacity-scrim: 0.60;
+  --opacity-status-bg: 0.12;
+  --opacity-status-border: 0.24;
+
+  /* Status chip backgrounds at 12% / 24% of brand colors */
+  --success-bg: rgba(74, 222, 128, 0.12);
+  --success-border: rgba(74, 222, 128, 0.24);
+  --danger-bg: rgba(248, 113, 113, 0.12);
+  --danger-border: rgba(248, 113, 113, 0.24);
+  --warn-bg: rgba(251, 191, 36, 0.12);
+  --warn-border: rgba(251, 191, 36, 0.24);
+  --info-bg: rgba(59, 130, 246, 0.12);
+  --info-border: rgba(59, 130, 246, 0.24);
+}
+
+:root {
+  --bg: #FAF8F5;
+  --bg-elevated: #FFFFFF;
+  --panel: #FFF0E6;
+  --panel-hover: #FFE4D6;
+  --surface: #FFF7F0;
+  --surface-hover: #FFEEE2;
+  
+  --ink: #1F2937;
+  --ink-secondary: #6B7280;
+  --muted: #9CA3AF;
+  
+  --line: rgba(31, 41, 55, 0.08);
+  --line-strong: rgba(31, 41, 55, 0.16);
+  
+  --brand: #F97316;
+  --brand-light: #FB923C;
+  --brand-dark: #D97706;
+  --brand-soft: rgba(249, 115, 22, 0.08);
+  --brand-glow: rgba(249, 115, 22, 0.16);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  --success: #16A34A;
+  --success-soft: rgba(22, 163, 74, 0.08);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --warn: #F59E0B;
+  --warn-soft: rgba(245, 158, 11, 0.08);
+  --accent: #2563EB;
+  --accent-light: #60A5FA;
+  --accent-soft: rgba(37, 99, 235, 0.08);
+  --info: #2563EB;
+  --info-soft: rgba(37, 99, 235, 0.08);
+  --purple: #7C5CDB;
+  --purple-soft: rgba(124, 92, 219, 0.1);
+
+  /* Premium Saffron palette - Light theme */
+  --brand-saffron: #F97316;
+  --brand-saffron-light: #FB923C;
+  --brand-saffron-dark: #D97706;
+  --brand-saffron-android: #F97316;
+
+  /* Opacity tokens */
+  --opacity-disabled: 0.38;
+  --opacity-muted: 0.72;
+  --opacity-divider: 0.12;
+  --opacity-border: 0.08;
+  --opacity-hover: 0.08;
+  --opacity-pressed: 0.12;
+  --opacity-selected: 0.16;
+  --opacity-focus: 0.24;
+  --opacity-overlay: 0.32;
+  --opacity-scrim: 0.45;
+  --opacity-status-bg: 0.12;
+  --opacity-status-border: 0.24;
+
+  /* Status chip backgrounds at 12% / 24% of brand colors */
+  --success-bg: rgba(22, 163, 74, 0.12);
+  --success-border: rgba(22, 163, 74, 0.24);
+  --danger-bg: rgba(220, 38, 38, 0.12);
+  --danger-border: rgba(220, 38, 38, 0.24);
+  --warn-bg: rgba(245, 158, 11, 0.12);
+  --warn-border: rgba(245, 158, 11, 0.24);
+  --info-bg: rgba(37, 99, 235, 0.12);
+  --info-border: rgba(37, 99, 235, 0.24);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-toast: 1070;
+  --z-tooltip: 1080;
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  height: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.panel, .mat-mdc-card, .mat-mdc-table, th, td, .sidebar {
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Hide scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
+
+/* ── Accessibility: Focus visible ring ── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ── Accessibility: Skip link ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: var(--z-toast);
+  padding: 8px 16px;
+  background: var(--brand);
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-sm) 0;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Typography helpers ── */
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scroll margin for anchor headings ── */
+h1[id], h2[id], h3[id], h4[id] {
+  scroll-margin-top: 80px;
+}
+
+h1, h2, h3, h4, p { margin-top: 0; }
+
+/* ── Legacy Support Classes (to be migrated) ── */
+.page-shell {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.page-hero {
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+  color: white;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1rem;
+}
+.page-hero p { color: rgba(255, 255, 255, 0.8); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ── Shimmer & Global Animations ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 var(--glow-color, rgba(199, 115, 47, 0.4));
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px var(--glow-color-transparent, rgba(199, 115, 47, 0));
+  }
+}
+
+/* ── Skeleton loader ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--line-strong) 37%, var(--surface) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+.skeleton-text:last-child {
+  width: 60%;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius-lg);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Modal overscroll containment ── */
+.cdk-overlay-container, .mat-mdc-dialog-container {
+  overscroll-behavior: contain;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, var(--bg) 25%, var(--line-strong) 37%, var(--bg) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.dark-theme .glass-panel {
+  background: rgba(33, 26, 20, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(247, 243, 238, 0.05) !important;
+}
+
+.glow-border {
+  position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.glow-border:hover {
+  border-color: var(--brand-light) !important;
+  box-shadow: 0 0 12px var(--brand-glow) !important;
+}
+
+
+/* More legacy styles here... but we'll focus on Material migration */
+
+/* ==========================================
+   DESIGN.md SPECIFIC COMPONENT STYLES
+   ========================================== */
+
+/* 1. Button Primary Styling & MDC Override */
+.button-primary {
+  background-color: var(--brand-saffron) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-md) !important; /* 10px */
+  padding: 0 24px !important;
+  height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  gap: 8px !important;
+}
+.button-primary:hover {
+  background-color: var(--brand-saffron-dark) !important;
+}
+.button-primary:active {
+  transform: scale(0.97) !important;
+}
+
+/* Deep override for Material primary buttons to keep buttons consistent */
+::ng-deep .mat-mdc-flat-button.mat-primary,
+.mat-mdc-flat-button.mat-primary,
+::ng-deep .mat-mdc-raised-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--brand-saffron) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-md) !important; /* 10px */
+  height: 48px !important;
+  font-weight: 600 !important;
+  padding: 0 24px !important;
+  transition: background-color 0.2s ease, transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+::ng-deep .mat-mdc-flat-button.mat-primary:hover,
+.mat-mdc-flat-button.mat-primary:hover,
+::ng-deep .mat-mdc-raised-button.mat-primary:hover,
+.mat-mdc-raised-button.mat-primary:hover {
+  background-color: var(--brand-saffron-dark) !important;
+}
+::ng-deep .mat-mdc-flat-button.mat-primary:active,
+.mat-mdc-flat-button.mat-primary:active,
+::ng-deep .mat-mdc-raised-button.mat-primary:active,
+.mat-mdc-raised-button.mat-primary:active {
+  transform: scale(0.97) !important;
+}
+
+/* 2. Stat Cards styling */
+.card-stat {
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-xl) !important;
+  padding: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-sm) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
+}
+.dark-theme .card-stat {
+  background-color: var(--panel) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
+}
+
+/* Deep override for stats card in pages */
+::ng-deep .mat-mdc-card.stat-card,
+.mat-mdc-card.stat-card {
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-sm) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
+}
+.dark-theme ::ng-deep .mat-mdc-card.stat-card,
+.dark-theme .mat-mdc-card.stat-card {
+  background-color: var(--panel) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
+}
+
+/* 3. Input field styling */
+.input-field {
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0 12px 0 38px !important;
+  height: 48px !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  transition: border-color 0.2s ease !important;
+}
+.input-field:focus {
+  border-color: var(--brand-saffron) !important;
+  outline: none !important;
+}
+
+/* Deep override for Material outline form fields for consistency */
+::ng-deep .mat-mdc-form-field-appearance-outline .mat-mdc-text-field-wrapper {
+  border-radius: var(--radius-sm) !important;
+  height: 48px !important;
+  background-color: var(--panel) !important;
+}
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__leading,
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__notch,
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--brand-saffron) !important;
+  border-width: 2px !important;
+}
+
+/* 4. Status chips styling — using theme-aware CSS variables */
+.status-chip-active {
+  background-color: var(--success-bg) !important;
+  color: var(--success) !important;
+  border: 1px solid var(--success-border) !important;
+}
+.status-chip-pending {
+  background-color: var(--warn-bg) !important;
+  color: var(--warn) !important;
+  border: 1px solid var(--warn-border) !important;
+}
+.status-chip-rejected {
+  background-color: var(--danger-bg) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
+}
+
+.status-chip.success,
+.status-chip.active {
+  background-color: var(--success-bg) !important;
+  color: var(--success) !important;
+  border: 1px solid var(--success-border) !important;
+}
+.status-chip.warn,
+.status-chip.pending {
+  background-color: var(--warn-bg) !important;
+  color: var(--warn) !important;
+  border: 1px solid var(--warn-border) !important;
+}
+.status-chip.danger,
+.status-chip.rejected,
+.status-chip.suspended {
+  background-color: var(--danger-bg) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
+}

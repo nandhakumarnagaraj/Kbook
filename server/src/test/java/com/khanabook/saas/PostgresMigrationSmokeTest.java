@@ -1,13 +1,25 @@
 package com.khanabook.saas;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Migration smoke test (Requirement 2.14): applies the full Flyway_Migration_Set
+ * (V1-V53) to an empty Testcontainers PostgreSQL and asserts the server starts,
+ * the migration history head is V53, and the Phase 2 tables exist with their
+ * seed state (Requirements 30.3, 30.4, 30.9, 33.4).
+ */
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class PostgresMigrationSmokeTest {
@@ -35,8 +47,56 @@ class PostgresMigrationSmokeTest {
         registry.add("APP_BASE_URL", () -> "https://test.khanabook.app");
     }
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void contextLoadsAfterFlywayMigrationsOnPostgres() {
         // Spring Boot startup performs the migration and Hibernate schema validation.
+    }
+
+    @Test
+    void migrationHistoryHeadIsV53() {
+        List<String> versions = jdbcTemplate.queryForList(
+                "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC",
+                String.class);
+        assertThat(versions).isNotEmpty();
+        assertThat(versions.get(0)).isEqualTo("53");
+    }
+
+    @Test
+    void phase2TablesExistWithSeedState() {
+        List<String> tables = jdbcTemplate.queryForList(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
+                String.class);
+        assertThat(tables).contains("feature_flag", "feature_flag_override", "feature_flag_audit", "webhook_inbox");
+
+        Integer seededFlags = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM feature_flag", Integer.class);
+        assertThat(seededFlags).isGreaterThanOrEqualTo(8);
+
+        Integer disabledFlags = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM feature_flag WHERE kill_switched = TRUE AND default_enabled = FALSE",
+                Integer.class);
+        // Requirement 30.9: every flag defaults disabled on first migration.
+        assertThat(disabledFlags).isEqualTo(seededFlags);
+
+        Integer partialIndexes = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pg_indexes WHERE indexname IN ('idx_webhook_inbox_claim', 'idx_webhook_inbox_review')",
+                Integer.class);
+        assertThat(partialIndexes).isEqualTo(2);
+
+        // Requirement 19 (Phase 6, V53): marketplace_orders table + the status columns
+        // the merchant-action endpoints depend on. Marketplace orders live in their own
+        // table and are never pulled as operational bills (Requirement 19.1, design D12).
+        Integer marketplaceTable = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'marketplace_orders'",
+                Integer.class);
+        assertThat(marketplaceTable).isEqualTo(1);
+
+        List<String> orderColumns = jdbcTemplate.queryForList(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'marketplace_orders' AND column_name IN ('order_status','accepted_at','rejected_at','ready_at','completed_at')",
+                String.class);
+        assertThat(orderColumns).hasSize(5);
     }
 }

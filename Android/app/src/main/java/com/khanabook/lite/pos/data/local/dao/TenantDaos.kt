@@ -825,3 +825,25 @@ class TenantKotEventDao @Inject constructor(
     override suspend fun markUnprintedEventsPrinted(publicToken: String): Int = dao.markUnprintedEventsPrinted(publicToken)
     override suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity? = dao.getEvent(publicToken, kotRevision)
 }
+
+@Singleton
+class TenantNotificationDao @Inject constructor(
+    private val databaseProvider: DatabaseProvider
+) : NotificationDao {
+    private val dao get() = databaseProvider.getDatabase().notificationDao()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {
+        return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }
+    }
+
+    override fun getNotifications(limit: Int): Flow<List<NotificationEntity>> = runFlow { it.notificationDao().getNotifications(limit) }
+    override fun getUnreadCount(): Flow<Int> = runFlow { it.notificationDao().getUnreadCount() }
+    override suspend fun getById(id: Long): NotificationEntity? = dao.getById(id)
+    override suspend fun insertAll(notifications: List<NotificationEntity>) = dao.insertAll(notifications)
+    override suspend fun insert(notification: NotificationEntity) = dao.insert(notification)
+    override suspend fun markAsRead(id: Long) = dao.markAsRead(id)
+    override suspend fun markAllAsRead() = dao.markAllAsRead()
+    override suspend fun deleteOlderThan(beforeTimestamp: Long) = dao.deleteOlderThan(beforeTimestamp)
+    override suspend fun clearAll() = dao.clearAll()
+}

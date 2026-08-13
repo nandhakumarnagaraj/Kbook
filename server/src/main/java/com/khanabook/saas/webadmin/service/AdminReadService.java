@@ -11,6 +11,8 @@ import com.khanabook.saas.webadmin.dto.AdminBusinessDetailResponse;
 import com.khanabook.saas.webadmin.dto.AdminBusinessListItemResponse;
 import com.khanabook.saas.webadmin.dto.AdminDashboardSummaryResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class AdminReadService {
     private final BillRepository billRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable("adminDashboardSummary")
     public AdminDashboardSummaryResponse getDashboardSummary() {
         long totalBusinesses   = restaurantProfileRepository.countByIsDeletedFalse();
         long liveBusinesses    = restaurantProfileRepository.countByIsDeletedFalseAndOwnWebsiteEnabledTrue();
@@ -101,10 +104,11 @@ public class AdminReadService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "businessDetail", key = "#restaurantId")
     public AdminBusinessDetailResponse getBusinessDetail(Long restaurantId) {
         RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Business not found with ID: " + restaurantId));
 
         List<User> users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
         User owner = users.stream()
@@ -124,6 +128,9 @@ public class AdminReadService {
                 .ownerWhatsappNumber(owner != null ? owner.getWhatsappNumber() : null)
                 .email(profile.getEmail())
                 .shopAddress(profile.getShopAddress())
+                .gstin(profile.getGstin())
+                .fssaiNumber(profile.getFssaiNumber())
+                .whatsappNumber(profile.getWhatsappNumber())
                 .currency(profile.getCurrency())
                 .timezone(profile.getTimezone())
                 .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))

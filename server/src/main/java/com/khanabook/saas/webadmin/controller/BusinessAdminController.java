@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -154,5 +155,16 @@ public class BusinessAdminController {
             throw new IllegalArgumentException("Tenant context is missing");
         }
         return tenantId;
+    }
+
+    private Boolean parseBoolean(Object val) {
+        if (val == null) return null;
+        if (val instanceof Boolean) return (Boolean) val;
+        if (val instanceof Number) return ((Number) val).intValue() != 0;
+        if (val instanceof String) {
+            String s = ((String) val).trim().toLowerCase();
+            return "true".equals(s) || "1".equals(s) || "yes".equals(s) || "on".equals(s);
+        }
+        return false;
     }
 }

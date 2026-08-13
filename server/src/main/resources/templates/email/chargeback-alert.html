@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;">
+        <tr>
+            <td style="background-color:#e74c3c;padding:24px;text-align:center;">
+                <h1 style="color:#ffffff;margin:0;font-size:24px;">⚠️ Chargeback Alert</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:32px;">
+                <h2 style="color:#333;margin:0 0 16px;">New Chargeback Received</h2>
+                <p style="color:#666;line-height:1.6;">A chargeback has been filed against your business <strong th:text="${shopName}">Shop</strong>.</p>
+                <table width="100%" cellpadding="12" cellspacing="0" style="background-color:#fff5f5;border-radius:8px;margin:24px 0;border:1px solid #fecaca;">
+                    <tr>
+                        <td style="color:#666;">Order</td>
+                        <td style="color:#333;font-weight:bold;" th:text="${orderCode}">INV001</td>
+                    </tr>
+                    <tr>
+                        <td style="color:#666;">Amount</td>
+                        <td style="color:#e74c3c;font-weight:bold;font-size:18px;" th:text="'₹' + ${amount}">₹500</td>
+                    </tr>
+                    <tr>
+                        <td style="color:#666;">Reason</td>
+                        <td style="color:#333;" th:text="${reasonCode}">fraudulent</td>
+                    </tr>
+                </table>
+                <p style="color:#666;line-height:1.6;">Please review this chargeback and submit evidence within 7 days to contest it.</p>
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                    <tr>
+                        <td style="text-align:center;">
+                            <a th:href="${dashboardUrl}" style="display:inline-block;background-color:#e74c3c;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Review Chargeback</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#f4f4f4;padding:16px;text-align:center;">
+                <p style="color:#999;font-size:11px;margin:0;">© 2026 KhanaBook. All rights reserved.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/api.models';
@@ -8,7 +9,7 @@ import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/a
 @Component({
   selector: 'app-marketplace-setup-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ApiStateComponent],
+  imports: [CommonModule, ReactiveFormsModule, ApiStateComponent, RouterModule],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -17,6 +18,7 @@ import { MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/a
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
           <span class="chip-pill chip-pill--ok">Zomato &amp; Swiggy</span>
+          <a class="chip" routerLink="/business/marketplace-orders" style="cursor:pointer">View Orders</a>
         </div>
       </section>
 

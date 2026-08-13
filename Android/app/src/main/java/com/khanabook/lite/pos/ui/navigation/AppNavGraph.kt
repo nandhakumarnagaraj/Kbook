@@ -310,5 +310,17 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
+        composable("notifications") {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable("marketplace_orders") {
+            MarketplaceOrdersScreen(
+                onBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }

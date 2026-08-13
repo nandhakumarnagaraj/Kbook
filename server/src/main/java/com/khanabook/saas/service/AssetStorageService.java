@@ -1,12 +1,16 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,6 +29,7 @@ import java.util.stream.Stream;
 public class AssetStorageService {
 
 	private final RestaurantProfileRepository restaurantProfileRepository;
+	private final EasebuzzSubMerchantRepository subMerchantRepo;
 
 	@Value("${kbook.cdn.base-path}")
 	private String basePath;
@@ -64,21 +69,28 @@ public class AssetStorageService {
 					.orElseThrow(() -> new IllegalStateException("Restaurant profile not found: " + restaurantId));
 
 			int newVersion = nextVersion(profile, kind);
-			String filename = kind + "_v" + newVersion + ".webp";
+			boolean hasCwebp = cwebpBin != null && !cwebpBin.isBlank();
+			String ext = hasCwebp ? ".webp" : guessExtension(file.getContentType());
+			String filename = kind + "_v" + newVersion + ext;
 			Path target = Paths.get(basePath, String.valueOf(restaurantId), filename);
 			Files.createDirectories(target.getParent());
 
-			runCwebp(tmp, target, lossless, quality);
-
-			if (!Files.exists(target) || Files.size(target) == 0) {
-				throw new IllegalStateException("WebP conversion produced no output");
+			if (hasCwebp) {
+				runCwebp(tmp, target, lossless, quality);
+			} else {
+				log.warn("cwebp not configured; copying {} -> {}", tmp, target);
+				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
 			}
 
-			deleteOldVersions(restaurantId, kind, newVersion);
+			if (!Files.exists(target) || Files.size(target) == 0) {
+				throw new IllegalStateException("Upload produced no output");
+			}
 
-			String url = normalizedUrlPrefix() + restaurantId + "/" + filename;
+			String url = resolveCdnUrl(restaurantId, filename);
 			applyToProfile(profile, kind, url, newVersion);
 			restaurantProfileRepository.save(profile);
+
+			deleteOldVersions(restaurantId, kind, newVersion);
 
 			log.info("Uploaded {} for restaurant {} -> {}", kind, restaurantId, url);
 			return new AssetUploadResult(url, newVersion);
@@ -143,8 +155,27 @@ public class AssetStorageService {
 			case "image/png" -> ".png";
 			case "image/jpeg", "image/jpg" -> ".jpg";
 			case "image/webp" -> ".webp";
+			case "application/pdf" -> ".pdf";
 			default -> ".img";
 		};
+	}
+
+	private String resolveCdnUrl(Long restaurantId, String filename) {
+		try {
+			ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+			if (attrs != null) {
+				jakarta.servlet.http.HttpServletRequest req = attrs.getRequest();
+				String scheme = req.getScheme();
+				String host = req.getServerName();
+				int port = req.getServerPort();
+				String contextPath = req.getContextPath();
+				String portStr = (scheme.equals("http") && port == 80) || (scheme.equals("https") && port == 443) ? "" : ":" + port;
+				return scheme + "://" + host + portStr + "/cdn/" + restaurantId + "/" + filename;
+			}
+		} catch (Exception e) {
+			log.debug("Could not resolve CDN URL from request context, falling back to configured prefix");
+		}
+		return normalizedUrlPrefix() + restaurantId + "/" + filename;
 	}
 
 	private String normalizedUrlPrefix() {
@@ -162,6 +193,7 @@ public class AssetStorageService {
 		profile.setLogoVersion(version);
 		profile.setUpdatedAt(now);
 		profile.setServerUpdatedAt(now);
+		profile.setDeviceId("server");
 	}
 
 	private void deleteOldVersions(Long restaurantId, String kind, int keepVersion) {
@@ -215,5 +247,118 @@ public class AssetStorageService {
 	}
 
 	public record AssetUploadResult(String url, int version) {
+	}
+
+	@Transactional
+	public AssetUploadResult uploadKycDocument(Long restaurantId, String docType, MultipartFile file) {
+		validateKycFile(file);
+
+		Path tmp = null;
+		try {
+			tmp = saveToTmp(file);
+
+			EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
+					.orElseThrow(() -> new IllegalStateException("Sub-merchant not configured for restaurant: " + restaurantId));
+			
+			int currentVersion = 0;
+			String currentUrl = null;
+			switch (docType) {
+				case "id_proof": currentUrl = sm.getIdProofUrl(); break;
+				case "bank_proof": currentUrl = sm.getBankProofUrl(); break;
+				case "business_proof_1": currentUrl = sm.getBusinessProof1Url(); break;
+				case "business_proof_2": currentUrl = sm.getBusinessProof2Url(); break;
+			}
+			if (currentUrl != null) {
+				currentVersion = parseVersionFromUrl(currentUrl);
+			}
+			int newVersion = currentVersion + 1;
+
+			String contentType = file.getContentType();
+			boolean isPdf = contentType != null && contentType.equalsIgnoreCase("application/pdf");
+			String ext = isPdf ? ".pdf" : (cwebpBin != null && !cwebpBin.isBlank() ? ".webp" : guessExtension(contentType));
+			String filename = "kyc_" + docType + "_v" + newVersion + ext;
+
+			Path target = Paths.get(basePath, String.valueOf(restaurantId), filename);
+			Files.createDirectories(target.getParent());
+
+			if (isPdf) {
+				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+			} else if (cwebpBin != null && !cwebpBin.isBlank()) {
+				runCwebp(tmp, target, false, 80);
+			} else {
+				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+			}
+
+			if (!Files.exists(target) || Files.size(target) == 0) {
+				throw new IllegalStateException("Upload produced no output");
+			}
+
+			String url = resolveCdnUrl(restaurantId, filename);
+			
+			switch (docType) {
+				case "id_proof": sm.setIdProofUrl(url); break;
+				case "bank_proof": sm.setBankProofUrl(url); break;
+				case "business_proof_1": sm.setBusinessProof1Url(url); break;
+				case "business_proof_2": sm.setBusinessProof2Url(url); break;
+				default: throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+			}
+			sm.setUpdatedAt(System.currentTimeMillis());
+			subMerchantRepo.save(sm);
+
+			deleteOldKycVersions(restaurantId, docType, newVersion);
+
+			log.info("Uploaded KYC document {} for restaurant {} -> {}", docType, restaurantId, url);
+			return new AssetUploadResult(url, newVersion);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("KYC document upload failed", e);
+		} catch (IOException e) {
+			throw new RuntimeException("KYC document upload failed", e);
+		} finally {
+			if (tmp != null) {
+				try { Files.deleteIfExists(tmp); } catch (IOException ignored) {}
+			}
+		}
+	}
+
+	private void validateKycFile(MultipartFile file) {
+		if (file == null || file.isEmpty()) {
+			throw new IllegalArgumentException("File is empty");
+		}
+		if (file.getSize() > maxUploadBytes) {
+			throw new IllegalArgumentException("File too large; max " + maxUploadBytes + " bytes");
+		}
+		String contentType = file.getContentType();
+		if (contentType == null || (!contentType.startsWith("image/") && !contentType.equalsIgnoreCase("application/pdf"))) {
+			throw new IllegalArgumentException("Only PDF and image uploads are allowed");
+		}
+	}
+
+	private int parseVersionFromUrl(String url) {
+		if (url == null) return 0;
+		try {
+			int idx = url.lastIndexOf("_v");
+			if (idx != -1) {
+				int dotIdx = url.indexOf(".", idx);
+				String vStr = dotIdx != -1 ? url.substring(idx + 2, dotIdx) : url.substring(idx + 2);
+				return Integer.parseInt(vStr);
+			}
+		} catch (Exception ignored) {}
+		return 0;
+	}
+
+	private void deleteOldKycVersions(Long restaurantId, String docType, int keepVersion) {
+		Path dir = Paths.get(basePath, String.valueOf(restaurantId));
+		if (!Files.exists(dir)) return;
+		String prefix = "kyc_" + docType + "_v";
+		try (Stream<Path> files = Files.list(dir)) {
+			files.filter(p -> p.getFileName().toString().startsWith(prefix))
+					.filter(p -> !p.getFileName().toString().startsWith(prefix + keepVersion + "."))
+					.forEach(p -> {
+						try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+					});
+		} catch (IOException e) {
+			log.warn("Old KYC version cleanup failed for restaurant {}", restaurantId, e);
+		}
 	}
 }

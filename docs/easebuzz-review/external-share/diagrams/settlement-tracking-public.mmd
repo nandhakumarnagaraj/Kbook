@@ -1,0 +1,10 @@
+flowchart TD
+    A["Successful customer payment"] --> B["KhanaBook records payment status"]
+    B --> C["KhanaBook submits split configuration to Easebuzz"]
+    C --> D["Easebuzz processes restaurant share and platform commission"]
+    D --> E["Settlement or payout status becomes available"]
+    E --> F["KhanaBook reconciles settlement status with payment ledger"]
+    F --> G{"Mismatch found?"}
+    G -->|No| H["Mark reconciliation complete"]
+    G -->|Yes| I["Flag for operations review"]
+

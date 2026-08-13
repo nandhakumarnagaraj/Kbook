@@ -266,6 +266,9 @@ dependencies {
     // Social Login
     implementation(libs.play.services.auth)
 
+    // Firebase Cloud Messaging (push notifications)
+    implementation(libs.firebase.messaging)
+
 
     // Google Sign-In via Credential Manager (modern API)
     implementation("androidx.credentials:credentials:1.3.0")

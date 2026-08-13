@@ -185,6 +185,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     logoUrl          = logoUrl,
     logoVersion      = logoVersion,
     fssaiNumber      = fssaiNumber.orEmpty(),
+    fssaiExpiryDate  = fssaiExpiryDate,
     country          = country.orEmpty(),
     currency         = currency.orEmpty(),
     timezone         = AppConstants.DEFAULT_TIMEZONE,

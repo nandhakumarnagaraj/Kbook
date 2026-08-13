@@ -1,0 +1,47 @@
+sequenceDiagram
+    autonumber
+    actor Admin as KbookAdmin
+    actor Owner as Restaurant Owner
+    actor Staff as POS Staff
+    actor Customer
+    participant POS as Android POS
+    participant API as KhanaBook API
+    participant DB as PostgreSQL
+    participant EB as Easebuzz
+    participant KYC as Easebuzz KYC Portal
+    participant SET as Easebuzz Settlement
+
+    Admin->>API: Create sub-merchant draft
+    API->>DB: Insert easebuzz_sub_merchant(DRAFT, restaurant_id)
+    Admin->>API: Submit to Easebuzz
+    API->>EB: Create sub-merchant
+    EB-->>API: submerchant_id
+    API->>DB: status=PENDING_KYC, save subMerchantId
+    Admin->>API: Generate KYC access key
+    API->>EB: generate_kyc_access_key
+    EB-->>API: hosted KYC URL
+    API->>DB: Save kycPortalUrl
+    Owner->>KYC: Upload KYC/CPV documents
+    EB-->>API: Sub-merchant webhook
+    API->>DB: status=ACTIVE or REJECTED or KYC_SUBMITTED
+    Admin->>API: Create split label
+    API->>EB: split/v1/create label sm_{sub_merchant_id}
+    API->>DB: Save splitLabel
+    Staff->>POS: Start online payment
+    POS->>API: create-order billId, restaurantId
+    API->>DB: Load bill and active sub-merchant
+    API->>EB: payment/initiateLink with sub_merchant_id
+    EB-->>API: access token/payment URL
+    API->>DB: Save gatewayTxnId and gatewayStatus
+    API-->>POS: access_token, txnid, amount
+    Customer->>EB: Pay using checkout/SDK
+    EB-->>API: Payment webhook
+    API->>API: Verify hash and idempotency
+    API->>DB: Mark bill paid and save webhook event
+    API->>EB: post-split/v1/create
+    EB-->>API: Split accepted or failed
+    API->>DB: Save commissionAmount and settledAt on success
+    SET-->>Owner: Bank settlement to restaurant
+    SET-->>Admin: Commission settlement to parent
+
+

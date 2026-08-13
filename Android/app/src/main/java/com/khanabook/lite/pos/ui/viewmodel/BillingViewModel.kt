@@ -664,6 +664,17 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 _error.value = "Add at least one item before completing the bill."
                 return@withLock false
             }
+
+            val unavailableItems = _cartItems.value.filter { cartItem ->
+                val latest = menuRepository.getItemById(cartItem.item.id)
+                latest == null || !latest.isAvailable
+            }
+            if (unavailableItems.isNotEmpty()) {
+                val names = unavailableItems.joinToString(", ") { it.item.name }
+                _error.value = "These items are now unavailable: $names. Please remove them to continue."
+                return@withLock false
+            }
+
             _isLoading.value = true
             try {
                 // Use cached profile — no extra DB read needed

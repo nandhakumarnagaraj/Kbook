@@ -26,6 +26,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Notification permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Restart sync workers after device reboot (FCM token re-registration) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Foreground service permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -53,6 +55,13 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="ocr" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="khanabook_system_v2" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification_bell" />
         
         <activity
             android:name="com.khanabook.lite.pos.ui.MainActivity"
@@ -101,6 +110,23 @@
             android:name="com.khanabook.lite.pos.domain.manager.PrintService"
             android:foregroundServiceType="connectedDevice"
             android:exported="false" />
+        <service
+            android:name="com.khanabook.lite.pos.worker.KhanaBookFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name="com.khanabook.lite.pos.worker.NotificationActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.khanabook.lite.pos.worker.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

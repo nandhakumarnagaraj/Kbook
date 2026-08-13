@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.data.remote.dto.*
 import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
@@ -115,6 +116,51 @@ interface KhanaBookApi {
 
         @POST("api/v1/sync/terminal/reclaim")
         suspend fun reclaimTerminal(@Body request: TerminalReclaimRequest): TerminalActivationResponse
+
+        // ── Push Notifications ────────────────────────────────────────────
+        @POST("api/v1/notifications/device-token")
+        suspend fun registerDeviceToken(@Body data: Map<String, String>): retrofit2.Response<Map<String, Any>>
+
+        @DELETE("api/v1/notifications/device-token")
+        suspend fun unregisterDeviceToken(@Query("deviceId") deviceId: String): retrofit2.Response<Map<String, Any>>
+
+        @GET("api/v1/notifications")
+        suspend fun getNotifications(@Query("limit") limit: Int = 50): retrofit2.Response<Map<String, Any>>
+
+        @GET("api/v1/notifications/unread-count")
+        suspend fun getUnreadNotificationCount(): retrofit2.Response<Map<String, Any>>
+
+        @POST("api/v1/notifications/{id}/read")
+        suspend fun markNotificationRead(@Path("id") id: Long): retrofit2.Response<Map<String, Any>>
+
+        @POST("api/v1/notifications/mark-all-read")
+        suspend fun markAllNotificationsRead(): retrofit2.Response<Map<String, Any>>
+
+        // ── FSSAI ──────────────────────────────────────────────────────────
+        @GET("api/v1/business/lookup/fssai")
+        suspend fun lookupFssai(@Query("fssaiNo") fssaiNo: String): Map<String, Any>
+
+        // ── Marketplace orders ────────────────────────────────────────────
+        @GET("api/v1/business/marketplace-orders")
+        suspend fun listMarketplaceOrders(): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/pending")
+        suspend fun listPendingMarketplaceOrders(): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/counts")
+        suspend fun getMarketplaceOrderCounts(): Map<String, Long>
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/accept")
+        suspend fun acceptMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/reject")
+        suspend fun rejectMarketplaceOrder(@Path("orderId") orderId: Long, @Body reason: Map<String, String>): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/mark-ready")
+        suspend fun markReadyMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/complete")
+        suspend fun completeMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
 }
 
 data class TerminalListItem(

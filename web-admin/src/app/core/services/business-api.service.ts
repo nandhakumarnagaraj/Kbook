@@ -12,6 +12,7 @@ import {
   CreateStaffRequest,
   MarketplaceConfig,
   MarketplaceConfigRequest,
+  MarketplaceOrder,
   MenuExtractionJob,
   OrderDetailResponse,
   PaginatedOrdersResponse,
@@ -26,6 +27,7 @@ import {
   UpdateStaffRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
+import { Observable, of } from 'rxjs';
 
 const API_BASE_URL = environment.apiBaseUrl;
 
@@ -50,6 +52,37 @@ export class BusinessApiService {
 
   saveMarketplaceConfig(payload: MarketplaceConfigRequest) {
     return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`, payload);
+  }
+
+  getMarketplaceOrders(): Observable<MarketplaceOrder[]> {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders`);
+  }
+
+  getPendingMarketplaceOrders(): Observable<MarketplaceOrder[]> {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders/pending`);
+  }
+
+  getMarketplaceOrderCounts(): Observable<{ [k: string]: number }> {
+    return this.http.get<{ [k: string]: number }>(`${API_BASE_URL}/business/marketplace-orders/counts`);
+  }
+
+  acceptMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/accept`, null);
+  }
+
+  rejectMarketplaceOrder(orderId: number, reason: string | null): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(
+      `${API_BASE_URL}/business/marketplace-orders/${orderId}/reject`,
+      reason ? { reason } : {}
+    );
+  }
+
+  markReadyMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, null);
+  }
+
+  completeMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/complete`, null);
   }
 
   getOrders() {
@@ -168,4 +201,14 @@ export class BusinessApiService {
     return this.http.get<OrderDetailResponse>(`${API_BASE_URL}/business/orders/${billId}`);
   }
 
+  // ── Restaurant settings stub methods ──────────────────────────────────────
+  requestUpdateMobileOtp(...args: any[]): Observable<any> { return of(null); }
+  confirmUpdateMobile(...args: any[]): Observable<any> { return of(null); }
+  uploadLogo(file: File): Observable<any> { return of(null); }
+  deleteLogo(): Observable<any> { return of(null); }
+  lookupFssai(number: string): Observable<any> { return of(null); }
+  lookupGst(number: string): Observable<any> { return of(null); }
+  lookupBoth(fssai: string, gst: string): Observable<any> { return of(null); }
+  getProfile(): Observable<any> { return of(null); }
+  updateProfile(payload: any): Observable<any> { return of(null); }
 }

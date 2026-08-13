@@ -36,8 +36,8 @@ class MenuItemServiceImplTest {
     @Mock private MenuItemRepository menuItemRepo;
     @Mock private CategoryRepository categoryRepo;
     @Mock private BillRepository billRepository;
-    @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private BillPaymentRepository billPaymentRepository;
+    @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
 
@@ -51,10 +51,10 @@ class MenuItemServiceImplTest {
     void setUp() {
         genericSyncService = new GenericSyncService(
             billRepository,
+            billPaymentRepository,
             menuItemRepo,
             itemVariantRepository,
             categoryRepo,
-            billPaymentRepository,
             terminalRepository,
             securityAuditService
         );

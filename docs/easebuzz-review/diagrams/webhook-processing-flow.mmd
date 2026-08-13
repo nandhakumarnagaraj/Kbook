@@ -1,0 +1,31 @@
+flowchart TD
+    A["Easebuzz webhook"] --> B{"Endpoint"}
+    B -->|"payment"| C["POST /payments/easebuzz/webhook"]
+    B -->|"refund"| D["POST /payments/easebuzz/refund/webhook"]
+    B -->|"sub-merchant KYC"| E["POST /payments/easebuzz/sub-merchant/webhook"]
+    B -->|"payout"| F["POST /payments/easebuzz/payout/webhook"]
+
+    C --> G["Verify reverse payment hash\nsalt|status|udf10..udf1|email|firstname|productinfo|amount|txnid|key"]
+    D --> H["Verify refund hash\nkey|easepayid|salt"]
+    E --> I["Verify sub-merchant hash\nkey|submerchant_id|salt"]
+    F --> J["Verify payout hash\nsettlement or transfer sequence"]
+
+    G --> K{"Hash valid?"}
+    H --> K
+    I --> K
+    J --> K
+    K -->|No| L["Return hash_mismatch\nNo state mutation"]
+    K -->|Yes| M{"Webhook type"}
+
+    M -->|"payment success"| N["Load bill from udf1\nSkip if already paid"]
+    N --> O["Mark paid\nsave EasebuzzWebhookEvent\npush notification"]
+    O --> P["Trigger async post-split"]
+
+    M -->|"refund"| Q["Find bill by gatewayTxnId\nSkip if already refunded"]
+    Q --> R["Update refundId/refundAmount/gatewayStatus\nsave audit event"]
+
+    M -->|"sub-merchant"| S["Save sub-merchant webhook event\nupdate KYC status"]
+    S --> T["True=ACTIVE\nPending=KYC_SUBMITTED\nFalse=REJECTED"]
+
+    M -->|"payout"| U["Find payout by merchantRequestId\nupdate status/UTR/error"]
+

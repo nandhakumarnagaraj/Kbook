@@ -1,0 +1,84 @@
+name: Guards
+
+# Repo-wide guard checks (tasks 4.6, 4.7):
+#   guard-v2-artifacts    — fails on v2-era debris (DbCheck, QuickDbCheck,
+#                           dev-debug, dev-refresh, Storefront-named sources)
+#   guard-credential-files — fails on newly tracked credential filenames
+
+on:
+  push:
+    branches: [main, v1, v3]
+  pull_request:
+    branches: [main, v1, v3]
+
+jobs:
+  guard-v2-artifacts:
+    name: Guard v2 artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Grep v2 debris class names and dev endpoints
+        run: |
+          if grep -rEI \
+              --include='*.kt' --include='*.kts' --include='*.java' \
+              --include='*.ts' --include='*.sql' --include='*.gradle' \
+              --include='*.xml' --include='*.properties' --include='*.yml' \
+              --include='*.yaml' \
+              --exclude-dir=node_modules --exclude-dir=build \
+              --exclude-dir=target --exclude-dir=dist --exclude-dir=.gradle \
+              -e 'DbCheck' -e 'QuickDbCheck' -e 'dev-debug' -e 'dev-refresh' \
+              Android server web-admin; then
+            echo "::error::v2 debris found: DbCheck/QuickDbCheck/dev-debug/dev-refresh"
+            exit 1
+          fi
+
+      - name: Grep Storefront-named source files
+        run: |
+          # v1-legit exception list (must not be re-flagged):
+          #   Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/StorefrontOrderDtos.kt
+          #   server/src/main/resources/db/migration/V8__add_storefront_customer_orders.sql
+          bad=$(find Android server web-admin -type f \
+              \( -name '*.kt' -o -name '*.java' -o -name '*.ts' -o -name '*.sql' \) \
+              -iname '*storefront*' \
+              -not -path '*/node_modules/*' -not -path '*/build/*' \
+              -not -path '*/target/*' -not -path '*/dist/*' -not -path '*/.gradle/*' \
+              -not -path '*/StorefrontOrderDtos.kt' \
+              -not -path '*/V8__add_storefront_customer_orders.sql')
+          if [ -n "$bad" ]; then
+            echo "::error::Storefront-named source file(s) found:"
+            echo "$bad"
+            exit 1
+          fi
+
+  guard-credential-files:
+    name: Guard credential filenames
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fail on newly tracked credential filenames
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          BASE="origin/main"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$BASE_SHA" ]; then
+            BASE="$BASE_SHA"
+          elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            BASE="$BEFORE_SHA"
+          fi
+          added=$(git diff --name-only --diff-filter=A "$BASE"...HEAD || true)
+          if [ -z "$added" ]; then
+            echo "No newly added files to check."
+            exit 0
+          fi
+          leak=$(echo "$added" | grep -iE \
+              '(^|/)[^/]*\.(jks|keystore|p12|key|pem)$|(^|/)keystore\.properties$|(^|/)secrets\.properties$|(^|/)[^/]*\.env$|(^|/)serviceAccountKey[^/]*\.json$|(^|/)application-secrets[^/]*\.properties$' || true)
+          if [ -n "$leak" ]; then
+            echo "::error::Newly tracked credential file(s):"
+            echo "$leak"
+            exit 1
+          fi
