@@ -364,7 +364,8 @@ export class SidebarLayoutComponent {
     if (role === 'KBOOK_ADMIN') {
       return [
         { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' }
+        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' },
+        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑' }
       ];
     }
     if (role === 'SHOP_ADMIN') {
@@ -376,6 +377,7 @@ export class SidebarLayoutComponent {
       { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰' },
       { label: 'Reports', path: '/business/reports', icon: '◔' },
       { label: 'Orders', path: '/business/orders', icon: '▤' },
+      { label: 'Marketplace Orders', path: '/business/marketplace-orders', icon: '▧' },
       { label: 'Menu', path: '/business/menu', icon: '◈' },
       { label: 'Staff', path: '/business/staff', icon: '◍' },
       { label: 'Settings', path: '/business/settings', icon: '⚙' },

@@ -23,9 +23,12 @@ import com.khanabook.lite.pos.data.local.entity.*
                         SyncQuarantineEntity::class,
                         StockLogEntity::class,
                         KotEventEntity::class,
-                        TerminalDailyCounterEntity::class
+                        TerminalDailyCounterEntity::class,
+                        NotificationEntity::class,
+                        StaffPermissionEntity::class,
+                        PermissionRequestEntity::class
                 ],
-        version = 63,
+        version = 66,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun billDao(): BillDao
     abstract fun inventoryDao(): InventoryDao
     abstract fun kotEventDao(): KotEventDao
+    abstract fun notificationDao(): NotificationDao
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
@@ -979,6 +983,74 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 if (!db.hasColumn("printer_profiles", "port")) {
                     db.execSQL("ALTER TABLE `printer_profiles` ADD COLUMN `port` INTEGER NOT NULL DEFAULT 9100")
                 }
+            }
+        }
+
+        val MIGRATION_64_65 = object : Migration(64, 65) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("restaurant_profile", "fssai_expiry_date")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `fssai_expiry_date` TEXT")
+                }
+            }
+        }
+
+        val MIGRATION_65_66 = object : Migration(65, 66) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `staff_permissions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL,
+                        `user_id` INTEGER NOT NULL,
+                        `permission_key` TEXT NOT NULL,
+                        `granted` INTEGER NOT NULL DEFAULT 1,
+                        `granted_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_staff_permissions_restaurant_id_user_id` ON `staff_permissions` (`restaurant_id`, `user_id`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_staff_permissions_restaurant_id_user_id_permission_key` ON `staff_permissions` (`restaurant_id`, `user_id`, `permission_key`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `permission_requests` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL,
+                        `user_id` INTEGER NOT NULL,
+                        `permission_key` TEXT NOT NULL,
+                        `status` TEXT NOT NULL DEFAULT 'PENDING',
+                        `reason` TEXT,
+                        `requested_at` INTEGER NOT NULL,
+                        `resolved_at` INTEGER,
+                        `rejection_reason` TEXT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_permission_requests_restaurant_id_user_id_status` ON `permission_requests` (`restaurant_id`, `user_id`, `status`)")
+            }
+        }
+
+        val MIGRATION_63_64 = object : Migration(63, 64) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `notifications` (
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `server_id` INTEGER NOT NULL,
+                        `notification_type` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `message` TEXT,
+                        `reference_id` TEXT,
+                        `reference_type` TEXT,
+                        `amount` TEXT,
+                        `is_read` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notifications_created_at` ON `notifications` (`created_at`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notifications_read` ON `notifications` (`is_read`)"
+                )
             }
         }
 

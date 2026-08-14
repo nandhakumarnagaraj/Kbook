@@ -35,6 +35,7 @@ public class OtpRequest {
     @Column(name = "expires_at", nullable = false)
     private Long expiresAt;
 
+    @Builder.Default
     @Column(name = "attempts", nullable = false)
     private Integer attempts = 0;
 

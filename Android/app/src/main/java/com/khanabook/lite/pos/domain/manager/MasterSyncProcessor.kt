@@ -30,7 +30,8 @@ class MasterSyncProcessor @Inject constructor(
     private val menuDao: MenuDao,
     private val inventoryDao: InventoryDao,
     private val printerProfileDao: PrinterProfileDao,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val permissionManager: PermissionManager
 ) {
     private fun normalizeUserRole(role: String?): String {
         return when (role?.uppercase()) {
@@ -859,6 +860,7 @@ class MasterSyncProcessor @Inject constructor(
                         logoUrl = if (useRemoteLogo) remoteProfile.logoUrl else localProfile?.logoUrl,
                         logoVersion = maxOf(remoteProfile.logoVersion, localProfile?.logoVersion ?: 0),
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
+                        fssaiExpiryDate = remoteProfile.fssaiExpiryDate,
                         emailInvoiceConsent = remoteProfile.emailInvoiceConsent ?: false,
                         country = remoteProfile.country.orFallback(currentLocalProfile?.country ?: "India"),
                         gstEnabled = remoteProfile.gstEnabled ?: false,
@@ -993,7 +995,19 @@ class MasterSyncProcessor @Inject constructor(
                 )
             }
             userDao.insertSyncedUsers(usersToInsert)
+
+            // Propagate role change to active session if current user's role was updated
+            val activeUserId = sessionManager.getActiveUserId()
+            val currentRole = sessionManager.getActiveUserRole()
+            val updatedCurrentUser = usersToInsert.find { it.id == activeUserId }
+            if (updatedCurrentUser != null && updatedCurrentUser.role != currentRole) {
+                Log.w("MasterSyncProcessor", "Role changed for active user: $currentRole → ${updatedCurrentUser.role}")
+                sessionManager.saveActiveUserRole(updatedCurrentUser.role)
+            }
         }
+
+        // Update permission cache from sync response (lightweight — just string keys)
+        permissionManager.updateFromSync(masterData.grantedPermissions)
 
         val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
 

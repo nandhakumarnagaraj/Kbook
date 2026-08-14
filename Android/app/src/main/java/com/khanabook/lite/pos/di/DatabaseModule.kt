@@ -13,6 +13,7 @@ import com.khanabook.lite.pos.data.repository.CategoryRepository
 import com.khanabook.lite.pos.data.repository.InventoryRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
+import com.khanabook.lite.pos.data.repository.NotificationRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
@@ -149,7 +150,9 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_59_60,
                 AppDatabase.MIGRATION_60_61,
                 AppDatabase.MIGRATION_61_62,
-                AppDatabase.MIGRATION_62_63
+                AppDatabase.MIGRATION_62_63,
+                AppDatabase.MIGRATION_63_64,
+                AppDatabase.MIGRATION_64_65
             )
             .build()
     }
@@ -168,6 +171,7 @@ object DatabaseModule {
     @Provides @Singleton fun provideBillDao(databaseProvider: DatabaseProvider): BillDao = TenantBillDao(databaseProvider)
     @Provides @Singleton fun provideInventoryDao(databaseProvider: DatabaseProvider): InventoryDao = TenantInventoryDao(databaseProvider)
     @Provides @Singleton fun provideKotEventDao(databaseProvider: DatabaseProvider): KotEventDao = TenantKotEventDao(databaseProvider)
+    @Provides @Singleton fun provideNotificationDao(databaseProvider: DatabaseProvider): NotificationDao = TenantNotificationDao(databaseProvider)
 
     @Provides
     @Singleton
@@ -177,8 +181,9 @@ object DatabaseModule {
         workManager: androidx.work.WorkManager,
         api: KhanaBookApi,
         databaseProvider: DatabaseProvider,
-        restaurantDao: RestaurantDao
-    ) = UserRepository(userDao, sessionManager, workManager, api, databaseProvider, restaurantDao)
+        restaurantDao: RestaurantDao,
+        notificationRepository: NotificationRepository
+    ) = UserRepository(userDao, sessionManager, workManager, api, databaseProvider, restaurantDao, notificationRepository)
 
     @Provides
     @Singleton

@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.LoginRequest;
 import com.khanabook.saas.controller.AuthController.SignupRequest;
+import java.util.Map;
 
 public interface AuthService {
 
@@ -10,7 +11,15 @@ public interface AuthService {
 
 	AuthResponse signup(SignupRequest request);
 
+	AuthResponse devSignup(SignupRequest request);
+
+	AuthResponse devAdminSignup(Map<String, String> body);
+
 	AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
+
+	AuthResponse refreshAccessToken(String refreshToken, String clientIp);
+
+	void revokeRefreshToken(String refreshToken);
 
 	void requestSignupOtp(String phoneNumber);
 
@@ -18,5 +27,9 @@ public interface AuthService {
 
 	void resetPassword(String phoneNumber, String otp, String newPassword);
 
+	void changePassword(String username, String currentPassword, String newPassword);
+
 	boolean checkUserExists(String phoneNumber);
+
+	void devReset();
 }

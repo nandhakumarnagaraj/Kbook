@@ -16,6 +16,7 @@ import com.khanabook.saas.webadmin.dto.VerifyOtpResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import java.util.Map;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.context.annotation.Profile;
 
 @RestController
 @Validated
@@ -119,6 +121,24 @@ public class AuthController {
 		return ResponseEntity.ok(authService.signup(request));
 	}
 
+	@Profile("dev")
+	@PostMapping("/signup/dev")
+	public ResponseEntity<AuthResponse> devSignup(@RequestBody Map<String, String> body) {
+		SignupRequest req = new SignupRequest();
+		req.setPhoneNumber(body.getOrDefault("phoneNumber", "7000000001"));
+		req.setName(body.getOrDefault("name", "Dev User"));
+		req.setPassword(body.getOrDefault("password", "admin123"));
+		req.setOtp("123456");
+		req.setDeviceId(body.getOrDefault("deviceId", "DEV"));
+		return ResponseEntity.ok(authService.devSignup(req));
+	}
+
+	@Profile("dev")
+	@PostMapping("/signup/dev-admin")
+	public ResponseEntity<AuthResponse> devAdminSignup(@RequestBody Map<String, String> body) {
+		return ResponseEntity.ok(authService.devAdminSignup(body));
+	}
+
 	@PostMapping("/signup/request")
 	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request, HttpServletRequest httpRequest) {
 		String ip = getClientIp(httpRequest);
@@ -157,8 +177,29 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	@PostMapping("/change-password")
+	public ResponseEntity<Void> changePassword(
+			java.security.Principal principal,
+			@Valid @RequestBody ChangePasswordRequest request
+	) {
+		authService.changePassword(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/refresh")
+	public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request, HttpServletRequest httpReq) {
+		String ip = getClientIp(httpReq);
+		return ResponseEntity.ok(authService.refreshAccessToken(request.getRefreshToken(), ip));
+	}
+
 	@PostMapping("/logout")
-	public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authHeader) {
+	public ResponseEntity<Void> logout(@RequestBody(required = false) LogoutBody body,
+			@RequestHeader("Authorization") String authHeader) {
+		// Revoke refresh token if provided
+		if (body != null && body.getRefreshToken() != null) {
+			authService.revokeRefreshToken(body.getRefreshToken());
+		}
+		// Blocklist access token
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			String jwt = authHeader.substring(7);
 			try {
@@ -170,7 +211,6 @@ public class AuthController {
 					tokenRevocationCache.revoke(jti, expiresAt);
 				}
 			} catch (Exception e) {
-				// Token may already be expired — logout is still considered successful
 				log.warn("Logout: could not extract JTI from token ({}), skipping blocklist entry", e.getClass().getSimpleName());
 			}
 		}
@@ -362,13 +402,43 @@ public class AuthController {
 	@Data
 	@AllArgsConstructor
 	@NoArgsConstructor
+	public static class RefreshRequest {
+		@NotBlank(message = "Refresh token is required")
+		private String refreshToken;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class LogoutBody {
+		private String refreshToken;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static class AuthResponse {
 		private String token;
+		private String refreshToken;
+		private long expiresIn;
+		@com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
 		private Long restaurantId;
 		private String userName;
 		private String loginId;
 		private String userEmail;
 		private String whatsappNumber;
 		private String role;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class ChangePasswordRequest {
+		@NotBlank(message = "Current password is required")
+		private String currentPassword;
+
+		@NotBlank(message = "New password is required")
+		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
+		private String newPassword;
 	}
 }

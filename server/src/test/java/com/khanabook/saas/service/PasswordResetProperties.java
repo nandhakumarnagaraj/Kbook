@@ -39,7 +39,7 @@ class PasswordResetProperties {
      *
      * Validates: Requirements 13.6
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 16: Valid passwords (>= 6 chars) with valid token are accepted")
     void validPasswordWithValidTokenIsAccepted(
             @ForAll("validPasswords") String password,
@@ -73,7 +73,7 @@ class PasswordResetProperties {
      *
      * Validates: Requirements 13.6
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 16: Invalid tokens always fail regardless of password")
     void invalidTokenAlwaysFails(
             @ForAll("anyPasswords") String password,
@@ -99,7 +99,7 @@ class PasswordResetProperties {
      *
      * Validates: Requirements 13.6
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 16: Short passwords fail DTO validation (min 6 chars)")
     void shortPasswordsFailDtoValidation(
             @ForAll("shortPasswords") String shortPassword

@@ -1,0 +1,125 @@
+{
+  "description": "Captured Base_Branch (v1) sync request set, played back by LegacySyncReplayTest. Wire format matches what the v1 Android POS sends: push endpoint POST bodies for bills, bill items and bill payments keyed by (deviceId, localId), followed by a master sync pull.",
+  "restaurantId": 7801,
+  "deviceId": "DEV_A",
+  "bills": [
+    {
+      "localId": 901,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 1000,
+      "createdAt": 1000,
+      "isDeleted": false,
+      "dailyOrderId": 901,
+      "dailyOrderDisplay": "901",
+      "lifetimeOrderId": 901,
+      "orderType": "dine-in",
+      "subtotal": 150.00,
+      "totalAmount": 150.00,
+      "paymentMode": "cash",
+      "paymentStatus": "paid",
+      "orderStatus": "completed"
+    },
+    {
+      "localId": 902,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 2000,
+      "createdAt": 2000,
+      "isDeleted": false,
+      "dailyOrderId": 902,
+      "dailyOrderDisplay": "902",
+      "lifetimeOrderId": 902,
+      "orderType": "dine-in",
+      "subtotal": 260.00,
+      "totalAmount": 270.00,
+      "paymentMode": "part_cash_upi",
+      "partAmount1": 130.00,
+      "partAmount2": 140.00,
+      "paymentStatus": "paid",
+      "orderStatus": "completed"
+    }
+  ],
+  "billItems": [
+    {
+      "localId": 9011,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 1000,
+      "createdAt": 1000,
+      "isDeleted": false,
+      "billId": 901,
+      "menuItemId": 0,
+      "itemName": "Idli",
+      "price": 50.00,
+      "quantity": 2,
+      "itemTotal": 100.00,
+      "sentToKot": 0
+    },
+    {
+      "localId": 9012,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 1000,
+      "createdAt": 1000,
+      "isDeleted": false,
+      "billId": 901,
+      "menuItemId": 0,
+      "itemName": "Dosa",
+      "price": 50.00,
+      "quantity": 1,
+      "itemTotal": 50.00,
+      "sentToKot": 0
+    },
+    {
+      "localId": 9021,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 2000,
+      "createdAt": 2000,
+      "isDeleted": false,
+      "billId": 902,
+      "menuItemId": 0,
+      "itemName": "Paneer Biryani",
+      "price": 260.00,
+      "quantity": 1,
+      "itemTotal": 260.00,
+      "sentToKot": 0
+    }
+  ],
+  "billPayments": [
+    {
+      "localId": 90101,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 1000,
+      "createdAt": 1000,
+      "isDeleted": false,
+      "billId": 901,
+      "paymentMode": "cash",
+      "amount": 150.00
+    },
+    {
+      "localId": 90201,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 2000,
+      "createdAt": 2000,
+      "isDeleted": false,
+      "billId": 902,
+      "paymentMode": "cash",
+      "amount": 130.00
+    },
+    {
+      "localId": 90202,
+      "deviceId": "DEV_A",
+      "restaurantId": 7801,
+      "updatedAt": 2100,
+      "createdAt": 2100,
+      "isDeleted": false,
+      "billId": 902,
+      "paymentMode": "upi",
+      "amount": 140.00
+    }
+  ]
+}

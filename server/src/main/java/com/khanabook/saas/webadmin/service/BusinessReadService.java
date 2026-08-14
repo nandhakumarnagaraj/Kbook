@@ -5,11 +5,13 @@ import com.khanabook.saas.utility.AppConstants;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.Category;
+import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
+import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
@@ -50,6 +52,7 @@ public class BusinessReadService {
     private final BillRepository billRepository;
     private final BillItemRepository billItemRepository;
     private final com.khanabook.saas.service.SecurityAuditService securityAuditService;
+    private final EasebuzzSubMerchantRepository subMerchantRepository;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
@@ -139,11 +142,17 @@ public class BusinessReadService {
                 .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
+        var sm = subMerchantRepository.findByRestaurantId(restaurantId).orElse(null);
+
         return BusinessMarketplaceSetupResponse.builder()
                 .restaurantId(restaurantId)
                 .shopName(profile.getShopName())
                 .paymentManagedByAdmin(true)
-                .subMerchantStatus(null)
+                .subMerchantStatus(sm != null ? sm.getStatus() : "NOT_STARTED")
+                .subMerchantId(sm != null ? sm.getSubMerchantId() : null)
+                .kycPortalUrl(sm != null ? sm.getKycPortalUrl() : null)
+                .kycSubmittedAt(sm != null ? sm.getKycSubmittedAt() : null)
+                .kycActivatedAt(sm != null ? sm.getKycActivatedAt() : null)
                 .build();
     }
 

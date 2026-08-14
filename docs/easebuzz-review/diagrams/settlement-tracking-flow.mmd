@@ -1,0 +1,21 @@
+flowchart TD
+    A["Restaurant owner requests settlement view"] --> B["GET /business/settlements/estimate"]
+    B --> C["TenantContext restaurantId"]
+    C --> D["Sum completed revenue by restaurant"]
+    D --> E["Calculate fee and net payout estimate"]
+    E --> F{"Eligible and active sub-merchant?"}
+    F -->|No| G["Show ineligible reason"]
+    F -->|Yes| H["POST /business/settlements/instant"]
+    H --> I["Validate amount >= minimum"]
+    I --> J["Require ACTIVE sub-merchant"]
+    J --> K["POST /settlement/v1/on_demand"]
+    K --> L["Return initiated response\nsend notification email"]
+
+    M["Admin settlement tracking"] --> N["GET /admin/sub-merchants/settlements/retrieve?date=YYYY-MM-DD"]
+    N --> O["POST /settlements/v1/retrieve"]
+    O --> P["Return Easebuzz settlement data for reconciliation"]
+
+    Q["Payout webhook"] --> R["POST /payments/easebuzz/payout/webhook"]
+    R --> S["Verify payout hash"]
+    S --> T["Update easebuzz_payout status and UTR"]
+

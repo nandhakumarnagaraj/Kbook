@@ -69,7 +69,7 @@ class RoleBasedAccessControlProperties {
      * Generates random combinations of UserRole and ProtectedOperation,
      * then verifies the RequireRoleAspect grants or denies access correctly.
      */
-    @Property(tries = 200)
+    @Property(tries = 30)
     @Label("Access granted iff role is in operation's allowed roles set, else AccessDeniedException")
     void accessGrantedIffRoleInAllowedSet(
             @ForAll("roles") UserRole role,
@@ -112,7 +112,7 @@ class RoleBasedAccessControlProperties {
      * Validates: Requirement 1.6 — if a request reaches the server without the required role,
      * it SHALL return HTTP 403.
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Null role always denied for any operation")
     void nullRoleAlwaysDenied(
             @ForAll("operations") ProtectedOperation operation

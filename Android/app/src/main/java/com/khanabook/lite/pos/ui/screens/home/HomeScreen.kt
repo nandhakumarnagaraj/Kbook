@@ -30,6 +30,7 @@ import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
+import com.khanabook.lite.pos.ui.viewmodel.NotificationViewModel
 import com.khanabook.lite.pos.ui.designsystem.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -45,6 +46,7 @@ fun HomeScreen(
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onCallCustomer: () -> Unit,
+    onOpenNotifications: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
@@ -60,6 +62,9 @@ fun HomeScreen(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
+
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val unreadNotificationCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
 
     val coroutineScope = rememberCoroutineScope()
     val statsReady by viewModel.statsReady.collectAsStateWithLifecycle()
@@ -145,6 +150,10 @@ fun HomeScreen(
                         Box(modifier = Modifier.widthIn(max = 160.dp)) {
                             SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                         }
+                        NotificationBellIcon(
+                            unreadCount = unreadNotificationCount,
+                            onClick = onOpenNotifications
+                        )
                     }
                 }
             }

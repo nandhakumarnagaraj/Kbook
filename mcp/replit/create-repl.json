@@ -1,0 +1,18 @@
+{
+  "toolName": "create-repl",
+  "description": "Create a new Repl on Replit",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "language": {
+        "type": "string",
+        "description": "Programming language for the repl (e.g., python, java)"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the new repl"
+      }
+    },
+    "required": ["language", "title"]
+  }
+}

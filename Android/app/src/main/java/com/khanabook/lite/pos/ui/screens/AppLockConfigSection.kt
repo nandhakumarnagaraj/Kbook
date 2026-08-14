@@ -14,7 +14,9 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material3.CardDefaults
@@ -86,6 +88,30 @@ fun SettingsListView(
                 icon = Icons.Filled.SyncProblem,
                 text = "Sync Center",
                 onClick = { onSelectItem("sync_center") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = KhanaRadii.card
+        ) {
+            SettingsItem(
+                icon = Icons.Default.Notifications,
+                text = "Notifications",
+                onClick = { onSelectItem("notifications") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = KhanaRadii.card
+        ) {
+            SettingsItem(
+                icon = Icons.Default.ReceiptLong,
+                text = "Marketplace Orders",
+                onClick = { onSelectItem("marketplace_orders") }
             )
         }
 

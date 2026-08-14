@@ -1,0 +1,13 @@
+flowchart LR
+    POS["KhanaBook POS / Business Console"] --> API["KhanaBook Backend\nIntegration Layer"]
+    OPS["KhanaBook Operations Console"] --> API
+
+    API --> EBPay["Easebuzz Payment Gateway"]
+    API --> EBDash["Easebuzz Dashboard APIs"]
+    API --> EBKyc["Easebuzz Hosted KYC"]
+    EBPay --> WH["KhanaBook Webhook Endpoint"]
+    EBDash --> WH
+    WH --> API
+
+    API --> Ledger["KhanaBook Payment Ledger\nTenant Isolated"]
+

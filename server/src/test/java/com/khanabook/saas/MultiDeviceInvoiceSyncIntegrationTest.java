@@ -78,11 +78,15 @@ class MultiDeviceInvoiceSyncIntegrationTest {
     @Autowired private RestaurantProfileRepository restaurantProfileRepository;
     @Autowired private TerminalController terminalController;
     @Autowired private com.khanabook.saas.service.TerminalManagementService terminalManagementService;
+    @Autowired private com.khanabook.saas.service.BillItemService billItemService;
+    @Autowired private com.khanabook.saas.service.BillPaymentService billPaymentService;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
         // Isolate each test: the container is shared across the class.
+        jdbcTemplate.update("DELETE FROM bill_payments WHERE restaurant_id = ?", TENANT);
+        jdbcTemplate.update("DELETE FROM bill_items WHERE restaurant_id = ?", TENANT);
         jdbcTemplate.update("DELETE FROM bills WHERE restaurant_id = ?", TENANT);
         jdbcTemplate.update("DELETE FROM device_registration_request WHERE restaurant_id = ?", TENANT);
         jdbcTemplate.update("DELETE FROM restaurant_terminal WHERE restaurant_id = ?", TENANT);
@@ -229,6 +233,60 @@ class MultiDeviceInvoiceSyncIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT)).hasSize(1);
+    }
+
+    // ---- Multi-terminal child row visibility (master pull regression gate) ----
+
+    @Test
+    @DisplayName("Child rows (items, payments) from terminal A are visible to terminal B on cross-device pull")
+    void childRowsFromTerminalAVisibleToTerminalBOnPull() {
+        String seriesA = activateTerminal(DEVICE_A);
+        activateTerminal(DEVICE_B);
+
+        // Terminal A pushes a completed bill
+        Bill bill = deviceBill(DEVICE_A, 1L, seriesA, 1L);
+        bill.setOrderStatus("completed");
+        bill.setPaymentStatus("paid");
+        billService.pushData(TENANT, copyOf(List.of(bill)));
+
+        // Push items and payments for that bill
+        Bill persisted = billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT).get(0);
+        long billId = persisted.getLocalId();
+
+        com.khanabook.saas.entity.BillItem item = new com.khanabook.saas.entity.BillItem();
+        item.setRestaurantId(TENANT);
+        item.setDeviceId(DEVICE_A);
+        item.setLocalId(100L);
+        item.setBillId(billId);
+        item.setItemName("Butter Chicken");
+        item.setPrice(new BigDecimal("350.00"));
+        item.setQuantity(2);
+        item.setItemTotal(new BigDecimal("700.00"));
+        item.setCreatedAt(System.currentTimeMillis());
+        item.setUpdatedAt(System.currentTimeMillis());
+        billItemService.pushData(TENANT, List.of(item));
+
+        com.khanabook.saas.entity.BillPayment payment = new com.khanabook.saas.entity.BillPayment();
+        payment.setRestaurantId(TENANT);
+        payment.setDeviceId(DEVICE_A);
+        payment.setLocalId(200L);
+        payment.setBillId(billId);
+        payment.setPaymentMode("cash");
+        payment.setAmount(new BigDecimal("700.00"));
+        payment.setCreatedAt(System.currentTimeMillis());
+        payment.setUpdatedAt(System.currentTimeMillis());
+        billPaymentService.pushData(TENANT, List.of(payment));
+
+        // Terminal B does a cross-device pull — should see items and payments from A
+        List<com.khanabook.saas.entity.BillItem> pulledItems =
+                billItemService.pullData(TENANT, 0L, DEVICE_B, true);
+        List<com.khanabook.saas.entity.BillPayment> pulledPayments =
+                billPaymentService.pullData(TENANT, 0L, DEVICE_B, true);
+
+        assertThat(pulledItems).hasSize(1);
+        assertThat(pulledItems.get(0).getItemName()).isEqualTo("Butter Chicken");
+        assertThat(pulledPayments).hasSize(1);
+        assertThat(pulledPayments.get(0).getAmount()).isEqualByComparingTo(new BigDecimal("700.00"));
     }
 
     // ---- helpers ----

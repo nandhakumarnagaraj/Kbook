@@ -26,7 +26,7 @@ USER kbook
 EXPOSE 8081
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8081/api/v1/actuator/health/liveness || exit 1
+  CMD wget -qO- http://localhost:8081/api/v2/actuator/health/liveness || exit 1
 
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \

@@ -8,6 +8,27 @@ export interface AdminDashboardSummary {
   refundedAmount: number;
 }
 
+export interface FeatureFlagAdminItem {
+  flagKey: string;
+  killSwitched: boolean;
+  defaultEnabled: boolean;
+  description: string | null;
+  updatedAt: number;
+  effectiveState: boolean;
+}
+
+export interface FeatureFlagAuditItem {
+  id: number;
+  flagKey: string;
+  scope: 'KILL_SWITCH' | 'DEFAULT' | 'OVERRIDE';
+  restaurantId: number | null;
+  previousState: string | null;
+  newState: string;
+  actorUserId: number | null;
+  actorUsername: string | null;
+  changedAt: number;
+}
+
 export interface AdminBusinessListItem {
   restaurantId: number;
   shopName: string | null;
@@ -29,6 +50,7 @@ export interface AdminBusinessDetail extends AdminBusinessListItem {
   currency: string | null;
   timezone: string | null;
   gstEnabled: boolean;
+  gstin: string | null;
   printerEnabled: boolean;
   posOrderCount: number;
   totalRevenue: number;
@@ -144,6 +166,39 @@ export interface MarketplaceConfigRequest {
   swiggyApiKey?: string;
   swiggyWebhookSecret?: string;
   swiggyEnabled?: boolean;
+}
+
+export interface MarketplaceOrder {
+  id: number;
+  restaurantId: number;
+  billId: number | null;
+  platform: 'ZOMATO' | 'SWIGGY';
+  platformOrderId: string;
+  platformStatus: string | null;
+  orderStatus: 'pending' | 'accepted' | 'preparing' | 'ready' | 'completed' | 'rejected';
+  customerName: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  subtotal: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  paymentMode: string | null;
+  acceptedAt: number | null;
+  rejectedAt: number | null;
+  rejectedReason: string | null;
+  readyAt: number | null;
+  completedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+  syncedAt: number | null;
+}
+
+export interface MarketplaceOrderCounts {
+  pending: number;
+  accepted: number;
+  ready: number;
+  completed: number;
+  rejected: number;
 }
 
 export interface BusinessTerminal {
@@ -271,3 +326,109 @@ export interface OrderLineItem {
   itemTotal: number;
 }
 
+
+export interface AdminTransaction {
+  id: number;
+  restaurantId: number;
+  amount: number;
+  status: string;
+  paymentMethod: string;
+  gatewayTransactionId: string | null;
+  createdAt: number;
+}
+
+export interface AdminSettlement {
+  id: number;
+  restaurantId: number;
+  amount: number;
+  status: string;
+  settledAt: number | null;
+  utr: string | null;
+  shopName: string | null;
+  createdAt: number | null;
+}
+
+export interface AdminCommission {
+  id: number;
+  restaurantId: number;
+  shopName: string | null;
+  ratePercent: number;
+  flatFee: number;
+  effectiveFrom: number;
+  commissionRate: number | null;
+  updatedAt: number | null;
+}
+
+export interface EasebuzzSubMerchant {
+  id: number;
+  restaurantId: number;
+  shopName: string | null;
+  subMerchantId: string | null;
+  status: string;
+  createdAt: number;
+  businessName: string | null;
+  businessType: string | null;
+  pan: string | null;
+  gst: string | null;
+  bankAccountNo: string | null;
+  ifsc: string | null;
+  beneficiaryName: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  businessAddress: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  commissionRate: number | null;
+  kycStatus: string | null;
+  kycSubmittedAt: number | null;
+}
+
+export interface EasebuzzSubMerchantRequest {
+  shopName?: string;
+  email?: string;
+  phone?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  restaurantId?: number;
+  businessName?: string;
+  businessType?: string;
+  pan?: string;
+  gst?: string;
+  beneficiaryName?: string;
+  bankName?: string;
+  branchName?: string;
+  businessAddress?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  commissionRate?: number;
+  [key: string]: any;
+}
+
+export interface CommissionReport {
+  restaurantId: number;
+  shopName: string | null;
+  totalOrders: number;
+  totalRevenue: number;
+  commissionEarned: number;
+  period: string;
+  totalAmount: number;
+  commissionRate: number;
+  totalTransactions: number;
+}
+
+export interface UpdateBusinessProfileRequest {
+  shopName?: string;
+  ownerName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  gstNumber?: string;
+  fssaiNumber?: string;
+  whatsappNumber?: string;
+  gstin?: string;
+  shopAddress?: string;
+  fssaiExpiryDate?: string;
+  gstExpiryDate?: string;
+  currency?: string;
+  [key: string]: any;
+}

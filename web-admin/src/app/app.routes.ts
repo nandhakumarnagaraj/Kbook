@@ -31,6 +31,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/businesses/businesses-page.component').then(m => m.BusinessesPageComponent)
       },
       {
+        path: 'admin/feature-flags',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/feature-flags/feature-flags-page.component').then(m => m.FeatureFlagsPageComponent)
+      },
+      {
         path: 'business/dashboard',
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] },
@@ -65,6 +71,12 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/menu/menu-page.component').then(m => m.MenuPageComponent)
+      },
+      {
+        path: 'business/marketplace-orders',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/marketplace-orders/marketplace-orders-page.component').then(m => m.MarketplaceOrdersPageComponent)
       },
       {
         path: 'business/staff',

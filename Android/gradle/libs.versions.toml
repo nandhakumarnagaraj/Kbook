@@ -30,6 +30,7 @@ coil = "2.6.0"
 lottie = "6.4.0"
 coreSplashscreen = "1.0.1"
 material = "1.12.0"
+firebaseMessaging = "24.1.1"
 
 [libraries]
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
@@ -84,6 +85,7 @@ pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version = "
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

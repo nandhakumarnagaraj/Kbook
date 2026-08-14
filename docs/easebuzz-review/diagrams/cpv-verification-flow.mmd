@@ -1,0 +1,17 @@
+flowchart TD
+    A["Collect business details"] --> B["Use legalEntityName\nmust match PAN/GST"]
+    B --> C["Sanitize name\nremove quotes and backslashes"]
+    C --> D["Validate address and state"]
+    D --> E["Require FSSAI license number\nfood merchant compliance"]
+    E --> F{"Business type is proprietorship?"}
+    F -->|Yes, admin flow| G["Require businessProof1Url and businessProof2Url"]
+    F -->|No or POS self-onboarding| H["Proceed to hosted KYC"]
+    G --> H
+    H --> I["Submit sub-merchant and generate KYC URL"]
+    I --> J["Owner uploads PAN, bank proof, business proof, FSSAI docs on Easebuzz portal"]
+    J --> K["Easebuzz performs CPV/KYC verification"]
+    K --> L{"Webhook data.status"}
+    L -->|"True"| M["ACTIVE\nPayments and split setup allowed"]
+    L -->|"Pending"| N["KYC_SUBMITTED\nTrack aging and follow up"]
+    L -->|"False"| O["REJECTED\nCorrect legal/bank/proof details and resubmit"]
+

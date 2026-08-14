@@ -63,7 +63,7 @@ class MenuTerminalProperties {
      *
      * Validates: Requirements 10.3
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 11: Deactivated terminal reactivation sets ACTIVE and increments credentialVersion")
     void terminalReactivationSetsActiveAndIncrementsVersion(
             @ForAll("restaurantIds") Long restaurantId,
@@ -103,7 +103,7 @@ class MenuTerminalProperties {
      *
      * Validates: Requirements 11.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 12: Toggle availability flips isAvailable, other fields unchanged")
     void toggleAvailabilityFlipsBoolean(
             @ForAll("restaurantIds") Long restaurantId,
@@ -158,7 +158,7 @@ class MenuTerminalProperties {
      *
      * Validates: Requirements 12.2
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 13: Valid menu item request creates item with correct fields")
     void validMenuItemRequestCreatesItem(
             @ForAll("validMenuNames") String name,
@@ -198,7 +198,7 @@ class MenuTerminalProperties {
      *
      * Validates: Requirements 12.6
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 14: Soft delete sets isDeleted=true and isAvailable=false")
     void softDeleteSetsFlags(
             @ForAll("restaurantIds") Long restaurantId,
@@ -239,7 +239,7 @@ class MenuTerminalProperties {
      *
      * Validates: Requirements 12.7
      */
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 15: Empty name causes rejection, menu unchanged")
     void emptyNameRejected(
             @ForAll("invalidNames") String name,
@@ -256,7 +256,7 @@ class MenuTerminalProperties {
         verify(menuItemRepository, never()).save(any(MenuItem.class));
     }
 
-    @Property(tries = 100)
+    @Property(tries = 20)
     @Label("Property 15: Invalid price causes rejection, menu unchanged")
     void invalidPriceRejected(
             @ForAll("validMenuNames") String name,

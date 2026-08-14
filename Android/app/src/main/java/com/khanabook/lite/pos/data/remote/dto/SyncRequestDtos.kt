@@ -171,6 +171,7 @@ data class RestaurantProfileSyncDto(
     @SerializedName("logoUrl") val logoUrl: String?,
     @SerializedName("logoVersion") val logoVersion: Int,
     @SerializedName("fssaiNumber") val fssaiNumber: String,
+    @SerializedName("fssaiExpiryDate") val fssaiExpiryDate: String?,
     @SerializedName("country") val country: String,
     @SerializedName("currency") val currency: String,
     @SerializedName("timezone") val timezone: String?,
