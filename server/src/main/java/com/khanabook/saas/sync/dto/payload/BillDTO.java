@@ -45,6 +45,7 @@ public class BillDTO {
     private String paymentStatus;
     private String orderStatus;
     private Long createdBy;
+    private Long createdByUserId;
     private Long paidAt;
     private String lastResetDate;
     private String cancelReason;
