@@ -505,4 +505,33 @@ public class AuthServiceImpl implements AuthService {
                     }
                 });
     }
+
+    @Override
+    @Transactional
+    public void setPin(Long userId, String pin) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setPinHash(passwordEncoder.encode(pin));
+        user.setPinSetAt(System.currentTimeMillis());
+        user.setUpdatedAt(System.currentTimeMillis());
+        user.setServerUpdatedAt(System.currentTimeMillis());
+        userRepository.save(user);
+        log.info("PIN set for userId={}", userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AuthResponse pinLogin(Long restaurantId, String pin) {
+        checkBusinessNotSuspended(restaurantId);
+        var users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
+        for (User user : users) {
+            if (user.getPinHash() != null && passwordEncoder.matches(pin, user.getPinHash())) {
+                if (!Boolean.TRUE.equals(user.getIsActive())) {
+                    throw new IllegalArgumentException("Account is disabled");
+                }
+                return buildAuthResponse(user, user.getDeviceId());
+            }
+        }
+        return null;
+    }
 }

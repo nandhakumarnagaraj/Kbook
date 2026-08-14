@@ -110,9 +110,6 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "paid_at")
 	private Long paidAt;
 
-	@Column(name = "created_by_user_id")
-	private Long createdByUserId;
-
 	@Column(name = "last_reset_date", nullable = false)
 	private String lastResetDate;
 

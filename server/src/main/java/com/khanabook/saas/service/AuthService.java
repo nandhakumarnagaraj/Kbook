@@ -31,5 +31,9 @@ public interface AuthService {
 
 	boolean checkUserExists(String phoneNumber);
 
+	void setPin(Long userId, String pin);
+
+	AuthResponse pinLogin(Long restaurantId, String pin);
+
 	void devReset();
 }

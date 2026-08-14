@@ -145,3 +145,16 @@ Android/*.apk
 
 # Firebase Private Keys (must not be committed to VCS)
 firebase-service-account.json
+
+# Root-level screenshots and QA captures (use ops/ or docs/ subdir if intentional)
+/*.png
+/*.jpg
+/*.jpeg
+
+# Temp working docs / scratch files at repo root
+_build.ps1
+_placeholder.txt
+run_build.cmd
+FIX_PLAN.md
+Production_docs.txt
+KHANABOOK_API_REVIEW_VALIDATION_*.md
