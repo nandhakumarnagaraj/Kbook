@@ -23,7 +23,8 @@ public class SyncPayloadValidator {
 
 	private static final Set<String> VALID_PAYMENT_MODES = Set.of(
 			"upi", "cash", "pos",
-			"part_payment_upi_cash", "part_payment_cash_pos", "part_payment_upi_pos");
+			"part_payment_upi_cash", "part_payment_cash_pos", "part_payment_upi_pos",
+			"part_cash_upi", "part_cash_pos", "part_upi_pos");
 
 	private static final Set<String> VALID_ORDER_STATUSES = Set.of(
 			"draft", "completed", "paid", "cancelled");
