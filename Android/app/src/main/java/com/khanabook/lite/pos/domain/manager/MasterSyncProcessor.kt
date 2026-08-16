@@ -93,12 +93,18 @@ class MasterSyncProcessor @Inject constructor(
             failedReasons += result.failedReasons
         }
         if (failedIds.isNotEmpty()) {
-            throw SyncConflictException(
-                IllegalStateException("Server rejected $label localIds=${failedIds.joinToString(",")}"),
-                failedLocalIds = failedIds.distinct(),
-                failedReasons = failedReasons,
-                syncEntityLabel = label
-            )
+            if (successfulIds.isEmpty()) {
+                // ALL records failed — this is a real conflict, throw
+                throw SyncConflictException(
+                    IllegalStateException("Server rejected $label localIds=${failedIds.joinToString(",")}"),
+                    failedLocalIds = failedIds.distinct(),
+                    failedReasons = failedReasons,
+                    syncEntityLabel = label
+                )
+            }
+            // Partial success — some records synced, some failed.
+            // Log the failures but don't block the entire sync.
+            logWarn("$label failures isolated; continuing children for acknowledged parents")
         }
         return successfulIds
     }
