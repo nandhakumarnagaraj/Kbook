@@ -333,10 +333,31 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
+        composable("staff_permissions") {
+            StaffPermissionScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable("marketplace_orders") {
             MarketplaceOrdersScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(
+            route = "easebuzz_payment/{billId}/{restaurantId}",
+            arguments = listOf(
+                navArgument("billId") { type = NavType.LongType },
+                navArgument("restaurantId") { type = NavType.LongType }
+            )
+        ) {
+            EasebuzzPaymentScreen(
+                onBack = { navController.popBackStack() },
+                onPaymentComplete = {
+                    navController.navigate("main/0") {
+                        popUpTo("easebuzz_payment/{billId}/{restaurantId}") { inclusive = true }
+                    }
+                }
             )
         }
     }

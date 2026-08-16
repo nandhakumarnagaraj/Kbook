@@ -329,6 +329,12 @@ class BillingViewModel @Inject constructor(
         paymentStateManager.setPaymentMode(mode, p1, p2)
     }
 
+    suspend fun getBillById(localBillId: Long) = billRepository.getBillWithItemsById(localBillId)
+
+    suspend fun triggerSyncAndWait() {
+        syncManager.performFullSync()
+    }
+
     suspend fun getLatestPendingOnlineBillId(): Long? {
         var billId = savedStateHandle.get<Long>(PENDING_ONLINE_BILL_ID)
         // If the saved handle is empty (e.g. after a ViewModel recreation via deep-link

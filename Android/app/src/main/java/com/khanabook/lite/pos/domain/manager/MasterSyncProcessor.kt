@@ -472,19 +472,20 @@ class MasterSyncProcessor @Inject constructor(
             isolateHttpConflicts = isolateHttpConflicts
         )
 
-        onStepChange?.invoke(SyncStep.PushStockLogs)
-        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
-        val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
-        pushBatches(
-            label = "stock logs",
-            records = validStockLogs,
-            localId = StockLogEntity::id,
-            transform = StockLogEntity::toSyncDto,
-            push = api::pushStockLogs,
-            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
-            isolateHttpConflicts = isolateHttpConflicts
-        )
+        // Stock log push disabled — inventory tracking not in use
+        // onStepChange?.invoke(SyncStep.PushStockLogs)
+        // val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
+        // val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
+        // pushBatches(
+        //     label = "stock logs",
+        //     records = validStockLogs,
+        //     localId = StockLogEntity::id,
+        //     transform = StockLogEntity::toSyncDto,
+        //     push = api::pushStockLogs,
+        //     markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
+        //     onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
+        //     isolateHttpConflicts = isolateHttpConflicts
+        // )
 
         val unsyncedBills = billDao.getUnsyncedBills(restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }

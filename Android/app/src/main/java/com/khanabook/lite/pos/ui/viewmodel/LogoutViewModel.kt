@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
+import com.khanabook.lite.pos.domain.manager.PermissionManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.cancelMasterSyncWork
@@ -49,7 +50,8 @@ class LogoutViewModel @Inject constructor(
     private val syncManager: SyncManager,
     private val userRepository: UserRepository,
     private val api: KhanaBookApi,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val permissionManager: PermissionManager
 ) : ViewModel() {
     private val debugTag = "KhanaBookDebugAuth"
 
@@ -145,6 +147,7 @@ class LogoutViewModel @Inject constructor(
                 workManager.cancelMasterSyncWork()
                 sessionManager.clearAuthOnly()
             }
+            permissionManager.clear()
             if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
             _logoutState.value = LogoutState.LoggedOut
         }
@@ -182,6 +185,7 @@ class LogoutViewModel @Inject constructor(
                 }
                 sessionManager.clearSession()
             }
+            permissionManager.clear()
             if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
         }

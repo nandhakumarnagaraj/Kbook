@@ -38,7 +38,8 @@ constructor(
         private val restaurantRepository: RestaurantRepository,
         private val syncManager: SyncManager,
         private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
-        private val authManager: AuthManager
+        private val authManager: AuthManager,
+        private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
 ) : ViewModel() {
 
     init {
@@ -353,6 +354,7 @@ constructor(
         sessionManager.clearSession()
         userRepository.setCurrentUser(null)
         sessionManager.clearLockout()
+        permissionManager.clear()
         _loginStatus.value = null
         _signUpStatus.value = null
         _resetPasswordStatus.value = null

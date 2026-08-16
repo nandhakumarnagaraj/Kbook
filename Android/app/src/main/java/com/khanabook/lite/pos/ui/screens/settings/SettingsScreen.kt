@@ -50,6 +50,7 @@ import com.khanabook.lite.pos.ui.screens.PrinterConfigView
 import com.khanabook.lite.pos.ui.screens.SettingsHomeSection
 import com.khanabook.lite.pos.ui.screens.SettingsListView
 import com.khanabook.lite.pos.ui.screens.ShopConfigView
+import com.khanabook.lite.pos.ui.screens.StaffPermissionScreen
 import com.khanabook.lite.pos.ui.screens.TaxConfigView
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,6 +147,13 @@ fun SettingsScreen(
             navController = navController,
             onBackClick = { section = "menu" },
             viewModel = menuViewModel
+        )
+        return
+    }
+
+    if (section == "staff_permissions") {
+        StaffPermissionScreen(
+            onBack = { section = "menu" }
         )
         return
     }

@@ -53,7 +53,8 @@ fun PaymentStep(
     onComplete: () -> Unit,
     onFailed: () -> Unit = {},
     onFlowLockChange: (Boolean) -> Unit = {},
-    resumePendingPayment: Boolean = false
+    resumePendingPayment: Boolean = false,
+    onPayOnline: ((billId: Long, restaurantId: Long) -> Unit)? = null
 ) {
     val summary by viewModel.billSummary.collectAsStateWithLifecycle()
     val persistedPaymentTotal by viewModel.persistedPaymentTotal.collectAsStateWithLifecycle()
@@ -387,6 +388,52 @@ fun PaymentStep(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+                    if (onPayOnline != null) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val localBillId = viewModel.editingBillId
+                                        ?: viewModel.createDraftOnlineBill()
+                                        ?: return@launch
+
+                                    // Get the bill's server ID — required for Easebuzz
+                                    val bill = viewModel.getBillById(localBillId)
+                                    val serverBillId = bill?.bill?.serverId
+                                    if (serverBillId == null || serverBillId == 0L) {
+                                        // Bill not synced yet — trigger sync and inform user
+                                        viewModel.triggerSyncAndWait()
+                                        val refreshedBill = viewModel.getBillById(localBillId)
+                                        val refreshedServerId = refreshedBill?.bill?.serverId
+                                        if (refreshedServerId == null || refreshedServerId == 0L) {
+                                            KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
+                                            return@launch
+                                        }
+                                        val restaurantId = profile?.restaurantId ?: return@launch
+                                        onPayOnline(refreshedServerId, restaurantId)
+                                    } else {
+                                        val restaurantId = profile?.restaurantId ?: return@launch
+                                        onPayOnline(serverBillId, restaurantId)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(KhanaBookTheme.spacing.buttonHeightLarge),
+                            colors = ButtonDefaults.buttonColors(containerColor = Brown500),
+                            shape = KhanaRadii.lg,
+                            enabled = isAmountValid && paymentAttemptReady
+                        ) {
+                            Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text(
+                                "Pay Online (Easebuzz)",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                     TextButton(
                         onClick = {

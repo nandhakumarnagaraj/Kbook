@@ -54,6 +54,7 @@ public class User extends BaseSyncEntity {
 	@Column(name = "token_invalidated_at")
 	private Long tokenInvalidatedAt;
 
+	@com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
 	@Column(name = "pin_hash")
 	private String pinHash;
 

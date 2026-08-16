@@ -283,6 +283,9 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.zxing.android)
     implementation(libs.mlkit.text.recognition)
+
+    // Easebuzz Payment SDK (native checkout — no WebView)
+    implementation("in.easebuzz:android-v2:1.0.2")
     
     // CameraX
     implementation(libs.androidx.camera.core)

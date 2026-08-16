@@ -20,6 +20,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://www.zetetic.net/sqlcipher/android-sqlcipher/") }
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

@@ -39,6 +39,16 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kbook.iadv.cloud}
       PAYMENT_CRYPTO_SECRET: ${PAYMENT_CRYPTO_SECRET}
       APP_BASE_URL: ${APP_BASE_URL}
+      # Easebuzz Payment Gateway
+      EASEBUZZ_MERCHANT_KEY: ${EASEBUZZ_MERCHANT_KEY}
+      EASEBUZZ_SALT: ${EASEBUZZ_SALT}
+      EASEBUZZ_PAYMENT_BASE_URL: ${EASEBUZZ_PAYMENT_BASE_URL:-https://testpay.easebuzz.in}
+      EASEBUZZ_DASHBOARD_BASE_URL: ${EASEBUZZ_DASHBOARD_BASE_URL:-https://testdashboard.easebuzz.in}
+      EASEBUZZ_RETURN_URL: ${EASEBUZZ_RETURN_URL:-https://kbook.iadv.cloud/api/v1/payments/easebuzz/return}
+      EASEBUZZ_NOTIFY_URL: ${EASEBUZZ_NOTIFY_URL:-https://kbook.iadv.cloud/api/v1/payments/easebuzz/webhook}
+      EASEBUZZ_WEBHOOK_URL: ${EASEBUZZ_WEBHOOK_URL:-https://kbook.iadv.cloud/api/v1/payments/easebuzz/webhook}
+      EASEBUZZ_WIRE_BASE_URL: ${EASEBUZZ_WIRE_BASE_URL:-https://testdashboard.easebuzz.in}
+      EASEBUZZ_WIRE_API_KEY: ${EASEBUZZ_WIRE_API_KEY:-}
       CDN_BASE_PATH: ${CDN_BASE_PATH:-/var/www/cdn.kbook.iadv.cloud/restaurants/}
       CDN_URL_PREFIX: ${CDN_URL_PREFIX:-https://kbook.iadv.cloud/cdn/}
       CDN_TMP_PATH: ${CDN_TMP_PATH:-/var/www/cdn.kbook.iadv.cloud/tmp/}

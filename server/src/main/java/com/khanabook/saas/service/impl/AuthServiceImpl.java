@@ -519,9 +519,32 @@ public class AuthServiceImpl implements AuthService {
         log.info("PIN set for userId={}", userId);
     }
 
+    // ── PIN login rate limiting ──────────────────────────────────────────────
+    private static final String DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345";
+    private static final int PIN_MAX_ATTEMPTS = 5;
+    private static final long PIN_WINDOW_MS = 15 * 60 * 1000L; // 15 minutes
+
+    private final java.util.concurrent.ConcurrentHashMap<Long, long[]> pinAttemptTracker =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private boolean isPinRateLimited(Long restaurantId) {
+        long now = System.currentTimeMillis();
+        long[] record = pinAttemptTracker.compute(restaurantId, (key, existing) -> {
+            if (existing == null || now - existing[1] > PIN_WINDOW_MS) {
+                return new long[]{1, now};
+            }
+            existing[0]++;
+            return existing;
+        });
+        return record[0] > PIN_MAX_ATTEMPTS;
+    }
+
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse pinLogin(Long restaurantId, String pin) {
+        if (isPinRateLimited(restaurantId)) {
+            throw new IllegalArgumentException("Too many PIN attempts. Please try again later.");
+        }
         checkBusinessNotSuspended(restaurantId);
         var users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
         for (User user : users) {
@@ -532,6 +555,8 @@ public class AuthServiceImpl implements AuthService {
                 return buildAuthResponse(user, user.getDeviceId());
             }
         }
+        // Constant-time: prevent timing attacks revealing restaurant size
+        passwordEncoder.matches(pin, DUMMY_HASH);
         return null;
     }
 }

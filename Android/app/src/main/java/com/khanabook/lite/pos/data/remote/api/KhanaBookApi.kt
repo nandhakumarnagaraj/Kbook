@@ -190,6 +190,39 @@ interface KhanaBookApi {
 
         @GET("api/v1/permissions/users/{userId}")
         suspend fun getUserPermissions(@Path("userId") userId: Long): UserPermissionsResponse
+
+        // ── Easebuzz Payments ────────────────────────────────────────────────
+        @POST("api/v1/payments/easebuzz/create-order")
+        suspend fun createEasebuzzOrder(
+            @Body request: CreateEasebuzzOrderRequest
+        ): CreateEasebuzzOrderResponse
+
+        @GET("api/v1/payments/easebuzz/status/{billId}")
+        suspend fun getEasebuzzPaymentStatus(
+            @Path("billId") billId: Long,
+            @Query("refresh") refresh: Boolean = false
+        ): Map<String, Any?>
+
+        @POST("api/v1/payments/easebuzz/verify/{billId}")
+        suspend fun verifyEasebuzzPayment(
+            @Path("billId") billId: Long
+        ): Map<String, Any?>
+
+        @POST("api/v1/payments/easebuzz/refund/{billId}")
+        suspend fun refundEasebuzzPayment(
+            @Path("billId") billId: Long,
+            @Body request: EasebuzzRefundRequest
+        ): Map<String, Any?>
+
+        @GET("api/v1/payments/easebuzz/refund-status/{billId}")
+        suspend fun getEasebuzzRefundStatus(
+            @Path("billId") billId: Long
+        ): Map<String, Any?>
+
+        @POST("api/v1/payments/easebuzz/cancel/{billId}")
+        suspend fun cancelEasebuzzPayment(
+            @Path("billId") billId: Long
+        ): Map<String, Any?>
 }
 
 data class TerminalListItem(

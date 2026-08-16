@@ -39,6 +39,7 @@
     <application
         android:name="com.khanabook.lite.pos.KhanaBookApplication"
         android:allowBackup="false"
+        tools:replace="android:allowBackup"
         android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"

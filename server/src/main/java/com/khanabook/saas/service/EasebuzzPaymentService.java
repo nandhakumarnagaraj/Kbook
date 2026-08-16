@@ -50,6 +50,18 @@ public class EasebuzzPaymentService {
             );
         }
 
+        // Idempotency: if a payment order was already created for this bill and hasn't
+        // failed, return the same txnid instead of generating a new one. This prevents
+        // duplicate Easebuzz orders when user double-taps or retries.
+        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
+                && !"failure".equalsIgnoreCase(bill.getGatewayStatus())
+                && !"error".equalsIgnoreCase(bill.getGatewayStatus())) {
+            log.info("Reusing existing payment order billId={} txnid={} status={}",
+                    billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
+            // Re-initiate with same txnid to get a fresh access token/URL
+            return reinitiateExistingOrder(bill, restaurantId);
+        }
+
         Map<String, Object> fraudScore = chargebackService.scoreTransaction(billId);
         String risk = (String) fraudScore.get("risk");
         double score = ((Number) fraudScore.get("score")).doubleValue();
@@ -438,5 +450,72 @@ public class EasebuzzPaymentService {
 
     private String str(Object value) {
         return value != null ? value.toString() : "";
+    }
+
+    /**
+     * Re-initiate payment with the same txnid to get a fresh access token/URL.
+     * Easebuzz allows re-initiating the same txnid if it hasn't been paid yet —
+     * this returns a new access key pointing to the same transaction.
+     */
+    private Map<String, Object> reinitiateExistingOrder(Bill bill, Long restaurantId) {
+        String txnid = bill.getGatewayTxnId();
+        String amount = String.format("%.2f", bill.getTotalAmount());
+        String productinfo = "KhanaBook Order " +
+            (bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : bill.getId().toString());
+        String firstname = bill.getCustomerName() != null
+            ? bill.getCustomerName().replaceAll("[^a-zA-Z0-9 ]", "").trim()
+            : "Customer";
+        String phone = bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "";
+
+        Map<String, String> data = new HashMap<>();
+        data.put("txnid", txnid);
+        data.put("amount", amount);
+        data.put("productinfo", productinfo);
+        data.put("firstname", firstname);
+        data.put("surl", props.getReturnUrl());
+        data.put("furl", props.getReturnUrl());
+
+        try {
+            EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
+            if (sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank()
+                    && ("ACTIVE".equals(sm.getStatus()) || "test".equalsIgnoreCase(props.getPayMode()))) {
+                data.put("sub_merchant_id", sm.getSubMerchantId());
+            }
+            if (sm.getContactEmail() != null) data.put("email", sm.getContactEmail());
+            if (phone.isBlank() && sm.getContactPhone() != null) phone = sm.getContactPhone();
+        } catch (RuntimeException e) {
+            // No sub-merchant — proceed as parent
+        }
+
+        data.put("phone", phone);
+        if (!data.containsKey("email") || data.get("email") == null || data.get("email").isBlank()) {
+            data.put("email", "customer@khanabook.in");
+        }
+        data.put("udf1", bill.getId().toString());
+        data.put("udf2", restaurantId.toString());
+
+        log.info("Re-initiating Easebuzz payment (idempotent) billId={} txnid={}", bill.getId(), txnid);
+        Map<String, Object> result = easebuzzApi.initiatePayment(data);
+        String status = (String) result.getOrDefault("status", "failure");
+
+        if ("success".equalsIgnoreCase(status)) {
+            String accessToken = (String) result.get("access_token");
+            String paymentUrl = (String) result.get("payment_url");
+            return Map.of(
+                "status", "success",
+                "txnid", txnid,
+                "access_token", accessToken != null ? accessToken : "",
+                "payment_url", paymentUrl != null ? paymentUrl : "",
+                "amount", bill.getTotalAmount(),
+                "pay_mode", props.getPayMode()
+            );
+        }
+
+        // If re-initiation fails, clear stale txnid and let a fresh order be created on next attempt
+        log.warn("Re-initiation failed for billId={} txnid={}, clearing stale gateway data", bill.getId(), txnid);
+        bill.setGatewayTxnId(null);
+        bill.setGatewayStatus(null);
+        billRepo.save(bill);
+        return Map.of("status", "failure", "error", result.getOrDefault("error", "Payment re-initiation failed. Please retry."));
     }
 }

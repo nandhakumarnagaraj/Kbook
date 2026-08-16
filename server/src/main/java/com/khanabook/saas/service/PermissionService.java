@@ -68,6 +68,9 @@ public class PermissionService {
 
     @Transactional
     public void grantPermission(Long restaurantId, Long userId, String permissionKey, Long grantedBy) {
+        if (com.khanabook.saas.entity.PermissionKey.fromKey(permissionKey) == null) {
+            throw new IllegalArgumentException("Invalid permission key: " + permissionKey);
+        }
         var existing = permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey);
         if (existing.isPresent()) {
             var perm = existing.get();
@@ -104,6 +107,11 @@ public class PermissionService {
     public void applyTemplate(Long restaurantId, Long userId, Long templateId, Long grantedBy) {
         var template = templateRepo.findById(templateId)
                 .orElseThrow(() -> new IllegalArgumentException("Template not found"));
+
+        if (!template.getRestaurantId().equals(restaurantId)) {
+            throw new IllegalArgumentException("Template not found");
+        }
+
         var keys = parsePermissionsList(template.getPermissions());
 
         // Revoke all existing, then grant template permissions
@@ -145,6 +153,12 @@ public class PermissionService {
     public void approveRequest(Long requestId, Long resolvedBy) {
         var request = requestRepo.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
+
+        Long callerRestaurant = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        if (callerRestaurant != null && !callerRestaurant.equals(request.getRestaurantId())) {
+            throw new IllegalArgumentException("Request not found");
+        }
+
         if (!"PENDING".equals(request.getStatus())) {
             throw new IllegalStateException("Request is no longer pending");
         }
@@ -162,6 +176,12 @@ public class PermissionService {
     public void rejectRequest(Long requestId, Long resolvedBy, String rejectionReason) {
         var request = requestRepo.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
+
+        Long callerRestaurant = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        if (callerRestaurant != null && !callerRestaurant.equals(request.getRestaurantId())) {
+            throw new IllegalArgumentException("Request not found");
+        }
+
         if (!"PENDING".equals(request.getStatus())) {
             throw new IllegalStateException("Request is no longer pending");
         }
