@@ -50,16 +50,20 @@ public class EasebuzzPaymentService {
             );
         }
 
-        // Idempotency: if a payment order was already created for this bill and hasn't
-        // failed, return the same txnid instead of generating a new one. This prevents
-        // duplicate Easebuzz orders when user double-taps or retries.
-        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
-                && !"failure".equalsIgnoreCase(bill.getGatewayStatus())
-                && !"error".equalsIgnoreCase(bill.getGatewayStatus())) {
-            log.info("Reusing existing payment order billId={} txnid={} status={}",
-                    billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
-            // Re-initiate with same txnid to get a fresh access token/URL
-            return reinitiateExistingOrder(bill, restaurantId);
+        // Idempotency: if a previous order exists but wasn't paid, clear it and create fresh.
+        // Easebuzz doesn't support re-initiating the same txnid for a new access token,
+        // so we generate a new order each time (old unpaid orders expire automatically).
+        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()) {
+            if ("failure".equalsIgnoreCase(bill.getGatewayStatus())
+                    || "error".equalsIgnoreCase(bill.getGatewayStatus())
+                    || "success".equalsIgnoreCase(bill.getGatewayStatus())) {
+                // "success" here means order-created (not paid) — clear and create fresh
+                log.info("Clearing stale gateway data for billId={} txnid={} status={}, will create fresh order",
+                        billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
+                bill.setGatewayTxnId(null);
+                bill.setGatewayStatus(null);
+                billRepo.save(bill);
+            }
         }
 
         Map<String, Object> fraudScore = chargebackService.scoreTransaction(billId);

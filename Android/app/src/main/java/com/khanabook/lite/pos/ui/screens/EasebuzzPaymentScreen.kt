@@ -31,6 +31,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -97,18 +100,22 @@ fun EasebuzzPaymentScreen(
         }
     }
 
+    // Track if SDK was already launched to prevent double-launch on recomposition
+    var sdkLaunched by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
     // When payment is ready, launch SDK
     LaunchedEffect(state) {
         when (val currentState = state) {
             is EasebuzzPaymentState.PaymentReady -> {
-                if (activity != null) {
+                if (activity != null && !sdkLaunched) {
+                    sdkLaunched = true
                     try {
                         val intent = android.content.Intent(activity, Class.forName("com.easebuzz.payment.kit.PWECouponsActivity"))
                         intent.putExtra("access_key", currentState.accessToken)
                         intent.putExtra("pay_mode", "test") // Change to "production" for live
                         sdkLauncher.launch(intent)
                     } catch (e: ClassNotFoundException) {
-                        // SDK class not found — fallback to WebView or show error
+                        sdkLaunched = false
                         viewModel.onSdkUnavailable("Easebuzz SDK not available. Please update the app.")
                     }
                 }
@@ -117,7 +124,7 @@ fun EasebuzzPaymentScreen(
         }
     }
 
-    // Auto-start order creation
+    // Auto-start order creation (only once)
     LaunchedEffect(Unit) {
         if (state is EasebuzzPaymentState.Idle) {
             viewModel.createOrder()
