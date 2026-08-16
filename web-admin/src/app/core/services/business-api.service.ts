@@ -211,4 +211,12 @@ export class BusinessApiService {
   lookupBoth(fssai: string, gst: string): Observable<any> { return of(null); }
   getProfile(): Observable<any> { return of(null); }
   updateProfile(payload: any): Observable<any> { return of(null); }
+
+  getUserPermissions(userId: number): Observable<any> {
+    return this.http.get(`${API_BASE_URL}/permissions/users/${userId}`);
+  }
+
+  updateUserPermissions(userId: number, permissions: string[]): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/permissions/bulk-grant`, { userId, permissionKeys: permissions });
+  }
 }

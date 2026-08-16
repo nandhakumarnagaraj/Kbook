@@ -869,7 +869,7 @@ export class StaffPageComponent {
     this.permissionsSet = new Set();
 
     this.api.getUserPermissions(item.userId).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.permissionsSet = new Set(res.grantedPermissions);
         this.permissionsLoading = false;
       },
