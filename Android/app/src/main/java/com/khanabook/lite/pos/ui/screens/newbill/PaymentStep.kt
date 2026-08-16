@@ -209,10 +209,12 @@ fun PaymentStep(
     val requiresOnlineAttempt = isUpiMode && viewModel.editingBillId == null
     val recoveryConflict = paymentRecovery as? PaymentRecoveryAssessment.Conflicting
     val controlsLocked = recoveryConflict != null
+    var isSubmitting by remember { mutableStateOf(false) }
     val paymentAttemptReady =
         recoveryConflict == null &&
             selectableModes.isNotEmpty() &&
-            (!requiresOnlineAttempt || resumedPendingBillId != null)
+            (!requiresOnlineAttempt || resumedPendingBillId != null) &&
+            !isSubmitting
 
     LaunchedEffect(paymentRecovery, viewModel.editingBillId) {
         val billId = viewModel.editingBillId
@@ -339,7 +341,8 @@ fun PaymentStep(
                 if (enabledModes.isNotEmpty()) {
                     Button(
                         onClick = {
-                            if (!isAmountValid) return@Button
+                            if (!isAmountValid || isSubmitting) return@Button
+                            isSubmitting = true
                             scope.launch {
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 val success = when {
@@ -365,6 +368,8 @@ fun PaymentStep(
                                     viewModel.clearGatewayResult()
                                     viewModel.clearActiveSession()
                                     onComplete()
+                                } else {
+                                    isSubmitting = false
                                 }
                             }
                         },

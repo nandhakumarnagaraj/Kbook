@@ -140,9 +140,9 @@ class InitialSyncViewModel @Inject constructor(
                         )
                     }
                     "EXPIRED" -> {
-                        _syncState.value = InitialSyncState.Error(
-                            "Registration request has expired. Please try again."
-                        )
+                        // Auto-retry: restart the sync which will create a new activation request
+                        Log.i("InitialSyncViewModel", "Request expired, auto-restarting activation")
+                        startInitialSync()
                     }
                     "PENDING" -> {
                         // Update challenge code if server sent a fresh one

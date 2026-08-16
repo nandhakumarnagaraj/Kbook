@@ -282,12 +282,14 @@ fun InitialSyncScreen(
                                     delay(1000L)
                                     timeLeft = ((pendingState.challengeExpiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
                                 }
+                                // Code expired — immediately poll for a fresh code
+                                viewModel.pollRequestStatus()
                             }
                             Spacer(modifier = Modifier.height(spacing.small))
                             Text(
                                 text = if (timeLeft > 0) "Expires in ${timeLeft / 60}:${(timeLeft % 60).toString().padStart(2, '0')}"
-                                       else "Code expired — waiting for new code...",
-                                color = if (timeLeft > 0) TextGold.copy(alpha = 0.5f) else ErrorPink.copy(alpha = 0.7f),
+                                       else "Refreshing code...",
+                                color = if (timeLeft > 0) TextGold.copy(alpha = 0.5f) else PrimaryGold.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.labelSmall,
                                 textAlign = TextAlign.Center
                             )

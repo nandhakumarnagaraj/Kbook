@@ -131,17 +131,21 @@ fun EasebuzzPaymentScreen(
         }
     }
 
+    val isPaymentActive = state is EasebuzzPaymentState.CreatingOrder ||
+        state is EasebuzzPaymentState.PaymentReady ||
+        state is EasebuzzPaymentState.Verifying
+
     Scaffold(
         containerColor = DarkBrown1,
         topBar = {
             TopAppBar(
                 title = { Text("Online Payment", color = TextLight) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, enabled = !isPaymentActive) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = PrimaryGold
+                            tint = if (isPaymentActive) PrimaryGold.copy(alpha = 0.3f) else PrimaryGold
                         )
                     }
                 },
@@ -168,7 +172,22 @@ fun EasebuzzPaymentScreen(
                 }
 
                 is EasebuzzPaymentState.Verifying -> {
-                    LoadingContent("Verifying payment...")
+                    var showRetry by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(30_000L)
+                        showRetry = true
+                    }
+                    if (showRetry) {
+                        PaymentResultContent(
+                            success = false,
+                            message = "Verification taking too long",
+                            details = "Payment may have succeeded. Tap below to check status.",
+                            onDone = onBack,
+                            onRetry = { viewModel.verifyPayment() }
+                        )
+                    } else {
+                        LoadingContent("Verifying payment...")
+                    }
                 }
 
                 is EasebuzzPaymentState.PaymentSuccess -> {

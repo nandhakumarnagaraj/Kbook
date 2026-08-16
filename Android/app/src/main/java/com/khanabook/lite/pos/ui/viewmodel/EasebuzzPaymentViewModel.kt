@@ -68,7 +68,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    val msg = e.message ?: "Network error creating payment"
+                    val msg = "Unable to start payment. Please check your internet connection."
                     _state.value = EasebuzzPaymentState.Error(msg)
                     KhanaToast.show(msg, ToastKind.Error)
                 }

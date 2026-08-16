@@ -80,6 +80,16 @@ fun NewBillScreen(
     var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else initialStep) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
 
+    // Auto-unlock payment flow after 60 seconds to prevent user being trapped
+    LaunchedEffect(paymentFlowLocked) {
+        if (paymentFlowLocked) {
+            kotlinx.coroutines.delay(60_000L)
+            if (paymentFlowLocked) {
+                paymentFlowLocked = false
+                KhanaToast.show("Payment flow timed out. You can navigate away now.", ToastKind.Warning)
+            }
+        }
+    }
     LaunchedEffect(draftBillId) {
         if (draftBillId != null) {
             billingViewModel.loadDraftOrderForEditing(draftBillId) {

@@ -331,7 +331,7 @@ class SyncManager @Inject constructor(
             latestServerTimestamp = maxOf(latestServerTimestamp, response.serverTimestamp)
 
             // Update permissions from first page response
-            if (page == 1) {
+            if (page == 0) {
                 permissionManager.updateFromSync(response.grantedPermissions)
             }
 

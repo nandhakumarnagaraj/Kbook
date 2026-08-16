@@ -99,7 +99,7 @@ fun LoginScreen(
                 com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR ->
                     viewModel.setGoogleLoginError("Network error during Google Sign-In. Please try again.")
                 else ->
-                    viewModel.setGoogleLoginError("Google Sign-In failed (${e.statusCode}). Please try again.")
+                    viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
             }
         }
     }
