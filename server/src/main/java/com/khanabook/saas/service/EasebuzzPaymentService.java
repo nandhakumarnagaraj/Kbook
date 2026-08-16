@@ -50,20 +50,21 @@ public class EasebuzzPaymentService {
             );
         }
 
-        // Idempotency: if a previous order exists but wasn't paid, clear it and create fresh.
-        // Easebuzz doesn't support re-initiating the same txnid for a new access token,
-        // so we generate a new order each time (old unpaid orders expire automatically).
-        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()) {
-            if ("failure".equalsIgnoreCase(bill.getGatewayStatus())
-                    || "error".equalsIgnoreCase(bill.getGatewayStatus())
-                    || "success".equalsIgnoreCase(bill.getGatewayStatus())) {
-                // "success" here means order-created (not paid) — clear and create fresh
-                log.info("Clearing stale gateway data for billId={} txnid={} status={}, will create fresh order",
-                        billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
-                bill.setGatewayTxnId(null);
-                bill.setGatewayStatus(null);
-                billRepo.save(bill);
-            }
+        // ERA-CONFIRMED (2026-08-17): Easebuzz txnid behavior:
+        // - Each txnid can ONLY be used ONCE — never reuse after success, failure, or timeout
+        // - Access token expires in 15 minutes — customer cannot pay after that
+        // - No cancel API exists — unpaid txnids auto-expire in 15 min
+        // - Multiple txnids for same bill CAN both succeed (double-charge risk)
+        //   → Mitigated: old link expires in 15 min, app only shows latest payment screen
+        // - No webhook for abandoned txnids — poll /transaction/v2.1/retrieve if needed
+        // Strategy: Always create fresh txnid. Clear old gateway data unconditionally.
+        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
+                && !"paid".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.info("Clearing stale gateway data for billId={} txnid={} status={}, will create fresh order",
+                    billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
+            bill.setGatewayTxnId(null);
+            bill.setGatewayStatus(null);
+            billRepo.save(bill);
         }
 
         Map<String, Object> fraudScore = chargebackService.scoreTransaction(billId);
