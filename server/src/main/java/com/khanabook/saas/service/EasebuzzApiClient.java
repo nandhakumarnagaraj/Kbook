@@ -132,7 +132,7 @@ public class EasebuzzApiClient {
 			result.put("payment_url", props.getPaymentBaseUrl() + "/pay/" + accessKey);
 		} else {
 			result.put("status", "failure");
-			result.put("error", raw != null ? raw.getOrDefault("data", raw.get("error")) : "No response");
+			result.put("error", raw != null ? raw.getOrDefault("error_desc", raw.getOrDefault("data", raw.get("error"))) : "No response");
 		}
 		return result;
 	}
