@@ -21,6 +21,10 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
         requestBuilder.addHeader("X-Device-Id", deviceId)
     }
 
+    // Correlation ID: enables tracing a request from Android logs → server logs
+    val requestId = java.util.UUID.randomUUID().toString().substring(0, 8)
+    requestBuilder.addHeader("X-Request-Id", requestId)
+
     // FIX #13 — API versioning: send version code so the server can track
     // which app versions are active and issue deprecation warnings.
     requestBuilder.addHeader("X-App-Version", BuildConfig.VERSION_CODE.toString())

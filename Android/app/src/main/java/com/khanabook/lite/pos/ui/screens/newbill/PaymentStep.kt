@@ -397,29 +397,33 @@ fun PaymentStep(
                     if (onPayOnline != null) {
                         Button(
                             onClick = {
+                                if (isSubmitting) return@Button
+                                isSubmitting = true
                                 scope.launch {
                                     val localBillId = viewModel.editingBillId
                                         ?: viewModel.createDraftOnlineBill()
-                                        ?: return@launch
+                                        ?: run { isSubmitting = false; return@launch }
 
                                     // Get the bill's server ID — required for Easebuzz
-                                    val bill = viewModel.getBillById(localBillId)
-                                    val serverBillId = bill?.bill?.serverId
+                                    var serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
                                     if (serverBillId == null || serverBillId == 0L) {
-                                        // Bill not synced yet — trigger sync and inform user
+                                        // Bill not synced yet — trigger sync and wait for serverId
                                         viewModel.triggerSyncAndWait()
-                                        val refreshedBill = viewModel.getBillById(localBillId)
-                                        val refreshedServerId = refreshedBill?.bill?.serverId
-                                        if (refreshedServerId == null || refreshedServerId == 0L) {
-                                            KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
-                                            return@launch
+                                        // Retry reading serverId up to 5 times with short delays
+                                        // (Room write may not be immediately visible)
+                                        repeat(5) {
+                                            kotlinx.coroutines.delay(500L)
+                                            serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
+                                            if (serverBillId != null && serverBillId != 0L) return@repeat
                                         }
-                                        val restaurantId = profile?.restaurantId ?: return@launch
-                                        onPayOnline(refreshedServerId, restaurantId)
-                                    } else {
-                                        val restaurantId = profile?.restaurantId ?: return@launch
-                                        onPayOnline(serverBillId, restaurantId)
                                     }
+                                    if (serverBillId == null || serverBillId == 0L) {
+                                        KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
+                                        isSubmitting = false
+                                        return@launch
+                                    }
+                                    val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
+                                    onPayOnline(serverBillId!!, restaurantId)
                                 }
                             },
                             modifier = Modifier

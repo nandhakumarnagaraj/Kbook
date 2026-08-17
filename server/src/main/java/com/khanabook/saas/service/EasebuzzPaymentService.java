@@ -202,6 +202,14 @@ public class EasebuzzPaymentService {
     public Map<String, Object> verifyPayment(Long billId) {
         Bill bill = billRepo.findById(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+
+        // Double-charge guard: if bill is already paid, return success without re-processing
+        if ("paid".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.info("Payment already confirmed billId={} txnid={} — returning existing result", billId, bill.getGatewayTxnId());
+            return Map.of("status", "success", "txnid", bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : "",
+                    "alreadyPaid", true);
+        }
+
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }

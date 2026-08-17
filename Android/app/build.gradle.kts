@@ -285,7 +285,7 @@ dependencies {
     implementation(libs.mlkit.text.recognition)
 
     // Easebuzz Payment SDK (native checkout — no WebView)
-    implementation("in.easebuzz:android-v2:1.0.2")
+    implementation("in.easebuzz:android-v2:1.0.6")
     
     // CameraX
     implementation(libs.androidx.camera.core)

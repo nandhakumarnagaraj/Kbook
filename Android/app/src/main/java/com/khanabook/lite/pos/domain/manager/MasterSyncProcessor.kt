@@ -1188,6 +1188,8 @@ class MasterSyncProcessor @Inject constructor(
                 remoteLog.copy(
                     menuItemId = localMenuItemId,
                     variantId = localVariantId,
+                    delta = remoteLog.delta ?: "0",
+                    reason = remoteLog.reason ?: "",
                     isSynced = true
                 )
             }

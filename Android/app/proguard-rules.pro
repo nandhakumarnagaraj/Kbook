@@ -59,3 +59,7 @@
 -dontwarn com.google.api.client.**
 -keep class com.google.auth.** { *; }
 -dontwarn com.google.auth.**
+
+# Easebuzz Payment SDK - keep all classes
+-keep class com.easebuzz.** { *; }
+-dontwarn com.easebuzz.**

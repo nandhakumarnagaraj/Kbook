@@ -110,7 +110,7 @@ fun EasebuzzPaymentScreen(
                 if (activity != null && !sdkLaunched) {
                     sdkLaunched = true
                     try {
-                        val intent = android.content.Intent(activity, Class.forName("com.easebuzz.payment.kit.PWECouponsActivity"))
+                        val intent = android.content.Intent(activity, Class.forName("com.easebuzz.payment.kit.PWECheckoutActivity"))
                         intent.putExtra("access_key", currentState.accessToken)
                         intent.putExtra("pay_mode", "test") // Change to "production" for live
                         sdkLauncher.launch(intent)

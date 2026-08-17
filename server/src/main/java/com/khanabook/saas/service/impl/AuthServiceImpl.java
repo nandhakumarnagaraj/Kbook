@@ -520,6 +520,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // ── PIN login rate limiting ──────────────────────────────────────────────
+    // TODO(P2): Move to DB-backed rate limiter (DbRateLimiter) for multi-instance
+    // and restart-resilient enforcement. Current in-memory tracker resets on restart.
     private static final String DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345";
     private static final int PIN_MAX_ATTEMPTS = 5;
     private static final long PIN_WINDOW_MS = 15 * 60 * 1000L; // 15 minutes
@@ -536,7 +538,11 @@ public class AuthServiceImpl implements AuthService {
             existing[0]++;
             return existing;
         });
-        return record[0] > PIN_MAX_ATTEMPTS;
+        if (record[0] > PIN_MAX_ATTEMPTS) {
+            log.warn("PIN rate limit triggered restaurantId={} attempts={}", restaurantId, record[0]);
+            return true;
+        }
+        return false;
     }
 
     @Override

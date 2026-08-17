@@ -81,6 +81,13 @@ public class WebhookRetryService {
     public void processPendingRetries() {
         long now = System.currentTimeMillis();
         List<WebhookRetryJob> pending = retryJobRepository.findByStatusAndNextAttemptAtLessThanEqual("PENDING", now);
+
+        // Alert on accumulated dead letters (checked every cycle)
+        long deadLetterCount = retryJobRepository.countByStatus("DEAD_LETTER");
+        if (deadLetterCount > 0) {
+            log.warn("ALERT: {} webhook(s) in DEAD_LETTER state — payment/refund webhooks may have been lost. Review via /admin/webhooks/dead-letter", deadLetterCount);
+        }
+
         if (pending.isEmpty()) return;
         log.info("Processing {} pending webhook retry jobs", pending.size());
         for (WebhookRetryJob job : pending) {
