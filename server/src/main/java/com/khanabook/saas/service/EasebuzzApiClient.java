@@ -247,6 +247,71 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body);
 	}
 
+	public Map<String, Object> createPaymentLink(Map<String, String> data) {
+		checkCredentials();
+
+		// Easy Collect (Payment Link) API
+		// Required: merchant_txn, name, email, phone, amount, message
+		// Hash: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+		String merchantTxn = data.get("merchant_txn");
+		String name = data.get("name");
+		String email = data.get("email");
+		String phone = data.get("phone");
+		String amount = data.get("amount");
+		String message = data.get("message");
+		String udf1 = data.getOrDefault("udf1", "");
+		String udf2 = data.getOrDefault("udf2", "");
+		String udf3 = data.getOrDefault("udf3", "");
+		String udf4 = data.getOrDefault("udf4", "");
+		String udf5 = data.getOrDefault("udf5", "");
+
+		String hash = generateHash(
+				props.getMerchantKey(), merchantTxn, name, email, phone, amount,
+				udf1, udf2, udf3, udf4, udf5, message
+		);
+
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.set("key", props.getMerchantKey());
+		params.set("merchant_txn", merchantTxn);
+		params.set("name", name);
+		params.set("email", email);
+		params.set("phone", phone);
+		params.set("amount", amount);
+		params.set("message", message);
+		params.set("udf1", udf1);
+		params.set("udf2", udf2);
+		params.set("udf3", udf3);
+		params.set("udf4", udf4);
+		params.set("udf5", udf5);
+		params.set("hash", hash);
+
+		// Optional: sub_merchant_id for sub-merchant payments
+		String subMerchantId = data.get("sub_merchant_id");
+		if (subMerchantId != null && !subMerchantId.isBlank()) {
+			params.set("sub_merchant_id", subMerchantId);
+		}
+
+		// Optional: restrict payment modes (e.g., "NB,DC,CC,UPI")
+		if (data.containsKey("show_payment_mode") && !data.get("show_payment_mode").isBlank()) {
+			params.set("show_payment_mode", data.get("show_payment_mode"));
+		}
+
+		Map<String, Object> raw = post(props.getPaymentBaseUrl() + "/easy_collect", params);
+
+		Map<String, Object> result = new HashMap<>();
+		Object statusObj = raw != null ? raw.get("status") : null;
+		if (toBool(statusObj) && raw != null) {
+			String linkUrl = (String) raw.get("data");
+			result.put("status", "success");
+			result.put("payment_url", linkUrl);
+			result.put("merchant_txn", (String) raw.get("merchant_txn"));
+		} else {
+			result.put("status", "failure");
+			result.put("error", raw != null ? raw.getOrDefault("error_desc", raw.getOrDefault("data", raw.get("error"))) : "No response");
+		}
+return result;
+	}
+
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,

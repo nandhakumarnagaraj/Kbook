@@ -42,6 +42,26 @@ public class PaymentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/create-link")
+    public ResponseEntity<Map<String, Object>> createPaymentLink(@RequestBody Map<String, Object> request) {
+        Object restaurantIdObj = request.get("restaurantId");
+        Object amountObj = request.get("amount");
+        Object customerNameObj = request.get("customerName");
+        Object customerEmailObj = request.get("customerEmail");
+        Object customerPhoneObj = request.get("customerPhone");
+        Object messageObj = request.get("message");
+
+        if (restaurantIdObj == null || amountObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "restaurantId and amount are required"));
+        }
+
+        Map<String, Object> result = paymentService.createPaymentLink(request);
+        if ("failure".equals(result.get("status"))) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/create-fssai-order")
     public ResponseEntity<Map<String, Object>> createFssaiOrder(@RequestBody Map<String, Object> request) {
         Object yearsObj = request.get("years");

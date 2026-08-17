@@ -36,3 +36,14 @@ data class EasebuzzRefundResponse(
     @SerializedName("refund_id") val refundId: String? = null,
     @SerializedName("error") val error: String? = null
 )
+
+data class CreateEasebuzzPaymentLinkRequest(
+    @SerializedName("restaurantId") val restaurantId: Long,
+    @SerializedName("amount") val amount: String,
+    @SerializedName("customerName") val customerName: String,
+    @SerializedName("customerEmail") val customerEmail: String,
+    @SerializedName("customerPhone") val customerPhone: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("merchantTxn") val merchantTxn: String? = null,
+    @SerializedName("show_payment_mode") val showPaymentMode: String? = null
+)

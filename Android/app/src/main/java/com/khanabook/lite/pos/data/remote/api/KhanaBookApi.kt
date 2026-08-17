@@ -223,6 +223,11 @@ interface KhanaBookApi {
         suspend fun cancelEasebuzzPayment(
             @Path("billId") billId: Long
         ): Map<String, Any?>
+
+        @POST("api/v1/payments/easebuzz/create-link")
+        suspend fun createEasebuzzPaymentLink(
+            @Body request: CreateEasebuzzPaymentLinkRequest
+        ): Map<String, Any?>
 }
 
 data class TerminalListItem(

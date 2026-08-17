@@ -4,6 +4,7 @@ import android.util.Log
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderRequest
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderResponse
+import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzPaymentLinkRequest
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +35,28 @@ class EasebuzzPaymentRepository @Inject constructor(
 
     suspend fun cancelPayment(billId: Long): Result<Map<String, Any?>> =
         runApi { api.cancelEasebuzzPayment(billId) }
+
+    suspend fun createPaymentLink(
+        restaurantId: Long,
+        amount: String,
+        customerName: String,
+        customerEmail: String,
+        customerPhone: String,
+        message: String,
+        merchantTxn: String
+    ): Result<Map<String, Any?>> =
+        runApi {
+            val request = CreateEasebuzzPaymentLinkRequest(
+                restaurantId = restaurantId,
+                amount = amount,
+                customerName = customerName,
+                customerEmail = customerEmail,
+                customerPhone = customerPhone,
+                message = message,
+                merchantTxn = merchantTxn
+            )
+            api.createEasebuzzPaymentLink(request)
+        }
 
     private suspend fun <T> runApi(block: suspend () -> T): Result<T> = try {
         Result.success(block())

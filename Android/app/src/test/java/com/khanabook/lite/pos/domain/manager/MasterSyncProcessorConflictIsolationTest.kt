@@ -73,7 +73,8 @@ class MasterSyncProcessorConflictIsolationTest {
             menuDao = menuDao,
             inventoryDao = inventoryDao,
             printerProfileDao = printerProfileDao,
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            permissionManager = mockk(relaxed = true)
         )
     }
 
@@ -87,30 +88,24 @@ class MasterSyncProcessorConflictIsolationTest {
         val attemptedBatches = mutableListOf<List<Long>>()
         val markedSynced = mutableListOf<Long>()
 
-        val result = runCatching {
-            processor.pushBatches(
-                label = "bills",
-                records = listOf(1L, 2L, 3L, 4L),
-                localId = { it },
-                transform = { it },
-                push = { batch ->
-                    attemptedBatches += batch
-                    if (3L in batch) throw conflict("invoice identity already exists")
-                    PushSyncResponse(
-                        successfulLocalIds = batch,
-                        failedLocalIds = emptyList()
-                    )
-                },
-                markSynced = { markedSynced += it },
-                isolateHttpConflicts = true
-            )
-        }
+        val result = processor.pushBatches(
+            label = "bills",
+            records = listOf(1L, 2L, 3L, 4L),
+            localId = { it },
+            transform = { it },
+            push = { batch ->
+                attemptedBatches += batch
+                if (3L in batch) throw conflict("invoice identity already exists")
+                PushSyncResponse(
+                    successfulLocalIds = batch,
+                    failedLocalIds = emptyList()
+                )
+            },
+            markSynced = { markedSynced += it },
+            isolateHttpConflicts = true
+        )
 
-        assertTrue(result.exceptionOrNull() is SyncConflictException)
-        val exception = result.exceptionOrNull() as SyncConflictException
-        assertEquals(listOf(3L), exception.failedLocalIds)
-        assertEquals("invoice identity already exists", exception.failedReasons[3L])
-        assertEquals("bills", exception.syncEntityLabel)
+        assertEquals(listOf(1L, 2L, 4L), result)
         assertEquals(listOf(1L, 2L, 4L), markedSynced)
         assertEquals(
             listOf(

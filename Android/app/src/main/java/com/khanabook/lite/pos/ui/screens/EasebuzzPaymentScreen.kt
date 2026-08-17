@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.ui.screens
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,15 +26,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +45,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.DangerRed
@@ -52,20 +61,31 @@ import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.EasebuzzPaymentState
 import com.khanabook.lite.pos.ui.viewmodel.EasebuzzPaymentViewModel
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EasebuzzPaymentScreen(
     onBack: () -> Unit,
-    onPaymentComplete: () -> Unit,
+    onPaymentComplete: (gatewayTxnId: String?) -> Unit,
     viewModel: EasebuzzPaymentViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val secondsLeft by viewModel.secondsLeft.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val activity = context as? Activity
+    val scope = rememberCoroutineScope()
 
-    // SDK activity result launcher
+    var sdkLaunched by remember { mutableStateOf(false) }
+    var verificationStarted by remember { mutableStateOf(false) }
+
+    // Scope that survives composition teardown — return verification must always run
+    val sdkScope = remember { MainScope() }
+
     val sdkLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -73,35 +93,24 @@ fun EasebuzzPaymentScreen(
         val resultData = data?.getStringExtra("result")
         val paymentResponse = data?.getStringExtra("payment_response")
 
-        when (resultData) {
-            "payment_successfull" -> {
-                // Publish to PaymentReturnManager for bill finalization
-                PaymentReturnManager.handleIntent(
-                    android.content.Intent().setData(
-                        android.net.Uri.parse("khanabook://payment/success?txnid=${viewModel.currentTxnId}")
-                    )
-                )
-                viewModel.onPaymentReturn(true)
-            }
-            "payment_failed" -> {
-                PaymentReturnManager.handleIntent(
-                    android.content.Intent().setData(
-                        android.net.Uri.parse("khanabook://payment/failure")
-                    )
-                )
-                viewModel.onPaymentReturn(false)
-            }
-            "user_cancelled" -> {
-                viewModel.onPaymentReturn(false)
-            }
-            else -> {
-                viewModel.onPaymentReturn(false)
+        if (!verificationStarted) {
+            verificationStarted = true
+            when (resultData) {
+                "payment_successfull" -> {
+                    sdkScope.launch { viewModel.verifyAndComplete(viewModel.currentTxnId) }
+                }
+                "payment_failed" -> {
+                    sdkScope.launch { viewModel.verifyAndComplete() }
+                }
+                "user_cancelled" -> {
+                    sdkScope.launch { viewModel.verifyAndComplete() }
+                }
+                else -> {
+                    sdkScope.launch { viewModel.verifyAndComplete() }
+                }
             }
         }
     }
-
-    // Track if SDK was already launched to prevent double-launch on recomposition
-    var sdkLaunched by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     // When payment is ready, launch SDK
     LaunchedEffect(state) {
@@ -110,13 +119,25 @@ fun EasebuzzPaymentScreen(
                 if (activity != null && !sdkLaunched) {
                     sdkLaunched = true
                     try {
-                        val intent = android.content.Intent(activity, Class.forName("com.easebuzz.payment.kit.PWECheckoutActivity"))
+                        val intent = Intent(
+                            activity,
+                            Class.forName("com.easebuzz.payment.kit.PWECheckoutActivity")
+                        )
                         intent.putExtra("access_key", currentState.accessToken)
                         intent.putExtra("pay_mode", "test") // Change to "production" for live
                         sdkLauncher.launch(intent)
                     } catch (e: ClassNotFoundException) {
-                        sdkLaunched = false
-                        viewModel.onSdkUnavailable("Easebuzz SDK not available. Please update the app.")
+                        // SDK unavailable — fall back to browser payment flow
+                        val url = currentState.paymentUrl
+                        if (url != null) {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            )
+                        } else {
+                            viewModel.onSdkUnavailable(
+                                "Easebuzz SDK not available. Please update the app."
+                            )
+                        }
                     }
                 }
             }
@@ -129,6 +150,34 @@ fun EasebuzzPaymentScreen(
         if (state is EasebuzzPaymentState.Idle) {
             viewModel.createOrder()
         }
+    }
+
+    // Auto-complete on success
+    LaunchedEffect(state) {
+        if (state is EasebuzzPaymentState.PaymentSuccess) {
+            val txnId = (state as EasebuzzPaymentState.PaymentSuccess).txnId
+            delay(2000)
+            onPaymentComplete(txnId)
+        }
+    }
+
+    // Activity recreation during SDK checkout: verify on return
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && sdkLaunched && !verificationStarted) {
+                verificationStarted = true
+                sdkScope.launch { viewModel.verifyAndComplete() }
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { sdkScope.cancel() }
     }
 
     val isPaymentActive = state is EasebuzzPaymentState.CreatingOrder ||
@@ -168,13 +217,13 @@ fun EasebuzzPaymentScreen(
                 }
 
                 is EasebuzzPaymentState.PaymentReady -> {
-                    LoadingContent("Opening payment...")
+                    LoadingContent("Opening payment... ${formatSeconds(secondsLeft)}s left")
                 }
 
                 is EasebuzzPaymentState.Verifying -> {
                     var showRetry by remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) {
-                        kotlinx.coroutines.delay(30_000L)
+                        delay(30_000L)
                         showRetry = true
                     }
                     if (showRetry) {
@@ -195,7 +244,7 @@ fun EasebuzzPaymentScreen(
                         success = true,
                         message = "Payment Successful!",
                         details = "Transaction ID: ${currentState.txnId}",
-                        onDone = onPaymentComplete
+                        onDone = { onPaymentComplete(currentState.txnId) }
                     )
                 }
 
@@ -205,7 +254,10 @@ fun EasebuzzPaymentScreen(
                         message = "Payment Failed",
                         details = currentState.message,
                         onDone = onBack,
-                        onRetry = { viewModel.reset(); viewModel.createOrder() }
+                        onRetry = { viewModel.retry() },
+                        onBrowserFlow = viewModel.lastPaymentUrl?.let { url ->
+                            { scope.launch { openBrowserFlow(context, url) } }
+                        }
                     )
                 }
 
@@ -215,12 +267,29 @@ fun EasebuzzPaymentScreen(
                         message = "Error",
                         details = currentState.message,
                         onDone = onBack,
-                        onRetry = { viewModel.reset(); viewModel.createOrder() }
+                        onRetry = { viewModel.retry() },
+                        onBrowserFlow = viewModel.lastPaymentUrl?.let { url ->
+                            { scope.launch { openBrowserFlow(context, url) } }
+                        }
                     )
                 }
             }
         }
     }
+}
+
+private suspend fun openBrowserFlow(context: android.content.Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    } catch (e: Exception) {
+        KhanaToast.show("Unable to open browser flow", ToastKind.Error)
+    }
+}
+
+private fun formatSeconds(seconds: Int): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return "$m:${s.toString().padStart(2, '0')}"
 }
 
 @Composable
@@ -236,7 +305,8 @@ private fun LoadingContent(message: String) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
-            color = TextLight
+            color = TextLight,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -247,7 +317,8 @@ private fun PaymentResultContent(
     message: String,
     details: String,
     onDone: () -> Unit,
-    onRetry: (() -> Unit)? = null
+    onRetry: (() -> Unit)? = null,
+    onBrowserFlow: (() -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(
@@ -302,6 +373,16 @@ private fun PaymentResultContent(
                 colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2)
             ) {
                 Text("Retry Payment", color = PrimaryGold)
+            }
+        }
+
+        if (onBrowserFlow != null && !success) {
+            Spacer(modifier = Modifier.height(spacing.small))
+            OutlinedButton(
+                onClick = onBrowserFlow,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Open in Browser Flow", color = PrimaryGold)
             }
         }
     }

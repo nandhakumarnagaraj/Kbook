@@ -54,7 +54,7 @@ fun PaymentStep(
     onFailed: () -> Unit = {},
     onFlowLockChange: (Boolean) -> Unit = {},
     resumePendingPayment: Boolean = false,
-    onPayOnline: ((billId: Long, restaurantId: Long) -> Unit)? = null
+    onPayOnline: ((serverBillId: Long, restaurantId: Long, amount: String) -> Unit)? = null
 ) {
     val summary by viewModel.billSummary.collectAsStateWithLifecycle()
     val persistedPaymentTotal by viewModel.persistedPaymentTotal.collectAsStateWithLifecycle()
@@ -109,17 +109,16 @@ fun PaymentStep(
         }
     }
 
+    // Observe Easebuzz payment return events (deep-link / browser flow returns).
+// The SDK path returns via savedStateHandle (see NewBillScreen); this only
+// records a gateway hint on the resume flow — finalization stays manual.
     LaunchedEffect(latestPaymentEvent) {
-        latestPaymentEvent?.let { event ->
-            // SECURITY (KB-002): only accept payment return events that match the
-            // in-flight pending bill. A spoofed deep link from another app/webpage
-            // cannot mark an arbitrary bill as paid because:
-            // 1. resumedPendingBillId must be non-null (we have an active payment sheet)
-            // 2. The gateway status is stored as "deep_link_hint" — the actual bill
-            //    finalization still requires the user to tap Confirm.
-            if (resumedPendingBillId != null) {
-                viewModel.setGatewayResult(event.txnId, event.status.name)
-            }
+        val event = latestPaymentEvent ?: return@LaunchedEffect
+        if (event.status == PaymentReturnManager.Status.SUCCESS && resumedPendingBillId != null) {
+            viewModel.setGatewayResult(event.txnId, "success")
+        } else if (event.status == PaymentReturnManager.Status.FAILURE) {
+            PaymentReturnManager.clearLatestEvent()
+            KhanaToast.show("Payment was cancelled or failed.", ToastKind.Warning)
         }
     }
 
@@ -344,6 +343,29 @@ fun PaymentStep(
                             if (!isAmountValid || isSubmitting) return@Button
                             isSubmitting = true
                             scope.launch {
+                                // If EASEBUZZ mode selected, trigger online payment flow
+                                if (selectedMode == PaymentMode.EASEBUZZ && onPayOnline != null) {
+                                    val localBillId = viewModel.editingBillId
+                                        ?: viewModel.createDraftOnlineBill()
+                                        ?: run { isSubmitting = false; return@launch }
+                                    var serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
+                                    if (serverBillId == null || serverBillId == 0L) {
+                                        viewModel.triggerSyncAndWait()
+                                        repeat(5) {
+                                            kotlinx.coroutines.delay(500L)
+                                            serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
+                                            if (serverBillId != null && serverBillId != 0L) return@repeat
+                                        }
+                                    }
+                                    if (serverBillId == null || serverBillId == 0L) {
+                                        KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
+                                        isSubmitting = false
+                                        return@launch
+                                    }
+                                    val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
+                                    onPayOnline(serverBillId!!, restaurantId, paymentTotal)
+                                    return@launch
+                                }
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 val success = when {
                                     resumedPendingBillId != null ->
@@ -377,16 +399,20 @@ fun PaymentStep(
                             .fillMaxWidth()
                             .height(KhanaBookTheme.spacing.buttonHeightLarge),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                            containerColor = when {
+                                !isAmountValid -> Color.Gray
+                                selectedMode == PaymentMode.EASEBUZZ -> Brown500
+                                else -> SuccessGreen
+                            }
                         ),
                         shape = KhanaRadii.lg,
                         enabled = isAmountValid && paymentAttemptReady
                     ) {
                         Text(
-                            if (partialRecovery != null) {
-                                "Confirm Remaining Payment"
-                            } else {
-                                "Payment Successful"
+                            when {
+                                selectedMode == PaymentMode.EASEBUZZ -> "Pay Online"
+                                partialRecovery != null -> "Confirm Remaining Payment"
+                                else -> "Payment Successful"
                             },
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
@@ -394,7 +420,7 @@ fun PaymentStep(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (onPayOnline != null) {
+                    if (onPayOnline != null && !enabledModes.contains(PaymentMode.EASEBUZZ)) {
                         Button(
                             onClick = {
                                 if (isSubmitting) return@Button
@@ -423,7 +449,7 @@ fun PaymentStep(
                                         return@launch
                                     }
                                     val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
-                                    onPayOnline(serverBillId!!, restaurantId)
+                                    onPayOnline(serverBillId!!, restaurantId, paymentTotal)
                                 }
                             },
                             modifier = Modifier

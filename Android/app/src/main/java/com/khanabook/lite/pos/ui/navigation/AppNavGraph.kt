@@ -8,17 +8,23 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import android.content.Intent
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.ui.MainActivity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.screens.auth.SignUpScreen
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
+import com.khanabook.lite.pos.ui.viewmodel.PaymentLinkViewModel
 
 @Composable
 internal fun AppNavGraph(
@@ -345,19 +351,42 @@ internal fun AppNavGraph(
             )
         }
         composable(
-            route = "easebuzz_payment/{billId}/{restaurantId}",
+            route = "easebuzz_payment/{restaurantId}/{billId}/{amount}",
             arguments = listOf(
+                navArgument("restaurantId") { type = NavType.LongType },
                 navArgument("billId") { type = NavType.LongType },
-                navArgument("restaurantId") { type = NavType.LongType }
+                navArgument("amount") { type = NavType.StringType }
             )
-        ) {
+        ) { backStackEntry ->
+            val context = LocalContext.current
             EasebuzzPaymentScreen(
                 onBack = { navController.popBackStack() },
-                onPaymentComplete = {
-                    navController.navigate("main/0") {
-                        popUpTo("easebuzz_payment/{billId}/{restaurantId}") { inclusive = true }
+                onPaymentComplete = { gatewayTxnId ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("gatewayTxnId", gatewayTxnId)
+
+                    // Bring MainActivity to the front and close PWECheckoutActivity
+                    // or any Custom Tab left on top
+                    val clearTopIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }
+                    context.startActivity(clearTopIntent)
+
+                    navController.popBackStack()
                 }
+            )
+        }
+        composable(
+            route = "payment_link/{restaurantId}",
+            arguments = listOf(navArgument("restaurantId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
+            val handle = backStackEntry.savedStateHandle
+            handle.set("restaurantId", restaurantId)
+            PaymentLinkScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = hiltViewModel<PaymentLinkViewModel>(backStackEntry)
             )
         }
     }

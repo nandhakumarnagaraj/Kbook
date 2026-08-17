@@ -1353,6 +1353,13 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
         }
     }
 
+    suspend fun isBillSettled(billId: Long): Boolean = withContext(Dispatchers.IO) {
+        val bill = billRepository.getBillWithItemsById(billId)?.bill
+            ?: return@withContext false
+        bill.orderStatus == OrderStatus.COMPLETED.dbValue ||
+            bill.paymentStatus == PaymentStatus.SUCCESS.dbValue
+    }
+
     suspend fun finalizeRecoveredPaymentSet(billId: Long): Boolean =
         finalizePaymentRecovery(billId) {
             billRepository.finalizeExistingPaymentSet(

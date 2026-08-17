@@ -444,6 +444,70 @@ public class EasebuzzPaymentService {
         return Map.of("status", "failure", "error", result.getOrDefault("error", "Payment initiation failed"));
     }
 
+    @Transactional
+    public Map<String, Object> createPaymentLink(Map<String, Object> request) {
+        Long restaurantId = ((Number) request.get("restaurantId")).longValue();
+        String amount = request.get("amount").toString();
+        String customerName = (String) request.get("customerName");
+        String customerEmail = (String) request.get("customerEmail");
+        String customerPhone = (String) request.get("customerPhone");
+        String message = (String) request.get("message");
+        String merchantTxn = (String) request.get("merchantTxn");
+        if (merchantTxn == null || merchantTxn.isBlank()) {
+            merchantTxn = "PL" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        }
+
+        // Look up sub-merchant
+        String subMerchantId = null;
+        String subMerchantEmail = null;
+        String subMerchantPhone = null;
+        try {
+            EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
+            String subMerchantIdFromSm = sm.getSubMerchantId();
+            if (subMerchantIdFromSm != null && !subMerchantIdFromSm.isBlank()
+                    && ("ACTIVE".equals(sm.getStatus()) || "test".equalsIgnoreCase(props.getPayMode()))) {
+                subMerchantId = subMerchantIdFromSm;
+            }
+            if (sm.getContactEmail() != null) subMerchantEmail = sm.getContactEmail();
+            if (sm.getContactPhone() != null) subMerchantPhone = sm.getContactPhone();
+        } catch (Exception e) {
+            // No sub-merchant — proceed as parent
+        }
+
+        String email = customerEmail != null && !customerEmail.isBlank() ? customerName : subMerchantEmail;
+        String phone = customerPhone != null && !customerPhone.isBlank() ? customerPhone : subMerchantPhone;
+        if (email == null || email.isBlank()) email = "customer@khanabook.in";
+        if (phone == null || phone.isBlank()) phone = "9000000000";
+        if (customerName == null || customerName.isBlank()) customerName = "Customer";
+
+        // Build data for Easy Collect
+        Map<String, String> data = new HashMap<>();
+        data.put("merchant_txn", merchantTxn);
+        data.put("name", customerName);
+        data.put("email", email);
+        data.put("phone", phone);
+        data.put("amount", amount);
+        data.put("message", message != null ? message : "Payment for KhanaBook order");
+        data.put("udf1", request.getOrDefault("udf1", "").toString());
+        data.put("udf2", restaurantId.toString());
+        data.put("udf3", request.getOrDefault("udf3", "").toString());
+        data.put("udf4", request.getOrDefault("udf4", "").toString());
+        data.put("udf5", request.getOrDefault("udf5", "").toString());
+        if (subMerchantId != null) {
+            data.put("sub_merchant_id", subMerchantId);
+        }
+
+        // Optional: restrict payment modes
+        String showPaymentMode = (String) request.get("show_payment_mode");
+        if (showPaymentMode != null && !showPaymentMode.isBlank()) {
+            data.put("show_payment_mode", showPaymentMode);
+        }
+
+        log.info("Creating Easebuzz payment link restaurantId={} merchantTxn={} amount={}", restaurantId, merchantTxn, amount);
+        Map<String, Object> result = easebuzzApi.createPaymentLink(data);
+        return result;
+    }
+
     private void saveGatewayEventIfPresent(Bill bill, String easebuzzId, String status) {
         if (easebuzzId == null || easebuzzId.isBlank() || bill.getGatewayTxnId() == null) {
             return;

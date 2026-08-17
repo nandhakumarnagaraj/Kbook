@@ -28,7 +28,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         StaffPermissionEntity::class,
                         PermissionRequestEntity::class
                 ],
-        version = 66,
+        version = 67,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1024,6 +1024,12 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_permission_requests_restaurant_id_user_id_status` ON `permission_requests` (`restaurant_id`, `user_id`, `status`)")
+            }
+        }
+
+        val MIGRATION_66_67 = object : Migration(66, 67) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
             }
         }
 

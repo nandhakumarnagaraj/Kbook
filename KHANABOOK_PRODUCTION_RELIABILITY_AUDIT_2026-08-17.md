@@ -11,9 +11,9 @@
 
 **Why the production application generates many errors:** The errors are **not random and not isolated bugs — they are systemic**, and they concentrate in four subsystems: (1) the bidirectional sync engine, (2) the Easebuzz payment/webhook path, (3) the multi-device bill lifecycle, and (4) authentication under load. The application is architecturally ambitious (offline-first multi-device POS with server-side reconciliation) and the codebase carries a large amount of hardening already — but several **defeated safety mechanisms** create recurring, user-visible failures:
 
-1. **The sync conflict "fallback" can fail open.** `GenericSyncService.saveAll` collision handling (server/src/main/java/com/khanabook/saas/sync/service/GenericSyncService.java:706-765) intends to break the infinite-409 push loop by falling back to per-record saves — but after a PostgreSQL constraint violation the surrounding transaction is aborted, so the per-record fallback itself fails and the whole push returns a 500. The device keeps the bills unsynced and retries forever. **This is the single most likely source of recurring `/sync/*` errors.** (S — needs prod log confirmation of "current transaction is aborted" / errorId bursts.)
-2. **Client pushes can clobber server/gateway-owned bill state.** `preserveServerOwnedState` (GenericSyncService.java:1123-1133) protects only user role/active and profile suspension. It does **not** protect `gatewayTxnId`, `gatewayStatus`, `settledAmount`, `paidAt` on `Bill` (Bill.java:116-126). A device settling a bill that the Easebuzz webhook already marked paid will overwrite `gateway_txn_id` with NULL. (C)
-3. **Push notifications are duplicated 4×.** `newBills`/`newPayments` are appended twice per record (GenericSyncService.java:659-668) and the notification loop runs twice (lines 770-836 and 841-904). Every new bill/payment produces duplicate FCM pushes. (C)
+1. **The sync conflict "fallback" can fail open.** `GenericSyncService.saveAll` collision handling (server/src/main/java/com/khanabook/saas/sync/service/GenericSyncService.java:693-761) intends to break the infinite-409 push loop by falling back to per-record saves — but the whole push method runs in ONE transaction (`@Transactional`, :96). When `saveAll` hits a unique-constraint violation, **PostgreSQL marks the transaction aborted (25P02)**: every subsequent statement on that connection — including the per-record fallback saves AND the "idempotent recovery" query (GenericSyncService.java:735-748) — fails with `current transaction is aborted, commands ignored until end of transaction block`, and the eventual commit rolls back. The fallback therefore persists **nothing** (even the non-colliding records), the push returns 500, and the device retries the same batch every sync cycle. The code comment's claim that this "breaks the loop" is incorrect — it converts an infinite 409 loop into an infinite 500 loop. **This is the single most likely source of recurring `/sync/*` errors.** (C by PostgreSQL transaction semantics + code path; empirical proof = grep prod logs for `current transaction is aborted` or `25P02`.)
+2. **Client pushes can clobber server/gateway-owned bill state.** `preserveServerOwnedState` (GenericSyncService.java:1053-1063) protects only user role/active and profile suspension. It does **not** protect `gatewayTxnId`, `gatewayStatus`, `settledAmount`, `paidAt` on `Bill` (Bill.java:116-126), and there is **no `@DynamicUpdate`** anywhere in the server codebase — every push rewrites all columns, so a NULL from a stale device overwrites the webhook-set gateway fields. The Android push DTO carries these fields (BillSyncDto: SyncRequestDtos.kt:93-94,44), and the code itself notes the v2-era guard `preserveGatewayOwnedBillState()` was dropped as dead code (GenericSyncService.java:509-511). (C)
+3. **Push notifications are duplicated for cancellations (2×), not 4×.** Re-verification (2026-08-17) found `newBills.add`/`newPayments.add` each run ONCE (GenericSyncService.java:660,662) and the notification loops run once each (bills :768-786, cancelled :787-804, payments :808-829) — so new bills/payments produce exactly one FCM push. However, `cancelledBills.add(incomingBill)` fires TWICE with the same condition (GenericSyncService.java:507 and :528) → every order-cancellation push sends 2 "Order Cancelled" notifications. Additionally the payment-notification loop does a per-payment `billRepository.findById` (N+1, :811). (C — corrected from an earlier claim of 4× duplication.)
 4. **The payment webhook retry engine is dead code.** `WebhookRetryService.enqueue` has zero callers (WebhookRetryService.java:41; WebhookRetryConfig.java:24-73). If a webhook processing step fails, the gateway is told `200` (EasebuzzWebhookService.java:47,103) and **nobody retries** — a paid bill can stay `pending`, or a refund can be silently dropped. (C)
 5. **Money-path edge cases in the Easebuzz integration:** `createOrder` unconditionally clears the previous txnid (EasebuzzPaymentService.java:61-68) — if the customer already paid the previous txnid and the webhook is delayed, they can be charged twice (documented risk, line 57); refund webhooks look up the bill **by the txnid that createOrder just nulled** (EasebuzzWebhookService.java:165) → refund recorded at gateway but never applied to the bill. (C/S)
 6. **Optimistic locking is disabled for sync** (GenericSyncService.java:535 sets the client's version to the server version). Conflict resolution is last-writer-wins by **client wall-clock timestamps** — clock skew between devices decides data loss. (C)
@@ -91,7 +91,7 @@ Android POS (offline-first)          Web Admin (Angular 18)            Marketpla
 
 ### F2 — Multi-device sync (bills/menu/staff/profiles)
 - Confirmed strong: payload caps (200 push / 500 per service / 5MB Tomcat), field validation (`SyncPayloadValidator`), terminal ownership, cross-tenant guards, idempotent publicToken/operation-id/gateway-txn upserts, Android 50-page cap, per-page streaming pull, checkpoint-after-complete.
-- **Weak spots:** client-clock LWW (C); optimistic lock disabled for sync (C); no retry/backoff for 5xx (C); pull is read-write (C); duplicated notifications (C); `newBills` double-add (C).
+- **Weak spots:** client-clock LWW (C); optimistic lock disabled for sync (C); no retry/backoff for 5xx (C); pull is read-write (C); cancelled-bill notification double-add (C); per-payment N+1 in notification loop (C).
 
 ### F3 — Payments (Easebuzz)
 Covered in §1 and §5. Money-path scenarios:
@@ -129,9 +129,9 @@ Covered in §1 and §5. Money-path scenarios:
 3. **Multi-device invoice collision + sync quarantine** — two devices allocated same invoice numbers offline; V22 uniqueness conditional; containment = one invoice device per restaurant; fix = terminal invoice series + publicToken canonical identity. **Class: human-readable counter used as identity + all-or-nothing batch save that left clients in 409 loops.**
 
 ### Error categories (from code analysis)
-1. **Programming bugs:** duplicate notification loops + double list append (C); dead `reinitiateExistingOrder` (C); orphaned retry engine (C); healthcheck path mismatch (C).
+1. **Programming bugs:** cancelled-notification double-add (C); dead `reinitiateExistingOrder` (C); orphaned retry engine (C); healthcheck path mismatch (C).
 2. **State-management:** client-clock LWW (C); gateway fields not server-owned (C); stale `refundAmount` on device until pull (C, mitigated by pull discipline).
-3. **Database:** aborted-transaction fallback (S); migration gaps V46/49/50/55/56 (Android schemas) & V46→V73/74 renumber (server) raise migration risk (C).
+3. **Database:** aborted-transaction fallback (C by PG semantics — prod log grep for `25P02`/`current transaction is aborted` still recommended); migration gaps V46/49/50/55/56 (Android schemas) & V46→V73/74 renumber (server) raise migration risk (C).
 4. **Network:** no Android retry/backoff on 5xx (C); sync relies on 15-min periodic fallback (C).
 5. **External-service:** Easebuzz API 10s/30s timeouts (C) — OK; WhatsApp 30s (C) — OK; **no circuit breaker / retry for either** (C).
 6. **Observability:** MDC keys not populated (C); no metrics (C); no alerting (C).
@@ -156,7 +156,7 @@ Covered in §1 and §5. Money-path scenarios:
 | Sync push update | Yes (publicToken/updatedAt) | Yes per-batch | Batch fallback broken (S) | LWW | At risk (P0) |
 
 ### Systemic patterns
-- **Non-idempotent:** refund initiation (timestamp key), FCM notifications (duplicated), Easebuzz createOrder (fresh txnid per attempt — by design but enables double-charge).
+- **Non-idempotent:** refund initiation (timestamp key), cancellation notifications (double-add), Easebuzz createOrder (fresh txnid per attempt — by design but enables double-charge).
 - **Non-atomic:** webhook paid-check-then-write; saveAll fallback within an aborted transaction; notification side effects outside the data transaction (acceptable for notifications, not for money).
 - **Concurrency-unsafe:** any two writers on the same bill row (no `@Version` enforcement in sync; server blindly adopts client `updatedAt`).
 
@@ -166,7 +166,7 @@ Covered in §1 and §5. Money-path scenarios:
 
 | API | Validation | Timeout/Retry | Idempotency | Notes |
 |---|---|---|---|---|
-| `POST /sync/*/push` | `SyncPushGuard` 200 + `SyncPayloadValidator` per record + 500 cap + 5MB | None client-side (C); tx timeout 30s default | publicToken/opId/txnId (C) | **Suspected batch-fallback failure** (S); duplicate notifications (C) |
+| `POST /sync/*/push` | `SyncPushGuard` 200 + `SyncPayloadValidator` per record + 500 cap + 5MB | None client-side (C); tx timeout 30s default | publicToken/opId/txnId (C) | **Batch-fallback fails in aborted tx** (C by semantics); cancelled-notification double-add (C) |
 | `GET /sync/master/pull` | size clamp 1-500 (C), page unbounded (S: negative page → 400 only) | tx timeout 30s (C) | n/a | **GET with write side effects** (C); offset-pagination drift (S, low); admin impersonation logged (C) |
 | `POST /payments/easebuzz/create-order` | bill paid-check, fraud scoring (C) | Easebuzz 10s/30s (C), no retry | **Not idempotent** (new txnid each call; double-charge window) (C) | Unthrottled at HTTP layer (C) |
 | `POST /payments/easebuzz/webhook` | SHA-512 hash constant-time (C) | 200 on mismatch → gateway stops retrying (C) | status-based skip (C, non-atomic S) | **No retry engine wired** (C) |
@@ -324,9 +324,9 @@ External Dependency (502 Easebuzz / 504 timeout, retry-safe wrapper)
 
 | # | Issue | Feature | Root cause | Sev | Prob | Impact | Blast radius | Current handling | Recommended fix | Pri |
 |---|---|---|---|---|---|---|---|---|---|---|
-| R1 | Batch-save fallback fails inside aborted PG transaction → repeated 500s on /sync/push | Sync | Per-record fallback runs in same tx as failed saveAll; PG aborts tx | **P0** | High | Bills stuck unsynced, sync loops, user-visible errors | All restaurants pushing colliding bills | 500 + errorId; Android retries later | Save records in REQUIRES_NEW per-record (or flush per record with savepoint); verify with test | **P0** |
-| R2 | Client push nulls `gateway_txn_id`/`gateway_status` after webhook paid | Sync × Payments | `preserveServerOwnedState` omits gateway fields | **P0** | High | Refund/status breakage on paid bills; money-path confusion | All Easebuzz-paid bills edited on device | None | Preserve gateway fields server-side (like refundAmount) | **P0** |
-| R3 | Duplicate FCM notifications (4× per new bill/payment) | Sync/notifications | Double list append + double loop | **P1** | Certain | Notification spam, cost, trust erosion | All restaurants | None | Single loop; add notification-count test | **P1** |
+| R1 | Batch-save fallback fails inside aborted PG transaction → repeated 500s on /sync/push | Sync | Per-record fallback + idempotency query run in same tx as failed saveAll; PG 25P02 aborts tx | **P0** | Certain | Bills stuck unsynced, infinite sync loop, user-visible errors | All restaurants pushing colliding bills | 500 + errorId; Android retries later | Per-record REQUIRES_NEW (or savepoints) so the fallback commits; add integration test | **P0** |
+| R2 | Client push nulls `gateway_txn_id`/`gateway_status` after webhook paid | Sync × Payments | `preserveServerOwnedState` omits gateway fields; no @DynamicUpdate | **P0** | High | Refund/status breakage on paid bills; money-path confusion | All Easebuzz-paid bills edited on device | None | Preserve gateway fields server-side (like refundAmount) | **P0** |
+| R3 | Duplicate FCM cancellation notifications (2×); N+1 lookup per payment | Sync/notifications | `cancelledBills.add` runs twice (:507,:528) | **P1** | Certain | Duplicate "Order Cancelled" pushes, latency in payment loop | Restaurants cancelling bills | None | Dedupe cancelledBills; batch-fetch bills for payment loop; add notification-count test | **P1** |
 | R4 | Webhook retry engine dead; failures acknowledged 200 | Payments | `enqueue` never called | **P1** | Med | Paid/refunded states missed silently | All gateway events | 200 ack, no retry | Wire enqueue on processing failure; 4xx/5xx for unprocessable | **P1** |
 | R5 | createOrder clears previous txnid → double-charge window | Payments | Design with only 15-min link expiry | **P1** | Med | Customer charged twice | Easebuzz billers | None | Track attempt state; query gateway status for previous txnid before re-init; refund auto-reconcile | **P1** |
 | R6 | Refund webhook lookup by nulled txnid | Payments | R2 + createOrder clearing | **P1** | Med | Refund recorded at gateway, bill still paid | Refunded bills | None | Lookup by udf1 billId; store all txnids per bill | **P1** |
@@ -410,7 +410,7 @@ External Dependency (502 Easebuzz / 504 timeout, retry-safe wrapper)
 | Per-request user DB lookup | JwtRequestFilter.java:95 `findByAnyIdentifier` | No cache | 5-min Caffeine cache keyed by username with invalidation on role/tokenInvalidated changes | 1 query/req → ~0 | Metrics: filter avg latency; `EXPLAIN` on OR-query |
 | Payment-push notification N+1 | GenericSyncService.java:816-818 per-payment `findById` | Loop design | Batch-load bills for the push once | 200 → 1 query | Query log / Hibernate stats (dev) |
 | First-sync pull size | MasterSyncController pages; items/payments by bill IDs | Design | Keyset pagination `(updated_at, id)`; stream items per bill page | Smoother 25k-record pulls | Load test p99 |
-| Duplicate FCM work | R3 | Bug | Fix R3 | 4× → 1× push volume | FCM send counter |
+| Duplicate cancellation FCM | R3 | Bug | Fix R3 | 2× → 1× cancellation pushes | FCM send counter |
 | No WAL on Room | Android (grep: no journal_mode) | Config | Enable WAL pragma after backup-safe migration | Less UI blocking under burst writes | Instrumented test |
 
 **Do NOT add:** caching of master pull data, microservices, message queues — none are justified by evidence yet.
@@ -442,7 +442,7 @@ External Dependency (502 Easebuzz / 504 timeout, retry-safe wrapper)
 ## 20. Verification Strategy
 
 - **R1/R2 (server sync):** Testcontainers integration tests; then watch prod `errorId` rate for `/sync/*` before/after; confirm zero "current transaction is aborted" strings.
-- **R3 (notifications):** unit test asserting single push per record; observe FCM send counts via notification counters.
+- **R3 (notifications):** unit test asserting one cancellation push per record (no double-add); assert exactly one push per new bill/payment; batch-fetch assert in payment loop.
 - **R4 (webhook retry):** simulate processing failure in sandbox; assert `webhook_retry_jobs` rows appear and backoff timeline.
 - **R5/R6 (payments):** sandbox Easebuzz: pay txnid1, wait for webhook, call createOrder again → assert no new txnid for paid bill; assert refund webhook applies with a cleared txnid.
 - **R7 (observability):** deploy, `docker compose logs` shows `restaurantId`/`userId` in JSON; Prometheus has new counters; alert fires on injected error.
@@ -454,7 +454,7 @@ External Dependency (502 Easebuzz / 504 timeout, retry-safe wrapper)
 ## 21. Final Answer
 
 > **Why does this production application have so many errors?**
-> Because its most safety-critical paths — sync conflict resolution, payment state, and webhook reliability — each contain a defeated safety mechanism: the batch-save fallback runs inside a transaction PostgreSQL has already aborted; gateway-owned bill fields are not protected from client overwrites; webhook failures are acknowledged without a retry path; and notifications are duplicated 4×. These are systemic design flaws, not random bugs.
+> Because its most safety-critical paths — sync conflict resolution, payment state, and webhook reliability — each contain a defeated safety mechanism: the batch-save fallback runs inside a transaction PostgreSQL has already aborted; gateway-owned bill fields are not protected from client overwrites; webhook failures are acknowledged without a retry path; and cancellation notifications are double-fired. These are systemic design flaws, not random bugs.
 >
 > **Which features cause them?** Sync (recurring 500s, stuck bills, quarantines), Payments/Easebuzz (double-charge window, missed refunds, dead retry engine), Notifications (duplicates), and Web-admin (silent failures from stubs and unpaginated loads).
 >

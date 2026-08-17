@@ -149,6 +149,27 @@ fun NewBillScreen(
         }
     }
 
+    // Easebuzz gateway return: the payment screen writes the result into our
+    // back-stack entry's savedStateHandle before popping back. Same screen,
+    // same ViewModel — finalize directly with the carried localBillId.
+    val gatewayHandle = navController?.currentBackStackEntry?.savedStateHandle
+    val gatewayTxnId = gatewayHandle?.get<String>("gatewayTxnId")
+    LaunchedEffect(gatewayTxnId) {
+        if (gatewayTxnId != null) {
+            val billId = gatewayHandle?.get<Long>("localBillId")
+                ?: billingViewModel.lastBill.value?.bill?.id
+            if (billId != null) {
+                gatewayHandle?.remove<String>("gatewayTxnId")
+                gatewayHandle?.remove<Long>("localBillId")
+                billingViewModel.setGatewayResult(gatewayTxnId, "success")
+                if (billingViewModel.finalizeOnlineBill(billId, PaymentStatus.SUCCESS)) {
+                    billingViewModel.clearGatewayResult()
+                    step = 4
+                }
+            }
+        }
+    }
+
     LaunchedEffect(error) {
         error?.let {
             coroutineScope.launch { KhanaToast.show(it, ToastKind.Error) }
@@ -301,9 +322,14 @@ fun NewBillScreen(
                                     onFailed = { step = 5 },
                                     onFlowLockChange = { paymentFlowLocked = it },
                                     resumePendingPayment = shouldResumePendingPayment,
-                                    onPayOnline = { billId, restaurantId ->
-                                        navController?.navigate("easebuzz_payment/$billId/$restaurantId")
-                                    }
+onPayOnline = { serverBillId, restaurantId, amount ->
+                        navController?.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("localBillId", billingViewModel.lastBill.value?.bill?.id)
+                        navController?.navigate(
+                            "easebuzz_payment/$restaurantId/$serverBillId/$amount"
+                        )
+                    }
                             )
                     4 ->
                             SuccessStep(

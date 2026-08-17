@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CardDefaults
@@ -92,6 +93,9 @@ fun SettingsHomeSection(
                     }
                     SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration", modifier = itemMod) {
                         onSectionSelected("payment")
+                    }
+                    SettingsItem(icon = Icons.Filled.Send, text = "Payment Links", modifier = itemMod) {
+                        onSectionSelected("payment_links")
                     }
                     SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration", modifier = itemMod) {
                         onSectionSelected("printer")

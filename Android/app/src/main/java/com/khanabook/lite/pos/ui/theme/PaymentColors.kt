@@ -12,6 +12,7 @@ fun getPayModeColor(mode: PaymentMode): Color {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500
         PaymentMode.POS -> PrimaryGold
+        PaymentMode.EASEBUZZ -> Color(0xFF1976D2) // Blue for online payments
         PaymentMode.PART_CASH_UPI -> PrimaryGold
         PaymentMode.PART_CASH_POS -> PrimaryGold
         PaymentMode.PART_UPI_POS -> PrimaryGold

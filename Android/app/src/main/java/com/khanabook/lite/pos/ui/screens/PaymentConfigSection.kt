@@ -60,6 +60,7 @@ fun PaymentConfigView(
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
+    var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
 
     val toastScope = rememberCoroutineScope()
 
@@ -104,6 +105,7 @@ fun PaymentConfigView(
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
+            PaymentToggle("Easebuzz Online", easebuzzEnabled) { easebuzzEnabled = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
                 ParchmentTextField(
@@ -132,6 +134,7 @@ fun PaymentConfigView(
                             upiQrUrl = null,
                             cashEnabled = cashEnabled,
                             posEnabled = posEnabled,
+                            easebuzzEnabled = easebuzzEnabled,
                             zomatoEnabled = false,
                             swiggyEnabled = false,
                             ownWebsiteEnabled = false,

@@ -16,6 +16,7 @@ object PaymentModeManager {
         if (profile.cashEnabled) modes.add(PaymentMode.CASH)
         if (profile.upiEnabled) modes.add(PaymentMode.UPI)
         if (profile.posEnabled) modes.add(PaymentMode.POS)
+        if (profile.easebuzzEnabled) modes.add(PaymentMode.EASEBUZZ)
 
         
         if (profile.cashEnabled && profile.upiEnabled) modes.add(PaymentMode.PART_CASH_UPI)

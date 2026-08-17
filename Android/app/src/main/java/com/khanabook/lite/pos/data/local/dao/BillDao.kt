@@ -224,7 +224,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
           AND payment_status = 'pending'
           AND record_scope = 'terminal_operational'
           AND record_origin = 'local_created'
-          AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos')
+          AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz')
           AND (
               current_owner_terminal_id = :terminalId
               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
@@ -343,7 +343,7 @@ fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>
           AND record_scope = 'terminal_operational'
           AND record_origin = 'local_created'
           AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )
         ORDER BY created_at DESC
         LIMIT 1
@@ -359,7 +359,7 @@ suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, te
           AND record_scope = 'terminal_operational'
           AND record_origin = 'local_created'
           AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )
         ORDER BY created_at DESC
         LIMIT 1
@@ -376,7 +376,7 @@ suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, te
           AND record_scope = 'terminal_operational'
           AND record_origin = 'local_created'
           AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )
         ORDER BY created_at DESC
     """)
@@ -401,7 +401,7 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         AND restaurant_id = :restaurantId
         AND created_terminal_id = :terminalId
         AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
         )
         AND NOT EXISTS (
             SELECT 1 FROM bill_items

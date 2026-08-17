@@ -65,6 +65,8 @@ data class RestaurantProfileEntity(
     val cashEnabled: Boolean = true,
     @ColumnInfo(name = "pos_enabled", defaultValue = "0")
     val posEnabled: Boolean = false,
+    @SerializedName("easebuzzEnabled") @ColumnInfo(name = "easebuzz_enabled", defaultValue = "0")
+    val easebuzzEnabled: Boolean = false,
     @ColumnInfo(name = "zomato_enabled", defaultValue = "0")
     val zomatoEnabled: Boolean = false,
     @ColumnInfo(name = "swiggy_enabled", defaultValue = "0")

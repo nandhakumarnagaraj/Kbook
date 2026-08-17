@@ -5,6 +5,7 @@ import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
+import com.khanabook.lite.pos.domain.manager.PermissionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import io.mockk.coEvery
@@ -66,7 +67,8 @@ class AuthViewModelTest {
             restaurantRepository,
             syncManager,
             sessionManager,
-            authManager
+            authManager,
+            PermissionManager(sessionManager)
         )
     }
 
