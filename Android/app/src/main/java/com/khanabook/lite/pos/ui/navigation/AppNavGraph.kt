@@ -33,11 +33,12 @@ internal fun AppNavGraph(
     menuViewModel: MenuViewModel,
     sessionManager: SessionManager,
     context: android.app.Activity,
-    authenticatedStartDestination: () -> String
+    authenticatedStartDestination: () -> String,
+    overrideStartDestination: String? = null
 ) {
     NavHost(
         navController = navController,
-        startDestination = "branded_start",
+        startDestination = overrideStartDestination ?: "branded_start",
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
             slideInHorizontally(

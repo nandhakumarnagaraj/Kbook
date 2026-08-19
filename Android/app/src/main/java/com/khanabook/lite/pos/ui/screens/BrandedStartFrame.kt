@@ -2,6 +2,9 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,16 +13,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +49,23 @@ private val BurgundyBottom = Color(0xFF150206)
 internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, easing = FastOutSlowInEasing)
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 150, easing = FastOutSlowInEasing)
+    )
+    val footerAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 300, easing = FastOutSlowInEasing)
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -53,7 +75,10 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.align(Alignment.Center)
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = -(spacing.extraLarge))
+                .graphicsLayer { alpha = logoAlpha }
         ) {
             Box(
                 modifier = Modifier.size(layout.heroImageSize + spacing.large + spacing.medium),
@@ -80,39 +105,27 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             Text(
                 text = stringResource(id = R.string.khanabook).uppercase(),
-                color = TextLight,
+                color = TextLight.copy(alpha = textAlpha),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 4.sp
             )
-        }
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = spacing.extraLarge)
-        ) {
-            Text(
-                text = stringResource(id = R.string.splash_from),
-                color = TextLight.copy(alpha = 0.65f),
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center
-            )
             Spacer(modifier = Modifier.height(spacing.small))
             Text(
-                text = stringResource(id = R.string.splash_company_piquant) +
-                    stringResource(id = R.string.splash_company_consultancy),
-                color = TextLight,
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-            Text(
-                text = stringResource(id = R.string.splash_company_services),
-                color = TextLight.copy(alpha = 0.55f),
-                style = MaterialTheme.typography.bodySmall,
+                text = "Restaurant POS & Billing",
+                color = TextLight.copy(alpha = textAlpha * 0.6f),
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
         }
+        Text(
+            text = "PIQUANT CONSULTANCY SERVICES",
+            color = TextLight.copy(alpha = footerAlpha * 0.4f),
+            style = MaterialTheme.typography.labelSmall,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = spacing.large)
+        )
     }
 }

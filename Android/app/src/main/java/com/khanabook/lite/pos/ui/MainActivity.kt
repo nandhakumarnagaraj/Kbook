@@ -166,11 +166,10 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Release the native splash at the first frame. The Compose NavHost
-        // starts at "branded_start" (a seamless branded frame that blends with
-        // the splash); once the startup routing decision completes we navigate
-        // from there to the decided destination (no artificial delay).
-        installSplashScreen().setKeepOnScreenCondition { false }
+        // AndroidX SplashScreen — holds the branded system splash (logo + burgundy)
+        // until startup routing completes. Then Compose renders directly at the
+        // destination. No custom splash composable needed.
+        installSplashScreen().setKeepOnScreenCondition { startupDestination.value == null }
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
@@ -327,22 +326,20 @@ class MainActivity : FragmentActivity() {
 
                 Box(modifier = Modifier.fillMaxSize()) {
                 val startDestination by startupDestination.collectAsStateWithLifecycle()
-                // Branded start frame is the first destination; navigate to the
-                // decided destination the moment the startup decision is ready.
-                LaunchedEffect(startDestination) {
-                    val dest = startDestination ?: return@LaunchedEffect
-                    navController.navigate(dest) {
-                        popUpTo("branded_start") { inclusive = true }
-                    }
-                }
+                // System splash holds until startDestination is computed.
+                // NavHost starts directly at the destination — no intermediate screen.
+                val resolvedDest = startDestination
+                if (resolvedDest != null) {
                 AppNavGraph(
                     navController = navController,
                     authViewModel = authViewModel,
                     menuViewModel = menuViewModel,
                     sessionManager = sessionManager,
                     context = context,
-                    authenticatedStartDestination = ::authenticatedStartDestination
+                    authenticatedStartDestination = ::authenticatedStartDestination,
+                    overrideStartDestination = resolvedDest
                 )
+                }
                 KhanaBookSnackbarHost(
                     hostState = KhanaToast.host,
                     modifier = Modifier.align(Alignment.BottomCenter),
