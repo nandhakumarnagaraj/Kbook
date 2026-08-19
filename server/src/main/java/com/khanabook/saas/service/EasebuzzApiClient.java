@@ -204,14 +204,10 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/resend_otp", body);
 	}
 
+	@Deprecated
 	public Map<String, Object> cancelTransaction(String txnid, String amount) {
-		checkCredentials();
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		params.add("key", props.getMerchantKey());
-		params.add("txnid", txnid);
-		params.add("amount", amount);
-		params.add("hash", generateHash(props.getMerchantKey(), txnid, amount));
-		return post(props.getPaymentBaseUrl() + "/transaction/v1/cancel", params);
+		// ERA confirmed: /transaction/v1/cancel does NOT exist. Unpaid txnids auto-expire in 15 min.
+		return Map.of("status", "failure", "error", "Cancel API not supported by Easebuzz. Transactions auto-expire in 15 minutes.");
 	}
 
 	public Map<String, Object> initiatePayout(String merchantRequestId, String amount, Map<String, String> beneficiaryDetails) {

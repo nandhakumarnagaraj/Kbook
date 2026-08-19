@@ -256,6 +256,17 @@ public class SubMerchantService {
                     sm.setStatus("KYC_SUBMITTED");
                     sm.setKycSubmittedAt(System.currentTimeMillis());
                 }
+
+                // Store virtual_account details from KYC approval webhook
+                @SuppressWarnings("unchecked")
+                Map<String, Object> virtualAccount = (Map<String, Object>) data.get("virtual_account");
+                if (virtualAccount != null) {
+                    sm.setVirtualAccountId(virtualAccount.get("id") != null ? virtualAccount.get("id").toString() : null);
+                    sm.setVirtualAccountNumber(virtualAccount.get("account_number") != null ? virtualAccount.get("account_number").toString() : null);
+                    sm.setVirtualAccountIfsc(virtualAccount.get("ifsc") != null ? virtualAccount.get("ifsc").toString() : null);
+                    sm.setVirtualAccountBank(virtualAccount.get("bank_name") != null ? virtualAccount.get("bank_name").toString() : null);
+                }
+
                 sm.setUpdatedAt(now);
                 subMerchantRepo.save(sm);
                 
@@ -498,6 +509,7 @@ public class SubMerchantService {
         return "1".equals(s) || "true".equalsIgnoreCase(s) || "success".equalsIgnoreCase(s);
     }
 
+    @Deprecated
     public Map<String, Object> cancelTransaction(String txnid, String amount) {
         return easebuzzApi.cancelTransaction(txnid, amount);
     }

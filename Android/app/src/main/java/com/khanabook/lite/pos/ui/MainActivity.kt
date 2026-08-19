@@ -14,11 +14,16 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
@@ -29,12 +34,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
@@ -47,6 +46,7 @@ import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -55,7 +55,13 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var syncManager: com.khanabook.lite.pos.domain.manager.SyncManager
     @Inject lateinit var networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
     @Inject lateinit var databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
+    @Inject lateinit var menuRepository: com.khanabook.lite.pos.data.repository.MenuRepository
     private var lastBackPressTime: Long = 0
+
+    // Native splash is released at the first frame; the branded start frame
+    // (BrandedStartFrame) is shown while the startup routing decision completes,
+    // then we navigate to the decided destination. Only touched on main thread.
+    private val startupDestination = MutableStateFlow<String?>(null)
 
     companion object {
         private const val UI_SCALE_TAG = "UI_SCALE_DEBUG"
@@ -66,6 +72,47 @@ class MainActivity : FragmentActivity() {
         if (!sessionManager.isInitialSyncCompleted()) return "initial_sync"
         if (!sessionManager.isQuickStartCompleted()) return "quick_start"
         return "main/0"
+    }
+
+    /**
+     * Full startup routing decision (formerly SplashViewModel.checkSession()).
+     * Runs before the first Compose frame so the native splash can be released
+     * straight onto the correct destination.
+     */
+    private suspend fun computeStartupDestination(): String {
+        val token = sessionManager.getAuthToken()
+        val isSyncCompleted = sessionManager.isInitialSyncCompleted()
+        val isTrustedExternalReturn = TrustedExternalAppReturn.consume(this)
+
+        // Auto-complete quick start for existing users upgrading to this version
+        if (isSyncCompleted && !sessionManager.isQuickStartCompleted()) {
+            val existingItems = try {
+                menuRepository.getAllMenuItemsOnce()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            if (existingItems.isNotEmpty()) {
+                sessionManager.setQuickStartCompleted(true)
+            }
+        }
+
+        val chosen = when {
+            token == null -> "login"
+            !isSyncCompleted -> authenticatedStartDestination()
+            sessionManager.isPinLockEnabled() && !isTrustedExternalReturn -> {
+                sessionManager.clearBackgroundTime()
+                "app_lock"
+            }
+            else -> {
+                sessionManager.clearBackgroundTime()
+                authenticatedStartDestination()
+            }
+        }
+
+        if (BuildConfig.DEBUG) {
+            Log.d("KhanaBookDebugAuth", "Startup → $chosen tokenPresent=${token != null} syncDone=$isSyncCompleted")
+        }
+        return chosen
     }
 
     /**
@@ -119,7 +166,11 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        // Release the native splash at the first frame. The Compose NavHost
+        // starts at "branded_start" (a seamless branded frame that blends with
+        // the splash); once the startup routing decision completes we navigate
+        // from there to the decided destination (no artificial delay).
+        installSplashScreen().setKeepOnScreenCondition { false }
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
@@ -136,6 +187,12 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Startup routing decision — the branded start frame stays visible until
+        // this completes, then we navigate to the decided destination.
+        lifecycleScope.launch {
+            startupDestination.value = computeStartupDestination()
+        }
 
         lifecycleScope.launch {
             networkMonitor.status.collectLatest { status ->
@@ -184,10 +241,10 @@ class MainActivity : FragmentActivity() {
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     val currentDest = navController.currentDestination?.route
                     val isInPrivateArea = currentDest != null &&
-                        currentDest != "splash" &&
                         currentDest != "login" &&
                         currentDest != "signup" &&
-                        currentDest != "app_lock"
+                        currentDest != "app_lock" &&
+                        currentDest != "branded_start"
 
                     if (!isInPrivateArea) return@LifecycleEventEffect
 
@@ -243,7 +300,7 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(isSessionExpired) {
                     if (isSessionExpired) {
                         val dest = navController.currentDestination?.route
-                        if (dest != null && dest != "login" && dest != "splash" && dest != "signup") {
+                        if (dest != null && dest != "login" && dest != "app_lock" && dest != "signup" && dest != "branded_start") {
                             authViewModel.handleSessionExpiry()
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
@@ -252,10 +309,16 @@ class MainActivity : FragmentActivity() {
                     }
                 }
 
-                // Authentication Observer
-                LaunchedEffect(currentUser) {
+                // Authentication Observer — only acts after session has been fully
+                // initialized (READY then back to null = genuine logout). Without this
+                // gate, the initial null from MutableStateFlow races against
+                // loadPersistedUser() and pushes authenticated users back to login.
+                val sessionState by sessionManager.sessionState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(currentUser, sessionState) {
+                    if (sessionState == SessionManager.SessionState.INACTIVE) return@LaunchedEffect
                     val dest = navController.currentDestination?.route
-                    if (currentUser == null && dest != null && dest != "login" && dest != "splash" && dest != "signup") {
+                    if (currentUser == null && dest != null && dest != "login" && dest != "app_lock" && dest != "signup" && dest != "branded_start") {
                         navController.navigate("login") { 
                             popUpTo(0) { inclusive = true } 
                         }
@@ -263,6 +326,15 @@ class MainActivity : FragmentActivity() {
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                val startDestination by startupDestination.collectAsStateWithLifecycle()
+                // Branded start frame is the first destination; navigate to the
+                // decided destination the moment the startup decision is ready.
+                LaunchedEffect(startDestination) {
+                    val dest = startDestination ?: return@LaunchedEffect
+                    navController.navigate(dest) {
+                        popUpTo("branded_start") { inclusive = true }
+                    }
+                }
                 AppNavGraph(
                     navController = navController,
                     authViewModel = authViewModel,

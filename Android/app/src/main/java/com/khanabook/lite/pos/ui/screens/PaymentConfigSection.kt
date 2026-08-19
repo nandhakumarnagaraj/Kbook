@@ -50,7 +50,8 @@ fun PaymentConfigView(
     profile: RestaurantProfileEntity?,
     saveProfileLoading: Boolean = false,
     onSave: (RestaurantProfileEntity) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToOnboarding: () -> Unit = {}
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -106,6 +107,16 @@ fun PaymentConfigView(
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             PaymentToggle("Easebuzz Online", easebuzzEnabled) { easebuzzEnabled = it }
+            if (easebuzzEnabled) {
+                Spacer(modifier = Modifier.height(spacing.small))
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onNavigateToOnboarding,
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Setup Online Payments →", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
+                }
+            }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
                 ParchmentTextField(

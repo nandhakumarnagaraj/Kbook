@@ -7,11 +7,10 @@
     </style>
 
     <!--
-        Launch theme for Android 8-11 (API 26-30).
-        These versions have no SplashScreen API, so the cold-start window simply
-        shows windowBackground - the gradient with the centered logo.
-
-        Android 12+ (API 31+) overrides this in res/values-v31/themes.xml.
+        Launch theme for Android 8-11 (API 26-30) + compat attributes for Android 12+.
+        Single authoritative branded splash: windowSplashScreenAnimatedIcon carries
+        the logo on the splash background; the window background is gradient-only
+        so there is no second branded frame.
     -->
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_bg</item>

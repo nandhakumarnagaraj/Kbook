@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">Khanabook Lite</string>
+    <string name="app_name">Khanabook</string>
     <string name="khanabook">KhanaBook</string>
     <string name="lite">LITE</string>
     <string name="smart_billing_slogan">Smart Billing for Smart Restaurants</string>
@@ -45,7 +45,11 @@
     <string name="powered_by_khanabook">Powered by KhanaBook</string>
     <string name="thank_you_visit_again">Thank you! Visit again.</string>
     <string name="cd_back">Back</string>
-    <string name="cd_logo">KhanaBook Lite logo</string>
+    <string name="cd_logo">KhanaBook logo</string>
+    <string name="splash_from">From</string>
+    <string name="splash_company_piquant">Piquant</string>
+    <string name="splash_company_consultancy"> Consultancy</string>
+    <string name="splash_company_services">Services Private Limited</string>
     <string name="cd_dismiss_message">Dismiss message</string>
     <string name="toast_welcome_back">Welcome back</string>
     <string name="toast_profile_saved">Profile saved</string>

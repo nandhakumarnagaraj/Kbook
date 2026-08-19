@@ -228,6 +228,34 @@ interface KhanaBookApi {
         suspend fun createEasebuzzPaymentLink(
             @Body request: CreateEasebuzzPaymentLinkRequest
         ): Map<String, Any?>
+
+        // ── Easebuzz Onboarding (owner-driven) ──────────────────────────────
+        @GET("api/v1/restaurants/payment-config/easebuzz")
+        suspend fun getEasebuzzConfig(): Map<String, Any?>
+
+        @GET("api/v1/restaurants/payment-config/easebuzz/sub-merchant-status")
+        suspend fun getEasebuzzOnboardingStatus(): com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingStatusResponse
+
+        @POST("api/v1/restaurants/payment-config/easebuzz/onboard")
+        suspend fun onboardEasebuzz(
+            @Body request: com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingRequest
+        ): com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingResponse
+
+        @POST("api/v1/restaurants/payment-config/easebuzz/resubmit")
+        suspend fun resubmitEasebuzz(
+            @Body request: com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingRequest
+        ): com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingResponse
+
+        @POST("api/v1/restaurants/payment-config/easebuzz/kyc-access-key")
+        suspend fun generateKycAccessKey(): com.khanabook.lite.pos.data.remote.dto.EasebuzzKycAccessKeyResponse
+
+        @POST("api/v1/restaurants/payment-config/easebuzz/verify-otp")
+        suspend fun verifyEasebuzzOtp(
+            @Body request: com.khanabook.lite.pos.data.remote.dto.EasebuzzOtpRequest
+        ): Map<String, Any?>
+
+        @POST("api/v1/restaurants/payment-config/easebuzz/resend-otp")
+        suspend fun resendEasebuzzOtp(): Map<String, Any?>
 }
 
 data class TerminalListItem(

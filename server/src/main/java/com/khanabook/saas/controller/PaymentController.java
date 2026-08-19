@@ -107,9 +107,13 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getRefundStatus(billId));
     }
 
+    @Deprecated
     @PostMapping("/cancel/{billId}")
     public ResponseEntity<Map<String, Object>> cancel(@PathVariable Long billId) {
-        return ResponseEntity.ok(paymentService.cancelTransaction(billId));
+        return ResponseEntity.status(410).body(Map.of(
+            "status", "failure",
+            "error", "Cancel API is not supported by Easebuzz. Unpaid transactions auto-expire in 15 minutes."
+        ));
     }
 
     @GetMapping("/return")
@@ -118,32 +122,56 @@ public class PaymentController {
         log.debug("Easebuzz return redirect received: {}", params);
         String txnid = params.get("txnid");
         String status = params.get("status");
-        if ("success".equalsIgnoreCase(status) && txnid != null && !txnid.isBlank()) {
+        String hash = params.get("hash");
+
+        // Security: verify reverse hash if present, otherwise don't trust status
+        boolean verified = false;
+        if (hash != null && !hash.isBlank()) {
+            verified = webhookService.verifyPaymentReturnHash(params);
+        }
+
+        if (verified && "success".equalsIgnoreCase(status) && txnid != null && !txnid.isBlank()) {
             return ResponseEntity.status(302)
                     .header("Location", "khanabook://payment/success?txnid=" + txnid)
                     .build();
         }
+        // For unverified or failed — redirect to status check (app will poll)
+        String redirectUrl = txnid != null && !txnid.isBlank()
+                ? "khanabook://payment/status?txnid=" + txnid
+                : "khanabook://payment/failure";
         return ResponseEntity.status(302)
-                .header("Location", "khanabook://payment/failure")
+                .header("Location", redirectUrl)
                 .build();
     }
 
     @PostMapping("/webhook")
     public ResponseEntity<Map<String, Object>> paymentWebhook(@RequestBody Map<String, String> payload) {
         log.debug("Payment webhook received: {}", payload);
-        return ResponseEntity.ok(webhookService.handlePaymentWebhook(payload));
+        Map<String, Object> result = webhookService.handlePaymentWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/refund/webhook")
     public ResponseEntity<Map<String, Object>> refundWebhook(@RequestBody Map<String, String> payload) {
         log.debug("Refund webhook received: {}", payload);
-        return ResponseEntity.ok(webhookService.handleRefundWebhook(payload));
+        Map<String, Object> result = webhookService.handleRefundWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping(value = "/sub-merchant/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> subMerchantWebhookJson(@RequestBody Map<String, Object> payload) {
         log.debug("Sub-merchant webhook (JSON) received");
-        return ResponseEntity.ok(webhookService.handleSubMerchantWebhook(payload));
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping(value = "/sub-merchant/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -165,12 +193,20 @@ public class PaymentController {
             }
         }
 
-        return ResponseEntity.ok(webhookService.handleSubMerchantWebhook(payload));
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/payout/webhook")
     public ResponseEntity<Map<String, Object>> payoutWebhook(@RequestBody Map<String, String> payload) {
         log.debug("Payout webhook received: {}", payload);
-        return ResponseEntity.ok(webhookService.handlePayoutWebhook(payload));
+        Map<String, Object> result = webhookService.handlePayoutWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 }

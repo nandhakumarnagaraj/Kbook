@@ -55,13 +55,45 @@ public class EasebuzzPaymentService {
         // - Access token expires in 15 minutes — customer cannot pay after that
         // - No cancel API exists — unpaid txnids auto-expire in 15 min
         // - Multiple txnids for same bill CAN both succeed (double-charge risk)
-        //   → Mitigated: old link expires in 15 min, app only shows latest payment screen
         // - No webhook for abandoned txnids — poll /transaction/v2.1/retrieve if needed
-        // Strategy: Always create fresh txnid. Clear old gateway data unconditionally.
+        // Strategy (P0 fix): Poll old txnid status BEFORE clearing. Block if pending/success.
         if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
                 && !"paid".equalsIgnoreCase(bill.getPaymentStatus())) {
-            log.info("Clearing stale gateway data for billId={} txnid={} status={}, will create fresh order",
-                    billId, bill.getGatewayTxnId(), bill.getGatewayStatus());
+            String oldTxnId = bill.getGatewayTxnId();
+            String oldTxnStatus = pollOldTxnStatus(oldTxnId);
+            log.info("Polled old txnid status for billId={} txnid={}: {}", billId, oldTxnId, oldTxnStatus);
+
+            if ("success".equalsIgnoreCase(oldTxnStatus)) {
+                // Old txnid actually succeeded — mark bill as paid, do NOT create new order
+                log.warn("Old txnid={} is SUCCESS at gateway — marking bill paid, blocking new order creation", oldTxnId);
+                bill.setGatewayStatus("success");
+                bill.setPaymentStatus("paid");
+                bill.setPaidAt(System.currentTimeMillis());
+                billRepo.save(bill);
+                return Map.of(
+                        "status", "failure",
+                        "code", "ALREADY_PAID",
+                        "error", "Payment already completed for this bill. No new payment needed.",
+                        "txnid", oldTxnId
+                );
+            }
+
+            if ("pending".equalsIgnoreCase(oldTxnStatus) || "initiated".equalsIgnoreCase(oldTxnStatus)) {
+                // Old txnid is still in-flight — block new order to prevent double-charge
+                log.warn("Old txnid={} is {} at gateway — blocking new order creation for billId={}",
+                        oldTxnId, oldTxnStatus, billId);
+                return Map.of(
+                        "status", "failure",
+                        "code", "PAYMENT_PENDING",
+                        "error", "A payment is already in progress. Please wait for it to complete or expire before retrying.",
+                        "txnid", oldTxnId
+                );
+            }
+
+            // Terminal/expired statuses (failure, dropped, bounced, userCancelled, preInitiated)
+            // or API failure (unknown) — safe to clear and create fresh txnid
+            log.info("Old txnid={} status={} is terminal/expired — clearing stale gateway data for billId={}",
+                    oldTxnId, oldTxnStatus, billId);
             bill.setGatewayTxnId(null);
             bill.setGatewayStatus(null);
             billRepo.save(bill);
@@ -282,8 +314,16 @@ public class EasebuzzPaymentService {
             easebuzzId = txnid;
         }
 
-        // Generate unique merchant refund reference
-        String merchantRefundId = "REF" + billId + "_" + System.currentTimeMillis();
+        // Deterministic merchant_refund_id: same ID on retry prevents double-refunds
+        // (Easebuzz treats duplicate merchant_refund_id as idempotent — returns existing refund)
+        String merchantRefundId;
+        if (!easebuzzId.equals(txnid)) {
+            // Have a real easebuzz_id — use it for uniqueness
+            merchantRefundId = "REF_" + billId + "_" + easebuzzId.substring(0, Math.min(8, easebuzzId.length()));
+        } else {
+            // Fallback: easebuzzId is the txnid itself — use billId + restaurantId
+            merchantRefundId = "REF_" + billId + "_" + bill.getRestaurantId();
+        }
 
         log.info("Initiating refund billId={} txnid={} easebuzzId={} merchantRefundId={} amount={}",
                 billId, txnid, easebuzzId, merchantRefundId, amount);
@@ -347,14 +387,11 @@ public class EasebuzzPaymentService {
         return "1".equals(s) || "true".equalsIgnoreCase(s);
     }
 
+    @Deprecated
     @Transactional
     public Map<String, Object> cancelTransaction(Long billId) {
-        Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
-        if (bill.getGatewayTxnId() == null) {
-            return Map.of("status", "failure", "error", "No gateway transaction found");
-        }
-        return easebuzzApi.cancelTransaction(bill.getGatewayTxnId(), bill.getTotalAmount().toString());
+        // ERA confirmed: No cancel API exists. Unpaid txnids auto-expire in 15 min.
+        return Map.of("status", "failure", "error", "Cancel API not supported. Transactions auto-expire in 15 minutes.");
     }
 
     @Transactional
@@ -523,6 +560,41 @@ public class EasebuzzPaymentService {
         event.setRawPayload("payment_status_lookup");
         event.setReceivedAt(System.currentTimeMillis());
         webhookEventRepo.save(event);
+    }
+
+    /**
+     * Polls Easebuzz /transaction/v2.1/retrieve for the given txnid and extracts the
+     * transaction status string. Returns "unknown" if the API call fails or response
+     * is unparseable — callers treat "unknown" as safe-to-clear (same as terminal).
+     */
+    @SuppressWarnings("unchecked")
+    private String pollOldTxnStatus(String txnid) {
+        try {
+            Map<String, Object> raw = easebuzzApi.getTransactionStatus(txnid);
+            if (!toBool(raw.get("status"))) {
+                log.warn("Easebuzz status poll API failure for txnid={}: {}", txnid, raw);
+                return "unknown";
+            }
+            Object msgObj = raw.get("msg");
+            if (msgObj == null) {
+                return "unknown";
+            }
+            Map<String, Object> txnData;
+            if (msgObj instanceof List) {
+                List<Map<String, Object>> msgList = (List<Map<String, Object>>) msgObj;
+                if (msgList.isEmpty()) return "unknown";
+                txnData = msgList.get(0);
+            } else if (msgObj instanceof Map) {
+                txnData = (Map<String, Object>) msgObj;
+            } else {
+                return "unknown";
+            }
+            String status = str(txnData.getOrDefault("status", "unknown"));
+            return status.isBlank() ? "unknown" : status;
+        } catch (Exception e) {
+            log.warn("Exception polling old txnid={} status: {}", txnid, e.getMessage());
+            return "unknown";
+        }
     }
 
     private String str(Object value) {

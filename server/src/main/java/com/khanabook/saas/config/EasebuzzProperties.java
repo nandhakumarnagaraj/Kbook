@@ -26,4 +26,7 @@ public class EasebuzzProperties {
     // WIRE Platform (sub-merchant management, KYC, lookups)
     private String wireBaseUrl = "https://wire.easebuzz.in";
     private String wireApiKey;
+
+    // Daily reconciliation (runs at 6 AM IST)
+    private boolean reconciliationEnabled = false;
 }

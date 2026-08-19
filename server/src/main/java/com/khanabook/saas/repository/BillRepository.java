@@ -197,4 +197,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("restaurantId") Long restaurantId,
             @Param("lastSyncTimestamp") Long lastSyncTimestamp,
             @Param("deviceId") String deviceId);
+
+    // --- Reconciliation ---
+    java.util.List<Bill> findByPaymentStatusAndPaidAtBetween(String paymentStatus, Long paidAtStart, Long paidAtEnd);
 }

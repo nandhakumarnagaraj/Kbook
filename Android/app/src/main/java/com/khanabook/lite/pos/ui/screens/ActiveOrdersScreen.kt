@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.LocalPrintshop
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
@@ -75,13 +76,15 @@ import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.theme.WarningYellow
 import com.khanabook.lite.pos.ui.viewmodel.ActiveOrderSummaryRow
 import com.khanabook.lite.pos.ui.viewmodel.ActiveOrdersViewModel
+import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 
 @Composable
 fun ActiveOrdersScreen(
     onBack: () -> Unit,
     onOpenActiveOrder: (Long) -> Unit,
     onCollectPayment: (Long) -> Unit,
-    viewModel: ActiveOrdersViewModel = hiltViewModel()
+    viewModel: ActiveOrdersViewModel = hiltViewModel(),
+    reportsViewModel: ReportsViewModel = hiltViewModel()
 ) {
     val activeRows by viewModel.rows.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
@@ -131,19 +134,20 @@ fun ActiveOrdersScreen(
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 items(activeRows, key = { it.bill.id }) { row ->
-                    ActiveOrderCard(
-                        row = row,
-                        onOpen = { onOpenActiveOrder(row.bill.id) },
-                        onPayment = { onCollectPayment(row.bill.id) },
-                        onPrint = { viewModel.printBill(row.bill.id) }
-                    )
-                }
+                        ActiveOrderCard(
+                            row = row,
+                            onOpen = { onOpenActiveOrder(row.bill.id) },
+                            onPayment = { onCollectPayment(row.bill.id) },
+                            onMoreActions = { onOpenActiveOrder(row.bill.id) }
+                        )
+                    }
                 item {
                     Spacer(modifier = Modifier.height(spacing.bottomListPadding))
                 }
             }
         }
     }
+
 }
 
 @Composable
@@ -182,7 +186,7 @@ private fun ActiveOrderCard(
     row: ActiveOrderSummaryRow,
     onOpen: () -> Unit,
     onPayment: () -> Unit,
-    onPrint: () -> Unit
+    onMoreActions: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val bill = row.bill
@@ -334,7 +338,7 @@ private fun ActiveOrderCard(
                             )
                         }
                         OutlinedButton(
-                            onClick = onPrint,
+                            onClick = onMoreActions,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp),
@@ -342,9 +346,9 @@ private fun ActiveOrderCard(
                             border = BorderStroke(1.dp, BorderGold),
                             shape = KhanaRadii.md
                         ) {
-                            Icon(Icons.Default.LocalPrintshop, contentDescription = "Print", tint = PrimaryGold, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = PrimaryGold, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(spacing.extraSmall))
-                            Text("Print Bill", style = MaterialTheme.typography.labelMedium)
+                            Text("More Actions", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

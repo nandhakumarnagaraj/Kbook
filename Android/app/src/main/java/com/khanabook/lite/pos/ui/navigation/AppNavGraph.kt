@@ -37,7 +37,7 @@ internal fun AppNavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "splash",
+        startDestination = "branded_start",
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
             slideInHorizontally(
@@ -67,25 +67,14 @@ internal fun AppNavGraph(
             )
         }
     ) {
-        composable("splash") {
-            SplashScreen(
-                onNavigateToLogin = {
-                    navController.navigate("login") { popUpTo("splash") { inclusive = true } }
-                },
-                onNavigateToMain = {
-                    navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },
-                onNavigateToInitialSync = {
-                    navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },
-                onNavigateToAppLock = {
-                    navController.navigate("app_lock") { popUpTo("splash") { inclusive = true } }
-                }
-            )
+        composable(
+            "branded_start",
+            // Appear instantly at the same center position as the system splash
+            // icon so the handoff reads as one continuous branded startup, not a
+            // second screen sliding in.
+            enterTransition = { EnterTransition.None }
+        ) {
+            BrandedStartFrame()
         }
         composable("app_lock") {
             AppLockScreen(
@@ -387,6 +376,11 @@ internal fun AppNavGraph(
             PaymentLinkScreen(
                 onBack = { navController.popBackStack() },
                 viewModel = hiltViewModel<PaymentLinkViewModel>(backStackEntry)
+            )
+        }
+        composable("easebuzz_onboarding") {
+            com.khanabook.lite.pos.ui.screens.EasebuzzOnboardingScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

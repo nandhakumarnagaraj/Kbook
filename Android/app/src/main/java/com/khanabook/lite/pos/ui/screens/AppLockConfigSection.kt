@@ -103,18 +103,6 @@ fun SettingsListView(
             )
         }
 
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.card
-        ) {
-            SettingsItem(
-                icon = Icons.Default.ReceiptLong,
-                text = "Marketplace Orders",
-                onClick = { onSelectItem("marketplace_orders") }
-            )
-        }
-
         SettingsGroupLabel("About")
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),

@@ -35,6 +35,7 @@ public class EasebuzzWebhookService {
     private final PushNotificationService pushNotificationService;
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
+    private final WebhookRetryService webhookRetryService;
 
     @Transactional
     public Map<String, Object> handlePaymentWebhook(Map<String, String> payload) {
@@ -94,6 +95,44 @@ public class EasebuzzWebhookService {
                         } else {
                             log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
                         }
+                    });
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid billId in webhook udf1: {}", udf1);
+                } catch (Exception e) {
+                    log.error("Failed to process payment webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
+                    webhookRetryService.enqueue("PAYMENT", payload.toString());
+                }
+            }
+        } else if ("auto refunded".equalsIgnoreCase(status) && udf1 != null) {
+            // Handle auto-refunded: customer was debited but transaction failed, funds auto-returned
+            try {
+                Long billId = Long.parseLong(udf1);
+                billRepo.findById(billId).ifPresent(bill -> {
+                    if ("paid".equals(bill.getPaymentStatus())) {
+                        log.warn("Bill {} was paid but received auto-refunded webhook txnid={} — possible reversal", billId, txnid);
+                        return;
+                    }
+                    bill.setGatewayStatus("auto_refunded");
+                    bill.setPaymentStatus("failed");
+                    billRepo.save(bill);
+                    log.info("Bill {} marked as auto-refunded via webhook txnid={}", billId, txnid);
+                });
+            } catch (NumberFormatException e) {
+                log.warn("Invalid billId in auto-refunded webhook udf1: {}", udf1);
+            }
+        } else if ("failure".equalsIgnoreCase(status) || "dropped".equalsIgnoreCase(status)
+                || "bounced".equalsIgnoreCase(status) || "userCancelled".equalsIgnoreCase(status)) {
+            if (udf1 != null && !"fssai_renewal".equalsIgnoreCase(udf1)) {
+                try {
+                    Long billId = Long.parseLong(udf1);
+                    billRepo.findById(billId).ifPresent(bill -> {
+                        if ("paid".equals(bill.getPaymentStatus())) {
+                            log.info("Bill {} already paid, ignoring failure webhook txnid={} status={}", billId, txnid, status);
+                            return;
+                        }
+                        bill.setGatewayStatus(status.toLowerCase());
+                        billRepo.save(bill);
+                        log.info("Bill {} gateway status updated to {} via webhook txnid={}", billId, status, txnid);
                     });
                 } catch (NumberFormatException e) {
                     log.warn("Invalid billId in webhook udf1: {}", udf1);
@@ -162,9 +201,14 @@ public class EasebuzzWebhookService {
         }
 
         // Find bill by gateway txnId and update refund status
-        billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
-            updateBillRefund(bill, status, refundId, refundAmount, payload);
-        });
+        try {
+            billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
+                updateBillRefund(bill, status, refundId, refundAmount, payload);
+            });
+        } catch (Exception e) {
+            log.error("Failed to process refund webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
+            webhookRetryService.enqueue("REFUND", payload.toString());
+        }
 
         return Map.of("status", "received");
     }
@@ -325,6 +369,14 @@ public class EasebuzzWebhookService {
 
         subMerchantService.processWebhook(payload);
         return Map.of("status", "received");
+    }
+
+    /**
+     * Public wrapper for verifyWebhookHash — used by the return endpoint to verify
+     * the reverse hash on Easebuzz redirect params (same hash sequence as payment webhook).
+     */
+    public boolean verifyPaymentReturnHash(Map<String, String> params) {
+        return verifyWebhookHash(params);
     }
 
     private boolean isDevOrSandboxProfile() {

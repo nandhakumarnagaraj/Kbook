@@ -16,6 +16,7 @@ import java.util.Map;
 public class AdminSubMerchantController {
 
     private final SubMerchantService subMerchantService;
+    private final com.khanabook.saas.service.EasebuzzReconciliationService reconciliationService;
 
     @GetMapping
     public ResponseEntity<List<EasebuzzSubMerchant>> list() {
@@ -197,5 +198,13 @@ public class AdminSubMerchantController {
     public ResponseEntity<Void> devRefresh(@PathVariable Long id) {
         subMerchantService.hardDeleteSubMerchant(id);
         return ResponseEntity.ok().build();
+    }
+
+    // --- Reconciliation ---
+
+    /** Manually trigger reconciliation for a specific date (format: YYYY-MM-DD) */
+    @GetMapping("/reconciliation")
+    public ResponseEntity<Map<String, Object>> reconcile(@RequestParam String date) {
+        return ResponseEntity.ok(reconciliationService.reconcileDate(date));
     }
 }

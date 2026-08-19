@@ -80,7 +80,7 @@ class PaymentSetValidatorTest {
 
     @Test
     fun `single supported payment modes exactly matching total are valid`() {
-        listOf("cash", "upi", "pos").forEach { mode ->
+        listOf("cash", "upi", "pos", "easebuzz").forEach { mode ->
             assertTrue(PaymentSetValidator.validate(listOf(payment(mode, "100.00")), "100.00").isSuccess)
         }
     }
@@ -358,6 +358,62 @@ class PaymentSetValidatorTest {
             payment("cash", "30.00", billToken = "token-X", restaurantId = 1L, terminalId = "term-A")
         )
         assertTrue(PaymentSetValidator.equivalent(existing, requested, "100.00"))
+    }
+
+    // ── Easebuzz payment mode ────────────────────────────────────────────
+
+    @Test
+    fun `easebuzz payment exactly matching total is valid`() {
+        assertTrue(
+            PaymentSetValidator.validate(
+                listOf(payment("easebuzz", "100.00")),
+                "100.00"
+            ).isSuccess
+        )
+    }
+
+    @Test
+    fun `easebuzz split with cash exactly matching total is valid`() {
+        assertTrue(
+            PaymentSetValidator.validate(
+                listOf(payment("cash", "30.00"), payment("easebuzz", "70.00")),
+                "100.00"
+            ).isSuccess
+        )
+    }
+
+    @Test
+    fun `easebuzz payment with gateway fields is valid for equivalence`() {
+        val existing = listOf(
+            payment(
+                "easebuzz", "100.00",
+                verifiedBy = "gateway",
+                gatewayTxnId = "EZBUZZ123",
+                gatewayStatus = "success"
+            )
+        )
+        assertTrue(PaymentSetValidator.validate(existing, "100.00").isSuccess)
+        assertTrue(PaymentSetValidator.equivalent(existing, existing, "100.00"))
+    }
+
+    @Test
+    fun `recovery assessment recognises easebuzz as complete payment`() {
+        val result = PaymentSetValidator.assessForRecovery(
+            listOf(payment("easebuzz", "100.00")),
+            "100.00"
+        )
+        assertEquals(PaymentRecoveryAssessment.Complete("100.00"), result)
+    }
+
+    @Test
+    fun `recovery assessment recognises partial easebuzz payment`() {
+        val result = PaymentSetValidator.assessForRecovery(
+            listOf(payment("easebuzz", "60.00")),
+            "100.00"
+        ) as PaymentRecoveryAssessment.Partial
+        assertEquals("60.00", result.paidAmount)
+        assertEquals("40.00", result.remainingAmount)
+        assertEquals(setOf("easebuzz"), result.usedModes)
     }
 
     private fun payment(

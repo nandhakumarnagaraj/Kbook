@@ -38,6 +38,7 @@ server/.env*
 Android/secrets.properties
 Android/local.properties
 Android/release-key.jks
+Android/app/google-services.json
 
 # Android app build outputs
 Android/app/build/

@@ -62,6 +62,7 @@ plugins {
     // alias(libs.plugins.room)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 kotlin {
@@ -268,6 +269,8 @@ dependencies {
 
     // Firebase Cloud Messaging (push notifications)
     implementation(libs.firebase.messaging)
+    // Firebase Crashlytics (crash reporting)
+    implementation(libs.firebase.crashlytics)
 
 
     // Google Sign-In via Credential Manager (modern API)

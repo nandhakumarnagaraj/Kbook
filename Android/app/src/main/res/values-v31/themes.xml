@@ -4,17 +4,9 @@
     <!--
         Android 12+ (API 31+) splash screen.
 
-        Uses Theme.SplashScreen as the parent so the androidx core-splashscreen
-        compat attributes are honoured, and declares the platform
-        android:windowSplashScreen* attributes for the system implementation.
-
-        postSplashScreenTheme is required - without it the activity keeps the
-        launch theme after the splash dismisses and the handoff looks broken.
-
-        The icon uses @drawable/splash_icon (an inset wrapper) because the
-        platform masks everything outside the inner 160x160dp circle of the
-        240x240dp icon canvas. A full-bleed bitmap gets cropped or rejected,
-        in which case the system silently falls back to the launcher icon.
+        Single authoritative branded splash: windowSplashScreenAnimatedIcon carries
+        the logo on the splash background; the window background is gradient-only
+        so there is no second branded frame.
     -->
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.SplashScreen">
         <!-- androidx compat attributes -->
@@ -27,8 +19,7 @@
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
 
-        <!-- Fill the whole window, including behind the system bars, so there is
-             no unpainted gap above the navigation bar on gesture-nav devices. -->
+        <!-- Fill the whole window, including behind the system bars -->
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

@@ -145,6 +145,18 @@ public class EasebuzzSubMerchant {
     @Column(name = "easebuzz_response", columnDefinition = "TEXT")
     private String easebuzzResponse;
 
+    @Column(name = "virtual_account_id")
+    private String virtualAccountId;
+
+    @Column(name = "virtual_account_number")
+    private String virtualAccountNumber;
+
+    @Column(name = "virtual_account_ifsc")
+    private String virtualAccountIfsc;
+
+    @Column(name = "virtual_account_bank")
+    private String virtualAccountBank;
+
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
 

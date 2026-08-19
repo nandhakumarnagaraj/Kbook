@@ -17,7 +17,7 @@ sealed interface PaymentRecoveryAssessment {
 
 object PaymentSetValidator {
     private val moneyScale = 2
-    private val supportedModes = setOf("cash", "upi", "pos")
+    private val supportedModes = setOf("cash", "upi", "pos", "easebuzz")
 
     fun validate(payments: List<BillPaymentEntity>, payableTotal: String): Result<Unit> = runCatching {
         require(payments.isNotEmpty()) { "At least one payment is required." }

@@ -31,6 +31,8 @@ lottie = "6.4.0"
 coreSplashscreen = "1.0.1"
 material = "1.12.0"
 firebaseMessaging = "24.1.1"
+firebaseCrashlytics = "19.4.0"
+firebaseCrashlyticsPlugin = "3.0.3"
 
 [libraries]
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
@@ -86,6 +88,7 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -95,3 +98,4 @@ room = { id = "androidx.room", version.ref = "room" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }

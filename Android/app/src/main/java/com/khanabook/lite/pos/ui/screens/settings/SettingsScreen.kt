@@ -217,7 +217,9 @@ fun SettingsScreen(
                         PaymentConfigView(profile, saveProfileLoading = saveProfileLoading, onSave = {
                             pendingSaveSection = "payment"
                             viewModel.saveProfile(it)
-                        }, onBack = { section = "menu" })
+                        }, onBack = { section = "menu" },
+                            onNavigateToOnboarding = { navController.navigate("easebuzz_onboarding") }
+                        )
                     }
                     "printer" -> {
                         PrinterConfigView(profile, onSave = {

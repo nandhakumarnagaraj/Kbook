@@ -2,30 +2,23 @@
 <!--
     Cold-start window background.
 
-    Layer 1: full-bleed gradient. No gravity or size is set so it stretches
-             across the entire window, including behind the status and
-             navigation bars. This removes the unpainted strip that appeared
-             above the nav bar on gesture-navigation devices.
+    Gradient only — the splash icon (windowSplashScreenAnimatedIcon) carries the
+    logo, so there is a single authoritative branded splash with no logo double-draw.
 
-    Layer 2: centered brand mark for Android 8-11, which have no SplashScreen
-             API. Uses @drawable/splash_logo (transparent background) rather
-             than khanabook_logo.png, whose baked-in white rendered as a block
-             over the gradient. On Android 12+ the platform draws
-             @drawable/splash_icon instead and this layer is covered.
+    Palette exactly matches the branded splash reference AND the custom branded
+    frame (BrandedStartFrame: top #170207 → middle #2D0A10 → bottom #150206) so
+    on Android 8-11 the launch window blends invisibly into the branded frame,
+    and the Android 12+ solid splash background (splash_bg #1F060A) sits within
+    the same burgundy range.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#1A0A0A"
-                android:centerColor="#2D1010"
-                android:endColor="#3A1812" />
+                android:startColor="#170207"
+                android:centerColor="#2D0A10"
+                android:endColor="#150206" />
         </shape>
     </item>
-    <item
-        android:drawable="@drawable/splash_logo"
-        android:gravity="center"
-        android:width="160dp"
-        android:height="160dp" />
 </layer-list>
