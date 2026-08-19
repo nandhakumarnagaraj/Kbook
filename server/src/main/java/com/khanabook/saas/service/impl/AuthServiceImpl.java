@@ -292,7 +292,7 @@ public class AuthServiceImpl implements AuthService {
                             user.setUpdatedAt(System.currentTimeMillis());
                             user.setServerUpdatedAt(System.currentTimeMillis());
                             user.setCreatedAt(System.currentTimeMillis());
-                            userRepository.save(user);
+                            userRepository.saveAndFlush(user);
 
                             return buildAuthResponse(user, request.getDeviceId());
                         });
