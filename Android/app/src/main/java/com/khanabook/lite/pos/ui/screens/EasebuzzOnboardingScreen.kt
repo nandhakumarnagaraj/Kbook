@@ -470,14 +470,14 @@ private fun KycStatusStep(
             .padding(spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(spacing.extraLarge))
+        Spacer(Modifier.height(spacing.large))
         Icon(
             imageVector = Icons.Default.Refresh,
             contentDescription = null,
             tint = WarningYellow,
             modifier = Modifier.size(64.dp)
         )
-        Spacer(Modifier.height(spacing.large))
+        Spacer(Modifier.height(spacing.medium))
         Text("KYC Verification Pending", style = MaterialTheme.typography.titleMedium, color = TextLight)
         Spacer(Modifier.height(spacing.medium))
         Text(

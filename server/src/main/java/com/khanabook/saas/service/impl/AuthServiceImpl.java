@@ -292,9 +292,9 @@ public class AuthServiceImpl implements AuthService {
                             user.setUpdatedAt(System.currentTimeMillis());
                             user.setServerUpdatedAt(System.currentTimeMillis());
                             user.setCreatedAt(System.currentTimeMillis());
-                            userRepository.saveAndFlush(user);
+                            User savedUser = userRepository.saveAndFlush(user);
 
-                            return buildAuthResponse(user, request.getDeviceId());
+                            return buildAuthResponse(savedUser, request.getDeviceId());
                         });
             } else {
                 throw new IllegalArgumentException("Invalid Google ID token.");
