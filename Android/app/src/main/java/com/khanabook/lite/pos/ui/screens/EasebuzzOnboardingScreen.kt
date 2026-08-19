@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.animation.AnimatedContent
@@ -13,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
@@ -21,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -30,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookScreenScaffold
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.*
@@ -63,12 +66,40 @@ fun EasebuzzOnboardingScreen(
         }
     }
 
-    KhanaBookScreenScaffold(
-        title = "Online Payments Setup",
-        onBack = {
-            if (!viewModel.goBack()) onBack()
+    Scaffold(
+        containerColor = DarkBrown1,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Online Payments Setup",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (!viewModel.goBack()) onBack()
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = PrimaryGold
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+            )
         }
-    ) {
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+                .imePadding()
+        ) {
         when (val state = uiState) {
             is OnboardingUiState.Loading -> {
                 KhanaBookLoadingOverlay(visible = true, message = "Checking status...")
@@ -138,6 +169,7 @@ fun EasebuzzOnboardingScreen(
         if (isSubmitting && uiState is OnboardingUiState.InProgress) {
             KhanaBookLoadingOverlay(visible = true, message = "Submitting...")
         }
+        }
     }
 }
 
@@ -154,7 +186,7 @@ private fun NotStartedContent(onStart: () -> Unit, spacing: Spacing) {
             imageVector = Icons.Default.Info,
             contentDescription = null,
             tint = PrimaryGold,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
         )
         Spacer(Modifier.height(spacing.large))
         Text(
@@ -475,7 +507,7 @@ private fun KycStatusStep(
             imageVector = Icons.Default.Refresh,
             contentDescription = null,
             tint = WarningYellow,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
         )
         Spacer(Modifier.height(spacing.medium))
         Text("KYC Verification Pending", style = MaterialTheme.typography.titleMedium, color = TextLight)
@@ -528,7 +560,7 @@ private fun ActiveContent(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
             tint = SuccessGreen,
-            modifier = Modifier.size(80.dp)
+            modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
         )
         Spacer(Modifier.height(spacing.large))
         Text("Online Payments Active! 🎉", style = MaterialTheme.typography.headlineSmall, color = TextLight)

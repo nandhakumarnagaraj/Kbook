@@ -254,6 +254,7 @@ Every page follows this shell:
 - Web admin source: `web-admin/src/`
 - Android tests: `Android/app/src/test/` (unit), `Android/app/src/androidTest/` (instrumented)
 - Server tests: `server/src/test/java/com/khanabook/saas/`
+- **Android UI Rules: `ANDROID_UI_RULES.md`** — MUST be followed for all new Android screens
 
 ## Deployment (live VPS — Docker Compose)
 
