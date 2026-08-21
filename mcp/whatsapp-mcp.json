@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "whatsapp": {
+      "command": "npx",
+      "args": ["-y", "whatsapp-mcp"],
+      "timeout": 15000
+    }
+  }
+}

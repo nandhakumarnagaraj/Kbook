@@ -37,7 +37,7 @@ public class EasebuzzPaymentService {
 
     @Transactional
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
-        Bill bill = billRepo.findById(billId)
+        Bill bill = billRepo.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
             log.warn("Blocked Easebuzz order creation for already paid billId={} restaurantId={} existingTxnid={}",
@@ -100,8 +100,10 @@ public class EasebuzzPaymentService {
         }
 
         Map<String, Object> fraudScore = chargebackService.scoreTransaction(billId);
-        String risk = (String) fraudScore.get("risk");
-        double score = ((Number) fraudScore.get("score")).doubleValue();
+        Object riskObj = fraudScore.get("risk");
+        String risk = riskObj != null ? (String) riskObj : "unknown";
+        Object scoreObj = fraudScore.get("score");
+        double score = scoreObj != null ? ((Number) scoreObj).doubleValue() : 0;
         if ("critical".equals(risk) || score >= 60) {
             log.warn("Payment blocked by fraud scoring billId={} score={} risk={}", billId, score, risk);
             return Map.of(
@@ -161,8 +163,10 @@ public class EasebuzzPaymentService {
             if (phone.isBlank() && sm.getContactPhone() != null) {
                 phone = sm.getContactPhone();
             }
-        } catch (RuntimeException e) {
+        } catch (EntityNotFoundException e) {
             log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
+        } catch (Exception e) {
+            log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
         }
 
         // Set phone after sub-merchant fallback, then email fallback
@@ -447,8 +451,10 @@ public class EasebuzzPaymentService {
             if (subMerchantId != null && !subMerchantId.isBlank()) {
                 data.put("sub_merchant_id", subMerchantId);
             }
+        } catch (EntityNotFoundException e) {
+            log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
         } catch (Exception e) {
-            // Proceed as parent merchant
+            log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
         }
 
         if (!data.containsKey("phone") || data.get("phone").isBlank()) {
@@ -507,8 +513,10 @@ public class EasebuzzPaymentService {
             }
             if (sm.getContactEmail() != null) subMerchantEmail = sm.getContactEmail();
             if (sm.getContactPhone() != null) subMerchantPhone = sm.getContactPhone();
+        } catch (EntityNotFoundException e) {
+            log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
         } catch (Exception e) {
-            // No sub-merchant — proceed as parent
+            log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
         }
 
         String email = customerEmail != null && !customerEmail.isBlank() ? customerName : subMerchantEmail;
@@ -552,7 +560,7 @@ public class EasebuzzPaymentService {
      */
     @Transactional
     public Map<String, Object> createPaymentLinkForBill(Long billId, Long restaurantId) {
-        Bill bill = billRepo.findById(billId)
+        Bill bill = billRepo.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
 
         // Block if already paid
@@ -702,8 +710,10 @@ public class EasebuzzPaymentService {
             }
             if (sm.getContactEmail() != null) data.put("email", sm.getContactEmail());
             if (phone.isBlank() && sm.getContactPhone() != null) phone = sm.getContactPhone();
-        } catch (RuntimeException e) {
-            // No sub-merchant — proceed as parent
+        } catch (EntityNotFoundException e) {
+            log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
+        } catch (Exception e) {
+            log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
         }
 
         data.put("phone", phone);

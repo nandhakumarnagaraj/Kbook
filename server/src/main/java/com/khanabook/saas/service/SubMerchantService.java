@@ -53,43 +53,48 @@ public class SubMerchantService {
                 "DUPLICATE_SUB_MERCHANT"
             );
         }
-        long now = System.currentTimeMillis();
-        EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
-        sm.setRestaurantId(restaurantId);
-        sm.setBusinessName(str(data.get("businessName")));
-        sm.setLegalEntityName(str(data.get("legalEntityName")));
-        sm.setBusinessType(str(data.get("businessType")));
-        sm.setPan(str(data.get("pan")));
-        sm.setGst(str(data.get("gst")));
-        sm.setBankAccountNo(str(data.get("bankAccountNo")));
-        sm.setIfsc(str(data.get("ifsc")));
-        sm.setBankName(str(data.get("bankName")));
-        sm.setBranchName(str(data.get("branchName")));
-        sm.setBeneficiaryName(str(data.get("beneficiaryName")));
-        sm.setBusinessAddress(str(data.get("businessAddress")));
-        sm.setState(str(data.get("state")));
-        sm.setFssaiNumber(str(data.get("fssaiNumber")));
-        if (data.get("fssaiExpiryDate") != null)
-            sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate").toString()));
-        sm.setBusinessProof1Type(str(data.get("businessProof1Type")));
-        sm.setBusinessProof1Url(str(data.get("businessProof1Url")));
-        sm.setBusinessProof2Type(str(data.get("businessProof2Type")));
-        sm.setBusinessProof2Url(str(data.get("businessProof2Url")));
-        sm.setContactEmail(str(data.get("contactEmail")));
-        sm.setContactPhone(str(data.get("contactPhone")));
-        Object commissionVal = data.get("commissionRate");
-        sm.setCommissionRate(commissionVal != null
-                ? new java.math.BigDecimal(commissionVal.toString()) : java.math.BigDecimal.ZERO);
-        if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
-            sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit").toString()));
-        if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
-            sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand").toString()));
-        sm.setStatus("DRAFT");
-        sm.setCreatedAt(now);
-        sm.setUpdatedAt(now);
-        EasebuzzSubMerchant saved = subMerchantRepo.save(sm);
-        log.info("Created sub-merchant draft id={} restaurantId={}", saved.getId(), restaurantId);
-        return saved;
+        try {
+            long now = System.currentTimeMillis();
+            EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
+            sm.setRestaurantId(restaurantId);
+            sm.setBusinessName(str(data.get("businessName")));
+            sm.setLegalEntityName(str(data.get("legalEntityName")));
+            sm.setBusinessType(str(data.get("businessType")));
+            sm.setPan(str(data.get("pan")));
+            sm.setGst(str(data.get("gst")));
+            sm.setBankAccountNo(str(data.get("bankAccountNo")));
+            sm.setIfsc(str(data.get("ifsc")));
+            sm.setBankName(str(data.get("bankName")));
+            sm.setBranchName(str(data.get("branchName")));
+            sm.setBeneficiaryName(str(data.get("beneficiaryName")));
+            sm.setBusinessAddress(str(data.get("businessAddress")));
+            sm.setState(str(data.get("state")));
+            sm.setFssaiNumber(str(data.get("fssaiNumber")));
+            if (data.get("fssaiExpiryDate") != null)
+                sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate").toString()));
+            sm.setBusinessProof1Type(str(data.get("businessProof1Type")));
+            sm.setBusinessProof1Url(str(data.get("businessProof1Url")));
+            sm.setBusinessProof2Type(str(data.get("businessProof2Type")));
+            sm.setBusinessProof2Url(str(data.get("businessProof2Url")));
+            sm.setContactEmail(str(data.get("contactEmail")));
+            sm.setContactPhone(str(data.get("contactPhone")));
+            Object commissionVal = data.get("commissionRate");
+            sm.setCommissionRate(commissionVal != null
+                    ? new java.math.BigDecimal(commissionVal.toString()) : java.math.BigDecimal.ZERO);
+            if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
+                sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit").toString()));
+            if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
+                sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand").toString()));
+            sm.setStatus("DRAFT");
+            sm.setCreatedAt(now);
+            sm.setUpdatedAt(now);
+            EasebuzzSubMerchant saved = subMerchantRepo.save(sm);
+            log.info("Created sub-merchant draft id={} restaurantId={}", saved.getId(), restaurantId);
+            return saved;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("Duplicate sub-merchant creation attempt for restaurantId={}, returning existing", restaurantId);
+            return getByRestaurantId(restaurantId);
+        }
     }
 
     private String str(Object o) {

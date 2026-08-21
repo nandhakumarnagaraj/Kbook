@@ -12,14 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
+import org.springframework.scheduling.TaskScheduler;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class RefundService {
     private final EasebuzzPaymentService easebuzzPaymentService;
     private final BillRepository billRepository;
     private final EmailNotificationService emailNotificationService;
-    private final ScheduledExecutorService refundScheduler = Executors.newScheduledThreadPool(2);
+    private final TaskScheduler taskScheduler;
 
     public static final List<Map<String, String>> REASON_TAXONOMY = List.of(
         Map.of("code", "CUSTOMER_REQUEST", "label", "Customer Request"),
@@ -122,15 +122,15 @@ public class RefundService {
         }
 
         BigDecimal finalRefundAmount = bill.getTotalAmount();
-        refundScheduler.schedule(() -> {
+        taskScheduler.schedule(() -> {
             try {
                 log.info("Executing delayed refund for billId={} after {} minutes", billId, delayMinutes);
                 initiatePartialRefund(billId, restaurantId, finalRefundAmount, "ORDER_CANCELLED");
                 log.info("Delayed refund completed for billId={}", billId);
             } catch (Exception e) {
-                log.error("Delayed refund failed for billId={}", billId, e);
+                log.error("Scheduled refund failed: {}", e.getMessage(), e);
             }
-        }, delayMinutes, TimeUnit.MINUTES);
+        }, Instant.now().plus(Duration.ofMinutes(delayMinutes)));
 
         return Map.of("status", "cancelled", "billId", billId, "refundScheduled", true, "refundDelayMinutes", delayMinutes, "refundAmount", bill.getTotalAmount());
     }

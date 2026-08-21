@@ -8,11 +8,15 @@ import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.BillPaymentService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BillPaymentServiceImpl implements BillPaymentService {
 	private final BillPaymentRepository repository;
@@ -33,6 +38,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 	private boolean terminalSyncStrict;
 
 	@Override
+	@Transactional
 	public PushSyncResponse pushData(Long tenantId, List<BillPayment> payload) {
 		enforceTerminalIdentity();
 		List<BillPayment> toSync = new ArrayList<>();
@@ -71,6 +77,23 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
 		response.getFailedReasons().putAll(failedReasons);
+
+		// After push sync, verify payment totals don't exceed bill total
+		Set<Long> checkedBillIds = new HashSet<>();
+		for (BillPayment payment : toSync) {
+			Long serverBillId = payment.getServerBillId();
+			if (serverBillId != null && checkedBillIds.add(serverBillId)) {
+				billRepository.findById(serverBillId).ifPresent(bill -> {
+					BigDecimal paymentSum = repository.sumAmountByServerBillId(serverBillId);
+					if (paymentSum != null && bill.getTotalAmount() != null
+							&& paymentSum.compareTo(bill.getTotalAmount()) > 0) {
+						log.warn("Payment sum {} exceeds bill total {} for billId={}",
+								paymentSum, bill.getTotalAmount(), serverBillId);
+					}
+				});
+			}
+		}
+
 		return response;
 	}
 

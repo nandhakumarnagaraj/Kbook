@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.model.TerminalIdentity
+import androidx.compose.runtime.Immutable
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -310,6 +311,7 @@ class BillCreationUseCase @Inject constructor(
         }
     }
 
+    @Immutable
     data class BillSummary(
         val subtotal: String = "0.0",
         val cgst: String = "0.0",

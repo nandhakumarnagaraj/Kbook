@@ -25,6 +25,7 @@ import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
 @Composable
@@ -46,8 +47,8 @@ fun ForgotPasswordDialog(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
-    val resetStatus by viewModel.resetPasswordStatus.collectAsState()
-    val resetFieldErrors by viewModel.resetPasswordFieldErrors.collectAsState()
+    val resetStatus by viewModel.resetPasswordStatus.collectAsStateWithLifecycle()
+    val resetFieldErrors by viewModel.resetPasswordFieldErrors.collectAsStateWithLifecycle()
     val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
 
     fun fieldError(vararg keys: String): String? = keys.firstNotNullOfOrNull { key ->

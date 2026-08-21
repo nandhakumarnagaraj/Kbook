@@ -18,6 +18,7 @@ import com.khanabook.lite.pos.domain.model.connectionTypeValue
 import com.khanabook.lite.pos.domain.model.isConnectionConfigured
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.feedback.UiMessage
+import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -271,8 +272,9 @@ class HomeViewModel @Inject constructor(
                     if (showMessage) _message.emit(UiMessage("No printer configured.", ToastKind.Warning))
                     return@launch
                 }
-                val connected = printerManager.isConnectedTo(legacyPrinter.printerMac!!) ||
-                    printerManager.connect(legacyPrinter.printerMac!!)
+                val mac = legacyPrinter.printerMac ?: return@launch
+                val connected = printerManager.isConnectedTo(mac) ||
+                    printerManager.connect(mac)
                 if (showMessage) {
                     _message.emit(
                         if (connected) {
@@ -307,6 +309,7 @@ class HomeViewModel @Inject constructor(
     }
 
 
+    @Immutable
     data class HomeStats(
         val orderCount: Int = 0,
         val revenue: Double = 0.0,

@@ -41,6 +41,7 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.ui.navigation.AppNavGraph
+import com.khanabook.lite.pos.ui.screens.BrandedStartFrame
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -166,9 +167,9 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Hold system splash until Compose has rendered (reduces empty frame).
-        // BrandedStartFrame will then show for the brand exposure duration.
-        installSplashScreen().setKeepOnScreenCondition { startupDestination.value == null }
+        // Release system splash as soon as first frame renders — the Compose
+        // BrandedStartFrame takes over as the branded splash (Paytm-style).
+        installSplashScreen()
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
@@ -186,9 +187,16 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         // Startup routing decision — the branded start frame stays visible until
-        // this completes, then we navigate to the decided destination.
-        lifecycleScope.launch {
-            startupDestination.value = computeStartupDestination()
+        // this completes. Minimum 1.5s ensures brand exposure (like Paytm).
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            val startTime = System.currentTimeMillis()
+            val destination = computeStartupDestination()
+            val elapsed = System.currentTimeMillis() - startTime
+            val minDisplayMs = 800L
+            if (elapsed < minDisplayMs) {
+                kotlinx.coroutines.delay(minDisplayMs - elapsed)
+            }
+            startupDestination.value = destination
         }
 
         lifecycleScope.launch {
@@ -240,8 +248,7 @@ class MainActivity : FragmentActivity() {
                     val isInPrivateArea = currentDest != null &&
                         currentDest != "login" &&
                         currentDest != "signup" &&
-                        currentDest != "app_lock" &&
-                        currentDest != "branded_start"
+                        currentDest != "app_lock"
 
                     if (!isInPrivateArea) return@LifecycleEventEffect
 
@@ -297,7 +304,7 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(isSessionExpired) {
                     if (isSessionExpired) {
                         val dest = navController.currentDestination?.route
-                        if (dest != null && dest != "login" && dest != "app_lock" && dest != "signup" && dest != "branded_start") {
+                        if (dest != null && dest != "login" && dest != "app_lock" && dest != "signup") {
                             authViewModel.handleSessionExpiry()
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
@@ -315,7 +322,7 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(currentUser, sessionState) {
                     if (sessionState == SessionManager.SessionState.INACTIVE) return@LaunchedEffect
                     val dest = navController.currentDestination?.route
-                    if (currentUser == null && dest != null && dest != "login" && dest != "app_lock" && dest != "signup" && dest != "branded_start") {
+                    if (currentUser == null && dest != null && dest != "login" && dest != "app_lock" && dest != "signup") {
                         navController.navigate("login") { 
                             popUpTo(0) { inclusive = true } 
                         }
@@ -324,25 +331,23 @@ class MainActivity : FragmentActivity() {
 
                 Box(modifier = Modifier.fillMaxSize()) {
                 val startDestination by startupDestination.collectAsStateWithLifecycle()
-                // BrandedStartFrame is the branded splash. Navigate to destination
-                // the instant routing completes — no artificial delay.
-                LaunchedEffect(startDestination) {
-                    val dest = startDestination ?: return@LaunchedEffect
-                    // Branded splash exposure: 2 seconds from first render.
-                    // Balances brand visibility with POS cashier speed.
-                    kotlinx.coroutines.delay(2000)
-                    navController.navigate(dest) {
-                        popUpTo("branded_start") { inclusive = true }
-                    }
+                // Paytm-style: show branded content while computing destination,
+                // then instantly swap to NavGraph. No delay, no nav route for splash.
+                if (startDestination == null) {
+                    // Full branded splash as first Compose frame — visible while
+                    // auth/routing decision runs (typically <500ms)
+                    BrandedStartFrame()
+                } else {
+                    AppNavGraph(
+                        navController = navController,
+                        authViewModel = authViewModel,
+                        menuViewModel = menuViewModel,
+                        sessionManager = sessionManager,
+                        context = context,
+                        authenticatedStartDestination = ::authenticatedStartDestination,
+                        startDestination = startDestination!!
+                    )
                 }
-                AppNavGraph(
-                    navController = navController,
-                    authViewModel = authViewModel,
-                    menuViewModel = menuViewModel,
-                    sessionManager = sessionManager,
-                    context = context,
-                    authenticatedStartDestination = ::authenticatedStartDestination
-                )
                 KhanaBookSnackbarHost(
                     hostState = KhanaToast.host,
                     modifier = Modifier.align(Alignment.BottomCenter),

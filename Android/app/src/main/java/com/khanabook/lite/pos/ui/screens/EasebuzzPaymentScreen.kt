@@ -51,6 +51,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
@@ -126,7 +127,7 @@ fun EasebuzzPaymentScreen(
                             Class.forName("com.easebuzz.payment.kit.PWECheckoutActivity")
                         )
                         intent.putExtra("access_key", currentState.accessToken)
-                        intent.putExtra("pay_mode", "test") // Change to "production" for live
+                        intent.putExtra("pay_mode", if (BuildConfig.DEBUG) "test" else "production")
                         sdkLauncher.launch(intent)
                     } catch (e: ClassNotFoundException) {
                         // SDK unavailable — fall back to browser payment flow

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lovable": {
+      "command": "npx",
+      "args": ["-y", "@lovablelabs/mcp"],
+      "env": {
+        "LOVABLE_TOKEN": "your-lovable-api-token"
+      },
+      "timeout": 20000
+    }
+  }
+}

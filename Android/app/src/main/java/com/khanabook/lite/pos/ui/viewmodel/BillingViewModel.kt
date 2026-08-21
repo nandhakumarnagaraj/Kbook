@@ -25,6 +25,7 @@ import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,7 +38,9 @@ import javax.inject.Inject
 sealed class PaymentLinkForBillState {
     object Idle : PaymentLinkForBillState()
     object Loading : PaymentLinkForBillState()
+    @Immutable
     data class Success(val linkUrl: String, val merchantTxn: String) : PaymentLinkForBillState()
+    @Immutable
     data class Error(val error: String) : PaymentLinkForBillState()
 }
 
@@ -58,6 +61,10 @@ class BillingViewModel @Inject constructor(
     private val easebuzzPaymentRepository: EasebuzzPaymentRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("BillingViewModel", "Coroutine failed: ${throwable.message}", throwable)
+    }
 
     private data class InvoiceIdentity(
         val financialYear: String,
@@ -168,13 +175,13 @@ class BillingViewModel @Inject constructor(
     val recentDineInCustomers: StateFlow<List<Pair<String, String>>> = _recentDineInCustomers
 
     fun loadRecentCustomers() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _recentCustomers.value = billRepository.getRecentCustomers()
         }
     }
 
     fun loadRecentDineInCustomers() {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _recentDineInCustomers.value = billRepository.getRecentDineInCustomers()
         }
     }
@@ -188,7 +195,8 @@ class BillingViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    var editingBillId: Long? = null
+    private val _editingBillId = MutableStateFlow<Long?>(null)
+    val editingBillId: Long? get() = _editingBillId.value
 
     private val _orderType = MutableStateFlow("dine_in")
     val orderType: StateFlow<String> = _orderType
@@ -259,12 +267,12 @@ class BillingViewModel @Inject constructor(
 
     init {
         // Process death protection save state flows
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _customerName.collect { name ->
                 savedStateHandle["customer_name"] = name
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             _customerWhatsapp.collect { whatsapp ->
                 savedStateHandle["customer_whatsapp"] = whatsapp
             }
@@ -286,7 +294,7 @@ class BillingViewModel @Inject constructor(
             .onEach { summary -> cartManager.setSummary(summary) }
             .launchIn(viewModelScope)
 
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             printRouter.printResults.collect { (billId, result) ->
                 val lastBillId = _lastBill.value?.bill?.id
                 if (lastBillId == billId) {
@@ -301,7 +309,7 @@ class BillingViewModel @Inject constructor(
     }
 
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             val errorMsg = cartManager.addToCart(item, variant)
             if (errorMsg != null) {
                 _error.value = errorMsg
@@ -314,7 +322,7 @@ class BillingViewModel @Inject constructor(
     }
 
     fun handleScannedBarcode(barcode: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             val errorMsg = cartManager.handleScannedBarcode(barcode)
             if (errorMsg != null) {
                 _error.value = errorMsg
@@ -323,7 +331,7 @@ class BillingViewModel @Inject constructor(
     }
 
     fun addItemByScannedText(text: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             cartManager.addItemByScannedText(text)
         }
     }
@@ -437,7 +445,7 @@ class BillingViewModel @Inject constructor(
         if (!ownsRestorationAttempt(capturedGeneration)) return false
 
         savedStateHandle[PENDING_ONLINE_BILL_ID] = localBillId
-        editingBillId = localBillId
+        _editingBillId.value = localBillId
         _lastBill.value = billWithItems
         _customerName.value = bill.customerName ?: ""
         _customerWhatsapp.value = bill.customerWhatsapp ?: ""
@@ -477,7 +485,7 @@ class BillingViewModel @Inject constructor(
             savedStateHandle[PENDING_ONLINE_BILL_ID] = null
         }
         clearGatewayResult()
-        editingBillId = null
+        _editingBillId.value = null
         _lastBill.value = null
         cartManager.clear()
         _customerName.value = ""
@@ -902,7 +910,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                         _error.value = "Cannot edit a cancelled order."
                         return@launch
                     }
-                    editingBillId = billId
+                    _editingBillId.value = billId
                     _customerName.value = billWithItems.bill.customerName ?: ""
                     _customerWhatsapp.value = billWithItems.bill.customerWhatsapp ?: ""
                     _orderType.value = billWithItems.bill.orderType ?: "dine_in"
@@ -948,7 +956,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
 
     fun clearActiveSession() {
         invalidateRestoration()
-        editingBillId = null
+        _editingBillId.value = null
         cartManager.clear()
         _customerName.value = ""
         _customerWhatsapp.value = ""
@@ -1443,7 +1451,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 cartManager.clear()
                 paymentStateManager.setPersistedPaymentTotal(null)
                 paymentStateManager.setPaymentRecovery(PaymentRecoveryAssessment.Empty)
-                editingBillId = null
+                _editingBillId.value = null
                 printCoordinator.clearStatus()
                 if (finalized.outcome ==
                     com.khanabook.lite.pos.data.local.relation.BillFinalizationOutcome.FINALIZED_NOW
@@ -1540,7 +1548,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
 
     fun printReceipt(bill: BillWithItems) {
         val profile = _cachedProfile.value
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(exceptionHandler + Dispatchers.IO) {
             printCoordinator.printReceipt(bill, profile) { errorMsg ->
                 _error.value = errorMsg
             }
@@ -1549,7 +1557,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
 
     fun printKitchenTicket(bill: BillWithItems) {
         val profile = _cachedProfile.value
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(exceptionHandler + Dispatchers.IO) {
             printCoordinator.printKitchenTicket(bill, profile) { errorMsg ->
                 _error.value = errorMsg
             }

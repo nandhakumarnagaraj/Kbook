@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { tap, switchMap } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
@@ -160,15 +161,18 @@ export class MarketplaceOrdersPageComponent implements OnInit {
   loadOrders(): void {
     this.viewState.set('loading');
     this.errorMessage.set('');
-    this.api.getMarketplaceOrderCounts().subscribe({
-      next: (rawCounts) => {
-        this.counts.set(rawCounts as unknown as MarketplaceOrderCounts);
-        this.api.getMarketplaceOrders().subscribe({
-          next: (list) => { this.orders.set(list); this.viewState.set('loaded'); },
-          error: (err) => { this.errorMessage.set(err.message ?? 'Failed to load orders'); this.viewState.set('error'); }
-        });
+    this.api.getMarketplaceOrderCounts().pipe(
+      tap((rawCounts) => this.counts.set(rawCounts as unknown as MarketplaceOrderCounts)),
+      switchMap(() => this.api.getMarketplaceOrders())
+    ).subscribe({
+      next: (list) => {
+        this.orders.set(list);
+        this.viewState.set('loaded');
       },
-      error: (err) => { this.errorMessage.set(err.message ?? 'Failed to load counts'); this.viewState.set('error'); }
+      error: (err) => {
+        this.errorMessage.set(err.message ?? 'Failed to load marketplace orders');
+        this.viewState.set('error');
+      }
     });
   }
 

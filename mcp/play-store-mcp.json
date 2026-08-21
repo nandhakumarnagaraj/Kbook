@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "play-store": {
+      "command": "npx",
+      "args": ["-y", "play-store-mcp"],
+      "env": {
+        "GOOGLE_PLAY_SERVICE_ACCOUNT_KEY": "path/to/service-account.json",
+        "GOOGLE_PLAY_PACKAGE_NAME": "com.piquantservices.khanabooklite"
+      }
+    }
+  }
+}

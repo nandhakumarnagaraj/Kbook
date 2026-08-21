@@ -41,6 +41,7 @@ import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.animation.*
@@ -65,11 +66,11 @@ fun SearchScreen(
     var dailyDate by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
-    val result by viewModel.searchResult.collectAsState()
-    val hasSearched by viewModel.hasSearched.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
-    val billingError by billingViewModel.error.collectAsState()
-    val printStatus by billingViewModel.printStatus.collectAsState()
+    val result by viewModel.searchResult.collectAsStateWithLifecycle()
+    val hasSearched by viewModel.hasSearched.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val billingError by billingViewModel.error.collectAsStateWithLifecycle()
+    val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val keyboardController = LocalSoftwareKeyboardController.current

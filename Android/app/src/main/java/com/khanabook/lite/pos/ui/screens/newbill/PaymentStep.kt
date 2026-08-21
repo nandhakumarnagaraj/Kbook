@@ -145,15 +145,21 @@ fun PaymentStep(
     val payableNow = partialRecovery?.remainingAmount ?: paymentTotal
     val upiMaxAmount = PaymentLimits.UPI_SINGLE_TRANSACTION_MAX.toDouble()
     val totalAmount = payableNow.toDoubleOrNull() ?: 0.0
-    val isUpiMode =
+    val isUpiMode by remember {
+        derivedStateOf {
             selectedMode == PaymentMode.UPI ||
-                    selectedMode == PaymentMode.PART_CASH_UPI ||
-                    selectedMode == PaymentMode.PART_UPI_POS
+                selectedMode == PaymentMode.PART_CASH_UPI ||
+                selectedMode == PaymentMode.PART_UPI_POS
+        }
+    }
 
-    val isSplitMode =
+    val isSplitMode by remember {
+        derivedStateOf {
             selectedMode == PaymentMode.PART_CASH_UPI ||
-                    selectedMode == PaymentMode.PART_CASH_POS ||
-                    selectedMode == PaymentMode.PART_UPI_POS
+                selectedMode == PaymentMode.PART_CASH_POS ||
+                selectedMode == PaymentMode.PART_UPI_POS
+        }
+    }
 
     // Auto-switch to split payment when the UPI single-pay amount exceeds the limit.
     // This prevents generating a QR code with an amount that UPI apps will reject.
@@ -363,26 +369,33 @@ fun PaymentStep(
                                         return@launch
                                     }
                                     val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
-                                    onPayOnline(serverBillId!!, restaurantId, paymentTotal)
+                                    val id = serverBillId ?: run { isSubmitting = false; return@launch }
+                                    onPayOnline(id, restaurantId, paymentTotal)
                                     return@launch
                                 }
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 val success = when {
-                                    resumedPendingBillId != null ->
-                                        viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.SUCCESS)
-                                    partialRecovery != null && viewModel.editingBillId != null ->
+                                    resumedPendingBillId != null -> {
+                                        val id = resumedPendingBillId ?: run { isSubmitting = false; return@launch }
+                                        viewModel.finalizeOnlineBill(id, PaymentStatus.SUCCESS)
+                                    }
+                                    partialRecovery != null && viewModel.editingBillId != null -> {
+                                        val id = viewModel.editingBillId ?: return@launch
                                         viewModel.recoverPartialDraftPayment(
-                                            viewModel.editingBillId!!,
+                                            id,
                                             selectedMode
                                         )
-                                    viewModel.editingBillId != null ->
+                                    }
+                                    viewModel.editingBillId != null -> {
+                                        val id = viewModel.editingBillId ?: return@launch
                                         viewModel.settleDraftOrder(
-                                            billId = viewModel.editingBillId!!,
+                                            billId = id,
                                             paymentMode = selectedMode,
                                             status = PaymentStatus.SUCCESS,
                                             partAmount1 = p1Text,
                                             partAmount2 = p2Text
                                         )
+                                    }
                                     else ->
                                         viewModel.completeOrder(PaymentStatus.SUCCESS)
                                 }
@@ -429,10 +442,14 @@ fun PaymentStep(
                                 }
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 when {
-                                    resumedPendingBillId != null ->
-                                        viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.FAILED, "Customer left")
-                                    viewModel.editingBillId != null ->
-                                        viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.FAILED)
+                                    resumedPendingBillId != null -> {
+                                        val id = resumedPendingBillId ?: return@launch
+                                        viewModel.finalizeOnlineBill(id, PaymentStatus.FAILED, "Customer left")
+                                    }
+                                    viewModel.editingBillId != null -> {
+                                        val id = viewModel.editingBillId ?: return@launch
+                                        viewModel.settleDraftOrder(id, selectedMode, PaymentStatus.FAILED)
+                                    }
                                     else ->
                                         viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
                                 }
@@ -615,11 +632,13 @@ fun PaymentStep(
                                 .padding(spacing.medium),
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                bitmap = dynamicUpiQrBitmap!!.asImageBitmap(),
-                                contentDescription = "Enlarged QR Code",
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            dynamicUpiQrBitmap?.let { bitmap ->
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Enlarged QR Code",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(

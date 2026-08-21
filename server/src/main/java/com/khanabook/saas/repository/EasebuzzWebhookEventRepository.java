@@ -17,6 +17,8 @@ public interface EasebuzzWebhookEventRepository extends JpaRepository<EasebuzzWe
 
     Optional<EasebuzzWebhookEvent> findByRestaurantIdAndTxnId(Long restaurantId, String txnId);
 
+    boolean existsByTxnIdAndStatus(String txnId, String status);
+
     long countByReceivedAtBetweenAndStatus(Long from, Long to, String status);
 
     long countByReceivedAtBetween(Long from, Long to);

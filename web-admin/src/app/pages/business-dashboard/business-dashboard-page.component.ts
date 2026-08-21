@@ -12,14 +12,9 @@ import { DateRangeSelectorComponent } from '../../shared/date-range-selector.com
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 
-function sparkPoints(value: number): string {
-  const base = Math.max(value, 1000);
-  const variance = base * 0.15;
-  const points: number[] = [];
-  for (let i = 0; i < 7; i++) {
-    points.push(base + (Math.random() - 0.3) * variance);
-  }
-  return sparklinePath(points);
+function sparkPoints(_value: number): string {
+  // TODO: Replace with real API trend data
+  return '';
 }
 
 function sparklinePath(data: number[]): string {
@@ -545,9 +540,9 @@ export class BusinessDashboardPageComponent {
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             const trendBars = trendValues.map((v, i) => ({ day: days[i], value: v, pct: (v / maxTrend) * 100 }));
 
-            // Compute deltas
-            const deltaToday = Math.round((Math.random() * 20 + 5) * 10) / 10;
-            const deltaTotal = Math.round((Math.random() * 15 + 3) * 10) / 10;
+            // Compute deltas — TODO: Replace with real API comparison data
+            const deltaToday = 0;
+            const deltaTotal = 0;
 
             return {
               ...data,

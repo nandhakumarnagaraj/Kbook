@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -408,7 +408,7 @@ import { formatDate } from '../../shared/formatters';
     }
   `]
 })
-export class TerminalsPageComponent {
+export class TerminalsPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -450,6 +450,13 @@ export class TerminalsPageComponent {
 
   constructor() {
     this.reload();
+  }
+
+  ngOnDestroy(): void {
+    if (this.challengeTimer) {
+      clearInterval(this.challengeTimer);
+      this.challengeTimer = null;
+    }
   }
 
   reload(): void {

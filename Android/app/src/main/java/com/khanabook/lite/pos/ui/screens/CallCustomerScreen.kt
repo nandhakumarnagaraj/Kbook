@@ -29,6 +29,7 @@ import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import com.khanabook.lite.pos.R
@@ -51,7 +52,7 @@ fun CallCustomerScreen(
                         .format(java.util.Date())
         )
     }
-    val result by viewModel.searchResult.collectAsState()
+    val result by viewModel.searchResult.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()

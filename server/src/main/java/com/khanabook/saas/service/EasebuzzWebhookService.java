@@ -42,6 +42,15 @@ public class EasebuzzWebhookService {
         String txnid = payload.get("txnid");
         String status = payload.get("status");
 
+        // Replay/duplicate webhook guard
+        if (txnid != null && status != null) {
+            boolean alreadyProcessed = webhookEventRepo.existsByTxnIdAndStatus(txnid, status);
+            if (alreadyProcessed) {
+                log.info("Duplicate webhook ignored txnid={} status={}", txnid, status);
+                return Map.of("status", "ok", "message", "already processed");
+            }
+        }
+
         // Verify webhook hash before processing
         if (!verifyWebhookHash(payload)) {
             log.warn("Payment webhook hash mismatch txnid={}", txnid);

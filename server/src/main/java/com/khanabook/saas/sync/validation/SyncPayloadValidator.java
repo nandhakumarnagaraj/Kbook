@@ -2,11 +2,15 @@ package com.khanabook.saas.sync.validation;
 
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Set;
 
 public class SyncPayloadValidator {
+
+	private static final Logger log = LoggerFactory.getLogger(SyncPayloadValidator.class);
 
 	public record ValidationResult(boolean valid, String reason) {
 		public static ValidationResult ok() {
@@ -99,6 +103,16 @@ public class SyncPayloadValidator {
 		}
 		if (exceedsLength(bill.getCustomerWhatsapp(), MAX_PHONE_LENGTH)) {
 			return ValidationResult.fail("customerWhatsapp exceeds " + MAX_PHONE_LENGTH + " characters");
+		}
+		// Cross-validate bill total
+		if (bill.getSubtotal() != null && bill.getTotalAmount() != null) {
+			BigDecimal computed = bill.getSubtotal()
+				.add(bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO)
+				.add(bill.getSgstAmount() != null ? bill.getSgstAmount() : BigDecimal.ZERO)
+				.add(bill.getCustomTaxAmount() != null ? bill.getCustomTaxAmount() : BigDecimal.ZERO);
+			if (bill.getTotalAmount().subtract(computed).abs().compareTo(new BigDecimal("1.00")) > 0) {
+				log.warn("Bill total mismatch: stated={} computed={} billId={}", bill.getTotalAmount(), computed, bill.getId());
+			}
 		}
 		return ValidationResult.ok();
 	}

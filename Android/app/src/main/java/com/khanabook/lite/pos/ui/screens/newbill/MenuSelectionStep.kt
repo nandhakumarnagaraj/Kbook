@@ -464,7 +464,8 @@ fun MenuSelectionStep(
                                     Button(
                                         onClick = {
                                             scope.launch {
-                                                if (billingViewModel.appendItemsToDraft(billingViewModel.editingBillId!!)) {
+                                                val billId = billingViewModel.editingBillId ?: return@launch
+                                                if (billingViewModel.appendItemsToDraft(billId)) {
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {
@@ -623,7 +624,8 @@ fun MenuSelectionStep(
                                     Button(
                                         onClick = {
                                             scope.launch {
-                                                if (billingViewModel.appendItemsToDraft(billingViewModel.editingBillId!!)) {
+                                                val billId = billingViewModel.editingBillId ?: return@launch
+                                                if (billingViewModel.appendItemsToDraft(billId)) {
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {

@@ -67,7 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.ui.screens.ocr.CameraPreview
 import com.khanabook.lite.pos.ui.screens.ocr.PermissionDeniedContent
 import com.khanabook.lite.pos.ui.screens.ocr.ScanControls
@@ -89,7 +89,7 @@ fun OcrScannerScreen(
     returnBarcode: Boolean = false
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.ocrImportUiState.collectAsState()
+    val uiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
 
     // Clear any stale drafts from a previous scan so they don't immediately
     // trigger the back-navigation LaunchedEffect below before a new scan runs.

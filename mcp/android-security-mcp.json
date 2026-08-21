@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "android-security": {
+      "command": "npx",
+      "args": ["-y", "android-security-analyzer-mcp"],
+      "env": {
+        "PROJECT_PATH": "C:/Users/nandh/Desktop/Khanabook/KhanaBook/Android"
+      },
+      "timeout": 30000
+    }
+  }
+}

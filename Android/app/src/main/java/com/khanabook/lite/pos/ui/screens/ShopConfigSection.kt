@@ -41,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -109,14 +108,14 @@ fun ShopConfigView(
     val logoUrl = profileLogoUrl?.logoUrl
     val logoPath = profileLogoUrl?.logoPath
 
-    val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
-    val saveProfileError by viewModel.saveProfileError.collectAsState()
-    val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
-    val logoUploadLoading by viewModel.logoUploadLoading.collectAsState()
-    val logoUploadError by viewModel.logoUploadError.collectAsState()
+    val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
+    val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
+    val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
+    val logoUploadLoading by viewModel.logoUploadLoading.collectAsStateWithLifecycle()
+    val logoUploadError by viewModel.logoUploadError.collectAsStateWithLifecycle()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
@@ -221,8 +220,8 @@ fun ShopConfigView(
     }
 
     var otpValue by remember { mutableStateOf("") }
-    val otpStatus by authViewModel.otpVerificationStatus.collectAsState()
-    val otpFieldErrors by authViewModel.otpFieldErrors.collectAsState()
+    val otpStatus by authViewModel.otpVerificationStatus.collectAsStateWithLifecycle()
+    val otpFieldErrors by authViewModel.otpFieldErrors.collectAsStateWithLifecycle()
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }

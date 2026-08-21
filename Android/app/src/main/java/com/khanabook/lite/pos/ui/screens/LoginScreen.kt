@@ -47,6 +47,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.screens.auth.ForgotPasswordDialog
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun LoginScreen(
@@ -60,7 +61,7 @@ fun LoginScreen(
     var showForgotDialog by remember { mutableStateOf(false) }
     var isGoogleLogin by remember { mutableStateOf(false) }
 
-    val loginStatus by viewModel.loginStatus.collectAsState()
+    val loginStatus by viewModel.loginStatus.collectAsStateWithLifecycle()
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
     val isLoginIdValid = ValidationUtils.isValidPhone(loginId) || ValidationUtils.isValidEmail(loginId)
     val context = LocalContext.current

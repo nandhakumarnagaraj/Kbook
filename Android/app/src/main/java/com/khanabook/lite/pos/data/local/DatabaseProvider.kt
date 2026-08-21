@@ -55,7 +55,7 @@ class DatabaseProvider @Inject constructor(
                 "restaurant=$restaurantId. This may indicate stale DB access after logout.")
         }
         if (activeDatabase != null && activeRestaurantId == restaurantId) {
-            return activeDatabase!!
+            return activeDatabase ?: throw IllegalStateException("Database not initialized. Call switchToDatabase() first.")
         }
         activeDatabase?.close()
         activeRestaurantId = restaurantId
@@ -90,7 +90,7 @@ class DatabaseProvider @Inject constructor(
             )
             throw e
         }
-        return activeDatabase!!
+        return activeDatabase ?: throw IllegalStateException("Database not initialized. Call switchToDatabase() first.")
     }
 
     /**

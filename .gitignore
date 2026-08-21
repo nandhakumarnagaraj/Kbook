@@ -159,3 +159,21 @@ run_build.cmd
 FIX_PLAN.md
 Production_docs.txt
 KHANABOOK_API_REVIEW_VALIDATION_*.md
+
+# ─── Additional repo-cleanup entries (2026-08-21) ───
+
+# Root-level IDE directory (catch-all for .idea/)
+.idea/
+
+# Android Studio IDE metadata inside Android subproject
+Android/.idea/
+
+# All log files anywhere in the repo
+*.log
+
+# Java keystore files (secrets — should never be committed)
+*.jks
+Android/app/khanabook-release-key.jks
+
+# Temporary commit message file
+.commit_temp

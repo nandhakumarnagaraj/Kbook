@@ -5,6 +5,7 @@ import com.khanabook.saas.sync.repository.SyncRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -35,4 +36,7 @@ public interface BillPaymentRepository extends SyncRepository<BillPayment, Long>
             @Param("restaurantId") Long restaurantId,
             @Param("lastSyncTimestamp") Long lastSyncTimestamp,
             @Param("terminalId") String terminalId);
+
+    @Query("SELECT SUM(p.amount) FROM BillPayment p WHERE p.serverBillId = :billId AND (p.isDeleted IS NULL OR p.isDeleted = false)")
+    BigDecimal sumAmountByServerBillId(@Param("billId") Long billId);
 }

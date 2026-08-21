@@ -2,8 +2,10 @@ package com.khanabook.saas.repository;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.sync.repository.SyncRepository;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +15,10 @@ import java.util.Optional;
 
 @Repository
 public interface BillRepository extends SyncRepository<Bill, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Bill b WHERE b.id = :id")
+    Optional<Bill> findByIdForUpdate(@Param("id") Long id);
 
     @Query("""
             SELECT COALESCE(MAX(b.invoiceSequence), 0)

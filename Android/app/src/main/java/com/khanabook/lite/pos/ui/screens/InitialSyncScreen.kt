@@ -32,6 +32,7 @@ import com.khanabook.lite.pos.ui.designsystem.ScrollableCenteredLayout
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncState
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun InitialSyncScreen(
@@ -39,7 +40,7 @@ fun InitialSyncScreen(
     onNavigateToLogin: () -> Unit = {},
     viewModel: InitialSyncViewModel = hiltViewModel()
 ) {
-    val syncState by viewModel.syncState.collectAsState()
+    val syncState by viewModel.syncState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 

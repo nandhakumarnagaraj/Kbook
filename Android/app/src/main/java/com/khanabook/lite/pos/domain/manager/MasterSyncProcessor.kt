@@ -179,7 +179,8 @@ class MasterSyncProcessor @Inject constructor(
                             val reasonsObj = json.optJSONObject("failedReasons")
                             val parsedReasons = mutableMapOf<Long, String>()
                             reasonsObj?.keys()?.forEach { key ->
-                                parsedReasons[key.toLong()] = reasonsObj.optString(key, reason)
+                                val id = key.toLongOrNull() ?: return@forEach
+                                parsedReasons[id] = reasonsObj.optString(key, reason)
                             }
                             val allIds = batch.map(localId)
                             val successIds = allIds.filter { it !in parsedFailedIds }
@@ -1199,7 +1200,7 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.bills.isNotEmpty()) {
             val repairedBills = mutableListOf<String>()
             val resolvedBills = masterData.bills.map { remoteBill ->
-                    val resolvedCreatedBy = remoteBill.createdBy?.toLong()?.let { remoteId ->
+                    val resolvedCreatedBy = remoteBill.createdBy?.let { remoteId ->
                         remoteUserIdToLocalId[remoteId] ?: remoteId
                     }?.takeIf { mappedUserId ->
                         val exists = mappedUserId in knownUserIds

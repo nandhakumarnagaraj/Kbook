@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "android-adb": {
+      "command": "npx",
+      "args": ["-y", "android-mcp-server"],
+      "timeout": 15000
+    }
+  }
+}

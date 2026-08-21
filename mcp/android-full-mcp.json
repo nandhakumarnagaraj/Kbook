@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "android-full": {
+      "command": "npx",
+      "args": ["-y", "@us-all/android-mcp-server"],
+      "env": {
+        "ANDROID_SDK_ROOT": "C:/Users/nandh/AppData/Local/Android/Sdk"
+      },
+      "timeout": 30000
+    }
+  }
+}

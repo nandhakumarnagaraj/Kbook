@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "thermal-printer": {
+      "command": "npx",
+      "args": ["-y", "shortorder-mcp"],
+      "env": {
+        "PRINTER_TYPE": "bluetooth"
+      },
+      "timeout": 10000
+    }
+  }
+}

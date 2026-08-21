@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "mobile-next": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mobile-mcp@latest", "--android-serial", "auto"],
+      "timeout": 30000
+    }
+  }
+}

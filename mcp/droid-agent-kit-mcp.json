@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "droid-agent-kit": {
+      "command": "npx",
+      "args": ["-y", "droid-agent-kit"],
+      "env": {
+        "ANDROID_PROJECT_PATH": "C:/Users/nandh/Desktop/Khanabook/KhanaBook/Android"
+      },
+      "timeout": 30000
+    }
+  }
+}

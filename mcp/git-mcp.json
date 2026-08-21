@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "C:/Users/nandh/Desktop/Khanabook/KhanaBook"]
+    }
+  }
+}

@@ -39,6 +39,7 @@ public class BillItemServiceImpl implements BillItemService {
 	private boolean terminalSyncStrict;
 
 	@Override
+	@Transactional
 	public PushSyncResponse pushData(Long tenantId, List<BillItem> payload) {
 		enforceTerminalIdentity();
 		List<BillItem> toSync = new ArrayList<>();

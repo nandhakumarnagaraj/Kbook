@@ -39,6 +39,7 @@ import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -61,14 +62,14 @@ fun OrdersScreen(
     billingViewModel: BillingViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val allRows by viewModel.orderDetailsTable.collectAsState()
-    val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val timeFilter by viewModel.timeFilter.collectAsState()
-    val reportError by viewModel.error.collectAsState()
-    val billingError by billingViewModel.error.collectAsState()
-    val printStatus by billingViewModel.printStatus.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
+    val allRows by viewModel.orderDetailsTable.collectAsStateWithLifecycle()
+    val selectedBillDetails by viewModel.selectedBillDetails.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
+    val reportError by viewModel.error.collectAsStateWithLifecycle()
+    val billingError by billingViewModel.error.collectAsStateWithLifecycle()
+    val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }

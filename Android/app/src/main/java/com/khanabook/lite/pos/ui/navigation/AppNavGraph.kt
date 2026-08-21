@@ -32,11 +32,12 @@ internal fun AppNavGraph(
     menuViewModel: MenuViewModel,
     sessionManager: SessionManager,
     context: android.app.Activity,
-    authenticatedStartDestination: () -> String
+    authenticatedStartDestination: () -> String,
+    startDestination: String = "branded_start"
 ) {
     NavHost(
         navController = navController,
-        startDestination = "branded_start",
+        startDestination = startDestination,
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
             slideInHorizontally(
@@ -66,15 +67,6 @@ internal fun AppNavGraph(
             )
         }
     ) {
-        composable(
-            "branded_start",
-            // Appear instantly at the same center position as the system splash
-            // icon so the handoff reads as one continuous branded startup, not a
-            // second screen sliding in.
-            enterTransition = { EnterTransition.None }
-        ) {
-            BrandedStartFrame()
-        }
         composable("app_lock") {
             AppLockScreen(
                 onUnlock = {

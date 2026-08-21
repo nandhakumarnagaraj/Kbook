@@ -43,6 +43,7 @@ import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
 @Composable
@@ -77,11 +78,11 @@ fun SignUpScreen(
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }
-    val signUpStatus by viewModel.signUpStatus.collectAsState()
-    val loginStatus by viewModel.loginStatus.collectAsState()
-    val isUserChecking by viewModel.isUserChecking.collectAsState()
-    val userExistsError by viewModel.userExistsError.collectAsState()
-    val signUpFieldErrors by viewModel.signUpFieldErrors.collectAsState()
+    val signUpStatus by viewModel.signUpStatus.collectAsStateWithLifecycle()
+    val loginStatus by viewModel.loginStatus.collectAsStateWithLifecycle()
+    val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
+    val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
+    val signUpFieldErrors by viewModel.signUpFieldErrors.collectAsStateWithLifecycle()
 
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 

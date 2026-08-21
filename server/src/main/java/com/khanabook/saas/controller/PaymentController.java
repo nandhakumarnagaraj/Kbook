@@ -2,17 +2,19 @@ package com.khanabook.saas.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +37,11 @@ public class PaymentController {
         }
         Long billId = Long.valueOf(billIdObj.toString());
         Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        // Verify caller owns this restaurant
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        if (callerRestaurantId != null && !callerRestaurantId.equals(restaurantId)) {
+            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
+        }
         Map<String, Object> result = paymentService.createOrder(billId, restaurantId);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);
@@ -71,6 +78,11 @@ public class PaymentController {
         }
         Long billId = Long.valueOf(billIdObj.toString());
         Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        // Verify caller owns this restaurant
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        if (callerRestaurantId != null && !callerRestaurantId.equals(restaurantId)) {
+            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
+        }
         Map<String, Object> result = paymentService.createPaymentLinkForBill(billId, restaurantId);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);
@@ -140,6 +152,9 @@ public class PaymentController {
         String status = params.get("status");
         String hash = params.get("hash");
 
+        // URL-encode txnid before using in Location header to prevent header injection
+        String encodedTxnid = txnid != null ? URLEncoder.encode(txnid, StandardCharsets.UTF_8) : "";
+
         // Security: verify reverse hash if present, otherwise don't trust status
         boolean verified = false;
         if (hash != null && !hash.isBlank()) {
@@ -148,12 +163,12 @@ public class PaymentController {
 
         if (verified && "success".equalsIgnoreCase(status) && txnid != null && !txnid.isBlank()) {
             return ResponseEntity.status(302)
-                    .header("Location", "khanabook://payment/success?txnid=" + txnid)
+                    .header("Location", "khanabook://payment/success?txnid=" + encodedTxnid)
                     .build();
         }
         // For unverified or failed — redirect to status check (app will poll)
         String redirectUrl = txnid != null && !txnid.isBlank()
-                ? "khanabook://payment/status?txnid=" + txnid
+                ? "khanabook://payment/status?txnid=" + encodedTxnid
                 : "khanabook://payment/failure";
         return ResponseEntity.status(302)
                 .header("Location", redirectUrl)

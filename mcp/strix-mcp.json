@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "strix": {
+      "command": "strix",
+      "args": ["--target", "./server", "-n"],
+      "env": {
+        "STRIX_LLM": "anthropic/claude-sonnet-4",
+        "LLM_API_KEY": "your-api-key"
+      },
+      "timeout": 120000
+    }
+  }
+}

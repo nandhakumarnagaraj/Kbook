@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "maestro": {
+      "command": "npx",
+      "args": ["-y", "@mobile-dev/maestro-mcp"],
+      "timeout": 60000
+    }
+  }
+}

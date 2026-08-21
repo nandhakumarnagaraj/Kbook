@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "design-resources": {
+      "command": "npx",
+      "args": ["-y", "ui-ux-pro-max"],
+      "timeout": 10000
+    }
+  }
+}

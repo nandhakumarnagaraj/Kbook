@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Cold-start window background.
+    Single-stage branded splash (like Paytm).
+    Renders instantly as windowBackground before any code runs.
 
-    Gradient only — the splash icon (windowSplashScreenAnimatedIcon) carries the
-    logo, so there is a single authoritative branded splash with no logo double-draw.
+    Layout:
+      - Full burgundy gradient background
+      - Centered: logo + "KHANABOOK" + "Restaurant POS & Billing" (single PNG)
+      - Bottom: "From Piquant Consultancy Services Private Limited" (single PNG)
 
-    Palette exactly matches the branded splash reference AND the custom branded
-    frame (BrandedStartFrame: top #170207 → middle #2D0A10 → bottom #150206) so
-    on Android 8-11 the launch window blends invisibly into the branded frame,
-    and the Android 12+ solid splash background (splash_bg #1F060A) sits within
-    the same burgundy range.
+    Assets required:
+      - splash_full_logo.png: Logo + title + subtitle combined (transparent background)
+      - splash_footer.png: Company branding text (transparent background)
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Layer 1: Burgundy gradient background -->
     <item>
         <shape android:shape="rectangle">
             <gradient
@@ -21,4 +24,26 @@
                 android:endColor="#150206" />
         </shape>
     </item>
+
+    <!-- Layer 2: Combined logo + KHANABOOK + subtitle (centered) -->
+    <item
+        android:gravity="center"
+        android:width="240dp"
+        android:height="280dp">
+        <bitmap
+            android:src="@drawable/splash_full_logo"
+            android:gravity="center" />
+    </item>
+
+    <!-- Layer 3: Company footer branding (bottom) -->
+    <item
+        android:gravity="bottom|center_horizontal"
+        android:bottom="48dp"
+        android:width="220dp"
+        android:height="48dp">
+        <bitmap
+            android:src="@drawable/splash_footer"
+            android:gravity="center" />
+    </item>
+
 </layer-list>
