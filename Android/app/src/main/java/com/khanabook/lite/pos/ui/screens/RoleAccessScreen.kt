@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import com.khanabook.lite.pos.ui.theme.BorderGold
+import com.khanabook.lite.pos.ui.designsystem.ScrollableCenteredLayout
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -51,41 +52,8 @@ fun RoleAccessScreen(
             .padding(KhanaBookTheme.layout.contentPadding),
         contentAlignment = Alignment.Center
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = KhanaRadii.cardLarge,
-            color = DarkBrown2,
-            tonalElevation = spacing.extraSmall
-        ) {
-            Column(
-                modifier = Modifier.padding(spacing.extraLarge),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(spacing.medium)
-            ) {
-                Surface(shape = KhanaRadii.pill, color = PrimaryGold.copy(alpha = 0.14f)) {
-                    Icon(
-                        imageVector = Icons.Filled.AdminPanelSettings,
-                        contentDescription = null,
-                        tint = PrimaryGold,
-                        modifier = Modifier.padding(spacing.medium)
-                    )
-                }
-                Text(title, style = MaterialTheme.typography.headlineSmall, color = TextLight, textAlign = TextAlign.Center)
-                Text(message, style = MaterialTheme.typography.bodyLarge, color = TextGold, textAlign = TextAlign.Center)
-                Surface(shape = KhanaRadii.pill, color = DarkBrown1) {
-                    Text(
-                        text = role?.replace('_', ' ') ?: "LIMITED ACCESS",
-                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = PrimaryGold
-                    )
-                }
-                Text(
-                    text = "Open the KhanaBook Web Admin in your browser to continue.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextLight,
-                    textAlign = TextAlign.Center
-                )
+        ScrollableCenteredLayout(
+            bottomBar = {
                 OutlinedButton(
                     onClick = onSignOut,
                     modifier = Modifier.fillMaxWidth(),
@@ -94,6 +62,44 @@ fun RoleAccessScreen(
                     border = androidx.compose.foundation.BorderStroke(spacing.hairline, BorderGold)
                 ) {
                     Text("Sign out")
+                }
+            }
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = KhanaRadii.cardLarge,
+                color = DarkBrown2,
+                tonalElevation = spacing.extraSmall
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.extraLarge),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    Surface(shape = KhanaRadii.pill, color = PrimaryGold.copy(alpha = 0.14f)) {
+                        Icon(
+                            imageVector = Icons.Filled.AdminPanelSettings,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.padding(spacing.medium)
+                        )
+                    }
+                    Text(title, style = MaterialTheme.typography.headlineSmall, color = TextLight, textAlign = TextAlign.Center)
+                    Text(message, style = MaterialTheme.typography.bodyLarge, color = TextGold, textAlign = TextAlign.Center)
+                    Surface(shape = KhanaRadii.pill, color = DarkBrown1) {
+                        Text(
+                            text = role?.replace('_', ' ') ?: "LIMITED ACCESS",
+                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = PrimaryGold
+                        )
+                    }
+                    Text(
+                        text = "Open the KhanaBook Web Admin in your browser to continue.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextLight,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

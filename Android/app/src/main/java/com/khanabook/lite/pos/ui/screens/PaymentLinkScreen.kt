@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -55,11 +54,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.theme.KhanaShapes
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.rememberCoroutineScope
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.StickyBottomScaffold
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
@@ -108,8 +109,6 @@ fun PaymentLinkScreen(
         }
     }
 
-    val scrollState = rememberScrollState()
-
     androidx.compose.material3.Scaffold(
         containerColor = DarkBrown1,
         topBar = {
@@ -136,215 +135,225 @@ fun PaymentLinkScreen(
                     Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))
                 )
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(spacing.medium)
-            ) {
-                // Customer Details Section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = DarkBrown2,
-                        contentColor = TextLight
-                    ),
-                    shape = KhanaShapes.large
-                ) {
+            StickyBottomScaffold(
+                bottomBar = {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(spacing.large),
-                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
-                        Text("Customer Details", style = MaterialTheme.typography.titleMedium, color = TextLight)
-
-                        TextField(
-                            value = customerName,
-                            onValueChange = { customerName = it },
-                            label = { Text("Customer Name") },
-                            placeholder = { Text("Enter customer name") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            isError = customerName.isBlank()
-                        )
-
-                        TextField(
-                            value = customerEmail,
-                            onValueChange = { customerEmail = it },
-                            label = { Text("Email") },
-                            placeholder = { Text("customer@example.com") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            isError = customerEmail.isBlank()
-                        )
-
-                        TextField(
-                            value = customerPhone,
-                            onValueChange = { customerPhone = it },
-                            label = { Text("Phone") },
-                            placeholder = { Text("9876543210") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            isError = customerPhone.isBlank()
-                        )
-                    }
-                }
-
-                // Payment Details Section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = DarkBrown2,
-                        contentColor = TextLight
-                    ),
-                    shape = KhanaShapes.large
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(spacing.large),
-                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
-                    ) {
-                        Text("Payment Details", style = MaterialTheme.typography.titleMedium, color = TextLight)
-
-                        TextField(
-                            value = amount,
-                            onValueChange = { amount = it.filter { it.isDigit() || it == '.' } },
-                            label = { Text("Amount (₹)") },
-                            placeholder = { Text("0.00") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            isError = amount.isBlank()
-                        )
-
-                        TextField(
-                            value = merchantTxn,
-                            onValueChange = { merchantTxn = it },
-                            label = { Text("Payment Reference (Optional)") },
-                            placeholder = { Text("Auto-generated if empty") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        )
-
-                        TextField(
-                            value = message,
-                            onValueChange = { message = it },
-                            label = { Text("Message / Purpose") },
-                            placeholder = { Text("Payment for order #123") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        )
-                    }
-                }
-
-                // Action Buttons
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    Button(
-                        onClick = {
-                            if (customerName.isBlank() || customerEmail.isBlank() || customerPhone.isBlank() || amount.isBlank()) {
-                                coroutineScope.launch { KhanaToast.show("Please fill all required fields", ToastKind.Warning) }
-                                return@Button
-                            }
-                            val amt = amount.toDoubleOrNull()
-                            if (amt == null || amt <= 0) {
-                                coroutineScope.launch { KhanaToast.show("Enter a valid amount", ToastKind.Warning) }
-                                return@Button
-                            }
-                            viewModel.createLink(
-                                customerName = customerName,
-                                customerEmail = customerEmail,
-                                customerPhone = customerPhone,
-                                amount = amount,
-                                message = message,
-                                merchantTxn = merchantTxn
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (state is PaymentLinkState.Loading) PrimaryGold.copy(alpha = 0.5f) else PrimaryGold
-                        ),
-                        shape = KhanaShapes.large,
-                        enabled = state !is PaymentLinkState.Loading
-                    ) {
-                        if (state is PaymentLinkState.Loading) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
-                            Spacer(modifier = Modifier.width(spacing.small))
-                        }
-                        Text(
-                            text = when {
-                                state is PaymentLinkState.Loading -> "Creating Link..."
-                                else -> "Create Payment Link"
+                        Button(
+                            onClick = {
+                                if (customerName.isBlank() || customerEmail.isBlank() || customerPhone.isBlank() || amount.isBlank()) {
+                                    coroutineScope.launch { KhanaToast.show("Please fill all required fields", ToastKind.Warning) }
+                                    return@Button
+                                }
+                                val amt = amount.toDoubleOrNull()
+                                if (amt == null || amt <= 0) {
+                                    coroutineScope.launch { KhanaToast.show("Enter a valid amount", ToastKind.Warning) }
+                                    return@Button
+                                }
+                                viewModel.createLink(
+                                    customerName = customerName,
+                                    customerEmail = customerEmail,
+                                    customerPhone = customerPhone,
+                                    amount = amount,
+                                    message = message,
+                                    merchantTxn = merchantTxn
+                                )
                             },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state is PaymentLinkState.Loading) PrimaryGold.copy(alpha = 0.5f) else PrimaryGold
+                            ),
+                            shape = KhanaShapes.large,
+                            enabled = state !is PaymentLinkState.Loading
+                        ) {
+                            if (state is PaymentLinkState.Loading) {
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(spacing.small))
+                            }
+                            Text(
+                                text = when {
+                                    state is PaymentLinkState.Loading -> "Creating Link..."
+                                    else -> "Create Payment Link"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // Share buttons - only visible after success
+                        if (state is PaymentLinkState.Success) {
+                            val linkUrl = (state as PaymentLinkState.Success).linkUrl
+                            val ref = (state as PaymentLinkState.Success).merchantTxn
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        copyToClipboard(context, linkUrl)
+                                        coroutineScope.launch { KhanaToast.show("Link copied to clipboard!", ToastKind.Success) }
+                                    },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
+                                    shape = KhanaShapes.large
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text("Copy Link", style = MaterialTheme.typography.labelLarge, color = TextLight, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, "Payment Link: $linkUrl\nReference: $ref")
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Share Payment Link"))
+                                    },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                    shape = KhanaShapes.large
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text("Share", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                },
+                bottomBarContainerColor = DarkBrown1
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    // Customer Details Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = DarkBrown2,
+                            contentColor = TextLight
+                        ),
+                        shape = KhanaShapes.large
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.large),
+                            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                        ) {
+                            Text("Customer Details", style = MaterialTheme.typography.titleMedium, color = TextLight)
+
+                            TextField(
+                                value = customerName,
+                                onValueChange = { customerName = it },
+                                label = { Text("Customer Name") },
+                                placeholder = { Text("Enter customer name") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                isError = customerName.isBlank()
+                            )
+
+                            TextField(
+                                value = customerEmail,
+                                onValueChange = { customerEmail = it },
+                                label = { Text("Email") },
+                                placeholder = { Text("customer@example.com") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                isError = customerEmail.isBlank()
+                            )
+
+                            TextField(
+                                value = customerPhone,
+                                onValueChange = { customerPhone = it },
+                                label = { Text("Phone") },
+                                placeholder = { Text("9876543210") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                isError = customerPhone.isBlank()
+                            )
+                        }
                     }
 
-                    // Share button - only visible after success
+                    // Payment Details Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = DarkBrown2,
+                            contentColor = TextLight
+                        ),
+                        shape = KhanaShapes.large
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.large),
+                            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                        ) {
+                            Text("Payment Details", style = MaterialTheme.typography.titleMedium, color = TextLight)
+
+                            TextField(
+                                value = amount,
+                                onValueChange = { amount = it.filter { it.isDigit() || it == '.' } },
+                                label = { Text("Amount (₹)") },
+                                placeholder = { Text("0.00") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                isError = amount.isBlank()
+                            )
+
+                            TextField(
+                                value = merchantTxn,
+                                onValueChange = { merchantTxn = it },
+                                label = { Text("Payment Reference (Optional)") },
+                                placeholder = { Text("Auto-generated if empty") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                            )
+
+                            TextField(
+                                value = message,
+                                onValueChange = { message = it },
+                                label = { Text("Message / Purpose") },
+                                placeholder = { Text("Payment for order #123") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Text),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                            )
+                        }
+                    }
+
+                    // Show link preview after success
                     if (state is PaymentLinkState.Success) {
                         val linkUrl = (state as PaymentLinkState.Success).linkUrl
                         val ref = (state as PaymentLinkState.Success).merchantTxn
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                        ) {
-                            Button(
-                                onClick = {
-                                    copyToClipboard(context, linkUrl)
-                                    coroutineScope.launch { KhanaToast.show("Link copied to clipboard!", ToastKind.Success) }
-                                },
-                                modifier = Modifier.weight(1f).fillMaxHeight().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
-                                shape = KhanaShapes.large
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = PrimaryGold, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text("Copy Link", style = MaterialTheme.typography.labelLarge, color = TextLight)
-                            }
-
-                            Spacer(modifier = Modifier.width(spacing.small))
-
-                            Button(
-                                onClick = {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "Payment Link: $linkUrl\nReference: $ref")
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Payment Link"))
-                                },
-                                modifier = Modifier.weight(1f).fillMaxHeight().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                shape = KhanaShapes.large
-                            ) {
-                                Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text("Share", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary)
-                            }
-                        }
-
-                        // Show link preview
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -377,6 +386,8 @@ fun PaymentLinkScreen(
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
                 }
             }
         }

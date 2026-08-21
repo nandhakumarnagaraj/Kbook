@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.StickyBottomScaffold
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.EasebuzzOnboardingViewModel
@@ -242,65 +243,77 @@ private fun BusinessDetailsStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .imePadding()
-            .padding(spacing.medium)
     ) {
-        StepIndicator(current = 1, total = 3, spacing = spacing)
-        Spacer(Modifier.height(spacing.medium))
-        Text("Business Details", style = MaterialTheme.typography.titleMedium, color = PrimaryGold)
-        Spacer(Modifier.height(spacing.medium))
-
-        OnboardingField("Business Name *", businessName, { businessName = it }, focusManager, ImeAction.Next)
-        OnboardingField("Legal Entity Name", legalEntityName, { legalEntityName = it }, focusManager, ImeAction.Next)
-        BusinessTypeDropdown(businessType) { businessType = it }
-        OnboardingField("PAN *", pan, { pan = it.uppercase().take(10) }, focusManager, ImeAction.Next,
-            keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.Characters)
-        OnboardingField("GST Number", gst, { gst = it.uppercase().take(15) }, focusManager, ImeAction.Next,
-            capitalization = KeyboardCapitalization.Characters)
-        OnboardingField("Business Address *", businessAddress, { businessAddress = it }, focusManager, ImeAction.Next)
-        OnboardingField("State *", state, { state = it }, focusManager, ImeAction.Next)
-        OnboardingField("Email *", contactEmail, { contactEmail = it.trim() }, focusManager, ImeAction.Next,
-            keyboardType = KeyboardType.Email)
-        OnboardingField("Phone *", contactPhone, { contactPhone = it.filter { c -> c.isDigit() }.take(10) },
-            focusManager, ImeAction.Done, keyboardType = KeyboardType.Phone)
-
-        Spacer(Modifier.height(spacing.large))
         val isPanValid = EasebuzzOnboardingViewModel.isValidPan(pan)
         val isValid = businessName.isNotBlank() && isPanValid &&
             businessAddress.isNotBlank() && state.isNotBlank() &&
             contactEmail.contains("@") && contactPhone.length == 10
 
-        if (pan.length == 10 && !isPanValid) {
-            Text(
-                "Invalid PAN format (expected: AAAAA9999A)",
-                color = DangerRed,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
-            )
-        }
-
-        Button(
-            onClick = {
-                viewModel.businessName = businessName
-                viewModel.legalEntityName = legalEntityName
-                viewModel.businessType = businessType
-                viewModel.pan = pan
-                viewModel.gst = gst
-                viewModel.businessAddress = businessAddress
-                viewModel.state = state
-                viewModel.contactEmail = contactEmail
-                viewModel.contactPhone = contactPhone
-                viewModel.submitBusinessDetails()
+        StickyBottomScaffold(
+            bottomBar = {
+                Button(
+                    onClick = {
+                        viewModel.businessName = businessName
+                        viewModel.legalEntityName = legalEntityName
+                        viewModel.businessType = businessType
+                        viewModel.pan = pan
+                        viewModel.gst = gst
+                        viewModel.businessAddress = businessAddress
+                        viewModel.state = state
+                        viewModel.contactEmail = contactEmail
+                        viewModel.contactPhone = contactPhone
+                        viewModel.submitBusinessDetails()
+                    },
+                    enabled = isValid && !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = KhanaRadii.button,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Next → Bank Details", color = DarkBrown1)
+                }
             },
-            enabled = isValid && !isSubmitting,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = KhanaRadii.button,
-            modifier = Modifier.fillMaxWidth()
+            bottomBarContainerColor = DarkBrown1
         ) {
-            Text("Next → Bank Details", color = DarkBrown1)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(spacing.medium)
+            ) {
+                StepIndicator(current = 1, total = 3, spacing = spacing)
+                Spacer(Modifier.height(spacing.medium))
+                Text("Business Details", style = MaterialTheme.typography.titleMedium, color = PrimaryGold)
+                Spacer(Modifier.height(spacing.medium))
+
+                OnboardingField("Business Name *", businessName, { businessName = it }, focusManager, ImeAction.Next)
+                OnboardingField("Legal Entity Name", legalEntityName, { legalEntityName = it }, focusManager, ImeAction.Next)
+                BusinessTypeDropdown(businessType) { businessType = it }
+                OnboardingField("PAN *", pan, { pan = it.uppercase().take(10) }, focusManager, ImeAction.Next,
+                    keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.Characters)
+                OnboardingField("GST Number", gst, { gst = it.uppercase().take(15) }, focusManager, ImeAction.Next,
+                    capitalization = KeyboardCapitalization.Characters)
+                OnboardingField("Business Address *", businessAddress, { businessAddress = it }, focusManager, ImeAction.Next)
+                OnboardingField("State *", state, { state = it }, focusManager, ImeAction.Next)
+                OnboardingField("Email *", contactEmail, { contactEmail = it.trim() }, focusManager, ImeAction.Next,
+                    keyboardType = KeyboardType.Email)
+                OnboardingField("Phone *", contactPhone, { contactPhone = it.filter { c -> c.isDigit() }.take(10) },
+                    focusManager, ImeAction.Done, keyboardType = KeyboardType.Phone)
+
+                Spacer(Modifier.height(spacing.medium))
+
+                if (pan.length == 10 && !isPanValid) {
+                    Text(
+                        "Invalid PAN format (expected: AAAAA9999A)",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
+
+                Spacer(Modifier.height(spacing.large))
+            }
         }
-        Spacer(Modifier.height(spacing.large))
     }
 }
 
@@ -321,91 +334,101 @@ private fun BankDetailsStep(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .imePadding()
-            .padding(spacing.medium)
     ) {
-        StepIndicator(current = 2, total = 3, spacing = spacing)
-        Spacer(Modifier.height(spacing.medium))
-        Text("Bank Details", style = MaterialTheme.typography.titleMedium, color = PrimaryGold)
-        Spacer(Modifier.height(spacing.small))
-        Text(
-            "Payments will be settled directly to this account.",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextGold.copy(alpha = 0.7f)
-        )
-        Spacer(Modifier.height(spacing.medium))
-
-        OnboardingField("Account Number *", bankAccountNo,
-            { bankAccountNo = it.filter { c -> c.isDigit() } }, focusManager, ImeAction.Next,
-            keyboardType = KeyboardType.Number)
-        OnboardingField("Confirm Account Number *", confirmAccountNo,
-            { confirmAccountNo = it.filter { c -> c.isDigit() } }, focusManager, ImeAction.Next,
-            keyboardType = KeyboardType.Number)
-        if (confirmAccountNo.isNotBlank() && bankAccountNo != confirmAccountNo) {
-            Text(
-                "Account numbers do not match",
-                color = DangerRed,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
-            )
-        }
-        OnboardingField("IFSC Code *", ifsc, { 
-            ifsc = it.uppercase().take(11)
-            if (ifsc.length == 11) viewModel.lookupIfsc(ifsc)
-        }, focusManager, ImeAction.Next,
-            capitalization = KeyboardCapitalization.Characters)
-        
-        val ifscInfo by viewModel.ifscBankInfo.collectAsStateWithLifecycle()
-        if (ifsc.length == 11 && !EasebuzzOnboardingViewModel.isValidIfsc(ifsc)) {
-            Text(
-                "Invalid IFSC format (expected: ABCD0123456)",
-                color = DangerRed,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
-            )
-        } else if (ifscInfo != null) {
-            Text(
-                "✓ ${ifscInfo!!.bankName}, ${ifscInfo!!.branchName}",
-                color = SuccessGreen,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
-            )
-            // Auto-fill from IFSC lookup
-            LaunchedEffect(ifscInfo) {
-                ifscInfo?.let {
-                    if (bankName.isBlank()) bankName = it.bankName
-                    if (branchName.isBlank()) branchName = it.branchName
-                }
-            }
-        }
-        OnboardingField("Bank Name *", bankName, { bankName = it }, focusManager, ImeAction.Next)
-        OnboardingField("Branch Name *", branchName, { branchName = it }, focusManager, ImeAction.Next)
-        OnboardingField("Beneficiary Name *", beneficiaryName, { beneficiaryName = it }, focusManager, ImeAction.Done)
-
-        Spacer(Modifier.height(spacing.large))
         val isIfscValid = EasebuzzOnboardingViewModel.isValidIfsc(ifsc)
         val accountsMatch = bankAccountNo == confirmAccountNo
         val isValid = bankAccountNo.length >= 8 && accountsMatch && isIfscValid &&
             bankName.isNotBlank() && branchName.isNotBlank() && beneficiaryName.isNotBlank()
 
-        Button(
-            onClick = {
-                viewModel.bankAccountNo = bankAccountNo
-                viewModel.ifsc = ifsc
-                viewModel.bankName = bankName
-                viewModel.branchName = branchName
-                viewModel.beneficiaryName = beneficiaryName
-                viewModel.submitBankDetailsAndOnboard()
+        StickyBottomScaffold(
+            bottomBar = {
+                Button(
+                    onClick = {
+                        viewModel.bankAccountNo = bankAccountNo
+                        viewModel.ifsc = ifsc
+                        viewModel.bankName = bankName
+                        viewModel.branchName = branchName
+                        viewModel.beneficiaryName = beneficiaryName
+                        viewModel.submitBankDetailsAndOnboard()
+                    },
+                    enabled = isValid && !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = KhanaRadii.button,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (isSubmitting) "Submitting..." else "Submit & Continue", color = DarkBrown1)
+                }
             },
-            enabled = isValid && !isSubmitting,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = KhanaRadii.button,
-            modifier = Modifier.fillMaxWidth()
+            bottomBarContainerColor = DarkBrown1
         ) {
-            Text(if (isSubmitting) "Submitting..." else "Submit & Continue", color = DarkBrown1)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(spacing.medium)
+            ) {
+                StepIndicator(current = 2, total = 3, spacing = spacing)
+                Spacer(Modifier.height(spacing.medium))
+                Text("Bank Details", style = MaterialTheme.typography.titleMedium, color = PrimaryGold)
+                Spacer(Modifier.height(spacing.small))
+                Text(
+                    "Payments will be settled directly to this account.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextGold.copy(alpha = 0.7f)
+                )
+                Spacer(Modifier.height(spacing.medium))
+
+                OnboardingField("Account Number *", bankAccountNo,
+                    { bankAccountNo = it.filter { c -> c.isDigit() } }, focusManager, ImeAction.Next,
+                    keyboardType = KeyboardType.Number)
+                OnboardingField("Confirm Account Number *", confirmAccountNo,
+                    { confirmAccountNo = it.filter { c -> c.isDigit() } }, focusManager, ImeAction.Next,
+                    keyboardType = KeyboardType.Number)
+                if (confirmAccountNo.isNotBlank() && bankAccountNo != confirmAccountNo) {
+                    Text(
+                        "Account numbers do not match",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
+                OnboardingField("IFSC Code *", ifsc, { 
+                    ifsc = it.uppercase().take(11)
+                    if (ifsc.length == 11) viewModel.lookupIfsc(ifsc)
+                }, focusManager, ImeAction.Next,
+                    capitalization = KeyboardCapitalization.Characters)
+                
+                val ifscInfo by viewModel.ifscBankInfo.collectAsStateWithLifecycle()
+                if (ifsc.length == 11 && !EasebuzzOnboardingViewModel.isValidIfsc(ifsc)) {
+                    Text(
+                        "Invalid IFSC format (expected: ABCD0123456)",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                } else if (ifscInfo != null) {
+                    Text(
+                        "✓ ${ifscInfo!!.bankName}, ${ifscInfo!!.branchName}",
+                        color = SuccessGreen,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                    // Auto-fill from IFSC lookup
+                    LaunchedEffect(ifscInfo) {
+                        ifscInfo?.let {
+                            if (bankName.isBlank()) bankName = it.bankName
+                            if (branchName.isBlank()) branchName = it.branchName
+                        }
+                    }
+                }
+                OnboardingField("Bank Name *", bankName, { bankName = it }, focusManager, ImeAction.Next)
+                OnboardingField("Branch Name *", branchName, { branchName = it }, focusManager, ImeAction.Next)
+                OnboardingField("Beneficiary Name *", beneficiaryName, { beneficiaryName = it }, focusManager, ImeAction.Done)
+
+                Spacer(Modifier.height(spacing.large))
+            }
         }
-        Spacer(Modifier.height(spacing.large))
     }
 }
 

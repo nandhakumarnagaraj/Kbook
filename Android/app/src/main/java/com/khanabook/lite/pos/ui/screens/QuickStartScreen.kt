@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,219 +69,223 @@ fun QuickStartScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+            .statusBarsPadding()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(spacing.large),
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Quick Setup",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = PrimaryGold,
-                    fontWeight = FontWeight.Bold
-                )
-                TextButton(onClick = onSkip) {
-                    Text("Skip", color = TextGold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Text(
-                text = "Let's get you billing in under a minute",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextLight.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(spacing.large))
-
-            // Shop Name Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = KhanaRadii.card,
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2)
-            ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Store,
-                            contentDescription = null,
-                            tint = PrimaryGold,
-                            modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
+        StickyBottomScaffold(
+            bottomBar = {
+                Column {
+                    // Error display
+                    if (error != null) {
                         Text(
-                            text = "Your Shop",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextLight,
-                            fontWeight = FontWeight.SemiBold
+                            text = error ?: "",
+                            color = ErrorPink,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = spacing.small)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Button(
+                        onClick = {
+                            focusManager.clearFocus()
+                            val validItems = menuItems.filter { it.name.isNotBlank() && it.price.isNotBlank() }
+                            viewModel.completeQuickStart(shopName.trim(), validItems)
+                        },
+                        enabled = canSubmit && !isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = KhanaRadii.button,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryGold,
+                            disabledContainerColor = PrimaryGold.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = DarkBrown1,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Start Billing →",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = DarkBrown1,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
 
-                    KhanaBookInputField(
-                        value = shopName,
-                        onValueChange = { shopName = it },
-                        label = "Shop name",
-                        placeholder = "e.g. Sharma's Chai Point",
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Next
-                        ),
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    Text(
+                        text = "You can always add categories, variants, GST, and printer settings later from the Profile tab.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextLight.copy(alpha = 0.5f),
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.large))
-
-            // Menu Items Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = KhanaRadii.card,
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2)
-            ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Restaurant,
-                            contentDescription = null,
-                            tint = PrimaryGold,
-                            modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text(
-                            text = "Your Menu",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextLight,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(spacing.extraSmall))
-
-                    Text(
-                        text = "Add your most popular items. You can add more later.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextLight.copy(alpha = 0.6f)
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    menuItems.forEachIndexed { index, item ->
-                        QuickMenuItemRow(
-                            index = index,
-                            item = item,
-                            onNameChange = { newName ->
-                                menuItems = menuItems.toMutableList().also {
-                                    it[index] = it[index].copy(name = newName)
-                                }
-                            },
-                            onPriceChange = { newPrice ->
-                                menuItems = menuItems.toMutableList().also {
-                                    it[index] = it[index].copy(price = newPrice)
-                                }
-                            },
-                            onRemove = if (menuItems.size > 1) {
-                                { menuItems = menuItems.toMutableList().also { it.removeAt(index) } }
-                            } else null
-                        )
-
-                        if (index < menuItems.lastIndex) {
-                            Spacer(modifier = Modifier.height(spacing.small))
-                        }
-                    }
-
-                    if (menuItems.size < 10) {
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        OutlinedButton(
-                            onClick = {
-                                menuItems = menuItems + QuickMenuItem()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = KhanaRadii.button,
-                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = TextGold
-                            )
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(spacing.extraSmall))
-                            Text("Add another item")
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.large))
-
-            // Error display
-            if (error != null) {
-                Text(
-                    text = error ?: "",
-                    color = ErrorPink,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = spacing.small)
-                )
-            }
-
-            // Submit button
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    val validItems = menuItems.filter { it.name.isNotBlank() && it.price.isNotBlank() }
-                    viewModel.completeQuickStart(shopName.trim(), validItems)
-                },
-                enabled = canSubmit && !isLoading,
+            },
+            bottomBarContainerColor = DarkBrown1
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = KhanaRadii.button,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryGold,
-                    disabledContainerColor = PrimaryGold.copy(alpha = 0.3f)
-                )
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(spacing.large),
+                verticalArrangement = Arrangement.Top
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = DarkBrown1,
-                        strokeWidth = 2.dp
-                    )
-                } else {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Start Billing →",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = DarkBrown1,
+                        text = "Quick Setup",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = PrimaryGold,
                         fontWeight = FontWeight.Bold
                     )
+                    TextButton(onClick = onSkip) {
+                        Text("Skip", color = TextGold)
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                Text(
+                    text = "Let's get you billing in under a minute",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextLight.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(spacing.large))
+
+                // Shop Name Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = KhanaRadii.card,
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2)
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Store,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                            )
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text(
+                                text = "Your Shop",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextLight,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        KhanaBookInputField(
+                            value = shopName,
+                            onValueChange = { shopName = it },
+                            label = "Shop name",
+                            placeholder = "e.g. Sharma's Chai Point",
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Words,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(spacing.large))
+
+                // Menu Items Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = KhanaRadii.card,
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2)
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Restaurant,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                            )
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text(
+                                text = "Your Menu",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextLight,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(spacing.extraSmall))
+
+                        Text(
+                            text = "Add your most popular items. You can add more later.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextLight.copy(alpha = 0.6f)
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        menuItems.forEachIndexed { index, item ->
+                            QuickMenuItemRow(
+                                index = index,
+                                item = item,
+                                onNameChange = { newName ->
+                                    menuItems = menuItems.toMutableList().also {
+                                        it[index] = it[index].copy(name = newName)
+                                    }
+                                },
+                                onPriceChange = { newPrice ->
+                                    menuItems = menuItems.toMutableList().also {
+                                        it[index] = it[index].copy(price = newPrice)
+                                    }
+                                },
+                                onRemove = if (menuItems.size > 1) {
+                                    { menuItems = menuItems.toMutableList().also { it.removeAt(index) } }
+                                } else null
+                            )
+
+                            if (index < menuItems.lastIndex) {
+                                Spacer(modifier = Modifier.height(spacing.small))
+                            }
+                        }
+
+                        if (menuItems.size < 10) {
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            OutlinedButton(
+                                onClick = {
+                                    menuItems = menuItems + QuickMenuItem()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = KhanaRadii.button,
+                                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = TextGold
+                                )
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                Text("Add another item")
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(spacing.large))
             }
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            Text(
-                text = "You can always add categories, variants, GST, and printer settings later from the Profile tab.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextLight.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(spacing.large))
         }
 
         // Loading overlay
