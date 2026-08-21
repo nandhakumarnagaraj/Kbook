@@ -24,7 +24,6 @@ import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.screens.auth.SignUpScreen
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
-import com.khanabook.lite.pos.ui.viewmodel.PaymentLinkViewModel
 
 @Composable
 internal fun AppNavGraph(
@@ -364,18 +363,6 @@ internal fun AppNavGraph(
 
                     navController.popBackStack()
                 }
-            )
-        }
-        composable(
-            route = "payment_link/{restaurantId}",
-            arguments = listOf(navArgument("restaurantId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
-            val handle = backStackEntry.savedStateHandle
-            handle.set("restaurantId", restaurantId)
-            PaymentLinkScreen(
-                onBack = { navController.popBackStack() },
-                viewModel = hiltViewModel<PaymentLinkViewModel>(backStackEntry)
             )
         }
         composable("easebuzz_onboarding") {

@@ -6,6 +6,7 @@ enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     UPI("upi", "UPI"),
     POS("pos", "POS Machine"),
     EASEBUZZ("easebuzz", "Pay Online"),
+    PAYMENT_LINK("payment_link", "Send Payment Link"),
     PART_CASH_UPI("part_cash_upi", "Cash + UPI"),
     PART_CASH_POS("part_cash_pos", "Cash + POS"),
     PART_UPI_POS("part_upi_pos", "UPI + POS");

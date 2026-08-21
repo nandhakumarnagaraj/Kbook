@@ -14,6 +14,7 @@ import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.manager.PaymentRecoveryAssessment
@@ -33,6 +34,13 @@ import kotlinx.coroutines.sync.withLock
 import java.util.*
 import javax.inject.Inject
 
+sealed class PaymentLinkForBillState {
+    object Idle : PaymentLinkForBillState()
+    object Loading : PaymentLinkForBillState()
+    data class Success(val linkUrl: String, val merchantTxn: String) : PaymentLinkForBillState()
+    data class Error(val error: String) : PaymentLinkForBillState()
+}
+
 @HiltViewModel
 class BillingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -47,6 +55,7 @@ class BillingViewModel @Inject constructor(
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
     private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager,
+    private val easebuzzPaymentRepository: EasebuzzPaymentRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -196,6 +205,42 @@ class BillingViewModel @Inject constructor(
 
     fun clearGatewayResult() {
         paymentStateManager.clearGatewayResult()
+    }
+
+    // ── Payment Link for Bill ──────────────────────────────────────────────────
+    private val _paymentLinkState = MutableStateFlow<PaymentLinkForBillState>(PaymentLinkForBillState.Idle)
+    val paymentLinkState: StateFlow<PaymentLinkForBillState> = _paymentLinkState.asStateFlow()
+
+    suspend fun createPaymentLinkForBill(serverBillId: Long, restaurantId: Long): Boolean {
+        _paymentLinkState.value = PaymentLinkForBillState.Loading
+        return withContext(Dispatchers.IO) {
+            easebuzzPaymentRepository.createPaymentLinkForBill(
+                billId = serverBillId,
+                restaurantId = restaurantId
+            ).fold(
+                onSuccess = { result ->
+                    val status = result["status"]?.toString() ?: "failure"
+                    if (status == "success") {
+                        val linkUrl = result["payment_url"]?.toString() ?: ""
+                        val merchantTxn = result["merchant_txn"]?.toString() ?: ""
+                        _paymentLinkState.value = PaymentLinkForBillState.Success(linkUrl, merchantTxn)
+                        true
+                    } else {
+                        val error = result["error"]?.toString() ?: "Failed to create payment link"
+                        _paymentLinkState.value = PaymentLinkForBillState.Error(error)
+                        false
+                    }
+                },
+                onFailure = { e ->
+                    _paymentLinkState.value = PaymentLinkForBillState.Error(e.message ?: "Network error")
+                    false
+                }
+            )
+        }
+    }
+
+    fun resetPaymentLinkState() {
+        _paymentLinkState.value = PaymentLinkForBillState.Idle
     }
 
     private fun validatePaymentLimits(

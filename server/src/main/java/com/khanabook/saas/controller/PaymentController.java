@@ -62,6 +62,22 @@ public class PaymentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/create-link-for-bill")
+    public ResponseEntity<Map<String, Object>> createPaymentLinkForBill(@RequestBody Map<String, Object> request) {
+        Object billIdObj = request.get("billId");
+        Object restaurantIdObj = request.get("restaurantId");
+        if (billIdObj == null || restaurantIdObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "billId and restaurantId are required"));
+        }
+        Long billId = Long.valueOf(billIdObj.toString());
+        Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(billId, restaurantId);
+        if ("failure".equals(result.get("status"))) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/create-fssai-order")
     public ResponseEntity<Map<String, Object>> createFssaiOrder(@RequestBody Map<String, Object> request) {
         Object yearsObj = request.get("years");

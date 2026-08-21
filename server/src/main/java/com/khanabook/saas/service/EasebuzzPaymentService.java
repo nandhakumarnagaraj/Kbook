@@ -545,6 +545,76 @@ public class EasebuzzPaymentService {
         return result;
     }
 
+    /**
+     * Creates a payment link for an existing bill, pulling customer/amount data from the bill entity.
+     * This is used by the New Bill → Payment → "Send Payment Link" flow.
+     * The link is tied to the bill via udf1=billId so the webhook can reconcile it.
+     */
+    @Transactional
+    public Map<String, Object> createPaymentLinkForBill(Long billId, Long restaurantId) {
+        Bill bill = billRepo.findById(billId)
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+
+        // Block if already paid
+        if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.warn("Blocked payment link creation for already paid billId={}", billId);
+            return Map.of("status", "failure", "code", "ALREADY_PAID",
+                    "error", "Bill is already paid.");
+        }
+
+        // Block if a link was already generated and is still active
+        if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
+                && "link_sent".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.info("Payment link already exists for billId={} merchantTxn={}", billId, bill.getGatewayTxnId());
+            return Map.of("status", "success", "code", "LINK_EXISTS",
+                    "payment_url", "", // Client should poll status
+                    "merchant_txn", bill.getGatewayTxnId(),
+                    "message", "Payment link already sent for this bill.");
+        }
+
+        String amount = String.format("%.2f", bill.getTotalAmount());
+        String customerName = bill.getCustomerName() != null
+                ? bill.getCustomerName().replaceAll("[^a-zA-Z0-9 ]", "").trim()
+                : "Customer";
+        String customerPhone = bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "";
+        String message = "Payment for KhanaBook Order "
+                + (bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId);
+
+        // Generate unique merchant_txn (max 20 chars for Easebuzz)
+        String txnSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        String billTail = String.format("%05d", billId % 100000);
+        String merchantTxn = "PL" + billTail + txnSuffix; // 15 chars total
+
+        // Build request map — reuse existing createPaymentLink infrastructure
+        Map<String, Object> request = new HashMap<>();
+        request.put("restaurantId", restaurantId);
+        request.put("amount", amount);
+        request.put("customerName", customerName);
+        request.put("customerEmail", ""); // Fallback handled inside createPaymentLink
+        request.put("customerPhone", customerPhone);
+        request.put("message", message);
+        request.put("merchantTxn", merchantTxn);
+        request.put("udf1", billId.toString());  // CRITICAL: webhook uses this to find the bill
+        request.put("show_payment_mode", "CC,DC,NB,UPI,WALLET"); // Exclude QR per product requirement
+
+        Map<String, Object> result = createPaymentLink(request);
+
+        String status = (String) result.getOrDefault("status", "failure");
+        if ("success".equalsIgnoreCase(status)) {
+            // Store merchant_txn on the bill so webhook can reconcile
+            bill.setGatewayTxnId(merchantTxn);
+            bill.setGatewayStatus("link_created");
+            bill.setPaymentStatus("link_sent");
+            bill.setPaymentMode("payment_link");
+            billRepo.save(bill);
+            log.info("Payment link created for billId={} merchantTxn={} amount={}", billId, merchantTxn, amount);
+        } else {
+            log.warn("Payment link creation failed for billId={}: {}", billId, result);
+        }
+
+        return result;
+    }
+
     private void saveGatewayEventIfPresent(Bill bill, String easebuzzId, String status) {
         if (easebuzzId == null || easebuzzId.isBlank() || bill.getGatewayTxnId() == null) {
             return;

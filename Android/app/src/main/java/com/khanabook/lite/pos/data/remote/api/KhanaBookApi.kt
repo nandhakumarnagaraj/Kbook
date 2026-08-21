@@ -229,6 +229,11 @@ interface KhanaBookApi {
             @Body request: CreateEasebuzzPaymentLinkRequest
         ): Map<String, Any?>
 
+        @POST("api/v1/payments/easebuzz/create-link-for-bill")
+        suspend fun createPaymentLinkForBill(
+            @Body request: com.khanabook.lite.pos.data.remote.dto.CreatePaymentLinkForBillRequest
+        ): Map<String, Any?>
+
         // ── Easebuzz Onboarding (owner-driven) ──────────────────────────────
         @GET("api/v1/restaurants/payment-config/easebuzz")
         suspend fun getEasebuzzConfig(): Map<String, Any?>

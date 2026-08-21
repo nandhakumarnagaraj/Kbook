@@ -58,6 +58,19 @@ class EasebuzzPaymentRepository @Inject constructor(
             api.createEasebuzzPaymentLink(request)
         }
 
+    suspend fun createPaymentLinkForBill(
+        billId: Long,
+        restaurantId: Long
+    ): Result<Map<String, Any?>> =
+        runApi {
+            api.createPaymentLinkForBill(
+                com.khanabook.lite.pos.data.remote.dto.CreatePaymentLinkForBillRequest(
+                    billId = billId,
+                    restaurantId = restaurantId
+                )
+            )
+        }
+
     private suspend fun <T> runApi(block: suspend () -> T): Result<T> = try {
         Result.success(block())
     } catch (e: Exception) {

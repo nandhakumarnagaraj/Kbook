@@ -94,9 +94,6 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration", modifier = itemMod) {
                         onSectionSelected("payment")
                     }
-                    SettingsItem(icon = Icons.Filled.Send, text = "Payment Links", modifier = itemMod) {
-                        onSectionSelected("payment_links")
-                    }
                     SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration", modifier = itemMod) {
                         onSectionSelected("printer")
                     }

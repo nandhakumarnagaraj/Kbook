@@ -122,8 +122,7 @@ fun SettingsScreen(
         "interaction_feedback",
         "help_support",
         "about_app",
-        "sync_center",
-        "payment_links"
+        "sync_center"
     )
 
     BackHandler {
@@ -179,7 +178,6 @@ fun SettingsScreen(
                 "help_support" -> "Help & Support"
                 "sync_center" -> "Sync Center"
                 "about_app" -> "About App"
-                "payment_links" -> "Payment Links"
                 "menu" -> "Profile"
                 else -> "Profile"
             },
@@ -256,9 +254,6 @@ fun SettingsScreen(
                     }
                     "about_app" -> {
                         AboutAppView()
-                    }
-                    "payment_links" -> {
-                        navController.navigate("payment_link/${profile?.restaurantId ?: 0L}")
                     }
                 }
             }
