@@ -2,7 +2,6 @@
 
 package com.khanabook.lite.pos.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,11 +23,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
@@ -148,11 +145,8 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
         ) {
-            Image(
-                    painter = painterResource(id = R.drawable.khanabook_logo),
-                    contentDescription = "KhanaBook Lite logo",
-                    modifier = Modifier.size(layout.logoSize).padding(bottom = spacing.medium),
-                    contentScale = ContentScale.Fit
+            KhanaBookLogo(
+                    modifier = Modifier.padding(bottom = spacing.medium)
             )
 
             Text(

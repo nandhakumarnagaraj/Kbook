@@ -135,9 +135,9 @@ data class ResponsiveLayout(
     }
 
     val logoSize: Dp = when {
-        screenHeightDp < 640 -> 80.dp
-        screenHeightDp > 800 -> 120.dp
-        else -> 100.dp
+        screenHeightDp < 640 -> 110.dp
+        screenHeightDp > 800 -> 160.dp
+        else -> 140.dp
     }
 
     // Content width cap — prevents over-stretching on tablets/foldables/ChromeOS

@@ -106,6 +106,14 @@ fun PaymentConfigView(
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
+            if (upiSupported) {
+                Spacer(modifier = Modifier.height(spacing.medium))
+                ParchmentTextField(
+                    value = upiHandle,
+                    onValueChange = { upiHandle = it.trim() },
+                    label = "UPI ID *"
+                )
+            }
             PaymentToggle("Easebuzz Online", easebuzzEnabled) { easebuzzEnabled = it }
             if (easebuzzEnabled) {
                 Spacer(modifier = Modifier.height(spacing.small))
@@ -116,15 +124,6 @@ fun PaymentConfigView(
                 ) {
                     Text("Setup Online Payments →", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
                 }
-            }
-            if (upiSupported) {
-                Spacer(modifier = Modifier.height(spacing.medium))
-                ParchmentTextField(
-                    value = upiHandle,
-                    onValueChange = { upiHandle = it.trim() },
-                    label = "UPI ID *"
-                )
-
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))

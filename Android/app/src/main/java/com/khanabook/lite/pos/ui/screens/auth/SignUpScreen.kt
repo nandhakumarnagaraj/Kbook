@@ -2,7 +2,6 @@
 
 package com.khanabook.lite.pos.ui.screens.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,10 +26,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -167,11 +164,8 @@ fun SignUpScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
             ) {
-                Image(
-                        painter = painterResource(id = R.drawable.khanabook_logo),
-                        contentDescription = "KhanaBook Lite logo",
-                        modifier = Modifier.size(layout.logoSize).padding(bottom = spacing.small),
-                        contentScale = ContentScale.Fit
+                KhanaBookLogo(
+                        modifier = Modifier.padding(bottom = spacing.small)
                 )
 
                 Text(
@@ -197,7 +191,7 @@ fun SignUpScreen(
                             onValueChange = { shopName = it },
                             label = { Text("Shop Name") },
                             placeholder = {
-                                Text("Enter your shop/restaurant name", color = TextGold.copy(alpha = 0.7f))
+                                Text("Restaurant name", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -237,9 +231,9 @@ fun SignUpScreen(
                                     viewModel.checkUserExists(filtered)
                                 }
                             },
-                            label = { Text("WhatsApp Number") },
+                            label = { Text("WhatsApp") },
                             placeholder = {
-                                Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f))
+                                Text("10-digit number", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -318,7 +312,7 @@ fun SignUpScreen(
                                 },
                                 label = { Text("Enter OTP") },
                                 placeholder = {
-                                    Text("6-digit code sent to you", color = TextGold.copy(alpha = 0.7f))
+                                    Text("6-digit code", color = TextGold.copy(alpha = 0.7f))
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -363,9 +357,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            label = { Text("Create New Password") },
+                            label = { Text("Password") },
                             placeholder = {
-                                Text("Min 8 chars with symbols", color = TextGold.copy(alpha = 0.7f))
+                                Text("Min 8 chars", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -425,9 +419,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
-                            label = { Text("Confirm New Password") },
+                            label = { Text("Confirm Password") },
                             placeholder = {
-                                Text("Repeat your password", color = TextGold.copy(alpha = 0.7f))
+                                Text("Repeat password", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
