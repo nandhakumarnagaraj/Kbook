@@ -184,7 +184,6 @@ class MainActivity : FragmentActivity() {
         }
 
         enableEdgeToEdge()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Startup routing decision — the branded start frame stays visible until
         // this completes, then we navigate to the decided destination.
