@@ -88,8 +88,8 @@ fun CustomDateRangePickerDialog(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.98f)
-                .widthIn(max = 900.dp),
+                .fillMaxWidth(0.80f)
+                .widthIn(max = 560.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             DateRangePicker(
