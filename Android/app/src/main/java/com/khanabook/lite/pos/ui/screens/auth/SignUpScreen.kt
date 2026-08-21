@@ -152,20 +152,9 @@ fun SignUpScreen(
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
                 contentAlignment = Alignment.Center
         ) {
-            Column(
-                    modifier =
-                            Modifier.fillMaxWidth(layout.dialogWidthFraction)
-                                    .widthIn(max = layout.dialogMaxWidth)
-                                    .statusBarsPadding()
-                                    .verticalScroll(rememberScrollState())
-                                    .imePadding()
-                                    .navigationBarsPadding()
-                                    .padding(horizontal = spacing.large, vertical = spacing.medium),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top
-            ) {
+            AuthFormContainer {
                 KhanaBookLogo(
-                        modifier = Modifier.padding(bottom = spacing.small)
+                        modifier = Modifier.padding(bottom = layout.authLogoSpacing)
                 )
 
                 Text(
@@ -180,11 +169,11 @@ fun SignUpScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = TextLight.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = spacing.small, bottom = spacing.large)
+                        modifier = Modifier.padding(top = spacing.small, bottom = layout.authHeaderSpacing)
                 )
 
                 
-                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                Column(verticalArrangement = Arrangement.spacedBy(layout.authFieldSpacing)) {
                     
                     OutlinedTextField(
                             value = shopName,
@@ -477,7 +466,7 @@ fun SignUpScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(spacing.large))
+                Spacer(modifier = Modifier.height(layout.authActionSpacing))
 
                 
                 val isFormValid =
@@ -517,7 +506,7 @@ fun SignUpScreen(
                 }
 
 
-                Spacer(modifier = Modifier.height(spacing.large))
+                Spacer(modifier = Modifier.height(layout.authFooterSpacing))
 
                 Row(
                         horizontalArrangement = Arrangement.Center,

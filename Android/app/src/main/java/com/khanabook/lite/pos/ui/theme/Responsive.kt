@@ -177,6 +177,46 @@ data class ResponsiveLayout(
         WindowWidthTier.Medium -> 600.dp
         WindowWidthTier.Expanded -> 680.dp
     }
+
+    // ─── Semantic auth spacing ─────────────────────────────────────────────
+    // These resolve to existing spacing scale values per height tier.
+    // Used by AuthFormContainer and auth screens (Login, SignUp, ForgotPassword).
+    // Not new dp values — just semantic names for existing primitives.
+
+    /** Logo bottom → title/heading */
+    val authLogoSpacing: Dp = when {
+        isCompactHeight -> 8.dp
+        isTallScreen -> 16.dp
+        else -> 12.dp
+    }
+
+    /** Title/heading → form fields start */
+    val authHeaderSpacing: Dp = when {
+        isCompactHeight -> 16.dp
+        isTallScreen -> 32.dp
+        else -> 24.dp
+    }
+
+    /** Between form input fields */
+    val authFieldSpacing: Dp = when {
+        isCompactHeight -> 12.dp
+        isTallScreen -> 16.dp
+        else -> 16.dp
+    }
+
+    /** Last field → primary CTA button */
+    val authActionSpacing: Dp = when {
+        isCompactHeight -> 16.dp
+        isTallScreen -> 32.dp
+        else -> 24.dp
+    }
+
+    /** Primary CTA → secondary actions (Sign Up link, Google login) */
+    val authFooterSpacing: Dp = when {
+        isCompactHeight -> 16.dp
+        isTallScreen -> 24.dp
+        else -> 24.dp
+    }
 }
 
 internal fun responsiveLayoutForWindowSizeClass(

@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -23,20 +22,24 @@ import com.khanabook.lite.pos.ui.theme.PrimaryGold
 /**
  * KhanaBook brand logo — single reusable component for all brand screens.
  *
- * Provides:
- * - Circular container with white background
- * - Subtle gold border
- * - Responsive sizing via [KhanaBookTheme.layout.logoSize]
- * - Logo image clipped to circle (no rectangular white corners)
+ * The logo asset (khanabook_logo.png) is square with a baked-in white background.
+ * The circular container preserves the logo's natural 1:1 aspect ratio while
+ * providing a clean circular boundary consistent with modern Indian fintech/POS
+ * app conventions (PhonePe, CRED, Khatabook).
+ *
+ * Responsive sizing is controlled by [KhanaBookTheme.layout.logoSize] which
+ * resolves per height tier:
+ *   - Compact (<640dp height): 110dp
+ *   - Normal: 140dp
+ *   - Tall (>800dp height): 160dp
  *
  * Usage:
  * ```
  * KhanaBookLogo()                         // default responsive size
- * KhanaBookLogo(size = 140.dp)            // override size
- * KhanaBookLogo(borderWidth = 3.dp)       // thicker border
+ * KhanaBookLogo(size = 160.dp)            // override size
  * ```
  *
- * Used on: Login, SignUp, Splash, BrandedStartFrame, and any future brand screens.
+ * Used on: Login, SignUp (via AuthFormContainer header)
  */
 @Composable
 fun KhanaBookLogo(
@@ -44,8 +47,7 @@ fun KhanaBookLogo(
     size: Dp = KhanaBookTheme.layout.logoSize,
     borderWidth: Dp = 2.dp,
     borderColor: Color = PrimaryGold.copy(alpha = 0.4f),
-    backgroundColor: Color = Color.White,
-    innerPadding: Dp = 8.dp
+    backgroundColor: Color = Color.White
 ) {
     Box(
         modifier = modifier
@@ -59,7 +61,7 @@ fun KhanaBookLogo(
             painter = painterResource(id = R.drawable.khanabook_logo),
             contentDescription = "KhanaBook logo",
             modifier = Modifier
-                .size(size - innerPadding * 2)
+                .size(size * 0.82f)
                 .clip(CircleShape),
             contentScale = ContentScale.Fit
         )

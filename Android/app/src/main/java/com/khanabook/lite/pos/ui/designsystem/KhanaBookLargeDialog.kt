@@ -49,8 +49,8 @@ fun KhanaBookLargeDialog(
     ) {
         KhanaBookCard(
             modifier = modifier
-                .fillMaxWidth(if (layout.isCompact) 0.94f else 0.88f)
-                .widthIn(max = if (layout.isExpanded) 900.dp else 560.dp)
+                .fillMaxWidth(layout.dialogWidthFraction)
+                .widthIn(max = layout.dialogMaxWidth)
                 .padding(spacing.medium),
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             shape = RoundedCornerShape(18.dp),

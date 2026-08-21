@@ -133,20 +133,9 @@ fun LoginScreen(
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-                modifier =
-                        Modifier.fillMaxWidth(layout.dialogWidthFraction)
-                                .widthIn(max = layout.dialogMaxWidth)
-                                .verticalScroll(rememberScrollState())
-                                .statusBarsPadding()
-                                .navigationBarsPadding()
-                                .imePadding()
-                                .padding(horizontal = spacing.large, vertical = spacing.medium),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-        ) {
+        AuthFormContainer {
             KhanaBookLogo(
-                    modifier = Modifier.padding(bottom = spacing.medium)
+                    modifier = Modifier.padding(bottom = layout.authLogoSpacing)
             )
 
             Text(
@@ -154,7 +143,7 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextGold,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = spacing.extraLarge)
+                    modifier = Modifier.padding(bottom = layout.authHeaderSpacing)
             )
 
             
@@ -207,7 +196,7 @@ fun LoginScreen(
                     }
             )
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(layout.authFieldSpacing))
 
             
             OutlinedTextField(
@@ -280,7 +269,7 @@ fun LoginScreen(
                     fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(spacing.large))
+            Spacer(modifier = Modifier.height(layout.authActionSpacing))
 
             
             val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
@@ -324,7 +313,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(layout.authFooterSpacing))
 
             
             Row(
