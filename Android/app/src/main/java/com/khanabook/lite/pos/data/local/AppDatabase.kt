@@ -28,7 +28,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         StaffPermissionEntity::class,
                         PermissionRequestEntity::class
                 ],
-        version = 67,
+        version = 68,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1030,6 +1030,56 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
         val MIGRATION_66_67 = object : Migration(66, 67) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_67_68 = object : Migration(67, 68) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Fix stock_logs delta/reason nullability mismatch (delta String?/reason String? with defaults).
+                // Older DBs have NOT NULL with no default; new entity expects notNull=false.
+                // Recreate table with correct schema to avoid IllegalStateException on upgrade.
+                val hasStockLogs = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='stock_logs'").use { it.count > 0 }
+                if (!hasStockLogs) return
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `stock_logs_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `menu_item_id` INTEGER NOT NULL,
+                        `variant_id` INTEGER,
+                        `delta` TEXT DEFAULT '0',
+                        `reason` TEXT DEFAULT '',
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `server_id` INTEGER DEFAULT NULL,
+                        `server_menu_item_id` INTEGER DEFAULT NULL,
+                        `server_variant_id` INTEGER DEFAULT NULL,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`menu_item_id`) REFERENCES `menu_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `stock_logs_new` (
+                        `id`, `menu_item_id`, `variant_id`, `delta`, `reason`, `created_at`,
+                        `restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`,
+                        `server_id`, `server_menu_item_id`, `server_variant_id`, `server_updated_at`
+                    )
+                    SELECT
+                        `id`, `menu_item_id`, `variant_id`,
+                        COALESCE(`delta`, '0'), COALESCE(`reason`, ''),
+                        `created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`,
+                        `server_id`, `server_menu_item_id`, `server_variant_id`, `server_updated_at`
+                    FROM `stock_logs`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `stock_logs`")
+                db.execSQL("ALTER TABLE `stock_logs_new` RENAME TO `stock_logs`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_stock_logs_menu_item_id` ON `stock_logs` (`menu_item_id`)")
             }
         }
 

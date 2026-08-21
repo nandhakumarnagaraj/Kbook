@@ -38,7 +38,7 @@
     <string name="dashboard">Dashboard</string>
     <string name="welcome_subtitle">Welcome back! Manage your restaurant billing efficiently.</string>
     <string name="todays_summary">Today\'s Summary</string>
-    <string name="create_new_bill">Create New Bill</string>
+    <string name="create_new_bill">Create New Order</string>
     <string name="start_taking_orders">Start taking orders</string>
 
     <!-- General -->

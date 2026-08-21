@@ -420,56 +420,6 @@ fun PaymentStep(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (onPayOnline != null && !enabledModes.contains(PaymentMode.EASEBUZZ)) {
-                        Button(
-                            onClick = {
-                                if (isSubmitting) return@Button
-                                isSubmitting = true
-                                scope.launch {
-                                    val localBillId = viewModel.editingBillId
-                                        ?: viewModel.createDraftOnlineBill()
-                                        ?: run { isSubmitting = false; return@launch }
-
-                                    // Get the bill's server ID — required for Easebuzz
-                                    var serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
-                                    if (serverBillId == null || serverBillId == 0L) {
-                                        // Bill not synced yet — trigger sync and wait for serverId
-                                        viewModel.triggerSyncAndWait()
-                                        // Retry reading serverId up to 5 times with short delays
-                                        // (Room write may not be immediately visible)
-                                        repeat(5) {
-                                            kotlinx.coroutines.delay(500L)
-                                            serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
-                                            if (serverBillId != null && serverBillId != 0L) return@repeat
-                                        }
-                                    }
-                                    if (serverBillId == null || serverBillId == 0L) {
-                                        KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
-                                        isSubmitting = false
-                                        return@launch
-                                    }
-                                    val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
-                                    onPayOnline(serverBillId!!, restaurantId, paymentTotal)
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(KhanaBookTheme.spacing.buttonHeightLarge),
-                            colors = ButtonDefaults.buttonColors(containerColor = Brown500),
-                            shape = KhanaRadii.lg,
-                            enabled = isAmountValid && paymentAttemptReady
-                        ) {
-                            Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White)
-                            Spacer(modifier = Modifier.width(spacing.small))
-                            Text(
-                                "Pay Online (Easebuzz)",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
                     TextButton(
                         onClick = {
                             scope.launch {

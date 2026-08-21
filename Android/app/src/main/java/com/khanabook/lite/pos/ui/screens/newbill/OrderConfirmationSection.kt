@@ -181,11 +181,30 @@ fun SuccessStep(
         }
     ) {
         PaymentSuccessBadge()
-        Text(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+            modifier = Modifier.padding(top = spacing.small)
+        ) {
+            Text(
                 "Payment Successful!",
                 color = TextLight,
                 style = MaterialTheme.typography.headlineSmall
-        )
+            )
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(SuccessGreen, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Payment successful",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -382,8 +401,8 @@ private fun PaymentSuccessBadge() {
                     scaleY = ripple1Scale.value,
                     alpha = ripple1Alpha.value
                 )
-                .background(WhatsAppGreen.copy(alpha = 0.15f), CircleShape)
-                .border(2.dp, WhatsAppGreen.copy(alpha = 0.25f), CircleShape)
+                .background(SuccessGreen.copy(alpha = 0.15f), CircleShape)
+                .border(2.dp, SuccessGreen.copy(alpha = 0.25f), CircleShape)
         )
 
         // Outer Ripple 2
@@ -395,8 +414,8 @@ private fun PaymentSuccessBadge() {
                     scaleY = ripple2Scale.value,
                     alpha = ripple2Alpha.value
                 )
-                .background(WhatsAppGreen.copy(alpha = 0.15f), CircleShape)
-                .border(2.dp, WhatsAppGreen.copy(alpha = 0.25f), CircleShape)
+                .background(SuccessGreen.copy(alpha = 0.15f), CircleShape)
+                .border(2.dp, SuccessGreen.copy(alpha = 0.25f), CircleShape)
         )
 
         // Main Checkmark Circle
@@ -407,13 +426,13 @@ private fun PaymentSuccessBadge() {
                     scaleX = scale.value,
                     scaleY = scale.value
                 )
-                .background(WhatsAppGreen, CircleShape)
+                .background(SuccessGreen, CircleShape)
                 .border(4.dp, Color.White.copy(alpha = 0.8f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = null,
+                contentDescription = "Payment successful",
                 tint = Color.White,
                 modifier = Modifier.size(56.dp)
             )

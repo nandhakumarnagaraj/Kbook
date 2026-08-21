@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.theme
 
 import android.app.Activity
+import android.os.Build
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -99,8 +100,22 @@ fun KhanaBookLiteTheme(
         SideEffect {
             val window = (view.context as Activity).window
             val controller = WindowCompat.getInsetsController(window, view)
+            // Force dark system bar icons (light-on-dark) for our dark theme.
             controller.isAppearanceLightStatusBars = false
             controller.isAppearanceLightNavigationBars = false
+            // On 3-button navigation (Android 10+), the system may draw a light scrim
+            // over the nav bar area. Override with transparent so our DarkBrown1 scaffold
+            // shows through consistently across gesture, 3-button, and OEM variants.
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            @Suppress("DEPRECATION")
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            // On API 29+ (Android 10), disable the system-drawn contrast scrim that
+            // some OEMs (OPPO, Samsung) apply to the navigation bar in 3-button mode.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+                window.isStatusBarContrastEnforced = false
+            }
         }
     }
 

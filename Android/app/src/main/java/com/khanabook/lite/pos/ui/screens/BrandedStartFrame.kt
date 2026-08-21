@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -29,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -38,12 +41,14 @@ import com.khanabook.lite.pos.ui.theme.TextLight
 private val BurgundyTop = Color(0xFF170207)
 private val BurgundyMid = Color(0xFF2D0A10)
 private val BurgundyBottom = Color(0xFF150206)
+private val GoldAccent = Color(0xFFC8960C)
 
 /**
- * Seamless branded first frame shown right after the native splash while the
- * startup routing decision completes. Released the instant the decision is
- * ready (zero artificial delay); the native splash background blends into
- * this frame's gradient so startup reads as one continuous screen.
+ * Full branded splash screen matching the KhanaBook brand design:
+ * Logo (with glow) → KHANABOOK → Restaurant POS & Billing → Company name
+ * 
+ * Shown briefly after system splash while transition to destination occurs.
+ * Staggered fade-in animation for premium feel.
  */
 @Composable
 internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
@@ -57,13 +62,17 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
         targetValue = if (visible) 1f else 0f,
         animationSpec = tween(400, easing = FastOutSlowInEasing)
     )
-    val textAlpha by animateFloatAsState(
+    val titleAlpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 150, easing = FastOutSlowInEasing)
+        animationSpec = tween(450, delayMillis = 100, easing = FastOutSlowInEasing)
+    )
+    val subtitleAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(450, delayMillis = 200, easing = FastOutSlowInEasing)
     )
     val footerAlpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 300, easing = FastOutSlowInEasing)
+        animationSpec = tween(450, delayMillis = 350, easing = FastOutSlowInEasing)
     )
 
     Box(
@@ -73,24 +82,28 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        // Main content — logo + name + tagline (slightly above center)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = -(spacing.extraLarge))
-                .graphicsLayer { alpha = logoAlpha }
+                .padding(bottom = spacing.huge)
         ) {
+            // Logo with subtle glow
             Box(
-                modifier = Modifier.size(layout.heroImageSize + spacing.large + spacing.medium),
+                modifier = Modifier
+                    .size(layout.heroImageSize + spacing.large)
+                    .graphicsLayer { alpha = logoAlpha },
                 contentAlignment = Alignment.Center
             ) {
+                // Radial glow behind logo
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    LightGold.copy(alpha = 0.12f),
+                                    LightGold.copy(alpha = 0.10f),
                                     Color.Transparent
                                 )
                             )
@@ -98,34 +111,63 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
                 )
                 Image(
                     painter = painterResource(id = R.drawable.splash_logo),
-                    contentDescription = stringResource(id = R.string.cd_logo),
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+
+            Spacer(modifier = Modifier.height(spacing.large))
+
+            // KHANABOOK
             Text(
-                text = stringResource(id = R.string.khanabook).uppercase(),
-                color = TextLight.copy(alpha = textAlpha),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 4.sp
+                text = "KHANABOOK",
+                color = TextLight.copy(alpha = titleAlpha),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 6.sp
+            )
+
+            Spacer(modifier = Modifier.height(spacing.small))
+
+            // Restaurant POS & Billing
+            Text(
+                text = "Restaurant POS & Billing",
+                color = GoldAccent.copy(alpha = subtitleAlpha),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Normal
+            )
+        }
+
+        // Footer — company branding
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = spacing.extraLarge)
+                .graphicsLayer { alpha = footerAlpha }
+        ) {
+            // Divider line with "From"
+            Text(
+                text = "From",
+                color = TextLight.copy(alpha = 0.5f),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Light
             )
             Spacer(modifier = Modifier.height(spacing.small))
             Text(
-                text = "Restaurant POS & Billing",
-                color = TextLight.copy(alpha = textAlpha * 0.6f),
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Piquant Consultancy Services",
+                color = TextLight.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "P r i v a t e   L i m i t e d",
+                color = TextLight.copy(alpha = 0.5f),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
                 textAlign = TextAlign.Center
             )
         }
-        Text(
-            text = "PIQUANT CONSULTANCY SERVICES",
-            color = TextLight.copy(alpha = footerAlpha * 0.4f),
-            style = MaterialTheme.typography.labelSmall,
-            letterSpacing = 1.sp,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = spacing.large)
-        )
     }
 }

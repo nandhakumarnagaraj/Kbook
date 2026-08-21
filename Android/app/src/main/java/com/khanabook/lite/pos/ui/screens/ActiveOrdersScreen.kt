@@ -305,7 +305,7 @@ private fun ActiveOrderCard(
                             )
                             KhanaStatusBadge(
                                 text = if (row.requiresPaymentRecovery) "Payment recovery" else "Unpaid",
-                                kind = KhanaStatusKind.Warning,
+                                kind = KhanaStatusKind.Danger,
                                 filled = true
                             )
                         }
@@ -324,17 +324,21 @@ private fun ActiveOrderCard(
                         Button(
                             onClick = onPayment,
                             modifier = Modifier
-                                .weight(1.3f)
+                                .weight(1f)
                                 .height(40.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                            shape = KhanaRadii.md
+                            shape = KhanaRadii.md,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                         ) {
                             Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(spacing.extraSmall))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 if (row.requiresPaymentRecovery) "Recover" else "Payment",
                                 color = TextLight,
-                                style = MaterialTheme.typography.labelMedium
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false
                             )
                         }
                         OutlinedButton(
@@ -344,11 +348,18 @@ private fun ActiveOrderCard(
                                 .height(40.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                             border = BorderStroke(1.dp, BorderGold),
-                            shape = KhanaRadii.md
+                            shape = KhanaRadii.md,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                         ) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = PrimaryGold, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(spacing.extraSmall))
-                            Text("More Actions", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "More Actions",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false
+                            )
                         }
                     }
                 }

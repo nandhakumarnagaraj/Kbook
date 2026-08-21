@@ -112,8 +112,13 @@ data class ResponsiveLayout(
     }
 
     // Upper bound for extra space distributed into a single inter-section gap.
-    // Beyond this, residual space becomes bottom breathing room instead of
-    // gap amplification (HomeScreen uses BoundedVerticalSpaceBetween).
+    // Scales with available height so tall phones (20:9) absorb more residual space
+    // into rhythm instead of pooling it all as dead bottom margin.
+    // TODO: Determine correct values after responsive design audit.
+    // Runtime measurements show:
+    //   OnePlus Nord (384x797dp, CompactPhone): ~283px slack, 2 gaps
+    //   Moto G34 (411x914dp, MediumPhone): ~31px slack, 2 gaps
+    //   Lenovo Tablet (800x1208dp, Tablet): ~379dp slack, 2 gaps
     val maxSectionGap: Dp = 0.dp
 
     // Height-adaptive hero sizing — scales major visual elements with available space
