@@ -134,7 +134,7 @@ fun PrinterTargetCard(
                 if (onConfigureWifi != null) {
                     KhanaButtonRow {
                         KhanaSecondaryButton(
-                            text = "Bluetooth",
+                            text = "BT",
                             onClick = onSelectPrinter,
                             leadingIcon = Icons.Default.Bluetooth,
                             modifier = Modifier.weight(1f)

@@ -143,7 +143,7 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                     onValueChange = {
                         gstNumber = it.uppercase().filter { ch -> ch.isLetterOrDigit() }.take(15)
                     },
-                    label = "GST Identification Number (GSTIN) *",
+                    label = "GSTIN *",
                     isError = gstNumber.isNotEmpty() && !isGstValid,
                     supportingText = if (gstNumber.isNotEmpty() && !isGstValid) "Enter valid 15-character GSTIN format" else null
                 )
