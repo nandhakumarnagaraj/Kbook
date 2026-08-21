@@ -22,6 +22,7 @@ class KhanaBookApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var billRepository: BillRepository
     @Inject lateinit var sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager
+    @Inject lateinit var databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -46,6 +47,22 @@ class KhanaBookApplication : Application(), Configuration.Provider {
 
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
+
+        // ── Early DB warm-up on IO thread ───────────────────────────────────
+        // SQLCipher key derivation (PBKDF2, 256K iterations) takes 400-600ms.
+        // By starting it here in Application.onCreate (before any Activity),
+        // the key is derived by the time MainActivity needs the DB.
+        // This eliminates the 400-600ms JNI lock on the main thread.
+        val token = sessionManager.getAuthToken()
+        if (!token.isNullOrBlank() && sessionManager.getRestaurantId() > 0L) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    databaseProvider.warmUpDatabase()
+                } catch (e: Exception) {
+                    Log.w("KhanaBookApp", "Early DB warm-up failed (will retry in Activity): ${e.message}")
+                }
+            }
+        }
 
         // WorkManager is configured via Configuration.Provider above.
         // The auto-init ContentProvider is disabled in the manifest, so
