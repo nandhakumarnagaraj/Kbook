@@ -24,9 +24,12 @@ object NotificationHelper {
     const val CHANNEL_KYC = "khanabook_kyc_v2"
     const val CHANNEL_SETTLEMENT = "khanabook_settlement_v2"
     const val CHANNEL_SYSTEM = "khanabook_system_v2"
+    const val CHANNEL_INVENTORY = "khanabook_inventory_v2"
+    const val CHANNEL_PERMISSIONS = "khanabook_permissions_v2"
 
     private const val GROUP_PAYMENTS = "khanabook_group_payments"
     private const val GROUP_SYSTEM = "khanabook_group_system"
+    private const val GROUP_OPERATIONS = "khanabook_group_operations"
 
     /**
      * Create all notification channels for API 26+.
@@ -41,7 +44,8 @@ object NotificationHelper {
         // Create notification channel groups first to avoid "NotificationChannelGroup doesn't exist" crash
         val paymentsGroup = NotificationChannelGroup(GROUP_PAYMENTS, "Payments & Transactions")
         val systemGroup = NotificationChannelGroup(GROUP_SYSTEM, "System & Security")
-        manager.createNotificationChannelGroups(listOf(paymentsGroup, systemGroup))
+        val operationsGroup = NotificationChannelGroup(GROUP_OPERATIONS, "Operations")
+        manager.createNotificationChannelGroups(listOf(paymentsGroup, systemGroup, operationsGroup))
 
         manager.createNotificationChannel(
             paymentChannel(context)
@@ -57,6 +61,12 @@ object NotificationHelper {
         )
         manager.createNotificationChannel(
             systemChannel(context)
+        )
+        manager.createNotificationChannel(
+            inventoryChannel(context)
+        )
+        manager.createNotificationChannel(
+            permissionsChannel(context)
         )
     }
 
@@ -107,8 +117,35 @@ object NotificationHelper {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun kycChannel(context: Context): NotificationChannel {
+    private fun inventoryChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
+            CHANNEL_INVENTORY,
+            "Low Stock Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Raw materials running below their low-stock threshold"
+            enableVibration(true)
+            setShowBadge(true)
+            group = GROUP_OPERATIONS
+        }
+        return channel
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun permissionsChannel(context: Context): NotificationChannel {
+        val channel = NotificationChannel(
+            CHANNEL_PERMISSIONS,
+            "Staff Permissions",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Permission requests from staff and approval decisions"
+            group = GROUP_OPERATIONS
+        }
+        return channel
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun kycChannel(context: Context): NotificationChannel {        val channel = NotificationChannel(
             CHANNEL_KYC,
             "KYC Verification",
             NotificationManager.IMPORTANCE_HIGH

@@ -20,6 +20,10 @@ public interface NotificationEventRepository extends JpaRepository<NotificationE
     long countByRestaurantIdAndIsReadFalse(Long restaurantId);
 
     @Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM NotificationEvent n WHERE n.createdAt < :cutoff")
+    int deleteByCreatedAtBefore(@org.springframework.data.repository.query.Param("cutoff") Long cutoff);
+
+    @Modifying
     @Query("UPDATE NotificationEvent n SET n.isRead = true, n.readAt = :now WHERE n.restaurantId = :restaurantId AND n.isRead = false")
     int markAllAsRead(@Param("restaurantId") Long restaurantId, @Param("now") Long now);
 

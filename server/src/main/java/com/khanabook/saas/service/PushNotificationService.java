@@ -282,18 +282,37 @@ public class PushNotificationService {
         return notificationEventRepo.save(event);
     }
 
-    /** Map notification type to the correct Android channel ID. */
-    private String resolveChannelId(String type) {
-        if (type == null) return "khanabook_system_v2";
-        return switch (type) {
-            case "payment_received"  -> "khanabook_payment_v2";
-            case "refund"            -> "khanabook_refund_v2";
-            case "kyc"               -> "khanabook_kyc_v2";
-            case "settlement"        -> "khanabook_settlement_v2";
-            case "marketplace_order" -> "khanabook_payment_v2";
-            default                  -> "khanabook_system_v2";
-        };
-    }
+	/** Map notification type to the correct Android channel ID. */
+	private String resolveChannelId(String type) {
+		if (type == null) return "khanabook_system_v2";
+		return switch (type) {
+			case "payment_received", "qr_order" -> "khanabook_payment_v2";
+			case "refund"            -> "khanabook_refund_v2";
+			case "kyc"               -> "khanabook_kyc_v2";
+			case "settlement"        -> "khanabook_settlement_v2";
+			case "marketplace_order" -> "khanabook_payment_v2";
+			case "inventory_low"     -> "khanabook_inventory_v2";
+			case "permission_request", "permission_approved", "permission_rejected"
+			                         -> "khanabook_permissions_v2";
+			default                  -> "khanabook_system_v2";
+		};
+	}
+
+	/**
+	 * Retention: notification_events older than 90 days are purged daily.
+	 * The in-app notification center is a recent-history feed, not an archive.
+	 */
+	@org.springframework.scheduling.annotation.Scheduled(cron = "0 30 3 * * *", zone = "Asia/Kolkata")
+	@Transactional
+	public void purgeOldNotificationEvents() {
+		long cutoff = System.currentTimeMillis() - RETENTION_DAYS * 24L * 60L * 60L * 1000L;
+		int deleted = notificationEventRepo.deleteByCreatedAtBefore(cutoff);
+		if (deleted > 0) {
+			log.info("Purged {} notification events older than {} days", deleted, RETENTION_DAYS);
+		}
+	}
+
+	private static final int RETENTION_DAYS = 90;
 
     public List<NotificationEvent> getNotifications(Long restaurantId, int limit) {
         return notificationEventRepo.findByRestaurantIdOrderByCreatedAtDesc(restaurantId,
