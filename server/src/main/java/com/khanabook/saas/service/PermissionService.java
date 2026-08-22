@@ -19,17 +19,20 @@ public class PermissionService {
     private final RoleTemplateRepository templateRepo;
     private final UserRepository userRepo;
     private final ObjectMapper objectMapper;
+    private final PushNotificationService pushNotificationService;
 
     public PermissionService(StaffPermissionRepository permissionRepo,
                              PermissionRequestRepository requestRepo,
                              RoleTemplateRepository templateRepo,
                              UserRepository userRepo,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             PushNotificationService pushNotificationService) {
         this.permissionRepo = permissionRepo;
         this.requestRepo = requestRepo;
         this.templateRepo = templateRepo;
         this.userRepo = userRepo;
         this.objectMapper = objectMapper;
+        this.pushNotificationService = pushNotificationService;
     }
 
     // ── Check ─────────────────────────────────────────────────────────────────
@@ -150,7 +153,10 @@ public class PermissionService {
         }
 
         var request = new PermissionRequest(restaurantId, userId, permissionKey, reason);
-        return requestRepo.save(request);
+        var saved = requestRepo.save(request);
+
+        notifyOwnersOfRequest(saved);
+        return saved;
     }
 
     public List<PermissionRequest> getPendingRequests(Long restaurantId) {
@@ -178,6 +184,10 @@ public class PermissionService {
 
         // Auto-grant the permission
         grantPermission(request.getRestaurantId(), request.getUserId(), request.getPermissionKey(), resolvedBy);
+
+        notifyRequester(request, "Permission Approved",
+                displayName(request.getPermissionKey()) + " was approved for your account.",
+                "permission_approved", null);
     }
 
     @Transactional
@@ -199,6 +209,58 @@ public class PermissionService {
         request.setResolvedAt(System.currentTimeMillis());
         request.setRejectionReason(rejectionReason);
         requestRepo.save(request);
+
+        notifyRequester(request, "Permission Rejected",
+                displayName(request.getPermissionKey()) + " was rejected"
+                        + (rejectionReason != null && !rejectionReason.isBlank() ? ": " + rejectionReason : "."),
+                "permission_rejected", rejectionReason);
+    }
+
+    // ── Request notifications ────────────────────────────────────────────────
+
+    private void notifyOwnersOfRequest(PermissionRequest request) {
+        try {
+            var owners = userRepo.findByRestaurantIdAndRoleAndIsDeletedFalse(
+                    request.getRestaurantId(), UserRole.OWNER);
+            List<Long> ownerIds = owners.stream().map(User::getId).toList();
+            String requesterName = userRepo.findById(request.getUserId())
+                    .map(User::getName).orElse("Staff");
+            pushNotificationService.pushToUsers(
+                    request.getRestaurantId(),
+                    ownerIds,
+                    "Permission Request",
+                    requesterName + " requests " + displayName(request.getPermissionKey())
+                            + (request.getReason() != null && !request.getReason().isBlank()
+                                    ? " — " + request.getReason() : ""),
+                    "permission_request",
+                    String.valueOf(request.getId()),
+                    "permission_request",
+                    null);
+        } catch (Exception e) {
+            // Notification failure must never break the request flow
+        }
+    }
+
+    private void notifyRequester(PermissionRequest request, String title, String message,
+                                 String type, String rejectionReason) {
+        try {
+            pushNotificationService.pushToUsers(
+                    request.getRestaurantId(),
+                    List.of(request.getUserId()),
+                    title,
+                    message,
+                    type,
+                    String.valueOf(request.getId()),
+                    "permission_request",
+                    null);
+        } catch (Exception e) {
+            // Notification failure must never break the approval/rejection flow
+        }
+    }
+
+    private String displayName(String permissionKey) {
+        var pk = PermissionKey.fromKey(permissionKey);
+        return pk != null ? pk.getDisplayName() : permissionKey;
     }
 
     // ── Templates ─────────────────────────────────────────────────────────────

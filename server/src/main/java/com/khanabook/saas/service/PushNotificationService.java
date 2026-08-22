@@ -59,6 +59,10 @@ public class PushNotificationService {
         dt.setToken(token);
         dt.setPlatform(platform != null ? platform : "android");
         dt.setDeviceId(deviceId);
+        Long currentUserId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
+        if (currentUserId != null) {
+            dt.setUserId(currentUserId);
+        }
         dt.setActive(true);
         long now = System.currentTimeMillis();
         if (dt.getCreatedAt() == null) dt.setCreatedAt(now);
@@ -187,6 +191,65 @@ public class PushNotificationService {
             }
         } catch (FirebaseMessagingException e) {
             log.error("Failed to send push to restaurantId={}: {}", restaurantId, e.getMessage());
+        }
+    }
+
+    /**
+     * Send push notification to specific users' devices within a restaurant.
+     * Falls back gracefully when no matching devices are registered.
+     */
+    public void pushToUsers(Long restaurantId, List<Long> userIds, String title, String message,
+                            String notificationType, String referenceId,
+                            String referenceType, BigDecimal amount) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        if (firebaseApp == null) {
+            log.debug("Firebase not configured, skipping push to users {} for restaurantId={}", userIds, restaurantId);
+            return;
+        }
+        List<DeviceToken> tokens = deviceTokenRepo.findByRestaurantIdAndUserIdInAndActiveTrue(restaurantId, userIds);
+        if (tokens.isEmpty()) {
+            log.debug("No active device tokens for users {} restaurantId={}", userIds, restaurantId);
+            return;
+        }
+
+        NotificationEvent event = saveNotificationEvent(restaurantId, title, message,
+            notificationType, referenceId, referenceType, amount);
+
+        int successCount = 0;
+        for (DeviceToken dt : tokens) {
+            Map<String, String> data = Map.of(
+                "title", title != null ? title : "",
+                "message", message != null ? message : "",
+                "type", notificationType != null ? notificationType : "",
+                "referenceId", referenceId != null ? referenceId : "",
+                "referenceType", referenceType != null ? referenceType : "",
+                "notificationId", event.getId().toString(),
+                "amount", amount != null ? amount.toPlainString() : ""
+            );
+            try {
+                sendDirectPush(dt.getToken(), title, message, data);
+                successCount++;
+            } catch (FirebaseMessagingException e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : "unknown";
+                log.warn("Targeted push failed for token: {}", errorMsg);
+                if (errorMsg.contains("UNREGISTERED") || errorMsg.contains("InvalidRegistration")) {
+                    dt.setActive(false);
+                    dt.setUpdatedAt(System.currentTimeMillis());
+                    deviceTokenRepo.save(dt);
+                }
+            } catch (Exception e) {
+                log.warn("Targeted push failed unexpectedly: {}", e.getMessage());
+            }
+        }
+
+        log.info("Targeted push sent to users={} restaurantId={} success={}/{} type={}",
+            userIds, restaurantId, successCount, tokens.size(), notificationType);
+
+        if (successCount > 0) {
+            event.setIsPushed(true);
+            notificationEventRepo.save(event);
         }
     }
 

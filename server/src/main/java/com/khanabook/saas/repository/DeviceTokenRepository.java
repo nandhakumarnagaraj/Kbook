@@ -12,6 +12,10 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
 
     List<DeviceToken> findByRestaurantIdAndActiveTrue(Long restaurantId);
 
+    List<DeviceToken> findByRestaurantIdAndUserIdAndActiveTrue(Long restaurantId, Long userId);
+
+    List<DeviceToken> findByRestaurantIdAndUserIdInAndActiveTrue(Long restaurantId, List<Long> userIds);
+
     Optional<DeviceToken> findByToken(String token);
 
     Optional<DeviceToken> findByRestaurantIdAndDeviceId(Long restaurantId, String deviceId);

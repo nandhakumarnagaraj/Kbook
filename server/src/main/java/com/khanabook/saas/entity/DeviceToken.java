@@ -7,7 +7,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "device_tokens", indexes = {
     @Index(name = "idx_device_tokens_restaurant", columnList = "restaurant_id"),
-    @Index(name = "idx_device_tokens_token", columnList = "token")
+    @Index(name = "idx_device_tokens_token", columnList = "token"),
+    @Index(name = "idx_device_tokens_restaurant_user", columnList = "restaurant_id, user_id")
 })
 @Getter
 @Setter
@@ -28,6 +29,9 @@ public class DeviceToken {
 
     @Column(name = "device_id")
     private String deviceId;
+
+    @Column(name = "user_id")
+    private Long userId;
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
