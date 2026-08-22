@@ -47,11 +47,21 @@ public class GenericSyncService {
 	@org.springframework.beans.factory.annotation.Autowired(required = false)
 	private PushNotificationService pushNotificationService;
 
+	// Optional: recipe-based raw-material inventory (V81). Absent only if the
+	// migration hasn't run.
+	@org.springframework.beans.factory.annotation.Autowired(required = false)
+	private com.khanabook.saas.service.InventoryService inventoryService;
+
 	// Phase C strict mode: when true, bill / bill-item / bill-payment pushes without an
 	// X-Terminal-Token are rejected. KBOOK_ADMIN remains exempt. While false (rollout),
 	// legacy no-token clients keep working via device-based ownership.
 	@org.springframework.beans.factory.annotation.Value("${terminal.sync.strict:false}")
 	private boolean terminalSyncStrict;
+
+	private static boolean isFinalizedOrderStatus(String orderStatus) {
+		return orderStatus != null
+				&& (orderStatus.equalsIgnoreCase("completed") || orderStatus.equalsIgnoreCase("paid"));
+	}
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -147,6 +157,7 @@ public class GenericSyncService {
 		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		List<Bill> newBills = new ArrayList<>();
 		List<Bill> cancelledBills = new ArrayList<>();
+		List<Bill> finalizedBills = new ArrayList<>();
 		List<BillPayment> newPayments = new ArrayList<>();
 
 		for (T record : payload) {
@@ -523,6 +534,10 @@ public class GenericSyncService {
 								if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus()) && "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
 									cancelledBills.add(incomingBill);
 								}
+								if (isFinalizedOrderStatus(incomingBill.getOrderStatus())
+										&& !isFinalizedOrderStatus(existingBill.getOrderStatus())) {
+									finalizedBills.add(incomingBill);
+								}
 								// NOTE: v2 also called hasBackendGatewayPayment()/preserveGatewayOwnedBillState()
 								// here, but both were unimplemented stubs in v2 (return false / empty body), so
 								// the guarded branch never executed. Omitted rather than carried over as dead code.
@@ -543,6 +558,10 @@ public class GenericSyncService {
 								if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus())
 										&& "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
 									cancelledBills.add(incomingBill);
+								}
+								if (isFinalizedOrderStatus(incomingBill.getOrderStatus())
+										&& !isFinalizedOrderStatus(existingBill.getOrderStatus())) {
+									finalizedBills.add(incomingBill);
 								}
 							}
 
@@ -675,6 +694,9 @@ public class GenericSyncService {
 						}
 						if (incomingRecord instanceof Bill freshBill) {
 							newBills.add(freshBill);
+							if (isFinalizedOrderStatus(freshBill.getOrderStatus())) {
+								finalizedBills.add(freshBill);
+							}
 						} else if (incomingRecord instanceof BillPayment freshPayment) {
 							newPayments.add(freshPayment);
 						}
@@ -778,6 +800,20 @@ public class GenericSyncService {
 		}
 
 		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
+
+		// ── Recipe-based inventory deduction ─────────────────────────────
+		if (inventoryService != null && repository instanceof BillRepository && !finalizedBills.isEmpty()) {
+			for (Bill bill : finalizedBills) {
+				if (successfulLocalIds.contains(bill.getLocalId())) {
+					try {
+						inventoryService.deductForFinalizedBill(bill);
+					} catch (Exception e) {
+						log.warn("Inventory deduction failed for bill localId={}: {}",
+								bill.getLocalId(), e.getMessage());
+					}
+				}
+			}
+		}
 
 		// ── Push Sync Notifications ──────────────────────────────────────
 		if (pushNotificationService != null) {

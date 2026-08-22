@@ -71,6 +71,20 @@ public class RateLimiterConfig {
                 advisoryLocksEnabled);
     }
 
+    /**
+     * QR order rate limiter: 20 orders per client IP per 10 minutes.
+     * Protects the unauthenticated public ordering endpoint from abuse.
+     */
+    @Bean
+    public DbRateLimiter qrOrderRateLimiterDb(RateLimitAttemptRepository repository) {
+        return new DbRateLimiter(
+                repository,
+                "QR_ORDER",
+                20,
+                Duration.ofMinutes(10),
+                advisoryLocksEnabled);
+    }
+
     private static boolean supportsPostgresAdvisoryLocks(DataSource dataSource) {
         try (var connection = dataSource.getConnection()) {
             return "PostgreSQL".equalsIgnoreCase(

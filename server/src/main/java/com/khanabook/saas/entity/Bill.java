@@ -137,6 +137,9 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "cancel_reason", columnDefinition = "TEXT DEFAULT ''")
 	private String cancelReason = "";
 
+	@Column(name = "inventory_deducted", nullable = false)
+	private Boolean inventoryDeducted = false;
+
 	@Column(name = "public_token", nullable = false, unique = true, columnDefinition = "UUID DEFAULT gen_random_uuid()")
 	private java.util.UUID publicToken;
 

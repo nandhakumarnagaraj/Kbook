@@ -14,4 +14,6 @@ public interface ItemVariantRepository extends SyncRepository<ItemVariant, Long>
 	void recalculateStock(@Param("id") Long id);
 
 	long countByMenuItemIdAndIsDeletedFalse(Long menuItemId);
+
+	java.util.List<ItemVariant> findByServerMenuItemIdAndIsDeletedFalse(Long serverMenuItemId);
 }
