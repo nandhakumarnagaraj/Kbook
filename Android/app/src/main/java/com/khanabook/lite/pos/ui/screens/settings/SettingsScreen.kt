@@ -50,6 +50,7 @@ import com.khanabook.lite.pos.ui.screens.PrinterConfigView
 import com.khanabook.lite.pos.ui.screens.SettingsHomeSection
 import com.khanabook.lite.pos.ui.screens.SettingsListView
 import com.khanabook.lite.pos.ui.screens.ShopConfigView
+import com.khanabook.lite.pos.ui.screens.InventoryScreen
 import com.khanabook.lite.pos.ui.screens.StaffPermissionScreen
 import com.khanabook.lite.pos.ui.screens.TaxConfigView
 
@@ -153,6 +154,13 @@ fun SettingsScreen(
 
     if (section == "staff_permissions") {
         StaffPermissionScreen(
+            onBack = { section = "menu" }
+        )
+        return
+    }
+
+    if (section == "inventory") {
+        InventoryScreen(
             onBack = { section = "menu" }
         )
         return

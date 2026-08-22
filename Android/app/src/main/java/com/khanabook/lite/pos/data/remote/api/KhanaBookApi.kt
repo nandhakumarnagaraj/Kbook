@@ -11,6 +11,7 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.Part
+import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -193,6 +194,46 @@ interface KhanaBookApi {
 
         @POST("api/v1/permissions/apply-template")
         suspend fun applyRoleTemplate(@Body body: ApplyTemplateBody)
+
+        // ── Inventory (raw materials + recipes) ──────────────────────────────
+
+        @GET("api/v1/inventory/materials")
+        suspend fun getRawMaterials(): List<RawMaterialDto>
+
+        @POST("api/v1/inventory/materials")
+        suspend fun createRawMaterial(@Body body: CreateMaterialBody): RawMaterialDto
+
+        @PUT("api/v1/inventory/materials/{id}")
+        suspend fun updateRawMaterial(@Path("id") id: Long, @Body body: UpdateMaterialBody): RawMaterialDto
+
+        @DELETE("api/v1/inventory/materials/{id}")
+        suspend fun deleteRawMaterial(@Path("id") id: Long)
+
+        @GET("api/v1/inventory/recipes/{menuItemId}")
+        suspend fun getItemRecipes(@Path("menuItemId") menuItemId: Long): List<ItemRecipeDto>
+
+        @POST("api/v1/inventory/recipes")
+        suspend fun createRecipeLine(@Body body: CreateRecipeBody): ItemRecipeDto
+
+        @DELETE("api/v1/inventory/recipes/{id}")
+        suspend fun deleteRecipeLine(@Path("id") id: Long)
+
+        // ── Analytics ────────────────────────────────────────────────────────
+
+        @GET("api/v1/analytics/item-sales")
+        suspend fun getItemSales(
+            @Query("from") from: String,
+            @Query("to") to: String
+        ): List<ItemSalesRow>
+
+        @GET("api/v1/analytics/hourly-sales")
+        suspend fun getHourlySales(@Query("date") date: String): List<HourlySalesRow>
+
+        @GET("api/v1/analytics/food-cost")
+        suspend fun getFoodCost(
+            @Query("from") from: String,
+            @Query("to") to: String
+        ): List<FoodCostRow>
 
         @GET("api/v1/business/staff")
         suspend fun getStaffList(): List<StaffListItem>

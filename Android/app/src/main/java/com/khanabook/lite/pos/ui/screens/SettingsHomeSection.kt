@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Print
@@ -105,6 +106,9 @@ fun SettingsHomeSection(
                     }
                     SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
                         onSectionSelected("staff_permissions")
+                    }
+                    SettingsItem(icon = Icons.Filled.Inventory2, text = "Inventory & Insights", modifier = itemMod) {
+                        onSectionSelected("inventory")
                     }
                 }
             }
