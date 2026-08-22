@@ -20,19 +20,23 @@ public class PermissionService {
     private final UserRepository userRepo;
     private final ObjectMapper objectMapper;
     private final PushNotificationService pushNotificationService;
+    private final DbRateLimiter permissionRequestRateLimiter;
 
     public PermissionService(StaffPermissionRepository permissionRepo,
                              PermissionRequestRepository requestRepo,
                              RoleTemplateRepository templateRepo,
                              UserRepository userRepo,
                              ObjectMapper objectMapper,
-                             PushNotificationService pushNotificationService) {
+                             PushNotificationService pushNotificationService,
+                             @org.springframework.beans.factory.annotation.Qualifier("permissionRequestRateLimiterDb")
+                             DbRateLimiter permissionRequestRateLimiter) {
         this.permissionRepo = permissionRepo;
         this.requestRepo = requestRepo;
         this.templateRepo = templateRepo;
         this.userRepo = userRepo;
         this.objectMapper = objectMapper;
         this.pushNotificationService = pushNotificationService;
+        this.permissionRequestRateLimiter = permissionRequestRateLimiter;
     }
 
     // ── Check ─────────────────────────────────────────────────────────────────
@@ -141,6 +145,9 @@ public class PermissionService {
 
     @Transactional
     public PermissionRequest submitRequest(Long restaurantId, Long userId, String permissionKey, String reason) {
+        if (!permissionRequestRateLimiter.tryConsume("r" + restaurantId + ":u" + userId)) {
+            throw new IllegalStateException("Too many permission requests. Try again later.");
+        }
         // Check if already has permission
         if (hasPermission(restaurantId, userId, permissionKey)) {
             throw new IllegalStateException("You already have this permission");

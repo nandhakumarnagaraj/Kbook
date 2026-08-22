@@ -57,6 +57,20 @@ public class RateLimiterConfig {
                 advisoryLocksEnabled);
     }
 
+    /**
+     * Permission request rate limiter: 10 requests per staff user per hour.
+     * Prevents spamming shop owners with permission request notifications.
+     */
+    @Bean
+    public DbRateLimiter permissionRequestRateLimiterDb(RateLimitAttemptRepository repository) {
+        return new DbRateLimiter(
+                repository,
+                "PERMISSION_REQUEST",
+                10,
+                Duration.ofHours(1),
+                advisoryLocksEnabled);
+    }
+
     private static boolean supportsPostgresAdvisoryLocks(DataSource dataSource) {
         try (var connection = dataSource.getConnection()) {
             return "PostgreSQL".equalsIgnoreCase(

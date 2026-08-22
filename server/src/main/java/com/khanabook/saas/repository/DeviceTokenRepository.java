@@ -18,6 +18,8 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
 
     Optional<DeviceToken> findByToken(String token);
 
+    Optional<DeviceToken> findByRestaurantIdAndToken(Long restaurantId, String token);
+
     Optional<DeviceToken> findByRestaurantIdAndDeviceId(Long restaurantId, String deviceId);
 
     long countByRestaurantIdAndActiveTrue(Long restaurantId);

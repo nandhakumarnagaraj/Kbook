@@ -49,6 +49,19 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<Map<String, Object>> handleIllegalState(
+			IllegalStateException e, HttpServletRequest request) {
+		String message = (e.getMessage() == null || e.getMessage().isBlank())
+				? "Request cannot be processed"
+				: e.getMessage();
+		log.warn("Rejected request [{}]: {}", request.getRequestURI(), message);
+		return ResponseEntity.badRequest().body(Map.of(
+				"error", message,
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(DuplicateStaffPhoneException.class)
 	public ResponseEntity<Map<String, Object>> handleDuplicateStaffPhone(
 			DuplicateStaffPhoneException e, HttpServletRequest request) {

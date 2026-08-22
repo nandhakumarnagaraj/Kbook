@@ -52,8 +52,20 @@ public class PushNotificationService {
                 deviceTokenRepo.save(existing);
             });
 
-        DeviceToken dt = deviceTokenRepo.findByToken(token)
+        // Look up within this restaurant only; never rewrite another tenant's row
+        DeviceToken dt = deviceTokenRepo.findByRestaurantIdAndToken(restaurantId, token)
             .orElseGet(DeviceToken::new);
+
+        // Device switched shops: deactivate the stale row under the old restaurant
+        deviceTokenRepo.findByToken(token)
+            .filter(stale -> !stale.getRestaurantId().equals(restaurantId) && Boolean.TRUE.equals(stale.getActive()))
+            .ifPresent(stale -> {
+                stale.setActive(false);
+                stale.setUpdatedAt(System.currentTimeMillis());
+                deviceTokenRepo.save(stale);
+                log.info("Device token reassigned from restaurantId={} to restaurantId={}",
+                    stale.getRestaurantId(), restaurantId);
+            });
 
         dt.setRestaurantId(restaurantId);
         dt.setToken(token);
