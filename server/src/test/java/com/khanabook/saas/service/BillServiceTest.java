@@ -107,6 +107,8 @@ class BillServiceTest {
         bill.setUpdatedAt(updatedAt);
         bill.setDeviceId(DEVICE_ID);
         bill.setRestaurantId(AUTHENTICATED_RESTAURANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         return bill;
     }
 

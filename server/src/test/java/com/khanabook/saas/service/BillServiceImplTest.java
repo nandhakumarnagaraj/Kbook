@@ -98,6 +98,8 @@ class BillServiceImplTest {
         bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         bill.setCreatedAt(1704106800000L); 
         bill.setUpdatedAt(1704106800000L);
 
@@ -124,6 +126,8 @@ class BillServiceImplTest {
         bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         long now = System.currentTimeMillis();
         bill.setUpdatedAt(now);
         
@@ -154,6 +158,8 @@ class BillServiceImplTest {
         bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         
         
         bill.setCreatedAt(1704074400000L); 
@@ -180,6 +186,8 @@ class BillServiceImplTest {
         bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         bill.setCreatedAt(1704106800000L);
         bill.setUpdatedAt(1704106800000L);
         bill.setTerminalSeries(TERMINAL_SERIES);
@@ -209,6 +217,8 @@ class BillServiceImplTest {
         bill.setLocalId(2L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
+        bill.setTotalAmount(java.math.BigDecimal.TEN);
+        bill.setSubtotal(java.math.BigDecimal.TEN);
         bill.setCreatedAt(1704106800000L);
         bill.setUpdatedAt(1704106800000L);
         bill.setTerminalSeries(TERMINAL_SERIES);

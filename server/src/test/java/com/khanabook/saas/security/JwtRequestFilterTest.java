@@ -22,6 +22,20 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JwtRequestFilterTest {
 
+    @org.junit.jupiter.api.BeforeEach
+    void clearContexts() {
+        // SecurityContextHolder is thread-local static state; production no longer clears
+        // it in the filter (see JwtRequestFilter finally block), so tests must isolate it.
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        com.khanabook.saas.security.TenantContext.clear();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void cleanupContexts() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        com.khanabook.saas.security.TenantContext.clear();
+    }
+
     @Mock private JwtUtility jwtUtility;
     @Mock private UserRepository userRepository;
     @Mock private RestaurantProfileRepository restaurantProfileRepository;
@@ -55,8 +69,7 @@ class JwtRequestFilterTest {
         user.setLoginId("user@example.com");
         user.setRole(UserRole.OWNER);
         user.setIsActive(true);
-        when(userRepository.findByPhoneNumber("user@example.com")).thenReturn(java.util.Optional.empty());
-        when(userRepository.findByLoginId("user@example.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.findByAnyIdentifier("user@example.com")).thenReturn(java.util.Optional.of(user));
 
         filter.doFilterInternal(request, response, chain);
     }
@@ -86,8 +99,7 @@ class JwtRequestFilterTest {
         user.setLoginId("user@example.com");
         user.setRole(UserRole.OWNER);
         user.setIsActive(true);
-        when(userRepository.findByPhoneNumber("user@example.com")).thenReturn(java.util.Optional.empty());
-        when(userRepository.findByLoginId("user@example.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.findByAnyIdentifier("user@example.com")).thenReturn(java.util.Optional.of(user));
 
         try {
             filter.doFilterInternal(request, response, throwingChain);
@@ -95,7 +107,8 @@ class JwtRequestFilterTest {
 
         assertThat(TenantContext.getCurrentTenant()).isNull();
         assertThat(TenantContext.getCurrentRole()).isNull();
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        // SecurityContext is intentionally NOT cleared by the filter anymore
+        // (managed by Spring's SecurityContextHolderFilter) — only TenantContext must go.
     }
 
     @Test
@@ -117,8 +130,7 @@ class JwtRequestFilterTest {
         user.setId(7L);
         user.setRole(UserRole.OWNER);
         user.setIsActive(true);
-        when(userRepository.findByPhoneNumber("owner@example.com")).thenReturn(java.util.Optional.empty());
-        when(userRepository.findByLoginId("owner@example.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.findByAnyIdentifier("owner@example.com")).thenReturn(java.util.Optional.of(user));
 
         com.khanabook.saas.entity.RestaurantProfile profile =
                 new com.khanabook.saas.entity.RestaurantProfile();

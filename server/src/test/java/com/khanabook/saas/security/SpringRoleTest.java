@@ -58,7 +58,7 @@ public class SpringRoleTest extends BaseIntegrationTest {
         String token = persistUserAndGetToken("owner2@test.com", 1L, UserRole.OWNER);
         String terminalToken = terminalTokenFor(1L);
         
-        String payload = "[{\"localId\":1, \"deviceId\":\"DEV_A\", \"restaurantId\":2, \"orderType\":\"dine-in\", \"lifetimeOrderId\":1, \"totalAmount\":\"100.00\", \"subtotal\":\"100.00\", \"updatedAt\":1000, \"createdAt\":1000, \"dailyOrderId\":1, \"paymentMode\":\"cash\", \"paymentStatus\":\"paid\", \"orderStatus\":\"completed\"}]";
+        String payload = "[{\"localId\":1, \"deviceId\":\"DEV_A\", \"restaurantId\":2, \"orderType\":\"dine_in\", \"lifetimeOrderId\":1, \"totalAmount\":\"100.00\", \"subtotal\":\"100.00\", \"updatedAt\":1000, \"createdAt\":1000, \"dailyOrderId\":1, \"paymentMode\":\"cash\", \"paymentStatus\":\"paid\", \"orderStatus\":\"completed\"}]";
         
         mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)

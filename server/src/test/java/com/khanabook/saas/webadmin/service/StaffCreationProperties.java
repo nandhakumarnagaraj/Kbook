@@ -77,8 +77,9 @@ class StaffCreationProperties {
     // ─── Property 3: Staff Input Validation ──────────────────────────────────────
 
     /**
-     * Property 3: For any CreateStaffRequest where role is not in {OWNER, SHOP_ADMIN},
-     * the system SHALL reject with an exception and leave the user table unchanged.
+     * Property 3: For any CreateStaffRequest where role is not a valid assignable staff
+     * role {OWNER, SHOP_ADMIN, WAITER, CASHIER, MANAGER} (or is KBOOK_ADMIN), the system
+     * SHALL reject with an exception and leave the user table unchanged.
      *
      * Note: Phone format validation (exactly 10 digits) is enforced by Jakarta @Pattern
      * on the DTO at the controller layer. Role validation is enforced by the service's
@@ -193,9 +194,10 @@ class StaffCreationProperties {
                 Arbitraries.just("INVALID_ROLE"),
                 Arbitraries.just("admin"),
                 Arbitraries.just("user"),
-                Arbitraries.just("manager"),
                 Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(20)
-                        .filter(s -> !s.equalsIgnoreCase("OWNER") && !s.equalsIgnoreCase("SHOP_ADMIN"))
+                        .filter(s -> !s.equalsIgnoreCase("OWNER") && !s.equalsIgnoreCase("SHOP_ADMIN")
+                                && !s.equalsIgnoreCase("WAITER") && !s.equalsIgnoreCase("CASHIER")
+                                && !s.equalsIgnoreCase("MANAGER"))
         );
     }
 }

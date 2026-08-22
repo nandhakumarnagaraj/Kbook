@@ -46,11 +46,11 @@ class SyncPushStrictModeTest extends BaseIntegrationTest {
 			  "dailyOrderId": 1,
 			  "dailyOrderDisplay": "1",
 			  "lifetimeOrderId": 1,
-			  "orderType": "dine-in",
+			  "orderType": "dine_in",
 			  "subtotal": 100.00,
 			  "totalAmount": 100.00,
 			  "paymentMode": "cash",
-			  "paymentStatus": "unpaid",
+			  "paymentStatus": "pending",
 			  "orderStatus": "draft"
 			}]
 			""".formatted(localId, RESTAURANT, updatedAt, updatedAt);
