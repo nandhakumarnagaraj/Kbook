@@ -343,16 +343,33 @@ public class GenericSyncService {
 							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo2) {
 						var existingByToken = billRepo2.findByRestaurantIdAndPublicToken(
 								targetTenantId, incomingBill.getPublicToken());
-						if (existingByToken.isPresent()) {
-							Bill existing = existingByToken.get();
-							successfulLocalIds.add(incomingRecord.getLocalId());
-							if (existing.getId() != null) {
-								localToServerIdMap.put(incomingRecord.getLocalId(), existing.getId());
+					if (existingByToken.isPresent()) {
+						Bill existing = existingByToken.get();
+						// Ownership guard: a publicToken replay from another terminal must NOT be
+						// treated as an idempotent success — it would let one terminal silently
+						// claim/overwrite another terminal's bill.
+						if (!isKbookAdmin && trustedTerminalId != null) {
+							String tokenOwner = BillTerminalUtil.ownerTerminalId(existing);
+							boolean tokenLegacy = BillTerminalUtil.isLegacyUnresolved(existing);
+							boolean legacyReclaimable = tokenLegacy && trustedDeviceId != null
+									&& trustedDeviceId.equals(existing.getCreatedDeviceId());
+							if (tokenOwner != null && !tokenOwner.equals(trustedTerminalId) && !legacyReclaimable) {
+								securityAuditService.record("SYNC_PUSH",
+										tokenLegacy ? "LEGACY_BILL_REJECTED" : "CROSS_TERMINAL_UPDATE",
+										incomingBill.getPublicToken() != null
+												? incomingBill.getPublicToken().toString() : null,
+										tokenOwner);
+								failedLocalIds.add(incomingRecord.getLocalId());
+								failedReasons.put(incomingRecord.getLocalId(),
+										"Bill belongs to another terminal and cannot be modified from this terminal");
+								continue;
 							}
-							log.info("Idempotent bill upsert: publicToken={} already exists serverId={}, returning success",
-									incomingBill.getPublicToken(), existing.getId());
-							continue;
 						}
+						// Owning terminal / admin / legacy-reclaimable: fall through to the normal
+						// LWW update path (existingRecord is resolved again by publicToken below).
+						// Short-circuiting here as a no-op success used to swallow legitimate
+						// state transitions (e.g. draft -> completed) sent without a serverId.
+					}
 					}
 
 					T existingRecord = null;

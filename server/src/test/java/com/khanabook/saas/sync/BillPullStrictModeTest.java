@@ -79,13 +79,15 @@ class BillPullStrictModeTest extends BaseIntegrationTest {
 	}
 
 	@Test
-	void owner_pull_blankTerminal_strict_rejected() throws Exception {
-		pullBillsAndExpect(authToken(), terminalToken("", "A"), 400);
+	void owner_pull_blankTerminal_rejectedAsUnauthorized() throws Exception {
+		// A malformed/blank terminal token is an authentication failure (401),
+		// distinct from a MISSING token which triggers strict-mode 400.
+		pullBillsAndExpect(authToken(), terminalToken("", "A"), 401);
 	}
 
 	@Test
-	void owner_pull_whitespaceTerminal_strict_rejected() throws Exception {
-		pullBillsAndExpect(authToken(), terminalToken("   ", "A"), 400);
+	void owner_pull_whitespaceTerminal_rejectedAsUnauthorized() throws Exception {
+		pullBillsAndExpect(authToken(), terminalToken("   ", "A"), 401);
 	}
 
 	@Test

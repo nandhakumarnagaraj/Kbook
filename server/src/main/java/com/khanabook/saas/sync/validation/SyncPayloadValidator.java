@@ -25,6 +25,9 @@ public class SyncPayloadValidator {
 	private static final Set<String> VALID_ORDER_TYPES = Set.of(
 			"dine_in", "takeaway", "delivery", "parcel");
 
+	// Legacy v1 client spellings accepted for backwards compatibility (stored as-is).
+	private static final Set<String> LEGACY_ORDER_TYPE_ALIASES = Set.of("dine-in");
+
 	private static final Set<String> VALID_PAYMENT_MODES = Set.of(
 			"upi", "cash", "pos",
 			"part_payment_upi_cash", "part_payment_cash_pos", "part_payment_upi_pos",
@@ -80,7 +83,9 @@ public class SyncPayloadValidator {
 		if (bill.getSubtotal().compareTo(BigDecimal.ZERO) < 0) {
 			return ValidationResult.fail("subtotal must be >= 0");
 		}
-		if (bill.getOrderType() != null && !VALID_ORDER_TYPES.contains(bill.getOrderType().toLowerCase())) {
+		if (bill.getOrderType() != null
+				&& !VALID_ORDER_TYPES.contains(bill.getOrderType().toLowerCase())
+				&& !LEGACY_ORDER_TYPE_ALIASES.contains(bill.getOrderType().toLowerCase())) {
 			return ValidationResult.fail("orderType must be one of: " + VALID_ORDER_TYPES);
 		}
 		if (bill.getPaymentMode() != null && !VALID_PAYMENT_MODES.contains(bill.getPaymentMode().toLowerCase())) {
