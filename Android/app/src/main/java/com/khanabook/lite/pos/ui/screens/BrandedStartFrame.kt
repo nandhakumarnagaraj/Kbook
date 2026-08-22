@@ -374,8 +374,6 @@ private fun TrustBadge(text: String) {
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Medium,
         textAlign = TextAlign.Center,
-        lineHeight = 12.sp,
-        fontSize = 9.sp,
         letterSpacing = 0.5.sp
     )
 }

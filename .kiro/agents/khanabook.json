@@ -1,0 +1,122 @@
+{
+  "name": "khanabook",
+  "description": "KhanaBook full-stack development agent — Android POS (Kotlin/Compose), Spring Boot backend (Java 17), Angular web admin (TypeScript)",
+  "prompt": "You are an expert full-stack developer working on KhanaBook, an offline-first restaurant billing and operations system for small food businesses. The stack is: Android (Kotlin, Jetpack Compose, Room+SQLCipher, Dagger Hilt, Retrofit, WorkManager), Server (Java 17, Spring Boot 3.5, Maven, PostgreSQL, Flyway), Web Admin (TypeScript, Angular 18, standalone components). Follow the conventions in docs/meta/AGENTS.md and docs/meta/ANDROID_UI_RULES.md strictly. Use Material 3 dark-only theme with KhanaBook custom tokens for Android. Use plain CSS with earthy warm palette for web admin. Never hardcode dp/sp in Android — always use theme tokens.",
+  "tools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "web_search"],
+  "allowedTools": [
+    "read",
+    "grep",
+    "glob",
+    "web_fetch",
+    "web_search",
+    "@git/*",
+    "@postgres/*",
+    "@docker/*",
+    "@notification/*"
+  ],
+  "toolsSettings": {
+    "shell": {
+      "allowedCommands": [
+        "git status",
+        "git diff.*",
+        "git log.*",
+        "git branch.*",
+        "gradlew.*",
+        "mvn.*",
+        "npm.*",
+        "ng.*",
+        "docker compose.*logs.*",
+        "docker compose.*ps",
+        "adb.*"
+      ],
+      "autoAllowReadonly": true
+    },
+    "web_fetch": {
+      "trusted": [
+        ".*developer\\.android\\.com.*",
+        ".*docs\\.spring\\.io.*",
+        ".*angular\\.dev.*",
+        ".*kotlinlang\\.org.*",
+        ".*docs\\.oracle\\.com.*",
+        ".*material\\.io.*",
+        ".*m3\\.material\\.io.*"
+      ]
+    }
+  },
+  "resources": [
+    "file://docs/meta/AGENTS.md",
+    "file://docs/meta/ANDROID_UI_RULES.md",
+    "file://docs/planning/PLAN.md",
+    "skill://.kiro/skills/**/SKILL.md",
+    "skill://.kiro/skills/**/*.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "git status --short"
+      }
+    ]
+  },
+  "mcpServers": {
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "C:/Users/nandh/Desktop/Khanabook/KhanaBook"]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "${POSTGRES_CONNECTION_STRING}"
+      }
+    },
+    "docker": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-docker"]
+    },
+    "notification": {
+      "command": "npx",
+      "args": ["-y", "@pinkpixel-dev/notification-mcp"],
+      "timeout": 5000
+    },
+    "android-adb": {
+      "command": "npx",
+      "args": ["-y", "android-mcp-server"],
+      "timeout": 15000
+    },
+    "android-full": {
+      "command": "npx",
+      "args": ["-y", "@us-all/android-mcp-server"],
+      "env": {
+        "ANDROID_SDK_ROOT": "C:/Users/nandh/AppData/Local/Android/Sdk"
+      },
+      "timeout": 30000
+    },
+    "strix": {
+      "command": "strix",
+      "args": ["--target", "./server", "-n"],
+      "env": {
+        "STRIX_LLM": "anthropic/claude-sonnet-4",
+        "LLM_API_KEY": "${STRIX_API_KEY}"
+      },
+      "timeout": 120000,
+      "disabled": true
+    },
+    "sentry": {
+      "command": "npx",
+      "args": ["-y", "@sentry/mcp-server"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
+        "SENTRY_ORG": "piquant-consultancy"
+      },
+      "disabled": true
+    },
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools@latest", "experimental:mcp"],
+      "env": {
+        "FIREBASE_PROJECT": "khanabook-lite"
+      },
+      "disabled": true
+    }
+  }
+}

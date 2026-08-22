@@ -140,17 +140,24 @@ class PermissionManager @Inject constructor(
         ORDERS_VIEW to "View Orders",
         ORDERS_KOT_VIEW to "Kitchen Queue",
         ORDERS_KOT_READY to "Mark Ready",
+        ORDERS_KOT_VOID to "Void KOT Items",
         REPORTS_DAY_SUMMARY to "Day Summary",
         REPORTS_FULL to "Full Reports",
         REPORTS_GST to "GST Reports",
         REPORTS_EXPORT to "Export Data",
         STAFF_VIEW to "View Staff",
         STAFF_ADD to "Add Staff",
+        STAFF_EDIT to "Edit Staff",
+        STAFF_REMOVE to "Deactivate Staff",
         STAFF_PERMISSIONS to "Manage Permissions",
         SETTINGS_SHOP_PROFILE to "Shop Profile",
         SETTINGS_PAYMENT to "Payment Settings",
         SETTINGS_PRINTER to "Printer Settings",
-        SETTINGS_TERMINAL to "Manage Devices"
+        SETTINGS_TERMINAL to "Manage Devices",
+        SETTINGS_GST to "GST/FSSAI Settings",
+        MARKETPLACE_VIEW to "View Marketplace Orders",
+        MARKETPLACE_ACCEPT to "Accept/Reject Orders",
+        MARKETPLACE_CONFIG to "Configure Integrations"
     )
 
     // ── Permission key constants (mirrors server PermissionKey enum) ──────────
@@ -175,6 +182,7 @@ class PermissionManager @Inject constructor(
         const val ORDERS_VIEW = "orders.view"
         const val ORDERS_KOT_VIEW = "orders.kot_view"
         const val ORDERS_KOT_READY = "orders.kot_ready"
+        const val ORDERS_KOT_VOID = "orders.kot_void"
 
         // Reports
         const val REPORTS_DAY_SUMMARY = "reports.day_summary"
@@ -185,6 +193,8 @@ class PermissionManager @Inject constructor(
         // Staff
         const val STAFF_VIEW = "staff.view"
         const val STAFF_ADD = "staff.add"
+        const val STAFF_EDIT = "staff.edit"
+        const val STAFF_REMOVE = "staff.remove"
         const val STAFF_PERMISSIONS = "staff.permissions"
 
         // Settings
@@ -192,5 +202,11 @@ class PermissionManager @Inject constructor(
         const val SETTINGS_PAYMENT = "settings.payment"
         const val SETTINGS_PRINTER = "settings.printer"
         const val SETTINGS_TERMINAL = "settings.terminal"
+        const val SETTINGS_GST = "settings.gst"
+
+        // Marketplace
+        const val MARKETPLACE_VIEW = "marketplace.view"
+        const val MARKETPLACE_ACCEPT = "marketplace.accept"
+        const val MARKETPLACE_CONFIG = "marketplace.config"
     }
 }

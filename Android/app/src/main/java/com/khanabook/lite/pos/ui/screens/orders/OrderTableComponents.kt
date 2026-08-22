@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
@@ -61,8 +62,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
         modifier = Modifier.weight(weight),
         color = TextGold,
         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-        textAlign = TextAlign.Center,
-        lineHeight = 12.sp
+        textAlign = TextAlign.Center
     )
 }
 
@@ -185,8 +185,7 @@ fun OrderTableRow(
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
-                        lineHeight = 10.sp
+                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall)
                     )
                 }
                 if (canEdit) {
@@ -207,7 +206,7 @@ fun OrderTableRow(
                 }
             }
 
-            TableCell(DateUtils.formatDisplayDate(row.salesDate), COL_DATE, fontSize = 9.sp)
+            TableCell(DateUtils.formatDisplayDate(row.salesDate), COL_DATE)
         }
 
         if (isCancelled && row.cancelReason.isNotBlank()) {
@@ -362,16 +361,24 @@ fun PartAmountDialog(
 fun RowScope.TableCell(
     text: String,
     weight: Float,
-    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     fontWeight: FontWeight = FontWeight.Normal,
     color: Color = TextLight
 ) {
+    // Use bodySmall from theme (already tier-scaled) unless caller provides explicit override.
+    // On tablets this resolves to ~13sp; on compact phones ~11.4sp.
+    val style = if (fontSize == androidx.compose.ui.unit.TextUnit.Unspecified) {
+        MaterialTheme.typography.bodySmall.copy(fontWeight = fontWeight)
+    } else {
+        MaterialTheme.typography.bodySmall.copy(fontSize = fontSize, fontWeight = fontWeight)
+    }
     Text(
         text = text,
         modifier = Modifier.weight(weight),
         color = color,
-        style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSize, fontWeight = fontWeight),
+        style = style,
         textAlign = TextAlign.Center,
-        lineHeight = 12.sp
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
 }

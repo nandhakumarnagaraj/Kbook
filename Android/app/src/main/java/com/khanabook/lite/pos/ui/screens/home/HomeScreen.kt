@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -147,7 +148,7 @@ fun HomeScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Box(modifier = Modifier.widthIn(max = 160.dp)) {
+                        Box(modifier = Modifier.widthIn(max = (160 * LocalDensity.current.fontScale).dp)) {
                             SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                         }
                         NotificationBellIcon(

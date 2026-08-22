@@ -18,6 +18,11 @@ private val fontProvider = GoogleFont.Provider(
 
 private val PoppinsFont = GoogleFont("Poppins")
 
+// Google Fonts as primary with FontFamily.SansSerif as implicit fallback.
+// On devices without GMS (budget Realme, Micromax, Huawei), Compose automatically
+// falls back to the platform default sans-serif when downloadable fonts fail.
+// To guarantee Poppins on ALL devices, bundle font files in res/font/ and add them
+// here with lower priority (see docs/android/DEVICE_COVERAGE_AUDIT.md §5).
 private val AppFontFamily = FontFamily(
     Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Light),
     Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Normal),

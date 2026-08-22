@@ -71,7 +71,8 @@ class StaffPermissionViewModel @Inject constructor(
         "ORDERS" to listOf(
             PermissionManager.ORDERS_VIEW to "View Orders",
             PermissionManager.ORDERS_KOT_VIEW to "Kitchen Queue",
-            PermissionManager.ORDERS_KOT_READY to "Mark Ready"
+            PermissionManager.ORDERS_KOT_READY to "Mark Ready",
+            PermissionManager.ORDERS_KOT_VOID to "Void KOT Items"
         ),
         "REPORTS" to listOf(
             PermissionManager.REPORTS_DAY_SUMMARY to "Day Summary",
@@ -79,11 +80,23 @@ class StaffPermissionViewModel @Inject constructor(
             PermissionManager.REPORTS_GST to "GST Reports",
             PermissionManager.REPORTS_EXPORT to "Export Data"
         ),
+        "STAFF" to listOf(
+            PermissionManager.STAFF_VIEW to "View Staff",
+            PermissionManager.STAFF_ADD to "Add Staff",
+            PermissionManager.STAFF_EDIT to "Edit Staff",
+            PermissionManager.STAFF_REMOVE to "Deactivate Staff"
+        ),
         "SETTINGS" to listOf(
             PermissionManager.SETTINGS_SHOP_PROFILE to "Shop Profile",
             PermissionManager.SETTINGS_PAYMENT to "Payment Settings",
             PermissionManager.SETTINGS_PRINTER to "Printer Config",
-            PermissionManager.SETTINGS_TERMINAL to "Devices"
+            PermissionManager.SETTINGS_TERMINAL to "Devices",
+            PermissionManager.SETTINGS_GST to "GST/FSSAI"
+        ),
+        "MARKETPLACE" to listOf(
+            PermissionManager.MARKETPLACE_VIEW to "View Marketplace Orders",
+            PermissionManager.MARKETPLACE_ACCEPT to "Accept/Reject Orders",
+            PermissionManager.MARKETPLACE_CONFIG to "Configure Integrations"
         )
     )
 

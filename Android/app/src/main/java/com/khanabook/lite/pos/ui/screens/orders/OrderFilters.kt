@@ -50,19 +50,28 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
         animationSpec = tween(200),
         label = "chip_content"
     )
+    val typeScale = KhanaBookTheme.typeScale
+    val chipMinHeight = when (typeScale) {
+        TypeScaleTier.Tablet -> 44.dp
+        TypeScaleTier.LargePhone -> 40.dp
+        else -> 36.dp
+    }
     Surface(
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.heightIn(min = chipMinHeight),
         shape = KhanaRadii.md,
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
         contentColor = contentColor,
         enabled = enabled
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = KhanaBookTheme.spacing.smallMedium, vertical = KhanaBookTheme.spacing.small)
+        ) {
             Text(
                 text = label,
-                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
+                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
             )
         }
     }

@@ -46,18 +46,27 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
         animationSpec = tween(200),
         label = "chip_content"
     )
+    val typeScale = KhanaBookTheme.typeScale
+    val chipMinHeight = when (typeScale) {
+        TypeScaleTier.Tablet -> 44.dp
+        TypeScaleTier.LargePhone -> 40.dp
+        else -> 36.dp
+    }
     Surface(
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.heightIn(min = chipMinHeight),
         shape = KhanaRadii.md,
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
         contentColor = contentColor
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = KhanaBookTheme.spacing.smallMedium, vertical = KhanaBookTheme.spacing.small)
+        ) {
             Text(
                 text = label,
-                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
+                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
             )
         }
     }
@@ -66,20 +75,28 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val spacing = KhanaBookTheme.spacing
+    val typeScale = KhanaBookTheme.typeScale
+    val toggleMinHeight = when (typeScale) {
+        TypeScaleTier.Tablet -> 52.dp
+        TypeScaleTier.LargePhone -> 48.dp
+        else -> 44.dp
+    }
     Surface(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.heightIn(min = toggleMinHeight),
         shape = KhanaRadii.md,
         color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
         border = if (isSelected) BorderStroke(1.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
         contentColor = if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.7f)
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = spacing.smallMedium, vertical = spacing.small)
+        ) {
             Text(
                 text = label,
-                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = spacing.extraSmall)
+                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -374,7 +391,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                 }
             }
             
-            TableCell(formatDate(row.date), COL_DATE, fontSize = 9.sp)
+            TableCell(formatDate(row.date), COL_DATE)
         }
     }
 }

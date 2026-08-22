@@ -1,0 +1,33 @@
+{
+  "chat.defaultAgent": "khanabook",
+  "chat.enableKnowledge": true,
+  "chat.enableSubagent": true,
+  "chat.enableCodeIntelligence": true,
+  "knowledge.defaultIncludePatterns": [
+    "**/*.kt",
+    "**/*.java",
+    "**/*.ts",
+    "**/*.xml",
+    "**/*.json",
+    "**/*.md",
+    "**/*.sql",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.toml",
+    "**/*.gradle",
+    "**/*.gradle.kts"
+  ],
+  "knowledge.defaultExcludePatterns": [
+    "node_modules/**",
+    ".git/**",
+    "build/**",
+    "target/**",
+    "dist/**",
+    ".gradle/**",
+    ".idea/**",
+    "*.apk",
+    "*.aab",
+    "*.jar",
+    "*.class"
+  ]
+}

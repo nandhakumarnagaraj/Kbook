@@ -37,7 +37,7 @@ object ReviewSheetLayout {
     val CARD_PADDING = 10.dp
     val CHECKBOX_WIDTH = 22.dp
     val CHECKBOX_GAP = 10.dp
-    val PRICE_WIDTH = 76.dp
+    val PRICE_WIDTH = 90.dp  // Accommodates ₹99,999 at up to 1.5× font scale
     val FOOD_ICON_WIDTH = 32.dp
 }
 
@@ -257,6 +257,19 @@ fun MenuConfigurationScreen(
                     onToggleSelection = { viewModel.toggleDraftSelection(it) },
                     onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
                     onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
+                )
+            }
+
+            val blockedPermission by viewModel.blockedPermission.collectAsStateWithLifecycle()
+            val requestInFlight by viewModel.permissionRequestInFlight.collectAsStateWithLifecycle()
+            val requestResult by viewModel.permissionRequestResult.collectAsStateWithLifecycle()
+            blockedPermission?.let { blocked ->
+                com.khanabook.lite.pos.ui.designsystem.PermissionBlockedDialog(
+                    permissionDisplayName = blocked.displayName,
+                    isLoading = requestInFlight,
+                    requestSent = requestResult is com.khanabook.lite.pos.domain.manager.PermissionManager.RequestResult.Success,
+                    onRequestAccess = { viewModel.requestAccessForBlocked() },
+                    onDismiss = { viewModel.dismissBlockedPermission() }
                 )
             }
         }

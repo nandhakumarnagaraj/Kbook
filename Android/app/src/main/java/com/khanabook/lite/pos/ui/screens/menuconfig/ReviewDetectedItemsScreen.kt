@@ -89,13 +89,13 @@ fun ReviewDetectedItemsScreen(
                                 Text(
                                     "Review Detected Items",
                                     color = PrimaryGold,
-                                    fontSize = 18.sp,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     "${drafts.size} items found · $selectedCount selected",
                                     color = TextGold.copy(alpha = 0.7f),
-                                    fontSize = 12.sp
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
                             IconButton(onClick = onDismiss) {
@@ -110,9 +110,9 @@ fun ReviewDetectedItemsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                            Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            Text("Item Name", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                             Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
-                            Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
+                            Text("Price", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                         }
                     }
@@ -173,7 +173,7 @@ fun ReviewDetectedItemsScreen(
                                     Text(
                                         categoryName.uppercase(),
                                         color = PrimaryGold,
-                                        fontSize = 13.sp,
+                                        style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.ExtraBold,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -204,7 +204,7 @@ fun ReviewDetectedItemsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
-                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                                .padding(horizontal = KhanaBookTheme.spacing.mediumLarge, vertical = KhanaBookTheme.spacing.smallMedium),
                             horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.smallMedium),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -215,7 +215,7 @@ fun ReviewDetectedItemsScreen(
                                 modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
                                 shape = KhanaRadii.lg
                             ) {
-                                Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text("Discard", maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             }
                             Button(
                                 onClick = onConfirm,
@@ -232,7 +232,7 @@ fun ReviewDetectedItemsScreen(
                                 Text(
                                     "Add $selectedCount Items",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                             }
                         }
@@ -314,13 +314,13 @@ internal fun ReviewDetectedItemsOverlay(
                         Text(
                             "Review Detected Items",
                             color = PrimaryGold,
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             "${drafts.size} items found · $selectedCount selected",
                             color = TextGold.copy(alpha = 0.7f),
-                            fontSize = 12.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                     IconButton(onClick = {
@@ -342,14 +342,14 @@ internal fun ReviewDetectedItemsOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                    Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
+                    Text("Type", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                     Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
-                    Text("Item Name", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
+                    Text("Item Name", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                     Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.extraSmall))
                     Text(
                         "Price",
                         color = TextGold.copy(alpha = 0.5f),
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.End,
                         modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH)
                     )
@@ -409,7 +409,7 @@ internal fun ReviewDetectedItemsOverlay(
                                 Text(
                                     categoryName.uppercase(),
                                     color = PrimaryGold,
-                                    fontSize = 13.sp,
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -475,7 +475,7 @@ internal fun ReviewDetectedItemsOverlay(
                             Text(
                                 if (showDiscardConfirm) "Confirming..." else "Discard",
                                 maxLines = 1,
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -500,7 +500,7 @@ internal fun ReviewDetectedItemsOverlay(
                             Text(
                                 "Add $selectedCount Items",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.titleMedium
                             )
                         }
                     }
@@ -731,9 +731,8 @@ fun DraftItemRow(
                 BasicTextField(
                     value = draft.name,
                     onValueChange = { onUpdateDraft(draft.copy(name = it)) },
-                    textStyle = TextStyle(
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
                         color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.5f),
-                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                     ),
@@ -746,14 +745,13 @@ fun DraftItemRow(
                 BasicTextField(
                     value = draft.categoryName ?: "",
                     onValueChange = { onUpdateDraft(draft.copy(categoryName = it.ifBlank { null })) },
-                    textStyle = TextStyle(
+                    textStyle = MaterialTheme.typography.labelSmall.copy(
                         color = PrimaryGold.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     decorationBox = { innerTextField ->
                         if (draft.categoryName.isNullOrBlank()) {
-                            Text("No Category", color = PrimaryGold.copy(alpha = 0.2f), fontSize = 11.sp)
+                            Text("No Category", color = PrimaryGold.copy(alpha = 0.2f), style = MaterialTheme.typography.labelSmall)
                         }
                         innerTextField()
                     },
@@ -774,7 +772,7 @@ fun DraftItemRow(
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("₹", color = PrimaryGold.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("₹", color = PrimaryGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     BasicTextField(
                         value = if (draft.price == 0.0) "" else {
                             val i = draft.price.toLong()
@@ -784,9 +782,8 @@ fun DraftItemRow(
                             val p = raw.toDoubleOrNull() ?: 0.0
                             onUpdateDraft(draft.copy(price = p))
                         },
-                        textStyle = TextStyle(
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
                             color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                            fontSize = 13.sp,
                             textAlign = TextAlign.End,
                             fontWeight = FontWeight.Bold
                         ),
@@ -851,9 +848,8 @@ fun DraftItemRow(
                                 newVariants[vIndex] = variant.copy(name = newName)
                                 onUpdateDraft(draft.copy(variants = newVariants))
                             },
-                            textStyle = TextStyle(
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
                                 color = if (variant.isSelected) TextGold.copy(alpha = 0.8f) else TextGold.copy(alpha = 0.3f),
-                                fontSize = 12.sp,
                                 textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                             ),
                             cursorBrush = SolidColor(PrimaryGold),
@@ -869,7 +865,7 @@ fun DraftItemRow(
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("₹", color = PrimaryGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("₹", color = PrimaryGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                             BasicTextField(
                                 value = if (variant.price == 0.0) "" else {
                                     val i = variant.price.toLong()
@@ -880,9 +876,8 @@ fun DraftItemRow(
                                     newVariants[vIndex] = variant.copy(price = p.toDoubleOrNull() ?: 0.0)
                                     onUpdateDraft(draft.copy(variants = newVariants))
                                 },
-                                textStyle = TextStyle(
+                                textStyle = MaterialTheme.typography.labelSmall.copy(
                                     color = if (variant.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                    fontSize = 11.sp,
                                     textAlign = TextAlign.End
                                 ),
                                 cursorBrush = SolidColor(PrimaryGold),

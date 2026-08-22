@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -244,7 +245,7 @@ fun CustomerInfoStep(
                         color = DarkBrown2,
                         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                     ) {
-                        Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
+                        Column(modifier = Modifier.widthIn(max = (120 * LocalDensity.current.fontScale).dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
                                 text = if (customerName.isNotBlank()) customerName else phone,
                                 color = TextLight,
@@ -289,7 +290,7 @@ fun CustomerInfoStep(
                             color = DarkBrown2,
                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                         ) {
-                            Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
+                            Column(modifier = Modifier.widthIn(max = (120 * LocalDensity.current.fontScale).dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                                 Text(
                                     text = if (customerName.isNotBlank()) customerName else phone,
                                     color = TextLight,

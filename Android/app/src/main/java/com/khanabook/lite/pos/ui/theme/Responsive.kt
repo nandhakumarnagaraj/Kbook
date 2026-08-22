@@ -32,6 +32,9 @@ data class ResponsiveLayout(
     val isExpanded: Boolean = widthTier == WindowWidthTier.Expanded
     val isCompactForm: Boolean = screenWidthDp < 400
     val isCompactHeight: Boolean = screenHeightDp < 640
+    // Ultra-small devices (320dp width): Galaxy J2, Redmi Go, Micromax budget phones.
+    // Content must never overflow — use tighter horizontal padding, smaller icons.
+    val isUltraCompact: Boolean = screenWidthDp < 340
     // 360x640 is the smallest mainstream window (small phones); Home must fit all
     // 5 actions without scrolling there too, so its trims kick in at <= 640.
     val compactHomeHeight: Boolean = screenHeightDp <= 640
@@ -112,14 +115,18 @@ data class ResponsiveLayout(
     }
 
     // Upper bound for extra space distributed into a single inter-section gap.
-    // Scales with available height so tall phones (20:9) absorb more residual space
-    // into rhythm instead of pooling it all as dead bottom margin.
-    // TODO: Determine correct values after responsive design audit.
-    // Runtime measurements show:
-    //   OnePlus Nord (384x797dp, CompactPhone): ~283px slack, 2 gaps
-    //   Moto G34 (411x914dp, MediumPhone): ~31px slack, 2 gaps
-    //   Lenovo Tablet (800x1208dp, Tablet): ~379dp slack, 2 gaps
-    val maxSectionGap: Dp = 0.dp
+    // Auto-calculated as a fraction of screen height — distributes residual space
+    // into rhythm between sections instead of pooling it as dead bottom margin.
+    //
+    // Formula: 3.5% of screen height, clamped to [4dp, 48dp].
+    // This means:
+    //   360×640dp  → 640 × 0.035 = 22dp cap (tight screens, modest growth)
+    //   384×797dp  → 797 × 0.035 = 28dp cap (OnePlus: absorbs dead space evenly)
+    //   411×914dp  → 914 × 0.035 = 32dp cap (Motorola: minimal slack anyway)
+    //   800×1208dp → 1208 × 0.035 = 42dp cap (Tablet: generous but bounded)
+    //
+    // No hardcoded breakpoints — adapts to ANY device automatically.
+    val maxSectionGap: Dp = (screenHeightDp * 0.035f).dp.coerceIn(4.dp, 48.dp)
 
     // Height-adaptive hero sizing — scales major visual elements with available space
     val heroImageSize: Dp = when {
@@ -162,15 +169,17 @@ data class ResponsiveLayout(
     // NavigationRail may be evaluated for v2 on expanded widths.
     val useBottomNavigation: Boolean = true
 
-    val contentPadding: Dp = when (widthTier) {
-        WindowWidthTier.Compact -> 16.dp
-        WindowWidthTier.Medium -> 20.dp
-        WindowWidthTier.Expanded -> 24.dp
+    val contentPadding: Dp = when {
+        isUltraCompact -> 12.dp
+        widthTier == WindowWidthTier.Compact -> 16.dp
+        widthTier == WindowWidthTier.Medium -> 20.dp
+        else -> 24.dp
     }
-    val dialogWidthFraction: Float = when (widthTier) {
-        WindowWidthTier.Compact -> 0.92f
-        WindowWidthTier.Medium -> 0.82f
-        WindowWidthTier.Expanded -> 0.68f
+    val dialogWidthFraction: Float = when {
+        isUltraCompact -> 0.96f
+        widthTier == WindowWidthTier.Compact -> 0.92f
+        widthTier == WindowWidthTier.Medium -> 0.82f
+        else -> 0.68f
     }
     val dialogMaxWidth: Dp = when (widthTier) {
         WindowWidthTier.Compact -> 420.dp
@@ -185,6 +194,7 @@ data class ResponsiveLayout(
 
     /** Logo bottom → title/heading */
     val authLogoSpacing: Dp = when {
+        isUltraCompact || (isCompactHeight && screenHeightDp < 560) -> 4.dp
         isCompactHeight -> 8.dp
         isTallScreen -> 16.dp
         else -> 12.dp
@@ -192,6 +202,7 @@ data class ResponsiveLayout(
 
     /** Title/heading → form fields start */
     val authHeaderSpacing: Dp = when {
+        isUltraCompact || (isCompactHeight && screenHeightDp < 560) -> 12.dp
         isCompactHeight -> 16.dp
         isTallScreen -> 32.dp
         else -> 24.dp
@@ -199,6 +210,7 @@ data class ResponsiveLayout(
 
     /** Between form input fields */
     val authFieldSpacing: Dp = when {
+        isUltraCompact -> 10.dp
         isCompactHeight -> 12.dp
         isTallScreen -> 16.dp
         else -> 16.dp
@@ -206,6 +218,7 @@ data class ResponsiveLayout(
 
     /** Last field → primary CTA button */
     val authActionSpacing: Dp = when {
+        isUltraCompact || (isCompactHeight && screenHeightDp < 560) -> 12.dp
         isCompactHeight -> 16.dp
         isTallScreen -> 32.dp
         else -> 24.dp
@@ -213,6 +226,7 @@ data class ResponsiveLayout(
 
     /** Primary CTA → secondary actions (Sign Up link, Google login) */
     val authFooterSpacing: Dp = when {
+        isUltraCompact || (isCompactHeight && screenHeightDp < 560) -> 12.dp
         isCompactHeight -> 16.dp
         isTallScreen -> 24.dp
         else -> 24.dp

@@ -443,7 +443,7 @@ fun SearchScreen(
                                                 PaymentMode.fromDbValue(currentResult.bill.paymentMode).displayLabel,
                                                 color = TextLight,
                                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                modifier = Modifier.padding(horizontal = spacing.smallMedium, vertical = spacing.extraSmall)
                                             )
                                         }
                                     }

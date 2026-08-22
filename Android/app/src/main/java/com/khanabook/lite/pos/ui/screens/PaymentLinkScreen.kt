@@ -203,7 +203,7 @@ fun PaymentLinkScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
                                     shape = KhanaShapes.large
                                 ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                                     Spacer(modifier = Modifier.width(spacing.small))
                                     Text("Copy Link", style = MaterialTheme.typography.labelLarge, color = TextLight, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
@@ -220,7 +220,7 @@ fun PaymentLinkScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaShapes.large
                                 ) {
-                                    Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                                     Spacer(modifier = Modifier.width(spacing.small))
                                     Text("Share", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }

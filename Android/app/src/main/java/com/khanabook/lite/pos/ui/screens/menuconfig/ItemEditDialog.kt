@@ -164,7 +164,7 @@ fun ItemEditDialog(
                     Text("Variants", color = PrimaryGold, fontWeight = FontWeight.Bold)
                     TextButton(onClick = { showAddVariantDialog = true }) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                        Text("Add Variant", fontSize = 12.sp)
+                        Text("Add Variant", style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
@@ -182,7 +182,7 @@ fun ItemEditDialog(
                                 }
                                 if (variantError != null) variantError = null
                             },
-                            label = { Text("Name", fontSize = 10.sp) },
+                            label = { Text("Name", style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.weight(0.7f),
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
@@ -197,7 +197,7 @@ fun ItemEditDialog(
                                     if (variantError != null) variantError = null
                                 }
                             },
-                            label = { Text("Price", fontSize = 10.sp) },
+                            label = { Text("Price", style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.weight(0.3f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)

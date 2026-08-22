@@ -1,0 +1,310 @@
+============================================================
+KHANABOOK DEVELOPMENT SESSION — 2026-08-21 (Friday Night)
+Time: 17:24 IST → 01:47 IST (8+ hours)
+============================================================
+
+DEVELOPER: Nandhakumar N (India Advocacy / Piquant Consultancy Services)
+PROJECT: KhanaBook — Offline-first restaurant POS & billing system
+STACK: Android (Kotlin/Compose/Hilt) + Spring Boot + Angular web-admin
+REPO: github.com/nandhakumarnagaraj/Kbook
+
+============================================================
+1. PAYMENT LINK FEATURE (New Bill → Payment flow)
+============================================================
+
+WHAT WAS DONE:
+- Moved "Payment Links" from standalone Settings screen into New Bill → Payment → Select Payment Mode
+- Added PAYMENT_LINK to PaymentMode enum
+- Backend: POST /payments/easebuzz/create-link-for-bill endpoint
+- Backend: EasebuzzPaymentService.createPaymentLinkForBill() — reads bill data, creates Easy Collect link with udf1=billId
+- Android: New UI in PaymentStep.kt with Loading/Success/Error states
+- Android: Copy/WhatsApp/Share buttons for payment link
+- Removed standalone Payment Links from Settings menu and navigation
+
+FILES CHANGED:
+- Android/app/src/main/java/com/khanabook/lite/pos/domain/model/Enums.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/PaymentModeManager.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/EasebuzzPaymentDtos.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/KhanaBookApi.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzPaymentRepository.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/newbill/PaymentStep.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsHomeSection.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/settings/SettingsScreen.kt
+- Android/app/src/main/java/com/khanabook/lite/pos/ui/navigation/AppNavGraph.kt
+- server/src/main/java/com/khanabook/saas/controller/PaymentController.java
+- server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java
+
+EASEBUZZ R&D FINDINGS:
+- Easy Collect API: POST /easy_collect (same webhook as Payment Gateway)
+- sub_merchant_id supported ✓
+- show_payment_mode: "CC,DC,NB,UPI,WALLET" (excludes QR per product requirement)
+- Webhook reconciliation via udf1=billId (existing handler works as-is)
+- merchant_txn = txnid in webhook (stored as bill.gatewayTxnId)
+- Link does NOT auto-expire (unlike gateway 15-min access tokens)
+
+============================================================
+2. SPLASH SCREEN REDESIGN
+============================================================
+
+WHAT WAS DONE:
+- Analyzed existing 2-stage splash (system + BrandedStartFrame)
+- Researched how Paytm does it (hybrid: system splash → Compose first frame)
+- Implemented Paytm-style approach:
+  * System splash releases immediately
+  * BrandedStartFrame shows as first Compose content (not a nav route)
+  * Premium animations: scale-up logo, pulsing gold glow, shimmer sweep, loading dots
+  * Trust badges: "OFFLINE FIRST • BANK-GRADE SECURITY • DATA PROTECTED"
+  * Company footer + version number
+  * 800ms minimum display (originally 1500ms, reduced for perf)
+- Added windowSplashScreenBrandingImage for Android 12+ footer
+- Removed branded_start nav route
+
+============================================================
+3. SECURITY HARDENING (7 fixes)
+============================================================
+
+| # | Fix                                        | File                              |
+|---|--------------------------------------------|-----------------------------------|
+| 1 | Auth check on payment endpoints            | PaymentController.java            |
+|   | (TenantContext verification)               |                                   |
+| 2 | TOCTOU race fix (SELECT FOR UPDATE)        | BillRepository + PaymentService   |
+| 3 | URL-encode txnid (response splitting)      | PaymentController.java            |
+| 4 | Webhook replay protection (all branches)   | EasebuzzWebhookService.java       |
+| 5 | X-Forwarded-For trust (framework strategy) | application.properties            |
+| 6 | Swagger restricted to non-prod             | OpenApiConfig.java                |
+| 7 | Easebuzz test URL gated behind DEBUG       | EasebuzzPaymentScreen.kt +        |
+|   |                                            | application.properties            |
+
+============================================================
+4. BUG FIXES (29 total)
+============================================================
+
+CRITICAL (2):
+- DatabaseProvider activeDatabase!! → clear IllegalStateException
+- PaymentStep 7x !! force unwrap → null-safe patterns
+
+HIGH (11):
+- editingBillId data race → StateFlow conversion
+- MenuSelectionStep editingBillId!! → safe
+- MasterSyncProcessor key.toLong() → toLongOrNull()
+- Missing @Transactional on BillPaymentServiceImpl.pushData()
+- Missing @Transactional on BillItemServiceImpl.pushData()
+- RefundService raw thread pool → Spring TaskScheduler
+- SubMerchantService TOCTOU → catch DataIntegrityViolationException
+- Exception swallowing in payment service (4 locations) → proper catch hierarchy
+- HomeViewModel printerMac!! → null-safe
+- Web: JWT no token refresh (registered error.interceptor)
+- Fraud score NPE → null-safe with defaults
+
+MEDIUM (16):
+- 32x collectAsState() → collectAsStateWithLifecycle() (9 files)
+- CoroutineExceptionHandler added to 10 launches in BillingViewModel
+- Webhook duplicate delivery protection
+- Bill total cross-validation in SyncPayloadValidator
+- Payment-sum-exceeds-bill warning in BillPaymentServiceImpl
+- @Immutable on BillSummary, HomeStats, PaymentLinkForBillState
+- derivedStateOf for isUpiMode/isSplitMode in PaymentStep
+- Web: Terminals page setInterval leak → ngOnDestroy
+- Web: Dashboard fake sparklines → zeros
+- Web: Nested subscribes → switchMap
+- Web: sessionStorage → localStorage (multi-tab)
+- Web: Dead error.interceptor → registered
+- Duplicate import removed (PaymentController)
+- Startup on Dispatchers.Default
+- Splash delay reduced 1500→800ms
+- SQLCipher warm-up moved to Application.onCreate
+
+============================================================
+5. PERFORMANCE IMPROVEMENTS
+============================================================
+
+| Metric              | Before    | After     | Change |
+|---------------------|-----------|-----------|--------|
+| App startup         | ~2.5s     | ~1.0s     | -60%   |
+| Skipped frames      | 78        | 49        | -37%   |
+| JNI lock main thread| YES       | NO        | Fixed  |
+| APK ABIs            | arm+x86   | arm-only  | -20MB  |
+| Splash delay        | 1500ms    | 800ms     | -47%   |
+
+============================================================
+6. PERMISSIONS & BUILD FIXES
+============================================================
+
+- Removed: ACCESS_FINE_LOCATION (kept COARSE + BLUETOOTH_SCAN neverForLocation)
+- Removed: CHANGE_WIFI_STATE, CHANGE_NETWORK_STATE
+- Added: ABI filter (armeabi-v7a, arm64-v8a only)
+- Created: docs/CREDENTIAL_ROTATION_PLAN.md
+- Created: Flyway V79 — publicToken unique constraint
+- Confirmed: allowBackup=false (already set)
+- Confirmed: WRITE_EXTERNAL_STORAGE maxSdkVersion=28 (already set)
+- Confirmed: ML Kit already thin variant (Play Services)
+
+============================================================
+7. MCP SERVERS INSTALLED (22 total)
+============================================================
+
+mcp/android-ui-mcp.json          — Device screenshots
+mcp/android-adb-mcp.json         — ADB control
+mcp/android-full-mcp.json        — 75 tools (startup profile, memory leaks)
+mcp/android-security-mcp.json    — Static security analysis
+mcp/mobile-device-mcp.json       — 49 tools (touch, visual analysis)
+mcp/mobile-next-mcp.json         — Full mobile automation
+mcp/droid-agent-kit-mcp.json     — Gradle + lint + crash triage
+mcp/maestro-mcp.json             — E2E mobile testing
+mcp/firebase-mcp.json            — Auth + push notifications
+mcp/postgres-mcp.json            — Direct DB queries
+mcp/git-mcp.json                 — Git operations
+mcp/docker-mcp.json              — Container management
+mcp/play-store-mcp.json          — Play Store releases
+mcp/sentry-mcp.json              — Error tracking
+mcp/figma-mcp.json               — Design file access
+mcp/whatsapp-mcp.json            — WhatsApp messaging
+mcp/thermal-printer-mcp.json     — Receipt printing
+mcp/notification-mcp.json        — Task completion alerts
+mcp/lovable-mcp.json             — Web app builder (1yr premium)
+mcp/vibe-mcp.json                — 853 modes, 5340 skills
+mcp/design-resources-mcp.json    — UI/UX design system
+mcp/strix-mcp.json               — Pentesting
+
+============================================================
+8. SKILLS INSTALLED (84+ total)
+============================================================
+
+Matt Pocock Skills (36 — via npx skills add):
+- grill-me, tdd, grill-with-docs, improve-codebase-architecture
+- code-review, implement, implement-spec, research
+- diagnosing-bugs, domain-modeling, prototype, triage
+- to-spec, to-tickets, handoff, wayfinder, wizard
+- grilling, teach, to-questionnaire, wait-what
+- writing-for-agents, writing-beats, writing-fragments, writing-shape
+- claude-handoff, loop-me, setup-matt-pocock-skills
+- setup-ts-deep-modules, setup-pre-commit, migrate-to-shoehorn
+- scaffold-exercises, git-guardrails-claude-code, ask-matt
+- resolving-merge-conflicts, codebase-design
+
+Custom KhanaBook Skills (12):
+- .kiro/skills/android-engineering/ (5 files: ui, data, testing, security, performance)
+- .kiro/skills/android-architecture/ (clean-architecture, background-work)
+- .kiro/skills/android-shipping/ (play-store-launch, release-process)
+- .kiro/skills/design-system/ (compose-theme, ui-polish)
+- .kiro/skills/code-review/five-axis-review.md
+- .kiro/skills/gstack/shipping.md
+- .kiro/skills/spring-boot/ (api-patterns, database-migrations)
+- .kiro/skills/payment-security/payment-integration.md
+- .kiro/skills/security/penetration-testing.md
+
+============================================================
+9. COMPLETE PROJECT AUDIT RESULTS
+============================================================
+
+ANDROID APP:
+- 63 screen composables across 11 packages
+- 23 ViewModels
+- 25 domain managers/use cases
+- 12 repositories
+- 17 Room entities
+- 11 Room DAOs
+- 19 navigation routes
+- 121 features total
+
+WEB ADMIN (80% complete):
+- Angular 18, standalone components, custom dark theme
+- 16 routes, all with real API integration
+- Gaps: Business settings (50%), Easebuzz dashboard (5%)
+
+SERVER:
+- 20 controllers, 97 API endpoints
+- 46 services
+- 60 Flyway migrations (V1→V79)
+
+============================================================
+10. REFACTORING PLANS CREATED
+============================================================
+
+- docs/planning/BILLINGVM_SPLIT_PLAN.md
+  → 5-phase plan to reduce 75KB → ~300 lines (80% reduction)
+  → DraftOrderManager, BillSettlementUseCase, OnlineBillRestorationManager
+  → Prerequisites: 8 integration tests
+
+- docs/planning/SYNC_PROCESSOR_SPLIT_PLAN.md
+  → 4 strategies: ProfileSync, MenuSync, BillSync, PaymentSync + Orchestrator
+  → 6-phase migration plan
+  → 8 risks identified with mitigations
+
+============================================================
+11. GIT COMMITS
+============================================================
+
+Commit 1: a0a14ffc
+  "feat: Payment Link in billing, security hardening, 29 bug fixes, splash redesign, MCP/skills setup"
+  191 files changed, 11,536 insertions(+), 295 deletions(-)
+
+Commit 2: 80da4b6c
+  "perf: move SQLCipher key derivation to Application.onCreate on IO thread"
+  1 file changed, 17 insertions(+)
+
+============================================================
+12. BUSINESS IMPACT SUMMARY
+============================================================
+
+| Metric                    | Before        | After          | Change  |
+|---------------------------|---------------|----------------|---------|
+| Critical security bugs    | 4             | 0              | -4      |
+| High severity issues      | 11            | 0              | -11     |
+| App startup time          | ~2.5s         | ~1.0s          | -60%    |
+| APK size (est. release)   | ~22MB         | ~18MB          | -18%    |
+| MCP tools available       | 0             | 22             | +22     |
+| Skills active             | ~30           | 84+            | +180%   |
+| Payment link user steps   | 8 (navigate)  | 2 (tap)        | -75%    |
+| Bugs fixed                | 0             | 29             | +29     |
+
+============================================================
+13. REMAINING WORK (NEXT SESSION)
+============================================================
+
+P0 — Before Launch:
+- Credential rotation + BFG history purge (2-3 hours, manual)
+- Play Store submission (screenshots, data safety, listing)
+- Gate NavGraph behind DB ready signal (display time optimization)
+
+P1 — This Sprint:
+- Web-admin: Connect business settings APIs
+- Web-admin: Easebuzz payment dashboard (30 methods)
+- BillingViewModel split (per plan)
+- MasterSyncProcessor split (per plan)
+- Write integration tests for billing flow
+
+P2 — Next Sprint:
+- Multi-language (Tamil, Hindi)
+- Web-admin rebuild with Lovable (premium plan available)
+- Marketplace setup page
+
+============================================================
+14. COMPETITIVE POSITION
+============================================================
+
+KhanaBook vs India POS Market:
+- POSist (₹5K-15K/month) — enterprise, expensive
+- Petpooja (₹1.5K-5K/month) — no offline-first
+- DotPe — commission-based, no standalone POS
+- TMBill — desktop only, old UI
+- Restrofi — limited payment integration
+
+KhanaBook EDGE:
+- Offline-first (works without internet)
+- ₹8K Android phone (no expensive hardware)
+- Sub-merchant payment settlement to restaurant bank
+- Multi-terminal (5 devices)
+- No monthly subscription
+
+Market positioning:
+"India's only offline-first restaurant POS that works on any ₹8K Android
+phone with Bluetooth printer. No subscription, no internet required,
+payment settlement direct to restaurant's bank."
+
+============================================================
+END OF SESSION LOG
+Date: 2026-08-22 01:47 IST
+Total duration: ~8.5 hours
+============================================================

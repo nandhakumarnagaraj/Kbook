@@ -30,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -141,7 +142,7 @@ internal fun ScanControls(
                         else -> "Photo captured. Use this or retake."
                     },
                     color = ParchmentBG,
-                    fontSize = 13.sp
+                    style = MaterialTheme.typography.bodyMedium
                 )
 
                 
@@ -150,7 +151,7 @@ internal fun ScanControls(
                     Text(
                         "Tip: Ensure menu is fully in frame, well-lit, text in English.",
                         color = PrimaryGold.copy(alpha = 0.55f),
-                        fontSize = 11.sp
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
 
@@ -159,7 +160,7 @@ internal fun ScanControls(
                     Text(
                         text = errorMessage,
                         color = ErrorPink,
-                        fontSize = 13.sp
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
 

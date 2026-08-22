@@ -30,14 +30,37 @@ class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
     private val databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider,
-    private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
+    private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager,
+    private val khanaBookApi: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 ) : ViewModel() {
     private val ocrDebugTag = "OCR_DEBUG"
 
-    private val _permissionError = MutableStateFlow<String?>(null)
-    val permissionError: StateFlow<String?> = _permissionError.asStateFlow()
+    data class BlockedPermission(val key: String, val displayName: String)
 
-    fun clearPermissionError() { _permissionError.value = null }
+    private val _blockedPermission = MutableStateFlow<BlockedPermission?>(null)
+    val blockedPermission: StateFlow<BlockedPermission?> = _blockedPermission.asStateFlow()
+
+    val permissionRequestInFlight = permissionManager.requestInFlight
+    val permissionRequestResult = permissionManager.lastRequestResult
+
+    fun dismissBlockedPermission() {
+        _blockedPermission.value = null
+        permissionManager.clearRequestResult()
+    }
+
+    fun requestAccessForBlocked() {
+        val blocked = _blockedPermission.value ?: return
+        viewModelScope.launch {
+            permissionManager.requestAccess(khanaBookApi, blocked.key)
+        }
+    }
+
+    private fun block(permissionKey: String) {
+        _blockedPermission.value = BlockedPermission(
+            key = permissionKey,
+            displayName = permissionManager.getDisplayName(permissionKey)
+        )
+    }
 
     /** Check if current user can perform menu edits */
     fun canEditMenu(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_EDIT_PRICE)
@@ -124,7 +147,7 @@ class MenuViewModel @Inject constructor(
 
     fun addItem(categoryId: Long, name: String, price: Double, foodType: String, description: String? = null) {
         if (!canAddItem()) {
-            _permissionError.value = "You don't have permission to add menu items."
+            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
             return
         }
         viewModelScope.launch {
@@ -148,6 +171,10 @@ class MenuViewModel @Inject constructor(
         foodType: String,
         variants: List<Pair<String, Double>>
     ) {
+        if (!canAddItem()) {
+            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
+            return
+        }
         viewModelScope.launch {
             val itemId = menuRepository.insertItem(
                 MenuItemEntity(
@@ -171,12 +198,20 @@ class MenuViewModel @Inject constructor(
     }
 
     fun updateItem(item: MenuItemEntity) {
+        if (!canEditMenu()) {
+            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_EDIT_PRICE)
+            return
+        }
         viewModelScope.launch {
             menuRepository.updateItem(item)
         }
     }
 
     fun toggleItem(id: Long, enabled: Boolean) {
+        if (!permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_TOGGLE_AVAILABILITY)) {
+            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_TOGGLE_AVAILABILITY)
+            return
+        }
         viewModelScope.launch {
             menuRepository.toggleItemAvailability(id, enabled)
         }
@@ -184,7 +219,7 @@ class MenuViewModel @Inject constructor(
 
     fun deleteItem(item: MenuItemEntity) {
         if (!canDeleteItem()) {
-            _permissionError.value = "You don't have permission to delete menu items."
+            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_DELETE_ITEM)
             return
         }
         viewModelScope.launch {

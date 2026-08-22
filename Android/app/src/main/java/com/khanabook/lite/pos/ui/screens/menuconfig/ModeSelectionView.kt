@@ -96,7 +96,7 @@ fun ModeSelectionView(
             Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = PrimaryGold.copy(alpha = 0.18f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
-                        Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+                        Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium))
                     }
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
@@ -145,7 +145,7 @@ fun ModeSelectionView(
             Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
-                        Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+                        Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium))
                     }
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
@@ -234,7 +234,7 @@ fun SmartAIOption(
         Text(
             label,
             color = TextLight,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )

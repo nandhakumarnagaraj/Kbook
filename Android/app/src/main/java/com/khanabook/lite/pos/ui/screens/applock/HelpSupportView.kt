@@ -156,7 +156,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             shape = KhanaRadii.lg,
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(28.dp))
+            Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start) {
                 Text("Chat on WhatsApp", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
@@ -183,7 +183,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             shape = KhanaRadii.lg,
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
+            Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
                 Text("Email Support", color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)

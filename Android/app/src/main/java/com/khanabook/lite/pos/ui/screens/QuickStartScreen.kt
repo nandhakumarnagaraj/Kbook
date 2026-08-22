@@ -276,7 +276,7 @@ fun QuickStartScreen(
                                     contentColor = TextGold
                                 )
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text("Add another item")
                             }

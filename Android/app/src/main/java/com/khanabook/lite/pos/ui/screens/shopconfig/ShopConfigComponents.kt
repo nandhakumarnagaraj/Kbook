@@ -48,7 +48,7 @@ internal fun RestaurantPaymentFlowSelector(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Billing Mode", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
                 Text(

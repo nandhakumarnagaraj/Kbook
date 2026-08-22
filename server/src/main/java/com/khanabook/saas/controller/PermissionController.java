@@ -22,9 +22,12 @@ import java.util.stream.Collectors;
 public class PermissionController {
 
     private final PermissionService permissionService;
+    private final com.khanabook.saas.repository.UserRepository userRepo;
 
-    public PermissionController(PermissionService permissionService) {
+    public PermissionController(PermissionService permissionService,
+                                com.khanabook.saas.repository.UserRepository userRepo) {
         this.permissionService = permissionService;
+        this.userRepo = userRepo;
     }
 
     // ── Available permissions catalog ─────────────────────────────────────────
@@ -209,10 +212,11 @@ public class PermissionController {
 
     private PermissionRequestResponse toRequestResponse(PermissionRequest req) {
         var pk = PermissionKey.fromKey(req.getPermissionKey());
+        var requester = userRepo.findById(req.getUserId()).orElse(null);
         return new PermissionRequestResponse(
                 req.getId(),
                 req.getUserId(),
-                null,
+                requester != null ? requester.getName() : null,
                 req.getPermissionKey(),
                 pk != null ? pk.getDisplayName() : req.getPermissionKey(),
                 req.getStatus(),
@@ -224,9 +228,11 @@ public class PermissionController {
     }
 
     private List<String> parsePermissions(String json) {
-        return Arrays.stream(json.replaceAll("[\\[\\]\"]", "").split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().readValue(json,
+                    new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

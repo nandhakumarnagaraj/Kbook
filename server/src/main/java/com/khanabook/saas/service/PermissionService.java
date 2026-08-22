@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.dto.PermissionDtos.*;
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,23 +18,26 @@ public class PermissionService {
     private final PermissionRequestRepository requestRepo;
     private final RoleTemplateRepository templateRepo;
     private final UserRepository userRepo;
+    private final ObjectMapper objectMapper;
 
     public PermissionService(StaffPermissionRepository permissionRepo,
                              PermissionRequestRepository requestRepo,
                              RoleTemplateRepository templateRepo,
-                             UserRepository userRepo) {
+                             UserRepository userRepo,
+                             ObjectMapper objectMapper) {
         this.permissionRepo = permissionRepo;
         this.requestRepo = requestRepo;
         this.templateRepo = templateRepo;
         this.userRepo = userRepo;
+        this.objectMapper = objectMapper;
     }
 
     // ── Check ─────────────────────────────────────────────────────────────────
 
     public boolean hasPermission(Long restaurantId, Long userId, String permissionKey) {
-        var user = userRepo.findById(userId).orElse(null);
+        var user = findTenantUser(restaurantId, userId);
         if (user == null) return false;
-        if (UserRole.OWNER == user.getRole()) return true;
+        if (UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole()) return true;
 
         return permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .map(StaffPermission::getGranted)
@@ -41,8 +45,9 @@ public class PermissionService {
     }
 
     public List<String> getGrantedPermissions(Long restaurantId, Long userId) {
-        var user = userRepo.findById(userId).orElse(null);
-        if (user != null && UserRole.OWNER == user.getRole()) {
+        var user = findTenantUser(restaurantId, userId);
+        if (user == null) return List.of();
+        if (UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole()) {
             return Arrays.stream(PermissionKey.values())
                     .map(PermissionKey::getKey)
                     .collect(Collectors.toList());
@@ -71,6 +76,7 @@ public class PermissionService {
         if (com.khanabook.saas.entity.PermissionKey.fromKey(permissionKey) == null) {
             throw new IllegalArgumentException("Invalid permission key: " + permissionKey);
         }
+        requireTenantUser(restaurantId, userId);
         var existing = permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey);
         if (existing.isPresent()) {
             var perm = existing.get();
@@ -87,6 +93,7 @@ public class PermissionService {
 
     @Transactional
     public void revokePermission(Long restaurantId, Long userId, String permissionKey) {
+        requireTenantUser(restaurantId, userId);
         permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .ifPresent(perm -> {
                     perm.setGranted(false);
@@ -105,6 +112,7 @@ public class PermissionService {
 
     @Transactional
     public void applyTemplate(Long restaurantId, Long userId, Long templateId, Long grantedBy) {
+        requireTenantUser(restaurantId, userId);
         var template = templateRepo.findById(templateId)
                 .orElseThrow(() -> new IllegalArgumentException("Template not found"));
 
@@ -202,26 +210,39 @@ public class PermissionService {
     @Transactional
     public RoleTemplate createTemplate(Long restaurantId, String name, String description,
                                        List<String> permissions, Long createdBy) {
-        var json = "[" + permissions.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(",")) + "]";
-        var template = new RoleTemplate(restaurantId, name, description, json, createdBy);
-        return templateRepo.save(template);
+        for (String key : permissions) {
+            if (PermissionKey.fromKey(key) == null) {
+                throw new IllegalArgumentException("Invalid permission key: " + key);
+            }
+        }
+        try {
+            var json = objectMapper.writeValueAsString(permissions);
+            var template = new RoleTemplate(restaurantId, name, description, json, createdBy);
+            return templateRepo.save(template);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Could not serialize permissions", e);
+        }
     }
 
     // ── User permissions list ─────────────────────────────────────────────────
 
     public UserPermissionsResponse getUserPermissions(Long restaurantId, Long userId) {
-        var user = userRepo.findById(userId).orElse(null);
+        var user = findTenantUser(restaurantId, userId);
         if (user == null) throw new IllegalArgumentException("User not found");
 
-        var granted = getGrantedPermissions(restaurantId, userId);
+        var grantedSet = permissionRepo.findByRestaurantIdAndUserIdAndGrantedTrue(restaurantId, userId).stream()
+                .map(StaffPermission::getPermissionKey)
+                .collect(Collectors.toSet());
+        var grantedAtMap = permissionRepo.findByRestaurantIdAndUserId(restaurantId, userId).stream()
+                .collect(Collectors.toMap(StaffPermission::getPermissionKey, StaffPermission::getGrantedAt, (a, b) -> a));
+
         var permResponses = Arrays.stream(PermissionKey.values())
                 .map(pk -> new PermissionResponse(
                         pk.getKey(),
                         pk.getDisplayName(),
                         pk.getCategory(),
-                        granted.contains(pk.getKey()),
-                        permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, pk.getKey())
-                                .map(StaffPermission::getGrantedAt).orElse(null)
+                        isEffectiveOwner(user) || grantedSet.contains(pk.getKey()),
+                        grantedAtMap.get(pk.getKey())
                 ))
                 .collect(Collectors.toList());
 
@@ -230,10 +251,28 @@ public class PermissionService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private boolean isEffectiveOwner(User user) {
+        return UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole();
+    }
+
+    private User findTenantUser(Long restaurantId, Long userId) {
+        return userRepo.findById(userId)
+                .filter(u -> u.getRestaurantId() != null && u.getRestaurantId().equals(restaurantId))
+                .orElse(null);
+    }
+
+    private User requireTenantUser(Long restaurantId, Long userId) {
+        var user = findTenantUser(restaurantId, userId);
+        if (user == null) throw new IllegalArgumentException("User not found");
+        return user;
+    }
+
     private List<String> parsePermissionsList(String json) {
-        return Arrays.stream(json.replaceAll("[\\[\\]\"]", "").split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        try {
+            return objectMapper.readValue(json,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid permissions payload", e);
+        }
     }
 }

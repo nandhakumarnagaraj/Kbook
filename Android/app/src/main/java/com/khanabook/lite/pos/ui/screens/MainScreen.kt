@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -172,6 +173,20 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
+    val layout = KhanaBookTheme.layout
+    val typeScale = KhanaBookTheme.typeScale
+    // Scale icon size for tablets — default 24dp is too small on 10" screens at mdpi
+    val navIconSize = when (typeScale) {
+        TypeScaleTier.Tablet -> 28.dp
+        TypeScaleTier.LargePhone -> 26.dp
+        else -> 24.dp
+    }
+    // Scale label style — labelSmall is too tiny on tablets at arm's length
+    val navLabelStyle = when (typeScale) {
+        TypeScaleTier.Tablet -> MaterialTheme.typography.labelMedium
+        else -> MaterialTheme.typography.labelSmall
+    }
+
     HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
     NavigationBar(
         containerColor = DarkBrown1,
@@ -182,8 +197,14 @@ fun AppBottomBar(
             NavigationBarItem(
                 selected = currentSelectedIndex == index,
                 onClick = { onTabSelected(index) },
-                icon = { Icon(item.icon, contentDescription = null) },
-                label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(navIconSize)
+                    )
+                },
+                label = { Text(item.label, style = navLabelStyle) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = PrimaryGold,
                     unselectedIconColor = TextLight.copy(alpha = 0.6f),

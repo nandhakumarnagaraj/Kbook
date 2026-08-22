@@ -90,7 +90,8 @@ fun KhanaBookLiteTheme(
                     "smallestWidthDp=${configuration.smallestScreenWidthDp}, " +
                     "orientation=${configuration.orientation}, " +
                     "widthTier=${responsiveLayout.widthTier}, " +
-                    "typeScaleTier=${responsiveLayout.typeScaleTier}"
+                    "typeScaleTier=${responsiveLayout.typeScaleTier}, " +
+                    "ultraCompact=${responsiveLayout.isUltraCompact}"
             )
         }
     }
