@@ -58,9 +58,30 @@ class BillingViewModel @Inject constructor(
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
     private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager,
+    private val khanaBookApi: com.khanabook.lite.pos.data.remote.api.KhanaBookApi,
     private val easebuzzPaymentRepository: EasebuzzPaymentRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    data class BlockedPermission(val key: String, val displayName: String)
+
+    private val _blockedPermission = MutableStateFlow<BlockedPermission?>(null)
+    val blockedPermission: StateFlow<BlockedPermission?> = _blockedPermission.asStateFlow()
+
+    val permissionRequestInFlight = permissionManager.requestInFlight
+    val permissionRequestResult = permissionManager.lastRequestResult
+
+    fun dismissBlockedPermission() {
+        _blockedPermission.value = null
+        permissionManager.clearRequestResult()
+    }
+
+    fun requestAccessForBlocked() {
+        val blocked = _blockedPermission.value ?: return
+        viewModelScope.launch {
+            permissionManager.requestAccess(khanaBookApi, blocked.key)
+        }
+    }
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e("BillingViewModel", "Coroutine failed: ${throwable.message}", throwable)
@@ -721,7 +742,10 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
     suspend fun completeOrder(status: PaymentStatus, cancelReason: String = ""): Boolean = withContext(Dispatchers.IO) {
         orderMutex.withLock {
             if (!permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.BILLING_CREATE)) {
-                _error.value = "You don't have permission to create bills. Request access from your owner."
+                _blockedPermission.value = BlockedPermission(
+                    key = com.khanabook.lite.pos.domain.manager.PermissionManager.BILLING_CREATE,
+                    displayName = permissionManager.getDisplayName(com.khanabook.lite.pos.domain.manager.PermissionManager.BILLING_CREATE)
+                )
                 return@withLock false
             }
             if (cartManager.currentItems.isEmpty()) {

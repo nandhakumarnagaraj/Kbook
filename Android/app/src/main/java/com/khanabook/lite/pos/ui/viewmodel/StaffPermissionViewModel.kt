@@ -3,11 +3,14 @@ package com.khanabook.lite.pos.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.data.remote.api.ApplyTemplateBody
+import com.khanabook.lite.pos.data.remote.api.CreateTemplateBody
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.PermissionGrantBody
 import com.khanabook.lite.pos.data.remote.api.PermissionRequestDto
 import com.khanabook.lite.pos.data.remote.api.PermissionResolveBody
 import com.khanabook.lite.pos.data.remote.api.PermissionRevokeBody
+import com.khanabook.lite.pos.data.remote.api.RoleTemplateDto
 import com.khanabook.lite.pos.domain.manager.PermissionManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,8 +24,10 @@ data class StaffPermissionUiState(
     val isLoading: Boolean = true,
     val staffList: List<StaffMemberPermissions> = emptyList(),
     val pendingRequests: List<PermissionRequestDto> = emptyList(),
+    val templates: List<RoleTemplateDto> = emptyList(),
     val error: String? = null,
-    val actionInFlight: Boolean = false
+    val actionInFlight: Boolean = false,
+    val infoMessage: String? = null
 )
 
 data class StaffMemberPermissions(
@@ -109,6 +114,7 @@ class StaffPermissionViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val pendingRequests = try { api.getPendingPermissionRequests() } catch (e: Exception) { emptyList() }
+                val templates = try { api.getRoleTemplates() } catch (e: Exception) { emptyList() }
 
                 // Load each staff member's permissions
                 // For now we use the business staff list + individual permission queries
@@ -136,7 +142,8 @@ class StaffPermissionViewModel @Inject constructor(
                 _uiState.value = StaffPermissionUiState(
                     isLoading = false,
                     staffList = staffPermissions,
-                    pendingRequests = pendingRequests
+                    pendingRequests = pendingRequests,
+                    templates = templates
                 )
             } catch (e: Exception) {
                 Log.e(tag, "Failed to load permission data", e)
@@ -211,7 +218,46 @@ class StaffPermissionViewModel @Inject constructor(
         }
     }
 
+    // ── Role templates ────────────────────────────────────────────────────────
+
+    fun createTemplate(name: String, description: String?, permissions: List<String>) {
+        if (name.isBlank() || permissions.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(actionInFlight = true)
+            try {
+                api.createRoleTemplate(CreateTemplateBody(name.trim(), description?.trim()?.ifBlank { null }, permissions))
+                _uiState.value = _uiState.value.copy(
+                    actionInFlight = false,
+                    infoMessage = "Template \"$name\" created."
+                )
+                loadData()
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to create template", e)
+                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to create template. Try again.")
+            }
+        }
+    }
+
+    fun applyTemplate(userId: Long, templateId: Long) {
+        val staffName = _uiState.value.staffList.firstOrNull { it.userId == userId }?.name ?: "staff"
+        val templateName = _uiState.value.templates.firstOrNull { it.id == templateId }?.name ?: "template"
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(actionInFlight = true)
+            try {
+                api.applyRoleTemplate(ApplyTemplateBody(userId, templateId))
+                _uiState.value = _uiState.value.copy(
+                    actionInFlight = false,
+                    infoMessage = "\"$templateName\" applied to $staffName."
+                )
+                loadData()
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to apply template", e)
+                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to apply template. Try again.")
+            }
+        }
+    }
+
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(error = null, infoMessage = null)
     }
 }

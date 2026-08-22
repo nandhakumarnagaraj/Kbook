@@ -61,6 +61,19 @@ fun PaymentStep(
     val paymentRecovery by viewModel.paymentRecovery.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+
+    val blockedPermission by viewModel.blockedPermission.collectAsStateWithLifecycle()
+    val requestInFlight by viewModel.permissionRequestInFlight.collectAsStateWithLifecycle()
+    val requestResult by viewModel.permissionRequestResult.collectAsStateWithLifecycle()
+    blockedPermission?.let { blocked ->
+        PermissionBlockedDialog(
+            permissionDisplayName = blocked.displayName,
+            isLoading = requestInFlight,
+            requestSent = requestResult is com.khanabook.lite.pos.domain.manager.PermissionManager.RequestResult.Success,
+            onRequestAccess = { viewModel.requestAccessForBlocked() },
+            onDismiss = { viewModel.dismissBlockedPermission() }
+        )
+    }
     val enabledModes =
             remember(profile) {
                 profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)

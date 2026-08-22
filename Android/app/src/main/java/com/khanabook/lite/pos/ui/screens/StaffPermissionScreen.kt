@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
@@ -16,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.khanabook.lite.pos.data.remote.api.RoleTemplateDto
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookScreenScaffold
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.*
@@ -46,11 +50,66 @@ fun StaffPermissionScreen(
                 }
             }
         } else {
+            var showCreateTemplate by remember { mutableStateOf(false) }
+            var applyTemplate by remember { mutableStateOf<RoleTemplateDto?>(null) }
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
+                state.infoMessage?.let { info ->
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(spacing.small),
+                            color = DarkBrown2,
+                            tonalElevation = spacing.extraSmall
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(info, style = MaterialTheme.typography.bodySmall, color = SuccessGreen, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { viewModel.clearError() }) { Text("OK", color = PrimaryGold) }
+                            }
+                        }
+                    }
+                }
+
+                // Role templates section
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Role Templates (${state.templates.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextLight,
+                            fontWeight = FontWeight.Bold
+                        )
+                        IconButton(onClick = { showCreateTemplate = true }) {
+                            Icon(Icons.Filled.Add, "Create template", tint = PrimaryGold)
+                        }
+                    }
+                }
+                if (state.templates.isEmpty()) {
+                    item {
+                        Text(
+                            "No templates yet. Create one to quickly assign a preset set of permissions to staff.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGold
+                        )
+                    }
+                }
+                items(state.templates) { template ->
+                    RoleTemplateCard(
+                        template = template,
+                        onApply = { applyTemplate = template }
+                    )
+                }
+
                 // Pending requests section
                 if (state.pendingRequests.isNotEmpty()) {
                     item {
@@ -100,6 +159,29 @@ fun StaffPermissionScreen(
                         onToggle = { key, granted -> viewModel.togglePermission(staff.userId, key, granted) }
                     )
                 }
+            }
+
+            if (showCreateTemplate) {
+                CreateTemplateDialog(
+                    categories = viewModel.permissionCategories,
+                    onDismiss = { showCreateTemplate = false },
+                    onCreate = { name, desc, perms ->
+                        viewModel.createTemplate(name, desc, perms)
+                        showCreateTemplate = false
+                    }
+                )
+            }
+
+            applyTemplate?.let { template ->
+                ApplyTemplateDialog(
+                    template = template,
+                    staffList = state.staffList,
+                    onDismiss = { applyTemplate = null },
+                    onApply = { userId ->
+                        viewModel.applyTemplate(userId, template.id)
+                        applyTemplate = null
+                    }
+                )
             }
         }
     }
@@ -211,4 +293,151 @@ private fun StaffPermissionCard(
             }
         }
     }
+}
+
+@Composable
+private fun RoleTemplateCard(
+    template: RoleTemplateDto,
+    onApply: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Surface(
+        shape = RoundedCornerShape(spacing.small),
+        color = DarkBrown2,
+        tonalElevation = spacing.extraSmall
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(template.name, style = MaterialTheme.typography.bodyLarge, color = TextLight, fontWeight = FontWeight.SemiBold)
+                if (!template.description.isNullOrBlank()) {
+                    Text(template.description, style = MaterialTheme.typography.bodySmall, color = TextGold)
+                }
+                Text(
+                    "${template.permissions.size} permissions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextGold
+                )
+            }
+            Button(onClick = onApply, colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
+                Text("Apply to\u2026", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreateTemplateDialog(
+    categories: List<Pair<String, List<Pair<String, String>>>>,
+    onDismiss: () -> Unit,
+    onCreate: (name: String, description: String?, permissions: List<String>) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    val selected = remember { mutableStateMapOf<String, Boolean>() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        shape = KhanaRadii.modal,
+        title = { Text("New Role Template", style = MaterialTheme.typography.titleLarge, color = TextLight) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Template name", color = TextGold) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(spacing.small))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)", color = TextGold) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(spacing.medium))
+                categories.forEach { (categoryName, permissions) ->
+                    Text(
+                        categoryName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGold,
+                        fontWeight = FontWeight.Bold
+                    )
+                    permissions.forEach { (key, displayName) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = selected[key] == true,
+                                onCheckedChange = { selected[key] = it },
+                                colors = CheckboxDefaults.colors(checkedColor = PrimaryGold)
+                            )
+                            Text(displayName, style = MaterialTheme.typography.bodySmall, color = TextLight)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onCreate(name, description, selected.filterValues { it }.keys.toList()) },
+                enabled = name.isNotBlank() && selected.containsValue(true),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+            ) { Text("Create", color = DarkBrown1) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = PrimaryGold) }
+        }
+    )
+}
+
+@Composable
+private fun ApplyTemplateDialog(
+    template: RoleTemplateDto,
+    staffList: List<StaffMemberPermissions>,
+    onDismiss: () -> Unit,
+    onApply: (userId: Long) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        shape = KhanaRadii.modal,
+        title = {
+            Column {
+                Text("Apply \"${template.name}\"", style = MaterialTheme.typography.titleLarge, color = TextLight)
+                Text(
+                    "Replaces this staff member's permissions with the ${template.permissions.size} in the template.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextGold
+                )
+            }
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                if (staffList.isEmpty()) {
+                    Text("No staff members found.", style = MaterialTheme.typography.bodyMedium, color = TextLight)
+                }
+                staffList.forEach { staff ->
+                    TextButton(onClick = { onApply(staff.userId) }) {
+                        Icon(Icons.Filled.Person, null, tint = PrimaryGold)
+                        Spacer(Modifier.width(spacing.small))
+                        Text(staff.name, color = TextLight)
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = PrimaryGold) }
+        },
+        confirmButton = {}
+    )
 }

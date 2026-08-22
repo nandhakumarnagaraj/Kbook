@@ -185,6 +185,15 @@ interface KhanaBookApi {
         @POST("api/v1/permissions/revoke")
         suspend fun revokePermission(@Body body: PermissionRevokeBody)
 
+        @GET("api/v1/permissions/templates")
+        suspend fun getRoleTemplates(): List<RoleTemplateDto>
+
+        @POST("api/v1/permissions/templates")
+        suspend fun createRoleTemplate(@Body body: CreateTemplateBody): RoleTemplateDto
+
+        @POST("api/v1/permissions/apply-template")
+        suspend fun applyRoleTemplate(@Body body: ApplyTemplateBody)
+
         @GET("api/v1/business/staff")
         suspend fun getStaffList(): List<StaffListItem>
 

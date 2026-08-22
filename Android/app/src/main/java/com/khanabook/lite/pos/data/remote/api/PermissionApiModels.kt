@@ -64,3 +64,23 @@ data class PermissionItemDto(
     @SerializedName("granted") val granted: Boolean,
     @SerializedName("grantedAt") val grantedAt: Long?
 )
+
+data class RoleTemplateDto(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("permissions") val permissions: List<String>,
+    @SerializedName("isDefault") val isDefault: Boolean,
+    @SerializedName("createdAt") val createdAt: Long
+)
+
+data class CreateTemplateBody(
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("permissions") val permissions: List<String>
+)
+
+data class ApplyTemplateBody(
+    @SerializedName("userId") val userId: Long,
+    @SerializedName("templateId") val templateId: Long
+)
