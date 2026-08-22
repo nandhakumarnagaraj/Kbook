@@ -43,6 +43,7 @@ public class PublicOrderController {
     private final BillRepository billRepository;
     private final BillItemRepository billItemRepository;
     private final PushNotificationService pushNotificationService;
+    private final com.khanabook.saas.service.EasebuzzPaymentService easebuzzPaymentService;
     private final DbRateLimiter qrOrderRateLimiter;
 
     public PublicOrderController(CategoryRepository categoryRepository,
@@ -51,6 +52,7 @@ public class PublicOrderController {
                                  BillRepository billRepository,
                                  BillItemRepository billItemRepository,
                                  PushNotificationService pushNotificationService,
+                                 com.khanabook.saas.service.EasebuzzPaymentService easebuzzPaymentService,
                                  @org.springframework.beans.factory.annotation.Qualifier("qrOrderRateLimiterDb")
                                  DbRateLimiter qrOrderRateLimiter) {
         this.categoryRepository = categoryRepository;
@@ -59,6 +61,7 @@ public class PublicOrderController {
         this.billRepository = billRepository;
         this.billItemRepository = billItemRepository;
         this.pushNotificationService = pushNotificationService;
+        this.easebuzzPaymentService = easebuzzPaymentService;
         this.qrOrderRateLimiter = qrOrderRateLimiter;
     }
 
@@ -184,10 +187,20 @@ public class PublicOrderController {
         bill.setServerUpdatedAt(now);
         bill.setOrderStatus("draft");
         bill.setPaymentStatus("pending");
+        bill.setPaymentMode("pending");
         bill.setOrderType(normalizeOrderType(request.orderType()));
         bill.setSourceChannel("own_website");
         bill.setTotalAmount(total);
         bill.setSubtotal(total);
+
+        // Daily order number: unique per (restaurant, lastResetDate) — allocate next.
+        String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+        Long maxDaily = billRepository.findMaxDailyOrderIdForDate(restaurantId, today);
+        long dailyOrderId = (maxDaily != null ? maxDaily : 0L) + 1;
+        bill.setLastResetDate(today);
+        bill.setDailyOrderId(dailyOrderId);
+        bill.setDailyOrderDisplay("QR" + dailyOrderId);
+        bill.setLifetimeOrderId(now);
 
         Bill saved = billRepository.save(bill);
         for (BillItem bi : lines) {
@@ -221,6 +234,27 @@ public class PublicOrderController {
         result.put("total", total);
         result.put("paymentStatus", saved.getPaymentStatus());
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Customer self-pay: creates an Easebuzz Easy Collect link for a QR order.
+     * Tenant safety: the bill must belong to the restaurant in the URL path;
+     * paid bills are rejected by the payment service itself (ALREADY_PAID).
+     */
+    @PostMapping("/orders/{orderId}/pay")
+    public ResponseEntity<?> payOrder(@PathVariable Long restaurantId,
+                                      @PathVariable Long orderId,
+                                      HttpServletRequest httpRequest) {
+        if (!qrOrderRateLimiter.tryConsume(clientIp(httpRequest))) {
+            return ResponseEntity.status(429).body(Map.of("error", "TOO_MANY_REQUESTS"));
+        }
+        boolean belongs = billRepository.findById(orderId)
+                .filter(b -> b.getRestaurantId().equals(restaurantId))
+                .isPresent();
+        if (!belongs) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(easebuzzPaymentService.createPaymentLinkForBill(orderId, restaurantId));
     }
 
     private static String normalizeOrderType(String orderType) {

@@ -70,6 +70,11 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("terminalId") String terminalId,
             org.springframework.data.domain.Pageable pageable);
 
+    @Query("SELECT COALESCE(MAX(b.dailyOrderId), 0) FROM Bill b " +
+           "WHERE b.restaurantId = :restaurantId AND b.lastResetDate = :lastResetDate")
+    Long findMaxDailyOrderIdForDate(@Param("restaurantId") Long restaurantId,
+                                    @Param("lastResetDate") String lastResetDate);
+
     long countByIsDeletedFalse();
 
     List<Bill> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);

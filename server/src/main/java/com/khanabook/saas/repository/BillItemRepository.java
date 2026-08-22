@@ -11,7 +11,16 @@ import java.util.List;
 @Repository
 public interface BillItemRepository extends SyncRepository<BillItem, Long> {
 
+	@Query("SELECT bi.menuItemId, MAX(bi.itemName), SUM(bi.quantity), SUM(bi.itemTotal) " +
+			"FROM BillItem bi WHERE bi.restaurantId = :restaurantId AND bi.isDeleted = false " +
+			"AND bi.createdAt >= :from AND bi.createdAt < :to AND bi.menuItemId IS NOT NULL " +
+			"GROUP BY bi.menuItemId")
+	List<Object[]> aggregateSalesByMenuItem(@Param("restaurantId") Long restaurantId,
+											@Param("from") Long from, @Param("to") Long to);
+
 	List<BillItem> findByServerBillIdAndIsDeletedFalseOrderById(Long serverBillId);
+
+	List<BillItem> findByRestaurantIdAndCreatedAtBetween(Long restaurantId, Long from, Long to);
 
 	List<BillItem> findByRestaurantIdAndServerBillIdIn(Long restaurantId, List<Long> serverBillIds);
 

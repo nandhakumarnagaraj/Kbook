@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KhanaBook — Order Here</title>
+<style>
+  :root { --gold:#c9a24b; --dark:#2b1d16; --card:#3a2820; --text:#f5ead8; }
+  * { box-sizing:border-box; margin:0; font-family:system-ui,sans-serif; }
+  body { background:var(--dark); color:var(--text); padding-bottom:90px; }
+  header { padding:16px; text-align:center; background:#1f1510; position:sticky; top:0; z-index:5; }
+  header h1 { font-size:1.2rem; color:var(--gold); }
+  #tableTag { font-size:.85rem; opacity:.8; }
+  .cats { display:flex; gap:8px; overflow-x:auto; padding:12px 16px; position:sticky; top:56px; background:var(--dark); }
+  .cats button { flex-shrink:0; background:var(--card); color:var(--text); border:1px solid #55402f;
+    border-radius:20px; padding:8px 14px; cursor:pointer; }
+  .cats button.active { background:var(--gold); color:var(--dark); font-weight:600; }
+  .item { display:flex; justify-content:space-between; align-items:center; background:var(--card);
+    border-radius:10px; padding:12px 14px; margin:8px 16px; }
+  .item .info { flex:1; } .item .name { font-weight:600; } .item .desc { font-size:.8rem; opacity:.75; }
+  .item .price { color:var(--gold); margin-top:4px; }
+  .variants select { background:#241811; color:var(--text); border:1px solid #55402f; border-radius:6px; padding:4px; }
+  .add { background:var(--gold); color:var(--dark); border:none; border-radius:8px; padding:8px 12px;
+    font-weight:700; cursor:pointer; }
+  #cartBar { position:fixed; bottom:0; left:0; right:0; background:#1f1510; padding:12px 16px;
+    display:flex; justify-content:space-between; align-items:center; border-top:2px solid var(--gold); }
+  #cartBar button { background:var(--gold); border:none; color:var(--dark); font-weight:700;
+    padding:12px 22px; border-radius:10px; cursor:pointer; }
+  .dialog { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center;
+    justify-content:center; z-index:10; }
+  .dialog .box { background:var(--card); border-radius:14px; padding:22px; width:min(92vw,420px);
+    max-height:80vh; overflow:auto; }
+  .cartline { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #55402f; }
+  input, textarea { width:100%; background:#241811; color:var(--text); border:1px solid #55402f;
+    border-radius:8px; padding:10px; margin:6px 0; }
+  .primary { width:100%; background:var(--gold); border:none; color:var(--dark); font-weight:700;
+    padding:13px; border-radius:10px; cursor:pointer; margin-top:10px; }
+  .muted { text-align:center; opacity:.7; padding:40px 16px; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍽️ Order Here</h1>
+  <div id="tableTag"></div>
+</header>
+
+<div id="content" class="muted">Loading menu…</div>
+<div class="cats hide" id="cats"></div>
+<div id="items" class="hide"></div>
+
+<div id="cartBar" class="hide">
+  <span id="cartInfo">0 items · ₹0</span>
+  <button onclick="showCart()">View Cart 🛒</button>
+</div>
+
+<div id="cartDialog" class="dialog hide">
+  <div class="box">
+    <h3 style="color:var(--gold)">Your Order</h3>
+    <div id="cartLines"></div>
+    <input id="tableLabel" placeholder="Table / token number">
+    <textarea id="note" rows="2" placeholder="Any special instructions?"></textarea>
+    <button class="primary" onclick="placeOrder()">Place Order</button>
+    <button class="primary" style="background:#55402f;color:var(--text)" onclick="closeCart()">Keep Browsing</button>
+  </div>
+</div>
+
+<div id="doneDialog" class="dialog hide">
+  <div class="box" style="text-align:center">
+    <h2 style="color:var(--gold)">✅ Order Placed!</h2>
+    <p style="margin:12px 0" id="doneMsg"></p>
+    <div id="payArea"></div>
+    <button class="primary" onclick="location.reload()">Done</button>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.hash.slice(1));
+const RID = params.get('r');
+const TABLE = params.get('t');
+document.getElementById('tableTag').textContent = TABLE ? 'Table ' + TABLE : '';
+let MENU = [], cart = {}, activeCat = null;
+
+async function init() {
+  if (!RID) { document.getElementById('content').textContent = 'Invalid QR code'; return; }
+  try {
+    const res = await fetch(`/public/restaurants/${RID}/menu`);
+    const data = await res.json();
+    MENU = data.items || [];
+    const cats = [...new Set(MENU.map(i => i.categoryId))];
+    if (!MENU.length) { document.getElementById('content').textContent = 'Menu coming soon!'; return; }
+    renderCats(data.categories || []);
+    showCat(cats[0]);
+  } catch(e) { document.getElementById('content').textContent = 'Could not load menu. Refresh to retry.'; }
+}
+
+function renderCats(categories) {
+  const el = document.getElementById('cats');
+  el.classList.remove('hide'); document.getElementById('items').classList.remove('hide');
+  document.getElementById('content').classList.add('hide');
+  el.innerHTML = categories.map(c =>
+    `<button data-cat="${c.id}" onclick="showCat(${c.id})">${c.name}</button>`).join('');
+}
+
+function showCat(catId) {
+  activeCat = catId;
+  document.querySelectorAll('.cats button').forEach(b =>
+    b.classList.toggle('active', String(b.dataset.cat) === String(catId)));
+  const el = document.getElementById('items');
+  el.innerHTML = MENU.filter(i => i.categoryId == catId).map(item => {
+    const v = item.variants || [];
+    const variantSel = v.length ? `<div class="variants"><select id="v_${item.id}">` +
+      v.map(x => `<option value="${x.id}">${x.name} · ₹${x.price}</option>`).join('') + '</select></div>' : '';
+    return `<div class="item"><div class="info"><div class="name">${esc(item.name)}</div>
+      ${item.description ? `<div class="desc">${esc(item.description)}</div>` : ''}
+      ${variantSel}
+      <div class="price">₹${v.length ? Math.min(...v.map(x => x.price)) : item.basePrice}</div></div>
+      <button class="add" onclick='addToCart(${JSON.stringify(item)})'>+ Add</button></div>`;
+  }).join('');
+}
+
+function addToCart(item) {
+  const sel = document.getElementById('v_' + item.id);
+  const variantId = sel ? Number(sel.value) : null;
+  const variant = (item.variants || []).find(v => v.id === variantId);
+  const key = item.id + ':' + (variantId || 0);
+  if (!cart[key]) cart[key] = { name: item.name + (variant ? ' (' + variant.name + ')' : ''),
+    price: variant ? variant.price : item.basePrice, qty: 0 };
+  cart[key].qty++;
+  updateBar();
+}
+
+function updateBar() {
+  const count = Object.values(cart).reduce((s, c) => s + c.qty, 0);
+  const total = Object.values(cart).reduce((s, c) => s + c.qty * c.price, 0);
+  document.getElementById('cartBar').classList.toggle('hide', count === 0);
+  document.getElementById('cartInfo').textContent = `${count} items · ₹${total.toFixed(2)}`;
+}
+
+function showCart() {
+  document.getElementById('cartLines').innerHTML = Object.entries(cart).map(([k, c]) =>
+    `<div class="cartline"><span>${c.qty} × ${esc(c.name)}</span><span>₹${(c.qty * c.price).toFixed(2)}</span></div>`).join('');
+  document.getElementById('cartDialog').classList.remove('hide');
+}
+
+function closeCart() { document.getElementById('cartDialog').classList.add('hide'); }
+
+async function placeOrder() {
+  const items = Object.entries(cart).map(([k, c]) => ({
+    menuItemId: Number(k.split(':')[0]), variantId: Number(k.split(':')[1]) || null, quantity: c.qty
+  }));
+  const btn = event.target; btn.disabled = true; btn.textContent = 'Placing…';
+  try {
+    const res = await fetch(`/public/restaurants/${RID}/orders`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ items, orderType: 'dine_in',
+        tableLabel: document.getElementById('tableLabel').value || TABLE })
+    });
+    const data = await res.json();
+    closeCart();
+    if (res.ok) {
+      let html = `<p>Your order <b>#${data.orderId}</b> (₹${Number(data.total).toFixed(2)}) has been sent to the kitchen.</p>`;
+      // Try to attach a payment link immediately.
+      try {
+        const pay = await (await fetch(`/public/restaurants/${RID}/orders/${data.orderId}/pay`, { method: 'POST' })).json();
+        if (pay.payment_url) html += `<a class="primary" style="display:block;text-align:center;text-decoration:none"
+          href="${pay.payment_url}">💳 Pay Now ₹${Number(data.total).toFixed(2)}</a>`;
+      } catch(e) {}
+      document.getElementById('doneMsg').innerHTML = html;
+      document.getElementById('doneDialog').classList.remove('hide');
+    } else {
+      document.getElementById('doneMsg').textContent = data.error || 'Order failed. Please try again.';
+      document.getElementById('doneDialog').classList.remove('hide');
+      document.getElementById('payArea').innerHTML = '';
+    }
+  } catch(e) {
+    alert('Network error. Please try again.');
+  }
+  btn.disabled = false; btn.textContent = 'Place Order';
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+init();
+</script>
+</body>
+</html>
