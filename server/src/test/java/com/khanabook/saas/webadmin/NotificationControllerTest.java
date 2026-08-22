@@ -48,7 +48,7 @@ class NotificationControllerTest extends BaseIntegrationTest {
 
     @Test
     void testTriggerFssaiTrack() throws Exception {
-        String token = persistUserAndGetToken("owner-notify@test.com", RESTAURANT_ID, UserRole.OWNER);
+        String token = persistUserAndGetToken("admin-notify@test.com", RESTAURANT_ID, RESTAURANT_ID, UserRole.KBOOK_ADMIN);
 
         mockMvc.perform(post("/notifications/test/fssai")
                         .header("Authorization", "Bearer " + token))
@@ -60,7 +60,7 @@ class NotificationControllerTest extends BaseIntegrationTest {
 
     @Test
     void testSendTestNotification() throws Exception {
-        String token = persistUserAndGetToken("owner-notify@test.com", RESTAURANT_ID, UserRole.OWNER);
+        String token = persistUserAndGetToken("admin-notify@test.com", RESTAURANT_ID, RESTAURANT_ID, UserRole.KBOOK_ADMIN);
 
         mockMvc.perform(post("/notifications/test")
                         .header("Authorization", "Bearer " + token)
