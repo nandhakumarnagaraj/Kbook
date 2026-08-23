@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,19 +40,22 @@ public class InventoryService {
 	private final PushNotificationService pushNotificationService;
 	private final StockMovementRepository stockMovementRepository;
 	private final MenuItemRepository menuItemRepository;
+	private final com.khanabook.saas.repository.PurchaseOrderRepository poRepository;
 
 	public InventoryService(RawMaterialRepository rawMaterialRepository,
 							ItemRecipeRepository itemRecipeRepository,
 							BillItemRepository billItemRepository,
 							PushNotificationService pushNotificationService,
 							StockMovementRepository stockMovementRepository,
-							MenuItemRepository menuItemRepository) {
+							MenuItemRepository menuItemRepository,
+							com.khanabook.saas.repository.PurchaseOrderRepository poRepository) {
 		this.rawMaterialRepository = rawMaterialRepository;
 		this.itemRecipeRepository = itemRecipeRepository;
 		this.billItemRepository = billItemRepository;
 		this.pushNotificationService = pushNotificationService;
 		this.stockMovementRepository = stockMovementRepository;
 		this.menuItemRepository = menuItemRepository;
+		this.poRepository = poRepository;
 	}
 
 	/**
@@ -277,4 +281,124 @@ public class InventoryService {
 		return material.getStockQuantity()
 				.compareTo(material.getLowStockThreshold()) <= 0;
 	}
+
+    // ── Purchase Orders ───────────────────────────────────────────────────
+
+    /**
+     * Creates a PO. If status SENT it is considered dispatched to the vendor.
+     */
+    @Transactional
+    public com.khanabook.saas.entity.PurchaseOrder createPurchaseOrder(
+            Long restaurantId, Long vendorId, String note,
+            List<com.khanabook.saas.dto.PurchaseOrderDtos.PoLine> lines, boolean sendNow) {
+        if (lines == null || lines.isEmpty()) {
+            throw new IllegalArgumentException("At least one line is required");
+        }
+        var po = new com.khanabook.saas.entity.PurchaseOrder();
+        po.setRestaurantId(restaurantId);
+        po.setVendorId(vendorId);
+        po.setNote(note);
+        long now = System.currentTimeMillis();
+        po.setCreatedAt(now);
+        po.setUpdatedAt(now);
+        po.setStatus(sendNow ? com.khanabook.saas.entity.PurchaseOrder.STATUS_SENT
+                : com.khanabook.saas.entity.PurchaseOrder.STATUS_DRAFT);
+        for (var line : lines) {
+            if (line.quantity() == null || line.quantity().signum() <= 0) {
+                throw new IllegalArgumentException("Line quantities must be positive");
+            }
+            RawMaterial material = rawMaterialRepository.findById(line.rawMaterialId())
+                    .filter(m -> m.getRestaurantId().equals(restaurantId))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Material not found: " + line.rawMaterialId()));
+            var item = new com.khanabook.saas.entity.PurchaseOrderItem();
+            item.setPurchaseOrder(po);
+            item.setRawMaterial(material);
+            item.setQuantity(line.quantity());
+            po.getItems().add(item);
+        }
+        return poRepository.save(po);
+    }
+
+    /** Marks a PO received: every line becomes a PURCHASE (stock-in). */
+    @Transactional
+    public List<RawMaterial> receivePurchaseOrder(Long restaurantId, Long poId,
+                                                  java.math.BigDecimal unitCost) {
+        var po = poRepository.findById(poId)
+                .filter(p -> p.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new IllegalArgumentException("PO not found"));
+        if (!com.khanabook.saas.entity.PurchaseOrder.STATUS_SENT.equals(po.getStatus())
+                && !com.khanabook.saas.entity.PurchaseOrder.STATUS_DRAFT.equals(po.getStatus())) {
+            throw new IllegalStateException("Only SENT/DRAFT POs can be received");
+        }
+        List<RawMaterial> updated = new ArrayList<>();
+        for (var item : po.getItems()) {
+            updated.add(purchase(restaurantId, item.getRawMaterial().getId(),
+                    item.getQuantity(), unitCost, po.getVendorId(), null));
+        }
+        po.setStatus(com.khanabook.saas.entity.PurchaseOrder.STATUS_RECEIVED);
+        po.setUpdatedAt(System.currentTimeMillis());
+        poRepository.save(po);
+        return updated;
+    }
+
+    @Transactional
+    public void cancelPurchaseOrder(Long restaurantId, Long poId) {
+        var po = poRepository.findById(poId)
+                .filter(p -> p.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new IllegalArgumentException("PO not found"));
+        if (com.khanabook.saas.entity.PurchaseOrder.STATUS_RECEIVED.equals(po.getStatus())) {
+            throw new IllegalStateException("Received POs cannot be cancelled");
+        }
+        po.setStatus(com.khanabook.saas.entity.PurchaseOrder.STATUS_CANCELLED);
+        po.setUpdatedAt(System.currentTimeMillis());
+        poRepository.save(po);
+    }
+
+    // ── Variance report ───────────────────────────────────────────────────
+
+    /**
+     * Per-material consumption variance for a window: compares ledger kinds.
+     * adjustedQty is the unexplained gap (physical-count corrections) —
+     * POSist-style pilferage signal. variancePct = |adjusted| / consumed * 100.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> varianceReport(Long restaurantId, Long from, Long to) {
+        Map<Long, Map<String, BigDecimal>> byKind = new HashMap<>();
+        for (StockMovement mv : stockMovementRepository.findByRestaurantIdAndCreatedAtBetween(
+                restaurantId, from, to)) {
+            Long mid = mv.getRawMaterial().getId();
+            if (StockMovement.KIND_SALES_DEDUCT.equals(mv.getKind())
+                    || StockMovement.KIND_WASTAGE.equals(mv.getKind())) {
+                byKind.computeIfAbsent(mid, k -> new HashMap<>())
+                        .merge("consumed", mv.getQuantity().abs(), BigDecimal::add);
+            } else if (StockMovement.KIND_ADJUST.equals(mv.getKind())) {
+                byKind.computeIfAbsent(mid, k -> new HashMap<>())
+                        .merge("adjusted", mv.getQuantity().abs(), BigDecimal::add);
+            }
+        }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (var entry : byKind.entrySet()) {
+            RawMaterial material = rawMaterialRepository.findById(entry.getKey()).orElse(null);
+            if (material == null) continue;
+            BigDecimal consumed = entry.getValue().getOrDefault("consumed", BigDecimal.ZERO);
+            BigDecimal adjusted = entry.getValue().getOrDefault("adjusted", BigDecimal.ZERO);
+            BigDecimal denominator = consumed.signum() > 0 ? consumed : BigDecimal.ONE;
+            BigDecimal pct = adjusted.divide(denominator, 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            Map<String, Object> row = new HashMap<>();
+            row.put("materialId", material.getId());
+            row.put("name", material.getName());
+            row.put("unit", material.getUnit());
+            row.put("consumed", consumed);
+            row.put("unexplainedAdjustment", adjusted);
+            row.put("variancePct", pct);
+            out.add(row);
+        }
+        out.sort((a, b) -> ((BigDecimal) b.get("variancePct"))
+                .compareTo((BigDecimal) a.get("variancePct")));
+        return out;
+    }
 }

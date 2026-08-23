@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
 
+    List<StockMovement> findByRestaurantIdAndCreatedAtBetween(Long restaurantId, Long from, Long to);
+
     List<StockMovement> findByRestaurantIdAndRawMaterialIdOrderByCreatedAtDesc(
             Long restaurantId, Long rawMaterialId);
 

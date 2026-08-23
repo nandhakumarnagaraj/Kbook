@@ -63,9 +63,14 @@ public class RequireRoleAspectContextTest extends BaseIntegrationTest {
         assertTrue(profile.getIsSuspended(), "profile must be suspended when aspect permits the call");
     }
 
+    private static final java.util.concurrent.atomic.AtomicLong RESTAURANT_SEQ =
+            new java.util.concurrent.atomic.AtomicLong(999_000L);
+
     private Long persistRestaurant() {
         RestaurantProfile profile = new RestaurantProfile();
-        profile.setRestaurantId(999_000L + System.nanoTime() % 1000L);
+        // Monotonic counter: nanoTime()%1000 collided on coarse Windows timers,
+        // producing duplicate restaurant_ids and NonUniqueResult failures.
+        profile.setRestaurantId(RESTAURANT_SEQ.incrementAndGet());
         profile.setLocalId(System.nanoTime());
         profile.setDeviceId("REQ-ROLE-ASPECT");
         profile.setCreatedAt(System.currentTimeMillis());

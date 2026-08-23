@@ -31,16 +31,19 @@ public class InventoryController {
     private final StockMovementRepository stockMovementRepository;
     private final VendorRepository vendorRepository;
     private final InventoryService inventoryService;
+    private final com.khanabook.saas.repository.PurchaseOrderRepository purchaseOrderRepository;
 
     public InventoryController(RawMaterialRepository rawMaterialRepository,
                                ItemRecipeRepository itemRecipeRepository,
                                StockMovementRepository stockMovementRepository,
                                VendorRepository vendorRepository,
+                               com.khanabook.saas.repository.PurchaseOrderRepository purchaseOrderRepository,
                                InventoryService inventoryService) {
         this.rawMaterialRepository = rawMaterialRepository;
         this.itemRecipeRepository = itemRecipeRepository;
         this.stockMovementRepository = stockMovementRepository;
         this.vendorRepository = vendorRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
         this.inventoryService = inventoryService;
     }
 
@@ -266,6 +269,82 @@ public class InventoryController {
         v.setCreatedAt(now);
         v.setUpdatedAt(now);
         return ResponseEntity.ok(vendorRepository.save(v));
+    }
+
+    // ── Purchase Orders ───────────────────────────────────────────────────
+
+    /** Create a PO. sendNow=true marks it SENT (dispatched to vendor). */
+    @PostMapping("/purchase-orders")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> createPurchaseOrder(@RequestBody Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawLines = (List<Map<String, Object>>) body.get("items");
+            List<com.khanabook.saas.dto.PurchaseOrderDtos.PoLine> lines = new java.util.ArrayList<>();
+            if (rawLines != null) {
+                for (Map<String, Object> l : rawLines) {
+                    lines.add(new com.khanabook.saas.dto.PurchaseOrderDtos.PoLine(
+                            longOrNull(l.get("rawMaterialId")), decOrNull(l.get("quantity"))));
+                }
+            }
+            return ResponseEntity.ok(inventoryService.createPurchaseOrder(restaurantId,
+                    longOrNull(body.get("vendorId")), str(body.get("note")),
+                    lines, Boolean.TRUE.equals(body.get("sendNow"))));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/purchase-orders")
+    public ResponseEntity<?> listPurchaseOrders() {
+        Long restaurantId = requireTenant();
+        return ResponseEntity.ok(purchaseOrderRepository
+                .findByRestaurantIdOrderByCreatedAtDesc(restaurantId));
+    }
+
+    /** Receive: every PO line becomes stock-in with PURCHASE ledger rows. */
+    @PostMapping("/purchase-orders/{id}/receive")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> receivePurchaseOrder(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        try {
+            java.math.BigDecimal unitCost = body == null ? null : decOrNull(body.get("unitCost"));
+            return ResponseEntity.ok(inventoryService.receivePurchaseOrder(
+                    restaurantId, id, unitCost));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/purchase-orders/{id}/cancel")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> cancelPurchaseOrder(@PathVariable Long id) {
+        Long restaurantId = requireTenant();
+        try {
+            inventoryService.cancelPurchaseOrder(restaurantId, id);
+            return ResponseEntity.ok(Map.of("status", "CANCELLED"));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── Variance report ───────────────────────────────────────────────────
+
+    /**
+     * Unexplained-adjustment report (pilferage/theft signal), sorted worst-first.
+     * variancePct > 5% warrants investigation.
+     */
+    @GetMapping("/variance")
+    public ResponseEntity<?> varianceReport(@RequestParam String from, @RequestParam String to) {
+        Long restaurantId = requireTenant();
+        long fromMs = java.time.LocalDate.parse(from)
+                .atStartOfDay(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        long toMs = java.time.LocalDate.parse(to).plusDays(1)
+                .atStartOfDay(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        return ResponseEntity.ok(inventoryService.varianceReport(restaurantId, fromMs, toMs));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
