@@ -1,0 +1,52 @@
+FEATURE:       Smart Purchase Suggestions (reorder points)
+PRIORITY:      P2-Low-Medium (delight feature; requires purchase history from 05)
+MARKET:        POSist supply-chain suggestions. Differentiator, not dealbreaker.
+EFFORT:        3 days
+DEPENDENCIES:  Feature 05 (purchase/wastage movements) must exist first.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Learn consumption velocity per material: units consumed over last 14/30 days
+   (SALES_DEDUCT + WASTAGE movements).
+2. Days-of-stock-left = current stock / avg daily consumption.
+3. Suggest reorder when daysLeft <= threshold (default 5 days, configurable),
+   with suggested quantity = velocity * leadDays(default 3) - current stock.
+4. Surface in Android inventory as "Reorder soon" badge + a weekly digest push
+   to owner: "3 items need reordering".
+5. v2: one-tap draft purchase entry pre-filled from suggestion.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Pure computation over stock_movements - no new tables.
+Server:
+  InventoryService.computeSuggestions(restaurantId):
+    for each active material:
+      consumed = SUM(|qty| where kind IN (SALES_DEDUCT,WASTAGE)
+                     AND created_at > now-30d) / 30
+      if consumed == 0 -> skip (never-used materials are noise)
+      daysLeft = stock / consumed
+      if daysLeft <= reorderThreshold:
+         suggest qty = ceil(consumed * leadDays - stock), min 0
+    GET /inventory/suggestions
+  Config: per-material reorder_threshold_days column optional (v2);
+  global default via loyalty_settings-style row or env.
+
+Push digest:
+  Weekly cron (Mon 10am IST) -> if suggestions non-empty ->
+  pushToRestaurant("Reorder Alert", "N items running low this week").
+
+Android:
+  Inventory screen top banner: "3 items need reordering" -> list view.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+computeSuggestions service + unit tests          1d
+GET /inventory/suggestions                       0.25d
+Weekly digest cron                               0.25d
+Android banner + list                            1d
+Edge tests (zero consumption, negative stock)    0.5d
+
+GUARDRAIL: never auto-purchase anything. Suggestion only.

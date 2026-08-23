@@ -1,0 +1,58 @@
+FEATURE:       Purchase Entry / Wastage Logging / Vendor Management
+PRIORITY:      P1-Medium (completes the inventory loop: stock IN -> consume -> waste -> reorder)
+MARKET:        Petpooja advanced inventory; POSist supply chain. Owners who adopt
+               recipe-based stock immediately ask "how does stock come back in?"
+EFFORT:        6-7 days
+DEPENDENCIES:  Raw materials + ItemRecipe (V81) shipped. Low-stock alerts live.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Purchase entry: "bought 10kg paneer for Rs.2,400 from XYZ Dairy"
+   -> increases stock, records cost, updates weighted avg cost_per_unit.
+2. Wastage logging: quick action on material (-qty, reason: spoilage/spillage/
+   tasting/free issue) - separate from sales deduction.
+3. Vendors (light): name + phone only v1. No full AP ledger.
+4. Stock report: opening + purchases - sales-deduction - wastage = closing.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  vendors          (id, restaurant_id, name, phone NULL, notes,
+                    is_deleted, created_at, updated_at)
+  stock_movements  (id, restaurant_id, raw_material_id FK,
+                    kind PURCHASE|WASTAGE|SALES_DEDUCT|ADJUST|OPENING,
+                    quantity NUMERIC(12,4), unit_cost NUMERIC(12,2) NULL,
+                    vendor_id NULL, bill_id NULL (for SALES_DEDUCT),
+                    reason TEXT NULL, created_by_user_id, created_at)
+                    INDEX (restaurant_id, raw_material_id, created_at)
+
+Server:
+  InventoryController additions:
+    POST /inventory/purchases {materialId|newMaterial, qty, unitCost, vendorId?, date}
+    POST /inventory/wastage   {materialId, qty, reason}
+    GET  /inventory/movements?materialId=&from=&to=   paginated
+    GET  /inventory/summary?materialId=&month=        opening/closing breakdown
+    POST /inventory/vendors | GET /vendors
+  Weighted average cost update:
+    newAvg = (oldQty*oldAvg + purchasedQty*unitCost) / (oldQty+purchasedQty)
+  Refactor: InventoryService SALES_DEDUCT writes a movement row too
+  (currently only decrements) so summary math is complete.
+
+Android UI (extends existing InventoryScreen):
+  - Material card actions: "+ Purchase" / "- Wastage" quick dialogs
+  - Movement history sheet per material
+  - Vendors: simple list screen
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+V86 migration (2 tables + backfill OPENING rows)     0.5d
+Entities/repos                                        0.5d
+Purchase + wastage endpoints + weighted-avg cost      1d
+Movement write in InventoryService.deduct             0.5d
+Summary endpoint                                      0.5d
+Vendors endpoints                                     0.5d
+Android purchase/wastage dialogs + history            2d
+Tests (avg-cost math, movement completeness)          1d

@@ -1,0 +1,62 @@
+FEATURE:       Discount / Coupon / Combo Engine
+PRIORITY:      P1-Medium (daily-use billing feature; without it billing feels incomplete)
+MARKET:        Petpooja + POSist both ship coupon codes, happy-hour pricing,
+               combo deals. Indian restaurants run daily offers.
+EFFORT:        6-8 days
+DEPENDENCIES:  Billing discount field exists (BILLING_DISCOUNT permission exists).
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+Scope v1:
+  1. Manual discount: flat or %, per bill (exists - keep).
+  2. Coupon codes: created by owner in Settings; applied at billing.
+     Rules: % or flat, min bill amount, max discount cap, validity window,
+     usage limit total + per-customer.
+  3. Item-level offer: e.g. "20% off Dosa 3-6pm" (time-window item discount).
+
+Scope v2 (defer): combos/BOGO, auto-apply best offer, stackable rules.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  coupons        (id, restaurant_id, code VARCHAR UNIQUE(restaurant,code),
+                  kind PERCENT|FLAT|FREE_ITEM, value NUMERIC,
+                  min_bill_amount NUMERIC, max_discount NUMERIC NULL,
+                  valid_from BIGINT, valid_to BIGINT,
+                  max_uses INT NULL, max_uses_per_customer INT NULL,
+                  time_window_start TIME NULL, time_window_end TIME NULL,
+                  applies_to_menu_item_id NULL = whole bill,
+                  is_active, created_at, updated_at)
+  coupon_redemptions(id, restaurant_id, coupon_id FK, bill_id,
+                  customer_phone NULL, discount_applied NUMERIC, created_at)
+                  UNIQUE(bill_id) - idempotent
+
+Server:
+  CouponController (/coupons) OWNER-gated CRUD
+  CouponService.validate(restaurantId, code, billTotal, now, phone):
+    returns {valid, reason, discountAmount} - pure function, unit-test heavy
+    checks: active window, time-of-day window, min amount, usage caps
+    (count redemptions), per-customer cap (by phone).
+  Billing integration: Android BillingViewModel calls validate endpoint
+  (online); offline fallback = manual discount only (document clearly).
+
+Anti-abuse: redemption rows written at bill completion (not at validation);
+validation is advisory. Server recomputes final discount at sync time.
+
+Android UI:
+  Cart step: "Apply Coupon" input -> inline result (success/reason).
+  Settings > Coupons: list/create/deactivate.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+V85 migration (2 tables)                          0.5d
+Entities + repos                                  0.5d
+CouponService.validate + unit tests               1.5d
+CouponController CRUD                             1d
+Sync-time recompute hook in GenericSyncService    1d
+Android cart apply UI                             1.5d
+Android settings manage UI                        1d
+Integration tests                                 0.5d

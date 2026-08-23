@@ -1,0 +1,64 @@
+FEATURE:       Multi-Language UI (Hindi / Tamil / +regional)
+PRIORITY:      P2-Medium (Tier-2/3 expansion lever; POSist ships multi-lingual.
+               Not a conversion factor until support/marketing targets those regions.)
+MARKET:        Tier-2/3 India = Petpooja heartland. Local language reduces
+               staff-training friction - owners explicitly ask for it.
+EFFORT:        8-12 days initial (Hindi+Tamil), then ~1-2 days per language
+DEPENDENCIES:  None blocking. Best done AFTER P1 screens stabilize to avoid
+               re-translating moving UI.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+Scope decision: translate STAFF-FACING surfaces only in v1:
+  Home, Billing/Cart, Orders, KOT actions, Inventory, Settings labels,
+  toasts/errors. NOT: legal text, GST invoice content (regulated English),
+  analytics chart labels v1.
+
+Mechanism: Android standard strings.xml per locale + in-app language picker
+(per-app language, Android 13 AppCompatDelegate.setApplicationLocales;
+below 13 -> activity recreate approach).
+
+Tamil rendering: Compose handles complex scripts; test Noto Sans Tamil font
+bundling for older devices (font resource fallback).
+
+Server-side user-generated content (menu item names) stays as entered -
+never machine-translate owner data. Only chrome/UI strings translated.
+
+Web-admin v2 later; KDS/QR pages get manual language toggle reading ?lang=
+or navigator.language with same string maps in JS.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+1. Extract ALL hardcoded UI strings to res/values/strings.xml
+   (largest task - audit ~40 screen files; use lint-style grep pass).
+2. values-hi/strings.xml, values-ta/strings.xml translations
+   (professional translation for billing terms; avoid Google Translate
+   for money/tax words - e.g. correct Hindi GST terminology).
+3. Language picker in Settings > Display:
+   System default / English / Hindi / Tamil.
+4. Persist choice via AppCompatDelegate per-app locales (survives reboot).
+5. Error messages from server (English today): map known error codes to
+   localized strings client-side instead of showing raw server text
+   (aligns with existing error-code pattern like TERMINAL_LIMIT_REACHED).
+
+Process guardrail:
+  Add CI grep check preventing new hardcoded literals in ui/screens/**
+  (allowlist file shrinks over time). Prevents regression debt.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+String extraction audit (Home/Billing/Orders first)     2d
+Picker + per-app locale plumbing                        0.5d
+Hindi translation pass (professional)                   2d external
+Tamil translation pass                                  2d external
+Font bundling + Tamil rendering QA on old tablets       1d
+Server error-code mapping table                         0.5d
+CI hardcoded-string guard                               0.5d
+KDS/QR page language toggle                             1d
+Regression pass on all core flows                       1d
+
+RISK NOTE: do NOT start before Phase 0 file-splitting refactor completes -
+translating BillingViewModel-coupled screens now doubles the work later.

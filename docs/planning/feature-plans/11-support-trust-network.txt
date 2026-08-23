@@ -1,0 +1,59 @@
+FEATURE:       Support & Trust Infrastructure (non-code + code assists)
+PRIORITY:      P1-Strategic (Petpooja's real moat is 150+ city on-ground support
+               and brand recall - not features. This is a business workstream
+               with code assist pieces.)
+MARKET:        Petpooja: phone/chat support, 150+ cities. POSist: dedicated
+               account managers for enterprise. Indian owners buy the vendor,
+               not just the software.
+EFFORT:        Ongoing business initiative; ~4-6 days of code assist
+
+──────────────────────────────────────────────────────────────
+PLAN (business side)
+─────────────────────────────────────f────────────────────────
+1. Support channels at launch:
+   - WhatsApp Business number (reuses Feature 02 infra) -> human replies SLA 2h
+   - In-app Help & Support screen already exists -> add "Chat on WhatsApp"
+     deep link + ticket creation
+   - Phone callback request form
+2. Self-serve knowledge base: short videos (setup, printer pairing, KDS,
+   daily close). Host on cdn/ bucket. Hindi + English.
+3. Onboarding concierge: free guided setup call for every new signup -
+   single biggest conversion lever vs self-serve competitors.
+4. Status page (uptime.khanabook.com) - trust signal for cloud sync.
+5. Partner program for local hardware resellers (tablet + printer bundles).
+
+──────────────────────────────────────────────────────────────
+CODE ASSIST SOLUTIONS
+──────────────────────────────────────────────────────────────
+A. In-app Help upgrade:
+   HelpSupportView (exists) additions:
+     - WhatsApp deep link button (wa.me/<number>?text=prefilled shop name+issue)
+     - Ticket row model locally; syncs to server table support_tickets
+       (id, restaurant_id, category, message, status OPEN/RESOLVED,
+       created_at, resolved_at) - web-admin list view for founder/support.
+
+B. Diagnostic bundle:
+   "Send Diagnostics" button -> packages app version, terminal id, printer
+   profile status, last sync time, pending queue depth -> JSON to server.
+   Cuts support triage from 20 min to 2 min.
+
+C. Status page:
+   Server /actuator/health already exists; expose public status page via
+   static site polling health endpoint + incident banner API
+   (single-row table ops_incidents managed from web-admin).
+
+D. Proactive alerts to US (the vendor):
+   Reuse PushNotificationService admin channel:
+   - new signup / first bill milestones -> celebrate + trigger onboarding call task
+   - repeated sync failures at a restaurant -> warn before they churn.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS (code portions)
+──────────────────────────────────────────────────────────────
+support_tickets table + endpoints                  0.5d
+Help screen WhatsApp deep-link + ticket UI         1d
+Diagnostics bundle collector + endpoint            1d
+Vendor-side milestone/failure alert hooks          1d
+Status page (static + incidents API)               0.5d
+KB video hosting structure on cdn/                 0.5d
+Business tasks (BSP number, videos, partner deck)  ongoing

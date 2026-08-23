@@ -1,0 +1,29 @@
+KHANABOOK FEATURE PLANS - INDEX
+================================
+Each file = one market-gap feature: plan, solution design, implementation steps.
+
+PRIORITY ORDER
+--------------
+01-loyalty-crm.txt                 P1  5-7d    points/visits/redeem (ledger-based)
+02-whatsapp-integration.txt        P1  5-7d    receipts, order status, campaigns
+03-kds-screen.txt                  P1  3d      kitchen display web screen + pairing
+04-discount-coupon-engine.txt      P1  6-8d    coupons, item offers, validation API
+05-purchase-wastage-vendors.txt    P1  6-7d    stock-in loop + weighted avg cost
+06-purchase-suggestions.txt        P2  3d      reorder suggestions (needs 05)
+07-multi-outlet-dashboard.txt      P2  15-20d  groups, chain analytics, menu sync
+08-floorplan-merge-split.txt       P2  8-10d   tables grid, merge/split/transfer KOT
+09-aggregator-depth.txt            P1  6-8d    auto-accept, menu push to Swiggy/Zomato
+10-accounting-integrations.txt     P2  5-7d    Tally XML / Zoho daily journals
+11-support-trust-network.txt       P1* 4-6d code + business workstream
+12-multi-language-ui.txt           P2  8-12d   Hindi/Tamil, per-app locale
+
+RECOMMENDED EXECUTION ORDER
+---------------------------
+02 -> 01 -> 03 -> 09 -> 04 -> 05 -> 11(code parts) -> 06 -> 12 -> 08 -> 10 -> 07
+
+RULES
+-----
+* Every feature ships behind FeatureFlagService flag where risky.
+* Migrations numbered sequentially; backup_postgres.sh before deploy.
+* Server-first (API + tests green), then Android/web UI.
+* No feature starts before docs/planning/PLAN.md is updated with its ticket.

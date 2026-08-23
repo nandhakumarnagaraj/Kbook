@@ -1,0 +1,65 @@
+FEATURE:       Aggregator Depth - Menu Push + Auto-Accept (Swiggy/Zomato)
+PRIORITY:      P1-Medium (optimization of existing consolidation; delivery-heavy
+               restaurants compare this directly against Petpooja)
+MARKET:        Petpooja: direct API, auto-accept, real-time menu sync.
+               UrbanPiper is the middleware standard (Rs.2-3k/mo).
+EFFORT:        6-8 days
+DEPENDENCIES:  MarketplaceOrderService + webhook consolidation exist.
+               UrbanPiper account per restaurant (or direct platform APIs later).
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+Current state: orders consolidated into MarketplaceOrdersScreen; manual accept.
+
+v1 upgrades:
+  1. AUTO-ACCEPT toggle per restaurant (default off): incoming marketplace
+     webhook -> auto-confirm order to aggregator if item available.
+     Unavailable items -> reject with reason (out_of_stock) automatically.
+  2. Item availability push: Android availability toggle or stock-out
+     (current_stock=0) -> mark item unavailable on Swiggy/Zomato within 60s.
+  3. Menu sync: price/name/description/category changes pushed on publish
+     action from Menu Configuration (explicit "Sync to aggregators" button
+     with diff preview).
+
+v2: order-level adjustments (item add-ons), surge handling.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Integration route: UrbanPiper Channel API (covers both platforms, one contract).
+  Tables:
+    aggregator_links   (id, restaurant_id, platform, external_outlet_id,
+                        credentials_ref NULL, menu_version INT,
+                        last_menu_sync_at, auto_accept BOOL, is_active)
+    menu_sync_queue    (id, restaurant_id, payload_json, status
+                        QUEUED|SENT|ACKED|FAILED, attempts, created_at)
+
+Server:
+  MarketplaceOrderService enhancements:
+    - onOrderWebhook: if auto_accept && all lines available ->
+      call UP confirm endpoint immediately; else existing manual flow.
+    - availability listener: hook where MenuItem.isAvailable flips
+      (MenuConfiguration save path) -> enqueue OUT_OF_STOCK/IN_STOCK update.
+  MenuPublisher:
+    - builds UP item catalog payload from server menu tables (canonical prices),
+      queues + sends; stores menu_version; retry via WebhookRetryService pattern.
+
+Android:
+  Settings > Aggregators: connect status, auto-accept toggle,
+  "Push menu now" button + last-sync timestamp + failure banner.
+  Menu config: per-item "mark out-of-stock everywhere" quick action.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+V89 migration (2 tables)                          0.5d
+UP client (auth, confirm, catalog endpoints)      1.5d
+Auto-accept branch in order webhook (+tests)      1d
+Availability push hook                            1d
+Menu publisher + queue worker                     2d
+Android settings + menu quick actions             1d
+E2E test with UP sandbox                          1d
+
+NOTE: aggregator credentials are per-restaurant secrets - store encrypted
+(reuse payment.crypto.secret KMS pattern).

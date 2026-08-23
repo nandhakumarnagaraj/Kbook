@@ -1,0 +1,62 @@
+FEATURE:       Loyalty / CRM Program
+PRIORITY:      P1-High (top-3 retention ask in Indian market)
+MARKET:        Petpooja charges add-on; POSist has built-in advanced CRM.
+               Owners ask "how do I bring customers back?" before buying.
+EFFORT:        5-7 days
+DEPENDENCIES:  CustomerProfile entity exists (V63). Bill customer fields exist.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Identify customers by phone number at billing (already captured).
+2. Auto-enroll every paying customer into loyalty (zero-friction).
+3. Earn: 1 point per Rs.100 spent. Redeem: 1 point = Re.1, min balance gate.
+4. Visit tracking: milestone rewards (e.g. 10th visit -> free item) optional v2.
+5. Points ledger must be server-owned (anti-abuse), synced to Android read-only.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  loyalty_accounts   (id, restaurant_id, customer_profile_id UNIQUE(restaurant,customer),
+                      points_balance INT, lifetime_spent NUMERIC, created_at, updated_at)
+  loyalty_ledger     (id, restaurant_id, account_id FK, bill_id NULL,
+                      delta INT (+earn/-redeem), reason EARN/REDEEM/EXPIRE/ADJUST,
+                      created_at)
+  loyalty_settings   (restaurant_id PK, earn_rate_per_100 NUMERIC,
+                      redeem_rate INT points->Re.1, min_redeem_balance INT,
+                      is_enabled BOOL)
+
+Server:
+  LoyaltyService
+    - earnForBill(bill): called on bill finalization next to InventoryService hook;
+      idempotent via ledger unique(bill_id) where reason=EARN
+    - redeemAtBilling(restaurantId, phone, points): called by BillingViewModel
+      before settle; validates balance; writes negative ledger row atomically
+    - balanceOf(restaurantId, phone)
+  LoyaltyController (/loyalty):
+    GET  /settings | PUT /settings            OWNER-gated
+    GET  /balance?phone=                      staff-readable
+    POST /redeem {phone, points}              during billing
+    GET  /customer-history?phone=             visits + spend
+
+Android:
+  - PaymentStep: if enabled + phone entered -> show available points,
+    "Redeem X pts (-Rs.Y)" toggle.
+  - Settings > Loyalty: enable/disable, set rates.
+  - Reports later: top customers by lifetime spend.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+V83 migration (3 tables)                          0.5d
+Entities + repositories                           0.5d
+LoyaltyService earn/redeem + idempotency tests    1.5d
+LoyaltyController + settings API                  1d
+Hook earnForBill in GenericSyncService            0.5d
+Android: redeem UI in PaymentStep                 1d
+Android: settings screen                          0.5d
+Integration tests (edge: refund reverses earn?)   1d
+
+DECISION NOTE: on refunded bills, write EXPIRE reversal row (do not delete
+ledger rows - append-only ledger keeps audit clean).

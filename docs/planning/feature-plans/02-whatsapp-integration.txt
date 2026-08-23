@@ -1,0 +1,60 @@
+FEATURE:       WhatsApp Integration (receipts, order status, marketing)
+PRIORITY:      P1-High (strongest India-specific channel; Posible wins deals on "Rs.0 rental")
+MARKET:        Posible bundles WhatsApp Business API free; Petpooja needs 3rd-party
+               costing Rs.2-3k/month. Restrofi ships two-way inbox in Chain plan.
+EFFORT:        5-7 days
+DEPENDENCIES:  BSP account (Gupshup / AiSensy / Meta Cloud API direct).
+               Customer phone already captured at billing.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+Phase A (v1 - transactional, template-based):
+  1. Bill receipt message after bill completion (template: order_summary)
+  2. QR-order status updates: received -> ready -> thanks
+  3. Payment link delivery via WhatsApp (alongside existing share)
+
+Phase B (v2 - marketing):
+  4. Broadcast offers to opted-in customers (campaign screen in web-admin)
+  5. Birthday/festival templates
+
+Meta rules: transactional templates need approval; use variable placeholders.
+Opt-out compliance: honor "STOP" replies; store consent flag per customer.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  whatsapp_templates (id, restaurant_id NULL=global default, template_key,
+                      body TEXT with {{1}},{{2}} vars, is_active)
+  whatsapp_log       (id, restaurant_id, customer_phone, template_key,
+                      status QUEUED/SENT/DELIVERED/FAILED/REPLIED_STOP,
+                      error, created_at)
+
+Server:
+  WhatsAppService
+    - sendTemplate(restaurantId, phone, key, Map vars): BSP HTTP call,
+      async via @Async or queue table; retry x3 (reuse WebhookRetryService pattern)
+    - inbound webhook /webhooks/whatsapp: capture DELIVERED/READ/STOP
+  Config: env WHATSAPP_BSP_URL / WHATSAPP_API_KEY / WHATSAPP_PHONE_ID
+  Trigger points:
+    - BillService finalize -> sendReceipt (if customerWhatsapp present + consent)
+    - QR order flow -> status updates
+  Rate limit + dedupe: max 1 receipt per billId (unique constraint).
+
+Android: Settings > WhatsApp: toggle per event type, edit template vars.
+Web-admin v2: campaign composer (segment = opted-in customers).
+
+COST CONTROL: Meta Cloud API direct = per-conversation pricing (~Rs.0.30-0.80);
+utility templates cheaper than marketing. Pass-through or bundle free <N msgs/mo.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+BSP account + Meta app review (parallel, external)     2d wait
+V84 migration (2 tables)                               0.5d
+WhatsAppService + BSP adapter + webhook receiver       2d
+Trigger wiring (bill done, QR status)                  1d
+Android settings toggles                               1d
+Tests (mock BSP; verify dedupe + STOP handling)        1d
+v2 campaigns: separate ticket                          later

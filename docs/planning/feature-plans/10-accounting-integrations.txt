@@ -1,0 +1,60 @@
+FEATURE:       Accounting Integrations (Tally / Zoho Books)
+PRIORITY:      P2-Later (partnership-dependent; owners with CAs ask, but not
+               a switching factor at point of sale)
+MARKET:        POSist API-driven integrations; eZobooks competes adjacent.
+               Tally is the de-facto standard for Indian restaurant accountants.
+EFFORT:        5-7 days (Tally XML) + 4-5 days (Zoho) + ongoing maintenance
+DEPENDENCIES:  Stable daily sales summary + GST breakdown (exists in reports).
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+Phase A - Tally (highest demand):
+  1. Daily sales voucher export: one "Sales Journal" per day per GST rate
+     slab (5%/12%/18%), plus payment-mode split (cash/UPI/card/aggregator).
+  2. Export formats:
+     a. Tally-compatible XML file download (import via Gateway of Tally)
+     b. Auto-push via Tally ODBC/XML-RPC gateway if user runs TallyConnector
+        on same machine as Printer Bridge utility.
+Phase B - Zoho Books:
+  3. OAuth app -> create daily Sales Order/Invoice journal via Books API;
+     chart-of-accounts mapping screen.
+
+Scope guard: NOT full double-entry sync. Only summarized daily journals -
+accountants reconcile at day level, matching Indian CA workflow.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Server:
+  AccountingController (/accounting/integrations) OWNER-gated:
+    GET  /preview?date=          -> computed journal rows before export
+    GET  /tally-xml?date=        -> XML download (Content-Disposition)
+    GET  /zoho/status | POST /zoho/connect | POST /zoho/push?date=
+  Tables:
+    accounting_links   (id, restaurant_id, provider TALLY|ZOHO,
+                        config_json encrypted, last_push_date, is_active)
+    accounting_push_log(id, link_id FK, date, status, error NULL, created_at)
+
+Journal computation (pure SQL/service):
+  For date D: bills finalized & paid grouped by
+    (gst_rate_slab, payment_mode) ->
+      lines: Sales A/c credit, Output GST payable credit(s),
+             Cash/Bank/UPI Aggregator debit = total.
+  Round-off difference line when totals mismatch by paise.
+
+Tally XML: use standard VOUCHER Envelope (Sales type), ALLLEDGERENTRIES
+per line; tested against Tally Prime import sample.
+
+Android: Settings > Integrations > Accounting: connect + "push yesterday"
+button + last push status. Web-admin later for multi-day backfill.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+Journal computation service + unit tests           1.5d
+Tally XML serializer + sample-import validation     1.5d
+Endpoints + push log                                0.5d
+Zoho OAuth + client                                 2d (phase B)
+Android settings UI                                 1d
+Docs: CA-facing setup guide                         0.5d

@@ -1,0 +1,71 @@
+FEATURE:       Multi-Outlet / Chain Dashboard + Central Menu Sync
+PRIORITY:      P2-High-value-but-later (unlocks 2-5 outlet segment; POSist core moat)
+MARKET:        POSist/Restroworks built their enterprise business on this.
+               Restrofi Chain plan Rs.9,999/mo. Required to compete above
+               single-outlet; NOT needed for launch traction.
+EFFORT:        15-20 days (biggest build in backlog)
+DEPENDENCIES:  Everything tenant-scoped by restaurant_id today - this is the
+               foundation. SubMerchantService pattern reusable for group billing.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Outlet grouping: new entity OutletGroup (franchise/brand).
+   restaurant_profiles.outlet_group_id NULL = standalone (today's behavior).
+2. Group roles: GROUP_OWNER role sees all outlets of a group.
+3. Central menu management: author menu once at group level -> push to outlets;
+   outlets may mark items unavailable locally but not edit prices.
+4. Cross-outlet analytics: consolidated + per-outlet comparison
+   (revenue, orders, item mix, hourly) in web-admin.
+5. Consolidated payments view: per-outlet Easebuzz settlements rollup.
+
+Phased delivery:
+  Phase A: groups + roles + switcher                    (5d)
+  Phase B: cross-outlet analytics dashboard             (5d)
+  Phase C: central menu sync                            (5d)
+  Phase D: consolidated settlement view                 (3d)
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  outlet_groups     (id, name, owner_user_id, created_at, updated_at)
+  outlet_group_members (group_id FK, restaurant_id UNIQUE, is_active,
+                    joined_at)   -- keep on restaurant_profiles too for query speed
+  central_menu_items (id, group_id, name, base_price, spec_json,
+                    version INT, updated_at)
+  outlet_menu_state  (group_id, restaurant_id, central_item_id,
+                    status SYNCED|LOCAL_OFF|OVERRIDDEN, local_menu_item_id)
+
+Auth: JWT gains claim groupIds; TenantContext gains currentGroupId.
+Authorization matrix:
+  - GROUP_OWNER may act as OWNER in every member restaurant (elevation at filter level).
+  - Existing OWNER stays supreme within own outlet.
+
+Menu sync engine:
+  - Publish(group, itemSet) bumps version -> each outlet gets pending update.
+  - Outlet Android pulls via existing MasterSync extended with group cursor.
+  - Local availability toggle writes LOCAL_OFF only.
+
+Analytics:
+  Reuse /analytics/* with optional groupId param resolved server-side to
+  member restaurant list. Cache heavy aggregates (materialized nightly rollup
+  table group_daily_sales).
+
+BILLING MODEL: charge Chain plan per group monthly (Stripe/Razorpay sub later).
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS (Phase A-C detail)
+──────────────────────────────────────────────────────────────
+V87 migration (4 tables + column)                 0.5d
+Entities/repos/group service                      1.5d
+JWT group claim + elevation filter + tests        2d
+Web-admin: create/manage groups UI                1d
+Analytics group param + rollup table + cron       3d
+Web-admin comparison charts                       2d
+Central menu publish + outlet state machine       4d
+Android consume synced menu updates               1d
+Integration tests across 3 simulated outlets      2d
+
+RISK: largest surface area touched so far. Ship behind feature flag
+(FeatureFlagService exists) enabled per restaurant group.

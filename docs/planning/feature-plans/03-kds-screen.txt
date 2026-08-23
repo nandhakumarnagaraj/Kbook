@@ -1,0 +1,55 @@
+FEATURE:       Kitchen Display System (KDS) - web screen
+PRIORITY:      P1-Medium-High (cheap win: Petpooja sells this as paid add-on)
+MARKET:        Petpooja KDS = add-on cost; BillFeeds includes basic KDS at Rs.999.
+               A free included KDS is a strong demo moment.
+EFFORT:        3 days
+DEPENDENCIES:  Existing push notification stack (per-device targeting built).
+               Existing KOT pipeline + kot_events table.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Browser-based kitchen screen at /kds (tablet mounted in kitchen).
+2. Live tiles per active order: items, qty, table, elapsed-time color
+   (green <5min, amber <10min, red >10min).
+3. Actions: Mark Ready / Mark Served (writes back to bill flow via API).
+4. Auth: reuse terminal token OR simple pairing code (owner generates
+   6-digit code valid 24h from Android Settings > KDS).
+5. Audio chime on new order (WebAudio beep - no asset needed).
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Realtime choice: polling vs WebSocket.
+  v1 = 5-second polling of GET /kds/orders?since=<cursor>
+       (kitchens tolerate 5s; avoids WebSocket infra work now)
+  v2 = upgrade to WS using Redis pub/sub if demanded.
+
+Server:
+  KdsController (/kds, paired-device auth):
+    GET  /orders      -> active bills (draft/completed-not-served)
+                         joined with items; cursor by serverUpdatedAt
+    POST /orders/{id}/ready
+    POST /orders/{id}/served
+    GET  /pair-code | POST /pair-verify   OWNER-gated generation
+  Persistence: reuse bills.orderStatus; add "served" flag on bill or
+  kds_state table (bill_id PK, served_at). Prefer kds_state to avoid
+  colliding with Android orderStatus semantics.
+
+Frontend:
+  static/kds/index.html - single file like QR PWA (no build step):
+  grid of tiles, big fonts, dark theme, touch targets >=48px,
+  auto-fullscreen prompt. Pairing: enter code once -> stored in
+  localStorage as long-lived token.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+Pairing endpoints + token issue                  0.5d
+KdsController orders query + ready/served        1d
+static/kds UI (tiles, timer colors, chime)       1d
+SecurityConfig permit /kds/** with token check   0.25d
+Tests (order visibility scoping per restaurant)  0.25d
+
+EDGE CASES: multi-terminal - same bill must appear once; served state syncs
+back so POS Active Orders view stays consistent (reuse existing status write path).

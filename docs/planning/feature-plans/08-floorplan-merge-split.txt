@@ -1,0 +1,68 @@
+FEATURE:       Table Floor Plan + Merge/Split Bills + KOT Transfer
+PRIORITY:      P2-Low-Medium (matters for larger dine-in; QR covers small formats)
+MARKET:        Petpooja advanced table management; POSist floor plans.
+               Standard expectation for casual-dining restaurants 40+ seats.
+EFFORT:        8-10 days
+DEPENDENCIES:  Existing bill flow, KOT pipeline, terminal ownership model.
+
+──────────────────────────────────────────────────────────────
+PLAN
+──────────────────────────────────────────────────────────────
+1. Floor plan config: areas (Hall/Terrace/Garden) -> tables (name, seats).
+2. Visual grid in Android: color state per table
+   (free / occupied / billed-awaiting-payment).
+3. Open order on table = draft bill linked to table.
+4. Merge: combine N open bills into one (items appended, others voided).
+5. Transfer: move an open bill to another table (KOT reprint optional).
+6. Split: divide a bill - v1 = split by item selection into new bill;
+   v2 = even-per-head.
+
+──────────────────────────────────────────────────────────────
+SOLUTION (design)
+──────────────────────────────────────────────────────────────
+Tables:
+  dining_areas  (id, restaurant_id, name, sort_order)
+  dining_tables (id, restaurant_id, area_id FK, name UNIQUE(area,name),
+                 seats INT, sort_order)
+  Bill gains    dining_table_id NULL (existing QR tableLabel migrates later)
+
+State derivation (no stored status): table is OCCUPIED if exists bill with
+orderStatus='draft' AND dining_table_id=X AND isDeleted=false.
+Query with index (restaurant_id, dining_table_id).
+
+Server:
+  TableController (/tables) OWNER-gated config CRUD
+  FloorController:
+    GET /floor                -> areas+tables+live states (single query set)
+  MergeService.merge(targetBillId, sourceIds):
+    - all bills must be draft + same restaurant (+ same terminal or admin)
+    - moves BillItems to target (recompute totals), marks sources
+      cancelled(reason="merged"), writes coupon redemption? none yet
+    - audit MERGE_BILLS
+  TransferService.transfer(billId, toTableId): update link + audit
+  SplitService.splitByItems(billId, itemIdQtyMap): creates child bill,
+    moves selected items, adjusts parent totals. Parent/child linked via
+    split_group_uuid for reporting dedup.
+
+Android:
+  New "Tables" home tab (permission-gated orders.view): grid UI,
+  tap table -> open/create bill (pre-selects table), long-press menu ->
+  transfer/merge/split flows reusing BillingViewModel.
+
+Reporting note: merged/cancelled-merge bills excluded from sales reports;
+split children counted individually.
+
+──────────────────────────────────────────────────────────────
+IMPLEMENTATION STEPS
+──────────────────────────────────────────────────────────────
+V88 migration (3 tables + bill column)            0.5d
+Config CRUD + tests                               1d
+Floor query endpoint                              0.5d
+Merge service + tests                             1.5d
+Transfer + tests                                  0.5d
+Split-by-items + tests                            2d
+Android Tables tab + grid                         2d
+Android merge/split flows                         2d
+
+EDGE CASES: concurrent edits from two terminals -> reuse terminal-ownership
+guard; payment started on one bill during merge -> block via SELECT FOR UPDATE.
