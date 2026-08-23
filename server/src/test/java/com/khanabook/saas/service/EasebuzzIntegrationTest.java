@@ -315,6 +315,10 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     private Bill createTestBill(Long restaurantId, BigDecimal amount) {
+        // The integration H2 database is shared across test classes; clear any
+        // leftover row with the same natural key before inserting.
+        billRepository.findByRestaurantIdAndDeviceIdAndLocalId(restaurantId, "TEST_DEVICE", 1L)
+                .ifPresent(billRepository::delete);
         Bill bill = new Bill();
         bill.setRestaurantId(restaurantId);
         bill.setLocalId(1L);

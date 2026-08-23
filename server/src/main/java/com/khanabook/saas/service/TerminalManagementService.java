@@ -48,6 +48,11 @@ public class TerminalManagementService {
     private final DeviceRegistrationRequestRepository requestRepository;
     private final JwtUtility jwtUtility;
     private final SecurityAuditService securityAuditService;
+    private final com.khanabook.saas.repository.UserRepository userRepository;
+
+    // Optional: push notifications are disabled when Firebase isn't configured.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private PushNotificationService pushNotificationService;
 
     // ── Request creation ────────────────────────────────────────────────────────
 
@@ -113,7 +118,14 @@ public class TerminalManagementService {
         request.setChallengeCode(generateChallenge());
         request.setChallengeExpiresAt(now + CHALLENGE_TTL_MS);
         request.setChallengeAttempts(0);
-        return requestRepository.save(request);
+        DeviceRegistrationRequest saved = requestRepository.save(request);
+
+        notifyOwners(restaurantId, "New Device Request",
+                "A device (" + deviceModel + ") wants to join your restaurant. "
+                        + "Approve it from Settings → Terminals.",
+                String.valueOf(saved.getId()));
+
+        return saved;
     }
 
     /**
@@ -281,6 +293,12 @@ public class TerminalManagementService {
         log.info("Terminal approved: restaurant={} series={} type={} approvedBy={}",
                 restaurantId, terminal.getTerminalSeries(), request.getRequestType(), approvedByUserId);
 
+        notifyOwners(restaurantId, "Terminal Activated",
+                (terminal.getTerminalName() != null ? terminal.getTerminalName() : "Terminal "
+                        + terminal.getTerminalSeries())
+                        + " is now active for your restaurant.",
+                String.valueOf(terminal.getId()));
+
         return new ActivationResult(terminal, token);
     }
 
@@ -325,6 +343,12 @@ public class TerminalManagementService {
 
         securityAuditService.record("TERMINAL_DEACTIVATED", "SUCCESS",
                 terminal.getTerminalSeries(), terminal.getDeviceId());
+
+        notifyOwners(restaurantId, "Terminal Deactivated",
+                (terminal.getTerminalName() != null ? terminal.getTerminalName() : "Terminal "
+                        + terminal.getTerminalSeries())
+                        + " was deactivated. It can no longer sync data.",
+                String.valueOf(terminal.getId()));
     }
 
     // ── Recovery (same logical terminal, new device binding) ─────────────────────
@@ -394,6 +418,12 @@ public class TerminalManagementService {
 
             securityAuditService.record("TERMINAL_RECOVERED", "SUCCESS",
                     terminal.getTerminalSeries(), newDeviceId);
+
+            notifyOwners(restaurantId, "Terminal Recovered",
+                    (terminal.getTerminalName() != null ? terminal.getTerminalName() : "Terminal "
+                            + terminal.getTerminalSeries())
+                            + " was recovered and bound to a replacement device.",
+                    String.valueOf(terminal.getId()));
         }
 
         String tid = terminal.getId().toString();
@@ -450,5 +480,35 @@ public class TerminalManagementService {
     // ── Result record ───────────────────────────────────────────────────────────
 
     public record ActivationResult(RestaurantTerminal terminal, String terminalToken) {
+    }
+    // ── Notifications & heartbeat ─────────────────────────────────────────────
+
+    /** Push a terminal event to the restaurant's owner devices. Never throws. */
+    private void notifyOwners(Long restaurantId, String title, String message, String referenceId) {
+        if (pushNotificationService == null) return;
+        try {
+            var owners = userRepository.findByRestaurantIdAndRoleAndIsDeletedFalse(
+                    restaurantId, com.khanabook.saas.entity.UserRole.OWNER);
+            java.util.List<Long> ownerIds = owners.stream()
+                    .map(com.khanabook.saas.entity.User::getId).toList();
+            pushNotificationService.pushToUsers(restaurantId, ownerIds,
+                    title, message, "terminal", referenceId, "terminal", null);
+        } catch (Exception e) {
+            log.warn("Terminal notification failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Heartbeat: called on authenticated terminal pulls. Throttled in SQL
+     * (at most once per 60s per terminal) to avoid write amplification.
+     * Never throws — a failed heartbeat must not fail the pull.
+     */
+    public void touchLastSeen(Long restaurantId, Long terminalId) {
+        try {
+            long now = System.currentTimeMillis();
+            terminalRepository.touchLastSeen(terminalId, restaurantId, now, now - 60_000L);
+        } catch (Exception e) {
+            log.debug("Terminal heartbeat skipped: {}", e.getMessage());
+        }
     }
 }

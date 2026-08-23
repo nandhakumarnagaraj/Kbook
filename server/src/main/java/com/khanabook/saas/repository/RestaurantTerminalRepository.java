@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.RestaurantTerminal;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,13 @@ import java.util.List;
 
 @Repository
 public interface RestaurantTerminalRepository extends JpaRepository<RestaurantTerminal, Long> {
+
+	@Modifying
+	@Query("UPDATE RestaurantTerminal t SET t.lastSeenAt = :now " +
+			"WHERE t.id = :terminalId AND t.restaurantId = :restaurantId " +
+			"AND (t.lastSeenAt IS NULL OR t.lastSeenAt < :cutoff)")
+	int touchLastSeen(@Param("terminalId") Long terminalId, @Param("restaurantId") Long restaurantId,
+					  @Param("now") Long now, @Param("cutoff") Long cutoff);
 
 	/**
 	 * Look up a terminal registration and take a pessimistic write lock so that

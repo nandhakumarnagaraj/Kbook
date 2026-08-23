@@ -53,6 +53,7 @@ public class MasterSyncController {
 	private final BillItemRepository billItemRepository;
 	private final BillPaymentRepository billPaymentRepository;
 	private final FeatureFlagService featureFlagService;
+	private final com.khanabook.saas.service.TerminalManagementService terminalManagementService;
 	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
@@ -110,7 +111,15 @@ public class MasterSyncController {
 		// from the client query parameter. A supplied query terminal id is only honoured as a
 		// legacy fallback while compatibility mode is enabled; any mismatch with the token is
 		// rejected so Terminal B cannot request Terminal A's operational records.
-		String authenticatedTerminalId = TenantContext.getCurrentTerminalId();
+		String authenticatedTerminalId = TenantContext.getCurrentTenant() != null
+				? TenantContext.getCurrentTerminalId() : null;
+		// Heartbeat: record that this terminal is alive (throttled to 1/60s in SQL).
+		if (authenticatedTerminalId != null && !authenticatedTerminalId.isBlank()) {
+			try {
+				terminalManagementService.touchLastSeen(TenantContext.getCurrentTenant(),
+						Long.valueOf(authenticatedTerminalId));
+			} catch (NumberFormatException ignored) { }
+		}
 		boolean isAdmin = "KBOOK_ADMIN".equals(role);
 		String effectiveTerminalId;
 		if (authenticatedTerminalId != null && !authenticatedTerminalId.isBlank()) {

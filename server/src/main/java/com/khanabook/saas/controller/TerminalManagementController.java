@@ -168,7 +168,8 @@ public class TerminalManagementController {
 
     public record TerminalDto(Long id, String terminalSeries, String terminalName,
                               String status, Boolean isActive, String deviceId,
-                              Long credentialVersion, Long createdAt, Long updatedAt) {
+                              Long credentialVersion, Long createdAt, Long updatedAt,
+                              Long lastSeenAt) {
     }
 
     public record RequestDto(Long id, String deviceId, String deviceModel, String deviceName,
@@ -201,7 +202,7 @@ public class TerminalManagementController {
     private TerminalDto toDto(RestaurantTerminal t) {
         return new TerminalDto(t.getId(), t.getTerminalSeries(), t.getTerminalName(),
                 t.getStatus(), t.getIsActive(), t.getDeviceId(),
-                t.getCredentialVersion(), t.getCreatedAt(), t.getUpdatedAt());
+                t.getCredentialVersion(), t.getCreatedAt(), t.getUpdatedAt(), t.getLastSeenAt());
     }
 
     private RequestDto toRequestDto(DeviceRegistrationRequest r) {

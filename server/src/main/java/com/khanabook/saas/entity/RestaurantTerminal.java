@@ -65,4 +65,7 @@ public class RestaurantTerminal {
 
 	@Column(name = "updated_at")
 	private Long updatedAt;
+
+	@Column(name = "last_seen_at")
+	private Long lastSeenAt;
 }
