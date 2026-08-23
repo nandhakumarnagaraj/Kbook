@@ -2,11 +2,15 @@ package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.ItemRecipe;
 import com.khanabook.saas.entity.RawMaterial;
+import com.khanabook.saas.entity.StockMovement;
 import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.ItemRecipeRepository;
 import com.khanabook.saas.repository.RawMaterialRepository;
+import com.khanabook.saas.repository.StockMovementRepository;
+import com.khanabook.saas.repository.VendorRepository;
 import com.khanabook.saas.security.RequireRole;
 import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.service.InventoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +18,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Recipe-based raw-material inventory (Phase 3). Tenant-scoped by JWT;
- * management actions are OWNER-only, reads allowed for all staff.
+ * Recipe-based raw-material inventory (Phase 3 + Plan 05 loop).
+ * Tenant-scoped by JWT; management actions are OWNER-only, reads allowed
+ * for all staff.
  */
 @RestController
 @RequestMapping("/inventory")
@@ -23,11 +28,20 @@ public class InventoryController {
 
     private final RawMaterialRepository rawMaterialRepository;
     private final ItemRecipeRepository itemRecipeRepository;
+    private final StockMovementRepository stockMovementRepository;
+    private final VendorRepository vendorRepository;
+    private final InventoryService inventoryService;
 
     public InventoryController(RawMaterialRepository rawMaterialRepository,
-                               ItemRecipeRepository itemRecipeRepository) {
+                               ItemRecipeRepository itemRecipeRepository,
+                               StockMovementRepository stockMovementRepository,
+                               VendorRepository vendorRepository,
+                               InventoryService inventoryService) {
         this.rawMaterialRepository = rawMaterialRepository;
         this.itemRecipeRepository = itemRecipeRepository;
+        this.stockMovementRepository = stockMovementRepository;
+        this.vendorRepository = vendorRepository;
+        this.inventoryService = inventoryService;
     }
 
     // ── Raw materials ─────────────────────────────────────────────────────
@@ -157,6 +171,101 @@ public class InventoryController {
                     return ResponseEntity.ok(Map.of("status", "deleted"));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Stock loop: purchase / wastage / physical count / movements ───────
+
+    /** Stock-in: delivery arrived. Updates stock + weighted-avg cost + expiry. */
+    @PostMapping("/purchase")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> purchase(@RequestBody Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        try {
+            Long materialId = longOrNull(body.get("materialId"));
+            java.math.BigDecimal qty = decOrNull(body.get("quantity"));
+            if (materialId == null || qty == null || qty.signum() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "materialId and positive quantity required"));
+            }
+            return ResponseEntity.ok(inventoryService.purchase(restaurantId, materialId, qty,
+                    decOrNull(body.get("unitCost")), longOrNull(body.get("vendorId")),
+                    longOrNull(body.get("expiryDate"))));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Wastage: spoilage/spillage/tasting — reason mandatory. */
+    @PostMapping("/wastage")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> wastage(@RequestBody Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        try {
+            Long materialId = longOrNull(body.get("materialId"));
+            java.math.BigDecimal qty = decOrNull(body.get("quantity"));
+            String reason = str(body.get("reason"));
+            if (materialId == null || qty == null || qty.signum() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "materialId and positive quantity required"));
+            }
+            return ResponseEntity.ok(inventoryService.wastage(restaurantId, materialId, qty, reason));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Evening physical count. Returns the variance (counted - system);
+     * writes an ADJUST movement so the ledger stays truthful.
+     */
+    @PostMapping("/physical-count")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> physicalCount(@RequestBody Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        try {
+            Long materialId = longOrNull(body.get("materialId"));
+            java.math.BigDecimal counted = decOrNull(body.get("countedQty"));
+            if (materialId == null || counted == null || counted.signum() < 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "materialId and countedQty >= 0 required"));
+            }
+            return ResponseEntity.ok(inventoryService.adjustPhysicalCount(
+                    restaurantId, materialId, counted, TenantContext.getCurrentUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Movement history per material (the audit trail). */
+    @GetMapping("/movements/{materialId}")
+    public ResponseEntity<List<StockMovement>> movements(@PathVariable Long materialId) {
+        Long restaurantId = requireTenant();
+        return ResponseEntity.ok(stockMovementRepository
+                .findByRestaurantIdAndRawMaterialIdOrderByCreatedAtDesc(restaurantId, materialId));
+    }
+
+    // ── Vendors ───────────────────────────────────────────────────────────
+
+    @GetMapping("/vendors")
+    public ResponseEntity<?> listVendors() {
+        return ResponseEntity.ok(vendorRepository
+                .findByRestaurantIdAndIsDeletedFalseOrderByNameAsc(requireTenant()));
+    }
+
+    @PostMapping("/vendors")
+    @RequireRole({UserRole.OWNER})
+    public ResponseEntity<?> createVendor(@RequestBody Map<String, Object> body) {
+        Long restaurantId = requireTenant();
+        String name = str(body.get("name"));
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+        }
+        com.khanabook.saas.entity.Vendor v = new com.khanabook.saas.entity.Vendor();
+        v.setRestaurantId(restaurantId);
+        v.setName(name.trim());
+        v.setPhone(str(body.get("phone")));
+        v.setNotes(str(body.get("notes")));
+        long now = System.currentTimeMillis();
+        v.setCreatedAt(now);
+        v.setUpdatedAt(now);
+        return ResponseEntity.ok(vendorRepository.save(v));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

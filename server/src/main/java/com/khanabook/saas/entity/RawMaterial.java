@@ -46,4 +46,8 @@ public class RawMaterial {
 
     @Column(name = "updated_at", nullable = false)
     private Long updatedAt;
+
+    /** Latest known expiry of this material (from most recent purchase). */
+    @Column(name = "expiry_date")
+    private Long expiryDate;
 }

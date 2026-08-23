@@ -18,4 +18,9 @@ public interface ItemRecipeRepository extends JpaRepository<ItemRecipe, Long> {
     @Query("SELECT DISTINCT r.menuItemId FROM ItemRecipe r " +
            "WHERE r.restaurantId = :restaurantId AND r.isDeleted = false")
     List<Long> findMenuItemIdsWithRecipes(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT r FROM ItemRecipe r WHERE r.restaurantId = :restaurantId " +
+           "AND r.rawMaterial.id = :rawMaterialId AND r.isDeleted = false")
+    List<ItemRecipe> findByRestaurantIdAndRawMaterial(@Param("restaurantId") Long restaurantId,
+                                                      @Param("rawMaterialId") Long rawMaterialId);
 }

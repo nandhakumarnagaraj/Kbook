@@ -3,10 +3,14 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.ItemRecipe;
+import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.RawMaterial;
+import com.khanabook.saas.entity.StockMovement;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.ItemRecipeRepository;
+import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RawMaterialRepository;
+import com.khanabook.saas.repository.StockMovementRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,15 +37,21 @@ public class InventoryService {
 	private final ItemRecipeRepository itemRecipeRepository;
 	private final BillItemRepository billItemRepository;
 	private final PushNotificationService pushNotificationService;
+	private final StockMovementRepository stockMovementRepository;
+	private final MenuItemRepository menuItemRepository;
 
 	public InventoryService(RawMaterialRepository rawMaterialRepository,
 							ItemRecipeRepository itemRecipeRepository,
 							BillItemRepository billItemRepository,
-							PushNotificationService pushNotificationService) {
+							PushNotificationService pushNotificationService,
+							StockMovementRepository stockMovementRepository,
+							MenuItemRepository menuItemRepository) {
 		this.rawMaterialRepository = rawMaterialRepository;
 		this.itemRecipeRepository = itemRecipeRepository;
 		this.billItemRepository = billItemRepository;
 		this.pushNotificationService = pushNotificationService;
+		this.stockMovementRepository = stockMovementRepository;
+		this.menuItemRepository = menuItemRepository;
 	}
 
 	/**
@@ -82,9 +92,15 @@ public class InventoryService {
 		for (Map.Entry<Long, BigDecimal> entry : deductions.entrySet()) {
 			rawMaterialRepository.findById(entry.getKey()).ifPresent(material -> {
 				boolean wasAboveThreshold = !isAtOrBelowThreshold(material);
+				boolean wasInStock = material.getStockQuantity().signum() > 0;
 				material.setStockQuantity(material.getStockQuantity().subtract(entry.getValue()));
 				material.setUpdatedAt(System.currentTimeMillis());
 				rawMaterialRepository.save(material);
+
+				recordMovement(tenantId, material, StockMovement.KIND_SALES_DEDUCT,
+						entry.getValue().negate(), null, null,
+						"Bill #" + bill.getId(), bill.getId(), null);
+				billItemRepository.flush();
 
 				if (wasAboveThreshold && isAtOrBelowThreshold(material)) {
 					try {
@@ -101,12 +117,160 @@ public class InventoryService {
 						log.warn("Failed to push low-stock alert: {}", e.getMessage());
 					}
 				}
+
+				if (wasInStock && material.getStockQuantity().signum() <= 0) {
+					cascadeOutOfStock(tenantId, material);
+				}
 			});
 		}
 
 		bill.setInventoryDeducted(true);
 		log.info("Inventory deducted for billId={} restaurantId={} materials={}",
 				bill.getId(), tenantId, deductions.size());
+	}
+
+	/**
+	 * When a raw material is exhausted, every menu item whose recipe needs it
+	 * becomes unavailable everywhere it is sold (POS sync + customer QR page).
+	 */
+	private void cascadeOutOfStock(Long tenantId, RawMaterial material) {
+		try {
+			List<ItemRecipe> recipes = itemRecipeRepository
+					.findByRestaurantIdAndRawMaterial(tenantId, material.getId());
+			int hidden = 0;
+			for (ItemRecipe recipe : recipes) {
+				menuItemRepository.findById(recipe.getMenuItemId())
+						.filter(mi -> mi.getRestaurantId().equals(tenantId)
+								&& Boolean.TRUE.equals(mi.getIsAvailable()))
+						.ifPresent(mi -> {
+							mi.setIsAvailable(false);
+							mi.setUpdatedAt(System.currentTimeMillis());
+							menuItemRepository.save(mi);
+						});
+				hidden++;
+			}
+			pushNotificationService.pushToRestaurant(
+					tenantId,
+					"Out of Stock",
+					material.getName() + " finished. " + hidden
+							+ " menu item(s) hidden automatically.",
+					"inventory_low",
+					String.valueOf(material.getId()),
+					"raw_material",
+					null);
+			log.info("Zero-stock cascade: restaurantId={} material={} hid {} items",
+					tenantId, material.getName(), hidden);
+		} catch (Exception e) {
+			log.warn("Zero-stock cascade failed for {}: {}", material.getName(), e.getMessage());
+		}
+	}
+
+	// ── Manual stock loop: purchase / wastage / physical count ────────────
+
+	/** Stock-in with weighted-average cost update + optional new expiry date. */
+	@Transactional
+	public RawMaterial purchase(Long restaurantId, Long materialId, BigDecimal quantity,
+								BigDecimal unitCost, Long vendorId, Long expiryDate) {
+		RawMaterial material = rawMaterialRepository.findById(materialId)
+				.filter(m -> m.getRestaurantId().equals(restaurantId))
+				.orElseThrow(() -> new IllegalArgumentException("Material not found"));
+		BigDecimal oldQty = material.getStockQuantity();
+		BigDecimal oldAvg = material.getCostPerUnit() != null ? material.getCostPerUnit() : BigDecimal.ZERO;
+
+		if (unitCost != null && oldQty.signum() > 0) {
+			BigDecimal totalValue = oldAvg.multiply(oldQty).add(unitCost.multiply(quantity));
+			material.setCostPerUnit(totalValue.divide(oldQty.add(quantity), 2, java.math.RoundingMode.HALF_UP));
+		} else if (unitCost != null) {
+			material.setCostPerUnit(unitCost);
+		}
+		material.setStockQuantity(oldQty.add(quantity));
+		if (expiryDate != null) material.setExpiryDate(expiryDate);
+		material.setUpdatedAt(System.currentTimeMillis());
+		RawMaterial saved = rawMaterialRepository.save(material);
+
+		recordMovement(restaurantId, saved, StockMovement.KIND_PURCHASE,
+				quantity, unitCost, vendorId, null, null, null);
+		return saved;
+	}
+
+	/** Wastage with a mandatory reason; fires zero-stock cascade if exhausted. */
+	@Transactional
+	public RawMaterial wastage(Long restaurantId, Long materialId, BigDecimal quantity, String reason) {
+		if (reason == null || reason.isBlank()) {
+			throw new IllegalArgumentException("Wastage reason is required");
+		}
+		RawMaterial material = rawMaterialRepository.findById(materialId)
+				.filter(m -> m.getRestaurantId().equals(restaurantId))
+				.orElseThrow(() -> new IllegalArgumentException("Material not found"));
+		boolean wasAboveThreshold = !isAtOrBelowThreshold(material);
+		boolean wasInStock = material.getStockQuantity().signum() > 0;
+
+		material.setStockQuantity(material.getStockQuantity().subtract(quantity));
+		material.setUpdatedAt(System.currentTimeMillis());
+		RawMaterial saved = rawMaterialRepository.save(material);
+
+		recordMovement(restaurantId, saved, StockMovement.KIND_WASTAGE,
+				quantity.negate(), null, null, reason, null, null);
+
+		if (wasAboveThreshold && isAtOrBelowThreshold(saved)) {
+			try {
+				pushNotificationService.pushToRestaurant(restaurantId, "Low Stock Alert",
+						saved.getName() + " running low after wastage ("
+								+ saved.getStockQuantity().toPlainString() + " " + saved.getUnit() + ")",
+						"inventory_low", String.valueOf(saved.getId()), "raw_material", null);
+			} catch (Exception e) {
+				log.warn("Low-stock push failed: {}", e.getMessage());
+			}
+		}
+		if (wasInStock && saved.getStockQuantity().signum() <= 0) {
+			cascadeOutOfStock(restaurantId, saved);
+		}
+		return saved;
+	}
+
+	/**
+	 * Evening physical count reconciliation. Returns the variance
+	 * (counted - system). Positive variance = found extra, negative = missing.
+	 */
+	@Transactional
+	public Map<String, Object> adjustPhysicalCount(Long restaurantId, Long materialId,
+												   BigDecimal countedQty, Long userId) {
+		RawMaterial material = rawMaterialRepository.findById(materialId)
+				.filter(m -> m.getRestaurantId().equals(restaurantId))
+				.orElseThrow(() -> new IllegalArgumentException("Material not found"));
+		BigDecimal systemQty = material.getStockQuantity();
+		BigDecimal variance = countedQty.subtract(systemQty);
+		material.setStockQuantity(countedQty);
+		material.setUpdatedAt(System.currentTimeMillis());
+		rawMaterialRepository.save(material);
+
+		recordMovement(restaurantId, material, StockMovement.KIND_ADJUST, variance,
+				null, null, "Physical count reconciliation", null, userId);
+
+		Map<String, Object> result = new HashMap<>();
+		result.put("materialId", materialId);
+		result.put("name", material.getName());
+		result.put("systemQty", systemQty);
+		result.put("countedQty", countedQty);
+		result.put("variance", variance);
+		return result;
+	}
+
+	private void recordMovement(Long restaurantId, RawMaterial material, String kind,
+								BigDecimal quantity, BigDecimal unitCost, Long vendorId,
+								String reason, Long billId, Long userId) {
+		StockMovement mv = new StockMovement();
+		mv.setRestaurantId(restaurantId);
+		mv.setRawMaterial(material);
+		mv.setKind(kind);
+		mv.setQuantity(quantity);
+		mv.setUnitCost(unitCost);
+		mv.setVendorId(vendorId);
+		mv.setReason(reason);
+		mv.setBillId(billId);
+		mv.setCreatedByUserId(userId);
+		mv.setCreatedAt(System.currentTimeMillis());
+		stockMovementRepository.save(mv);
 	}
 
 	private boolean isAtOrBelowThreshold(RawMaterial material) {
