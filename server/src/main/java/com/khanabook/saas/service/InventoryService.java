@@ -7,6 +7,7 @@ import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.RawMaterial;
 import com.khanabook.saas.entity.StockMovement;
 import com.khanabook.saas.repository.BillItemRepository;
+import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.ItemRecipeRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RawMaterialRepository;
@@ -37,6 +38,7 @@ public class InventoryService {
 	private final RawMaterialRepository rawMaterialRepository;
 	private final ItemRecipeRepository itemRecipeRepository;
 	private final BillItemRepository billItemRepository;
+	private final BillRepository billRepository;
 	private final PushNotificationService pushNotificationService;
 	private final StockMovementRepository stockMovementRepository;
 	private final MenuItemRepository menuItemRepository;
@@ -45,6 +47,7 @@ public class InventoryService {
 	public InventoryService(RawMaterialRepository rawMaterialRepository,
 							ItemRecipeRepository itemRecipeRepository,
 							BillItemRepository billItemRepository,
+							BillRepository billRepository,
 							PushNotificationService pushNotificationService,
 							StockMovementRepository stockMovementRepository,
 							MenuItemRepository menuItemRepository,
@@ -52,6 +55,7 @@ public class InventoryService {
 		this.rawMaterialRepository = rawMaterialRepository;
 		this.itemRecipeRepository = itemRecipeRepository;
 		this.billItemRepository = billItemRepository;
+		this.billRepository = billRepository;
 		this.pushNotificationService = pushNotificationService;
 		this.stockMovementRepository = stockMovementRepository;
 		this.menuItemRepository = menuItemRepository;
@@ -104,7 +108,6 @@ public class InventoryService {
 				recordMovement(tenantId, material, StockMovement.KIND_SALES_DEDUCT,
 						entry.getValue().negate(), null, null,
 						"Bill #" + bill.getId(), bill.getId(), null);
-				billItemRepository.flush();
 
 				if (wasAboveThreshold && isAtOrBelowThreshold(material)) {
 					try {
@@ -129,6 +132,7 @@ public class InventoryService {
 		}
 
 		bill.setInventoryDeducted(true);
+		billRepository.save(bill); // explicit: payload copies are detached after merge()
 		log.info("Inventory deducted for billId={} restaurantId={} materials={}",
 				bill.getId(), tenantId, deductions.size());
 	}

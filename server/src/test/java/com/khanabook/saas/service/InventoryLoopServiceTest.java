@@ -37,6 +37,8 @@ class InventoryLoopServiceTest extends BaseIntegrationTest {
     @Autowired private BillItemRepository billItemRepository;
     @Autowired private BillRepository billRepository;
     @Autowired private com.khanabook.saas.repository.CategoryRepository categoryRepository;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
 
     private Long restaurant;
 
@@ -215,5 +217,78 @@ class InventoryLoopServiceTest extends BaseIntegrationTest {
                     assertThat(mv.getQuantity()).isEqualByComparingTo("-6");
                     assertThat(mv.getBillId()).isEqualTo(savedBill.getId());
                 });
+    }
+
+    @Test
+    void mergedUpdatePush_deductsOnce_andPersistsDeductedFlag() {
+        // Reproduces the C2 bug: GenericSyncService saves the bill via merge()
+        // (detached payload copy), then calls deduction. The flag must survive
+        // commit on the MANAGED instance, and a second push must not re-deduct.
+        RawMaterial m = seedMaterial(10);
+        MenuItem item = seedMenuItem(true);
+        ItemRecipe r = new ItemRecipe();
+        r.setRestaurantId(restaurant);
+        r.setMenuItemId(item.getId());
+        r.setRawMaterial(m);
+        r.setQuantityPerItem(BigDecimal.valueOf(5));
+        long t = System.currentTimeMillis();
+        r.setCreatedAt(t);
+        r.setUpdatedAt(t);
+        itemRecipeRepository.save(r);
+
+        Bill draft = new Bill();
+        fillSync(draft);
+        draft.setOrderStatus("draft");
+        draft.setPaymentStatus("pending");
+        draft.setPaymentMode("cash");
+        draft.setOrderType("dine_in");
+        draft.setTotalAmount(BigDecimal.TEN);
+        draft.setSubtotal(BigDecimal.TEN);
+        draft.setLastResetDate(java.time.LocalDate.now().toString());
+        draft.setDailyOrderId(seq++);
+        Bill savedDraft = billRepository.save(draft);
+        Long serverId = savedDraft.getId();
+
+        BillItem bi = new BillItem();
+        fillSync(bi);
+        bi.setBillId(serverId);
+        bi.setServerBillId(serverId);
+        bi.setMenuItemId(item.getId());
+        bi.setItemName("X");
+        bi.setPrice(BigDecimal.TEN);
+        bi.setQuantity(1);
+        bi.setItemTotal(BigDecimal.TEN);
+        billItemRepository.save(bi);
+        billItemRepository.flush();
+
+        // Simulate the sync's merge(): detached copy of the bill, updated to paid.
+        Bill payload = new Bill();
+        fillSync(payload);
+        payload.setId(serverId);
+        payload.setPublicToken(savedDraft.getPublicToken()); // server-owned, preserved in real flow
+        payload.setOrderStatus("completed");
+        payload.setPaymentStatus("paid");
+        payload.setPaymentMode("cash");
+        payload.setOrderType("dine_in");
+        payload.setTotalAmount(BigDecimal.TEN);
+        payload.setSubtotal(BigDecimal.TEN);
+        payload.setLastResetDate(java.time.LocalDate.now().toString());
+        payload.setDailyOrderId(draft.getDailyOrderId());
+        payload.setUpdatedAt(System.currentTimeMillis() + 1000);
+        Bill merged = billRepository.save(payload);   // returns MANAGED copy
+        billItemRepository.flush();
+
+        // Deduction runs against the MANAGED instance (the fixed call site pattern).
+        billRepository.findById(serverId).ifPresent(inventoryService::deductForFinalizedBill);
+        assertThat(rawMaterialRepository.findById(m.getId()).orElseThrow()
+                .getStockQuantity()).isEqualByComparingTo("5");
+
+        // A second push of the same bill must not deduct again.
+        inventoryService.deductForFinalizedBill(billRepository.findById(serverId).orElseThrow());
+
+        Bill persisted = billRepository.findById(serverId).orElseThrow();
+        assertThat(persisted.getInventoryDeducted()).isTrue();
+        assertThat(rawMaterialRepository.findById(m.getId()).orElseThrow()
+                .getStockQuantity()).isEqualByComparingTo("5");
     }
 }

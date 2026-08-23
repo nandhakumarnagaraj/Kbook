@@ -804,13 +804,20 @@ public class GenericSyncService {
 		// ── Recipe-based inventory deduction ─────────────────────────────
 		if (inventoryService != null && repository instanceof BillRepository && !finalizedBills.isEmpty()) {
 			for (Bill bill : finalizedBills) {
-				if (successfulLocalIds.contains(bill.getLocalId())) {
-					try {
-						inventoryService.deductForFinalizedBill(bill);
-					} catch (Exception e) {
-						log.warn("Inventory deduction failed for bill localId={}: {}",
-								bill.getLocalId(), e.getMessage());
-					}
+				if (!successfulLocalIds.contains(bill.getLocalId())) continue;
+				try {
+					// Resolve the SAVED row's id: payload instances are detached after
+					// merge() in saveAll, so bill.getId() may be null here.
+					Long savedId = bill.getId() != null
+							? bill.getId()
+							: localToServerIdMap.get(bill.getLocalId());
+					if (savedId == null) continue;
+					Bill managedBill = billRepository.findById(savedId).orElse(null);
+					if (managedBill == null) continue;
+					inventoryService.deductForFinalizedBill(managedBill);
+				} catch (Exception e) {
+					log.warn("Inventory deduction failed for bill localId={}: {}",
+							bill.getLocalId(), e.getMessage());
 				}
 			}
 		}
@@ -1112,6 +1119,21 @@ public class GenericSyncService {
 		if (incoming instanceof RestaurantProfile incomingProfile
 				&& existing instanceof RestaurantProfile existingProfile) {
 			incomingProfile.setIsSuspended(existingProfile.getIsSuspended());
+		}
+		// Inventory cascade is server-owned: when a raw material runs out,
+		// InventoryService hides dependent menu items. A device menu push must
+		// not flip them back to available — re-enabling goes through a server
+		// action (restock / owner toggle), never a client LWW push.
+		if (incoming instanceof MenuItem incomingItem && existing instanceof MenuItem existingItem) {
+			if (!Boolean.TRUE.equals(existingItem.getIsAvailable())) {
+				incomingItem.setIsAvailable(false);
+			}
+		}
+		if (incoming instanceof ItemVariant incomingVariant
+				&& existing instanceof ItemVariant existingVariant) {
+			if (!Boolean.TRUE.equals(existingVariant.getIsAvailable())) {
+				incomingVariant.setIsAvailable(false);
+			}
 		}
 	}
 
