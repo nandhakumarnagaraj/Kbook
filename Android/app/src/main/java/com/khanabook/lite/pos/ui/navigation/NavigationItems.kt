@@ -7,7 +7,14 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.ui.graphics.vector.ImageVector
 
-data class TabItem(val label: String, val icon: ImageVector, val originalIndex: Int)
+data class TabItem(
+    val label: String,
+    val icon: ImageVector,
+    val originalIndex: Int,
+    /** Optional Lottie animation (res/raw) played once when the tab is selected.
+     *  When null, the vector icon gets a springy bounce instead. */
+    val lottieRes: Int? = null
+)
 
 object NavigationUtils {
     private val allTabs = listOf(

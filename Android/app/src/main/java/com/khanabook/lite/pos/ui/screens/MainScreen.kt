@@ -30,9 +30,17 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 
@@ -168,6 +176,50 @@ fun MainScreen(
 }
 
 @Composable
+fun AnimatedTabIcon(item: TabItem, selected: Boolean, size: Dp) {
+    // Lottie tab (Chennai One style): plays once on selection when a lottieRes is set.
+    if (item.lottieRes != null) {
+        val composition by rememberLottieComposition(
+            LottieCompositionSpec.RawRes(item.lottieRes)
+        )
+        LottieAnimation(
+            composition = composition,
+            iterations = 1,
+            isPlaying = selected,
+            restartOnPlay = true,
+            modifier = Modifier.size(size)
+        )
+        return
+    }
+
+    // Vector fallback: springy bounce on selection.
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(selected) {
+        if (selected) {
+            scale.snapTo(0.7f)
+            scale.animateTo(
+                1.25f,
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+            )
+            scale.animateTo(
+                1f,
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+            )
+        }
+    }
+    Icon(
+        item.icon,
+        contentDescription = null,
+        modifier = Modifier
+            .size(size)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
+    )
+}
+
+@Composable
 fun AppBottomBar(
     visibleTabs: List<TabItem>,
     currentSelectedIndex: Int,
@@ -198,10 +250,10 @@ fun AppBottomBar(
                 selected = currentSelectedIndex == index,
                 onClick = { onTabSelected(index) },
                 icon = {
-                    Icon(
-                        item.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(navIconSize)
+                    AnimatedTabIcon(
+                        item = item,
+                        selected = currentSelectedIndex == index,
+                        size = navIconSize
                     )
                 },
                 label = { Text(item.label, style = navLabelStyle) },
