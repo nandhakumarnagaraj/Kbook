@@ -842,25 +842,12 @@ public class GenericSyncService {
 		// ── Push Sync Notifications ──────────────────────────────────────
 		if (pushNotificationService != null) {
 			if (repository instanceof BillRepository) {
-				for (Bill bill : newBills) {
-					if (successfulLocalIds.contains(bill.getLocalId())) {
-						try {
-							String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
-							String amountDisplay = bill.getTotalAmount() != null ? "₹" + bill.getTotalAmount() : "";
-							pushNotificationService.pushToRestaurant(
-								bill.getRestaurantId(),
-								"New Order Received",
-								"Order " + displayOrder + " created. Total: " + amountDisplay,
-								"payment_received",
-								String.valueOf(bill.getId() != null ? bill.getId() : bill.getLocalId()),
-								"bill",
-								bill.getTotalAmount()
-							);
-						} catch (Exception e) {
-							log.warn("Failed to push sync order notification: {}", e.getMessage());
-						}
-					}
-				}
+				// NOTE: no "new order" push here. Bills arrive at the server on
+				// background sync — AFTER the cashier has settled them — so a
+				// sync-time "New Order Received" would fire post-payment and
+				// notify staff about orders they themselves just took. External
+				// channels already announce at ingestion time ("New QR Order",
+				// marketplace order push).
 				for (Bill bill : cancelledBills) {
 					if (successfulLocalIds.contains(bill.getLocalId())) {
 						try {
