@@ -123,7 +123,13 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             else -> 0xFF7C5CDB.toInt() // Purple (system default)
         }
 
-        val largeIcon = NotificationHelper.getCircularLargeIcon(this, colorInt, R.drawable.ic_notification_bell)
+        // Real brand logo as the large icon; fall back to the synthetic bell
+        // circle only if the resource fails to decode.
+        val largeIcon = try {
+            android.graphics.BitmapFactory.decodeResource(resources, R.drawable.khanabook_logo)
+        } catch (_: Exception) {
+            null
+        } ?: NotificationHelper.getCircularLargeIcon(this, colorInt, R.drawable.ic_notification_bell)
 
         val builder = NotificationHelper.buildNotification(
             context = this,
