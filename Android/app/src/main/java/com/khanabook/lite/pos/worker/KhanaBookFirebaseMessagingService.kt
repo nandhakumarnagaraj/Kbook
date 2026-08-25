@@ -20,10 +20,6 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
 
-    companion object {
-        private const val TAG = "KBFirebaseMsg"
-    }
-
     @Inject
     lateinit var notificationRepository: com.khanabook.lite.pos.data.repository.NotificationRepository
 
@@ -85,10 +81,13 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun showNotification(id: Long, title: String, body: String, type: String, referenceId: String?) {
         val channelId = when (type) {
-            "payment_received" -> NotificationHelper.CHANNEL_PAYMENT
+            "payment_received", "qr_order", "marketplace_order" -> NotificationHelper.CHANNEL_PAYMENT
             "refund" -> NotificationHelper.CHANNEL_REFUND
             "kyc" -> NotificationHelper.CHANNEL_KYC
             "settlement" -> NotificationHelper.CHANNEL_SETTLEMENT
+            "inventory_low" -> NotificationHelper.CHANNEL_INVENTORY
+            "permission_request", "permission_approved", "permission_rejected" ->
+                NotificationHelper.CHANNEL_PERMISSIONS
             else -> NotificationHelper.CHANNEL_SYSTEM
         }
 
@@ -139,6 +138,9 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             setStyle(NotificationCompat.BigTextStyle().bigText(formattedBody))
             largeIcon?.let { setLargeIcon(it) }
             setColor(colorInt)
+            // Bundle children under one expandable group header; only the summary alerts.
+            setGroup(channelId)
+            setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY)
 
             if (type == "fssai_expiry" && !referenceId.isNullOrBlank()) {
                 val payIntent = Intent(this@KhanaBookFirebaseMessagingService, MainActivity::class.java).apply {
@@ -168,5 +170,71 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(id.toInt(), builder.build())
+        trackGroupChildAndPostSummary(notificationManager, channelId, type, id.toInt())
+    }
+
+    /**
+     * Telegram-style grouping bookkeeping: per group key we keep the live child
+     * IDs (capped) and a count of pushes since process start, then post/repost a
+     * single group-summary notification ("N new payment alerts"). The summary is
+     * what Android shows collapsed; expanding it reveals the individual children.
+     * Counts are best-effort in-memory state and reset on process death.
+     */
+    private fun trackGroupChildAndPostSummary(
+        notificationManager: NotificationManager,
+        groupKey: String,
+        type: String,
+        childId: Int
+    ) {
+        val children = groupChildren.getOrPut(groupKey) { ArrayDeque() }
+        synchronized(children) {
+            children.addLast(childId)
+            while (children.size > MAX_CHILDREN_PER_GROUP) {
+                notificationManager.cancel(children.removeFirst())
+            }
+        }
+        val count = (groupPushCounts[groupKey] ?: 0) + 1
+        groupPushCounts[groupKey] = count
+
+        val summary = NotificationCompat.Builder(this, groupKey)
+            .setSmallIcon(R.drawable.ic_notification_bell)
+            .setContentTitle("KhanaBook")
+            .setContentText("$count new ${domainLabel(type)}${if (count > 1) "s" else ""}")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("$count new ${domainLabel(type)}${if (count > 1) "s" else ""} — tap to view"))
+            .setGroup(groupKey)
+            .setGroupSummary(true)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY)
+            .setColor(0xFF7C5CDB.toInt())
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(summaryId(groupKey), summary)
+    }
+
+    private fun domainLabel(type: String): String = when (type) {
+        "payment_received", "qr_order", "marketplace_order" -> "payment alert"
+        "refund" -> "refund update"
+        "kyc" -> "KYC update"
+        "settlement" -> "settlement update"
+        "inventory_low" -> "stock alert"
+        "permission_request", "permission_approved", "permission_rejected" -> "permission update"
+        "terminal" -> "device update"
+        else -> "alert"
+    }
+
+    private fun summaryId(groupKey: String): Int =
+        SUMMARY_ID_OFFSET + (groupKey.hashCode() and 0x7FFFFF)
+
+    companion object {
+        private const val TAG = "KBFirebaseMsg"
+
+        /** Max individual notifications kept visible per group; older ones are cancelled. */
+        private const val MAX_CHILDREN_PER_GROUP = 6
+
+        /** Offset keeps summary IDs away from server-notification-ID child IDs. */
+        private const val SUMMARY_ID_OFFSET = 1_000_000
+
+        private val groupChildren = java.util.concurrent.ConcurrentHashMap<String, ArrayDeque<Int>>()
+        private val groupPushCounts = java.util.concurrent.ConcurrentHashMap<String, Int>()
     }
 }
