@@ -89,15 +89,13 @@ fun PaymentStep(
             }
         }
     }
-    var selectedMode by remember(selectableModes) {
-        mutableStateOf(
-            if (selectableModes.contains(PaymentMode.CASH)) {
-                PaymentMode.CASH
-            } else {
-                selectableModes.firstOrNull() ?: PaymentMode.CASH
-            }
-        )
-    }
+    var selectedMode by remember { mutableStateOf(
+        if (selectableModes.contains(PaymentMode.CASH)) {
+            PaymentMode.CASH
+        } else {
+            selectableModes.firstOrNull() ?: PaymentMode.CASH
+        }
+    ) }
     var expanded by remember { mutableStateOf(false) }
     var showQrModal by remember { mutableStateOf(false) }
     val restoredPaymentMode by viewModel.paymentMode.collectAsStateWithLifecycle()
@@ -114,7 +112,11 @@ fun PaymentStep(
 
     
     LaunchedEffect(selectableModes) {
-        if (selectableModes.isNotEmpty()) {
+        // Re-point the selection only when the current mode is no longer available
+        // (e.g. permissions changed). Never reset on mere list-instance churn from
+        // background profile syncs — that used to wipe UPI selection mid-payment,
+        // making the QR vanish intermittently.
+        if (selectableModes.isNotEmpty() && selectedMode !in selectableModes) {
             selectedMode = when {
                 selectableModes.contains(PaymentMode.CASH) -> PaymentMode.CASH
                 else -> selectableModes.first()

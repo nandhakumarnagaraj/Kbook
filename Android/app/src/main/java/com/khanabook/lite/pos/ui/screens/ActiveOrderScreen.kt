@@ -83,8 +83,15 @@ fun ActiveOrderScreen(
     val enabledModes = remember(profile) {
         profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
     }
-    var selectedMode by remember(enabledModes) {
+    var selectedMode by remember {
         mutableStateOf(if (enabledModes.contains(PaymentMode.CASH)) PaymentMode.CASH else enabledModes.firstOrNull() ?: PaymentMode.CASH)
+    }
+    // Keep the selection across background profile syncs; only re-point when the
+    // chosen mode is no longer enabled.
+    LaunchedEffect(enabledModes) {
+        if (selectedMode !in enabledModes) {
+            selectedMode = if (enabledModes.contains(PaymentMode.CASH)) PaymentMode.CASH else enabledModes.firstOrNull() ?: PaymentMode.CASH
+        }
     }
     var expanded by remember { mutableStateOf(false) }
     var p1Text by remember { mutableStateOf("") }
