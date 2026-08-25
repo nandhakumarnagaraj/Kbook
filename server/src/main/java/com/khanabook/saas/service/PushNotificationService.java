@@ -22,6 +22,13 @@ public class PushNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
 
+    /** Same (type, referenceId) pushed within this window is suppressed as a duplicate. */
+    private static final long DEDUP_WINDOW_MS = 5 * 60 * 1000L;
+    /** Max pushes of the same type per restaurant per hour (burst guard, e.g. low-stock storms). */
+    private static final long RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000L;
+    private static final long RATE_LIMIT_MAX_PER_TYPE = 10;
+
+
     private final DeviceTokenRepository deviceTokenRepo;
     private final NotificationEventRepository notificationEventRepo;
     private final RestaurantProfileRepository restaurantProfileRepo;
@@ -141,15 +148,17 @@ public class PushNotificationService {
             return;
         }
 
+        // ATC-style guardrails: suppress duplicate content and per-type bursts
+        // before any FCM call or DB write.
+        if (isSuppressed(restaurantId, notificationType, referenceId)) {
+            log.info("Notification suppressed (dedup/rate-limit) restaurantId={} type={} ref={}",
+                restaurantId, notificationType, referenceId);
+            return;
+        }
+
         // Save notification event
         NotificationEvent event = saveNotificationEvent(restaurantId, title, message,
             notificationType, referenceId, referenceType, amount);
-
-        // Build Notification block for automatic background OS display
-        Notification fcmNotification = Notification.builder()
-            .setTitle(title)
-            .setBody(message)
-            .build();
 
         Map<String, String> data = Map.of(
             "title", title != null ? title : "",
@@ -161,20 +170,18 @@ public class PushNotificationService {
             "amount", amount != null ? amount.toPlainString() : ""
         );
 
-        // Android-specific configuration (high priority, channel ID, sound)
-        AndroidNotification.Builder androidNotificationBuilder = AndroidNotification.builder()
-            .setChannelId(resolveChannelId(notificationType))
-            .setSound("default")
-            .setPriority(AndroidNotification.Priority.HIGH);
+        // Data-only payload: onMessageReceived always runs on the client, so the
+        // Room inbox is populated and rich rendering (HTML, actions, colors) works
+        // regardless of foreground/background state. A notification-block payload
+        // would be auto-displayed by the OS in background and BYPASS all of that.
+        AndroidConfig.Builder androidConfig = AndroidConfig.builder()
+            .setPriority(AndroidConfig.Priority.HIGH)
+            .setTtl(60 * 60 * 1000L);
 
         MulticastMessage multicast = MulticastMessage.builder()
-            .setNotification(fcmNotification) // Combined payload!
             .putAllData(data)
             .addAllTokens(tokens.stream().map(DeviceToken::getToken).toList())
-            .setAndroidConfig(AndroidConfig.builder()
-                .setPriority(AndroidConfig.Priority.HIGH)
-                .setNotification(androidNotificationBuilder.build())
-                .build())
+            .setAndroidConfig(androidConfig.build())
             .build();
 
         try {
@@ -184,25 +191,26 @@ public class PushNotificationService {
             log.info("Push sent to restaurantId={} success={} failure={} type={}",
                 restaurantId, successCount, failureCount, notificationType);
 
-            // Mark event as pushed
-            event.setIsPushed(true);
-            notificationEventRepo.save(event);
+            // isPushed means "at least one device accepted by FCM" — consistent
+            // with the targeted path's semantics.
+            if (successCount > 0) {
+                event.setIsPushed(true);
+                notificationEventRepo.save(event);
+            }
 
             if (failureCount > 0) {
-                for (var sendResponse : response.getResponses()) {
+                List<SendResponse> responses = response.getResponses();
+                for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
+                    SendResponse sendResponse = responses.get(i);
                     if (!sendResponse.isSuccessful()) {
-                        String errorMsg = sendResponse.getException() != null ?
-                            sendResponse.getException().getMessage() : "unknown";
+                        Exception ex = sendResponse.getException();
+                        String errorMsg = ex != null ? ex.getMessage() : "unknown";
                         log.warn("Push failed for token: {}", errorMsg);
-                        // Optionally deactivate invalid tokens
-                        if (errorMsg.contains("UNREGISTERED") || errorMsg.contains("InvalidRegistration")) {
-                            int idx = response.getResponses().indexOf(sendResponse);
-                            if (idx < tokens.size()) {
-                                DeviceToken dt = tokens.get(idx);
-                                dt.setActive(false);
-                                dt.setUpdatedAt(System.currentTimeMillis());
-                                deviceTokenRepo.save(dt);
-                            }
+                        if (isUnregistered(ex)) {
+                            DeviceToken dt = tokens.get(i);
+                            dt.setActive(false);
+                            dt.setUpdatedAt(System.currentTimeMillis());
+                            deviceTokenRepo.save(dt);
                         }
                     }
                 }
@@ -250,9 +258,8 @@ public class PushNotificationService {
                 sendDirectPush(dt.getToken(), title, message, data);
                 successCount++;
             } catch (FirebaseMessagingException e) {
-                String errorMsg = e.getMessage() != null ? e.getMessage() : "unknown";
-                log.warn("Targeted push failed for token: {}", errorMsg);
-                if (errorMsg.contains("UNREGISTERED") || errorMsg.contains("InvalidRegistration")) {
+                log.warn("Targeted push failed for token: {}", e.getMessage());
+                if (isUnregistered(e)) {
                     dt.setActive(false);
                     dt.setUpdatedAt(System.currentTimeMillis());
                     deviceTokenRepo.save(dt);
@@ -305,6 +312,40 @@ public class PushNotificationService {
 	}
 
 	/**
+	 * ATC-style delivery guardrails, evaluated BEFORE any FCM call or DB write:
+	 * 1. Dedup: identical (type, referenceId) within {@link #DEDUP_WINDOW_MS}.
+	 * 2. Burst cap: at most {@link #RATE_LIMIT_MAX_PER_TYPE} pushes of one type
+	 *    per restaurant per hour (protects against low-stock storms etc.).
+	 */
+	private boolean isSuppressed(Long restaurantId, String notificationType, String referenceId) {
+		long now = System.currentTimeMillis();
+		String type = notificationType != null ? notificationType : "system";
+		if (referenceId != null && !referenceId.isBlank()) {
+			var recent = notificationEventRepo
+				.findTopByRestaurantIdAndNotificationTypeAndReferenceIdOrderByCreatedAtDesc(
+					restaurantId, type, referenceId);
+			if (recent.isPresent() && now - recent.get().getCreatedAt() < DEDUP_WINDOW_MS) {
+				return true;
+			}
+		}
+		long sentInWindow = notificationEventRepo
+			.countByRestaurantIdAndNotificationTypeAndCreatedAtAfter(restaurantId, type, now - RATE_LIMIT_WINDOW_MS);
+		return sentInWindow >= RATE_LIMIT_MAX_PER_TYPE;
+	}
+
+	/**
+	 * Reliable dead-token detection via FCM's structured error code.
+	 * Message-string matching was fragile (message text is not an API contract).
+	 */
+	private boolean isUnregistered(Exception e) {
+		if (e instanceof FirebaseMessagingException fme) {
+			if (fme.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) return true;
+		}
+		String msg = e != null && e.getMessage() != null ? e.getMessage() : "";
+		return msg.contains("UNREGISTERED") || msg.contains("InvalidRegistration");
+	}
+
+	/**
 	 * Retention: notification_events older than 90 days are purged daily.
 	 * The in-app notification center is a recent-history feed, not an archive.
 	 */
@@ -352,26 +393,14 @@ public class PushNotificationService {
         payloadData.put("title", title != null ? title : "");
         payloadData.put("message", body != null ? body : "");
 
-        Notification fcmNotification = Notification.builder()
-            .setTitle(title)
-            .setBody(body)
-            .build();
-
         String notificationType = data != null ? data.get("type") : "system";
-        String referenceId = data != null ? data.get("referenceId") : null;
 
-        AndroidNotification.Builder androidNotificationBuilder = AndroidNotification.builder()
-            .setChannelId(resolveChannelId(notificationType))
-            .setSound("default")
-            .setPriority(AndroidNotification.Priority.HIGH);
-
+        // Data-only: client's onMessageReceived renders and persists to the inbox.
         Message message = Message.builder()
             .setToken(token)
-            .setNotification(fcmNotification)
             .putAllData(payloadData)
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
-                .setNotification(androidNotificationBuilder.build())
                 .build())
             .build();
 

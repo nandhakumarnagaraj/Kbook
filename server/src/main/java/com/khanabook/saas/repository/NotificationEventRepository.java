@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface NotificationEventRepository extends JpaRepository<NotificationEvent, Long> {
@@ -32,4 +33,10 @@ public interface NotificationEventRepository extends JpaRepository<NotificationE
     int markAsRead(@Param("id") Long id, @Param("now") Long now);
 
     void deleteByRestaurantIdAndCreatedAtBefore(Long restaurantId, Long beforeTimestamp);
+
+    Optional<NotificationEvent> findTopByRestaurantIdAndNotificationTypeAndReferenceIdOrderByCreatedAtDesc(
+        Long restaurantId, String notificationType, String referenceId);
+
+    long countByRestaurantIdAndNotificationTypeAndCreatedAtAfter(
+        Long restaurantId, String notificationType, Long after);
 }
