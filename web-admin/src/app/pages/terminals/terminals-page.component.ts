@@ -66,6 +66,7 @@ import { formatDate } from '../../shared/formatters';
                 </ng-container>
                 <ng-template #nameCell>
                   <strong>{{ terminal.terminalName || 'Unnamed' }}</strong>
+                  <span class="primary-badge" *ngIf="terminal.isPrimary" title="Primary device">★ Primary</span>
                 </ng-template>
               </td>
               <td>{{ terminal.terminalSeries || '-' }}</td>
@@ -86,6 +87,14 @@ import { formatDate } from '../../shared/formatters';
               <td>
                 <div class="action-stack">
                   <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+                  <button
+                    *ngIf="terminal.status.toLowerCase() === 'active' && !terminal.isPrimary"
+                    class="ghost-btn"
+                    [disabled]="saving()"
+                    (click)="setPrimary(terminal)"
+                  >
+                    Set as primary
+                  </button>
                   <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
                   <button
                     *ngIf="terminal.status.toLowerCase() !== 'inactive'"
@@ -112,11 +121,12 @@ import { formatDate } from '../../shared/formatters';
 
         <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
           <article class="mobile-data-card" *ngFor="let terminal of terminals()">
-            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
+            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}<span class="primary-badge" *ngIf="terminal.isPrimary">★ Primary</span></strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
             <p>{{ terminal.terminalSeries || 'No series' }} · {{ terminal.deviceId || 'No device assigned' }}</p>
             <dl><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+              <button *ngIf="terminal.status.toLowerCase() === 'active' && !terminal.isPrimary" class="ghost-btn" [disabled]="saving()" (click)="setPrimary(terminal)">Set as primary</button>
               <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
               <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
               <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
@@ -363,6 +373,19 @@ import { formatDate } from '../../shared/formatters';
   `,
   styles: [`
     .ghost-btn.active { background: rgba(249, 115, 22, 0.16); color: var(--brand-deep); }
+    .primary-badge {
+      display: inline-block;
+      margin-left: 0.45rem;
+      padding: 0.1rem 0.5rem;
+      background: rgba(181, 106, 45, 0.14);
+      color: var(--brand-deep);
+      border: 1px solid var(--brand);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
     .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
     .row-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
     .stacked-meta { display: flex; flex-direction: column; gap: 0.15rem; }
@@ -524,6 +547,29 @@ export class TerminalsPageComponent implements OnDestroy {
       error: () => {
         this.saving.set(false);
         this.fail('Rename failed');
+      }
+    });
+  }
+
+  setPrimary(terminal: BusinessTerminal): void {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.api.setPrimaryTerminal(terminal.id).subscribe({
+      next: () => {
+        this.terminals.update((list) =>
+          list.map((t) => ({ ...t, isPrimary: t.id === terminal.id }))
+        );
+        this.saving.set(false);
+        this.notify('Primary device updated');
+      },
+      error: (err) => {
+        this.saving.set(false);
+        const msg = this.errMsg(err, 'Could not set primary device');
+        if (msg.includes('TERMINAL_NOT_ACTIVE')) {
+          this.fail('Only active terminals can be primary. Reload and try again.');
+        } else {
+          this.fail(msg);
+        }
       }
     });
   }

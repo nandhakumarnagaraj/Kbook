@@ -56,6 +56,14 @@ public class RestaurantTerminal {
 	@Column(name = "status", nullable = false)
 	private String status = "ACTIVE";
 
+	/**
+	 * Designated primary terminal for the restaurant. Invariant: exactly one
+	 * ACTIVE primary per restaurant; maintained by TerminalManagementService
+	 * under the restaurant-profile lock and backed by a partial unique index.
+	 */
+	@Column(name = "is_primary", nullable = false)
+	private Boolean isPrimary = false;
+
 	/** Incremented on recovery/deactivation to revoke all previously-issued terminal tokens. */
 	@Column(name = "credential_version", nullable = false)
 	private Long credentialVersion = 1L;

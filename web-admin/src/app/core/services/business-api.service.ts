@@ -125,6 +125,11 @@ export class BusinessApiService {
     return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/deactivate`, {});
   }
 
+  setPrimaryTerminal(terminalId: number) {
+    return this.http.post<BusinessTerminal>(
+      `${API_BASE_URL}/business/terminals/${terminalId}/set-primary`, {});
+  }
+
   getTerminalRequests(status = 'PENDING') {
     return this.http.get<TerminalRequest[]>(`${API_BASE_URL}/business/terminal-requests`, {
       params: { status }

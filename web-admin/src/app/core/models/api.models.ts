@@ -207,6 +207,7 @@ export interface BusinessTerminal {
   terminalName: string | null;
   status: string;
   isActive: boolean | null;
+  isPrimary?: boolean | null;
   deviceId: string | null;
   credentialVersion: number | null;
   createdAt: number | null;

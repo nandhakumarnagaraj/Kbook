@@ -46,4 +46,8 @@ public interface RestaurantTerminalRepository extends JpaRepository<RestaurantTe
 	long countByRestaurantIdAndStatus(Long restaurantId, String status);
 
 	List<RestaurantTerminal> findByRestaurantIdAndStatus(Long restaurantId, String status);
+
+	Optional<RestaurantTerminal> findByRestaurantIdAndIsPrimaryTrue(Long restaurantId);
+
+	List<RestaurantTerminal> findByRestaurantIdAndStatusOrderByIdAsc(Long restaurantId, String status);
 }

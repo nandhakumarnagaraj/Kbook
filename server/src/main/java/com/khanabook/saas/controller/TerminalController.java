@@ -348,6 +348,7 @@ public class TerminalController {
 				terminal.setIsActive(true);
 				terminal.setStatus("ACTIVE");
 				terminal.setCredentialVersion(1L);
+				terminal.setIsPrimary(true); // first-ever terminal is primary by definition
 				terminal.setCreatedAt(now);
 				terminal.setUpdatedAt(now);
 				RestaurantTerminal saved = terminalRepository.save(terminal);

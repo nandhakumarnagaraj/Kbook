@@ -51,6 +51,17 @@ public class TerminalManagementController {
         return ResponseEntity.noContent().build();
     }
 
+    // ── Primary designation ─────────────────────────────────────────────────────
+
+    @PostMapping("/terminals/{terminalId}/set-primary")
+    public ResponseEntity<TerminalDto> setPrimaryTerminal(@PathVariable Long terminalId) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) return ResponseEntity.badRequest().build();
+
+        RestaurantTerminal terminal = terminalManagementService.setPrimaryTerminal(terminalId, restaurantId);
+        return ResponseEntity.ok(toDto(terminal));
+    }
+
     // ── Rename ──────────────────────────────────────────────────────────────────
 
     @PostMapping("/terminals/{terminalId}/rename")
@@ -167,7 +178,7 @@ public class TerminalManagementController {
     // ── DTOs ────────────────────────────────────────────────────────────────────
 
     public record TerminalDto(Long id, String terminalSeries, String terminalName,
-                              String status, Boolean isActive, String deviceId,
+                              String status, Boolean isActive, Boolean isPrimary, String deviceId,
                               Long credentialVersion, Long createdAt, Long updatedAt,
                               Long lastSeenAt) {
     }
@@ -201,7 +212,7 @@ public class TerminalManagementController {
 
     private TerminalDto toDto(RestaurantTerminal t) {
         return new TerminalDto(t.getId(), t.getTerminalSeries(), t.getTerminalName(),
-                t.getStatus(), t.getIsActive(), t.getDeviceId(),
+                t.getStatus(), t.getIsActive(), t.getIsPrimary(), t.getDeviceId(),
                 t.getCredentialVersion(), t.getCreatedAt(), t.getUpdatedAt(), t.getLastSeenAt());
     }
 

@@ -364,4 +364,97 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         assertThat(terminals.get(0).getTerminalSeries()).isEqualTo("A");
         assertThat(terminals.get(0).getStatus()).isEqualTo("INACTIVE");
     }
+
+    @Test
+    void firstTerminal_isPrimaryAutomatically() {
+        var response = terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-prim-first", null));
+        var body = (TerminalController.TerminalActivationResponse) response.getBody();
+        Long terminalId = Long.parseLong(body.terminalId());
+
+        RestaurantTerminal terminal = terminalRepository.findById(terminalId).orElseThrow();
+        assertThat(terminal.getIsPrimary()).isTrue();
+
+        // Second terminal must NOT steal primary
+        terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-prim-second", null));
+        var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-prim-third", null)).getBody();
+        managementController.approveRequest(pending.requestId(),
+                new TerminalManagementController.ApproveRequest(pending.challengeCode()));
+
+        RestaurantTerminal stillPrimary = terminalRepository.findById(terminalId).orElseThrow();
+        assertThat(stillPrimary.getIsPrimary()).isTrue();
+        long primaryCount = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId).stream()
+                .filter(t -> Boolean.TRUE.equals(t.getIsPrimary())).count();
+        assertThat(primaryCount).isEqualTo(1);
+    }
+
+    @Test
+    void setPrimary_swapsFlag_exactlyOnePrimaryRemains() {
+        var first = (TerminalController.TerminalActivationResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-swap-a", null)).getBody();
+        terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-swap-b", null));
+        var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-swap-c", null)).getBody();
+        managementController.approveRequest(pending.requestId(),
+                new TerminalManagementController.ApproveRequest(pending.challengeCode()));
+
+        Long terminalA = Long.parseLong(first.terminalId());
+        RestaurantTerminal terminalC = terminalRepository
+                .findByRestaurantIdAndDeviceId(restaurantId, "device-swap-c").orElseThrow();
+
+        var swap = managementController.setPrimaryTerminal(terminalC.getId());
+        assertThat(swap.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(swap.getBody().isPrimary()).isTrue();
+
+        assertThat(terminalRepository.findById(terminalA).orElseThrow().getIsPrimary()).isFalse();
+        long primaryCount = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId).stream()
+                .filter(t -> Boolean.TRUE.equals(t.getIsPrimary())).count();
+        assertThat(primaryCount).isEqualTo(1);
+    }
+
+    @Test
+    void deactivatingPrimary_promotesOldestRemainingActive() {
+        var first = (TerminalController.TerminalActivationResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-promo-a", null)).getBody();
+        Long terminalA = Long.parseLong(first.terminalId());
+        assertThat(terminalRepository.findById(terminalA).orElseThrow().getIsPrimary()).isTrue();
+
+        // Second active terminal (B)
+        terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-promo-b", null));
+        var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-promo-c", null)).getBody();
+        managementController.approveRequest(pending.requestId(),
+                new TerminalManagementController.ApproveRequest(pending.challengeCode()));
+
+        // Deactivate the primary — oldest remaining ACTIVE terminal becomes primary
+        managementController.deactivateTerminal(terminalA);
+        assertThat(terminalRepository.findById(terminalA).orElseThrow().getIsPrimary()).isFalse();
+
+        var terminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
+        long primaryCount = terminals.stream()
+                .filter(t -> Boolean.TRUE.equals(t.getIsPrimary())).count();
+        assertThat(primaryCount).isEqualTo(1);
+        RestaurantTerminal promoted = terminals.stream()
+                .filter(t -> Boolean.TRUE.equals(t.getIsPrimary())).findFirst().orElseThrow();
+        assertThat(promoted.getStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void setPrimary_onInactiveTerminal_conflicts() {
+        var created = (TerminalController.TerminalActivationResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("device-inact-prim", null)).getBody();
+        Long terminalId = Long.parseLong(created.terminalId());
+        managementController.deactivateTerminal(terminalId);
+
+        // Direct controller call bypasses Spring's exception handling — the service
+        // throws 409 CONFLICT TERMINAL_NOT_ACTIVE, which surfaces as HTTP 409 in prod.
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> managementController.setPrimaryTerminal(terminalId))
+                .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+                        ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+    }
 }

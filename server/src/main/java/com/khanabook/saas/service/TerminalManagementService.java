@@ -54,6 +54,94 @@ public class TerminalManagementService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private PushNotificationService pushNotificationService;
 
+    // ── Primary designation ─────────────────────────────────────────────────────
+
+    /**
+     * Designates a terminal as the restaurant's single primary. Atomic swap under
+     * the restaurant-profile pessimistic lock: clears the current primary first,
+     * then sets the new one (satisfies the partial unique index backstop).
+     */
+    @Transactional
+    public RestaurantTerminal setPrimaryTerminal(Long terminalId, Long restaurantId) {
+        restaurantProfileRepository.findAndLockByRestaurantId(restaurantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+        RestaurantTerminal terminal = terminalRepository.findById(terminalId)
+                .filter(t -> t.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Terminal not found"));
+
+        if (!"ACTIVE".equals(terminal.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_NOT_ACTIVE");
+        }
+        if (Boolean.TRUE.equals(terminal.getIsPrimary())) {
+            return terminal;
+        }
+
+        clearPrimary(restaurantId);
+        terminal.setIsPrimary(true);
+        terminal.setUpdatedAt(System.currentTimeMillis());
+        terminal = terminalRepository.saveAndFlush(terminal);
+
+        securityAuditService.record("TERMINAL_PRIMARY_SET", "SUCCESS",
+                terminal.getTerminalSeries(), terminal.getDeviceId());
+
+        notifyOwners(restaurantId, "Primary Terminal Updated",
+                (terminal.getTerminalName() != null ? terminal.getTerminalName() : "Terminal "
+                        + terminal.getTerminalSeries())
+                        + " is now your primary device.",
+                String.valueOf(terminal.getId()));
+
+        log.info("Primary terminal set: restaurant={} series={}", restaurantId, terminal.getTerminalSeries());
+        return terminal;
+    }
+
+    /** Clears the current primary flag for the restaurant. Caller must hold the profile lock. */
+    private void clearPrimary(Long restaurantId) {
+        terminalRepository.findByRestaurantIdAndIsPrimaryTrue(restaurantId).ifPresent(current -> {
+            current.setIsPrimary(false);
+            current.setUpdatedAt(System.currentTimeMillis());
+            terminalRepository.save(current);
+        });
+    }
+
+    /**
+     * Assigns primary to {@code candidate} if no ACTIVE primary exists yet
+     * (first-terminal bootstrap / post-deactivation promotion fallback).
+     * Caller must hold the profile lock when racing with activation paths.
+     */
+    private void ensurePrimaryAssigned(Long restaurantId, RestaurantTerminal candidate) {
+        if (!"ACTIVE".equals(candidate.getStatus())) return;
+        boolean hasPrimary = terminalRepository.findByRestaurantIdAndIsPrimaryTrue(restaurantId)
+                .filter(t -> "ACTIVE".equals(t.getStatus()))
+                .isPresent();
+        if (!hasPrimary) {
+            candidate.setIsPrimary(true);
+            candidate.setUpdatedAt(System.currentTimeMillis());
+            terminalRepository.save(candidate);
+        }
+    }
+
+    /**
+     * Promotes the oldest ACTIVE terminal to primary after the current primary
+     * left the ACTIVE state. No-op when another primary already exists or when
+     * no candidates remain.
+     */
+    private void promoteNextPrimary(Long restaurantId) {
+        boolean hasPrimary = terminalRepository.findByRestaurantIdAndIsPrimaryTrue(restaurantId)
+                .filter(t -> "ACTIVE".equals(t.getStatus()))
+                .isPresent();
+        if (hasPrimary) return;
+        List<RestaurantTerminal> actives =
+                terminalRepository.findByRestaurantIdAndStatusOrderByIdAsc(restaurantId, "ACTIVE");
+        actives.stream().findFirst().ifPresent(next -> {
+            next.setIsPrimary(true);
+            next.setUpdatedAt(System.currentTimeMillis());
+            terminalRepository.save(next);
+            log.info("Promoted terminal {} to primary for restaurant {}",
+                    next.getTerminalSeries(), restaurantId);
+        });
+    }
+
     // ── Request creation ────────────────────────────────────────────────────────
 
     /** Cooldown after rejection: 5 minutes before a new request can be created */
@@ -159,6 +247,14 @@ public class TerminalManagementService {
      *
      * Legacy rows created before challenges were introduced remain approvable when
      * both challenge fields are absent. Any request with challenge state must match.
+     *
+     * Lockout is PERSISTENT for the life of the request: once
+     * {@link #MAX_CHALLENGE_ATTEMPTS} wrong submissions are recorded, LOCKED is
+     * returned forever and the challenge fields are intentionally KEPT non-null —
+     * clearing them would make the row look like a legacy row and bypass the cap
+     * on the very next call. The only recovery path is the device re-requesting
+     * (createOrReuseRegistrationRequest refreshes the challenge and resets attempts
+     * once the old one has expired).
      */
     @Transactional
     public ChallengeResult verifyChallenge(Long requestId, Long restaurantId, String submitted) {
@@ -170,26 +266,26 @@ public class TerminalManagementService {
         if (request.getChallengeCode() == null && request.getChallengeExpiresAt() == null) {
             return ChallengeResult.OK;
         }
+
+        // Lockout check BEFORE expiry so a locked request reports LOCKED (not merely
+        // EXPIRED) and can never be approved without a fresh challenge cycle.
+        int attempts = request.getChallengeAttempts() == null ? 0 : request.getChallengeAttempts();
+        if (attempts >= MAX_CHALLENGE_ATTEMPTS) {
+            securityAuditService.record("TERMINAL_APPROVE_CHALLENGE_LOCKED", "BLOCKED",
+                    null, request.getDeviceId());
+            return ChallengeResult.LOCKED;
+        }
+
         if (request.getChallengeCode() == null || request.getChallengeExpiresAt() == null
                 || now > request.getChallengeExpiresAt()) {
             return ChallengeResult.EXPIRED;
         }
 
-        int attempts = request.getChallengeAttempts() == null ? 0 : request.getChallengeAttempts();
-        if (attempts >= MAX_CHALLENGE_ATTEMPTS) {
-            request.setChallengeCode(null);
-            request.setChallengeExpiresAt(null);
-            requestRepository.save(request);
-            return ChallengeResult.LOCKED;
-        }
-
         if (!request.getChallengeCode().equals(submitted == null ? null : submitted.trim())) {
             int next = attempts + 1;
             request.setChallengeAttempts(next);
-            if (next >= MAX_CHALLENGE_ATTEMPTS) {
-                request.setChallengeCode(null);
-                request.setChallengeExpiresAt(null);
-            }
+            // Deliberately do NOT clear challengeCode/challengeExpiresAt here: a
+            // cleared row would match the legacy branch above and unlock approval.
             requestRepository.save(request);
             securityAuditService.record("TERMINAL_APPROVE_CHALLENGE_MISMATCH", "BLOCKED",
                     null, request.getDeviceId());
@@ -248,6 +344,7 @@ public class TerminalManagementService {
             terminal.setIsActive(true);
             terminal.setCredentialVersion(terminal.getCredentialVersion() + 1); // revokes old tokens
             terminal.setUpdatedAt(System.currentTimeMillis());
+            ensurePrimaryAssigned(restaurantId, terminal);
             terminal = terminalRepository.save(terminal);
         } else {
             // New terminal: check 5-terminal limit
@@ -270,6 +367,8 @@ public class TerminalManagementService {
             terminal.setCreatedAt(now);
             terminal.setUpdatedAt(now);
             terminal = terminalRepository.save(terminal);
+            // First terminal for the restaurant becomes primary automatically.
+            ensurePrimaryAssigned(restaurantId, terminal);
         }
 
         // 4. Mark request approved
@@ -327,6 +426,10 @@ public class TerminalManagementService {
 
     @Transactional
     public void deactivateTerminal(Long terminalId, Long restaurantId) {
+        // Hold the profile lock so primary promotion cannot race with approvals/recovery
+        restaurantProfileRepository.findAndLockByRestaurantId(restaurantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
         RestaurantTerminal terminal = terminalRepository.findById(terminalId)
                 .filter(t -> t.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Terminal not found"));
@@ -337,9 +440,14 @@ public class TerminalManagementService {
 
         terminal.setStatus("INACTIVE");
         terminal.setIsActive(false);
+        if (Boolean.TRUE.equals(terminal.getIsPrimary())) {
+            terminal.setIsPrimary(false);
+        }
         terminal.setCredentialVersion(terminal.getCredentialVersion() + 1); // revokes old tokens
         terminal.setUpdatedAt(System.currentTimeMillis());
         terminalRepository.save(terminal);
+
+        promoteNextPrimary(restaurantId);
 
         securityAuditService.record("TERMINAL_DEACTIVATED", "SUCCESS",
                 terminal.getTerminalSeries(), terminal.getDeviceId());
@@ -415,6 +523,8 @@ public class TerminalManagementService {
             terminal.setCredentialVersion(terminal.getCredentialVersion() + 1);
             terminal.setUpdatedAt(System.currentTimeMillis());
             terminal = terminalRepository.save(terminal);
+            // Reactivation may have left the restaurant without an ACTIVE primary.
+            ensurePrimaryAssigned(restaurantId, terminal);
 
             securityAuditService.record("TERMINAL_RECOVERED", "SUCCESS",
                     terminal.getTerminalSeries(), newDeviceId);
@@ -502,7 +612,14 @@ public class TerminalManagementService {
      * Heartbeat: called on authenticated terminal pulls. Throttled in SQL
      * (at most once per 60s per terminal) to avoid write amplification.
      * Never throws — a failed heartbeat must not fail the pull.
+     *
+     * Runs in its own writable transaction (REQUIRES_NEW): callers like
+     * MasterSyncController.pullMasterSync execute inside readOnly transactions,
+     * and an UPDATE attempted there aborts/poisons the shared transaction so every
+     * later query in the same request fails ("current transaction is aborted").
      */
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void touchLastSeen(Long restaurantId, Long terminalId) {
         try {
             long now = System.currentTimeMillis();
