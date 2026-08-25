@@ -27,7 +27,8 @@ data class InventoryUiState(
     val itemSales: List<ItemSalesRow> = emptyList(),
     val hourlySales: List<HourlySalesRow> = emptyList(),
     val foodCost: List<FoodCostRow> = emptyList(),
-    val error: String? = null,
+    val loadError: String? = null,
+    val actionError: String? = null,
     val actionInFlight: Boolean = false
 )
 
@@ -45,7 +46,7 @@ class InventoryViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, loadError = null)
             try {
                 val materials = api.getRawMaterials()
                 val today = LocalDate.now()
@@ -65,7 +66,7 @@ class InventoryViewModel @Inject constructor(
                 Log.e(tag, "Failed to load inventory", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to load inventory. Check your connection."
+                    loadError = "Failed to load inventory. Check your connection."
                 )
             }
         }
@@ -142,11 +143,11 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+    private fun fail(message: String) {
+        _uiState.value = _uiState.value.copy(actionInFlight = false, actionError = message)
     }
 
-    private fun fail(message: String) {
-        _uiState.value = _uiState.value.copy(actionInFlight = false, error = message)
+    fun clearActionError() {
+        _uiState.value = _uiState.value.copy(actionError = null)
     }
 }

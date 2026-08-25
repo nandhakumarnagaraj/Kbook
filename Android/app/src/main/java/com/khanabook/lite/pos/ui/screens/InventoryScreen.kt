@@ -18,6 +18,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.remote.api.RawMaterialDto
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookScreenScaffold
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.InventoryViewModel
 
@@ -29,17 +31,33 @@ fun InventoryScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     var showAddDialog by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<RawMaterialDto?>(null) }
+    var editingId by remember { mutableStateOf<Long?>(null) }
+    var deletingId by remember { mutableStateOf<Long?>(null) }
+
+    val editing = editingId?.let { id -> state.materials.find { it.id == id } }
+    val deleting = deletingId?.let { id -> state.materials.find { it.id == id } }
+
+    val configuredFoodCost by remember(state.foodCost) {
+        derivedStateOf { state.foodCost.filter { it.configured == true } }
+    }
+
+    // Action failures surface as a toast — never wipe the list (load errors only).
+    LaunchedEffect(state.actionError) {
+        state.actionError?.let {
+            KhanaToast.show(it, ToastKind.Error)
+            viewModel.clearActionError()
+        }
+    }
 
     KhanaBookScreenScaffold(title = "Inventory", onBack = onBack) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PrimaryGold)
             }
-        } else if (state.error != null) {
+        } else if (state.loadError != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.error ?: "", color = ErrorPink, style = MaterialTheme.typography.bodyLarge)
+                    Text(state.loadError ?: "", color = ErrorPink, style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.height(spacing.medium))
                     Button(onClick = { viewModel.refresh() },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
@@ -75,12 +93,16 @@ fun InventoryScreen(
                     }
                 }
 
-                items(state.materials.size) { index ->
+                items(
+                    count = state.materials.size,
+                    key = { state.materials[it].id }
+                ) { index ->
                     val material = state.materials[index]
                     MaterialCard(
                         material = material,
-                        onEditStock = { editing = material },
-                        onDelete = { viewModel.deleteMaterial(material.id) }
+                        actionInFlight = state.actionInFlight,
+                        onEditStock = { editingId = material.id },
+                        onDelete = { deletingId = material.id }
                     )
                 }
 
@@ -94,32 +116,39 @@ fun InventoryScreen(
                 if (state.itemSales.isEmpty()) {
                     item { Text("No sales in this period.", style = MaterialTheme.typography.bodySmall, color = TextGold) }
                 }
-                items(state.itemSales.size) { i ->
+                items(
+                    count = state.itemSales.size,
+                    key = { state.itemSales[it].menuItemId ?: it }
+                ) { i ->
                     val row = state.itemSales[i]
-                    InsightRow("${row.name}", "${row.quantitySold} sold · ₹${trimNum(row.revenue)}")
+                    InsightRow("${row.name}", "${row.quantitySold} sold Rs.${trimNum(row.revenue)}")
                 }
 
                 item {
                     Spacer(Modifier.height(spacing.small))
-                    Text("Last 7 Days · Food Cost",
+                    Text("Last 7 Days - Food Cost",
                         style = MaterialTheme.typography.titleMedium,
                         color = TextLight, fontWeight = FontWeight.Bold)
                 }
-                if (state.foodCost.none { it.configured == true }) {
+                if (configuredFoodCost.isEmpty()) {
                     item { Text("Add recipes to materials to see food-cost per item.",
                         style = MaterialTheme.typography.bodySmall, color = TextGold) }
                 }
-                items(state.foodCost.filter { it.configured == true }.size) { i ->
-                    val row = state.foodCost.filter { it.configured == true }[i]
-                    val margin = row.marginPct?.let { " · ${trimNum(it)}% margin" } ?: ""
+                items(
+                    count = configuredFoodCost.size,
+                    key = { configuredFoodCost[it].menuItemId ?: it }
+                ) { i ->
+                    val row = configuredFoodCost[i]
+                    val margin = row.marginPct?.let { " - ${trimNum(it)}% margin" } ?: ""
                     InsightRow(row.name ?: "?",
-                        "${row.quantitySold} sold · ₹${trimNum(row.revenue)} · cost ₹${trimNum(row.cost)}$margin")
+                        "${row.quantitySold} sold Rs.${trimNum(row.revenue)} - cost Rs.${trimNum(row.cost)}$margin")
                 }
             }
         }
 
         if (showAddDialog) {
             AddMaterialDialog(
+                actionInFlight = state.actionInFlight,
                 onDismiss = { showAddDialog = false },
                 onCreate = { name, unit, stock, threshold, cost ->
                     viewModel.createMaterial(name, unit, stock, threshold, cost)
@@ -131,10 +160,42 @@ fun InventoryScreen(
         editing?.let { material ->
             EditStockDialog(
                 material = material,
-                onDismiss = { editing = null },
+                actionInFlight = state.actionInFlight,
+                onDismiss = { editingId = null },
                 onSave = { newStock ->
                     viewModel.updateStock(material.id, newStock)
-                    editing = null
+                    editingId = null
+                }
+            )
+        }
+
+        deleting?.let { material ->
+            AlertDialog(
+                onDismissRequest = { deletingId = null },
+                containerColor = DarkBrown2,
+                shape = KhanaRadii.modal,
+                title = {
+                    Text("Delete ${material.name}?",
+                        style = MaterialTheme.typography.titleLarge, color = TextLight)
+                },
+                text = {
+                    Text("This removes the material and its recipe lines.",
+                        style = MaterialTheme.typography.bodySmall, color = TextGold)
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteMaterial(material.id)
+                            deletingId = null
+                        },
+                        enabled = !state.actionInFlight,
+                        colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
+                    ) {
+                        Text("Delete", color = TextLight)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deletingId = null }) { Text("Cancel", color = PrimaryGold) }
                 }
             )
         }
@@ -146,12 +207,13 @@ private fun trimNum(v: Any?): String {
         is Number -> v.toDouble()
         else -> return "0"
     }
-    return if (d % 1.0 == 0.0) d.toLong().toString() else String.format("%.2f", d)
+    return if (d % 1.0 == 0.0) d.toLong().toString() else String.format(java.util.Locale.US, "%.2f", d)
 }
 
 @Composable
 private fun MaterialCard(
     material: RawMaterialDto,
+    actionInFlight: Boolean,
     onEditStock: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -171,9 +233,11 @@ private fun MaterialCard(
                     color = if (low) WarningYellow else TextGold
                 )
             }
-            TextButton(onClick = onEditStock) { Text("Adjust", color = PrimaryGold) }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, "Delete", tint = DangerRed)
+            TextButton(onClick = onEditStock, enabled = !actionInFlight) {
+                Text("Adjust", color = PrimaryGold)
+            }
+            IconButton(onClick = onDelete, enabled = !actionInFlight) {
+                Icon(Icons.Filled.Delete, "Delete ${material.name}", tint = DangerRed)
             }
         }
     }
@@ -193,6 +257,7 @@ private fun InsightRow(title: String, subtitle: String) {
 
 @Composable
 private fun AddMaterialDialog(
+    actionInFlight: Boolean = false,
     onDismiss: () -> Unit,
     onCreate: (name: String, unit: String?, stock: Double?, threshold: Double?, cost: Double?) -> Unit
 ) {
@@ -229,7 +294,7 @@ private fun AddMaterialDialog(
             Button(onClick = {
                 onCreate(name, unit.ifBlank { "kg" }, stock.toDoubleOrNull(),
                     threshold.toDoubleOrNull(), cost.toDoubleOrNull())
-            }, enabled = name.isNotBlank(),
+            }, enabled = name.isNotBlank() && !actionInFlight,
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
                 Text("Save", color = DarkBrown1)
             }
@@ -241,11 +306,13 @@ private fun AddMaterialDialog(
 @Composable
 private fun EditStockDialog(
     material: RawMaterialDto,
+    actionInFlight: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (Double) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     var stock by remember { mutableStateOf(trimNum(material.stockQuantity)) }
+    val parsedStock = stock.toDoubleOrNull()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -263,7 +330,8 @@ private fun EditStockDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { stock.toDoubleOrNull()?.let(onSave) },
+            Button(onClick = { parsedStock?.let(onSave) },
+                enabled = parsedStock != null && !actionInFlight,
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
                 Text("Save", color = DarkBrown1)
             }

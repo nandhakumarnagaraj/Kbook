@@ -107,9 +107,10 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
                         onSectionSelected("staff_permissions")
                     }
-                    SettingsItem(icon = Icons.Filled.Inventory2, text = "Inventory & Insights", modifier = itemMod) {
-                        onSectionSelected("inventory")
-                    }
+                    // TODO: re-enable for next version
+                    // SettingsItem(icon = Icons.Filled.Inventory2, text = "Inventory & Insights", modifier = itemMod) {
+                    //     onSectionSelected("inventory")
+                    // }
                 }
             }
 
