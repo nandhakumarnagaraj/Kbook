@@ -55,6 +55,9 @@ public class PushNotificationService {
         // Look up within this restaurant only; never rewrite another tenant's row
         DeviceToken dt = deviceTokenRepo.findByRestaurantIdAndToken(restaurantId, token)
             .orElseGet(DeviceToken::new);
+        // Welcome push only for genuinely new devices — re-registrations happen on
+        // every app restart / FCM token refresh / retry and would spam the user.
+        boolean isNewDevice = dt.getCreatedAt() == null;
 
         // Device switched shops: deactivate the stale row under the old restaurant
         deviceTokenRepo.findByToken(token)
@@ -80,6 +83,9 @@ public class PushNotificationService {
         if (dt.getCreatedAt() == null) dt.setCreatedAt(now);
         dt.setUpdatedAt(now);
         DeviceToken saved = deviceTokenRepo.save(dt);
+        if (!isNewDevice) {
+            return saved;
+        }
         try {
             restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
                 String shopName = profile.getShopName() != null ? profile.getShopName() : "Restaurant";
