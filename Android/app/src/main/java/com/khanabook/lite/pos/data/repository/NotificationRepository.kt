@@ -33,6 +33,11 @@ class NotificationRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
+
+    private companion object {
+        const val KEY_LAST_REGISTERED_TOKEN = "fcm_last_registered_token"
+    }
+
     fun getNotifications(): Flow<List<NotificationEntity>> =
         notificationDao.getNotifications()
 
@@ -100,6 +105,10 @@ class NotificationRepository @Inject constructor(
     }
 
     suspend fun registerDeviceToken(token: String) {
+        // Skip when this exact token is already registered server-side — the app
+        // calls this on every start/token refresh and each redundant call used to
+        // trigger a duplicate "Welcome back!" broadcast to all restaurant devices.
+        if (prefs.getString(KEY_LAST_REGISTERED_TOKEN, null) == token) return
         try {
             api.registerDeviceToken(
                 mapOf(
@@ -108,6 +117,7 @@ class NotificationRepository @Inject constructor(
                     "deviceId" to sessionManager.getDeviceId()
                 )
             )
+            prefs.edit().putString(KEY_LAST_REGISTERED_TOKEN, token).apply()
         } catch (e: Exception) {
             android.util.Log.e("NotifRepo", "Failed to register device token: ${e.message}")
             // Schedule retry for failed registration
@@ -126,6 +136,7 @@ class NotificationRepository @Inject constructor(
                         "deviceId" to sessionManager.getDeviceId()
                     )
                 )
+                prefs.edit().putString(KEY_LAST_REGISTERED_TOKEN, token).apply()
                 Log.d("NotifRepo", "Device token registered successfully after retry")
             } catch (e: Exception) {
                 Log.e("NotifRepo", "Device token registration retry failed: ${e.message}")
@@ -174,6 +185,7 @@ class NotificationRepository @Inject constructor(
     }
 
     suspend fun unregisterDeviceToken() {
+        prefs.edit().remove(KEY_LAST_REGISTERED_TOKEN).apply()
         try {
             api.unregisterDeviceToken(sessionManager.getDeviceId())
         } catch (e: Exception) {
