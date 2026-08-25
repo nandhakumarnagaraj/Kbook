@@ -41,6 +41,7 @@ public class GenericSyncService {
 	private final CategoryRepository categoryRepository;
 	private final RestaurantTerminalRepository terminalRepository;
 	private final SecurityAuditService securityAuditService;
+	private final SyncFallbackSaver syncFallbackSaver;
 
 	// Optional: push notifications are disabled until PushNotificationService is on
 	// the classpath with Firebase configured (see FirebaseConfig / PushNotificationService).
@@ -764,7 +765,10 @@ public class GenericSyncService {
 								bill.getCreatedBy());
 					}
 					try {
-						T saved = repository.save(record);
+						// REQUIRES_NEW: the batch failure may have aborted the outer
+						// PostgreSQL transaction; per-record saves must commit in
+						// fresh transactions or they all fail with "transaction aborted".
+						T saved = syncFallbackSaver.saveRecord(repository, record);
 						if (saved.getLocalId() != null && saved.getId() != null) {
 							localToServerIdMap.put(saved.getLocalId(), saved.getId());
 						}
@@ -791,6 +795,19 @@ public class GenericSyncService {
 						log.warn("Per-record save failed localId={} cause={}",
 								record.getLocalId(), recordCause);
 						if (record.getLocalId() != null) {
+							// A record may have been staged into successfulLocalIds before the
+							// batch save; it must not be reported as BOTH success and failure.
+							successfulLocalIds.remove(record.getLocalId());
+							failedLocalIds.add(record.getLocalId());
+							failedReasons.put(record.getLocalId(), sanitizeFailureReason(recordCause));
+						}
+					} catch (RuntimeException recordEx) {
+						// The aborted-outer-transaction case and other runtime failures:
+						// never report a record as success AND failure simultaneously.
+						String recordCause = recordEx.getMessage();
+						log.warn("Per-record save failed localId={} cause={}", record.getLocalId(), recordCause);
+						if (record.getLocalId() != null) {
+							successfulLocalIds.remove(record.getLocalId());
 							failedLocalIds.add(record.getLocalId());
 							failedReasons.put(record.getLocalId(), sanitizeFailureReason(recordCause));
 						}

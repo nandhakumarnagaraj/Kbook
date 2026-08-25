@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
+import com.khanabook.saas.service.RefundService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ public class PaymentController {
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private final EasebuzzPaymentService paymentService;
     private final EasebuzzWebhookService webhookService;
+    private final RefundService refundService;
     private final ObjectMapper objectMapper;
 
     @PostMapping("/create-order")
@@ -123,11 +125,27 @@ public class PaymentController {
     @PostMapping("/refund/{billId}")
     public ResponseEntity<Map<String, Object>> refund(@PathVariable Long billId,
                                                        @RequestBody Map<String, Object> request) {
-        BigDecimal amount = request.get("amount") != null
-                ? new BigDecimal(request.get("amount").toString())
-                : BigDecimal.ZERO;
+        // Tenant scoping: the caller may only refund bills of their own restaurant.
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        if (callerRestaurantId == null) {
+            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
+        }
+        BigDecimal amount;
+        try {
+            amount = request.get("amount") != null
+                    ? new BigDecimal(request.get("amount").toString())
+                    : BigDecimal.ZERO;
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "Invalid refund amount"));
+        }
         String reason = (String) request.get("reason");
-        return ResponseEntity.ok(paymentService.initiateRefund(billId, amount, reason));
+        // RefundService enforces ownership, paid-status eligibility and refundable
+        // bounds (positive, not exceeding remaining unrefunded total).
+        Map<String, Object> result = refundService.initiatePartialRefund(billId, callerRestaurantId, amount, reason);
+        if ("failure".equals(result.get("status"))) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/refund-status/{billId}")

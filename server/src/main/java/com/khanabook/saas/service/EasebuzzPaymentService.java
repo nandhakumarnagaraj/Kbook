@@ -90,8 +90,23 @@ public class EasebuzzPaymentService {
                 );
             }
 
-            // Terminal/expired statuses (failure, dropped, bounced, userCancelled, preInitiated)
-            // or API failure (unknown) — safe to clear and create fresh txnid
+            if ("unknown".equalsIgnoreCase(oldTxnStatus)) {
+                // FAIL CLOSED: the status API failed or returned something unparseable.
+                // The old txnid may still be in-flight at the gateway — creating a new
+                // one here is the exact multi-txnid double-charge scenario. The customer
+                // can retry once the gateway recovers; verifyPayment() will resolve it.
+                log.warn("Old txnid={} status unknown at gateway — blocking new order creation for billId={} (fail closed)",
+                        oldTxnId, billId);
+                return Map.of(
+                        "status", "failure",
+                        "code", "PAYMENT_STATUS_UNKNOWN",
+                        "error", "Cannot verify the previous payment attempt right now. Please retry in a few minutes.",
+                        "txnid", oldTxnId
+                );
+            }
+
+            // Confirmed terminal/expired statuses only
+            // (failure, dropped, bounced, userCancelled, preInitiated) — safe to clear.
             log.info("Old txnid={} status={} is terminal/expired — clearing stale gateway data for billId={}",
                     oldTxnId, oldTxnStatus, billId);
             bill.setGatewayTxnId(null);
@@ -318,16 +333,17 @@ public class EasebuzzPaymentService {
             easebuzzId = txnid;
         }
 
-        // Deterministic merchant_refund_id: same ID on retry prevents double-refunds
-        // (Easebuzz treats duplicate merchant_refund_id as idempotent — returns existing refund)
-        String merchantRefundId;
-        if (!easebuzzId.equals(txnid)) {
-            // Have a real easebuzz_id — use it for uniqueness
-            merchantRefundId = "REF_" + billId + "_" + easebuzzId.substring(0, Math.min(8, easebuzzId.length()));
-        } else {
-            // Fallback: easebuzzId is the txnid itself — use billId + restaurantId
-            merchantRefundId = "REF_" + billId + "_" + bill.getRestaurantId();
-        }
+        // Deterministic merchant_refund_id PER REFUND ATTEMPT: Easebuzz treats a
+        // duplicate merchant_refund_id as idempotent (returns the existing refund,
+        // never moves money twice). The ID includes the amount already refunded
+        // BEFORE this attempt (bill.refundAmount is advanced only AFTER a successful
+        // initiation by RefundService), so:
+        //  - retry of the same attempt -> same baseline -> same ID (gateway dedups)
+        //  - next partial refund       -> new baseline -> new ID (money can move)
+        //  - two concurrent partials   -> same baseline -> one wins (over-refund guard)
+        BigDecimal refundedSoFar = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+        String merchantRefundId = "REF_" + billId + "_"
+                + refundedSoFar.stripTrailingZeros().toPlainString();
 
         log.info("Initiating refund billId={} txnid={} easebuzzId={} merchantRefundId={} amount={}",
                 billId, txnid, easebuzzId, merchantRefundId, amount);

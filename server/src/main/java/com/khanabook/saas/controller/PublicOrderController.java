@@ -14,14 +14,20 @@ import com.khanabook.saas.service.PushNotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Customer-facing QR ordering (Phase 2 core). Unauthenticated menu browsing and
@@ -45,6 +51,9 @@ public class PublicOrderController {
     private final PushNotificationService pushNotificationService;
     private final com.khanabook.saas.service.EasebuzzPaymentService easebuzzPaymentService;
     private final DbRateLimiter qrOrderRateLimiter;
+
+    /** Per-restaurant monotonic counter for QR bill localIds (thread-safe). */
+    private final ConcurrentHashMap<Long, AtomicLong> qrCounters = new ConcurrentHashMap<>();
 
     public PublicOrderController(CategoryRepository categoryRepository,
                                  MenuItemRepository menuItemRepository,
@@ -121,6 +130,7 @@ public class PublicOrderController {
                                      String tableLabel, String customerNote) {}
 
     @PostMapping("/orders")
+    @Transactional
     public ResponseEntity<?> createOrder(@PathVariable Long restaurantId,
                                          @RequestBody CreateOrderRequest request,
                                          HttpServletRequest httpRequest) {
@@ -153,7 +163,11 @@ public class PublicOrderController {
             String name = item.getName();
             if (line.variantId() != null) {
                 ItemVariant variant = itemVariantRepository.findById(line.variantId()).orElse(null);
-                if (variant == null || !Boolean.TRUE.equals(variant.getIsAvailable())) {
+                // Variant must belong to THIS restaurant AND to the selected menu item,
+                // otherwise a customer could pair a cheap foreign variant with any item.
+                if (variant == null || !Boolean.TRUE.equals(variant.getIsAvailable())
+                        || !restaurantId.equals(variant.getRestaurantId())
+                        || !item.getId().equals(variant.getServerMenuItemId())) {
                     return ResponseEntity.badRequest()
                             .body(Map.of("error", "variant unavailable: " + line.variantId()));
                 }
@@ -180,8 +194,10 @@ public class PublicOrderController {
         Bill bill = new Bill();
         bill.setRestaurantId(restaurantId);
         bill.setDeviceId(QR_DEVICE_ID);
-        // Unique per (restaurant, device): epoch-based localId avoids collisions.
-        bill.setLocalId(now % 1_000_000_000L * 1000 + (now % 1000));
+        // Unique per (restaurant, device): thread-safe per-restaurant counter.
+        long qrLocalId = qrCounters.computeIfAbsent(restaurantId,
+                k -> new AtomicLong(now % 1_000_000_000L)).incrementAndGet();
+        bill.setLocalId(qrLocalId);
         bill.setCreatedAt(now);
         bill.setUpdatedAt(now);
         bill.setServerUpdatedAt(now);
@@ -194,15 +210,30 @@ public class PublicOrderController {
         bill.setSubtotal(total);
 
         // Daily order number: unique per (restaurant, lastResetDate) — allocate next.
-        String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
-        Long maxDaily = billRepository.findMaxDailyOrderIdForDate(restaurantId, today);
-        long dailyOrderId = (maxDaily != null ? maxDaily : 0L) + 1;
-        bill.setLastResetDate(today);
-        bill.setDailyOrderId(dailyOrderId);
-        bill.setDailyOrderDisplay("QR" + dailyOrderId);
-        bill.setLifetimeOrderId(now);
-
-        Bill saved = billRepository.save(bill);
+        // Retry on unique-index collision: two concurrent QR orders can read the
+        // same max; the loser retries with the next number (max 3 attempts).
+        String today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString();
+        Bill saved = null;
+        DataIntegrityViolationException lastDive = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            Long maxDaily = billRepository.findMaxDailyOrderIdForDate(restaurantId, today);
+            long dailyOrderId = (maxDaily != null ? maxDaily : 0L) + 1;
+            bill.setLastResetDate(today);
+            bill.setDailyOrderId(dailyOrderId);
+            bill.setDailyOrderDisplay("QR" + dailyOrderId);
+            bill.setLifetimeOrderId(now);
+            try {
+                saved = billRepository.saveAndFlush(bill);
+                break;
+            } catch (DataIntegrityViolationException e) {
+                lastDive = e;
+                log.warn("QR order daily-order-id collision (attempt {}), retrying", attempt + 1);
+            }
+        }
+        if (saved == null) {
+            throw lastDive != null ? lastDive
+                    : new IllegalStateException("Could not allocate daily order id");
+        }
         for (BillItem bi : lines) {
             bi.setBillId(saved.getId());
             bi.setServerBillId(saved.getId());

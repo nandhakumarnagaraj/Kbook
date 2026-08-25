@@ -56,7 +56,8 @@ class ItemVariantServiceImplTest {
             itemVariantRepo,
             categoryRepository,
             terminalRepository,
-            securityAuditService
+            securityAuditService,
+            new com.khanabook.saas.sync.service.SyncFallbackSaver()
         );
         service = new ItemVariantServiceImpl(itemVariantRepo, menuItemRepo, genericSyncService);
     }

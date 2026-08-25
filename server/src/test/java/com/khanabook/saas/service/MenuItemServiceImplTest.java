@@ -56,7 +56,8 @@ class MenuItemServiceImplTest {
             itemVariantRepository,
             categoryRepo,
             terminalRepository,
-            securityAuditService
+            securityAuditService,
+            new com.khanabook.saas.sync.service.SyncFallbackSaver()
         );
         service = new MenuItemServiceImpl(menuItemRepo, categoryRepo, genericSyncService);
     }

@@ -50,7 +50,8 @@ class BillDependencyResolutionTest {
                 itemVariantRepo,
                 categoryRepo,
                 terminalRepo,
-                securityAuditService
+                securityAuditService,
+                new com.khanabook.saas.sync.service.SyncFallbackSaver()
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);

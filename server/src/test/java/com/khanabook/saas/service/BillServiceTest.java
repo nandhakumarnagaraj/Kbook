@@ -77,7 +77,8 @@ class BillServiceTest {
             itemVariantRepository,
             categoryRepository,
             terminalRepository,
-            securityAuditService
+            securityAuditService,
+            new com.khanabook.saas.sync.service.SyncFallbackSaver()
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
 
