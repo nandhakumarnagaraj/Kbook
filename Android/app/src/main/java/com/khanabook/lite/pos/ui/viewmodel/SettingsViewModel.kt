@@ -720,6 +720,8 @@ class SettingsViewModel @Inject constructor(
                 }
                 val url = restaurantRepository.uploadLogo(part)
                 onUploaded(url)
+            } catch (e: IllegalArgumentException) {
+                _logoUploadError.value = e.message
             } catch (e: Exception) {
                 _logoUploadError.value = UserMessageSanitizer.sanitize(e, "Logo upload failed. Please try again.")
             } finally {
