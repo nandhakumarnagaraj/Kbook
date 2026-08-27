@@ -9,7 +9,10 @@ set -euo pipefail
 #   SKIP_BUILD set to 1 to reuse an existing dist/ (skip npm ci + ng build)
 
 ROOT_DIR="/var/www/kbook.iadv.cloud"
-WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/web}"
+# Apache DocumentRoot for kbook.iadv.cloud is the Angular build output itself
+# (see /etc/apache2/sites-enabled/kbook.iadv.cloud-le-ssl.conf: DocumentRoot ...browser).
+# Override WEB_ROOT only if the vhost points somewhere else.
+WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/web-admin/dist/khanabook-web-admin/browser}"
 WEB_SRC="$ROOT_DIR/web-admin"
 DIST_DIR="$WEB_SRC/dist/khanabook-web-admin/browser"
 HEALTH_URL="https://kbook.iadv.cloud/api/v1/actuator/health"
@@ -33,19 +36,27 @@ fi
 
 mkdir -p "$WEB_ROOT"
 
-# Back up current docroot before overwriting.
-if [ -d "$WEB_ROOT" ] && [ -n "$(ls -A "$WEB_ROOT" 2>/dev/null)" ]; then
-  BACKUP="${WEB_ROOT%/}.bak.$(date +%Y%m%d%H%M%S)"
-  echo "--- Backing up current docroot -> $BACKUP ---"
-  cp -a "$WEB_ROOT" "$BACKUP"
-fi
+# Resolve to absolute paths so we can detect the "build output IS the docroot" case.
+DIST_ABS="$(cd "$DIST_DIR" && pwd -P)"
+WEB_ABS="$(cd "$WEB_ROOT" && pwd -P)"
 
-echo "--- Syncing new build to docroot ---"
-if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete "$DIST_DIR/" "$WEB_ROOT/"
+if [ "$DIST_ABS" = "$WEB_ABS" ]; then
+  echo "--- Docroot IS the build output ($WEB_ABS); no copy needed. ---"
 else
-  rm -rf "${WEB_ROOT:?}/"*
-  cp -a "$DIST_DIR/." "$WEB_ROOT/"
+  # Back up current docroot before overwriting.
+  if [ -d "$WEB_ROOT" ] && [ -n "$(ls -A "$WEB_ROOT" 2>/dev/null)" ]; then
+    BACKUP="${WEB_ROOT%/}.bak.$(date +%Y%m%d%H%M%S)"
+    echo "--- Backing up current docroot -> $BACKUP ---"
+    cp -a "$WEB_ROOT" "$BACKUP"
+  fi
+
+  echo "--- Syncing new build to docroot ---"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete "$DIST_DIR/" "$WEB_ROOT/"
+  else
+    rm -rf "${WEB_ROOT:?}/"*
+    cp -a "$DIST_DIR/." "$WEB_ROOT/"
+  fi
 fi
 
 echo "--- Verifying ---"
