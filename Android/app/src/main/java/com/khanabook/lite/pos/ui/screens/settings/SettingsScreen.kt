@@ -170,7 +170,6 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
-            .imePadding()
     ) {
         KhanaBookScreenScaffold(
             title = when (section) {

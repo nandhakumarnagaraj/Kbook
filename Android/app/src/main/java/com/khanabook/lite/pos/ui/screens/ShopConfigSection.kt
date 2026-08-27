@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -274,8 +273,10 @@ fun ShopConfigView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            // Single inset owner for this section: imePadding() spans the
+            // keyboard (and nav-bar region) when open. The parent SettingsScreen
+            // Box no longer applies imePadding, so this does not double-count.
             .imePadding()
-            .navigationBarsPadding()
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
