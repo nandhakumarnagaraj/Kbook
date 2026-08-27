@@ -61,9 +61,8 @@ class AuthServiceImplTest {
 
     @Test
     void signup_newUser_createsProfileAndUser() {
-        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.empty());
-        when(userRepository.findByEmailIgnoreCase("9876543210")).thenReturn(Optional.empty());
-        when(userRepository.findByWhatsappNumber("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier("9876543210")).thenReturn(java.util.List.of());
         when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
         when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
@@ -89,9 +88,8 @@ class AuthServiceImplTest {
 
     @Test
     void signup_restaurantIdIsUuidBased_notSequential() {
-        when(userRepository.findByLoginIdIgnoreCase(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByWhatsappNumber(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findActiveByAnyIdentifier(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier(anyString())).thenReturn(java.util.List.of());
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("t");
         when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
@@ -102,6 +100,59 @@ class AuthServiceImplTest {
         AuthResponse r2 = authService.signup(new SignupRequest("2222222222", "B", "p", "123456", "D2"));
 
         assertThat(r1.getRestaurantId()).isNotEqualTo(r2.getRestaurantId());
+    }
+
+    @Test
+    void signup_liveAccountWithSameNumber_isRejected() {
+        User live = activeUser("9876543210", "hash", 100L);
+        live.setPhoneNumber("9876543210");
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.of(live));
+
+        assertThatThrownBy(() -> authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already registered");
+
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void signup_softDeletedAccountWithSameNumber_isAllowedAndReleasesIdentifier() {
+        // No LIVE account holds the number -> available.
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.empty());
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
+
+        // A soft-deleted account still holds the number in the unique-indexed columns.
+        User dead = new User();
+        ReflectionTestUtils.setField(dead, "id", 42L);
+        dead.setIsDeleted(true);
+        dead.setPhoneNumber("9876543210");
+        dead.setWhatsappNumber("9876543210");
+        dead.setLoginId("9876543210");
+        when(userRepository.findDeletedHoldingIdentifier("9876543210"))
+                .thenReturn(java.util.List.of(dead));
+
+        when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        AuthResponse resp = authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A"));
+
+        assertThat(resp.getToken()).isEqualTo("signup-token");
+
+        // The dead account's reusable identifiers are released, history preserved (id still set).
+        ArgumentCaptor<java.util.List<User>> releaseCaptor = ArgumentCaptor.forClass(java.util.List.class);
+        verify(userRepository).saveAll(releaseCaptor.capture());
+        User released = releaseCaptor.getValue().get(0);
+        assertThat(released.getPhoneNumber()).isNull();
+        assertThat(released.getWhatsappNumber()).isNull();
+        assertThat(released.getLoginId()).isEqualTo("9876543210|deleted:42");
+        assertThat(released.getIsDeleted()).isTrue();
+
+        // The new live user is created.
+        verify(userRepository).saveAndFlush(any());
     }
 
     private User activeUser(String phone, String hash, Long restaurantId) {

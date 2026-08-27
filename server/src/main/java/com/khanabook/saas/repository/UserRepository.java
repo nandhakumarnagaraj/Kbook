@@ -30,6 +30,22 @@ public interface UserRepository extends SyncRepository<User, Long> {
 	@Query("SELECT u FROM User u WHERE u.phoneNumber = :identifier OR u.loginId = :identifier OR u.email = :identifier OR u.whatsappNumber = :identifier")
 	Optional<User> findByAnyIdentifier(@org.springframework.data.repository.query.Param("identifier") String identifier);
 
+	/**
+	 * Signup availability check: a number is only "taken" if it belongs to a
+	 * live (not soft-deleted) user. Soft-deleted accounts must not block
+	 * re-registration of the same number. See AuthServiceImpl#ensurePhoneNumberAvailableForSignup.
+	 */
+	@Query("SELECT u FROM User u WHERE u.isDeleted = false AND (u.phoneNumber = :identifier OR u.loginId = :identifier OR u.email = :identifier OR u.whatsappNumber = :identifier)")
+	Optional<User> findActiveByAnyIdentifier(@org.springframework.data.repository.query.Param("identifier") String identifier);
+
+	/**
+	 * Soft-deleted users that still hold this identifier in a partial-unique-indexed
+	 * column (phone_number / login_id / whatsapp_number). Used to release the
+	 * identifier at signup time so the DB unique index does not block reuse.
+	 */
+	@Query("SELECT u FROM User u WHERE u.isDeleted = true AND (u.phoneNumber = :identifier OR u.loginId = :identifier OR u.whatsappNumber = :identifier)")
+	List<User> findDeletedHoldingIdentifier(@org.springframework.data.repository.query.Param("identifier") String identifier);
+
 	List<User> findByRestaurantIdAndRoleAndIsDeletedFalse(Long restaurantId, UserRole role);
 
 	List<User> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);

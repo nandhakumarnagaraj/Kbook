@@ -89,6 +89,10 @@ public class AuthServiceImpl implements AuthService {
         ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
         passwordResetOtpService.validateSignupOtpOrThrow(request.getPhoneNumber(), request.getOtp());
 
+        // Free the number from any soft-deleted account so the partial unique
+        // indexes do not block this fresh signup. No live data is touched.
+        releaseIdentifierFromDeletedUsers(request.getPhoneNumber());
+
         Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
 
         RestaurantProfile profile = new RestaurantProfile();
@@ -134,6 +138,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse devSignup(SignupRequest request) {
         ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
+        releaseIdentifierFromDeletedUsers(request.getPhoneNumber());
         Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
         RestaurantProfile profile = new RestaurantProfile();
         profile.setRestaurantId(newRestaurantId);
@@ -414,7 +419,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean checkUserExists(String phoneNumber) {
-        return findUserByLoginId(phoneNumber).isPresent();
+        // Only LIVE accounts count as "exists". Soft-deleted accounts must not
+        // report the number as taken (consistent with signup availability check).
+        return userRepository.findActiveByAnyIdentifier(
+                normalizeLoginIdentifier(phoneNumber)).isPresent();
     }
 
     @Override
@@ -466,9 +474,46 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void ensurePhoneNumberAvailableForSignup(String phoneNumber) {
-        if (findUserByLoginId(phoneNumber).isPresent()) {
+        String normalized = normalizeLoginIdentifier(phoneNumber);
+        // Only a LIVE account blocks re-registration. Soft-deleted accounts must
+        // not reserve the number forever (root cause of "already registered" for
+        // genuinely-new / previously-deleted numbers).
+        if (userRepository.findActiveByAnyIdentifier(normalized).isPresent()) {
             throw new IllegalArgumentException("This number is already registered.");
         }
+    }
+
+    /**
+     * Release this identifier from any soft-deleted user rows so the partial
+     * unique indexes (phone_number / login_id / whatsapp_number) do not block a
+     * fresh signup with the same number. Non-destructive: the deleted account and
+     * all its history are preserved; only the reusable identifier columns are
+     * detached (phone/whatsapp nulled, login_id tombstoned but still readable).
+     */
+    private void releaseIdentifierFromDeletedUsers(String phoneNumber) {
+        String normalized = normalizeLoginIdentifier(phoneNumber);
+        var deleted = userRepository.findDeletedHoldingIdentifier(normalized);
+        if (deleted.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (User u : deleted) {
+            if (normalized.equalsIgnoreCase(u.getPhoneNumber())) {
+                u.setPhoneNumber(null);
+            }
+            if (normalized.equalsIgnoreCase(u.getWhatsappNumber())) {
+                u.setWhatsappNumber(null);
+            }
+            if (normalized.equalsIgnoreCase(u.getLoginId())) {
+                // Keep it readable for audit, but no longer collide on exact match.
+                u.setLoginId(u.getLoginId() + "|deleted:" + u.getId());
+            }
+            u.setUpdatedAt(now);
+            u.setServerUpdatedAt(now);
+        }
+        userRepository.saveAll(deleted);
+        userRepository.flush();
+        log.info("Released signup identifier from {} soft-deleted user row(s)", deleted.size());
     }
 
     private void backfillLoginIdIfMissing(User user) {
