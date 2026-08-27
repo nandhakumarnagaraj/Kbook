@@ -389,8 +389,17 @@ export class LoginPageComponent implements OnInit {
   }
 
   private initGoogle(): void {
+    let attempts = 0;
+    const maxAttempts = 40; // ~12s at 300ms
     const check = () => {
-      if (typeof google !== 'undefined' && google?.accounts?.id) {
+      attempts++;
+      const target = document.getElementById('google-btn');
+      const gsiReady = typeof google !== 'undefined' && google?.accounts?.id;
+      // Render only once BOTH the GIS script is ready AND the target element
+      // exists in the DOM. The #google-btn div lives inside *ngIf="forgotStep
+      // === 'none'", so it may not be present on the first tick — calling
+      // renderButton(null, ...) makes GIS log "no parent" and draw nothing.
+      if (gsiReady && target) {
         google.accounts.id.initialize({
           client_id: environment.googleClientId,
           callback: (response: any) => {
@@ -398,10 +407,12 @@ export class LoginPageComponent implements OnInit {
           }
         });
         google.accounts.id.renderButton(
-          document.getElementById('google-btn'),
+          target,
           { theme: 'outline', size: 'large', width: 380, text: 'signin_with' }
         );
-      } else {
+        return;
+      }
+      if (attempts < maxAttempts) {
         setTimeout(check, 300);
       }
     };

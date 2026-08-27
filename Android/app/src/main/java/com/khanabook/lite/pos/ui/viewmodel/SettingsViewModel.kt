@@ -645,25 +645,13 @@ class SettingsViewModel @Inject constructor(
     val userExistsError: StateFlow<String?> = _userExistsError.asStateFlow()
 
     fun checkUserExists(phoneNumber: String, currentPhoneNumber: String) {
-        if (phoneNumber.length != 10 || phoneNumber == currentPhoneNumber) {
-            _userExistsError.value = null
-            return
-        }
-        
-        viewModelScope.launch {
-            _isUserChecking.value = true
-            _userExistsError.value = null
-            try {
-                val exists = userRepository.checkUserExistsRemotely(phoneNumber)
-                if (exists) {
-                    _userExistsError.value = "An account with this number already exists."
-                }
-            } catch (e: Exception) {
-                Log.w("SettingsViewModel", "Remote user existence check failed", e)
-            } finally {
-                _isUserChecking.value = false
-            }
-        }
+        // /auth/check-user is an anti-enumeration stub (always true for any valid
+        // 10-digit number), so it cannot reliably tell if a number is taken. The
+        // authoritative check is the server mobile-update endpoint
+        // (ensureMobileNumberAvailable), which rejects a number already tied to a
+        // different shop. Do not pre-flag existence here.
+        _userExistsError.value = null
+        _isUserChecking.value = false
     }
 
     fun clearUserCheck() {

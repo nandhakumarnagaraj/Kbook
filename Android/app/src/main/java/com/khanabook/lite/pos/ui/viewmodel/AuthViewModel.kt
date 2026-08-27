@@ -78,23 +78,15 @@ constructor(
     val userExistsError: StateFlow<String?> = _userExistsError
 
     fun checkUserExists(phoneNumber: String) {
-        if (!phoneNumber.matches(Regex("^\\d{10}$"))) return
-        
-        viewModelScope.launch {
-            _isUserChecking.value = true
-            _userExistsError.value = null
-            try {
-                val exists = userRepository.checkUserExistsRemotely(phoneNumber)
-                if (exists) {
-                    _userExistsError.value = "An account with this number already exists."
-                }
-            } catch (e: Exception) {
-                // Silently fail or log, don't block user if check fails
-                Log.e(TAG, "User check failed", e)
-            } finally {
-                _isUserChecking.value = false
-            }
-        }
+        // NOTE: The server /auth/check-user endpoint is an intentional
+        // anti-enumeration stub that ALWAYS returns true for any valid 10-digit
+        // number. Using it as an "already exists" gate falsely blocked signup for
+        // every number. The authoritative check is the /auth/signup call itself
+        // (server-side ensurePhoneNumberAvailableForSignup), which correctly
+        // allows genuinely-new and previously-deleted numbers. So we do not
+        // pre-flag existence here.
+        _userExistsError.value = null
+        _isUserChecking.value = false
     }
 
     fun clearUserCheck() {
@@ -207,19 +199,10 @@ constructor(
             if (purpose == "reset") {
                 _resetPasswordFieldErrors.value = emptyMap()
                 _resetPasswordStatus.value = ResetPasswordResult.Loading
-                val userExists = try {
-                    userRepository.checkUserExistsRemotely(phoneNumber)
-                } catch (e: Exception) {
-                    _resetPasswordStatus.value =
-                        ResetPasswordResult.Error("Unable to verify account. Check your connection.")
-                    return@launch
-                }
-
-                if (!userExists) {
-                    _resetPasswordStatus.value = ResetPasswordResult.Error("No account found with this number.")
-                    return@launch
-                }
-
+                // No existence pre-check: /auth/check-user is an anti-enumeration
+                // stub (always true), so it cannot confirm an account. The server
+                // password-reset endpoint returns 200 regardless and only sends an
+                // OTP if the number is registered.
                 try {
                     userRepository.requestPasswordResetOtp(phoneNumber)
                     _resetPasswordStatus.value = ResetPasswordResult.OtpSent
