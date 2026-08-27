@@ -99,7 +99,9 @@ fun EasebuzzOnboardingScreen(
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
-                .imePadding()
+                // No imePadding() here: each step (BusinessDetails/BankDetails via
+                // StickyBottomScaffold) owns its own IME inset. Applying it on this
+                // wrapper too double-counted the keyboard height.
         ) {
         when (val state = uiState) {
             is OnboardingUiState.Loading -> {
