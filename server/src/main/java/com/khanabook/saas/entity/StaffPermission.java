@@ -35,6 +35,14 @@ public class StaffPermission {
     @Column(name = "updated_at", nullable = false)
     private Long updatedAt;
 
+    /**
+     * Revision at which this permission key was most recently revoked for this
+     * user (null = never revoked). Used by sync revalidation: an operation
+     * created at revision R is unauthorized if lastRevokedRevision >= R.
+     */
+    @Column(name = "last_revoked_revision")
+    private Long lastRevokedRevision;
+
     public StaffPermission() {}
 
     public StaffPermission(Long restaurantId, Long userId, String permissionKey, Long grantedBy) {
@@ -65,4 +73,6 @@ public class StaffPermission {
     public void setRevokedAt(Long revokedAt) { this.revokedAt = revokedAt; }
     public Long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Long updatedAt) { this.updatedAt = updatedAt; }
+    public Long getLastRevokedRevision() { return lastRevokedRevision; }
+    public void setLastRevokedRevision(Long lastRevokedRevision) { this.lastRevokedRevision = lastRevokedRevision; }
 }

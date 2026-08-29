@@ -22,6 +22,7 @@ public class PermissionService {
     private final PushNotificationService pushNotificationService;
     private final DbRateLimiter permissionRequestRateLimiter;
     private final SecurityAuditService securityAuditService;
+    private final StaffPermissionRevisionRepository revisionRepo;
 
     public PermissionService(StaffPermissionRepository permissionRepo,
                              PermissionRequestRepository requestRepo,
@@ -31,7 +32,8 @@ public class PermissionService {
                              PushNotificationService pushNotificationService,
                              @org.springframework.beans.factory.annotation.Qualifier("permissionRequestRateLimiterDb")
                              DbRateLimiter permissionRequestRateLimiter,
-                             SecurityAuditService securityAuditService) {
+                             SecurityAuditService securityAuditService,
+                             StaffPermissionRevisionRepository revisionRepo) {
         this.permissionRepo = permissionRepo;
         this.requestRepo = requestRepo;
         this.templateRepo = templateRepo;
@@ -40,6 +42,35 @@ public class PermissionService {
         this.pushNotificationService = pushNotificationService;
         this.permissionRequestRateLimiter = permissionRequestRateLimiter;
         this.securityAuditService = securityAuditService;
+        this.revisionRepo = revisionRepo;
+    }
+
+    /**
+     * Current monotonic authorization revision for a user (1 if none recorded yet).
+     */
+    public long getPermissionRevision(Long restaurantId, Long userId) {
+        return revisionRepo.findByRestaurantIdAndUserId(restaurantId, userId)
+                .map(StaffPermissionRevision::getRevision)
+                .orElse(0L);
+    }
+
+    /**
+     * Atomically increments and returns the user's authorization revision.
+     * Called whenever a grant/revoke/template change alters offline authorization.
+     */
+    private long bumpRevision(Long restaurantId, Long userId) {
+        var existing = revisionRepo.findByRestaurantIdAndUserId(restaurantId, userId);
+        StaffPermissionRevision rev;
+        if (existing.isPresent()) {
+            rev = existing.get();
+            rev.setRevision(rev.getRevision() + 1);
+        } else {
+            // First authorization-changing event for this user starts the counter at 1.
+            rev = new StaffPermissionRevision(restaurantId, userId, 1L);
+        }
+        rev.setUpdatedAt(System.currentTimeMillis());
+        revisionRepo.save(rev);
+        return rev.getRevision();
     }
 
     /**
@@ -117,6 +148,9 @@ public class PermissionService {
         } else {
             permissionRepo.save(new StaffPermission(restaurantId, userId, permissionKey, grantedBy));
         }
+        if (!wasGranted) {
+            bumpRevision(restaurantId, userId); // grant changes offline authorization
+        }
         auditPermissionChange(restaurantId, userId, permissionKey, wasGranted, true);
     }
 
@@ -129,6 +163,13 @@ public class PermissionService {
                     perm.setGranted(false);
                     perm.setRevokedAt(System.currentTimeMillis());
                     perm.setUpdatedAt(System.currentTimeMillis());
+                    if (wasGranted) {
+                        long newRev = bumpRevision(restaurantId, userId);
+                        // Stamp the revocation revision so sync revalidation can reject
+                        // operations created at-or-after this point (Decision A strict),
+                        // even if the permission is later re-granted.
+                        perm.setLastRevokedRevision(newRev);
+                    }
                     permissionRepo.save(perm);
                     auditPermissionChange(restaurantId, userId, permissionKey, wasGranted, false);
                 });
