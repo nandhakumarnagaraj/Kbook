@@ -21,6 +21,7 @@ public class PermissionService {
     private final ObjectMapper objectMapper;
     private final PushNotificationService pushNotificationService;
     private final DbRateLimiter permissionRequestRateLimiter;
+    private final SecurityAuditService securityAuditService;
 
     public PermissionService(StaffPermissionRepository permissionRepo,
                              PermissionRequestRepository requestRepo,
@@ -29,7 +30,8 @@ public class PermissionService {
                              ObjectMapper objectMapper,
                              PushNotificationService pushNotificationService,
                              @org.springframework.beans.factory.annotation.Qualifier("permissionRequestRateLimiterDb")
-                             DbRateLimiter permissionRequestRateLimiter) {
+                             DbRateLimiter permissionRequestRateLimiter,
+                             SecurityAuditService securityAuditService) {
         this.permissionRepo = permissionRepo;
         this.requestRepo = requestRepo;
         this.templateRepo = templateRepo;
@@ -37,6 +39,24 @@ public class PermissionService {
         this.objectMapper = objectMapper;
         this.pushNotificationService = pushNotificationService;
         this.permissionRequestRateLimiter = permissionRequestRateLimiter;
+        this.securityAuditService = securityAuditService;
+    }
+
+    /**
+     * Records a permission grant/revoke as a security audit event (actor from
+     * TenantContext). Additive observability only — never throws into the caller.
+     */
+    private void auditPermissionChange(Long restaurantId, Long userId, String permissionKey,
+                                       boolean wasGranted, boolean nowGranted) {
+        if (wasGranted == nowGranted) return; // no state change
+        try {
+            String action = "PERMISSION_" + (nowGranted ? "GRANT" : "REVOKE");
+            String outcome = (wasGranted ? "granted" : "revoked") + "->" + (nowGranted ? "granted" : "revoked");
+            securityAuditService.record(action, outcome,
+                    "user:" + userId + ":" + permissionKey, null);
+        } catch (Exception e) {
+            // audit must never break the permission flow
+        }
     }
 
     // ── Check ─────────────────────────────────────────────────────────────────
@@ -85,6 +105,7 @@ public class PermissionService {
         }
         requireTenantUser(restaurantId, userId);
         var existing = permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey);
+        boolean wasGranted = existing.map(StaffPermission::getGranted).orElse(false);
         if (existing.isPresent()) {
             var perm = existing.get();
             perm.setGranted(true);
@@ -96,6 +117,7 @@ public class PermissionService {
         } else {
             permissionRepo.save(new StaffPermission(restaurantId, userId, permissionKey, grantedBy));
         }
+        auditPermissionChange(restaurantId, userId, permissionKey, wasGranted, true);
     }
 
     @Transactional
@@ -103,10 +125,12 @@ public class PermissionService {
         requireTenantUser(restaurantId, userId);
         permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .ifPresent(perm -> {
+                    boolean wasGranted = Boolean.TRUE.equals(perm.getGranted());
                     perm.setGranted(false);
                     perm.setRevokedAt(System.currentTimeMillis());
                     perm.setUpdatedAt(System.currentTimeMillis());
                     permissionRepo.save(perm);
+                    auditPermissionChange(restaurantId, userId, permissionKey, wasGranted, false);
                 });
     }
 
