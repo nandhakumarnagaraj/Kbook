@@ -142,6 +142,23 @@ public class EasebuzzSubMerchant {
     @Column(name = "business_proof_2_url", columnDefinition = "TEXT")
     private String businessProof2Url;
 
+    // Private storage keys for KYC documents (relative paths under the private
+    // docs base — never public /cdn/ URLs). Introduced to move KYC PII off the
+    // Apache-public CDN path. When a *_key is set, the document is served only
+    // through authenticated download endpoints; the legacy *_url columns are
+    // retained for backward-compatible reads and reconciliation/rollback.
+    @Column(name = "id_proof_key", columnDefinition = "TEXT")
+    private String idProofKey;
+
+    @Column(name = "bank_proof_key", columnDefinition = "TEXT")
+    private String bankProofKey;
+
+    @Column(name = "business_proof_1_key", columnDefinition = "TEXT")
+    private String businessProof1Key;
+
+    @Column(name = "business_proof_2_key", columnDefinition = "TEXT")
+    private String businessProof2Key;
+
     @Column(name = "easebuzz_response", columnDefinition = "TEXT")
     private String easebuzzResponse;
 

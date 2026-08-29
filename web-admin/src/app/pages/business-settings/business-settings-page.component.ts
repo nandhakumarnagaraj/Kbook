@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { BusinessApiService, MerchantAgreementStatus } from '../../core/services/business-api.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -191,6 +192,43 @@ interface RestaurantProfile {
           <p class="success-text" *ngIf="pwSuccess">{{ pwSuccess }}</p>
         </div>
       </section>
+
+      <!-- Merchant Agreement -->
+      <section class="panel settings-section">
+        <h3>Merchant Agreement</h3>
+        <p class="muted">Upload the signed KhanaBook service agreement (PDF). Stored securely; only you and KhanaBook admins can access it.</p>
+
+        <div class="panel loading" *ngIf="agreementLoading()">Loading agreement status...</div>
+
+        <ng-container *ngIf="!agreementLoading()">
+          <div class="agreement-status" *ngIf="agreement()?.hasAgreement">
+            <span class="chip success">Signed agreement on file</span>
+            <span class="muted" *ngIf="agreement()?.signedAt as ts"> · {{ ts | date:'medium' }}</span>
+            <div class="agreement-actions">
+              <button class="ghost-btn" [disabled]="agreementBusy()" (click)="downloadAgreement()">
+                {{ agreementBusy() ? 'Working...' : 'Download' }}
+              </button>
+            </div>
+          </div>
+          <p class="muted" *ngIf="!agreement()?.hasAgreement">No agreement uploaded yet.</p>
+
+          <div class="form-grid" style="max-width:500px; margin-top:1rem;">
+            <div class="field">
+              <label>Signer Name</label>
+              <input class="field-control" [(ngModel)]="agreementSigner" placeholder="Name of the person who signed" />
+            </div>
+            <div class="field">
+              <label>Agreement PDF *</label>
+              <input class="field-control" type="file" accept="application/pdf" (change)="onAgreementFileSelected($event)" />
+            </div>
+            <div class="field">
+              <button class="primary-btn" [disabled]="!agreementFile || agreementBusy()" (click)="uploadAgreement()">
+                {{ agreementBusy() ? 'Uploading...' : (agreement()?.hasAgreement ? 'Replace Agreement' : 'Upload Agreement') }}
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </section>
     </div>
   `,
   styles: [`
@@ -210,17 +248,26 @@ interface RestaurantProfile {
     .save-bar { padding: 1rem 0; display: flex; justify-content: flex-end; }
     .success-text { color: var(--accent); font-size: 0.85rem; }
     .error-text { color: var(--danger); font-size: 0.85rem; }
+    .agreement-actions { margin-top: 0.75rem; }
   `]
 })
 export class BusinessSettingsPageComponent {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly businessApi = inject(BusinessApiService);
 
   loading = signal(true);
   loadError = signal('');
   saving = signal(false);
   profile = signal<RestaurantProfile | null>(null);
+
+  // Merchant agreement state
+  agreement = signal<MerchantAgreementStatus | null>(null);
+  agreementLoading = signal(true);
+  agreementBusy = signal(false);
+  agreementSigner = '';
+  agreementFile: File | null = null;
 
   // Change password state
   pwPhone = '';
@@ -231,7 +278,7 @@ export class BusinessSettingsPageComponent {
   pwError = '';
   pwSuccess = '';
 
-  constructor() { this.load(); }
+  constructor() { this.load(); this.loadAgreement(); }
 
   load(): void {
     this.loading.set(true);
@@ -275,6 +322,62 @@ export class BusinessSettingsPageComponent {
       error: () => {
         this.loading.set(false);
         this.loadError.set('Failed to load settings. Check connection and try again.');
+      }
+    });
+  }
+
+  loadAgreement(): void {
+    this.agreementLoading.set(true);
+    this.businessApi.getMerchantAgreementStatus().subscribe({
+      next: (status) => { this.agreement.set(status); this.agreementLoading.set(false); },
+      error: () => { this.agreement.set({ hasAgreement: false }); this.agreementLoading.set(false); }
+    });
+  }
+
+  onAgreementFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (file && file.type !== 'application/pdf') {
+      this.toast.show('Only PDF files are allowed for the agreement.', 'error');
+      this.agreementFile = null;
+      input.value = '';
+      return;
+    }
+    this.agreementFile = file;
+  }
+
+  uploadAgreement(): void {
+    if (!this.agreementFile) return;
+    this.agreementBusy.set(true);
+    this.businessApi.uploadMerchantAgreement(this.agreementFile, this.agreementSigner.trim() || undefined).subscribe({
+      next: () => {
+        this.toast.show('Agreement uploaded successfully.', 'success');
+        this.agreementFile = null;
+        this.agreementBusy.set(false);
+        this.loadAgreement();
+      },
+      error: (err) => {
+        this.toast.show(err?.error?.message ?? 'Failed to upload agreement. Try again.', 'error');
+        this.agreementBusy.set(false);
+      }
+    });
+  }
+
+  downloadAgreement(): void {
+    this.agreementBusy.set(true);
+    this.businessApi.downloadMerchantAgreement().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.agreement()?.originalFilename ?? 'merchant-agreement.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.agreementBusy.set(false);
+      },
+      error: () => {
+        this.toast.show('Failed to download agreement.', 'error');
+        this.agreementBusy.set(false);
       }
     });
   }

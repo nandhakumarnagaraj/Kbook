@@ -76,10 +76,15 @@ public class RestaurantPaymentConfigController {
             result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
             result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
             result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
-            result.put("idProofUrl",         sm.getIdProofUrl());
-            result.put("bankProofUrl",       sm.getBankProofUrl());
-            result.put("businessProof1Url",  sm.getBusinessProof1Url());
-            result.put("businessProof2Url",  sm.getBusinessProof2Url());
+            // KYC documents are private PII: never return public /cdn/ URLs. Report
+            // presence + the authenticated download path only. A document is present
+            // if it has a private storage key (post-remediation) OR a legacy URL
+            // (pre-reconciliation); either way the client fetches it via the
+            // authenticated endpoint, never a direct link.
+            putKycDoc(result, "idProof",        sm.getIdProofKey(),        sm.getIdProofUrl(),        "id_proof");
+            putKycDoc(result, "bankProof",      sm.getBankProofKey(),      sm.getBankProofUrl(),      "bank_proof");
+            putKycDoc(result, "businessProof1", sm.getBusinessProof1Key(), sm.getBusinessProof1Url(), "business_proof_1");
+            putKycDoc(result, "businessProof2", sm.getBusinessProof2Key(), sm.getBusinessProof2Url(), "business_proof_2");
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             Map<String, Object> fallback = new HashMap<>();
@@ -91,12 +96,23 @@ public class RestaurantPaymentConfigController {
             fallback.put("kycSubmissionDate",  null);
             fallback.put("kycUrl",            "");
             fallback.put("activationDate",     null);
-            fallback.put("idProofUrl",         null);
-            fallback.put("bankProofUrl",       null);
-            fallback.put("businessProof1Url",  null);
-            fallback.put("businessProof2Url",  null);
+            putKycDoc(fallback, "idProof",        null, null, "id_proof");
+            putKycDoc(fallback, "bankProof",      null, null, "bank_proof");
+            putKycDoc(fallback, "businessProof1", null, null, "business_proof_1");
+            putKycDoc(fallback, "businessProof2", null, null, "business_proof_2");
             return ResponseEntity.ok(fallback);
         }
+    }
+
+    /**
+     * Emits KYC document presence without leaking a public URL:
+     *   <prefix>Present  -> boolean
+     *   <prefix>DownloadPath -> authenticated relative API path (or null)
+     */
+    private void putKycDoc(Map<String, Object> result, String prefix, String key, String legacyUrl, String docType) {
+        boolean present = (key != null && !key.isBlank()) || (legacyUrl != null && !legacyUrl.isBlank());
+        result.put(prefix + "Present", present);
+        result.put(prefix + "DownloadPath", present ? "/business/kyc-document/" + docType + "/download" : null);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

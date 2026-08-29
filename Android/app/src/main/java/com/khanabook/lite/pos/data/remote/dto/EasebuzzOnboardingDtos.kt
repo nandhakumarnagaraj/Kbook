@@ -37,10 +37,14 @@ data class EasebuzzOnboardingStatusResponse(
     @SerializedName("kycSubmissionDate") val kycSubmissionDate: String? = null,
     @SerializedName("kycUrl") val kycUrl: String? = null,
     @SerializedName("activationDate") val activationDate: String? = null,
-    @SerializedName("idProofUrl") val idProofUrl: String? = null,
-    @SerializedName("bankProofUrl") val bankProofUrl: String? = null,
-    @SerializedName("businessProof1Url") val businessProof1Url: String? = null,
-    @SerializedName("businessProof2Url") val businessProof2Url: String? = null
+    @SerializedName("idProofPresent") val idProofPresent: Boolean = false,
+    @SerializedName("idProofDownloadPath") val idProofDownloadPath: String? = null,
+    @SerializedName("bankProofPresent") val bankProofPresent: Boolean = false,
+    @SerializedName("bankProofDownloadPath") val bankProofDownloadPath: String? = null,
+    @SerializedName("businessProof1Present") val businessProof1Present: Boolean = false,
+    @SerializedName("businessProof1DownloadPath") val businessProof1DownloadPath: String? = null,
+    @SerializedName("businessProof2Present") val businessProof2Present: Boolean = false,
+    @SerializedName("businessProof2DownloadPath") val businessProof2DownloadPath: String? = null
 )
 
 data class EasebuzzOtpRequest(

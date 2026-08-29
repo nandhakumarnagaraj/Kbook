@@ -151,7 +151,82 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("PENDING_KYC", submitted.getStatus());
     }
 
-    /** Minimal valid create payload (legal name, state, FSSAI all present). */
+    @Transactional
+    @Test
+    void submissionRequiresLegalEntityName() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.remove("legalEntityName"); // blank legal name would silently fall back to trade name → CPV mismatch
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        // Blank legal entity name → submission blocked (no silent trade-name fallback).
+        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("LEGAL_ENTITY_NAME_REQUIRED", ex.getRule());
+
+        // Supplying the legal entity name allows submission to proceed.
+        subMerchantService.update(sm.getId(), Map.of("legalEntityName", "Test Restaurant Pvt Ltd"));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
+    }
+
+    @Transactional
+    @Test
+    void submissionRequiresMandatoryFields() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.remove("pan");   // core CPV fields left blank
+        data.remove("ifsc");
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        // Missing mandatory fields → submission blocked, gaps listed in the message.
+        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("MANDATORY_FIELDS_MISSING", ex.getRule());
+        assertTrue(ex.getMessage().contains("PAN"));
+        assertTrue(ex.getMessage().contains("IFSC"));
+
+        // Supplying the missing fields allows submission to proceed.
+        subMerchantService.update(sm.getId(), Map.of("pan", "ABCDE1234F", "ifsc", "HDFC0000123"));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
+    }
+
+    @Transactional
+    @Test
+    void proprietorshipRequiresDistinctBusinessProofTypes() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.put("businessType", "SOLE_PROPRIETORSHIP");
+        // Both proofs present with URLs, but the SAME document type.
+        data.put("businessProof1Type", "GST_CERTIFICATE");
+        data.put("businessProof1Url", "https://docs.kbook.test/proof1.pdf");
+        data.put("businessProof2Type", "gst_certificate"); // same type, different case
+        data.put("businessProof2Url", "https://docs.kbook.test/proof2.pdf");
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("BUSINESS_PROOF_TYPES_NOT_DISTINCT", ex.getRule());
+
+        // Making the second proof a distinct type allows submission to proceed.
+        subMerchantService.update(sm.getId(), Map.of("businessProof2Type", "UDYAM_CERTIFICATE"));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
+    }
+
     private Map<String, Object> baseSubMerchantData() {
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("businessName", "Test Restaurant");

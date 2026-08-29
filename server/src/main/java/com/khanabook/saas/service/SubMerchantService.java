@@ -101,6 +101,10 @@ public class SubMerchantService {
         return o != null ? o.toString() : null;
     }
 
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     /** Matches the proprietorship business types EaseBuzz requires two proofs for. */
     private boolean isProprietorship(String businessType) {
         if (businessType == null) return false;
@@ -587,11 +591,41 @@ public class SubMerchantService {
     @Transactional
     public EasebuzzSubMerchant submitToEasebuzz(Long id, boolean requireBusinessProofs) {
         EasebuzzSubMerchant sm = getById(id);
+        // EaseBuzz CPV: the legal entity name (as registered with PAN/GST) must be
+        // submitted explicitly. Silently falling back to the display/trade name is the
+        // root cause of CPV name-mismatch (negative report), so block submission here
+        // rather than let EasebuzzApiClient substitute the trade name.
+        if (sm.getLegalEntityName() == null || sm.getLegalEntityName().isBlank()) {
+            throw new BusinessRuleException(
+                "The registered legal entity name (matching PAN/GST) is required before onboarding to EaseBuzz.",
+                "LEGAL_ENTITY_NAME_REQUIRED"
+            );
+        }
         // EaseBuzz compliance: a valid FSSAI license is mandatory for food merchants.
         if (sm.getFssaiNumber() == null || sm.getFssaiNumber().isBlank()) {
             throw new BusinessRuleException(
                 "A valid FSSAI license number is required before onboarding to EaseBuzz.",
                 "FSSAI_REQUIRED"
+            );
+        }
+        // EaseBuzz CPV: KYC submissions with incomplete core fields produce negative
+        // reports. Gate all always-mandatory fields here so a partial draft can never
+        // reach EaseBuzz. GST is intentionally NOT gated: it is only sent when present
+        // (non-GST merchants are valid), pending confirmation of the per-entity-type
+        // mandatory set from EaseBuzz.
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        if (isBlank(sm.getPan())) missing.add("PAN");
+        if (isBlank(sm.getBusinessAddress())) missing.add("business address");
+        if (isBlank(sm.getState())) missing.add("state");
+        if (isBlank(sm.getBankAccountNo())) missing.add("bank account number");
+        if (isBlank(sm.getIfsc())) missing.add("IFSC");
+        if (isBlank(sm.getBeneficiaryName())) missing.add("beneficiary name");
+        if (isBlank(sm.getContactEmail())) missing.add("contact email");
+        if (isBlank(sm.getContactPhone())) missing.add("contact phone");
+        if (!missing.isEmpty()) {
+            throw new BusinessRuleException(
+                "Cannot onboard to EaseBuzz: missing required fields — " + String.join(", ", missing) + ".",
+                "MANDATORY_FIELDS_MISSING"
             );
         }
         // EaseBuzz CPV: proprietorship entities must provide two valid business proofs.
@@ -602,6 +636,24 @@ public class SubMerchantService {
                 throw new BusinessRuleException(
                     "Proprietorship entities require two valid business proof documents for CPV.",
                     "BUSINESS_PROOFS_REQUIRED"
+                );
+            }
+            // EaseBuzz CPV: the two proofs must be of DISTINCT document types (two copies
+            // of the same document do not corroborate the entity). The accepted-type enum
+            // is deferred until EaseBuzz confirms the authoritative list; for now we only
+            // require both types to be present and different (case-insensitive).
+            String type1 = sm.getBusinessProof1Type();
+            String type2 = sm.getBusinessProof2Type();
+            if (isBlank(type1) || isBlank(type2)) {
+                throw new BusinessRuleException(
+                    "Both business proof document types must be specified for CPV.",
+                    "BUSINESS_PROOF_TYPES_REQUIRED"
+                );
+            }
+            if (type1.trim().equalsIgnoreCase(type2.trim())) {
+                throw new BusinessRuleException(
+                    "The two business proofs must be of different document types for CPV.",
+                    "BUSINESS_PROOF_TYPES_NOT_DISTINCT"
                 );
             }
         }

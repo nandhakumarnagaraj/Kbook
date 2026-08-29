@@ -224,4 +224,29 @@ export class BusinessApiService {
   updateUserPermissions(userId: number, permissions: string[]): Observable<any> {
     return this.http.post(`${API_BASE_URL}/permissions/bulk-grant`, { userId, permissionKeys: permissions });
   }
+
+  // ── Merchant agreement (KhanaBook <-> restaurant signed PDF) ──────────────
+  getMerchantAgreementStatus(): Observable<MerchantAgreementStatus> {
+    return this.http.get<MerchantAgreementStatus>(`${API_BASE_URL}/business/merchant-agreement`);
+  }
+
+  uploadMerchantAgreement(file: File, signerName?: string, agreementVersion?: string): Observable<any> {
+    const form = new FormData();
+    form.append('file', file);
+    if (signerName) form.append('signerName', signerName);
+    if (agreementVersion) form.append('agreementVersion', agreementVersion);
+    return this.http.post(`${API_BASE_URL}/business/merchant-agreement`, form);
+  }
+
+  downloadMerchantAgreement(): Observable<Blob> {
+    return this.http.get(`${API_BASE_URL}/business/merchant-agreement/download`, { responseType: 'blob' });
+  }
+}
+
+export interface MerchantAgreementStatus {
+  hasAgreement: boolean;
+  signedAt?: number;
+  signerName?: string;
+  agreementVersion?: string;
+  originalFilename?: string;
 }

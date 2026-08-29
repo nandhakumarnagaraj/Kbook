@@ -46,6 +46,9 @@ public class AssetStorageService {
 	@Value("${kbook.cdn.max-upload-bytes}")
 	private long maxUploadBytes;
 
+	@Value("${kbook.private-docs.base-path}")
+	private String privateDocsBasePath;
+
 	@Transactional
 	public AssetUploadResult uploadLogo(Long restaurantId, MultipartFile file) {
 		// Logos: lossless WebP — logos have sharp edges/solid colors, lossy creates artifacts.
@@ -252,6 +255,9 @@ public class AssetStorageService {
 	@Transactional
 	public AssetUploadResult uploadKycDocument(Long restaurantId, String docType, MultipartFile file) {
 		validateKycFile(file);
+		if (!isKnownKycDocType(docType)) {
+			throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+		}
 
 		Path tmp = null;
 		try {
@@ -259,65 +265,97 @@ public class AssetStorageService {
 
 			EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
 					.orElseThrow(() -> new IllegalStateException("Sub-merchant not configured for restaurant: " + restaurantId));
-			
-			int currentVersion = 0;
-			String currentUrl = null;
-			switch (docType) {
-				case "id_proof": currentUrl = sm.getIdProofUrl(); break;
-				case "bank_proof": currentUrl = sm.getBankProofUrl(); break;
-				case "business_proof_1": currentUrl = sm.getBusinessProof1Url(); break;
-				case "business_proof_2": currentUrl = sm.getBusinessProof2Url(); break;
-			}
-			if (currentUrl != null) {
-				currentVersion = parseVersionFromUrl(currentUrl);
-			}
-			int newVersion = currentVersion + 1;
 
+			// KYC PII is stored on the PRIVATE path (never under the Apache-public
+			// /cdn/ alias). A random filename prevents enumeration; the DB stores a
+			// relative storage key, not a URL. Files are served only via the
+			// authenticated KYC download endpoints.
 			String contentType = file.getContentType();
 			boolean isPdf = contentType != null && contentType.equalsIgnoreCase("application/pdf");
-			String ext = isPdf ? ".pdf" : (cwebpBin != null && !cwebpBin.isBlank() ? ".webp" : guessExtension(contentType));
-			String filename = "kyc_" + docType + "_v" + newVersion + ext;
+			String ext = isPdf ? ".pdf" : guessExtension(contentType);
+			String filename = "kyc_" + docType + "_" + UUID.randomUUID() + ext;
+			String storageKey = "kyc/" + restaurantId + "/" + filename;
 
-			Path target = Paths.get(basePath, String.valueOf(restaurantId), filename);
+			Path target = resolveWithinPrivateBase(storageKey);
 			Files.createDirectories(target.getParent());
-
-			if (isPdf) {
-				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
-			} else if (cwebpBin != null && !cwebpBin.isBlank()) {
-				runCwebp(tmp, target, false, 80);
-			} else {
-				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
-			}
+			// Store the document as-is on the private path (no WebP transform: these
+			// are security-sensitive originals, mostly PDFs, and are not CDN-cached).
+			Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+			tmp = null;
 
 			if (!Files.exists(target) || Files.size(target) == 0) {
 				throw new IllegalStateException("Upload produced no output");
 			}
 
-			String url = resolveCdnUrl(restaurantId, filename);
-			
+			// Capture any previous private key so we can delete the superseded file.
+			String previousKey = currentKycKey(sm, docType);
+
+			// Set the new private key and clear the legacy public URL so the status
+			// endpoint no longer emits a /cdn/ link for this document.
 			switch (docType) {
-				case "id_proof": sm.setIdProofUrl(url); break;
-				case "bank_proof": sm.setBankProofUrl(url); break;
-				case "business_proof_1": sm.setBusinessProof1Url(url); break;
-				case "business_proof_2": sm.setBusinessProof2Url(url); break;
-				default: throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+				case "id_proof":         sm.setIdProofKey(storageKey);        sm.setIdProofUrl(null); break;
+				case "bank_proof":       sm.setBankProofKey(storageKey);      sm.setBankProofUrl(null); break;
+				case "business_proof_1": sm.setBusinessProof1Key(storageKey); sm.setBusinessProof1Url(null); break;
+				case "business_proof_2": sm.setBusinessProof2Key(storageKey); sm.setBusinessProof2Url(null); break;
 			}
 			sm.setUpdatedAt(System.currentTimeMillis());
 			subMerchantRepo.save(sm);
 
-			deleteOldKycVersions(restaurantId, docType, newVersion);
+			if (previousKey != null && !previousKey.equals(storageKey)) {
+				deletePrivateQuietly(previousKey);
+			}
 
-			log.info("Uploaded KYC document {} for restaurant {} -> {}", docType, restaurantId, url);
-			return new AssetUploadResult(url, newVersion);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException("KYC document upload failed", e);
+			log.info("Stored KYC document {} for restaurant {} key={}", docType, restaurantId, storageKey);
+			// Return the relative storage key (NOT a public URL) to callers.
+			return new AssetUploadResult(storageKey, 1);
 		} catch (IOException e) {
 			throw new RuntimeException("KYC document upload failed", e);
 		} finally {
 			if (tmp != null) {
 				try { Files.deleteIfExists(tmp); } catch (IOException ignored) {}
 			}
+		}
+	}
+
+	private boolean isKnownKycDocType(String docType) {
+		return "id_proof".equals(docType) || "bank_proof".equals(docType)
+				|| "business_proof_1".equals(docType) || "business_proof_2".equals(docType);
+	}
+
+	private String currentKycKey(EasebuzzSubMerchant sm, String docType) {
+		return switch (docType) {
+			case "id_proof" -> sm.getIdProofKey();
+			case "bank_proof" -> sm.getBankProofKey();
+			case "business_proof_1" -> sm.getBusinessProof1Key();
+			case "business_proof_2" -> sm.getBusinessProof2Key();
+			default -> null;
+		};
+	}
+
+	/** Opens a privately stored KYC document for streaming; caller closes the stream. */
+	public java.io.InputStream openPrivateKycStream(String storageKey) throws IOException {
+		Path path = resolveWithinPrivateBase(storageKey);
+		if (!Files.exists(path)) {
+			throw new IOException("KYC document missing on disk: " + storageKey);
+		}
+		return Files.newInputStream(path);
+	}
+
+	/** Resolves a relative key under the private base, guarding against path traversal. */
+	private Path resolveWithinPrivateBase(String relativeKey) {
+		Path base = Paths.get(privateDocsBasePath).toAbsolutePath().normalize();
+		Path resolved = base.resolve(relativeKey).normalize();
+		if (!resolved.startsWith(base)) {
+			throw new IllegalArgumentException("Invalid storage key");
+		}
+		return resolved;
+	}
+
+	private void deletePrivateQuietly(String relativeKey) {
+		try {
+			Files.deleteIfExists(resolveWithinPrivateBase(relativeKey));
+		} catch (Exception e) {
+			log.warn("Failed to delete previous KYC file {}", relativeKey, e);
 		}
 	}
 
