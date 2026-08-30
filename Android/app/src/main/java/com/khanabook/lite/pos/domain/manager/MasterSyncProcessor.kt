@@ -887,9 +887,7 @@ class MasterSyncProcessor @Inject constructor(
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,
                         posEnabled = remoteProfile.posEnabled ?: false,
-                        zomatoEnabled = remoteProfile.zomatoEnabled ?: false,
-                        swiggyEnabled = remoteProfile.swiggyEnabled ?: false,
-                        ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled ?: false,
+
                         printerEnabled = remoteProfile.printerEnabled ?: false,
                         printerName = remoteProfile.printerName.orFallback(""),
                         printerMac = remoteProfile.printerMac.orFallback(""),
@@ -1270,9 +1268,6 @@ BillEntity(
                             remoteBill.paymentStatus.lowercase() == "pending" &&
                             createdTerminalId == sessionManager.getTerminalId()) {
                             "local_created"
-                        } else if (remoteBill.sourceChannel.isNotBlank() &&
-                            remoteBill.sourceChannel.lowercase() in setOf("zomato", "swiggy", "own_website")) {
-                            "marketplace_imported"
                         } else {
                             "server_imported"
                         },
@@ -1282,13 +1277,8 @@ BillEntity(
                             // If server returns a draft that belongs to THIS terminal, keep it operational
                             "terminal_operational"
                         } else {
-                            // All other pulled bills are history/shared
-                            if (remoteBill.sourceChannel.isNotBlank() &&
-                                remoteBill.sourceChannel.lowercase() in setOf("zomato", "swiggy", "own_website")) {
-                                "restaurant_shared"
-                            } else {
-                                "restaurant_history"
-                            }
+                            // All other pulled bills are history
+                            "restaurant_history"
                         }
                     )
                 }

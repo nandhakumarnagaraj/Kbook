@@ -785,7 +785,6 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 //   • Unsynced (is_synced=0)           → local_created / terminal_operational
                 //   • In-progress drafts (created_terminal_id set) → local_created / terminal_operational
                 //     (preserves UPI/payment-link drafts that were already pushed but not completed)
-                //   • Marketplace channels             → marketplace_imported / restaurant_shared
                 //   • All other synced history         → server_imported / restaurant_history
                 // No row is deleted and no invoice/sequence is regenerated.
 
@@ -809,14 +808,7 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                       AND `created_terminal_id` IS NOT NULL
                 """.trimIndent())
 
-                // 3. Marketplace orders are shared, regardless of sync state.
-                db.execSQL("""
-                    UPDATE `bills`
-                    SET `record_origin` = 'marketplace_imported',
-                        `record_scope` = 'restaurant_shared'
-                    WHERE `is_deleted` = 0
-                      AND `source_channel` IN ('zomato', 'swiggy', 'own_website')
-                """.trimIndent())
+                // 3. (Marketplace orders removed - this space reserved for future use)
 
                 // 4. Remaining synced history (defaulted to local_created) is treated as
                 //    read-only server history. The runtime reconciliation re-labels this

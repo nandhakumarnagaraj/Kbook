@@ -63,6 +63,7 @@ fun EasebuzzOnboardingScreen(
                     )
                 }
                 is OnboardingEvent.OnboardingComplete -> onBack()
+                is OnboardingEvent.OpenFile -> { /* handled in ComplianceDocumentsScreen */ }
             }
         }
     }

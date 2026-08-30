@@ -324,12 +324,7 @@ internal fun AppNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
-        composable("marketplace_orders") {
-            MarketplaceOrdersScreen(
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+
         composable(
             route = "easebuzz_payment/{restaurantId}/{billId}/{amount}",
             arguments = listOf(
@@ -359,6 +354,11 @@ internal fun AppNavGraph(
         }
         composable("easebuzz_onboarding") {
             com.khanabook.lite.pos.ui.screens.EasebuzzOnboardingScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable("merchant_agreement") {
+            com.khanabook.lite.pos.ui.screens.MerchantAgreementScreen(
                 onBack = { navController.popBackStack() }
             )
         }

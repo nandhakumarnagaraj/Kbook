@@ -140,7 +140,7 @@ class PrintRouter @Inject constructor(
                     val locallyOwned =
                         printBill.recordScope == "terminal_operational" && printBill.recordOrigin == "local_created"
                     val localDeviceId = sessionManager.getDeviceId()
-                    // Reject KOT for read-only server/marketplace history, and for bills that
+                    // Reject KOT for read-only server history, and for bills that
                     // originated on a different physical device. A terminal may only fire KOT
                     // for its own locally-owned operational bills.
                     if (!locallyOwned || (printBill.deviceId != null && printBill.deviceId != localDeviceId)) {

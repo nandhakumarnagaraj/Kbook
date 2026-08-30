@@ -134,62 +134,65 @@ interface DailyClosingData {
     </div>
   `,
   styles: [`
-    .section-title { margin: 0 0 0.5rem; font-size: 1.05rem; color: var(--ink); }
+    .section-title { margin: 0 0 var(--kb-space-2); font-size: 1.05rem; color: var(--kb-color-foreground); }
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
-      gap: 1rem;
-      margin-bottom: 1rem;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-3);
     }
     .kpi-card {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-      padding: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem;
+      background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md); padding: var(--kb-space-3) var(--kb-space-4);
+      display: flex; flex-direction: column; gap: var(--kb-space-1);
     }
-    .kpi-card--hero { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .kpi-card--hero {
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%); border-color: transparent; color: var(--kb-color-primary-foreground);
+    }
     .kpi-card--hero .kpi-label, .kpi-card--hero .kpi-sub { color: rgba(255,255,255,0.8); }
-    .kpi-card--warn { border-color: var(--danger); }
-    .kpi-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-    .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-    .kpi-card--hero .kpi-value { color: #fff; }
-    .kpi-sub { font-size: 0.75rem; color: var(--muted); }
+    .kpi-card--warn { border-color: var(--kb-color-error); }
+    .kpi-label { font-size: 0.8rem; font-weight: 600; color: var(--kb-color-muted); }
+    .kpi-value { font-size: calc(1.25rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
+    .kpi-card--hero .kpi-value { color: var(--kb-color-primary-foreground); }
+    .kpi-sub { font-size: 0.75rem; color: var(--kb-color-muted); }
 
     .payment-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
     }
     .payment-card {
-      display: flex; align-items: center; gap: 1rem;
-      padding: 1rem; border-radius: 10px;
-      border: 1px solid var(--line); background: var(--panel);
+      display: flex; align-items: center; gap: var(--kb-space-3);
+      padding: var(--kb-space-3); border-radius: var(--kb-radius-lg);
+      border: 1px solid var(--kb-color-border); background: var(--kb-color-surface);
     }
-    .payment-card__icon { font-size: 1.5rem; }
+    .payment-card__icon { font-size: 1.5rem; color: var(--kb-color-primary); }
     .payment-card__info { display: flex; flex-direction: column; }
-    .payment-card__label { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
-    .payment-card__amount { font-size: 1.15rem; font-weight: 700; color: var(--ink); }
-    .payment-card__count { font-size: 0.75rem; color: var(--muted); }
+    .payment-card__label { font-size: 0.8rem; color: var(--kb-color-muted); font-weight: 600; }
+    .payment-card__amount { font-size: calc(1.1rem + 0.2vw); font-weight: 700; color: var(--kb-color-foreground); }
+    .payment-card__count { font-size: 0.75rem; color: var(--kb-color-muted); }
 
     .cash-box {
-      background: rgba(56, 142, 60, 0.06); border: 1px solid rgba(56, 142, 60, 0.3);
-      border-radius: 10px; padding: 1rem 1.25rem;
+      background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg); padding: var(--kb-space-3) var(--kb-space-4);
     }
     .cash-box__header { display: flex; justify-content: space-between; align-items: center; }
-    .cash-box__header span { font-weight: 600; color: var(--ink); }
-    .cash-box__amount { font-size: 1.35rem; font-weight: 700; color: #388E3C; }
-    .cash-box__note { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+    .cash-box__header span { font-weight: 600; color: var(--kb-color-foreground); }
+    .cash-box__amount { font-size: calc(1.2rem + 0.2vw); font-weight: 700; color: var(--kb-color-primary); }
+    .cash-box__note { font-size: 0.8rem; color: var(--kb-color-muted); margin-top: var(--kb-space-1); }
 
-    .summary-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+    .summary-grid { display: flex; flex-direction: column; gap: var(--kb-space-2); }
     .summary-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 0.6rem 0; border-bottom: 1px solid var(--line);
+      padding: var(--kb-space-1) 0; border-bottom: 1px solid var(--kb-color-border);
     }
     .summary-row:last-child { border-bottom: none; }
-    .summary-row span { color: var(--ink); font-size: 0.9rem; }
-    .summary-row strong { font-variant-numeric: tabular-nums; }
-    .text-success { color: #388E3C; }
-    .text-danger { color: var(--danger); }
-    .text-warn { color: var(--brand); }
+    .summary-row span { color: var(--kb-color-foreground); font-size: 0.88rem; }
+    .summary-row strong { font-variant-numeric: tabular-nums; color: var(--kb-color-foreground); }
+    .text-success { color: var(--kb-color-success); }
+    .text-danger { color: var(--kb-color-error); }
+    .text-warn { color: var(--kb-color-primary); }
   `]
 })
 export class DailyClosingPageComponent {

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Percent
@@ -103,6 +104,12 @@ fun SettingsHomeSection(
                     }
                     SettingsItem(icon = Icons.Filled.Tune, text = "Settings", modifier = itemMod) {
                         onSectionSelected("security")
+                    }
+                    SettingsItem(icon = Icons.Filled.Description, text = "Merchant Agreement", modifier = itemMod) {
+                        onSectionSelected("merchant_agreement")
+                    }
+                    SettingsItem(icon = Icons.Filled.Description, text = "Compliance Documents", modifier = itemMod) {
+                        onSectionSelected("compliance_documents")
                     }
                     SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
                         onSectionSelected("staff_permissions")

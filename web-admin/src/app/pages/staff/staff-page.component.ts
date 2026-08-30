@@ -22,7 +22,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .modal-content h3 {
       margin: 0 0 1.5rem;
-      color: var(--ink);
+      color: var(--kb-color-foreground);
     }
     .form-group {
       margin-bottom: 1rem;
@@ -31,7 +31,7 @@ import { formatDate } from '../../shared/formatters';
       display: block;
       margin-bottom: 0.25rem;
       font-size: 0.875rem;
-      color: var(--ink);
+      color: var(--kb-color-foreground);
       font-weight: 500;
     }
     .form-group .field-control,
@@ -40,41 +40,42 @@ import { formatDate } from '../../shared/formatters';
       box-sizing: border-box;
     }
     .field-error {
-      color: var(--danger);
+      color: var(--kb-color-error);
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
     .form-error {
       background: rgba(239, 68, 68, 0.08);
-      border: 1px solid var(--danger);
+      border: 1px solid var(--kb-color-error);
       border-radius: 8px;
       padding: 0.75rem 1rem;
-      color: var(--danger);
+      color: var(--kb-color-error);
       font-size: 0.875rem;
       margin-bottom: 1rem;
     }
     .success-section {
       text-align: center;
-      padding: 1rem 0;
+      padding: var(--kb-space-4) 0;
     }
     .success-section h4 {
-      color: var(--accent);
-      margin: 0 0 0.5rem;
+      color: var(--kb-color-primary);
+      margin: 0 0 var(--kb-space-2);
     }
     .temp-password {
-      background: var(--bg);
-      border: 1px dashed var(--brand);
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 1rem 0;
-      font-family: monospace;
-      font-size: 1.25rem;
-      letter-spacing: 0.1em;
-      color: var(--ink);
+      background: var(--kb-color-surface);
+      border: 1px dashed var(--kb-color-primary);
+      border-radius: var(--kb-radius-lg);
+      padding: var(--kb-space-3);
+      margin: var(--kb-space-3) 0;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      color: var(--kb-color-foreground);
       word-break: break-all;
     }
     .success-section p.muted {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
+      color: var(--kb-color-muted);
     }
     .action-cell {
       display: flex;
@@ -82,21 +83,21 @@ import { formatDate } from '../../shared/formatters';
       align-items: center;
     }
     .action-btn {
-      padding: 0.35rem 0.75rem;
-      border-radius: 8px;
-      font-size: 0.8rem;
+      padding: var(--kb-space-2) var(--kb-space-3);
+      border-radius: var(--kb-radius-lg);
+      font-size: 0.78rem;
       font-weight: 500;
       cursor: pointer;
-      border: 1px solid var(--line);
+      border: 1px solid var(--kb-color-border);
       background: transparent;
-      color: var(--ink);
-      transition: opacity 0.2s, background 0.2s;
+      color: var(--kb-color-foreground);
+      transition: background 0.15s ease;
     }
     .action-btn:hover:not(:disabled) {
-      background: var(--bg);
+      background: var(--kb-color-surface-2);
     }
     .action-btn--danger {
-      color: var(--danger);
+      color: var(--kb-color-error);
       border-color: var(--danger);
     }
     .action-btn--danger:hover:not(:disabled) {
@@ -116,23 +117,23 @@ import { formatDate } from '../../shared/formatters';
       bottom: 100%;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--ink);
+      background: var(--kb-color-foreground);
       color: #fff;
       font-size: 0.7rem;
-      padding: 0.35rem 0.6rem;
-      border-radius: 6px;
+      padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-md);
       white-space: nowrap;
       z-index: 10;
-      margin-bottom: 4px;
+      margin-bottom: var(--kb-space-1);
     }
     .tooltip-wrapper:hover .tooltip-text {
       visibility: visible;
     }
     .role-disabled-note {
       font-size: 0.75rem;
-      color: var(--muted);
+      color: var(--kb-color-muted);
       font-style: italic;
-      margin-top: 0.25rem;
+      margin-top: var(--kb-space-1);
     }
     .toggle-switch {
       position: relative;
@@ -145,7 +146,7 @@ import { formatDate } from '../../shared/formatters';
       position: absolute;
       cursor: pointer;
       inset: 0;
-      background: var(--line);
+      background: var(--kb-color-border);
       border-radius: 22px;
       transition: 0.2s;
     }
@@ -156,12 +157,12 @@ import { formatDate } from '../../shared/formatters';
       height: 16px;
       left: 3px;
       bottom: 3px;
-      background: white;
+      background: var(--kb-color-foreground);
       border-radius: 50%;
       transition: 0.2s;
     }
     .toggle-switch input:checked + .toggle-slider {
-      background: var(--accent);
+      background: var(--kb-color-primary);
     }
     .toggle-switch input:checked + .toggle-slider::before {
       transform: translateX(18px);

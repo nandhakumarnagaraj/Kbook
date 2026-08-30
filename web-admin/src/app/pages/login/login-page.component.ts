@@ -189,106 +189,105 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      background: var(--bg);
+      background: var(--kb-color-surface);
     }
     @media (max-width: 960px) {
       .auth-shell { grid-template-columns: 1fr; }
       .auth-brand { display: none; }
     }
     .auth-brand {
-      padding: 3.5rem 3rem;
-      color: #fff;
+      padding: var(--kb-space-6) var(--kb-space-5);
+      color: var(--kb-color-foreground);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
     }
     .brand-top { display: flex; align-items: center; justify-content: space-between; }
-    .brand-mark { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); }
     .brand-logo {
-      width: 44px; height: 44px; border-radius: 12px;
-      background: rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(8px);
+      width: 44px; height: 44px; border-radius: var(--kb-radius-md);
+      background: rgba(59, 130, 246, 0.12); backdrop-filter: blur(8px);
       display: grid; place-items: center;
-      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: #fff;
+      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: var(--kb-color-primary);
     }
     .brand-logo--sm {
-      width: 38px; height: 38px; border-radius: 10px;
-      background: var(--gradient-primary); font-size: 1rem;
+      width: 38px; height: 38px; border-radius: var(--kb-radius-sm);
+      background: var(--kb-color-primary); font-size: 1rem;
     }
-    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
-    .brand-copy { max-width: 420px; display: grid; gap: 1.25rem; }
+    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--kb-color-primary-foreground); }
+    .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); }
     .brand-copy h1 {
       font-size: clamp(2rem, 3.2vw, 2.75rem);
       line-height: 1.15;
       font-weight: 800;
-      color: #fff;
+      color: var(--kb-color-primary-foreground);
       margin: 0;
       letter-spacing: -0.02em;
     }
     .brand-copy p {
-      color: rgba(255, 255, 255, 0.88);
+      color: rgba(26, 26, 26, 0.88);
       line-height: 1.55;
       margin: 0;
       font-size: 0.98rem;
     }
     .brand-points {
-      list-style: none; padding: 0; margin: 0.5rem 0 0; display: grid; gap: 0.65rem;
+      list-style: none; padding: 0; margin: var(--kb-space-3) 0 0; display: grid; gap: var(--kb-space-2);
     }
     .brand-points li {
-      display: flex; align-items: center; gap: 0.75rem;
-      font-size: 0.9rem; color: rgba(255, 255, 255, 0.92);
+      display: flex; align-items: center; gap: var(--kb-space-2);
+      font-size: 0.9rem; color: var(--kb-color-foreground);
     }
     .point-num {
-      width: 28px; height: 28px; border-radius: 6px;
-      background: rgba(255, 255, 255, 0.16);
-      display: grid; place-items: center;
-      font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: var(--kb-radius-sm);
+      background: rgba(59, 130, 246, 0.12); display: grid; place-items: center;
+      font-size: 0.75rem; font-weight: 700; color: var(--kb-color-primary-foreground); flex-shrink: 0;
     }
-    .brand-foot { font-size: 0.78rem; color: rgba(255, 255, 255, 0.7); margin: 0; }
+    .brand-foot { font-size: 0.78rem; color: rgba(26, 26, 26, 0.7); margin: 0; }
 
     .auth-main {
-      display: grid; place-items: center; padding: 2.5rem 1.5rem;
+      display: grid; place-items: center; padding: var(--kb-space-6) var(--kb-space-5);
     }
     .auth-card {
       width: min(420px, 100%);
-      display: grid; gap: 1.25rem;
+      display: grid; gap: var(--kb-space-4);
     }
     .mobile-brand {
-      display: none; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
+      display: none; align-items: center; gap: var(--kb-space-2); margin-bottom: var(--kb-space-2);
     }
     @media (max-width: 960px) { .mobile-brand { display: flex; } }
-    .auth-head h2 { margin: 0 0 0.35rem; font-size: 1.6rem; font-weight: 700; }
-    .auth-head p { margin: 0; }
-    .auth-form { display: grid; gap: 1rem; }
-    .field { display: grid; gap: 0.35rem; }
+    .auth-head h2 { margin: 0 0 var(--kb-space-2); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
+    .auth-head p { margin: 0; color: var(--kb-color-muted); }
+    .auth-form { display: grid; gap: var(--kb-space-4); }
+    .field { display: grid; gap: var(--kb-space-2); }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
-    .field-label { font-weight: 600; font-size: 0.82rem; color: var(--ink); }
+    .field-label { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground); }
     .field-input {
-      border: 1px solid var(--line-strong);
-      border-radius: var(--r-md);
-      padding: 0.7rem 0.9rem;
-      background: #fff;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      background: var(--kb-color-surface);
       font-size: 0.92rem;
+      color: var(--kb-color-foreground);
       height: 44px;
       transition: border-color .15s ease, box-shadow .15s ease;
     }
     .field-input:focus {
       outline: none;
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px var(--brand-ring);
+      border-color: var(--kb-color-primary);
+      box-shadow: 0 0 0 3px var(--kb-color-primary-soft);
     }
     .divider {
-      display: flex; align-items: center; gap: 0.75rem;
-      color: var(--muted); font-size: 0.78rem; margin: 0.25rem 0;
+      display: flex; align-items: center; gap: var(--kb-space-3);
+      color: var(--kb-color-muted); font-size: 0.78rem; margin: var(--kb-space-2) 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--line);
+      content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
     }
-    .google-wrap { display: grid; gap: 0.5rem; }
+    .google-wrap { display: grid; gap: var(--kb-space-3); }
     #google-btn { display: flex; justify-content: center; }
     .link-right {
-      color: var(--brand);
+      color: var(--kb-color-primary);
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
@@ -296,18 +295,18 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .link-right:hover { text-decoration: underline; }
     .back-link {
-      color: var(--muted);
+      color: var(--kb-color-muted);
       font-size: 0.84rem;
       cursor: pointer;
       text-decoration: none;
       justify-self: start;
     }
-    .back-link:hover { color: var(--brand); text-decoration: underline; }
-    .primary-btn--block { width: 100%; justify-content: center; height: 44px; font-size: 0.9rem; }
+    .back-link:hover { color: var(--kb-color-primary); text-decoration: underline; }
+    .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.88rem; }
     .primary-btn--hero {
-      background: var(--gradient-primary);
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
       border: none;
-      box-shadow: var(--shadow-elevated);
+      box-shadow: var(--kb-shadow-lg);
     }
     .primary-btn--hero:hover {
       transform: translateY(-1px);
@@ -318,24 +317,23 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
     }
     .input-with-action .field-input {
-      width: 100%;
-      padding-right: 2.5rem;
+      padding-right: var(--kb-space-4);
     }
     .toggle-pwd-btn {
       position: absolute;
-      right: 0.5rem;
+      right: var(--kb-space-2);
       background: none;
       border: none;
       cursor: pointer;
       font-size: 1rem;
-      padding: 0.35rem;
+      padding: var(--kb-space-1);
       opacity: 0.7;
       transition: opacity 0.15s ease;
     }
     .toggle-pwd-btn:hover { opacity: 1; }
-    .alert-box { border-radius: var(--r-md); padding: 0.75rem 0.95rem; font-size: 0.86rem; }
-    .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(185,28,28,0.2); }
-    .alert-box.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(4,120,87,0.2); }
+    .alert-box { border-radius: var(--kb-radius-md); padding: var(--kb-space-3) var(--kb-space-4); font-size: 0.85rem; }
+    .alert-box.error { color: var(--kb-color-error); background: var(--kb-color-surface-2); border: 1px solid rgba(239, 68, 68, 0.15); }
+    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-surface-2); border: 1px solid rgba(16, 185, 129, 0.15); }
   `]
 })
 export class LoginPageComponent implements OnInit {

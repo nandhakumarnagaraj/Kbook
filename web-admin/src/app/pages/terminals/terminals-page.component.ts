@@ -372,59 +372,59 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .ghost-btn.active { background: rgba(249, 115, 22, 0.16); color: var(--brand-deep); }
+    .ghost-btn.active { background: rgba(59, 130, 246, 0.16); color: var(--kb-color-primary-foreground); }
     .primary-badge {
       display: inline-block;
       margin-left: 0.45rem;
       padding: 0.1rem 0.5rem;
-      background: rgba(181, 106, 45, 0.14);
-      color: var(--brand-deep);
-      border: 1px solid var(--brand);
+      background: rgba(59, 130, 246, 0.14);
+      color: var(--kb-color-primary-foreground);
+      border: 1px solid var(--kb-color-primary);
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 800;
       white-space: nowrap;
       vertical-align: middle;
     }
-    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
-    .row-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
-    .stacked-meta { display: flex; flex-direction: column; gap: 0.15rem; }
+    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: var(--kb-space-2); }
+    .row-actions { display: flex; flex-wrap: wrap; gap: var(--kb-space-2); margin-top: var(--kb-space-2); }
+    .stacked-meta { display: flex; flex-direction: column; gap: var(--kb-space-1); }
     .recovery-dialog { width: min(100%, 520px); }
     .credential-box {
       display: grid;
-      gap: 0.45rem;
-      margin: 1.1rem 0;
-      padding: 1rem;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: 12px;
+      gap: var(--kb-space-3);
+      margin: var(--kb-space-4) 0;
+      padding: var(--kb-space-4);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
     }
     .credential-box code {
       display: block;
       overflow-wrap: anywhere;
-      color: var(--ink);
-      font-size: 0.9rem;
+      color: var(--kb-color-foreground);
+      font-size: 0.88rem;
       line-height: 1.55;
       user-select: all;
     }
     .credential-label {
-      color: var(--brand-deep);
-      font-size: 0.78rem;
-      font-weight: 800;
+      color: var(--kb-color-primary);
+      font-size: 0.76rem;
+      font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
     .recovery-warning {
       margin: 0;
-      padding: 0.85rem 1rem;
-      color: #6f4e00;
-      background: #fff4cf;
-      border: 1px solid #ead58e;
-      border-radius: 12px;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      color: var(--kb-color-error);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
       line-height: 1.5;
     }
-    .error-text { margin: 0.75rem 0 0; color: var(--danger); font-weight: 650; }
-    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.65rem; margin-top: 1.25rem; }
+    .error-text { margin: 0.75rem 0 0; color: var(--kb-color-error); font-weight: 600; }
+    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--kb-space-3); margin-top: var(--kb-space-4); }
     @media (max-width: 480px) {
       .modal-actions button { width: 100%; }
       .credential-box { padding: 0.85rem; }

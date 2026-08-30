@@ -77,10 +77,6 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
     }
 }
 
-internal fun OrderDetailRow.isOnlineOrder(): Boolean {
-    return sourceChannel.isOnlineSource()
-}
-
 internal fun OrderDetailRow.isDineInOrder(): Boolean {
     return when (orderType.trim().lowercase()) {
         "dine_in", "dine-in" -> true
@@ -95,21 +91,7 @@ internal fun OrderDetailRow.isTakeawayOrder(): Boolean {
     }
 }
 
-internal fun String.isOnlineSource(): Boolean {
-    return when (trim().lowercase()) {
-        "zomato", "swiggy", "own_website", "own website" -> true
-        else -> false
-    }
-}
 
-internal fun OrderDetailRow.displaySourceOrModeLabel(): String {
-    return when (sourceChannel.trim().lowercase()) {
-        "zomato" -> "Zomato"
-        "swiggy" -> "Swiggy"
-        "own_website", "own website" -> "Own Website"
-        else -> payMode.displayLabel
-    }
-}
 
 internal fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {

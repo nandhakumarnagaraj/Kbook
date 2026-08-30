@@ -262,14 +262,7 @@ private val COL_STATUS  = 1.8f
 private val COL_ACTION  = 1.2f
 private val COL_DATE    = 1.8f
 
-internal fun com.khanabook.lite.pos.domain.model.OrderLevelRow.displaySourceOrModeLabel(): String {
-    return when (sourceChannel.trim().lowercase()) {
-        "zomato" -> "Zomato"
-        "swiggy" -> "Swiggy"
-        "own_website", "own website" -> "Own Website"
-        else -> paymentMode.displayLabel
-    }
-}
+
 
 internal fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {

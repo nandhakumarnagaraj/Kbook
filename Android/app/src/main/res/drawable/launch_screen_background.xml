@@ -1,49 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Single-stage branded splash (like Paytm).
-    Renders instantly as windowBackground before any code runs.
-
-    Layout:
-      - Full burgundy gradient background
-      - Centered: logo + "KHANABOOK" + "Restaurant POS & Billing" (single PNG)
-      - Bottom: "From Piquant Consultancy Services Private Limited" (single PNG)
-
-    Assets required:
-      - splash_full_logo.png: Logo + title + subtitle combined (transparent background)
-      - splash_footer.png: Company branding text (transparent background)
+    Window background for the launch theme.
+    Matches the Compose BrandedStartFrame gradient exactly so there is
+    zero visual flash when transitioning from native splash → Compose.
+    
+    Colors: DarkBrown1 (#1A0A0A) → DarkBrown2 (#2D1010) → RichEspresso (#1A0828)
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Layer 1: Burgundy gradient background -->
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#170207"
-                android:centerColor="#2D0A10"
-                android:endColor="#150206" />
+                android:startColor="#1A0A0A"
+                android:centerColor="#2D1010"
+                android:endColor="#1A0828" />
         </shape>
     </item>
-
-    <!-- Layer 2: Combined logo + KHANABOOK + subtitle (centered) -->
-    <item
-        android:gravity="center"
-        android:width="240dp"
-        android:height="280dp">
-        <bitmap
-            android:src="@drawable/splash_full_logo"
-            android:gravity="center" />
-    </item>
-
-    <!-- Layer 3: Company footer branding (bottom) -->
-    <item
-        android:gravity="bottom|center_horizontal"
-        android:bottom="48dp"
-        android:width="220dp"
-        android:height="48dp">
-        <bitmap
-            android:src="@drawable/splash_footer"
-            android:gravity="center" />
-    </item>
-
 </layer-list>

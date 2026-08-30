@@ -141,28 +141,6 @@ interface KhanaBookApi {
         @GET("api/v1/business/lookup/fssai")
         suspend fun lookupFssai(@Query("fssaiNo") fssaiNo: String): Map<String, Any>
 
-        // ── Marketplace orders ────────────────────────────────────────────
-        @GET("api/v1/business/marketplace-orders")
-        suspend fun listMarketplaceOrders(): List<MarketplaceOrderDto>
-
-        @GET("api/v1/business/marketplace-orders/pending")
-        suspend fun listPendingMarketplaceOrders(): List<MarketplaceOrderDto>
-
-        @GET("api/v1/business/marketplace-orders/counts")
-        suspend fun getMarketplaceOrderCounts(): Map<String, Long>
-
-        @POST("api/v1/business/marketplace-orders/{orderId}/accept")
-        suspend fun acceptMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
-
-        @POST("api/v1/business/marketplace-orders/{orderId}/reject")
-        suspend fun rejectMarketplaceOrder(@Path("orderId") orderId: Long, @Body reason: Map<String, String>): MarketplaceOrderDto
-
-        @POST("api/v1/business/marketplace-orders/{orderId}/mark-ready")
-        suspend fun markReadyMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
-
-        @POST("api/v1/business/marketplace-orders/{orderId}/complete")
-        suspend fun completeMarketplaceOrder(@Path("orderId") orderId: Long): MarketplaceOrderDto
-
         // ── Permissions ──────────────────────────────────────────────────────────
 
         @GET("api/v1/permissions/me")
@@ -311,6 +289,35 @@ interface KhanaBookApi {
 
         @POST("api/v1/restaurants/payment-config/easebuzz/resend-otp")
         suspend fun resendEasebuzzOtp(): Map<String, Any?>
+
+        // ── Easebuzz KYC documents (incl. 2 address/business proofs) ───────
+
+        @Multipart
+        @POST("api/v1/restaurants/kyc-document")
+        suspend fun uploadKycDocument(
+            @Part file: MultipartBody.Part,
+            @Part type: MultipartBody.Part
+        ): Map<String, String>
+
+        @GET("api/v1/business/kyc-document/{docType}/download")
+        suspend fun downloadKycDocument(@Path("docType") docType: String): okhttp3.ResponseBody
+
+        // ── Merchant Agreement (e-agreement, signed PDF) ──────────────────
+
+        @GET("api/v1/business/merchant-agreement")
+        suspend fun getMerchantAgreementStatus(): Map<String, Any?>
+
+        @Multipart
+        @POST("api/v1/business/merchant-agreement")
+        suspend fun uploadMerchantAgreement(
+            @Part file: MultipartBody.Part,
+            @Part signerName: MultipartBody.Part,
+            @Part agreementVersion: MultipartBody.Part
+        ): Map<String, Any?>
+
+        @GET("api/v1/business/merchant-agreement/download")
+        suspend fun downloadMerchantAgreement(): okhttp3.ResponseBody
+
 }
 
 data class TerminalListItem(

@@ -331,53 +331,56 @@ export function filterBusinessOrders(
     </div>
   `,
   styles: [`
-    .refunded-label { color: var(--danger); font-weight: 500; }
-    .refund-meta { font-size: 0.75rem; color: var(--brand-deep); }
+    .refunded-label { color: var(--kb-color-error); font-weight: 500; }
+    .refund-meta { font-size: 0.75rem; color: var(--kb-color-primary); }
     .clickable-row { cursor: pointer; transition: background 0.15s; }
-    .clickable-row:hover { background: var(--bg); }
-    .clickable-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+    .clickable-row:hover { background: var(--kb-color-surface-2); }
+    .clickable-row:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
 
     .filter-group--full { grid-column: 1 / -1; }
 
     .date-range-active {
       display: inline-block;
       margin-left: 0.5rem;
-      padding: 0.15rem 0.5rem;
-      background: var(--bg);
-      border-radius: 6px;
+      padding: var(--kb-space-1) var(--kb-space-2);
+      background: var(--kb-color-surface);
+      border-radius: var(--kb-radius-md);
       font-size: 0.8rem;
     }
 
-    .field { margin: 1rem 0; display: flex; flex-direction: column; gap: 0.3rem; }
-    .field label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+    .field { margin: var(--kb-space-3) 0; display: flex; flex-direction: column; gap: var(--kb-space-1); }
+    .field label { font-size: 0.85rem; font-weight: 600; color: var(--kb-color-foreground); }
     .field input {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--line);
-      border-radius: 8px;
+      padding: var(--kb-space-2) var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
       font-size: 0.95rem;
       outline: none;
       min-height: 44px;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      transition: border-color 0.15s;
     }
-    .field input:focus { border-color: var(--brand); }
-    .error-text { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .hint-text { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
-    .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
-    .refund-review { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem 1rem; margin: 1rem 0; padding: 1rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-lg); }
-    .refund-review span { color: var(--muted); }
+    .field input:focus { border-color: var(--kb-color-primary); }
+    .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
+    .hint-text { color: var(--kb-color-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+    .toolbar-actions { display: flex; gap: var(--kb-space-3); align-items: center; }
+    .refund-review { display: grid; grid-template-columns: minmax(0, 111) auto; gap: var(--kb-space-3) var(--kb-space-2); margin: var(--kb-space-3) 0; padding: var(--kb-space-3); background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); }
+    .refund-review span { color: var(--kb-color-muted); }
     .refund-review strong { text-align: right; overflow-wrap: anywhere; }
     .mobile-order-list { display: none; }
     @media (max-width: 767px) {
       .table-wrap > .data-table { display: none; }
-      .mobile-order-list { display: grid; gap: 0.75rem; padding: 0.75rem; }
-      .mobile-order-card { overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-xs); }
-      .mobile-order-card--refunded { border-left: 4px solid var(--danger); }
-      .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem 0.75rem; padding: 1rem; text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
-      .mobile-order-card__main:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+      .mobile-order-list { display: grid; gap: var(--kb-space-3); padding: var(--kb-space-3); }
+      .mobile-order-card { overflow: hidden; background: var(--kb-color-surface); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); box-shadow: var(--kb-shadow-xs); }
+      .mobile-order-card--refunded { border-left: 4px solid var(--kb-color-error); }
+      .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-2) var(--kb-space-3); padding: var(--kb-space-3); text-align: left; color: var(--kb-color-foreground); background: transparent; border: 0; cursor: pointer; }
+      .mobile-order-card__main:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
       .mobile-order-card__title { font-weight: 700; }
-      .mobile-order-card__customer { color: var(--ink-2); }
+      .mobile-order-card__customer { color: var(--kb-color-muted); }
       .mobile-order-card__amount { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--muted); font-size: 0.75rem; }
-      .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem; border-top: 1px solid var(--line); background: var(--panel-2); }
+      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted); font-size: 0.75rem; }
+      .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: var(--kb-space-2); padding: var(--kb-space-2) var(--kb-space-3); border-top: 1px solid var(--kb-color-border); background: var(--kb-color-surface-2); }
     }
   `]
 })

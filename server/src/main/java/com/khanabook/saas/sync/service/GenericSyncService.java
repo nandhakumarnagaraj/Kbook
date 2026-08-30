@@ -15,6 +15,10 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
 import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.security.authz.OfflineAuthDecider;
+import com.khanabook.saas.service.PermissionService;
+import com.khanabook.saas.entity.StaffPermissionRevision;
+import com.khanabook.saas.repository.StaffPermissionRevisionRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +46,8 @@ public class GenericSyncService {
 	private final RestaurantTerminalRepository terminalRepository;
 	private final SecurityAuditService securityAuditService;
 	private final SyncFallbackSaver syncFallbackSaver;
+	private final PermissionService permissionService;
+	private final StaffPermissionRevisionRepository revisionRepo;
 
 	// Optional: push notifications are disabled until PushNotificationService is on
 	// the classpath with Firebase configured (see FirebaseConfig / PushNotificationService).
@@ -721,7 +727,52 @@ public class GenericSyncService {
 			}
 			
 			allRecordsToSave.addAll(recordsToSaveMap.values());
-		}
+
+		// ── Permission revalidation (Step 2): reject/quarantine offline-created
+		// operations if the user's permission has been revoked after the op was created.
+		// This is the core distributed-state guard: even if a permission is currently
+		// granted, an op created when it was granted must be rejected if revoked later.
+		// Decision A strict: lastRevokedRevision >= createdRevision → REJECT.
+		// Records that are REJECTed are removed from the save set; QUARANTINEd records
+		// are also held for review but not silently committed.
+		if (!isKbookAdmin && !allRecordsToSave.isEmpty()) {
+			long userId = TenantContext.getCurrentUserId() != null ? TenantContext.getCurrentUserId() : 0L;
+			long lastRevoked = revisionRepo.findLastRevokedRevision(tenantId, userId);
+			boolean terminalValid = terminalValidator.isTerminalValid(tenantId); // will be checked below
+
+			List<Long> revalidationFailedLocalIds = new ArrayList<>();
+			List<Long> revalidationSuccessfulLocalIds = new ArrayList<>();
+
+			for (T record : allRecordsToSave) {
+				if (record instanceof Bill bill && bill.getPermissionRevisionAtCreation() != null) {
+					boolean grantedNow = permissionService.hasPermission(tenantId, userId, "billing.create");
+					OfflineAuthDecider.Result result = OfflineAuthDecider.decide(
+							"billing.create",
+							bill.getPermissionRevisionAtCreation(),
+							grantedNow,
+							lastRevoked,
+							true
+					);
+					switch (result.decision) {
+						case REJECT ->
+								revalidationFailedLocalIds.add(bill.getLocalId());
+						case QUARANTINE ->
+								revalidationFailedLocalIds.add(bill.getLocalId());
+						case ACCEPT ->
+								revalidationSuccessfulLocalIds.add(bill.getLocalId());
+					}
+				} else {
+					revalidationSuccessfulLocalIds.add(record.getLocalId());
+				}
+			}
+
+			revalidationFailedLocalIds.forEach(localId -> recordsToSaveMap.remove(localId));
+			allRecordsToSave = new ArrayList<>(recordsToSaveMap.values());
+			log.info("Permission revalidation: {} accepted, {} rejected/quarantined out of {} total",
+					revalidationSuccessfulLocalIds.size(),
+					revalidationFailedLocalIds.size(),
+					allRecordsToSave.size() + revalidationFailedLocalIds.size());
+	}
 
 		// Generate public_token for new bills that don't have one
 		for (T record : allRecordsToSave) {

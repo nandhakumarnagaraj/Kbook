@@ -262,6 +262,18 @@ fun SettingsScreen(
                     "about_app" -> {
                         AboutAppView()
                     }
+                    "merchant_agreement" -> {
+                        com.khanabook.lite.pos.ui.screens.MerchantAgreementScreen(
+                            onBack = { section = "menu" },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    "compliance_documents" -> {
+                        com.khanabook.lite.pos.ui.screens.ComplianceDocumentsScreen(
+                            onBack = { section = "menu" },
+                            onOpenAgreement = { section = "merchant_agreement" }
+                        )
+                    }
                 }
             }
         }

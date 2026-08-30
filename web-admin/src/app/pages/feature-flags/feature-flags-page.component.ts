@@ -138,22 +138,23 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .switch-label { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .switch-label { display: inline-flex; align-items: center; gap: var(--kb-space-2); cursor: pointer; }
     .switch-label input { display: none; }
     .switch-track {
-      width: 40px; height: 22px; border-radius: 12px; background: #d9cdb6;
+      width: 40px; height: 22px; border-radius: var(--kb-radius-lg); background: var(--kb-color-surface-2);
       position: relative; transition: background 0.2s ease; display: inline-block;
     }
     .switch-track::after {
       content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
-      border-radius: 50%; background: #fff; transition: transform 0.2s ease;
+      border-radius: var(--kb-radius-md); background: var(--kb-color-primary);
+      transition: transform 0.2s ease;
     }
-    .switch-label input:checked + .switch-track { background: #1d7b5f; }
+    .switch-label input:checked + .switch-track { background: var(--kb-color-primary); }
     .switch-label input:checked + .switch-track::after { transform: translateX(18px); }
     .switch-label input:disabled + .switch-track { opacity: 0.5; cursor: not-allowed; }
-    .danger-text { color: #a6372f; }
-    .audit-panel { margin-top: 1.25rem; }
-    .hint-panel { padding: 1rem 1.25rem; }
+    .danger-text { color: var(--kb-color-error); }
+    .audit-panel { margin-top: var(--kb-space-4); }
+    .hint-panel { padding: var(--kb-space-3) var(--kb-space-4); }
   `]
 })
 export class FeatureFlagsPageComponent {

@@ -83,14 +83,7 @@ fun OrdersScreen(
     var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
     val visibleRows = remember(allRows, selectedSource) {
         allRows.filter { row ->
-            if (row.orderStatus == OrderStatus.DRAFT) {
-                false
-            } else {
-                when (selectedSource) {
-                    "ONLINE" -> row.isOnlineOrder()
-                    else -> !row.isOnlineOrder() // Store = dine-in + takeaway
-                }
-            }
+            row.orderStatus != OrderStatus.DRAFT
         }
     }
     val enabledModes = remember(profile) { 

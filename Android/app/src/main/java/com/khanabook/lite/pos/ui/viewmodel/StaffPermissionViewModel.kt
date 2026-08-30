@@ -97,11 +97,6 @@ class StaffPermissionViewModel @Inject constructor(
             PermissionManager.SETTINGS_PRINTER to "Printer Config",
             PermissionManager.SETTINGS_TERMINAL to "Devices",
             PermissionManager.SETTINGS_GST to "GST/FSSAI"
-        ),
-        "MARKETPLACE" to listOf(
-            PermissionManager.MARKETPLACE_VIEW to "View Marketplace Orders",
-            PermissionManager.MARKETPLACE_ACCEPT to "Accept/Reject Orders",
-            PermissionManager.MARKETPLACE_CONFIG to "Configure Integrations"
         )
     )
 

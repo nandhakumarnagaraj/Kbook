@@ -1,14 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, HostListener, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, ElementRef, ViewChild, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
 import { AuthService } from '../../core/auth/auth.service';
+import { BottomActionBarModule } from '../bottom-action-bar/bottom-action-bar.module';
 
 type NavLink = { label: string; path: string; icon: string };
+
+type BottomActionBarItem = { label: string; icon: string; route: string; badge?: string };
 
 @Component({
   selector: 'app-sidebar-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent],
   template: `
     <div class="layout-shell">
       <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -113,10 +117,18 @@ type NavLink = { label: string; path: string; icon: string };
           <router-outlet />
         </main>
       </div>
+
+      <!-- Mobile bottom action bar -->
+      <kb-bottom-action-bar
+        *ngIf="isMobileView"
+        [items]="bottomActionItems()"
+        [selectedIndex]="selectedBottomTab()"
+        (indexChange)="onBottomTabChange($event)"
+      />
     </div>
   `,
   styles: [`
-    :host { display: block; min-height: 100vh; background: var(--bg); }
+    :host { display: block; min-height: 100vh; background: var(--kb-color-bg-app); }
 
     .layout-shell {
       min-height: 100vh;
@@ -127,29 +139,29 @@ type NavLink = { label: string; path: string; icon: string };
     .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
     .skip-link {
       position: fixed; left: 1rem; top: 0; z-index: 100;
-      padding: 0.65rem 1rem; color: #fff; background: var(--brand);
-      border-radius: 0 0 8px 8px; transform: translateY(-110%);
+      padding: 0.65rem 1rem; color: var(--kb-color-foreground); background: var(--kb-color-primary);
+      border-radius: var(--kb-radius-sm); transform: translateY(-110%);
     }
     .skip-link:focus { transform: translateY(0); }
 
-    /* ── Sidebar (dark espresso) ── */
+    /* ── Sidebar (minimalism dark) ── */
     .sidebar {
-      padding: 1.25rem 0.9rem 1rem;
+      padding: var(--kb-space-3) var(--kb-space-4);
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: var(--kb-space-4);
       position: sticky;
       top: 0;
       height: 100vh;
-      background: #2A1F17;
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
-      color: #f3f4f6;
+      background: var(--kb-color-foreground);
+      border-right: 1px solid var(--kb-color-border);
+      color: var(--kb-color-foreground-contrast);
     }
 
-    .brand-block { display: grid; gap: 1rem; padding: 0 0.35rem; }
-    .brand-row { display: flex; align-items: center; gap: 0.7rem; }
+    .brand-block { display: grid; gap: var(--kb-space-4); padding: 0 var(--kb-space-3); }
+    .brand-row { display: flex; align-items: center; gap: var(--kb-space-3); }
     .brand-copy { display: grid; }
-    .brand-copy h1 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }
+    .brand-copy h1 { margin: 0; font-size: clamp(1rem, 4vw, var(--kb-font-size-h1)); font-weight: 700; letter-spacing: -0.02em; color: var(--kb-color-foreground-contrast); }
 
     .brand-logo {
       display: inline-flex;
@@ -157,68 +169,68 @@ type NavLink = { label: string; path: string; icon: string };
       justify-content: center;
       width: 40px;
       height: 40px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--brand) 0%, #b45309 100%);
-      box-shadow: 0 4px 14px -3px rgba(217, 119, 6, 0.6);
+      border-radius: var(--kb-radius-md);
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
+      box-shadow: var(--kb-shadow-sm);
       flex-shrink: 0;
     }
-    .brand-logo--sm { width: 32px; height: 32px; border-radius: 8px; }
-    .brand-logo__mark { color: #fff; font-weight: 800; font-size: 1.2rem; line-height: 1; letter-spacing: -0.02em; }
+    .brand-logo--sm { width: 32px; height: 32px; border-radius: var(--kb-radius-sm); }
+    .brand-logo__mark { color: var(--kb-color-primary-foreground); font-weight: 800; font-size: 1.2rem; line-height: 1; letter-spacing: -0.02em; }
     .brand-logo--sm .brand-logo__mark { font-size: 0.95rem; }
 
-    .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; color: #fbbf24; font-size: 0.65rem; font-weight: 700; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; color: var(--kb-color-muted); font-size: 0.65rem; font-weight: 700; }
 
     /* User card */
     .user-card {
       display: flex;
       align-items: center;
-      gap: 0.65rem;
-      padding: 0.65rem 0.75rem;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card);
       backdrop-filter: blur(8px);
     }
     .user-avatar {
       width: 34px;
       height: 34px;
-      border-radius: 50%;
-      background: var(--gradient-primary);
-      color: #ffffff;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
       font-size: 0.85rem;
       flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--kb-shadow-xs);
     }
     .user-meta { display: grid; min-width: 0; }
-    .user-name { font-weight: 600; font-size: 0.85rem; color: #ffffff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.68rem; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .user-name { font-weight: 600; font-size: 0.85rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-role { font-size: 0.68rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
     /* Navigation */
-    .nav-links { display: flex; flex-direction: column; gap: 0.25rem; }
+    .nav-links { display: flex; flex-direction: column; gap: var(--kb-space-2); }
     .nav-link {
       position: relative;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.65rem 0.85rem;
-      border-radius: 10px;
-      color: rgba(255, 255, 255, 0.65);
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-3) var(--kb-space-4);
+      border-radius: var(--kb-radius-card);
+      color: var(--kb-color-muted-foreground);
       text-decoration: none;
       font-weight: 500;
       font-size: 0.88rem;
       transition: all 0.15s ease;
     }
     .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 20px; }
-    .nav-link:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+    .nav-link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
     .nav-link.active-link {
-      background: linear-gradient(90deg, rgba(217, 119, 6, 0.28) 0%, rgba(217, 119, 6, 0.06) 100%);
-      color: #fbbf24;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground);
       font-weight: 700;
-      border: 1px solid rgba(245, 158, 11, 0.25);
+      border: 1px solid var(--kb-color-primary);
     }
     .nav-link.active-link::before {
       content: "";
@@ -228,8 +240,8 @@ type NavLink = { label: string; path: string; icon: string };
       bottom: 0.35rem;
       width: 4px;
       border-radius: 0 4px 4px 0;
-      background: #f59e0b;
-      box-shadow: 0 0 8px #f59e0b;
+      background: var(--kb-color-primary-foreground);
+      box-shadow: 0 0 8px var(--kb-color-primary);
     }
 
     /* Logout */
@@ -238,18 +250,18 @@ type NavLink = { label: string; path: string; icon: string };
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      padding: 0.65rem 0.85rem;
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-3) var(--kb-space-4);
       background: rgba(255, 255, 255, 0.04);
-      color: rgba(255, 255, 255, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      color: var(--kb-color-muted-foreground);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card);
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
       transition: all 0.15s ease;
     }
-    .logout-btn:hover { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+    .logout-btn:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); border-color: var(--kb-color-border-strong); }
 
     /* Content */
     .content-shell { min-width: 0; width: 100%; flex: 1; }
@@ -257,51 +269,51 @@ type NavLink = { label: string; path: string; icon: string };
 
     .desktop-topbar {
       position: sticky; top: 0; z-index: var(--kb-z-topbar);
-      height: var(--kb-topbar-height); padding: 0 1.5rem;
+      height: var(--kb-topbar-height); padding: var(--kb-space-4) 1.5rem;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      background: rgba(250, 247, 242, 0.94); border-bottom: 1px solid var(--line);
+      background: var(--kb-color-surface); border-bottom: 1px solid var(--kb-color-border);
       backdrop-filter: blur(12px);
     }
-    .business-context { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+    .business-context { display: flex; align-items: center; gap: var(--kb-space-3); min-width: 0; }
     .context-mark, .topbar-avatar {
       display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px;
-      border-radius: 9px; background: var(--kb-color-espresso); color: var(--kb-color-espresso-foreground);
+      border-radius: var(--kb-radius-lg); background: var(--kb-color-primary); color: var(--kb-color-primary-foreground);
       font-weight: 700;
     }
-    .topbar-avatar { border-radius: 50%; background: var(--brand-soft); color: var(--brand-deep); }
+    .topbar-avatar { border-radius: var(--kb-radius-full); background: var(--kb-color-surface-2); color: var(--kb-color-muted); }
     .context-copy { display: grid; min-width: 0; line-height: 1.2; }
-    .context-copy strong { overflow: hidden; color: var(--ink); font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-    .context-copy span { color: var(--muted); font-size: 0.7rem; }
-    .topbar-actions { display: flex; align-items: center; gap: 0.65rem; }
+    .context-copy strong { overflow: hidden; color: var(--kb-color-foreground); font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
+    .context-copy span { color: var(--kb-color-muted); font-size: 0.7rem; }
+    .topbar-actions { display: flex; align-items: center; gap: var(--kb-space-3); }
     .quick-search, .restaurant-chip {
-      min-height: 36px; display: inline-flex; align-items: center; gap: 0.55rem;
-      padding: 0.4rem 0.7rem; color: var(--muted); background: var(--panel);
-      border: 1px solid var(--line-strong); border-radius: var(--r-lg); font-size: 0.78rem;
+      min-height: var(--kb-space-5); display: inline-flex; align-items: center; gap: var(--kb-space-2);
+      padding: var(--kb-space-2) var(--kb-space-3); color: var(--kb-color-muted); background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); font-size: 0.78rem;
     }
     .quick-search { width: 220px; cursor: pointer; text-align: left; }
-    .quick-search:hover { border-color: var(--brand); color: var(--ink); }
-    .quick-search:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-    .quick-search kbd { margin-left: auto; padding: 0.1rem 0.35rem; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); font-size: 0.65rem; }
-    .restaurant-chip { min-height: 30px; background: var(--panel-2); }
+    .quick-search:hover { border-color: var(--kb-color-primary); color: var(--kb-color-foreground); }
+    .quick-search:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+    .quick-search kbd { margin-left: auto; padding: var(--kb-space-1) var(--kb-space-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-sm); background: var(--kb-color-surface-2); font-size: 0.65rem; }
+    .restaurant-chip { min-height: var(--kb-space-4); background: var(--kb-color-surface-2); }
 
     /* ── Topbar (mobile only) ── */
     .topbar { display: none; }
-    .topbar__brand { display: flex; align-items: center; gap: 0.55rem; }
+    .topbar__brand { display: flex; align-items: center; gap: var(--kb-space-3); }
 
     .hamburger {
       display: inline-flex;
       flex-direction: column;
       justify-content: center;
-      gap: 4px;
+      gap: var(--kb-space-2);
       width: 40px;
       height: 40px;
-      padding: 0 10px;
-      border: 1px solid var(--line-strong);
-      border-radius: 10px;
-      background: var(--panel);
+      padding: 0 var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card);
+      background: var(--kb-color-surface);
       cursor: pointer;
     }
-    .hamburger__bar { display: block; height: 2px; border-radius: 2px; background: var(--ink); }
+    .hamburger__bar { display: block; height: 2px; border-radius: var(--kb-radius-sm); background: var(--kb-color-foreground); }
     .sidebar-backdrop { display: none; }
 
     /* ── Responsive ── */
@@ -311,15 +323,15 @@ type NavLink = { label: string; path: string; icon: string };
       .topbar {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: var(--kb-space-4);
         position: sticky;
         top: 0;
         z-index: 30;
-        padding: 0.7rem 1rem;
-        background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        padding: var(--kb-space-3) var(--kb-space-4);
+        background: var(--kb-color-surface);
+        border-bottom: 1px solid var(--kb-color-border);
       }
-      .topbar__title { font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+      .topbar__title { font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
       .sidebar {
         position: fixed;
         top: 0;
@@ -330,7 +342,7 @@ type NavLink = { label: string; path: string; icon: string };
         height: 100vh;
         transform: translateX(-100%);
         transition: transform 0.25s ease;
-        box-shadow: var(--shadow-lg);
+        box-shadow: var(--kb-shadow-lg);
       }
       .sidebar--open { transform: translateX(0); }
       .sidebar-backdrop {
@@ -338,7 +350,7 @@ type NavLink = { label: string; path: string; icon: string };
         position: fixed;
         inset: 0;
         z-index: 35;
-        background: rgba(42, 31, 23, 0.5);
+        background: rgba(26, 26, 26, 0.5);
         backdrop-filter: blur(2px);
       }
     }
@@ -385,6 +397,17 @@ export class SidebarLayoutComponent {
     ];
   });
 
+  readonly bottomActionItems = signal<BottomActionBarItem[]>([
+    { label: 'Orders', icon: 'shop', route: '/business/orders', badge: '24' },
+    { label: 'Reports', icon: 'chart', route: '/business/reports' },
+    { label: 'Settings', icon: 'settings', route: '/business/settings' },
+    { label: 'KDS', icon: 'kitchen', route: '/business/active-orders' }
+  ]);
+
+  readonly selectedBottomTab = signal(0);
+
+  readonly isMobileView = computed(() => window.innerWidth < 1024);
+
   toggleMenu(): void {
     if (this.menuOpen()) { this.closeMenu(); return; }
     this.menuOpen.set(true);
@@ -402,6 +425,14 @@ export class SidebarLayoutComponent {
 
   openOrders(): void {
     void this.router.navigate(['/business/orders']);
+  }
+
+  onBottomTabChange(index: number): void {
+    this.selectedBottomTab.set(index);
+    const route = this.bottomActionItems()[index]?.route;
+    if (route) {
+      void this.router.navigate([route]);
+    }
   }
 
   @HostListener('document:keydown.control.k', ['$event'])

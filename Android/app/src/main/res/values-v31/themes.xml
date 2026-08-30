@@ -3,10 +3,10 @@
 
     <!--
         Android 12+ (API 31+) splash screen.
-        Single-stage branded splash like Paytm:
-        - Icon: combined logo (splash_full_logo)
-        - Background: burgundy
-        - Branding: footer company name at bottom
+        Clean system splash: logo icon on burgundy background.
+        The Compose BrandedStartFrame handles full brand presentation.
+        
+        NOTE: values-v33/themes.xml overrides this style — keep both files in sync.
     -->
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.SplashScreen">
         <!-- androidx compat attributes -->
@@ -17,10 +17,8 @@
         <!-- platform attributes (API 31+) -->
         <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
-        <item name="android:windowSplashScreenBrandingImage">@drawable/splash_footer</item>
 
-        <!-- Fill the whole window, including behind the system bars -->
+        <!-- Window chrome: gradient matches Compose so no flash on transition -->
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

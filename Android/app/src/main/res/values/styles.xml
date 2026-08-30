@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shape Appearance -->
+    <style name="ShapeAppearance.App.Small" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_card</item>
+    </style>
+
+    <!-- Base Button Style -->
+    <style name="Widget.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">@dimen/padding_20</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Medium</item>
+    </style>
+
+    <!-- Base Card Style -->
+    <style name="Widget.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">@dimen/radius_card</item>
+    </style>
+
+    <!-- Base Text Style -->
+    <style name="Text" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/color_primary_text</item>
+    </style>
+
+    <!-- Card style -->
+    <style name="Widget.Card.Mini">
+        <item name="android:background">@color/card_background</item>
+        <item name="android:layout_margin">@dimen/margin_8</item>
+        <item name="android:clipToOutline">false</item>
+        <item name="android:elevation">2dp</item>
+    </style>
+
+    <!-- Button styles -->
+    <style name="Widget.Button.Primary">
+        <item name="android:background">@color/color_primary</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:minHeight">@dimen/padding_20</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Medium</item>
+        <item name="cornerRadius">@dimen/radius_card</item>
+    </style>
+
+    <style name="Widget.Button.Secondary">
+        <item name="android:background">@color/white</item>
+        <item name="android:textColor">@color/color_primary_text</item>
+        <item name="android:minHeight">@dimen/padding_20</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Medium</item>
+        <item name="android:backgroundTint">?attr/colorControlNormal</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.Small</item>
+    </style>
+
+    <style name="Widget.Button.Ghost">
+        <item name="android:background">?attr/colorControlHighlight</item>
+        <item name="android:textColor">@color/color_primary</item>
+        <item name="android:minHeight">@dimen/padding_20</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Medium</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.Small</item>
+    </style>
+
+    <!-- Text styles -->
+    <style name="Text.H1">
+        <item name="android:textSize">@dimen/text_h1</item>
+        <item name="android:textColor">@color/color_primary_text</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Large</item>
+        <item name="android:lineHeight">@dimen/text_h1</item>
+    </style>
+
+    <style name="Text.H2">
+        <item name="android:textSize">@dimen/text_h2</item>
+        <item name="android:textColor">@color/color_primary_text</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Medium</item>
+        <item name="android:lineHeight">@dimen/text_h2</item>
+    </style>
+
+    <style name="Text.Body">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/color_primary_text</item>
+        <item name="android:fontFamily">@style/TextAppearance.MaterialComponents.Body1</item>
+        <item name="android:lineHeight">@dimen/text_body</item>
+    </style>
+
+    <style name="Text.Caption">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/color_secondary_text</item>
+        <item name="android:fontFamily">@style/TextAppearance.MaterialComponents.Caption</item>
+        <item name="android:lineHeight">@dimen/text_caption</item>
+    </style>
+
+    <style name="Text.Label">
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textColor">@color/color_secondary_text</item>
+        <item name="android:fontFamily">@android:style/TextAppearance.Small</item>
+        <item name="android:lineHeight">@dimen/text_label</item>
+    </style>
+</resources>

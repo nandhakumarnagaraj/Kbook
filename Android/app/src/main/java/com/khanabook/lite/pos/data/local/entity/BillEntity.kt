@@ -140,7 +140,7 @@ data class BillEntity(
     // Origin: how this record entered the local database
     @SerializedName("recordOrigin")
     @ColumnInfo(name = "record_origin", defaultValue = "'local_created'")
-    val recordOrigin: String = "local_created", // local_created, server_imported, marketplace_imported, transferred
+    val recordOrigin: String = "local_created", // local_created, server_imported, transferred
 
     // Scope: where this record may be used
     @SerializedName("recordScope")

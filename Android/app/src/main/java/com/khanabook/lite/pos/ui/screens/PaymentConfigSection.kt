@@ -145,9 +145,7 @@ fun PaymentConfigView(
                             cashEnabled = cashEnabled,
                             posEnabled = posEnabled,
                             easebuzzEnabled = easebuzzEnabled,
-                            zomatoEnabled = false,
-                            swiggyEnabled = false,
-                            ownWebsiteEnabled = false,
+
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }

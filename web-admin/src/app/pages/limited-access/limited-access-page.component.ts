@@ -26,11 +26,11 @@ import { AuthService } from '../../core/auth/auth.service';
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 1rem;
+      padding: var(--kb-space-4);
     }
     .access-card {
       width: min(560px, 100%);
-      padding: clamp(1.5rem, 5vw, 2.5rem);
+      padding: var(--kb-space-4);
       text-align: center;
     }
     .access-mark {
@@ -38,16 +38,16 @@ import { AuthService } from '../../core/auth/auth.service';
       place-items: center;
       width: 3.25rem;
       height: 3.25rem;
-      margin: 0 auto 1rem;
-      color: #fff;
-      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
-      border-radius: 16px;
-      box-shadow: var(--shadow-soft);
+      margin: 0 auto var(--kb-space-4);
+      color: var(--kb-color-primary-foreground);
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
+      border-radius: var(--kb-radius-lg);
+      box-shadow: var(--kb-shadow-sm);
       font-size: 1.35rem;
       font-weight: 800;
     }
     .eyebrow {
-      color: var(--brand-deep);
+      color: var(--kb-color-primary);
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 0.76rem;
@@ -55,15 +55,15 @@ import { AuthService } from '../../core/auth/auth.service';
     }
     h1 { margin: 0.55rem 0 0.75rem; font-size: clamp(1.5rem, 4vw, 2rem); }
     .access-note {
-      margin: 1.5rem 0;
-      padding: 1rem;
-      color: var(--brand-deep);
-      background: var(--brand-soft);
-      border: 1px solid var(--line);
-      border-radius: 14px;
+      margin: var(--kb-space-4) 0;
+      padding: var(--kb-space-3);
+      color: var(--kb-color-primary);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
     }
-    .access-note p { margin: 0.35rem 0 0; color: var(--ink); line-height: 1.5; }
-    .primary-btn { width: 100%; }
+    .access-note p { margin: var(--kb-space-1) 0 0; color: var(--kb-color-foreground); line-height: 1.5; }
+    .primary-btn { width: 100%; padding: var(--kb-space-3) var(--kb-space-4); }
   `]
 })
 export class LimitedAccessPageComponent {

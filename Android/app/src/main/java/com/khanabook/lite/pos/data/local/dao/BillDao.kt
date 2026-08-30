@@ -198,18 +198,16 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
 
     // Terminal ownership isolation: a bill that THIS terminal may mutate as an operational
-    // record. Returns null for marketplace history (zomato/swiggy/own_website), other
-    // terminals' bills, or deleted records. Ownership is proven by current_owner_terminal_id
-    // or created_terminal_id — NOT by record_origin/record_scope labels, which the sync
-    // pull overwrites to server_imported/restaurant_history, making local bills read-only.
-    // Mutable workflows must load bills through this method so a history record can never
-    // reach a DAO write.
+    // record. Returns null for other terminals' bills or deleted records. Ownership is proven
+    // by current_owner_terminal_id or created_terminal_id — NOT by record_origin/record_scope
+    // labels, which the sync pull overwrites to server_imported/restaurant_history, making
+    // local bills read-only. Mutable workflows must load bills through this method so a
+    // history record can never reach a DAO write.
     @Query("""
         SELECT * FROM bills
         WHERE id = :id AND restaurant_id = :restaurantId AND is_deleted = 0
           AND (current_owner_terminal_id = :terminalId
                OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId))
-          AND (source_channel IS NULL OR source_channel NOT IN ('zomato', 'swiggy', 'own_website'))
         LIMIT 1
     """)
     suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity?
@@ -247,7 +245,6 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
         SET record_origin = 'local_created', record_scope = 'terminal_operational'
         WHERE restaurant_id = :restaurantId AND is_deleted = 0 AND is_synced = 1
           AND created_terminal_id = :terminalId
-          AND (source_channel IS NULL OR source_channel NOT IN ('zomato', 'swiggy', 'own_website'))
     """)
     suspend fun reconcileLocalRecordScope(restaurantId: Long, terminalId: String): Int
 

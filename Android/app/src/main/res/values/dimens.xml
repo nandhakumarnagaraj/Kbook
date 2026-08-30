@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Corner radii -->
+    <dimen name="radius_card">12px</dimen>
+    <dimen name="radius_kot">8px</dimen>
+    <dimen name="radius_small">4px</dimen>
+
+    <!-- Padding/margin -->
+    <dimen name="padding_4">4px</dimen>
+    <dimen name="padding_8">8px</dimen>
+    <dimen name="padding_12">12px</dimen>
+    <dimen name="padding_16">16px</dimen>
+    <dimen name="padding_20">20px</dimen>
+    <dimen name="margin_4">4px</dimen>
+    <dimen name="margin_8">8px</dimen>
+    <dimen name="margin_12">12px</dimen>
+    <dimen name="margin_16">16px</dimen>
+
+    <!-- Text sizes -->
+    <dimen name="text_h1">32sp</dimen>
+    <dimen name="text_h2">24sp</dimen>
+    <dimen name="text_h3">20sp</dimen>
+    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_caption">14sp</dimen>
+    <dimen name="text_label">12sp</dimen>
+</resources>

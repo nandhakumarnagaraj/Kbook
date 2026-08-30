@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- API 31+ system splash icon.
-     Uses the combined logo+text so the brief system splash shows full branding.
-     The windowBackground layer-list takes over immediately after. -->
+<!--
+    System splash icon (API 31+).
+    Uses the logo mark only (no text) — text is handled by BrandedStartFrame.
+    Sized to fit within the 160dp safe circle of the 240dp icon area.
+    The system applies circular masking: content outside the inner 2/3 is clipped.
+-->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/splash_full_logo"
-    android:insetLeft="15%"
-    android:insetTop="15%"
-    android:insetRight="15%"
-    android:insetBottom="15%" />
+    android:drawable="@drawable/splash_logo"
+    android:insetLeft="20%"
+    android:insetTop="20%"
+    android:insetRight="20%"
+    android:insetBottom="20%" />

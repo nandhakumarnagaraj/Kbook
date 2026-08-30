@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Roboto font families -->
+    <font family="font_roboto_regular">@font/roboto_regular</font>
+    <font family="font_roboto_medium">@font/roboto_medium</font>
+    <font family="font_roboto_bold">@font/roboto_bold</font>
+    <font family="font_roboto_semi_bold">@font/roboto_semi_bold</font>
+</resources>

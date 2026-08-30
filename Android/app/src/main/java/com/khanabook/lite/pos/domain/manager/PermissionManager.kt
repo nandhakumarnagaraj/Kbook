@@ -154,10 +154,7 @@ class PermissionManager @Inject constructor(
         SETTINGS_PAYMENT to "Payment Settings",
         SETTINGS_PRINTER to "Printer Settings",
         SETTINGS_TERMINAL to "Manage Devices",
-        SETTINGS_GST to "GST/FSSAI Settings",
-        MARKETPLACE_VIEW to "View Marketplace Orders",
-        MARKETPLACE_ACCEPT to "Accept/Reject Orders",
-        MARKETPLACE_CONFIG to "Configure Integrations"
+        SETTINGS_GST to "GST/FSSAI Settings"
     )
 
     // ── Permission key constants (mirrors server PermissionKey enum) ──────────
@@ -204,9 +201,6 @@ class PermissionManager @Inject constructor(
         const val SETTINGS_TERMINAL = "settings.terminal"
         const val SETTINGS_GST = "settings.gst"
 
-        // Marketplace
-        const val MARKETPLACE_VIEW = "marketplace.view"
-        const val MARKETPLACE_ACCEPT = "marketplace.accept"
-        const val MARKETPLACE_CONFIG = "marketplace.config"
+
     }
 }

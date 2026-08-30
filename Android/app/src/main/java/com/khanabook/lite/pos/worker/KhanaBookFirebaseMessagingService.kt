@@ -81,7 +81,7 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun showNotification(id: Long, title: String, body: String, type: String, referenceId: String?) {
         val channelId = when (type) {
-            "payment_received", "qr_order", "marketplace_order" -> NotificationHelper.CHANNEL_PAYMENT
+            "payment_received", "qr_order" -> NotificationHelper.CHANNEL_PAYMENT
             "refund" -> NotificationHelper.CHANNEL_REFUND
             "kyc" -> NotificationHelper.CHANNEL_KYC
             "settlement" -> NotificationHelper.CHANNEL_SETTLEMENT
@@ -113,13 +113,13 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         // Select color based on notification type:
-        // Saffron for FSSAI/warning/marketplace, green for payments, red for refunds, violet for KYC, blue for settlements
+        // Saffron for FSSAI/warning, green for payments, red for refunds, violet for KYC, blue for settlements
         val colorInt = when (type) {
             "payment_received" -> 0xFF16A34A.toInt() // Green
             "refund" -> 0xFFEF4444.toInt() // Red
             "kyc" -> 0xFF8B5CF6.toInt() // Violet
             "settlement" -> 0xFF0284C7.toInt() // Blue
-            "fssai_expiry", "marketplace_order" -> 0xFFF97316.toInt() // Saffron
+            "fssai_expiry" -> 0xFFF97316.toInt() // Saffron
             else -> 0xFF7C5CDB.toInt() // Purple (system default)
         }
 
@@ -218,7 +218,7 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun domainLabel(type: String): String = when (type) {
-        "payment_received", "qr_order", "marketplace_order" -> "payment alert"
+        "payment_received", "qr_order" -> "payment alert"
         "refund" -> "refund update"
         "kyc" -> "KYC update"
         "settlement" -> "settlement update"

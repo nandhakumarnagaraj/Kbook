@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 sealed class OnboardingStep {
@@ -35,6 +36,7 @@ sealed class OnboardingUiState {
 sealed class OnboardingEvent {
     data class Toast(val message: String, val isError: Boolean = false) : OnboardingEvent()
     data object OnboardingComplete : OnboardingEvent()
+    data class OpenFile(val file: File) : OnboardingEvent()
 }
 
 @HiltViewModel
@@ -278,6 +280,41 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         // Delegates to startOnboarding() which lets user edit and re-submit through the normal flow.
         // The backend /resubmit endpoint is called via submitBankDetailsAndOnboard() after re-edit.
         startOnboarding()
+    }
+
+    fun uploadKycDocument(docType: String, file: java.io.File) {
+        viewModelScope.launch {
+            _isSubmitting.value = true
+            repository.uploadKycDocument(docType, file)
+                .onSuccess {
+                    _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))
+                    loadStatus()
+                }
+                .onFailure { e ->
+                    _events.emit(OnboardingEvent.Toast(
+                        e.message ?: "Upload failed. Please try again.",
+                        isError = true
+                    ))
+                }
+            _isSubmitting.value = false
+        }
+    }
+
+    fun downloadKycDocument(docType: String) {
+        viewModelScope.launch {
+            _isSubmitting.value = true
+            repository.downloadKycDocument(docType)
+                .onSuccess { file ->
+                    _events.emit(OnboardingEvent.OpenFile(file))
+                }
+                .onFailure { e ->
+                    _events.emit(OnboardingEvent.Toast(
+                        e.message ?: "Could not download document.",
+                        isError = true
+                    ))
+                }
+            _isSubmitting.value = false
+        }
     }
 }
 

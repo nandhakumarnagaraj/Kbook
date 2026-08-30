@@ -64,22 +64,22 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .orders-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-      gap: 1rem;
+      gap: var(--kb-space-3);
     }
     .order-card {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-      padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;
+      background: var(--kb-color-surface); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-md);
+      padding: var(--kb-space-3); display: flex; flex-direction: column; gap: var(--kb-space-2);
       transition: border-color 0.2s;
     }
-    .order-card--old { border-color: var(--danger); border-width: 2px; }
+    .order-card--old { border-color: var(--kb-color-error); border-width: 2px; }
     .order-card__header { display: flex; justify-content: space-between; align-items: center; }
-    .order-card__code { font-size: 1rem; color: var(--ink); }
-    .order-card__customer { font-size: 0.9rem; color: var(--ink); font-weight: 500; }
+    .order-card__code { font-size: 1rem; color: var(--kb-color-foreground); }
+    .order-card__customer { font-size: 0.88rem; color: var(--kb-color-foreground); font-weight: 500; }
     .order-card__meta { display: flex; justify-content: space-between; font-size: 0.85rem; }
-    .order-card__meta span:first-child { font-weight: 700; color: var(--ink); }
-    .order-card__time { font-size: 0.8rem; }
-    .chip.warn { background: rgba(232,122,30,0.12); color: var(--brand); }
-    .chip.success { background: rgba(15,118,110,0.12); color: var(--accent); }
+    .order-card__meta span:first-child { font-weight: 700; color: var(--kb-color-foreground); }
+    .order-card__time { font-size: 0.8rem; color: var(--kb-color-muted); }
+    .chip.warn { background: rgba(59, 130, 246, 0.12); color: var(--kb-color-primary); }
+    .chip.success { background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success); }
   `]
 })
 export class ActiveOrdersPageComponent implements OnDestroy {

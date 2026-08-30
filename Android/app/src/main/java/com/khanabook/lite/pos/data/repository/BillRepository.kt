@@ -60,8 +60,8 @@ class BillRepository(
             ?: "LEGACY_UNRESOLVED"
 
     // Terminal ownership isolation (defense-in-depth): only bills created locally on this
-    // terminal are mutable as operational records. Pulled bills (server_imported /
-    // marketplace_imported) are read-only history and must never be mutated here.
+    // terminal are mutable as operational records. Pulled bills (server_imported) are
+    // read-only history and must never be mutated here.
     private fun isLocallyOwned(bill: BillEntity): Boolean =
         bill.recordScope == "terminal_operational" && bill.recordOrigin == "local_created"
 
@@ -107,7 +107,7 @@ class BillRepository(
 
     suspend fun updateBill(bill: BillEntity, scheduleDurableSync: Boolean = true) {
         // Terminal ownership isolation (defense-in-depth): only locally-owned operational
-        // bills may be mutated. Server-imported / marketplace-imported history is read-only.
+        // bills may be mutated. Server-imported history is read-only.
         if (!isLocallyOwned(bill)) return
         billDao.updateBill(bill)
         if (scheduleDurableSync) triggerBackgroundSync()
@@ -115,7 +115,7 @@ class BillRepository(
 
     suspend fun addBillPayment(payment: BillPaymentEntity) {
         // Terminal ownership isolation: a payment may only be attached to a locally-owned
-        // operational bill. Server-imported / marketplace history must never receive a payment.
+        // operational bill. Server-imported history must never receive a payment.
         val parent = billDao.getOperationalBillById(payment.billId, sessionManager.getRestaurantId(), currentTerminalScope())
             ?: return
         if (!isLocallyOwned(parent)) return
