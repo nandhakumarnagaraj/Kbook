@@ -67,19 +67,9 @@ public class RestaurantProfileDTO {
     private String kitchenPrinterMac;
     private String kitchenPrinterPaperSize;
     private String invoiceFooter;
-    private Boolean zomatoEnabled;
-    private Boolean swiggyEnabled;
     private Boolean easebuzzEnabled;
-    private Boolean ownWebsiteEnabled;
     private Boolean showBranding;
     private Boolean maskCustomerPhone;
-    private String zomatoOutletId;
-    private String swiggyStoreId;
-    private String marketplaceNotes;
-    private String zomatoApiKey;
-    private String zomatoWebhookSecret;
-    private String swiggyApiKey;
-    private String swiggyWebhookSecret;
     private Boolean printCustomerWhatsapp;
     private String lastResetDateProper;
 }

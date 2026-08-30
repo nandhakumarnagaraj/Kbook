@@ -19,8 +19,6 @@ import org.springframework.stereotype.Component;
  *   <li>{@code easebuzz_payments} — EASEBUZZ_MERCHANT_KEY + EASEBUZZ_SALT</li>
  *   <li>{@code notifications}   — a Firebase credential (FIREBASE_CREDENTIALS_PATH
  *       or FIREBASE_REFRESH_TOKEN)</li>
- *   <li>{@code marketplace_orders} — constant {@code true}; Swiggy/Zomato keys are
- *       per-restaurant, not global (design section 1)</li>
  * </ul>
  * Flags whose feature has no global credential dependency resolve to true so the
  * persisted flag state alone governs them.

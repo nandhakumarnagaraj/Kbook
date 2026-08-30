@@ -131,9 +131,6 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "commission_amount", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal commissionAmount;
 
-	@Column(name = "marketplace_order_id")
-	private Long marketplaceOrderId;
-
 	@Column(name = "cancel_reason", columnDefinition = "TEXT DEFAULT ''")
 	private String cancelReason = "";
 

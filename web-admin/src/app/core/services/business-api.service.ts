@@ -42,49 +42,6 @@ export class BusinessApiService {
     return this.http.get<BusinessDashboard>(`${API_BASE_URL}/business/dashboard`, { params });
   }
 
-  getMarketplaceSetup() {
-    return this.http.get<BusinessMarketplaceSetup>(`${API_BASE_URL}/business/marketplace-setup`);
-  }
-
-  getMarketplaceConfig() {
-    return this.http.get<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`);
-  }
-
-  saveMarketplaceConfig(payload: MarketplaceConfigRequest) {
-    return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`, payload);
-  }
-
-  getMarketplaceOrders(): Observable<MarketplaceOrder[]> {
-    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders`);
-  }
-
-  getPendingMarketplaceOrders(): Observable<MarketplaceOrder[]> {
-    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders/pending`);
-  }
-
-  getMarketplaceOrderCounts(): Observable<{ [k: string]: number }> {
-    return this.http.get<{ [k: string]: number }>(`${API_BASE_URL}/business/marketplace-orders/counts`);
-  }
-
-  acceptMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
-    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/accept`, null);
-  }
-
-  rejectMarketplaceOrder(orderId: number, reason: string | null): Observable<MarketplaceOrder> {
-    return this.http.post<MarketplaceOrder>(
-      `${API_BASE_URL}/business/marketplace-orders/${orderId}/reject`,
-      reason ? { reason } : {}
-    );
-  }
-
-  markReadyMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
-    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, null);
-  }
-
-  completeMarketplaceOrder(orderId: number): Observable<MarketplaceOrder> {
-    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/complete`, null);
-  }
-
   getOrders() {
     return this.http.get<BusinessOrder[]>(`${API_BASE_URL}/business/orders`);
   }

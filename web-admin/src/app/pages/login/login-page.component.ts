@@ -35,7 +35,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           <ul class="brand-points">
             <li>
               <span class="point-num">01</span>
-              <span>Live orders across POS &amp; marketplaces</span>
+              <span>Live orders across POS &amp; online channels</span>
             </li>
             <li>
               <span class="point-num">02</span>

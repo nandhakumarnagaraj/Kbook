@@ -73,24 +73,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/menu/menu-page.component').then(m => m.MenuPageComponent)
       },
       {
-        path: 'business/marketplace-orders',
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] },
-        loadComponent: () => import('./pages/marketplace-orders/marketplace-orders-page.component').then(m => m.MarketplaceOrdersPageComponent)
-      },
-      {
         path: 'business/staff',
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/staff/staff-page.component').then(m => m.StaffPageComponent)
       },
-      // Marketplace route disabled — feature hidden for v1
-      // {
-      //   path: 'business/marketplace',
-      //   canActivate: [roleGuard],
-      //   data: { roles: ['OWNER'] },
-      //   loadComponent: () => import('./pages/marketplace-setup/marketplace-setup-page.component').then(m => m.MarketplaceSetupPageComponent)
-      // },
       {
         path: 'business/terminals',
         canActivate: [roleGuard],

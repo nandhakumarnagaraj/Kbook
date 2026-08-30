@@ -12,7 +12,6 @@ declare const Notification: any;
 export type NotificationType = 
   | 'payment_received' 
   | 'qr_order' 
-  | 'marketplace_order' 
   | 'refund' 
   | 'kyc' 
   | 'settlement' 
@@ -46,7 +45,6 @@ export interface SentNotification {
 const NOTIFICATION_COLORS: Record<NotificationType, NotificationColor> = {
   'payment_received': 'green',
   'qr_order': 'saffron',
-  'marketplace_order': 'saffron',
   'refund': 'red',
   'kyc': 'violet',
   'settlement': 'blue',

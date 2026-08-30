@@ -245,7 +245,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
     @Test
     void kbookAdmin_can_manage_feature_flags() throws Exception {
         long now = System.currentTimeMillis();
-        featureFlagRepository.save(new FeatureFlag("marketplace_orders", true, false, "test flag", now, now));
+        featureFlagRepository.save(new FeatureFlag("test_feature", true, false, "test flag", now, now));
 
         String token = persistUserAndGetToken("admin-flags@test.com", 0L, RESTAURANT_ID, UserRole.KBOOK_ADMIN);
 
@@ -257,19 +257,19 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         // Enable a kill-switched flag and confirm effective state flips.
-        mockMvc.perform(put("/admin/feature-flags/marketplace_orders/kill-switch")
+        mockMvc.perform(put("/admin/feature-flags/test_feature/kill-switch")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"killSwitched\": false}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(put("/admin/feature-flags/marketplace_orders/default")
+        mockMvc.perform(put("/admin/feature-flags/test_feature/default")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"defaultEnabled\": true}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(put("/admin/feature-flags/marketplace_orders/restaurants/{restaurantId}", RESTAURANT_ID)
+        mockMvc.perform(put("/admin/feature-flags/test_feature/restaurants/{restaurantId}", RESTAURANT_ID)
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"enabled\": false}"))
@@ -278,16 +278,16 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         mockMvc.perform(get("/admin/feature-flags")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.flagKey=='marketplace_orders')].killSwitched").value(false))
-                .andExpect(jsonPath("$[?(@.flagKey=='marketplace_orders')].defaultEnabled").value(true));
+                .andExpect(jsonPath("$[?(@.flagKey=='test_feature')].killSwitched").value(false))
+                .andExpect(jsonPath("$[?(@.flagKey=='test_feature')].defaultEnabled").value(true));
 
-        mockMvc.perform(get("/admin/feature-flags/marketplace_orders/audit")
+        mockMvc.perform(get("/admin/feature-flags/test_feature/audit")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.scope=='KILL_SWITCH')]").exists())
                 .andExpect(jsonPath("$[?(@.scope=='DEFAULT')]").exists());
 
-        mockMvc.perform(delete("/admin/feature-flags/marketplace_orders/restaurants/{restaurantId}", RESTAURANT_ID)
+        mockMvc.perform(delete("/admin/feature-flags/test_feature/restaurants/{restaurantId}", RESTAURANT_ID)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
@@ -296,7 +296,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
     void nonAdmin_cannot_mutate_feature_flags() throws Exception {
         String ownerToken = persistUserAndGetToken("owner-flags@test.com", RESTAURANT_ID, UserRole.OWNER);
 
-        mockMvc.perform(put("/admin/feature-flags/marketplace_orders/kill-switch")
+        mockMvc.perform(put("/admin/feature-flags/test_feature/kill-switch")
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"killSwitched\": false}"))

@@ -134,8 +134,6 @@ public class SecurityConfig {
 							"/qr/**",
 							"/cdn/**",
 							"/error",
-							"/webhooks/swiggy",
-							"/webhooks/zomato",
 							// Easebuzz server-to-server callbacks (v2 port): must be unauthenticated.
 							// create-order is deliberately NOT public - the app sends a bearer token.
 							"/payments/easebuzz/webhook",

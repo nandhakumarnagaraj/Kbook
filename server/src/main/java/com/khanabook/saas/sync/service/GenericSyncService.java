@@ -691,7 +691,6 @@ public class GenericSyncService {
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
-							autoEnableMarketplace(incomingProfile);
 						}
 
 						// Refund default: new bills have no admin refund yet; default to ZERO
@@ -1196,27 +1195,6 @@ public class GenericSyncService {
 		if (a == null) return b;
 		if (b == null) return a;
 		return Math.max(a, b);
-	}
-
-	/**
-	 * Requirement 19.5 (Phase 6, task 14.5): when a restaurant profile arrives over
-	 * sync carrying the Zomato / Swiggy API credentials, the corresponding enable
-	 * flag is auto-enabled if it has not been set explicitly. This is idempotent:
-	 * once flipped true the branch no longer matches, and an explicit admin disable
-	 * (false) is always preserved. Making already-stored marketplace orders visible
-	 * on enablement is automatic — the orders endpoint has no enablement gate, so any
-	 * row persisted for the tenant becomes listable the moment the profile syncs in.
-	 */
-	private void autoEnableMarketplace(RestaurantProfile profile) {
-		if (profile == null) return;
-		String zomatoKey = profile.getZomatoApiKey();
-		if (zomatoKey != null && !zomatoKey.isBlank() && profile.getZomatoEnabled() == null) {
-			profile.setZomatoEnabled(true);
-		}
-		String swiggyKey = profile.getSwiggyApiKey();
-		if (swiggyKey != null && !swiggyKey.isBlank() && profile.getSwiggyEnabled() == null) {
-			profile.setSwiggyEnabled(true);
-		}
 	}
 
 	private java.time.LocalDate parseDate(String textDate, java.time.LocalDate properDate) {

@@ -287,8 +287,6 @@ export class DailyClosingPageComponent {
       case 'part_cash_upi': case 'part_payment_upi_cash': return 'Cash + UPI Split';
       case 'part_cash_pos': case 'part_payment_cash_pos': return 'Cash + POS Split';
       case 'part_upi_pos': case 'part_payment_upi_pos': return 'UPI + POS Split';
-      case 'zomato': return 'Zomato';
-      case 'swiggy': return 'Swiggy';
       default: return mode.charAt(0).toUpperCase() + mode.slice(1);
     }
   }
@@ -298,8 +296,6 @@ export class DailyClosingPageComponent {
       case 'cash': return '💵';
       case 'upi': return '📱';
       case 'pos': case 'card': return '💳';
-      case 'zomato': return '🍽️';
-      case 'swiggy': return '🛵';
       default: return '💰';
     }
   }

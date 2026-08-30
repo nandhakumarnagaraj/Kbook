@@ -65,11 +65,7 @@ public enum OfflineAuthClass {
         Map.entry("settings.payment",      NEVER_OFFLINE),
         Map.entry("settings.printer",      NEVER_OFFLINE),
         Map.entry("settings.terminal",     NEVER_OFFLINE),
-        Map.entry("settings.gst",          NEVER_OFFLINE),
-        // Marketplace
-        Map.entry("marketplace.view",   ONLINE_ONLY),
-        Map.entry("marketplace.accept", ONLINE_ONLY),
-        Map.entry("marketplace.config", NEVER_OFFLINE)
+        Map.entry("settings.gst",          NEVER_OFFLINE)
     );
 
     /**
