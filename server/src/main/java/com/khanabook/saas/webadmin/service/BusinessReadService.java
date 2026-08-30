@@ -13,6 +13,7 @@ import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
@@ -21,6 +22,7 @@ import com.khanabook.saas.webadmin.dto.BusinessCategoryResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
+import com.khanabook.saas.webadmin.dto.DashboardTrendsResponse;
 import com.khanabook.saas.webadmin.dto.OrderDetailResponse;
 import com.khanabook.saas.webadmin.dto.OrderLineItemResponse;
 import com.khanabook.saas.webadmin.dto.PaginatedOrdersResponse;
@@ -269,6 +271,38 @@ public class BusinessReadService {
         );
     }
 
+    @Transactional
+    public void voidBill(Long restaurantId, Long billId, String reason) {
+        Bill bill = billRepository.findById(billId)
+                .filter(existing -> existing.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        String status = bill.getOrderStatus();
+        if ("completed".equalsIgnoreCase(status) || "paid".equalsIgnoreCase(status)) {
+            throw new IllegalArgumentException("Cannot void a finalized bill. Use refund instead.");
+        }
+        if ("cancelled".equalsIgnoreCase(status)) {
+            throw new IllegalArgumentException("Bill is already cancelled.");
+        }
+
+        long now = System.currentTimeMillis();
+        bill.setOrderStatus("cancelled");
+        bill.setPaymentStatus("cancelled");
+        Long userId = null;
+        try { userId = TenantContext.getCurrentUserId(); } catch (Exception ignored) {}
+        bill.setCancelReason(reason != null ? reason : "Voided by user " + userId);
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
+        billRepository.save(bill);
+
+        securityAuditService.record(
+                "BILL_VOID",
+                "SUCCESS",
+                bill.getPublicToken() != null ? bill.getPublicToken().toString() : String.valueOf(billId),
+                reason
+        );
+    }
+
     private List<BusinessOrderListItemResponse> buildOrders(List<Bill> bills) {
         return bills.stream()
                 .map(bill -> toBillOrderResponse(bill))
@@ -349,6 +383,73 @@ public class BusinessReadService {
 
     private boolean isRefundableOrderStatus(String orderStatus) {
         return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardTrendsResponse getDashboardTrends(Long restaurantId) {
+        List<Bill> allBills = getBusinessBills(restaurantId);
+        ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
+        LocalDate today = LocalDate.now(zoneId);
+
+        long startOfToday = today.atStartOfDay(zoneId).toInstant().toEpochMilli();
+        long startOfYesterday = today.minusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli();
+        long startOfThisWeek = today.minusDays(today.getDayOfWeek().getValue() - 1).atStartOfDay(zoneId).toInstant().toEpochMilli();
+        long startOfLastWeek = today.minusDays(today.getDayOfWeek().getValue() + 6).atStartOfDay(zoneId).toInstant().toEpochMilli();
+
+        long todayRevenue = 0;
+        long yesterdayRevenue = 0;
+        long thisWeekRevenue = 0;
+        long lastWeekRevenue = 0;
+
+        java.util.Map<LocalDate, long[]> dailyData = new java.util.LinkedHashMap<>();
+
+        for (Bill bill : allBills) {
+            if (bill.getCreatedAt() == null) continue;
+            if (!isRevenueBillStatus(bill.getOrderStatus(), bill.getPaymentStatus())) continue;
+
+            long amount = safeAmount(bill.getTotalAmount()).longValue();
+            LocalDate billDate = java.time.Instant.ofEpochMilli(bill.getCreatedAt()).atZone(zoneId).toLocalDate();
+
+            if (bill.getCreatedAt() >= startOfToday) {
+                todayRevenue += amount;
+            } else if (bill.getCreatedAt() >= startOfYesterday && bill.getCreatedAt() < startOfToday) {
+                yesterdayRevenue += amount;
+            }
+
+            if (bill.getCreatedAt() >= startOfThisWeek) {
+                thisWeekRevenue += amount;
+            } else if (bill.getCreatedAt() >= startOfLastWeek && bill.getCreatedAt() < startOfThisWeek) {
+                lastWeekRevenue += amount;
+            }
+
+            dailyData.computeIfAbsent(billDate, k -> new long[]{0, 0});
+            long[] data = dailyData.get(billDate);
+            data[0] += amount;
+            data[1]++;
+        }
+
+        List<DashboardTrendsResponse.DayTrend> last7Days = new java.util.ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            long[] data = dailyData.getOrDefault(date, new long[]{0, 0});
+            long revenue = data[0];
+            long orderCount = data[1];
+            long avgOrderValue = orderCount > 0 ? revenue / orderCount : 0;
+            last7Days.add(DashboardTrendsResponse.DayTrend.builder()
+                    .day(date.getDayOfWeek().name().substring(0, 3))
+                    .revenue(revenue)
+                    .orderCount(orderCount)
+                    .avgOrderValue(avgOrderValue)
+                    .build());
+        }
+
+        return DashboardTrendsResponse.builder()
+                .last7Days(last7Days)
+                .todayRevenue(todayRevenue)
+                .yesterdayRevenue(yesterdayRevenue)
+                .thisWeekRevenue(thisWeekRevenue)
+                .lastWeekRevenue(lastWeekRevenue)
+                .build();
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {

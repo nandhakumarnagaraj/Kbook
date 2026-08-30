@@ -125,18 +125,19 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         String auth = authToken();
         String tokenA = terminalToken("A");
         String tokenB = terminalToken("B");
+        long now = System.currentTimeMillis();
 
         // Terminal A creates a draft bill.
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
         UUID token = publicTokenOf(1);
 
         // Terminal B tries to overwrite A's bill with a newer timestamp (replay/overwrite).
-        String replay = draftBillJson(1, 2000, token.toString());
+        String replay = draftBillJson(1, now + 1000L, token.toString());
         String body = mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenB)
@@ -153,7 +154,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         Bill server = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L).orElseThrow();
         assertThat(server.getCurrentOwnerTerminalId()).isEqualTo(terminalRepository
                 .findByRestaurantIdAndTerminalSeries(RESTAURANT, "A").orElseThrow().getId().toString());
-        assertThat(server.getUpdatedAt()).isEqualTo(1000L);
+        assertThat(server.getUpdatedAt()).isEqualTo(now);
         assertThat(server.getOrderStatus()).isEqualTo("draft");
     }
 
@@ -162,12 +163,13 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         String auth = authToken();
         String tokenA = terminalToken("A");
         String tokenB = terminalToken("B");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
         UUID token = publicTokenOf(1);
 
@@ -184,7 +186,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(completedBillJson(1, 3000, token.toString())))
+                        .content(completedBillJson(1, now + 2000L, token.toString())))
                 .andExpect(status().isOk());
 
         JsonNode pullBAfter = pullAs(auth, tokenB);
@@ -263,19 +265,20 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         String auth = authToken();
         String tokenA = terminalToken("A");
         String tokenB = terminalToken("B");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
 
         String body = mockMvc.perform(post("/sync/bills/items/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenB)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billItemJson(1, 5000, 1)))
+                        .content(billItemJson(1, now + 1000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);
@@ -291,19 +294,20 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
     void push_billItem_fromTerminalA_acceptedOnOwnBill() throws Exception {
         String auth = authToken();
         String tokenA = terminalToken("A");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
 
         String body = mockMvc.perform(post("/sync/bills/items/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billItemJson(1, 5000, 1)))
+                        .content(billItemJson(1, now + 1000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);
@@ -316,19 +320,20 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         String auth = authToken();
         String tokenA = terminalToken("A");
         String tokenB = terminalToken("B");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
 
         String body = mockMvc.perform(post("/sync/bills/payments/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenB)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billPaymentJson(1, 5000, 1)))
+                        .content(billPaymentJson(1, now + 1000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);
@@ -343,19 +348,20 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
     void push_billPayment_fromTerminalA_acceptedOnOwnBill() throws Exception {
         String auth = authToken();
         String tokenA = terminalToken("A");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
 
         String body = mockMvc.perform(post("/sync/bills/payments/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billPaymentJson(1, 5000, 1)))
+                        .content(billPaymentJson(1, now + 1000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);
@@ -371,13 +377,14 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
     void push_billPayment_fromOwningTerminal_acceptedAfterBillCompleted() throws Exception {
         String auth = authToken();
         String tokenA = terminalToken("A");
+        long now = System.currentTimeMillis();
 
         // 1. Terminal A creates the dine-in draft (already synced to the server).
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
         UUID token = publicTokenOf(1);
 
@@ -386,7 +393,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(completedBillJson(1, 3000, token.toString())))
+                        .content(completedBillJson(1, now + 2000L, token.toString())))
                 .andExpect(status().isOk());
 
         // 3. The payment for that now-finalized bill must still be accepted from its owner.
@@ -394,7 +401,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billPaymentJson(1, 5000, 1)))
+                        .content(billPaymentJson(1, now + 3000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);
@@ -411,12 +418,13 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         String auth = authToken();
         String tokenA = terminalToken("A");
         String tokenB = terminalToken("B");
+        long now = System.currentTimeMillis();
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(draftBillJson(1, 1000, null)))
+                        .content(draftBillJson(1, now, null)))
                 .andExpect(status().isOk());
         UUID token = publicTokenOf(1);
 
@@ -424,7 +432,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(completedBillJson(1, 3000, token.toString())))
+                        .content(completedBillJson(1, now + 2000L, token.toString())))
                 .andExpect(status().isOk());
 
         // A DIFFERENT terminal must NOT be able to attach a payment to A's finalized bill.
@@ -432,7 +440,7 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + auth)
                         .header("X-Terminal-Token", tokenB)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(billPaymentJson(1, 5000, 1)))
+                        .content(billPaymentJson(1, now + 3000L, 1)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode resp = objectMapper.readTree(body);

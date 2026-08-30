@@ -390,6 +390,7 @@ export class SidebarLayoutComponent {
       { label: 'Reports', path: '/business/reports', icon: '◔' },
       { label: 'Orders', path: '/business/orders', icon: '▤' },
       { label: 'Menu', path: '/business/menu', icon: '◈' },
+      { label: 'Inventory', path: '/business/inventory', icon: '📦' },
       { label: 'Staff', path: '/business/staff', icon: '◍' },
       { label: 'Settings', path: '/business/settings', icon: '⚙' },
       { label: 'Devices', path: '/business/terminals', icon: '▣' }

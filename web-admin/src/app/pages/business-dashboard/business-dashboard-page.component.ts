@@ -6,19 +6,15 @@ import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { OrderDetailResponse } from '../../core/models/api.models';
+import { OrderDetailResponse, DashboardTrends, DashboardTrendDay } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 
-function sparkPoints(_value: number): string {
-  // TODO: Replace with real API trend data
-  return '';
-}
-
 function sparklinePath(data: number[]): string {
   const w = 72, h = 24;
+  if (data.length === 0) return '';
   const max = Math.max(...data), min = Math.min(...data);
   const range = max - min || 1;
   return data
@@ -521,28 +517,38 @@ export class BusinessDashboardPageComponent {
         const from = range?.from;
         const to = range?.to;
         return combineLatest([
-          this.api.getDashboard(from, to)
+          this.api.getDashboard(from, to),
+          this.api.getDashboardTrends()
         ]).pipe(
-          map(([data]) => {
+          map(([data, trends]) => {
             this.isRefreshing.set(false);
             this.dashboardError.set('');
 
-            // Generate sparkline data for KPIs
-            const sparkToday = sparkPoints(data.todayRevenue || 48320);
-            const sparkTotal = sparkPoints(data.totalRevenue || 284220);
-            const sparkOrders = sparkPoints((data.posOrderCount || 184) * 300);
-            const sparkPending = sparkPoints((data.pendingPosPayments || 5) * 4000);
+            // Generate sparklines from real trend data
+            const last7 = trends.last7Days || [];
+            const revenueData = last7.map((d: DashboardTrendDay) => d.revenue);
+            const orderData = last7.map((d: DashboardTrendDay) => d.orderCount);
+            const pendingData = [data.pendingPosPayments || 0];
 
-            // Generate trend bars (simulated from API data)
-            const total = Math.max(data.totalRevenue || 284220, 1000);
-            const trendValues = [32100, 38400, 29800, 41200, 52600, 61800, Math.round(total * 0.6)];
-            const maxTrend = Math.max(...trendValues);
-            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const trendBars = trendValues.map((v, i) => ({ day: days[i], value: v, pct: (v / maxTrend) * 100 }));
+            const sparkToday = revenueData.length > 0 ? sparklinePath(revenueData.slice(-4)) : '';
+            const sparkTotal = revenueData.length > 0 ? sparklinePath(revenueData) : '';
+            const sparkOrders = orderData.length > 0 ? sparklinePath(orderData) : '';
+            const sparkPending = sparklinePath(pendingData);
 
-            // Compute deltas — TODO: Replace with real API comparison data
-            const deltaToday = 0;
-            const deltaTotal = 0;
+            // Use real trend data for chart bars
+            const trendBars = last7.map((d: DashboardTrendDay) => ({
+              day: d.day,
+              value: d.revenue,
+              pct: trends.todayRevenue > 0 ? (d.revenue / Math.max(...revenueData, 1)) * 100 : 0
+            }));
+
+            // Compute real deltas
+            const deltaToday = trends.yesterdayRevenue > 0
+              ? Math.round(((trends.todayRevenue - trends.yesterdayRevenue) / trends.yesterdayRevenue) * 100)
+              : 0;
+            const deltaTotal = trends.lastWeekRevenue > 0
+              ? Math.round(((trends.thisWeekRevenue - trends.lastWeekRevenue) / trends.lastWeekRevenue) * 100)
+              : 0;
 
             return {
               ...data,

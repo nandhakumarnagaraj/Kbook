@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.repository.MerchantAgreementRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
+import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.AgreementPdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -44,6 +44,7 @@ class MerchantAgreementViewModel @Inject constructor(
     private val repository: MerchantAgreementRepository,
     private val sessionManager: SessionManager,
     private val restaurantRepository: RestaurantRepository,
+    private val api: KhanaBookApi,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -64,8 +65,12 @@ class MerchantAgreementViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.value = AgreementUiState.Loading
-            val profile = restaurantRepository.getProfileFlow().firstOrNull()
-            _isPrimaryDevice.value = profile?.deviceId == sessionManager.getDeviceId()
+            try {
+                val terminalStatus = api.getTerminalStatus()
+                _isPrimaryDevice.value = terminalStatus.isPrimary
+            } catch (e: Exception) {
+                _isPrimaryDevice.value = false
+            }
             repository.getStatus()
                 .onSuccess { map -> _uiState.value = AgreementUiState.Ready(parseStatus(map)) }
                 .onFailure { e ->

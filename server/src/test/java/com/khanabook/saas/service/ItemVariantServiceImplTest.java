@@ -40,6 +40,8 @@ class ItemVariantServiceImplTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
+    @Mock private PermissionService permissionService;
+    @Mock private com.khanabook.saas.repository.StaffPermissionRevisionRepository revisionRepo;
 
     private GenericSyncService genericSyncService;
     private ItemVariantServiceImpl service;
@@ -57,7 +59,9 @@ class ItemVariantServiceImplTest {
             categoryRepository,
             terminalRepository,
             securityAuditService,
-            new com.khanabook.saas.sync.service.SyncFallbackSaver()
+            new com.khanabook.saas.sync.service.SyncFallbackSaver(),
+            permissionService,
+            revisionRepo
         );
         service = new ItemVariantServiceImpl(itemVariantRepo, menuItemRepo, genericSyncService);
     }

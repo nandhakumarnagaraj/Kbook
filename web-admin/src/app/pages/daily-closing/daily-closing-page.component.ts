@@ -218,15 +218,38 @@ export class DailyClosingPageComponent {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    // Fetch all orders for the date range (use large page size to get everything)
-    this.api.getOrdersPaginated(0, 500, undefined, this.dateFrom, this.dateTo).subscribe({
-      next: (res: PaginatedOrdersResponse) => {
+    // Try server-side daily closing first (authoritative aggregation)
+    this.api.getDailyClosing(this.dateFrom).subscribe({
+      next: (res: any) => {
         this.loading.set(false);
-        this.data.set(this.computeClosing(res.content, this.dateFrom));
+        this.data.set({
+          date: res.date || this.dateFrom,
+          totalOrders: res.totalOrders || 0,
+          completedOrders: res.completedOrders || 0,
+          cancelledOrders: res.cancelledOrders || 0,
+          draftOrders: res.draftOrders || 0,
+          totalRevenue: res.totalRevenue || 0,
+          refundedAmount: 0,
+          netRevenue: res.totalRevenue || 0,
+          paymentSplits: (res.paymentSplits || []).map((s: any) => ({
+            mode: s.mode, label: s.mode, count: s.count, total: 0
+          })),
+          expectedCash: 0,
+          topItems: []
+        });
       },
       error: () => {
-        this.loading.set(false);
-        this.error.set('Failed to load orders. Check connection.');
+        // Fallback to client-side computation from orders
+        this.api.getOrdersPaginated(0, 500, undefined, this.dateFrom, this.dateTo).subscribe({
+          next: (res: PaginatedOrdersResponse) => {
+            this.loading.set(false);
+            this.data.set(this.computeClosing(res.content, this.dateFrom));
+          },
+          error: () => {
+            this.loading.set(false);
+            this.error.set('Failed to load orders. Check connection.');
+          }
+        });
       }
     });
   }

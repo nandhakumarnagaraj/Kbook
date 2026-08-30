@@ -1,11 +1,8 @@
 import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { lastValueFrom, firstValueFrom, Observable, of, from } from 'rxjs';
-import { map, take, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { FirebaseInitService } from './firebase.init';
-import { kbColorPalette } from '../styles';
 
 declare const Notification: any;
 
@@ -80,35 +77,25 @@ export class KBNotificationService {
     this.initialize().catch(console.error);
   }
 
-  /**
-   * Initialize FCM and request notification permission
-   */
   async initialize(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    // Request notification permission
     const permission = await this.requestPermission();
     if (permission === 'granted') {
-      // Get FCM token
       const token = await this.getFCMToken();
       if (token) {
         await this.registerTokenWithBackend(token);
       }
     }
 
-    // Set up foreground message handler
     this.setupForegroundMessageHandler();
   }
 
-  /**
-   * Request browser notification permission
-   */
   private async requestPermission(): Promise<'granted' | 'denied' | 'default'> {
     if (!('Notification' in window)) {
       return 'default';
     }
 
-    // Check existing permission
     const currentPermission = Notification.permission;
     if (currentPermission === 'granted') {
       return 'granted';
@@ -117,30 +104,18 @@ export class KBNotificationService {
       return 'denied';
     }
 
-    // Request new permission
     const permission = await Notification.requestPermission();
     return permission;
   }
 
-  /**
-   * Get FCM token from the browser
-   */
   private async getFCMToken(): Promise<string | null> {
     try {
-      // Check if we already have a token stored
       const storedToken = localStorage.getItem(this.FCM_TOKEN_KEY);
       if (storedToken) {
         return storedToken;
       }
 
-      // Get token from Firebase
-      const messaging = this.firebaseInit.messaging;
-      if (!messaging) {
-        console.log('Firebase messaging not initialized');
-        return null;
-      }
-
-      const token = await this.firebaseInit.getToken();
+      const token = this.firebaseInit.getCurrentToken();
       if (token) {
         localStorage.setItem(this.FCM_TOKEN_KEY, token);
         return token;
@@ -152,9 +127,6 @@ export class KBNotificationService {
     }
   }
 
-  /**
-   * Register the FCM token with the backend API
-   */
   private async registerTokenWithBackend(token: string): Promise<void> {
     try {
       await this.http.post(`${environment.apiBaseUrl}/sync/register-fcm-token`, { token }).toPromise();
@@ -164,23 +136,11 @@ export class KBNotificationService {
     }
   }
 
-  /**
-   * Set up foreground message handler for web notifications
-   */
   private setupForegroundMessageHandler(): void {
-    // @ts-ignore - Firebase Messaging API
-    if (typeof window !== 'undefined' && 'onmessage' in (window as any).firebase) {
-      // @ts-ignore
-      const messaging: any = window.firebase.messaging();
-      messaging.onMessage((payload: any) => {
-        this.showNotification(payload);
-      });
-    }
+    // Foreground messages are already handled by FirebaseInitService
+    // This service focuses on permission management and backend registration
   }
 
-  /**
-   * Show a local notification (fallback when FCM not available)
-   */
   showNotification(
     title: string, 
     body: string, 
@@ -201,15 +161,11 @@ export class KBNotificationService {
       timestamp: Date.now()
     });
 
-    // Auto-close after 10 seconds
     setTimeout(() => {
       notification.close();
     }, 10000);
   }
 
-  /**
-   * Handle incoming FCM message and show notification
-   */
   handleIncomingMessage(payload: any): void {
     const type = payload.data?.type || 'system';
     const title = payload.notification?.title || payload.data?.title || 'KhanaBook';
@@ -220,25 +176,16 @@ export class KBNotificationService {
     }
   }
 
-  /**
-   * Check if notification permission is granted
-   */
   isPermissionGranted(): boolean {
     if (!isPlatformBrowser(this.platformId)) return false;
     return Notification.permission === 'granted';
   }
 
-  /**
-   * Get the current FCM token
-   */
   getCurrentToken(): string | null {
     if (!isPlatformBrowser(this.platformId)) return null;
     return localStorage.getItem(this.FCM_TOKEN_KEY) || null;
   }
 
-  /**
-   * Request permission and get token, then show a test notification
-   */
   async requestAndTest(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 

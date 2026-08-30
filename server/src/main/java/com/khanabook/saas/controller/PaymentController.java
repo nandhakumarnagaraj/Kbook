@@ -5,13 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
+import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.service.RefundService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.net.URLEncoder;
@@ -29,9 +32,22 @@ public class PaymentController {
     private final EasebuzzWebhookService webhookService;
     private final RefundService refundService;
     private final ObjectMapper objectMapper;
+    private final PermissionService permissionService;
+
+    private void requirePermission(String permissionKey) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        Long userId = TenantContext.getCurrentUserId();
+        if (restaurantId == null || userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        if (!permissionService.hasPermission(restaurantId, userId, permissionKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Missing permission: " + permissionKey);
+        }
+    }
 
     @PostMapping("/create-order")
     public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> request) {
+        requirePermission("billing.settle");
         Object billIdObj = request.get("billId");
         Object restaurantIdObj = request.get("restaurantId");
         if (billIdObj == null || restaurantIdObj == null) {
@@ -53,6 +69,7 @@ public class PaymentController {
 
     @PostMapping("/create-link")
     public ResponseEntity<Map<String, Object>> createPaymentLink(@RequestBody Map<String, Object> request) {
+        requirePermission("billing.settle");
         Object restaurantIdObj = request.get("restaurantId");
         Object amountObj = request.get("amount");
         Object customerNameObj = request.get("customerName");
@@ -73,6 +90,7 @@ public class PaymentController {
 
     @PostMapping("/create-link-for-bill")
     public ResponseEntity<Map<String, Object>> createPaymentLinkForBill(@RequestBody Map<String, Object> request) {
+        requirePermission("billing.settle");
         Object billIdObj = request.get("billId");
         Object restaurantIdObj = request.get("restaurantId");
         if (billIdObj == null || restaurantIdObj == null) {
@@ -94,6 +112,7 @@ public class PaymentController {
 
     @PostMapping("/create-fssai-order")
     public ResponseEntity<Map<String, Object>> createFssaiOrder(@RequestBody Map<String, Object> request) {
+        requirePermission("settings.gst");
         Object yearsObj = request.get("years");
         Object fssaiNumberObj = request.get("fssaiNumber");
         Object restaurantIdObj = request.get("restaurantId");
@@ -125,6 +144,7 @@ public class PaymentController {
     @PostMapping("/refund/{billId}")
     public ResponseEntity<Map<String, Object>> refund(@PathVariable Long billId,
                                                        @RequestBody Map<String, Object> request) {
+        requirePermission("billing.refund");
         // Tenant scoping: the caller may only refund bills of their own restaurant.
         Long callerRestaurantId = TenantContext.getCurrentTenant();
         if (callerRestaurantId == null) {

@@ -107,6 +107,21 @@ export interface BusinessDashboard {
   recentOrders: BusinessOrder[];
 }
 
+export interface DashboardTrendDay {
+  day: string;
+  revenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+}
+
+export interface DashboardTrends {
+  last7Days: DashboardTrendDay[];
+  todayRevenue: number;
+  yesterdayRevenue: number;
+  thisWeekRevenue: number;
+  lastWeekRevenue: number;
+}
+
 export interface BusinessMenuItem {
   menuItemId: number;
   categoryId: number;

@@ -477,7 +477,7 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Permissions Modal -->
       <div class="modal-backdrop" *ngIf="showPermissionsModal" (click)="closePermissionsModal()">
-        <div class="modal-box modal-content" role="dialog" aria-modal="true" style="max-width:520px" (click)="$event.stopPropagation()">
+        <div class="modal-box modal-content" role="dialog" aria-modal="true" style="max-width:560px" (click)="$event.stopPropagation()">
           <h3 style="margin:0 0 0.5rem">Permissions — {{ permissionsStaff?.name }}</h3>
           <p class="muted" style="margin:0 0 1.25rem;font-size:0.85rem">
             Role: <span class="chip">{{ permissionsStaff?.role }}</span>
@@ -486,13 +486,39 @@ import { formatDate } from '../../shared/formatters';
           <div *ngIf="permissionsLoading" class="loading">Loading permissions...</div>
 
           <div *ngIf="!permissionsLoading">
-            <div style="margin-bottom:1rem;display:flex;gap:0.5rem">
+            <!-- Built-in quick templates -->
+            <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
               <button class="ghost-btn" (click)="applyCounterStaffTemplate()" style="font-size:0.8rem">Counter Staff</button>
               <button class="ghost-btn" (click)="applyManagerTemplate()" style="font-size:0.8rem">Manager</button>
+              <button class="ghost-btn" (click)="openCreateTemplate()" style="font-size:0.8rem;border-style:dashed">+ Save as Template</button>
             </div>
 
+            <!-- Server DB templates -->
+            <div *ngIf="roleTemplates.length > 0" style="margin-bottom:1rem">
+              <strong style="font-size:0.75rem;color:var(--kb-color-muted);text-transform:uppercase;letter-spacing:0.05em">Saved Templates</strong>
+              <div *ngFor="let tpl of roleTemplates" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
+                <div>
+                  <span style="font-size:0.875rem;font-weight:500">{{ tpl.name }}</span>
+                  <span style="font-size:0.75rem;color:var(--kb-color-muted);margin-left:0.5rem">{{ tpl.permissions?.length || 0 }} permissions</span>
+                </div>
+                <button class="ghost-btn" style="font-size:0.75rem" (click)="applyServerTemplate(tpl)">Apply</button>
+              </div>
+            </div>
+
+            <!-- Permission categories -->
             <div *ngFor="let cat of permissionCategories" style="margin-bottom:1rem">
-              <strong style="font-size:0.8rem;color:var(--brand)">{{ cat.name }}</strong>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;border-bottom:2px solid var(--kb-color-primary);margin-bottom:0.25rem">
+                <strong style="font-size:0.8rem;color:var(--kb-color-primary);cursor:pointer" (click)="toggleCategory(cat.name, cat.items)">
+                  {{ cat.name }}
+                </strong>
+                <label class="toggle-switch">
+                  <input type="checkbox"
+                    [checked]="isCategoryFullySelected(cat.items)"
+                    [indeterminate]="isCategoryPartiallySelected(cat.items)"
+                    (change)="toggleCategory(cat.name, cat.items)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
               <div *ngFor="let perm of cat.items" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
                 <span style="font-size:0.875rem">{{ perm.displayName }}</span>
                 <label class="toggle-switch">
@@ -508,6 +534,28 @@ import { formatDate } from '../../shared/formatters';
             <button class="primary-btn" (click)="savePermissions()" [disabled]="permissionsSaving">
               {{ permissionsSaving ? 'Saving...' : 'Save Permissions' }}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Template Dialog -->
+      <div class="modal-backdrop" *ngIf="showCreateTemplate" (click)="closeCreateTemplate()">
+        <div class="modal-box modal-content" role="dialog" style="max-width:400px" (click)="$event.stopPropagation()">
+          <h3 style="margin:0 0 1rem">Save as Role Template</h3>
+          <div class="form-group">
+            <label>Template Name *</label>
+            <input class="field-control" type="text" [(ngModel)]="templateName" placeholder="e.g. Senior Cashier" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input class="field-control" type="text" [(ngModel)]="templateDescription" placeholder="Optional description" />
+          </div>
+          <p class="muted" style="font-size:0.8rem;margin-bottom:1rem">
+            Will save {{ permissionsSet.size }} selected permissions as a reusable template.
+          </p>
+          <div class="modal-actions">
+            <button class="ghost-btn" (click)="closeCreateTemplate()">Cancel</button>
+            <button class="primary-btn" (click)="saveTemplate()" [disabled]="!templateName.trim()">Save Template</button>
           </div>
         </div>
       </div>
@@ -823,45 +871,77 @@ export class StaffPageComponent {
   permissionsSaving = false;
   permissionsSet = new Set<string>();
 
+  // Server-authoritative permission keys (matches PermissionKey.java exactly)
   readonly permissionCategories = [
     {
       name: 'Billing',
       items: [
         { key: 'billing.create', displayName: 'Create Bills' },
-        { key: 'billing.pay', displayName: 'Collect Payment' },
+        { key: 'billing.edit', displayName: 'Edit Open Bills' },
         { key: 'billing.void', displayName: 'Cancel/Void Bills' },
-        { key: 'billing.discount', displayName: 'Apply Discount' },
-        { key: 'billing.refund', displayName: 'Process Refund' },
+        { key: 'billing.discount', displayName: 'Apply Discounts' },
+        { key: 'billing.refund', displayName: 'Process Refunds' },
+        { key: 'billing.settle', displayName: 'Mark Payment Received' },
       ]
     },
     {
       name: 'Menu',
       items: [
-        { key: 'menu.view', displayName: 'View Menu' },
-        { key: 'menu.availability', displayName: 'Toggle Availability' },
-        { key: 'menu.edit', displayName: 'Edit Menu & Prices' },
-      ]
-    },
-    {
-      name: 'Reports',
-      items: [
-        { key: 'reports.day', displayName: "Today's Summary" },
-        { key: 'reports.full', displayName: 'Full Reports & Export' },
+        { key: 'menu.view', displayName: 'View Menu Items' },
+        { key: 'menu.toggle_availability', displayName: 'Toggle Item Availability' },
+        { key: 'menu.edit_price', displayName: 'Change Prices' },
+        { key: 'menu.add_item', displayName: 'Add New Items' },
+        { key: 'menu.delete_item', displayName: 'Remove Items' },
       ]
     },
     {
       name: 'Orders',
       items: [
-        { key: 'orders.active', displayName: 'View Active Orders' },
+        { key: 'orders.view', displayName: 'View Order List' },
+        { key: 'orders.kot_view', displayName: 'See Kitchen Queue' },
+        { key: 'orders.kot_ready', displayName: 'Mark Items Ready' },
+        { key: 'orders.kot_void', displayName: 'Void KOT Items' },
+      ]
+    },
+    {
+      name: 'Reports',
+      items: [
+        { key: 'reports.day_summary', displayName: "Today's Sales Summary" },
+        { key: 'reports.full', displayName: 'Full Revenue Reports' },
+        { key: 'reports.gst', displayName: 'GST/Tax Reports' },
+        { key: 'reports.export', displayName: 'Export/Download Data' },
+      ]
+    },
+    {
+      name: 'Staff',
+      items: [
+        { key: 'staff.view', displayName: 'View Staff List' },
+        { key: 'staff.add', displayName: 'Add New Staff' },
+        { key: 'staff.edit', displayName: 'Edit Staff Details' },
+        { key: 'staff.remove', displayName: 'Deactivate Staff' },
+        { key: 'staff.permissions', displayName: 'Manage Permissions' },
       ]
     },
     {
       name: 'Settings',
       items: [
-        { key: 'settings.all', displayName: 'App Settings' },
+        { key: 'settings.shop_profile', displayName: 'Edit Shop Profile' },
+        { key: 'settings.payment', displayName: 'Bank/UPI Settings' },
+        { key: 'settings.printer', displayName: 'Printer Configuration' },
+        { key: 'settings.terminal', displayName: 'Manage Devices' },
+        { key: 'settings.gst', displayName: 'GST/FSSAI Settings' },
       ]
     }
   ];
+
+  // Role templates from server DB
+  roleTemplates: any[] = [];
+  showCreateTemplate = false;
+  templateName = '';
+  templateDescription = '';
+  showApplyTemplate = false;
+  templateToApply: any = null;
+  applyTemplateUserId: number | null = null;
 
   openPermissionsModal(item: BusinessStaffItem): void {
     this.permissionsStaff = item;
@@ -877,6 +957,12 @@ export class StaffPageComponent {
       error: () => {
         this.permissionsLoading = false;
       }
+    });
+
+    // Load role templates from server
+    this.api.getRoleTemplates().subscribe({
+      next: (templates) => { this.roleTemplates = templates; },
+      error: () => { this.roleTemplates = []; }
     });
   }
 
@@ -894,19 +980,107 @@ export class StaffPageComponent {
     this.permissionsSet = new Set(this.permissionsSet);
   }
 
+  // Quick-select: apply all permissions for a category
+  toggleCategory(categoryName: string, items: { key: string }[]): void {
+    const allSelected = items.every(i => this.permissionsSet.has(i.key));
+    if (allSelected) {
+      items.forEach(i => this.permissionsSet.delete(i.key));
+    } else {
+      items.forEach(i => this.permissionsSet.add(i.key));
+    }
+    this.permissionsSet = new Set(this.permissionsSet);
+  }
+
+  isCategoryFullySelected(items: { key: string }[]): boolean {
+    return items.every(i => this.permissionsSet.has(i.key));
+  }
+
+  isCategoryPartiallySelected(items: { key: string }[]): boolean {
+    const selected = items.filter(i => this.permissionsSet.has(i.key)).length;
+    return selected > 0 && selected < items.length;
+  }
+
   applyCounterStaffTemplate(): void {
     this.permissionsSet = new Set([
-      'billing.create', 'billing.pay', 'menu.view', 'menu.availability',
-      'reports.day', 'orders.active'
+      'billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability',
+      'reports.day_summary', 'orders.view', 'orders.kot_view'
     ]);
   }
 
   applyManagerTemplate(): void {
     this.permissionsSet = new Set([
-      'billing.create', 'billing.pay', 'billing.void', 'billing.discount',
-      'billing.refund', 'menu.view', 'menu.availability', 'menu.edit',
-      'reports.day', 'reports.full', 'orders.active'
+      'billing.create', 'billing.edit', 'billing.void', 'billing.discount',
+      'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability',
+      'menu.edit_price', 'menu.add_item', 'reports.day_summary', 'reports.full',
+      'orders.view', 'orders.kot_view', 'orders.kot_ready', 'staff.view'
     ]);
+  }
+
+  applyServerTemplate(template: any): void {
+    if (template?.permissions) {
+      this.permissionsSet = new Set(template.permissions);
+    }
+  }
+
+  openCreateTemplate(): void {
+    this.showCreateTemplate = true;
+    this.templateName = '';
+    this.templateDescription = '';
+  }
+
+  closeCreateTemplate(): void {
+    this.showCreateTemplate = false;
+  }
+
+  saveTemplate(): void {
+    if (!this.templateName.trim()) return;
+    this.api.createRoleTemplate({
+      name: this.templateName.trim(),
+      description: this.templateDescription.trim() || null,
+      permissions: [...this.permissionsSet]
+    }).subscribe({
+      next: (created) => {
+        this.roleTemplates = [...this.roleTemplates, created];
+        this.closeCreateTemplate();
+        this.toast.show('Template created', 'success');
+      },
+      error: () => {
+        this.toast.show('Failed to create template', 'error');
+      }
+    });
+  }
+
+  openApplyTemplate(template: any): void {
+    this.templateToApply = template;
+    this.showApplyTemplate = true;
+    this.applyTemplateUserId = this.permissionsStaff?.userId ?? null;
+  }
+
+  closeApplyTemplate(): void {
+    this.showApplyTemplate = false;
+    this.templateToApply = null;
+  }
+
+  confirmApplyTemplate(): void {
+    if (!this.templateToApply || !this.applyTemplateUserId) return;
+    this.api.applyRoleTemplate({
+      userId: this.applyTemplateUserId,
+      templateId: this.templateToApply.id
+    }).subscribe({
+      next: () => {
+        // Reload permissions
+        this.api.getUserPermissions(this.applyTemplateUserId!).subscribe({
+          next: (res: any) => {
+            this.permissionsSet = new Set(res.grantedPermissions);
+          }
+        });
+        this.closeApplyTemplate();
+        this.toast.show('Template applied', 'success');
+      },
+      error: () => {
+        this.toast.show('Failed to apply template', 'error');
+      }
+    });
   }
 
   savePermissions(): void {

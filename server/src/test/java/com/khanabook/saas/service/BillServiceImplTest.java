@@ -46,6 +46,8 @@ class BillServiceImplTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
+    @Mock private PermissionService permissionService;
+    @Mock private com.khanabook.saas.repository.StaffPermissionRevisionRepository revisionRepo;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -67,7 +69,9 @@ class BillServiceImplTest {
             categoryRepository,
             terminalRepository,
             securityAuditService,
-            new com.khanabook.saas.sync.service.SyncFallbackSaver()
+            new com.khanabook.saas.sync.service.SyncFallbackSaver(),
+            permissionService,
+            revisionRepo
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
 

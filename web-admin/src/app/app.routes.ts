@@ -73,6 +73,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/menu/menu-page.component').then(m => m.MenuPageComponent)
       },
       {
+        path: 'business/inventory',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/inventory/inventory-page.component').then(m => m.InventoryPageComponent)
+      },
+      {
         path: 'business/staff',
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] },

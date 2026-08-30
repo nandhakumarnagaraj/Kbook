@@ -151,6 +151,46 @@ interface RestaurantProfile {
           </div>
         </section>
 
+        <!-- Easebuzz Online Payments -->
+        <section class="panel settings-section">
+          <h3>Online Payments (Easebuzz)</h3>
+          <p class="muted" style="margin:0 0 1rem;font-size:0.85rem">
+            Enable online payment collection via UPI, cards, and net banking through Easebuzz gateway.
+          </p>
+          <div *ngIf="easebuzzLoading" class="loading">Loading payment config...</div>
+          <div *ngIf="!easebuzzLoading && easebuzzConfig">
+            <div class="form-grid">
+              <div class="field">
+                <label class="toggle-label">
+                  <input type="checkbox" [(ngModel)]="easebuzzEnabled" (change)="toggleEasebuzz()">
+                  <span>Enable Easebuzz Payments</span>
+                </label>
+              </div>
+            </div>
+            <div *ngIf="easebuzzConfig.subMerchantId" style="margin-top:1rem;padding:0.75rem;background:var(--kb-color-surface-2);border-radius:8px;font-size:0.85rem">
+              <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
+                <span>Sub-Merchant ID</span>
+                <strong>{{ easebuzzConfig.subMerchantId }}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
+                <span>Status</span>
+                <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus === 'PENDING'">
+                  {{ easebuzzConfig.subMerchantStatus }}
+                </span>
+              </div>
+              <div style="display:flex;justify-content:space-between">
+                <span>KYC Status</span>
+                <span class="chip" [class.chip-green]="easebuzzConfig.kycStatus === 'verified'" [class.chip-amber]="easebuzzConfig.kycStatus === 'pending'">
+                  {{ easebuzzConfig.kycStatus || 'N/A' }}
+                </span>
+              </div>
+            </div>
+            <div *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled" style="margin-top:1rem;padding:0.75rem;background:rgba(245,158,11,0.08);border:1px solid var(--kb-color-warning,#f59e0b);border-radius:8px;font-size:0.85rem">
+              Sub-merchant onboarding required. Use the Android app to complete Easebuzz onboarding.
+            </div>
+          </div>
+        </section>
+
         <div class="save-bar">
           <button class="primary-btn" [disabled]="saving()" (click)="saveProfile()">
             {{ saving() ? 'Saving...' : 'Save All Changes' }}
@@ -269,6 +309,11 @@ export class BusinessSettingsPageComponent {
   agreementSigner = '';
   agreementFile: File | null = null;
 
+  // Easebuzz payment config
+  easebuzzConfig: any = null;
+  easebuzzLoading = false;
+  easebuzzEnabled = false;
+
   // Change password state
   pwPhone = '';
   pwOtp = '';
@@ -278,7 +323,7 @@ export class BusinessSettingsPageComponent {
   pwError = '';
   pwSuccess = '';
 
-  constructor() { this.load(); this.loadAgreement(); }
+  constructor() { this.load(); this.loadAgreement(); this.loadEasebuzzConfig(); }
 
   load(): void {
     this.loading.set(true);
@@ -378,6 +423,36 @@ export class BusinessSettingsPageComponent {
       error: () => {
         this.toast.show('Failed to download agreement.', 'error');
         this.agreementBusy.set(false);
+      }
+    });
+  }
+
+  loadEasebuzzConfig(): void {
+    this.easebuzzLoading = true;
+    this.businessApi.getPaymentConfig().subscribe({
+      next: (config) => {
+        this.easebuzzConfig = config;
+        this.easebuzzEnabled = config.easebuzzEnabled || false;
+        this.easebuzzLoading = false;
+      },
+      error: () => {
+        this.easebuzzLoading = false;
+      }
+    });
+  }
+
+  toggleEasebuzz(): void {
+    this.businessApi.updatePaymentConfig({ easebuzzEnabled: this.easebuzzEnabled }).subscribe({
+      next: (config) => {
+        this.easebuzzConfig = config;
+        this.toast.show(
+          this.easebuzzEnabled ? 'Easebuzz enabled' : 'Easebuzz disabled',
+          'success'
+        );
+      },
+      error: () => {
+        this.easebuzzEnabled = !this.easebuzzEnabled;
+        this.toast.show('Failed to update payment config', 'error');
       }
     });
   }

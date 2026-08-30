@@ -1,13 +1,9 @@
-import { inject, Injectable, PLATFORM_ID, injectableTokens } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { lastValueFrom, firstValueFrom, Observable, of, from, pipe } from 'rxjs';
-import { map, take, catchError, switchMap } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-
-// Disable zone running for Firebase Messaging to avoid conflicts
-// We'll manually run change detection when needed
+import { firebaseConfig } from './firebase.config';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -28,22 +24,10 @@ export class FirebaseInitService {
       return;
     }
 
-    // Firebase config - in production, this would come from environment.ts
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      measurementId: "G-YOUR_MEASUREMENT_ID"
-    };
-
     try {
       this.firebaseApp = initializeApp(firebaseConfig);
       this.messaging = getMessaging(this.firebaseApp);
 
-      // Request notification permission and get token
       this.requestPermissionAndGetToken()
         .then(token => {
           if (token) {
@@ -54,7 +38,6 @@ export class FirebaseInitService {
         })
         .catch(err => console.error('Error obtaining FCM token:', err));
 
-      // Set up foreground message handler
       this.setupForegroundHandler();
     } catch (error) {
       console.error('Failed to initialize Firebase:', error);
@@ -62,13 +45,11 @@ export class FirebaseInitService {
   }
 
   private async requestPermissionAndGetToken(): Promise<string | null> {
-    // Check if Notification API is available
     if (!('Notification' in window)) {
       console.log('Notification API not available');
       return null;
     }
 
-    // Request permission if needed
     const currentPermission = (window as any).Notification.permission;
     let permission: string;
 
@@ -86,11 +67,8 @@ export class FirebaseInitService {
       return null;
     }
 
-    // Get FCM token with VAPID key
     try {
-      // Use the messagingSenderId as vapidKey for simplicity
-      // In production, use proper VAPID key from Firebase console
-      const vapidKey = "BCm1l53u main technologyg2Wkg6J2xZ2l5ex1eT2Fc9l5xZ2l5ex1eT2Fc9l5xZ2l5ex1eT2Fc9l5xZ2l5ex1e";
+      const vapidKey = environment.vapidKey;
       const token = await getToken(this.messaging, { vapidKey });
       return token;
     } catch (error) {
@@ -100,12 +78,8 @@ export class FirebaseInitService {
   }
 
   private setupForegroundHandler(): void {
-    // Set up foreground message handler
-    // @ts-ignore - Firebase Messaging API onMessage
     if (typeof window !== 'undefined' && this.messaging) {
-      // @ts-ignore
       onMessage(this.messaging, (payload: any) => {
-        // Dispatch event or call method to handle foreground message
         this.handleIncomingPayload(payload);
       });
     }
@@ -116,7 +90,6 @@ export class FirebaseInitService {
     const title = payload.notification?.title || payload.data?.title || 'KhanaBook';
     const body = payload.notification?.body || payload.data?.message || '';
 
-    // Create a simple notification
     try {
       const notification = new Notification(title, {
         body,
@@ -126,7 +99,6 @@ export class FirebaseInitService {
         timestamp: Date.now()
       });
 
-      // Auto-close after 10 seconds
       setTimeout(() => {
         notification.close();
       }, 10000);
@@ -137,12 +109,10 @@ export class FirebaseInitService {
     }
   }
 
-  /** Get the current FCM token */
   getCurrentToken(): string | null {
     return this.token || localStorage.getItem('kb_fcm_token') || null;
   }
 
-  /** Check if notification permission is granted */
   isPermissionGranted(): boolean {
     if (!isPlatformBrowser(this.platformId)) return false;
     return (window as any).Notification.permission === 'granted';

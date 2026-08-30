@@ -65,6 +65,10 @@ public class GenericSyncService {
 	@org.springframework.beans.factory.annotation.Value("${terminal.sync.strict:false}")
 	private boolean terminalSyncStrict;
 
+	/** Maximum allowed clock skew between device and server (5 minutes = 300,000 ms). */
+	@org.springframework.beans.factory.annotation.Value("${sync.clock-skew.max-ms:300000}")
+	private long maxClockSkewMs;
+
 	private static boolean isFinalizedOrderStatus(String orderStatus) {
 		return orderStatus != null
 				&& (orderStatus.equalsIgnoreCase("completed") || orderStatus.equalsIgnoreCase("paid"));
@@ -390,44 +394,67 @@ public class GenericSyncService {
 					}
 					}
 
-					T existingRecord = null;
-					if (incomingRecord.getLocalId() != null) {
-						if (incomingRecord.getId() != null) {
-							existingRecord = existingRecords.stream().filter(r -> incomingRecord.getId().equals(r.getId()))
-									.findFirst().orElse(null);
-						}
-
-						// ── Priority 2: publicToken (canonical identity) — checked BEFORE
-						// (deviceId, localId) to prevent wrong-row match on localId reuse ──
-						if (existingRecord == null
-								&& incomingRecord instanceof Bill incomingBill
-								&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo
-								&& incomingBill.getPublicToken() != null) {
-							existingRecord = (T) billRepo
-									.findByRestaurantIdAndPublicTokenAndIsDeletedFalse(targetTenantId, incomingBill.getPublicToken())
-									.orElse(null);
-						}
-
-						// ── Priority 3: (deviceId, localId) — legacy fallback ──
-						if (existingRecord == null) {
-							existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
-						}
+				T existingRecord = null;
+				if (incomingRecord.getLocalId() != null) {
+					if (incomingRecord.getId() != null) {
+						existingRecord = existingRecords.stream().filter(r -> incomingRecord.getId().equals(r.getId()))
+								.findFirst().orElse(null);
 					}
 
-					if (existingRecord == null && incomingRecord.getId() != null) {
-						existingRecord = repository.findById(incomingRecord.getId())
-								.filter(record -> Objects.equals(record.getRestaurantId(), targetTenantId))
+					// ── Priority 2: publicToken (canonical identity) — checked BEFORE
+					// (deviceId, localId) to prevent wrong-row match on localId reuse ──
+					if (existingRecord == null
+							&& incomingRecord instanceof Bill incomingBill
+							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo
+							&& incomingBill.getPublicToken() != null) {
+						existingRecord = (T) billRepo
+								.findByRestaurantIdAndPublicTokenAndIsDeletedFalse(targetTenantId, incomingBill.getPublicToken())
 								.orElse(null);
 					}
 
-					if (existingRecord == null
-							&& incomingRecord instanceof User incomingUser
-							&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
-						existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
+					// ── Priority 3: (deviceId, localId) — legacy fallback ──
+					if (existingRecord == null) {
+						existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
 					}
+				}
 
+				if (existingRecord == null && incomingRecord.getId() != null) {
+					existingRecord = repository.findById(incomingRecord.getId())
+							.filter(record -> Objects.equals(record.getRestaurantId(), targetTenantId))
+							.orElse(null);
+				}
 
-					incomingRecord.setServerUpdatedAt(serverTime);
+				if (existingRecord == null
+						&& incomingRecord instanceof User incomingUser
+						&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
+					existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
+				}
+
+				// ── P0-1: Clock skew rejection ──────────────────────────────────────
+				// Reject records whose timestamp is more than maxClockSkewMs away from
+				// the server clock. This prevents LWW corruption from clock-ahead devices
+				// and catches clock-behind devices early.
+				if (incomingRecord.getUpdatedAt() != null && maxClockSkewMs > 0) {
+					long skew = Math.abs(incomingRecord.getUpdatedAt() - serverTime);
+					if (skew > maxClockSkewMs) {
+						String direction = incomingRecord.getUpdatedAt() > serverTime ? "ahead" : "behind";
+						log.warn("CLOCK_SKEW_REJECTED tenantId={} device={} localId={} type={} " +
+								"incoming={} server={} skew={}ms ({})",
+								targetTenantId, incomingRecord.getDeviceId(), incomingRecord.getLocalId(),
+								incomingRecord.getClass().getSimpleName(),
+								incomingRecord.getUpdatedAt(), serverTime, skew, direction);
+						securityAuditService.record("SYNC_PUSH", "CLOCK_SKEW_REJECTED",
+								String.valueOf(incomingRecord.getLocalId()),
+								incomingRecord.getDeviceId());
+						failedLocalIds.add(incomingRecord.getLocalId());
+						failedReasons.put(incomingRecord.getLocalId(),
+								"Terminal clock is " + direction + " by " + (skew / 1000) +
+								" seconds. Please correct time settings on the device.");
+						continue;
+					}
+				}
+
+				incomingRecord.setServerUpdatedAt(serverTime);
 					if (incomingRecord.getIsDeleted() == null) {
 						incomingRecord.setIsDeleted(false);
 					}
@@ -1146,6 +1173,32 @@ public class GenericSyncService {
 				&& existing instanceof ItemVariant existingVariant) {
 			if (!Boolean.TRUE.equals(existingVariant.getIsAvailable())) {
 				incomingVariant.setIsAvailable(false);
+			}
+		}
+		// ── P0-2: Bill state machine protection ────────────────────────────────
+		// Prevent LWW from reverting finalized bill state. Once a bill reaches
+		// a terminal state (paid, completed, cancelled), a stale device push
+		// with a higher timestamp must not undo the transition.
+		if (incoming instanceof Bill incomingBill && existing instanceof Bill existingBill) {
+			// paymentStatus: "paid" is terminal. Gateway webhook sets it.
+			// A stale device push must not revert paid → pending.
+			if ("paid".equalsIgnoreCase(existingBill.getPaymentStatus())
+					&& !"paid".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
+				incomingBill.setPaymentStatus(existingBill.getPaymentStatus());
+				incomingBill.setPaidAt(existingBill.getPaidAt());
+				incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
+				incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
+			}
+			// orderStatus: completed/paid/cancelled are terminal.
+			// A stale device push must not revert completed → draft.
+			if (isFinalizedOrderStatus(existingBill.getOrderStatus())
+					&& !isFinalizedOrderStatus(incomingBill.getOrderStatus())) {
+				incomingBill.setOrderStatus(existingBill.getOrderStatus());
+			}
+			// cancelled is also terminal — don't un-cancel
+			if ("cancelled".equalsIgnoreCase(existingBill.getOrderStatus())
+					&& !"cancelled".equalsIgnoreCase(incomingBill.getOrderStatus())) {
+				incomingBill.setOrderStatus(existingBill.getOrderStatus());
 			}
 		}
 	}

@@ -319,6 +319,11 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
+        composable("daily_closing") {
+            DailyClosingScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable("staff_permissions") {
             StaffPermissionScreen(
                 onBack = { navController.popBackStack() }

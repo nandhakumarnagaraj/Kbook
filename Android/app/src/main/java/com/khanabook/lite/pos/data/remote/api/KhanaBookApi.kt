@@ -118,6 +118,9 @@ interface KhanaBookApi {
         @POST("api/v1/sync/terminal/reclaim")
         suspend fun reclaimTerminal(@Body request: TerminalReclaimRequest): TerminalActivationResponse
 
+        @GET("api/v1/sync/terminal/status")
+        suspend fun getTerminalStatus(): TerminalStatusResponse
+
         // ── Push Notifications ────────────────────────────────────────────
         @POST("api/v1/notifications/device-token")
         suspend fun registerDeviceToken(@Body data: Map<String, String>): retrofit2.Response<Map<String, Any>>
@@ -362,4 +365,10 @@ data class TerminalPendingResponse(
 data class CompleteActivationRequest(
     @SerializedName("requestId") val requestId: Long,
     @SerializedName("deviceId") val deviceId: String
+)
+
+data class TerminalStatusResponse(
+    @SerializedName("isPrimary") val isPrimary: Boolean,
+    @SerializedName("terminalSeries") val terminalSeries: String?,
+    @SerializedName("terminalName") val terminalName: String?
 )

@@ -8,6 +8,7 @@ import {
   BusinessStaffItem,
   BusinessTerminal,
   CreateMenuItemRequest,
+  DashboardTrends,
   CreateStaffRequest,
   MenuExtractionJob,
   OrderDetailResponse,
@@ -36,6 +37,10 @@ export class BusinessApiService {
     if (from) params = params.set('from', from);
     if (to) params = params.set('to', to);
     return this.http.get<BusinessDashboard>(`${API_BASE_URL}/business/dashboard`, { params });
+  }
+
+  getDashboardTrends() {
+    return this.http.get<DashboardTrends>(`${API_BASE_URL}/business/dashboard/trends`);
   }
 
   getOrders() {
@@ -193,6 +198,84 @@ export class BusinessApiService {
 
   downloadMerchantAgreement(): Observable<Blob> {
     return this.http.get(`${API_BASE_URL}/business/merchant-agreement/download`, { responseType: 'blob' });
+  }
+
+  // ── Role Templates (server DB-backed) ─────────────────────────────────────
+  getRoleTemplates(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/permissions/templates`);
+  }
+
+  createRoleTemplate(body: { name: string; description?: string | null; permissions: string[] }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/permissions/templates`, body);
+  }
+
+  applyRoleTemplate(body: { userId: number; templateId: number }): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/permissions/apply-template`, body);
+  }
+
+  // ── Inventory (raw materials) ─────────────────────────────────────────────
+  getInventoryMaterials(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/inventory/materials`);
+  }
+
+  createMaterial(body: { name: string; unit?: string; stockQuantity?: number; lowStockThreshold?: number; costPerUnit?: number }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/materials`, body);
+  }
+
+  updateMaterial(id: number, body: any): Observable<any> {
+    return this.http.put<any>(`${API_BASE_URL}/inventory/materials/${id}`, body);
+  }
+
+  deleteMaterial(id: number): Observable<any> {
+    return this.http.delete(`${API_BASE_URL}/inventory/materials/${id}`);
+  }
+
+  purchaseStock(body: { materialId: number; quantity: number; unitCost?: number; vendorId?: number; expiryDate?: number }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/purchase`, body);
+  }
+
+  recordWastage(body: { materialId: number; quantity: number; reason: string }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/wastage`, body);
+  }
+
+  physicalCount(body: { materialId: number; countedQty: number }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/physical-count`, body);
+  }
+
+  getStockMovements(materialId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/inventory/movements/${materialId}`);
+  }
+
+  getInventoryVariance(from: string, to: string): Observable<any> {
+    return this.http.get(`${API_BASE_URL}/inventory/variance`, { params: { from, to } });
+  }
+
+  // ── Vendors ───────────────────────────────────────────────────────────────
+  getVendors(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/inventory/vendors`);
+  }
+
+  createVendor(body: { name: string; phone?: string; notes?: string }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/vendors`, body);
+  }
+
+  // ── Payment Config (Easebuzz) ─────────────────────────────────────────────
+  getPaymentConfig(): Observable<any> {
+    return this.http.get<any>(`${API_BASE_URL}/restaurants/payment-config/easebuzz`);
+  }
+
+  updatePaymentConfig(body: { easebuzzEnabled?: boolean }): Observable<any> {
+    return this.http.put<any>(`${API_BASE_URL}/restaurants/payment-config/easebuzz`, body);
+  }
+
+  // ── Daily Closing (server-side) ──────────────────────────────────────────
+  getDailyClosing(date: string): Observable<any> {
+    return this.http.get(`${API_BASE_URL}/analytics/daily-closing`, { params: { date } });
+  }
+
+  // ── Bill Void ─────────────────────────────────────────────────────────────
+  voidBill(billId: number, reason?: string): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/business/bills/${billId}/void`, reason ? { reason } : {});
   }
 }
 

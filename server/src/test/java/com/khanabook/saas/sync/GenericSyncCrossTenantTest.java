@@ -33,13 +33,14 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
     @Autowired private JwtUtility jwtUtility;
 
     private String billJson(Long restaurantId) {
+        long now = System.currentTimeMillis();
         return """
             [{
               "localId": 1,
               "deviceId": "DEV_A",
               "restaurantId": %d,
-              "updatedAt": 1000,
-              "createdAt": 1000,
+              "updatedAt": %d,
+              "createdAt": %d,
               "isDeleted": false,
               "dailyOrderId": 1,
               "dailyOrderDisplay": "1",
@@ -51,7 +52,7 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
               "paymentStatus": "paid",
               "orderStatus": "completed"
             }]
-            """.formatted(restaurantId);
+            """.formatted(restaurantId, now, now);
     }
 
     private String terminalTokenFor(Long restaurantId) {

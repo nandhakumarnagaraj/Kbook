@@ -238,6 +238,7 @@ private fun BusinessDetailsStep(
     var businessType by remember { mutableStateOf(viewModel.businessType) }
     var pan by remember { mutableStateOf(viewModel.pan) }
     var gst by remember { mutableStateOf(viewModel.gst) }
+    var fssaiNumber by remember { mutableStateOf(viewModel.fssaiNumber) }
     var businessAddress by remember { mutableStateOf(viewModel.businessAddress) }
     var state by remember { mutableStateOf(viewModel.state) }
     var contactEmail by remember { mutableStateOf(viewModel.contactEmail) }
@@ -248,7 +249,11 @@ private fun BusinessDetailsStep(
             .fillMaxSize()
     ) {
         val isPanValid = EasebuzzOnboardingViewModel.isValidPan(pan)
-        val isValid = businessName.isNotBlank() && isPanValid &&
+        val isProprietorship = businessType == "SOLE_PROPRIETORSHIP"
+        val isLegalEntityRequired = isProprietorship
+        val isLegalEntityValid = !isLegalEntityRequired || legalEntityName.isNotBlank()
+        val isFssaiValid = fssaiNumber.isBlank() || fssaiNumber.length == 14
+        val isValid = businessName.isNotBlank() && isPanValid && isLegalEntityValid && isFssaiValid &&
             businessAddress.isNotBlank() && state.isNotBlank() &&
             contactEmail.contains("@") && contactPhone.length == 10
 
@@ -261,6 +266,7 @@ private fun BusinessDetailsStep(
                         viewModel.businessType = businessType
                         viewModel.pan = pan
                         viewModel.gst = gst
+                        viewModel.fssaiNumber = fssaiNumber
                         viewModel.businessAddress = businessAddress
                         viewModel.state = state
                         viewModel.contactEmail = contactEmail
@@ -290,12 +296,33 @@ private fun BusinessDetailsStep(
                 Spacer(Modifier.height(spacing.medium))
 
                 OnboardingField("Business Name *", businessName, { businessName = it }, focusManager, ImeAction.Next)
-                OnboardingField("Legal Entity Name", legalEntityName, { legalEntityName = it }, focusManager, ImeAction.Next)
+                OnboardingField(
+                    if (isLegalEntityRequired) "Legal Entity Name *" else "Legal Entity Name",
+                    legalEntityName, { legalEntityName = it }, focusManager, ImeAction.Next
+                )
+                if (isLegalEntityRequired && legalEntityName.isBlank()) {
+                    Text(
+                        "Required for Sole Proprietorship",
+                        color = WarningYellow,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
                 BusinessTypeDropdown(businessType) { businessType = it }
                 OnboardingField("PAN *", pan, { pan = it.uppercase().take(10) }, focusManager, ImeAction.Next,
                     keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.Characters)
                 OnboardingField("GST Number", gst, { gst = it.uppercase().take(15) }, focusManager, ImeAction.Next,
                     capitalization = KeyboardCapitalization.Characters)
+                OnboardingField("FSSAI Number", fssaiNumber, { fssaiNumber = it.filter { c -> c.isDigit() }.take(14) },
+                    focusManager, ImeAction.Next, keyboardType = KeyboardType.Number)
+                if (fssaiNumber.isNotBlank() && fssaiNumber.length != 14) {
+                    Text(
+                        "FSSAI must be 14 digits",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
                 OnboardingField("Business Address *", businessAddress, { businessAddress = it }, focusManager, ImeAction.Next)
                 OnboardingField("State *", state, { state = it }, focusManager, ImeAction.Next)
                 OnboardingField("Email *", contactEmail, { contactEmail = it.trim() }, focusManager, ImeAction.Next,

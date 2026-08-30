@@ -227,7 +227,8 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 	void terminalB_token_withNoQueryId_usesTerminalB() throws Exception {
 		String tokenA = terminalToken("A");
 		String tokenB = terminalToken("B");
-		pushBill(tokenA, draftBillJson(1, 1000));
+		long now = System.currentTimeMillis();
+		pushBill(tokenA, draftBillJson(1, now));
 		String token = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L)
 				.orElseThrow().getPublicToken().toString();
 		JsonNode pull = masterPull(tokenB, null);
@@ -251,7 +252,8 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 	void terminalA_activeBill_notReturnedToB() throws Exception {
 		String tokenA = terminalToken("A");
 		String tokenB = terminalToken("B");
-		pushBill(tokenA, draftBillJson(1, 1000));
+		long now = System.currentTimeMillis();
+		pushBill(tokenA, draftBillJson(1, now));
 		String token = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L)
 				.orElseThrow().getPublicToken().toString();
 		JsonNode pull = masterPull(tokenB, null);
@@ -262,10 +264,11 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 	void completedHistory_visibleRestaurantWide() throws Exception {
 		String tokenA = terminalToken("A");
 		String tokenB = terminalToken("B");
-		pushBill(tokenA, draftBillJson(1, 1000));
+		long now = System.currentTimeMillis();
+		pushBill(tokenA, draftBillJson(1, now));
 		String token = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L)
 				.orElseThrow().getPublicToken().toString();
-		pushBill(tokenA, completedBillJson(1, 3000, token));
+		pushBill(tokenA, completedBillJson(1, now + 2000L, token));
 		JsonNode pull = masterPull(tokenB, null);
 		assertThat(containsPublicToken(pull.get("bills"), token)).isTrue();
 	}
@@ -274,15 +277,16 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 	void completedHistoryPull_includesOlderPaymentsWhenParentBillUpdated() throws Exception {
 		String tokenA = terminalToken("A");
 		String tokenB = terminalToken("B");
-		pushBill(tokenA, draftBillJson(1, 1000));
+		long now = System.currentTimeMillis();
+		pushBill(tokenA, draftBillJson(1, now));
 		String token = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L)
 				.orElseThrow().getPublicToken().toString();
-		pushPayment(tokenA, billPaymentJson(77, 1500, 1));
+		pushPayment(tokenA, billPaymentJson(77, now + 1000L, 1));
 
 		long afterPaymentSyncCursor = System.currentTimeMillis();
 		Thread.sleep(5);
 
-		pushBill(tokenA, completedBillJson(1, 3000, token));
+		pushBill(tokenA, completedBillJson(1, now + 2000L, token));
 		JsonNode pull = masterPull(tokenB, null, afterPaymentSyncCursor);
 
 		assertThat(containsPublicToken(pull.get("bills"), token)).isTrue();
@@ -293,8 +297,9 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 	void itemsFollowEffectiveTerminalScope() throws Exception {
 		String tokenA = terminalToken("A");
 		String tokenB = terminalToken("B");
-		pushBill(tokenA, draftBillJson(1, 1000));
-		pushItem(tokenA, billItemJson(1, 2000, 1));
+		long now = System.currentTimeMillis();
+		pushBill(tokenA, draftBillJson(1, now));
+		pushItem(tokenA, billItemJson(1, now + 1000L, 1));
 		JsonNode pull = masterPull(tokenB, null);
 		assertThat(pull.get("billItems").isArray()).isTrue();
 		assertThat(pull.get("billItems").size()).isEqualTo(0);

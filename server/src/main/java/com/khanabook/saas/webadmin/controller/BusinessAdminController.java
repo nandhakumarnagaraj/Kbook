@@ -31,6 +31,11 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.getDashboard(requireTenant(), from, to));
     }
 
+    @GetMapping("/dashboard/trends")
+    public ResponseEntity<DashboardTrendsResponse> getDashboardTrends() {
+        return ResponseEntity.ok(businessReadService.getDashboardTrends(requireTenant()));
+    }
+
     @GetMapping("/orders")
     public ResponseEntity<List<BusinessOrderListItemResponse>> getOrders() {
         return ResponseEntity.ok(businessReadService.getOrders(requireTenant()));
@@ -72,6 +77,16 @@ public class BusinessAdminController {
             @PathVariable Long billId,
             @RequestBody com.khanabook.saas.webadmin.dto.RefundBillRequest request) {
         businessReadService.markManualRefund(requireTenant(), billId, request.refundAmount(), request.reason());
+        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
+    }
+
+    @PostMapping("/bills/{billId}/void")
+    @RequireRole({UserRole.OWNER, UserRole.MANAGER})
+    public ResponseEntity<BusinessOrderListItemResponse> voidBill(
+            @PathVariable Long billId,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String reason = body != null ? body.get("reason") : null;
+        businessReadService.voidBill(requireTenant(), billId, reason);
         return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
     }
 

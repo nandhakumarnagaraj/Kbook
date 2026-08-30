@@ -111,6 +111,9 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.Description, text = "Compliance Documents", modifier = itemMod) {
                         onSectionSelected("compliance_documents")
                     }
+                    SettingsItem(icon = Icons.Filled.CreditCard, text = "Daily Closing", modifier = itemMod) {
+                        onSectionSelected("daily_closing")
+                    }
                     SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
                         onSectionSelected("staff_permissions")
                     }

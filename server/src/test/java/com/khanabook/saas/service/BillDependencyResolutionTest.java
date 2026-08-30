@@ -34,6 +34,8 @@ class BillDependencyResolutionTest {
     @Mock private CategoryRepository categoryRepo;
     @Mock private RestaurantTerminalRepository terminalRepo;
     @Mock private SecurityAuditService securityAuditService;
+    @Mock private PermissionService permissionService;
+    @Mock private StaffPermissionRevisionRepository revisionRepo;
 
     private BillItemServiceImpl billItemService;
     private BillPaymentServiceImpl billPaymentService;
@@ -51,7 +53,9 @@ class BillDependencyResolutionTest {
                 categoryRepo,
                 terminalRepo,
                 securityAuditService,
-                new com.khanabook.saas.sync.service.SyncFallbackSaver()
+                new com.khanabook.saas.sync.service.SyncFallbackSaver(),
+                permissionService,
+                revisionRepo
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);

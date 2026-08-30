@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -475,10 +476,98 @@ public class TerminalController {
 				terminal.getUpdatedAt(), token);
 	}
 
+	/**
+	 * Returns the primary device status for the current terminal.
+	 * Used by Android to check if this device is the primary terminal.
+	 * Based on RestaurantTerminal.isPrimary (server-managed), not RestaurantProfile.deviceId.
+	 */
+	@org.springframework.web.bind.annotation.GetMapping("/status")
+	public ResponseEntity<TerminalStatusResponse> getTerminalStatus() {
+		Long restaurantId = TenantContext.getCurrentTenant();
+		if (restaurantId == null) return ResponseEntity.badRequest().build();
+
+		String terminalId = TenantContext.getCurrentTerminalId();
+		if (terminalId == null || terminalId.isBlank()) {
+			return ResponseEntity.ok(new TerminalStatusResponse(false, null, null));
+		}
+
+		try {
+			Long terminalIdLong = Long.parseLong(terminalId);
+			var terminalOpt = terminalRepository.findById(terminalIdLong)
+					.filter(t -> t.getRestaurantId().equals(restaurantId));
+			if (terminalOpt.isEmpty()) {
+				return ResponseEntity.ok(new TerminalStatusResponse(false, null, null));
+			}
+			RestaurantTerminal terminal = terminalOpt.get();
+			boolean isPrimary = Boolean.TRUE.equals(terminal.getIsPrimary());
+			return ResponseEntity.ok(new TerminalStatusResponse(
+					isPrimary,
+					terminal.getTerminalSeries(),
+					terminal.getTerminalName()));
+		} catch (NumberFormatException e) {
+			return ResponseEntity.ok(new TerminalStatusResponse(false, null, null));
+		}
+	}
+
+	public record TerminalStatusResponse(boolean isPrimary, String terminalSeries, String terminalName) {
+	}
+
 	private String normalizeSeries(String series) {
 		if (series == null) {
 			return "";
 		}
 		return series.trim().toUpperCase();
+	}
+
+	// ── P0-3: Terminal sync status for daily closing accuracy ──────────────
+	// Returns each terminal's last sync time so the web admin can show
+	// "synced vs pending" data freshness on the daily closing page.
+
+	@org.springframework.web.bind.annotation.GetMapping("/sync-status")
+	public ResponseEntity<List<TerminalSyncStatus>> getTerminalSyncStatus() {
+		Long restaurantId = TenantContext.getCurrentTenant();
+		if (restaurantId == null) return ResponseEntity.badRequest().build();
+
+		List<RestaurantTerminal> terminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
+		long now = System.currentTimeMillis();
+
+		List<TerminalSyncStatus> statuses = terminals.stream()
+				.map(t -> {
+					long lastSync = t.getUpdatedAt() != null ? t.getUpdatedAt() : 0L;
+					long secondsAgo = lastSync > 0 ? (now - lastSync) / 1000 : -1;
+					String syncState;
+					if (lastSync == 0) {
+						syncState = "never";
+					} else if (secondsAgo < 120) {
+						syncState = "live";        // synced < 2 min ago
+					} else if (secondsAgo < 600) {
+						syncState = "recent";       // synced 2-10 min ago
+					} else if (secondsAgo < 3600) {
+						syncState = "stale";        // synced 10-60 min ago
+					} else {
+						syncState = "offline";      // synced > 1 hour ago
+					}
+					return new TerminalSyncStatus(
+							t.getId() != null ? t.getId().toString() : t.getTerminalSeries(),
+							t.getTerminalName(),
+							t.getTerminalSeries(),
+							t.getIsActive(),
+							lastSync,
+							secondsAgo,
+							syncState);
+				})
+				.collect(Collectors.toList());
+
+		return ResponseEntity.ok(statuses);
+	}
+
+	public record TerminalSyncStatus(
+			String terminalId,
+			String terminalName,
+			String terminalSeries,
+			boolean isActive,
+			long lastSyncAt,
+			long secondsAgo,
+			String syncState) {
 	}
 }

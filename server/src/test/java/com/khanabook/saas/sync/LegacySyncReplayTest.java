@@ -53,11 +53,17 @@ class LegacySyncReplayTest extends BaseIntegrationTest {
                 "legacy-replay-" + UUID.randomUUID() + "@test.com", restaurantId, UserRole.OWNER);
         String terminalToken = terminalTokenFor(restaurantId);
 
+        // Patch timestamps to be within clock skew window (P0-1)
+        long now = System.currentTimeMillis();
+        JsonNode patchedBills = patchTimestamps(fixture.get("bills"), now);
+        JsonNode patchedItems = patchTimestamps(fixture.get("billItems"), now);
+        JsonNode patchedPayments = patchTimestamps(fixture.get("billPayments"), now);
+
         MvcResult pushBills = mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Terminal-Token", terminalToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(fixture.get("bills").toString()))
+                        .content(patchedBills.toString()))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -65,7 +71,7 @@ class LegacySyncReplayTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Terminal-Token", terminalToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(fixture.get("billItems").toString()))
+                        .content(patchedItems.toString()))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -73,7 +79,7 @@ class LegacySyncReplayTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + ownerToken)
                         .header("X-Terminal-Token", terminalToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(fixture.get("billPayments").toString()))
+                        .content(patchedPayments.toString()))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -173,5 +179,28 @@ class LegacySyncReplayTest extends BaseIntegrationTest {
                 });
         String id = t.getId() != null ? t.getId().toString() : "A";
         return jwtUtility.generateTerminalToken("owner", restaurantId, "OWNER", id, "A", "DEV_A");
+    }
+
+    /**
+     * Replaces old timestamps (1000, 2000, 2100) with current timestamps
+     * so the fixture passes P0-1 clock skew validation.
+     * Maintains relative ordering: bill 902 > bill 901, payment 90202 > 90201.
+     */
+    private JsonNode patchTimestamps(JsonNode array, long baseTime) {
+        com.fasterxml.jackson.databind.node.ArrayNode patched = objectMapper.createArrayNode();
+        // Map old timestamps to new: 1000→base, 2000→base+1s, 2100→base+2s
+        java.util.Map<Long, Long> tsMap = new java.util.HashMap<>();
+        tsMap.put(1000L, baseTime);
+        tsMap.put(2000L, baseTime + 1000L);
+        tsMap.put(2100L, baseTime + 2000L);
+        for (JsonNode node : array) {
+            com.fasterxml.jackson.databind.node.ObjectNode copy = ((com.fasterxml.jackson.databind.node.ObjectNode) node).deepCopy();
+            long oldTs = copy.get("updatedAt").asLong();
+            long newTs = tsMap.getOrDefault(oldTs, baseTime);
+            copy.put("updatedAt", newTs);
+            copy.put("createdAt", newTs);
+            patched.add(copy);
+        }
+        return patched;
     }
 }

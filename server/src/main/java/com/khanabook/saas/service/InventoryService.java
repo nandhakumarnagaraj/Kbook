@@ -99,9 +99,15 @@ public class InventoryService {
 
 		for (Map.Entry<Long, BigDecimal> entry : deductions.entrySet()) {
 			rawMaterialRepository.findById(entry.getKey()).ifPresent(material -> {
+				BigDecimal newStock = material.getStockQuantity().subtract(entry.getValue());
+				if (newStock.signum() < 0) {
+					log.warn("Negative stock guard: {} would go to {} (was {}, deduction={}). Skipping.",
+							material.getName(), newStock, material.getStockQuantity(), entry.getValue());
+					return;
+				}
 				boolean wasAboveThreshold = !isAtOrBelowThreshold(material);
 				boolean wasInStock = material.getStockQuantity().signum() > 0;
-				material.setStockQuantity(material.getStockQuantity().subtract(entry.getValue()));
+				material.setStockQuantity(newStock);
 				material.setUpdatedAt(System.currentTimeMillis());
 				rawMaterialRepository.save(material);
 
