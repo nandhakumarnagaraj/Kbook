@@ -302,8 +302,8 @@ import { ToastService } from '../../core/services/toast.service';
         *ngIf="confirmVisible"
         [title]="confirmTitle"
         [message]="confirmMessage"
-        [confirmText]="confirmAction"
-        [destructive]="confirmDestructive"
+        [confirmLabel]="confirmAction"
+        [confirmDanger]="confirmDestructive"
         (confirmed)="onConfirm()"
         (cancelled)="confirmVisible = false">
       </app-confirm-dialog>
