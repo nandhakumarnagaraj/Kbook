@@ -61,7 +61,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void firstDevice_ownerAutoCreatesTerminalA() {
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-first", "Pixel 7"));
+                new TerminalController.TerminalActivationRequest("device-first", "Pixel 7", null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         var body = (TerminalController.TerminalActivationResponse) response.getBody();
@@ -74,12 +74,12 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void unknownDevice_cannotHijackSingleTerminal() {
         // OWNER creates Terminal A
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A", null));
+                new TerminalController.TerminalActivationRequest("device-A", null, null));
 
         // Unknown Device B tries to activate on single-terminal shop
         // WITHOUT a terminal token — must get PENDING (recovery candidate), not credentials
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-B", null));
+                new TerminalController.TerminalActivationRequest("device-B", null, null));
 
         // Must get PENDING_APPROVAL — NOT auto-rebind
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
@@ -97,12 +97,12 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void copiedDeviceId_withoutToken_cannotClaimTerminal() {
         // OWNER creates Terminal A bound to device-A
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A-sec", null));
+                new TerminalController.TerminalActivationRequest("device-A-sec", null, null));
 
         // Another caller knows device-A's deviceId but has no terminal token
         // (TenantContext.getCurrentTerminalDevice() is null — no X-Terminal-Token header)
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A-sec", null));
+                new TerminalController.TerminalActivationRequest("device-A-sec", null, null));
 
         // Without a valid terminal token, known deviceId triggers a RECOVERY request
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
@@ -119,7 +119,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void knownDevice_withValidToken_succeedsWithoutRecovery() {
         // OWNER creates Terminal A
         var createResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-token-test", null));
+                new TerminalController.TerminalActivationRequest("device-token-test", null, null));
         var created = (TerminalController.TerminalActivationResponse) createResponse.getBody();
 
         // Simulate the same device calling activate with its terminal token
@@ -129,7 +129,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         TenantContext.setCurrentTerminalSeries(created.terminalSeries());
 
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-token-test", null));
+                new TerminalController.TerminalActivationRequest("device-token-test", null, null));
 
         // Should return 200 OK — no recovery needed
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -144,7 +144,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void approvedRecovery_preservesLogicalTerminal() {
         // Create Terminal A with Device A
         var createResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-orig", "Phone"));
+                new TerminalController.TerminalActivationRequest("device-orig", "Phone", null));
         var created = (TerminalController.TerminalActivationResponse) createResponse.getBody();
         Long terminalId = Long.parseLong(created.terminalId());
 
@@ -179,7 +179,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void deactivateAndRecover_fullFlow() {
         // Create terminal
         var createResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-deact", null));
+                new TerminalController.TerminalActivationRequest("device-deact", null, null));
         var created = (TerminalController.TerminalActivationResponse) createResponse.getBody();
         Long terminalId = Long.parseLong(created.terminalId());
 
@@ -195,7 +195,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         // Same device tries to activate WITH old token (simulated) — terminal is deactivated
         TenantContext.setCurrentTerminalDevice("device-deact");
         var forbiddenResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-deact", null));
+                new TerminalController.TerminalActivationRequest("device-deact", null, null));
         assertThat(forbiddenResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         TenantContext.setCurrentTerminalDevice(null);
 
@@ -210,13 +210,13 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void concurrentUnknownDevices_neitherHijacksSingleTerminal() {
         // Create Terminal A with Device A
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A-conc", null));
+                new TerminalController.TerminalActivationRequest("device-A-conc", null, null));
 
         // Device B and Device C both try to activate
         var responseB = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-B-conc", null));
+                new TerminalController.TerminalActivationRequest("device-B-conc", null, null));
         var responseC = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-C-conc", null));
+                new TerminalController.TerminalActivationRequest("device-C-conc", null, null));
 
         // Both get PENDING — neither can take over Terminal A
         assertThat(responseB.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
@@ -232,12 +232,12 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void oldDevice_reconnectsNormally_afterUnauthorizedRecoveryAttempt() {
         // Create Terminal A with Device A
         var createResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A-recon", null));
+                new TerminalController.TerminalActivationRequest("device-A-recon", null, null));
         var created = (TerminalController.TerminalActivationResponse) createResponse.getBody();
 
         // Unknown Device B submits a pending request
         var pendingResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-B-recon", null));
+                new TerminalController.TerminalActivationRequest("device-B-recon", null, null));
         assertThat(pendingResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
         // No recovery was approved. Device A reconnects with its valid terminal token.
@@ -245,7 +245,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         TenantContext.setCurrentTerminalId(created.terminalId());
 
         var reconnectResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-A-recon", null));
+                new TerminalController.TerminalActivationRequest("device-A-recon", null, null));
         assertThat(reconnectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         var body = (TerminalController.TerminalActivationResponse) reconnectResponse.getBody();
         assertThat(body.terminalSeries()).isEqualTo("A");
@@ -258,7 +258,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void rename_updatesTerminalName() {
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-rename", null));
+                new TerminalController.TerminalActivationRequest("device-rename", null, null));
         var body = (TerminalController.TerminalActivationResponse) response.getBody();
         Long terminalId = Long.parseLong(body.terminalId());
 
@@ -272,11 +272,11 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void approvalFlow_multiTerminal() {
         // OWNER creates Terminal A
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-1-multi", null));
+                new TerminalController.TerminalActivationRequest("device-1-multi", null, null));
 
         // Second device gets PENDING
         var pendingResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-2-multi", null));
+                new TerminalController.TerminalActivationRequest("device-2-multi", null, null));
         assertThat(pendingResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         var pending = (TerminalController.TerminalPendingResponse) pendingResponse.getBody();
 
@@ -301,9 +301,9 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void crossRestaurant_requestStatusQuery_returns404() {
         // Create a terminal and pending request for this restaurant
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-cross-1", null));
+                new TerminalController.TerminalActivationRequest("device-cross-1", null, null));
         var pendingResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-cross-2", null));
+                new TerminalController.TerminalActivationRequest("device-cross-2", null, null));
         var pending = (TerminalController.TerminalPendingResponse) pendingResponse.getBody();
 
         // Switch to a different restaurant context
@@ -326,9 +326,9 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void completeActivation_wrongDevice_isForbidden() {
         // Create terminal + pending request
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-comp-1", null));
+                new TerminalController.TerminalActivationRequest("device-comp-1", null, null));
         var pendingResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-comp-2", null));
+                new TerminalController.TerminalActivationRequest("device-comp-2", null, null));
         var pending = (TerminalController.TerminalPendingResponse) pendingResponse.getBody();
 
         // Approve with the number shown on the requesting device.
@@ -346,7 +346,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     void historicalRevokedTerminal_doesNotSilentlyCreateDuplicate() {
         // Create Terminal A, then deactivate it (simulates revoked history)
         var createResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-hist", null));
+                new TerminalController.TerminalActivationRequest("device-hist", null, null));
         var created = (TerminalController.TerminalActivationResponse) createResponse.getBody();
         Long terminalId = Long.parseLong(created.terminalId());
         managementController.deactivateTerminal(terminalId);
@@ -355,7 +355,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
         // A new OWNER device calls activate — it should NOT auto-create another Terminal A.
         // It should go through the pending approval path since allTerminals is not empty.
         var newDeviceResponse = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-hist-new", null));
+                new TerminalController.TerminalActivationRequest("device-hist-new", null, null));
         assertThat(newDeviceResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
         // Verify no second terminal was silently created
@@ -368,7 +368,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void firstTerminal_isPrimaryAutomatically() {
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-prim-first", null));
+                new TerminalController.TerminalActivationRequest("device-prim-first", null, null));
         var body = (TerminalController.TerminalActivationResponse) response.getBody();
         Long terminalId = Long.parseLong(body.terminalId());
 
@@ -377,9 +377,9 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
 
         // Second terminal must NOT steal primary
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-prim-second", null));
+                new TerminalController.TerminalActivationRequest("device-prim-second", null, null));
         var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-prim-third", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-prim-third", null, null)).getBody();
         managementController.approveRequest(pending.requestId(),
                 new TerminalManagementController.ApproveRequest(pending.challengeCode()));
 
@@ -393,11 +393,11 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void setPrimary_swapsFlag_exactlyOnePrimaryRemains() {
         var first = (TerminalController.TerminalActivationResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-swap-a", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-swap-a", null, null)).getBody();
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-swap-b", null));
+                new TerminalController.TerminalActivationRequest("device-swap-b", null, null));
         var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-swap-c", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-swap-c", null, null)).getBody();
         managementController.approveRequest(pending.requestId(),
                 new TerminalManagementController.ApproveRequest(pending.challengeCode()));
 
@@ -418,15 +418,15 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void deactivatingPrimary_promotesOldestRemainingActive() {
         var first = (TerminalController.TerminalActivationResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-promo-a", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-promo-a", null, null)).getBody();
         Long terminalA = Long.parseLong(first.terminalId());
         assertThat(terminalRepository.findById(terminalA).orElseThrow().getIsPrimary()).isTrue();
 
         // Second active terminal (B)
         terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-promo-b", null));
+                new TerminalController.TerminalActivationRequest("device-promo-b", null, null));
         var pending = (TerminalController.TerminalPendingResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-promo-c", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-promo-c", null, null)).getBody();
         managementController.approveRequest(pending.requestId(),
                 new TerminalManagementController.ApproveRequest(pending.challengeCode()));
 
@@ -446,7 +446,7 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
     @Test
     void setPrimary_onInactiveTerminal_conflicts() {
         var created = (TerminalController.TerminalActivationResponse) terminalController.activate(
-                new TerminalController.TerminalActivationRequest("device-inact-prim", null)).getBody();
+                new TerminalController.TerminalActivationRequest("device-inact-prim", null, null)).getBody();
         Long terminalId = Long.parseLong(created.terminalId());
         managementController.deactivateTerminal(terminalId);
 

@@ -69,7 +69,7 @@ class TerminalControllerTest {
         when(jwtUtility.generateTerminalToken(anyString(), any(), anyString(), anyString(), anyString(), any(), any()))
                 .thenReturn("test.token");
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-1", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-1", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -89,7 +89,7 @@ class TerminalControllerTest {
         when(jwtUtility.generateTerminalToken(anyString(), any(), anyString(), anyString(), anyString(), any(), any()))
                 .thenReturn("first.token");
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("first-device", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("first-device", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
@@ -111,7 +111,7 @@ class TerminalControllerTest {
                 eq(42L), eq(1L), eq("admin-device"), isNull(), eq("NEW_DEVICE"), isNull()))
                 .thenReturn(pending);
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("admin-device", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("admin-device", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
     }
@@ -136,7 +136,7 @@ class TerminalControllerTest {
                 eq(42L), eq(1L), eq("device-B"), isNull(), eq("NEW_DEVICE"), isNull()))
                 .thenReturn(pending);
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-B", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-B", null, null));
 
         // Must get PENDING_APPROVAL, NOT auto-rebind
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
@@ -161,7 +161,7 @@ class TerminalControllerTest {
                 .thenReturn(recoveryReq);
 
         // No terminal token in context (null)
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-A", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-A", null, null));
 
         // Without proof of possession, known device gets RECOVERY request
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
@@ -178,7 +178,7 @@ class TerminalControllerTest {
         when(terminalRepository.findByRestaurantIdAndDeviceId(42L, "device-1"))
                 .thenReturn(Optional.of(existing));
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-1", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-1", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
@@ -187,7 +187,7 @@ class TerminalControllerTest {
 
     @Test
     void activate_rejectsBlankDeviceId() {
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("  ", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("  ", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -204,7 +204,7 @@ class TerminalControllerTest {
                 eq(42L), eq(1L), eq("rejected-device"), isNull(), eq("NEW_DEVICE"), isNull()))
                 .thenReturn(null);
 
-        var response = controller.activate(new TerminalController.TerminalActivationRequest("rejected-device", null));
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("rejected-device", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }

@@ -316,7 +316,7 @@ class BillLifecycleSyncPostgresIntegrationTest {
 
     private TerminalController.TerminalActivationResponse activateTerminal() {
         var response = terminalController.activate(
-                new TerminalController.TerminalActivationRequest(DEVICE_ID, null));
+                new TerminalController.TerminalActivationRequest(DEVICE_ID, null, null));
         assertThat(response.getStatusCode().value()).isIn(200, 201);
         assertThat(response.getBody()).isInstanceOf(TerminalController.TerminalActivationResponse.class);
         return (TerminalController.TerminalActivationResponse) response.getBody();

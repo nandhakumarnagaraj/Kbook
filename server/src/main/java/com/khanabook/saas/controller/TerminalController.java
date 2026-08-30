@@ -52,6 +52,7 @@ public class TerminalController {
 						t.getTerminalName(),
 						t.getTerminalSeries(),
 						t.getIsActive(),
+						t.getTerminalType(),
 						t.getUpdatedAt()))
 				.collect(Collectors.toList());
 		return ResponseEntity.ok(items);
@@ -111,7 +112,7 @@ public class TerminalController {
 	}
 
 	public record TerminalListItem(String terminalId, String terminalName, String terminalSeries,
-			Boolean isActive, Long lastActiveAt) {
+			Boolean isActive, String terminalType, Long lastActiveAt) {
 	}
 
 	public record TerminalReclaimRequest(String terminalSeries, String deviceId) {
@@ -236,6 +237,7 @@ public class TerminalController {
 
 		String deviceId = request.deviceId().trim();
 		String deviceModel = request.deviceModel() != null ? request.deviceModel().trim() : null;
+		String terminalType = validateTerminalType(request.terminalType());
 		String role = TenantContext.getCurrentRole();
 
 		// ── Case 1: Known device — terminal bound to this deviceId ──
@@ -329,6 +331,12 @@ public class TerminalController {
 		// Uses the restaurant-level lock to prevent concurrent first-device races.
 		List<RestaurantTerminal> allTerminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
 		if (allTerminals.isEmpty() && "OWNER".equals(role)) {
+			// Enforce: first terminal must be BILLING
+			if (!"BILLING".equals(terminalType)) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body(new TerminalPendingResponse("INVALID_TYPE", null,
+								"First terminal must be type BILLING"));
+			}
 			// Atomic: lock restaurant to prevent concurrent first-device creation
 			var profileOpt = terminalManagementService.lockRestaurantForTerminalOp(restaurantId);
 			if (profileOpt.isEmpty()) {
@@ -348,6 +356,7 @@ public class TerminalController {
 				terminal.setDeviceId(deviceId);
 				terminal.setIsActive(true);
 				terminal.setStatus("ACTIVE");
+				terminal.setTerminalType(terminalType);
 				terminal.setCredentialVersion(1L);
 				terminal.setIsPrimary(true); // first-ever terminal is primary by definition
 				terminal.setCreatedAt(now);
@@ -355,6 +364,23 @@ public class TerminalController {
 				RestaurantTerminal saved = terminalRepository.save(terminal);
 				securityAuditService.record("TERMINAL_FIRST_CREATED", "SUCCESS", "A", deviceId);
 				return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
+			}
+		}
+
+		// ── Enforce: max 1 BILLING terminal per restaurant ──
+		// Admin approval is the primary gatekeeper — the admin sees terminal types
+		// and will not approve a second BILLING. This check guards against the
+		// case where a known device re-activates directly (Case 1b) and upgrades
+		// to BILLING without admin review.
+		if ("BILLING".equals(terminalType) && existing != null) {
+			boolean hasOtherBilling = allTerminals.stream()
+					.anyMatch(t -> "BILLING".equals(t.getTerminalType())
+							&& "ACTIVE".equals(t.getStatus())
+							&& !t.getId().equals(existing.getId()));
+			if (hasOtherBilling) {
+				return ResponseEntity.status(HttpStatus.CONFLICT)
+						.body(new TerminalPendingResponse("BILLING_EXISTS", null,
+								"Restaurant already has an active BILLING terminal. Use type KOT or ADMIN."));
 			}
 		}
 
@@ -444,7 +470,7 @@ public class TerminalController {
 		return ResponseEntity.ok(new TerminalTransferResponse(request.billPublicToken(), target.getTerminalSeries()));
 	}
 
-	public record TerminalActivationRequest(String deviceId, String deviceModel) {
+	public record TerminalActivationRequest(String deviceId, String deviceModel, String terminalType) {
 	}
 
 	public record TerminalActivationResponse(String terminalId, String terminalName, String terminalSeries,
@@ -519,6 +545,17 @@ public class TerminalController {
 		return series.trim().toUpperCase();
 	}
 
+	private String validateTerminalType(String type) {
+		if (type == null || type.isBlank()) {
+			return "BILLING";
+		}
+		String normalized = type.trim().toUpperCase();
+		return switch (normalized) {
+			case "BILLING", "KOT", "ADMIN" -> normalized;
+			default -> "BILLING";
+		};
+	}
+
 	// ── P0-3: Terminal sync status for daily closing accuracy ──────────────
 	// Returns each terminal's last sync time so the web admin can show
 	// "synced vs pending" data freshness on the daily closing page.
@@ -552,6 +589,7 @@ public class TerminalController {
 							t.getTerminalName(),
 							t.getTerminalSeries(),
 							t.getIsActive(),
+							t.getTerminalType(),
 							lastSync,
 							secondsAgo,
 							syncState);
@@ -566,6 +604,7 @@ public class TerminalController {
 			String terminalName,
 			String terminalSeries,
 			boolean isActive,
+			String terminalType,
 			long lastSyncAt,
 			long secondsAgo,
 			String syncState) {

@@ -57,6 +57,16 @@ public class RestaurantTerminal {
 	private String status = "ACTIVE";
 
 	/**
+	 * Functional role of this terminal in the restaurant.
+	 * BILLING = standard POS terminal (max 1 per restaurant enforced at registration time).
+	 * KOT     = kitchen order terminal / display-only.
+	 * ADMIN   = back-office / reporting access.
+	 * Default is BILLING for backward compatibility.
+	 */
+	@Column(name = "terminal_type", nullable = false, length = 20)
+	private String terminalType = "BILLING";
+
+	/**
 	 * Designated primary terminal for the restaurant. Invariant: exactly one
 	 * ACTIVE primary per restaurant; maintained by TerminalManagementService
 	 * under the restaurant-profile lock and backed by a partial unique index.

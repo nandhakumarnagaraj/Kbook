@@ -298,7 +298,7 @@ class MultiDeviceInvoiceSyncIntegrationTest {
      */
     private String activateTerminal(String deviceId) {
         var response = terminalController
-                .activate(new TerminalController.TerminalActivationRequest(deviceId, null));
+                .activate(new TerminalController.TerminalActivationRequest(deviceId, null, null));
 
         if (response.getStatusCode().value() == 200 || response.getStatusCode().value() == 201) {
             // Already activated or first-terminal auto-create

@@ -42,6 +42,7 @@ import { formatDate } from '../../shared/formatters';
             <tr>
               <th>Name</th>
               <th>Series</th>
+              <th>Type</th>
               <th>Device</th>
               <th>Status</th>
               <th>Active</th>
@@ -70,6 +71,11 @@ import { formatDate } from '../../shared/formatters';
                 </ng-template>
               </td>
               <td>{{ terminal.terminalSeries || '-' }}</td>
+              <td>
+                <span class="chip-pill" [class.chip-pill--ok]="terminal.terminalType === 'BILLING'" [class.chip-pill--pending]="terminal.terminalType === 'KOT'">
+                  {{ terminal.terminalType || 'BILLING' }}
+                </span>
+              </td>
               <td>
                 <span class="muted">{{ terminal.deviceId || '-' }}</span>
               </td>
@@ -123,7 +129,7 @@ import { formatDate } from '../../shared/formatters';
           <article class="mobile-data-card" *ngFor="let terminal of terminals()">
             <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}<span class="primary-badge" *ngIf="terminal.isPrimary">★ Primary</span></strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
             <p>{{ terminal.terminalSeries || 'No series' }} · {{ terminal.deviceId || 'No device assigned' }}</p>
-            <dl><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
+            <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
               <button *ngIf="terminal.status.toLowerCase() === 'active' && !terminal.isPrimary" class="ghost-btn" [disabled]="saving()" (click)="setPrimary(terminal)">Set as primary</button>

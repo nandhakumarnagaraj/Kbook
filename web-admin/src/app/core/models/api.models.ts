@@ -159,6 +159,7 @@ export interface BusinessTerminal {
   status: string;
   isActive: boolean | null;
   isPrimary?: boolean | null;
+  terminalType?: string | null;
   deviceId: string | null;
   credentialVersion: number | null;
   createdAt: number | null;
