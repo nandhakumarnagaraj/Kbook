@@ -251,7 +251,7 @@ public class PublicOrderController {
                     "New QR Order",
                     "Table/Token " + (request.tableLabel() != null ? request.tableLabel() : "-")
                             + " ordered " + lines.size() + " item(s). Total ₹" + total.toPlainString(),
-                    "marketplace_order",
+                    "qr_order",
                     String.valueOf(saved.getId()),
                     "bill",
                     total);

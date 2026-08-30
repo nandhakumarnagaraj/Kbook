@@ -234,8 +234,6 @@ public class InvoiceController {
             case "card", "credit_card", "debit_card" -> "\uD83D\uDCB3";
             case "credit" -> "\uD83D\uDCB3";
             case "online" -> "\uD83C\uDF10";
-            case "zomato" -> "\uD83C\uDF7D\uFE0F";
-            case "swiggy" -> "\uD83D\uDC69\u200D\uD83C\uDF73";
             case "split" -> "\uD83D\uDCB1";
             default -> "";
         };
@@ -251,8 +249,6 @@ public class InvoiceController {
             case "credit_card" -> "Credit Card";
             case "debit_card" -> "Debit Card";
             case "online" -> "Online";
-            case "zomato" -> "Zomato";
-            case "swiggy" -> "Swiggy";
             case "split" -> "Split Payment";
             default -> mode.substring(0, 1).toUpperCase() + mode.substring(1);
         };

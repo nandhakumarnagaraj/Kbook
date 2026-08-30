@@ -137,17 +137,6 @@ export interface BusinessStaffItem {
   updatedAt: number | null;
 }
 
-export interface BusinessMarketplaceSetup {
-  restaurantId: number;
-  shopName: string | null;
-  paymentManagedByAdmin: boolean | null;
-  subMerchantStatus: string | null;
-  subMerchantId: string | null;
-  kycPortalUrl: string | null;
-  kycSubmittedAt: number | null;
-  kycActivatedAt: number | null;
-}
-
 export interface BusinessTerminal {
   id: number;
   terminalSeries: string | null;

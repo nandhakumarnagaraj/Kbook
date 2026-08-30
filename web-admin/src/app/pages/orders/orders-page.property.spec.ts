@@ -120,7 +120,7 @@ function parseCsvRow(row: string): string[] {
 // --- Generators (fast-check v4.x API) ---
 
 const ORDER_STATUSES = ['COMPLETED', 'CANCELLED', 'DRAFT', 'PENDING', 'CONFIRMED'];
-const ORDER_SOURCES = ['POS', 'WEBSITE', 'ZOMATO', 'SWIGGY'];
+const ORDER_SOURCES = ['POS', 'WEBSITE'];
 const PAYMENT_METHODS = ['CASH', 'UPI', 'CARD', 'GATEWAY'];
 const PAYMENT_STATUSES = ['PAID', 'PENDING', 'REFUNDED', 'FAILED'];
 

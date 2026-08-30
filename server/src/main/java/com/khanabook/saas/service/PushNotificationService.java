@@ -303,7 +303,6 @@ public class PushNotificationService {
 			case "refund"            -> "khanabook_refund_v2";
 			case "kyc"               -> "khanabook_kyc_v2";
 			case "settlement"        -> "khanabook_settlement_v2";
-			case "marketplace_order" -> "khanabook_payment_v2";
 			case "inventory_low"     -> "khanabook_inventory_v2";
 			case "permission_request", "permission_approved", "permission_rejected"
 			                         -> "khanabook_permissions_v2";

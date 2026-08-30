@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
   BusinessDashboard,
-  BusinessMarketplaceSetup,
   BusinessMenuItem,
   BusinessCategory,
   BusinessOrder,
@@ -10,9 +9,6 @@ import {
   BusinessTerminal,
   CreateMenuItemRequest,
   CreateStaffRequest,
-  MarketplaceConfig,
-  MarketplaceConfigRequest,
-  MarketplaceOrder,
   MenuExtractionJob,
   OrderDetailResponse,
   PaginatedOrdersResponse,

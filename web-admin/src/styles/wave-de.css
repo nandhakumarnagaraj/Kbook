@@ -1,5 +1,5 @@
 /* =========================================================
-   Wave D + E — Staff, Terminals, Marketplace Setup, Businesses
+   Wave D + E — Staff, Terminals, Businesses
    CSS-only refinements; no template surgery.
    ========================================================= */
 
@@ -35,7 +35,7 @@
   border-color: #b91c1c !important;
 }
 
-/* Form primitives (Staff modal, Marketplace Setup) */
+/* Form primitives (Staff modal) */
 .form-group {
   display: flex; flex-direction: column; gap: 0.35rem;
   margin-bottom: 0.85rem;
@@ -71,7 +71,7 @@
 }
 .muted.small { font-size: 0.78rem; }
 
-/* Marketplace Setup — provider config cards */
+/* Config cards */
 .config-card {
   display: grid; gap: 1rem;
   padding: 1.15rem 1.25rem;
@@ -94,7 +94,7 @@
   .config-card > .save-error { grid-column: 1 / -1; }
 }
 
-/* Toggle switch (Marketplace enable/disable) */
+/* Toggle switch */
 .toggle-wrap { display: inline-flex; align-items: center; gap: 0.6rem; }
 .toggle-label { font-size: 0.85rem; color: var(--ink-2, #2a2f3a); font-weight: 500; }
 .toggle-btn {

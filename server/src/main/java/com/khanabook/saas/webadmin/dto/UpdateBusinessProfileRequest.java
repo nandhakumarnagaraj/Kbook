@@ -13,8 +13,6 @@ public record UpdateBusinessProfileRequest(
     String upiMobile,
     Boolean cashEnabled,
     Boolean posEnabled,
-    Boolean zomatoEnabled,
-    Boolean swiggyEnabled,
     Boolean ownWebsiteEnabled,
     String country,
     String timezone,

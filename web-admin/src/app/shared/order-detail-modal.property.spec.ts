@@ -17,7 +17,7 @@ import { BusinessOrder, OrderDetailResponse, OrderLineItem } from '../core/model
 // --- Arbitraries ---
 
 const ORDER_STATUSES = ['COMPLETED', 'CANCELLED', 'DRAFT', 'PENDING', 'CONFIRMED'];
-const SOURCE_TYPES = ['POS', 'WEBSITE', 'ZOMATO', 'SWIGGY'];
+const SOURCE_TYPES = ['POS', 'WEBSITE'];
 const PAYMENT_METHODS = ['CASH', 'UPI', 'CARD', 'ONLINE'];
 const PAYMENT_STATUSES = ['PAID', 'PENDING', 'REFUNDED', 'FAILED'];
 

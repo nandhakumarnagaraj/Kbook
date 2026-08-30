@@ -50,8 +50,6 @@ class ReportExporter(private val context: Context) {
         mode.contains("Cash", ignoreCase = true) -> Color.rgb(67, 160, 71)
         mode.contains("UPI", ignoreCase = true) -> Color.rgb(251, 140, 0)
         mode.contains("POS", ignoreCase = true) -> Color.rgb(142, 36, 170)
-        mode.contains("Zomato", ignoreCase = true) -> Color.rgb(198, 40, 40)
-        mode.contains("Swiggy", ignoreCase = true) -> Color.rgb(230, 81, 0)
         mode.contains("Website", ignoreCase = true) -> Color.rgb(21, 101, 192)
         else -> Color.rgb(110, 110, 110)
     }

@@ -18,12 +18,9 @@ import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
 import com.khanabook.saas.webadmin.dto.BusinessCategoryResponse;
-import com.khanabook.saas.webadmin.dto.BusinessMarketplaceSetupResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
-import com.khanabook.saas.webadmin.dto.MarketplaceConfigRequest;
-import com.khanabook.saas.webadmin.dto.MarketplaceConfigResponse;
 import com.khanabook.saas.webadmin.dto.OrderDetailResponse;
 import com.khanabook.saas.webadmin.dto.OrderLineItemResponse;
 import com.khanabook.saas.webadmin.dto.PaginatedOrdersResponse;
@@ -134,90 +131,6 @@ public class BusinessReadService {
                 .refundedAmount(refundedAmount)
                 .recentOrders(recentOrders)
                 .build();
-    }
-
-    @Transactional(readOnly = true)
-    public BusinessMarketplaceSetupResponse getMarketplaceSetup(Long restaurantId) {
-        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
-
-        var sm = subMerchantRepository.findByRestaurantId(restaurantId).orElse(null);
-
-        return BusinessMarketplaceSetupResponse.builder()
-                .restaurantId(restaurantId)
-                .shopName(profile.getShopName())
-                .paymentManagedByAdmin(true)
-                .subMerchantStatus(sm != null ? sm.getStatus() : "NOT_STARTED")
-                .subMerchantId(sm != null ? sm.getSubMerchantId() : null)
-                .kycPortalUrl(sm != null ? sm.getKycPortalUrl() : null)
-                .kycSubmittedAt(sm != null ? sm.getKycSubmittedAt() : null)
-                .kycActivatedAt(sm != null ? sm.getKycActivatedAt() : null)
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public MarketplaceConfigResponse getMarketplaceConfig(Long restaurantId, String zomatoWebhookUrl, String swiggyWebhookUrl) {
-        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
-
-        return new MarketplaceConfigResponse(
-                Boolean.TRUE.equals(profile.getZomatoEnabled()),
-                maskSecret(profile.getZomatoApiKey()),
-                profile.getZomatoOutletId(),
-                zomatoWebhookUrl,
-                Boolean.TRUE.equals(profile.getSwiggyEnabled()),
-                maskSecret(profile.getSwiggyApiKey()),
-                profile.getSwiggyStoreId(),
-                swiggyWebhookUrl
-        );
-    }
-
-    @Transactional
-    public MarketplaceConfigResponse saveMarketplaceConfig(
-            Long restaurantId,
-            MarketplaceConfigRequest request,
-            String zomatoWebhookUrl,
-            String swiggyWebhookUrl) {
-        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
-
-        if (request.zomatoApiKey() != null) {
-            profile.setZomatoApiKey(request.zomatoApiKey());
-        }
-        if (request.zomatoWebhookSecret() != null) {
-            profile.setZomatoWebhookSecret(request.zomatoWebhookSecret());
-        }
-        if (request.zomatoEnabled() != null) {
-            profile.setZomatoEnabled(request.zomatoEnabled());
-        }
-        if (request.swiggyApiKey() != null) {
-            profile.setSwiggyApiKey(request.swiggyApiKey());
-        }
-        if (request.swiggyWebhookSecret() != null) {
-            profile.setSwiggyWebhookSecret(request.swiggyWebhookSecret());
-        }
-        if (request.swiggyEnabled() != null) {
-            profile.setSwiggyEnabled(request.swiggyEnabled());
-        }
-
-        long now = System.currentTimeMillis();
-        profile.setUpdatedAt(now);
-        profile.setServerUpdatedAt(now);
-        restaurantProfileRepository.save(profile);
-
-        return new MarketplaceConfigResponse(
-                Boolean.TRUE.equals(profile.getZomatoEnabled()),
-                maskSecret(profile.getZomatoApiKey()),
-                profile.getZomatoOutletId(),
-                zomatoWebhookUrl,
-                Boolean.TRUE.equals(profile.getSwiggyEnabled()),
-                maskSecret(profile.getSwiggyApiKey()),
-                profile.getSwiggyStoreId(),
-                swiggyWebhookUrl
-        );
     }
 
     private String maskSecret(String value) {

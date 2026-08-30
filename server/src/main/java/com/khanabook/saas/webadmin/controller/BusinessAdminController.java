@@ -31,11 +31,6 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.getDashboard(requireTenant(), from, to));
     }
 
-    @GetMapping("/marketplace-setup")
-    public ResponseEntity<BusinessMarketplaceSetupResponse> getMarketplaceSetup() {
-        return ResponseEntity.ok(businessReadService.getMarketplaceSetup(requireTenant()));
-    }
-
     @GetMapping("/orders")
     public ResponseEntity<List<BusinessOrderListItemResponse>> getOrders() {
         return ResponseEntity.ok(businessReadService.getOrders(requireTenant()));

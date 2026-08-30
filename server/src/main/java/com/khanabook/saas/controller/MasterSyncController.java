@@ -96,10 +96,9 @@ public class MasterSyncController {
 		long currentServerTime = System.currentTimeMillis();
 		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
 
-		// Idempotent auto-enable: ensures Easebuzz/Zomato/Swiggy flags are turned on
-		// whenever their credentials/sub-merchants are configured but the flag is still off.
+		// Idempotent auto-enable: ensures Easebuzz sub-merchant flag is turned on
+		// whenever credentials are configured but the flag is still off.
 		autoEnableEasebuzzForExistingSubMerchants(tenantId);
-		autoEnableMarketplaceIfConfigured(tenantId);
 
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId;
@@ -278,37 +277,4 @@ public class MasterSyncController {
 		}
 	}
 
-	/**
-	 * Retroactively enables Zomato/Swiggy if their API keys are configured
-	 * but the enabled flag is still false/null.
-	 */
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	private void autoEnableMarketplaceIfConfigured(Long restaurantId) {
-		profileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
-			boolean changed = false;
-			// Zomato: auto-enable if apiKey + outletId are set
-			if (profile.getZomatoApiKey() != null && !profile.getZomatoApiKey().isBlank()
-					&& profile.getZomatoOutletId() != null && !profile.getZomatoOutletId().isBlank()
-					&& (profile.getZomatoEnabled() == null || !profile.getZomatoEnabled())) {
-				profile.setZomatoEnabled(true);
-				changed = true;
-				log.info("Auto-enabled zomato for restaurant {} (apiKey+outletId configured)", restaurantId);
-			}
-			// Swiggy: auto-enable if apiKey + storeId are set
-			if (profile.getSwiggyApiKey() != null && !profile.getSwiggyApiKey().isBlank()
-					&& profile.getSwiggyStoreId() != null && !profile.getSwiggyStoreId().isBlank()
-					&& (profile.getSwiggyEnabled() == null || !profile.getSwiggyEnabled())) {
-				profile.setSwiggyEnabled(true);
-				changed = true;
-				log.info("Auto-enabled swiggy for restaurant {} (apiKey+storeId configured)", restaurantId);
-			}
-			if (changed) {
-				long now = System.currentTimeMillis();
-				profile.setUpdatedAt(now);
-				profile.setServerUpdatedAt(now);
-				profile.setDeviceId("server");
-				profileRepo.save(profile);
-			}
-		});
-	}
 }

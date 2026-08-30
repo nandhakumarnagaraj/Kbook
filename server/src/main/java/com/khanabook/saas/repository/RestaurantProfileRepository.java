@@ -47,17 +47,4 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
 
 	@Query(value = "SELECT daily_order_counter, lifetime_order_counter FROM restaurantprofiles WHERE restaurant_id = :restaurantId", nativeQuery = true)
 	java.util.List<Object[]> getCounters(Long restaurantId);
-
-	/**
-	 * Resolve a restaurant from a platform's store/outlet reference. Used by the
-	 * unauthenticated Swiggy/Zomato webhook endpoints to map an incoming order to
-	 * a tenant before the JwtRequestFilter has set the tenant context.
-	 */
-	@Query("SELECT p.restaurantId FROM RestaurantProfile p " +
-	       "WHERE p.zomatoOutletId = :outletId AND p.isDeleted = false")
-	Optional<Long> findRestaurantIdByZomatoOutletIdAndIsDeletedFalse(@org.springframework.data.repository.query.Param("outletId") String outletId);
-
-	@Query("SELECT p.restaurantId FROM RestaurantProfile p " +
-	       "WHERE p.swiggyStoreId = :storeId AND p.isDeleted = false")
-	Optional<Long> findRestaurantIdBySwiggyStoreIdAndIsDeletedFalse(@org.springframework.data.repository.query.Param("storeId") String storeId);
 }

@@ -42,10 +42,7 @@ public enum PermissionKey {
     SETTINGS_TERMINAL("settings.terminal", "Manage Devices", "SETTINGS"),
     SETTINGS_GST("settings.gst", "GST/FSSAI Settings", "SETTINGS"),
 
-    // Marketplace
-    MARKETPLACE_VIEW("marketplace.view", "View Marketplace Orders", "MARKETPLACE"),
-    MARKETPLACE_ACCEPT("marketplace.accept", "Accept/Reject Orders", "MARKETPLACE"),
-    MARKETPLACE_CONFIG("marketplace.config", "Configure Integrations", "MARKETPLACE");
+    // End of permissions
 
     private final String key;
     private final String displayName;

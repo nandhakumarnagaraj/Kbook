@@ -42,7 +42,7 @@ public final class BillTerminalUtil {
 			return true;
 		}
 		String sc = bill.getSourceChannel() == null ? "" : bill.getSourceChannel().toLowerCase();
-		return sc.equals("zomato") || sc.equals("swiggy") || sc.equals("own_website");
+		return sc.equals("own_website");
 	}
 
 	/**

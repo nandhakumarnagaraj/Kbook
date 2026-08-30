@@ -896,8 +896,7 @@ public class GenericSyncService {
 				// background sync — AFTER the cashier has settled them — so a
 				// sync-time "New Order Received" would fire post-payment and
 				// notify staff about orders they themselves just took. External
-				// channels already announce at ingestion time ("New QR Order",
-				// marketplace order push).
+				// channels already announce at ingestion time ("New QR Order").
 				for (Bill bill : cancelledBills) {
 					if (successfulLocalIds.contains(bill.getLocalId())) {
 						try {

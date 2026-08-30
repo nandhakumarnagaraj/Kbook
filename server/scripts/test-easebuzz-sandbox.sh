@@ -164,7 +164,7 @@ if echo "$SUBMIT_RESPONSE" | grep -q "error\|failure"; then
     echo -e "${YELLOW}⚠ Easebuzz sandbox returned error. This is expected if:${NC}"
     echo -e "${YELLOW}  - Sub-merchant module is not enabled on your Easebuzz account${NC}"
     echo -e "${YELLOW}  - Test credentials (ADNX3KYX5) are not valid for sub-merchant APIs${NC}"
-    echo -e "${YELLOW}  - You need to request Easebuzz ops to enable marketplace features${NC}"
+    echo -e "${YELLOW}  - You need to request Easebuzz ops to enable sub-merchant features${NC}"
     echo ""
     echo "Skipping remaining Easebuzz-dependent tests..."
     SKIP_EASEBUZZ=1

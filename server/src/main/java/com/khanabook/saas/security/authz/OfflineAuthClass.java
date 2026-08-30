@@ -20,7 +20,7 @@ import java.util.Map;
  *
  * <p>Rule kept explicit: classify the OPERATION, not the permission name. Where a
  * permission name implies local action but the code performs a server mutation
- * (e.g. {@code orders.kot_ready} is a marketplace mark-ready REST call today), it is
+ * (e.g. {@code orders.kot_ready} is a REST call today), it is
  * classified by its actual behavior.
  */
 public enum OfflineAuthClass {
@@ -46,7 +46,6 @@ public enum OfflineAuthClass {
         // Orders / KOT
         Map.entry("orders.view",       OFFLINE_ALLOWED),
         Map.entry("orders.kot_view",   OFFLINE_ALLOWED),
-        // orders.kot_ready today gates the marketplace mark-ready REST mutation (server-only).
         Map.entry("orders.kot_ready",  ONLINE_ONLY),
         Map.entry("orders.kot_void",   REVALIDATED_ON_SYNC),
         // Reports
