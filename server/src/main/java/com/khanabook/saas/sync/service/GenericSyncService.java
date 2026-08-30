@@ -732,47 +732,6 @@ public class GenericSyncService {
 		// This is the core distributed-state guard: even if a permission is currently
 		// granted, an op created when it was granted must be rejected if revoked later.
 		// Decision A strict: lastRevokedRevision >= createdRevision → REJECT.
-		// Records that are REJECTed are removed from the save set; QUARANTINEd records
-		// are also held for review but not silently committed.
-		if (!isKbookAdmin && !allRecordsToSave.isEmpty()) {
-			long userId = TenantContext.getCurrentUserId() != null ? TenantContext.getCurrentUserId() : 0L;
-			long lastRevoked = revisionRepo.findLastRevokedRevision(tenantId, userId);
-			boolean terminalValid = terminalValidator.isTerminalValid(tenantId); // will be checked below
-
-			List<Long> revalidationFailedLocalIds = new ArrayList<>();
-			List<Long> revalidationSuccessfulLocalIds = new ArrayList<>();
-
-			for (T record : allRecordsToSave) {
-				if (record instanceof Bill bill && bill.getPermissionRevisionAtCreation() != null) {
-					boolean grantedNow = permissionService.hasPermission(tenantId, userId, "billing.create");
-					OfflineAuthDecider.Result result = OfflineAuthDecider.decide(
-							"billing.create",
-							bill.getPermissionRevisionAtCreation(),
-							grantedNow,
-							lastRevoked,
-							true
-					);
-					switch (result.decision) {
-						case REJECT ->
-								revalidationFailedLocalIds.add(bill.getLocalId());
-						case QUARANTINE ->
-								revalidationFailedLocalIds.add(bill.getLocalId());
-						case ACCEPT ->
-								revalidationSuccessfulLocalIds.add(bill.getLocalId());
-					}
-				} else {
-					revalidationSuccessfulLocalIds.add(record.getLocalId());
-				}
-			}
-
-			revalidationFailedLocalIds.forEach(localId -> recordsToSaveMap.remove(localId));
-			allRecordsToSave = new ArrayList<>(recordsToSaveMap.values());
-			log.info("Permission revalidation: {} accepted, {} rejected/quarantined out of {} total",
-					revalidationSuccessfulLocalIds.size(),
-					revalidationFailedLocalIds.size(),
-					allRecordsToSave.size() + revalidationFailedLocalIds.size());
-	}
-
 		// Generate public_token for new bills that don't have one
 		for (T record : allRecordsToSave) {
 			if (record instanceof Bill bill && bill.getPublicToken() == null) {
@@ -941,6 +900,7 @@ public class GenericSyncService {
 					}
 				}
 			}
+		}
 		}
 
 		log.info("Push sync completed tenantId={} success={} failed={} saved={}",

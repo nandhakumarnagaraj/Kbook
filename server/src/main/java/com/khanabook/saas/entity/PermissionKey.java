@@ -40,9 +40,7 @@ public enum PermissionKey {
     SETTINGS_PAYMENT("settings.payment", "Bank/UPI Settings", "SETTINGS"),
     SETTINGS_PRINTER("settings.printer", "Printer Configuration", "SETTINGS"),
     SETTINGS_TERMINAL("settings.terminal", "Manage Devices", "SETTINGS"),
-    SETTINGS_GST("settings.gst", "GST/FSSAI Settings", "SETTINGS"),
-
-    // End of permissions
+    SETTINGS_GST("settings.gst", "GST/FSSAI Settings", "SETTINGS");
 
     private final String key;
     private final String displayName;
