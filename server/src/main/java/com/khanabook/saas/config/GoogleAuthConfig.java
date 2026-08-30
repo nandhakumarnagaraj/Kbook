@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 public class GoogleAuthConfig {
@@ -25,10 +27,16 @@ public class GoogleAuthConfig {
             log.warn("GOOGLE_CLIENT_ID is not configured. Google login will be unavailable.");
             return null;
         }
-        log.info("Google Authentication initialized with Client ID: ...{}",
-                googleClientId.substring(Math.max(0, googleClientId.length() - 12)));
+        List<String> audiences = Arrays.stream(googleClientId.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        log.info("Google Authentication initialized with {} client ID(s): {}",
+                audiences.size(),
+                audiences.stream().map(id -> "..." + id.substring(Math.max(0, id.length() - 12)))
+                        .collect(Collectors.joining(", ")));
         return new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(googleClientId))
+                .setAudience(audiences)
                 .build();
     }
 }

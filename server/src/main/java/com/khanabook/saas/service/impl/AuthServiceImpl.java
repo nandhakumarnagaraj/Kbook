@@ -261,9 +261,10 @@ public class AuthServiceImpl implements AuthService {
                             return buildAuthResponse(user, request.getDeviceId());
                         }).orElseGet(() -> {
                             Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
+                            String deviceId = request.getDeviceId() != null ? request.getDeviceId().trim() : "web-admin";
                             RestaurantProfile profile = new RestaurantProfile();
                             profile.setRestaurantId(newRestaurantId);
-                            profile.setDeviceId(request.getDeviceId());
+                            profile.setDeviceId(deviceId);
                             profile.setLocalId(1L);
                             profile.setShopName((name != null ? name : "User") + "'s Restaurant");
                             profile.setEmail(email);
@@ -288,7 +289,7 @@ public class AuthServiceImpl implements AuthService {
                             user.setWhatsappNumber(null);
                             user.setPasswordHash("GOOGLE_AUTH");
                             user.setRestaurantId(newRestaurantId);
-                            user.setDeviceId(request.getDeviceId());
+                            user.setDeviceId(deviceId);
                             user.setLocalId(1L);
                             user.setRole(UserRole.OWNER);
                             user.setIsActive(true);

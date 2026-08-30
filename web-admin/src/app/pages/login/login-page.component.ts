@@ -68,6 +68,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
             <div class="google-wrap">
               <div id="google-btn"></div>
+              <div *ngIf="googleLoading" class="google-loading">Signing in with Google...</div>
               <div *ngIf="googleError" class="alert-box error">{{ googleError }}</div>
             </div>
 
@@ -286,6 +287,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .google-wrap { display: grid; gap: var(--kb-space-3); }
     #google-btn { display: flex; justify-content: center; }
+    .google-loading {
+      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted);
+      padding: var(--kb-space-2) 0;
+    }
     .link-right {
       color: var(--kb-color-primary);
       font-size: 0.8rem;
@@ -365,6 +370,7 @@ export class LoginPageComponent implements OnInit {
   loading = false;
   error = '';
   googleError = '';
+  googleLoading = false;
   loginSuccessMessage = '';
 
   forgotStep: ForgotStep = 'none';
@@ -419,8 +425,11 @@ export class LoginPageComponent implements OnInit {
 
   private handleGoogleCredential(idToken: string): void {
     this.googleError = '';
+    this.googleLoading = true;
     this.authService.googleLogin(idToken).subscribe({
+      next: () => { this.googleLoading = false; },
       error: (err) => {
+        this.googleLoading = false;
         this.googleError = err?.error?.error ?? err?.error?.message ?? 'Google sign-in failed.';
       }
     });
