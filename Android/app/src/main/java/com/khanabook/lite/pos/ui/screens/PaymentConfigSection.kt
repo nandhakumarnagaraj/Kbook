@@ -51,7 +51,8 @@ fun PaymentConfigView(
     saveProfileLoading: Boolean = false,
     onSave: (RestaurantProfileEntity) -> Unit,
     onBack: () -> Unit,
-    onNavigateToOnboarding: () -> Unit = {}
+    onNavigateToOnboarding: () -> Unit = {},
+    onSectionSelected: (String) -> Unit = {}
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -123,6 +124,22 @@ fun PaymentConfigView(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Setup Online Payments →", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { onSectionSelected("merchant_agreement") },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Merchant Agreement", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { onSectionSelected("compliance_documents") },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Compliance Documents", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
                 }
             }
 

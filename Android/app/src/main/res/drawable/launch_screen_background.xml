@@ -4,16 +4,16 @@
     Matches the Compose BrandedStartFrame gradient exactly so there is
     zero visual flash when transitioning from native splash → Compose.
     
-    Colors: DarkBrown1 (#1A0A0A) → DarkBrown2 (#2D1010) → RichEspresso (#1A0828)
+    Colors: DarkBg (#0D0104) → DarkBgMid (#1A0A0F) → DarkBgWarm (#2D0A10) → DarkBgMid (#1A0A0F) → DarkBg (#0D0104)
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#1A0A0A"
-                android:centerColor="#2D1010"
-                android:endColor="#1A0828" />
+                android:startColor="#0D0104"
+                android:centerColor="#2D0A10"
+                android:endColor="#0D0104" />
         </shape>
     </item>
 </layer-list>

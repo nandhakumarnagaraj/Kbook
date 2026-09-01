@@ -14,7 +14,6 @@ interface RestaurantProfile {
   shopAddress: string;
   whatsappNumber: string;
   email: string;
-  fssaiNumber: string;
   logoUrl: string;
   gstEnabled: boolean;
   gstin: string;
@@ -66,10 +65,6 @@ interface RestaurantProfile {
             <div class="field">
               <label>Email</label>
               <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" />
-            </div>
-            <div class="field">
-              <label>FSSAI Number</label>
-              <input class="field-control" [(ngModel)]="p.fssaiNumber" placeholder="FSSAI license number" />
             </div>
             <div class="field">
               <label>Invoice Footer</label>
@@ -337,7 +332,6 @@ export class BusinessSettingsPageComponent {
             shopAddress: p.shopAddress ?? '',
             whatsappNumber: p.whatsappNumber ?? '',
             email: p.email ?? '',
-            fssaiNumber: p.fssaiNumber ?? '',
             logoUrl: p.logoUrl ?? '',
             gstEnabled: p.gstEnabled ?? false,
             gstin: p.gstin ?? '',
@@ -355,7 +349,7 @@ export class BusinessSettingsPageComponent {
           });
         } else {
           this.profile.set({
-            shopName: '', shopAddress: '', whatsappNumber: '', email: '', fssaiNumber: '',
+            shopName: '', shopAddress: '', whatsappNumber: '', email: '',
             logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
             customTaxPercentage: 0, upiEnabled: false, upiHandle: '', upiMobile: '',
             cashEnabled: true, posEnabled: false, orderPaymentFlowMode: 'pay_before_food',

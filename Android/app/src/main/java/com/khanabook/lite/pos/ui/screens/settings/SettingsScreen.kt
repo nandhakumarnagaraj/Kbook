@@ -186,7 +186,6 @@ fun SettingsScreen(
                 "sync_center" -> "Sync Center"
                 "about_app" -> "About App"
                 "menu" -> "Profile"
-                "daily_closing" -> "Daily Closing"
                 else -> "Profile"
             },
             onBack = {
@@ -224,7 +223,8 @@ fun SettingsScreen(
                             pendingSaveSection = "payment"
                             viewModel.saveProfile(it)
                         }, onBack = { section = "menu" },
-                            onNavigateToOnboarding = { navController.navigate("easebuzz_onboarding") }
+                            onNavigateToOnboarding = { navController.navigate("easebuzz_onboarding") },
+                            onSectionSelected = { section = it }
                         )
                     }
                     "printer" -> {
@@ -273,11 +273,6 @@ fun SettingsScreen(
                         com.khanabook.lite.pos.ui.screens.ComplianceDocumentsScreen(
                             onBack = { section = "menu" },
                             onOpenAgreement = { section = "merchant_agreement" }
-                        )
-                    }
-                    "daily_closing" -> {
-                        com.khanabook.lite.pos.ui.screens.DailyClosingScreen(
-                            onBack = { section = "menu" }
                         )
                     }
                 }

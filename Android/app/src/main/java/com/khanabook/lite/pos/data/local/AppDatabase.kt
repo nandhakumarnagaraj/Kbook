@@ -28,7 +28,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         StaffPermissionEntity::class,
                         PermissionRequestEntity::class
                 ],
-        version = 68,
+        version = 69,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1022,6 +1022,21 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
         val MIGRATION_66_67 = object : Migration(66, 67) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_68_69 = object : Migration(68, 69) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Drop marketplace columns removed from RestaurantProfileEntity in commit eea83ce8
+                if (db.hasColumn("restaurant_profile", "zomato_enabled")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` DROP COLUMN `zomato_enabled`")
+                }
+                if (db.hasColumn("restaurant_profile", "swiggy_enabled")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` DROP COLUMN `swiggy_enabled`")
+                }
+                if (db.hasColumn("restaurant_profile", "own_website_enabled")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` DROP COLUMN `own_website_enabled`")
+                }
             }
         }
 

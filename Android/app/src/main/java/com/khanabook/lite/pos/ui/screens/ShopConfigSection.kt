@@ -101,8 +101,6 @@ fun ShopConfigView(
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
-    var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
-    var fssaiExpiry by remember { mutableStateOf(profile?.fssaiExpiryDate ?: "") }
     var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
 
     val profileLogoUrl by viewModel.profile.collectAsStateWithLifecycle()
@@ -128,16 +126,14 @@ fun ShopConfigView(
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
-    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, fssaiNumber, fssaiExpiry, profile) {
+    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
         name != (profile?.shopName ?: "") ||
             address != (profile?.shopAddress ?: "") ||
             whatsapp != (profile?.whatsappNumber ?: "") ||
             email != (profile?.email ?: "") ||
             consent != (profile?.emailInvoiceConsent ?: false) ||
             reviewUrl != (profile?.reviewUrl ?: "") ||
-            invoiceFooter != (profile?.invoiceFooter ?: "") ||
-            fssaiNumber != (profile?.fssaiNumber ?: "") ||
-            fssaiExpiry != (profile?.fssaiExpiryDate ?: "")
+            invoiceFooter != (profile?.invoiceFooter ?: "")
     }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -213,8 +209,6 @@ fun ShopConfigView(
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
             invoiceFooter = it.invoiceFooter ?: ""
-            fssaiNumber = it.fssaiNumber ?: ""
-            fssaiExpiry = it.fssaiExpiryDate ?: ""
         }
     }
 
@@ -438,18 +432,6 @@ fun ShopConfigView(
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.medium))
-            Text("Compliance", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(spacing.small))
-            ParchmentTextField(
-                value = fssaiNumber,
-                onValueChange = { fssaiNumber = it },
-                label = "FSSAI License No. *",
-                isError = fssaiNumber.isBlank(),
-                supportingText = if (fssaiNumber.isBlank()) "FSSAI license number is mandatory" else null
-            )
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = fssaiExpiry, onValueChange = { fssaiExpiry = it }, label = "FSSAI Expiry (YYYY-MM-DD)")
-            Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
                 onModeSelected = { mode ->
@@ -469,11 +451,7 @@ fun ShopConfigView(
 
             ConfigActionButtons(
                 onSave = {
-                        if (fssaiNumber.isBlank()) {
-                            toastScope.launch {
-                                KhanaToast.show("FSSAI license number is mandatory", ToastKind.Error)
-                            }
-                        } else if (numberChanged && !isOtpVerified) {
+                        if (numberChanged && !isOtpVerified) {
                             toastScope.launch {
                                 KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
                             }
@@ -488,8 +466,6 @@ fun ShopConfigView(
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
                                 invoiceFooter = invoiceFooter,
-                                fssaiNumber = fssaiNumber,
-                                fssaiExpiryDate = fssaiExpiry,
                                 orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
                                 isSynced = false,
                                 updatedAt = System.currentTimeMillis()

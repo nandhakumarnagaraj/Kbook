@@ -1,9 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, ViewChild, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, ViewChild, HostListener, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BottomActionBarModule } from '../bottom-action-bar/bottom-action-bar.module';
+import { environment } from '../../../environments/environment';
+
+const API = environment.apiBaseUrl;
 
 type NavLink = { label: string; path: string; icon: string };
 
@@ -359,13 +363,15 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
     }
   `]
 })
-export class SidebarLayoutComponent {
+export class SidebarLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 
   readonly menuOpen = signal(false);
+  readonly orderPaymentFlowMode = signal<string>('pay_before_food');
 
   readonly session = this.authService.session;
   readonly contextTitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'KhanaBook Platform' : 'Restaurant operations');
@@ -383,9 +389,13 @@ export class SidebarLayoutComponent {
     if (role === 'SHOP_ADMIN') {
       return [{ label: 'Devices', path: '/business/terminals', icon: '▣' }];
     }
-    return [
+    const items: NavLink[] = [
       { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
-      { label: 'Active Orders', path: '/business/active-orders', icon: '🔴' },
+    ];
+    if (this.orderPaymentFlowMode() === 'pay_after_food') {
+      items.push({ label: 'Active Orders', path: '/business/active-orders', icon: '🔴' });
+    }
+    items.push(
       { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰' },
       { label: 'Reports', path: '/business/reports', icon: '◔' },
       { label: 'Orders', path: '/business/orders', icon: '▤' },
@@ -394,19 +404,39 @@ export class SidebarLayoutComponent {
       { label: 'Staff', path: '/business/staff', icon: '◍' },
       { label: 'Settings', path: '/business/settings', icon: '⚙' },
       { label: 'Devices', path: '/business/terminals', icon: '▣' }
-    ];
+    );
+    return items;
   });
 
-  readonly bottomActionItems = signal<BottomActionBarItem[]>([
-    { label: 'Orders', icon: 'shop', route: '/business/orders', badge: '24' },
-    { label: 'Reports', icon: 'chart', route: '/business/reports' },
-    { label: 'Settings', icon: 'settings', route: '/business/settings' },
-    { label: 'KDS', icon: 'kitchen', route: '/business/active-orders' }
-  ]);
+  readonly bottomActionItems = computed<BottomActionBarItem[]>(() => {
+    const items: BottomActionBarItem[] = [
+      { label: 'Orders', icon: 'shop', route: '/business/orders', badge: '24' },
+      { label: 'Reports', icon: 'chart', route: '/business/reports' },
+      { label: 'Settings', icon: 'settings', route: '/business/settings' }
+    ];
+    if (this.orderPaymentFlowMode() === 'pay_after_food') {
+      items.push({ label: 'KDS', icon: 'kitchen', route: '/business/active-orders' });
+    }
+    return items;
+  });
 
   readonly selectedBottomTab = signal(0);
 
   readonly isMobileView = computed(() => window.innerWidth < 1024);
+
+  ngOnInit(): void {
+    const role = this.session()?.role;
+    if (role && role !== 'KBOOK_ADMIN' && role !== 'SHOP_ADMIN') {
+      this.http.get<any>(`${API}/business/profile`).subscribe({
+        next: (p) => {
+          if (p?.orderPaymentFlowMode) {
+            this.orderPaymentFlowMode.set(p.orderPaymentFlowMode);
+          }
+        },
+        error: () => {}
+      });
+    }
+  }
 
   toggleMenu(): void {
     if (this.menuOpen()) { this.closeMenu(); return; }

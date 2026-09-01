@@ -115,24 +115,18 @@ fun ComplianceDocumentsScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(layout.contentPadding),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
-            }
-            Text("Compliance Documents", color = TextGold, style = MaterialTheme.typography.titleLarge)
-        }
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = spacing.medium)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(layout.contentPadding)
+                .fillMaxWidth()
+                .padding(horizontal = spacing.large),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
             val fssai = profile?.fssaiNumber
             ComplianceCard(title = "FSSAI License") {
@@ -186,7 +180,7 @@ fun ComplianceDocumentsScreen(
                 Text("View / Sign Merchant e-Agreement", color = PrimaryGold)
             }
 
-            if (!isPrimaryDevice) {
+if (!isPrimaryDevice) {
                 Spacer(Modifier.height(spacing.medium))
                 Text("Document uploads are only allowed on the primary device.", color = TextLight, style = MaterialTheme.typography.bodySmall)
             }

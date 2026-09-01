@@ -384,3 +384,159 @@ The competitor analysis reveals that Khanabook's Minimalism + Accents design sys
 5. Consider plain-language menu/analytics summaries
 
 All enhancements should maintain the **--kb-** design token system and espresso brand identity (#E87A1E as secondary accent alongside #3B82F6 primary).
+
+---
+
+## 11. Competitor Design Tokens (Extracted from Live Sites)
+
+### POSIST Design Tokens
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Brand** | `#875ec2` (purple) | Gradient buttons: `linear-gradient(90deg, #ff6f92 0%, #875ec2 100%)` |
+| **Accent Blue** | `#2ea3f2` | Links, nav borders, active states |
+| **Accent Pink** | `#f7828e` / `#fcb6ab` | Secondary button gradient |
+| **Accent Purple** | `#8324DB` / `#8300E9` | Section backgrounds |
+| **Accent Teal** | `#82c0c7` / `#7EBEC5` | Hover states |
+| **Footer Gradient** | `#005C60` → `#390178` | Teal-to-purple gradient |
+| **Body Background** | `#ffffff` | Page background |
+| **Light Pink Bg** | `#ffeff3` | Section backgrounds |
+| **Light Mint Bg** | `#E0F3EF` | Section backgrounds |
+| **Body Text** | `#666666` | Default paragraph text |
+| **Heading Text** | `#333333` | Headings |
+| **Primary Font** | `Poppins` | Headings + body |
+| **Secondary Font** | `Montserrat` | Heading override |
+| **Button Font** | `Roboto` | CTA buttons |
+| **Border Radius** | `3px` - `50px` | Varied (buttons: 4px, cards: 10px, pills: 34px) |
+| **Card Shadow** | `0px 12px 36px -2px rgba(0,0,0,0.25)` | Elevated cards |
+| **Pink Shadow** | `0px 20px 30px -10px rgba(249,44,139,0.4)` | Accent shadows |
+| **Spacing Scale** | `0.44rem` → `5.06rem` | 7-step WordPress preset scale |
+
+### TMBILL Design Tokens
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Brand** | `#00a300` (green) | Top bar, primary sections |
+| **Theme Color** | `#ffffff` | Meta theme-color |
+| **Accent Blue** | `#5bbad5` | Safari pinned tab |
+| **Body Text** | `#5a6671` | Paragraph text, links |
+| **Body Background** | `#ffffff` | Page background |
+| **Navbar Background** | `#f8f9fa` (Bootstrap light) | Navigation bar |
+| **Primary Font** | `Poppins` (400-900) | All text |
+| **Display Font** | `Allura` | Decorative/headings |
+| **Secondary Font** | `Mirza` | Arabic support |
+| **CTA Primary** | `btn-header-primary` class | Main call-to-action |
+| **CTA Success** | `btn-header-success` class | WhatsApp tool button |
+| **Card Style** | `shadow_lg--bgwhite` | Elevated white cards |
+| **Border Radius** | Bootstrap defaults | `.rounded` class |
+| **Dark Mode** | No | Light-only |
+
+### RESTROFI Design Tokens
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Brand** | `#E85D2E` (orange) | Theme-color, primary actions |
+| **Dark Brand** | `#D04E21` | Darker hover states |
+| **Error Red** | `#FF3946` | Alerts, errors |
+| **Success Green** | `#10B981` / `#00D072` | Checkmarks, success |
+| **Highlight Yellow** | `#FFCE00` | Accent highlights |
+| **Cyan Blue** | `#00C3FF` | Accent blue |
+| **Light Orange** | `#FF7A4D` / `#F4784F` | Secondary orange |
+| **Body Background** | `#ffffff` | Light mode |
+| **Dark Background** | `#0a0a0a` | Dark mode |
+| **Footer Background** | `#111111` | Near-black footer |
+| **Primary Text** | `#1A1A1A` | Light mode headings |
+| **Body Text** | `#666666` (gray-600) | Secondary text |
+| **Cream Bg** | `#F0E8DC` | Warm off-white sections |
+| **Warm White** | `#FFF8F2` | Light warm backgrounds |
+| **Font System** | Self-hosted WOFF2 | Next.js font optimization |
+| **Border Radius** | `0.75rem` (12px) | Cards, buttons |
+| **Border Radius Sm** | `0.5rem` (8px) | Smaller elements |
+| **Dark Mode** | Yes (full) | `dark:` Tailwind variants |
+| **CSS Framework** | Tailwind CSS | Utility-first |
+| **Transitions** | `transition-colors duration-200` | Hover/focus states |
+
+---
+
+## 12. Khanabook vs Competitor Token Comparison
+
+| Token | POSist | TMBill | Restrofi | Khanabook |
+|---|---|---|---|---|
+| **Primary Color** | `#875ec2` (purple) | `#00a300` (green) | `#E85D2E` (orange) | `#3B82F6` (blue) |
+| **Secondary Color** | `#ff6f92` (pink) | `#5bbad5` (light blue) | `#10B981` (green) | `#E87A1E` (espresso) |
+| **Body Font** | Poppins | Poppins | Self-hosted | Inter |
+| **Heading Font** | Montserrat | Poppins | Self-hosted | Inter |
+| **Background** | `#ffffff` | `#ffffff` | `#ffffff` / `#0a0a0a` | `#FAFAF8` |
+| **Body Text** | `#666666` | `#5a6671` | `#1A1A1A` | `#2A1F17` |
+| **Border Radius** | 3-50px varied | Bootstrap defaults | 8-12px | 6-12px |
+| **Dark Mode** | No | No | Yes | No (light only) |
+| **CSS Approach** | WordPress/Divi | Bootstrap | Tailwind | Custom tokens |
+| **Token System** | WordPress presets | None (class-based) | Tailwind utilities | `--kb-*` OKLCH |
+
+### EZO Design Tokens (store.ezobooks.in)
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Font** | `Assistant` | Headings + body (Shopify Dawn theme) |
+| **Body Background** | `#ffffff` | Light mode |
+| **Dark Background** | `#121212` | Near-black (buttons, dark scheme) |
+| **Dark Blue-Gray** | `#242833` | Color scheme 3 |
+| **Purple Accent** | `#383184` | Color scheme 5 (buttons, links) |
+| **Light Gray Bg** | `#f3f3f3` | Color scheme 2 |
+| **Button Color** | `#121212` | Primary CTA buttons |
+| **Button Text** | `#ffffff` | White on dark buttons |
+| **Border Radius** | `0px` | Sharp corners (brutalist style) |
+| **Badge Radius** | `4rem` | Rounded badges |
+| **Font Scale** | `1.0` | Base scale |
+| **Media Radius** | `0px` | Image corners |
+| **Product Card Radius** | `0rem` | Sharp product cards |
+| **Variant Pills Radius** | `40px` | Rounded variant selectors |
+| **Dark Mode** | No | Light-only |
+
+### DotPe Design Tokens (dotpe.in)
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Font** | `Manrope` | Headings + body |
+| **Primary Color** | `#1B2D46` | Dark navy (info sections, modal left) |
+| **Success Green** | `#0D781E` | Step 2 modal background |
+| **Button Blue** | `#007bff` | Primary CTA buttons |
+| **Body Background** | `#ffffff` | Page background |
+| **Text Color** | `#000000` | Headings, body text |
+| **Muted Text** | `#727272` | Input placeholders |
+| **Border Radius** | `100px` | Pill buttons |
+| **Modal Radius** | `32px` | Desktop modal |
+| **Mobile Modal Radius** | `24px` | Mobile modal |
+| **Close Button Radius** | `100%` | Circular close button |
+| **Dark Mode** | No | Light-only |
+| **CSS Framework** | Bootstrap 5 | Grid + components |
+
+### eZee Design Tokens (ezeefrontdesk.com)
+
+| Token Category | Value | Usage |
+|---|---|---|
+| **Primary Blue** | `#0862ce` | Buttons, links, CTAs |
+| **Chat Green** | `#76b51b` | Chat button background |
+| **Body Background** | `#ffffff` | Page background |
+| **Text Color** | `#33475b` | Form labels, body text |
+| **Input Border** | `#cbd4de` | Form input borders |
+| **Font** | System/Custom | Loaded via CSS |
+| **Border Radius** | `4px` | Buttons, inputs |
+| **Modal Radius** | `6px` | Call-now modal |
+| **Chat Button Radius** | `100%` | Circular chat button |
+| **Dark Mode** | No | Light-only |
+| **CSS Framework** | Custom + Bootstrap | Legacy codebase |
+
+---
+
+### Key Insights:
+1. **All competitors use white backgrounds** — Khanabook's warm `#FAFAF8` is distinctive
+2. **Poppins dominates** — POSist, TMBill both use Poppins; Khanabook uses Inter (cleaner)
+3. **Warm accent colors** — POSist pink-purple, Restrofi orange, Khanabook espresso orange — all warm
+4. **Restrofi is most modern** — Tailwind, dark mode, self-hosted fonts, utility-first
+5. **Khanabook's OKLCH tokens are unique** — no competitor uses perceptual color space
+6. **Espresso `#E87A1E` is competitive** — similar warmth to Restrofi's `#E85D2E`
+7. **EZO uses brutalist design** — `0px` border radius everywhere, sharp corners
+8. **DotPe uses Manrope** — geometric sans-serif, distinctive from Poppins/Inter
+9. **eZee uses blue `#0862ce`** — traditional enterprise SaaS color
+10. **Dark mode only Restrofi** — all other competitors are light-only

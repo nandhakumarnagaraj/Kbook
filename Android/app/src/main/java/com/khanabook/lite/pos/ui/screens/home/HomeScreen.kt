@@ -59,6 +59,7 @@ fun HomeScreen(
     val quarantinedSyncCount by viewModel.quarantinedSyncCount.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val orderPaymentFlowMode by viewModel.orderPaymentFlowMode.collectAsStateWithLifecycle()
+    val showActiveOrders = orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -428,22 +429,24 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(spacing.small)
                         ) {
-                            HomeActionCard(
-                                text = "Active Orders",
-                                subtitle = activeSubtitle,
-                                icon = Icons.Default.ShoppingCart,
-                                backgroundColor = CardBG,
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = {
-                                    if (activeDraftBills.isEmpty()) {
-                                        coroutineScope.launch {
-                                            KhanaToast.show("No active order", ToastKind.Info)
+                            if (showActiveOrders) {
+                                HomeActionCard(
+                                    text = "Active Orders",
+                                    subtitle = activeSubtitle,
+                                    icon = Icons.Default.ShoppingCart,
+                                    backgroundColor = CardBG,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = {
+                                        if (activeDraftBills.isEmpty()) {
+                                            coroutineScope.launch {
+                                                KhanaToast.show("No active order", ToastKind.Info)
+                                            }
+                                        } else {
+                                            onActiveOrder()
                                         }
-                                    } else {
-                                        onActiveOrder()
                                     }
-                                }
-                            )
+                                )
+                            }
                             HomeActionCard(
                                 text = "Find Bill",
                                 subtitle = "Search previous invoices",

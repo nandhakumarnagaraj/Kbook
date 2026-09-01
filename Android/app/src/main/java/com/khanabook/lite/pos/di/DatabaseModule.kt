@@ -155,7 +155,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_64_65,
                 AppDatabase.MIGRATION_65_66,
                 AppDatabase.MIGRATION_66_67,
-                AppDatabase.MIGRATION_67_68
+                AppDatabase.MIGRATION_67_68,
+                AppDatabase.MIGRATION_68_69
             )
             .build()
     }

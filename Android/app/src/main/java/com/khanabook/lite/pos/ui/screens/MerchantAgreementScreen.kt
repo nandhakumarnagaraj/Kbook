@@ -54,16 +54,47 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.SignaturePad
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DangerRed
+import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.SuccessGreen
+import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.viewmodel.AgreementEvent
 import com.khanabook.lite.pos.ui.viewmodel.AgreementUiState
 import com.khanabook.lite.pos.ui.viewmodel.MerchantAgreementViewModel
+import androidx.compose.material3.ButtonDefaults
+
+import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.flow.collectLatest
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
+import com.khanabook.lite.pos.ui.theme.ErrorPink
+
+@Composable
+private fun outlinedTextFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        unfocusedContainerColor = DarkBrown1,
+        focusedContainerColor = DarkBrown2,
+        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+        focusedBorderColor = PrimaryGold,
+        cursorColor = PrimaryGold,
+        unfocusedTextColor = TextLight,
+        focusedTextColor = TextLight,
+        unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+        focusedLabelColor = TextGold.copy(alpha = 0.7f)
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,90 +128,110 @@ fun MerchantAgreementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Merchant Agreement") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(padding)
+    val spacing = KhanaBookTheme.spacing
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = spacing.medium)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.large),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
             when (val state = uiState) {
                 is AgreementUiState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = PrimaryGold)
                     }
                 }
                 is AgreementUiState.Error -> {
-                    Column(
-                        Modifier.fillMaxSize().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    KhanaBookCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.2f))
                     ) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { viewModel.load() }) { Text("Retry") }
+                        Text(
+                            text = state.message,
+                            modifier = Modifier.padding(spacing.medium),
+                            color = DangerRed,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    Button(
+                        onClick = { viewModel.load() },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+                    ) {
+                        Text("Retry", color = DarkBrown1)
                     }
                 }
                 is AgreementUiState.Ready -> {
                     val status = state.status
                     Column(
-                        Modifier
+                        modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
                     ) {
-                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                        KhanaBookCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = KhanaRadii.lg
+                        ) {
                             Column(
-                                Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.padding(spacing.medium),
+                                verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         if (status.hasAgreement) Icons.Filled.CheckCircle else Icons.Filled.Description,
                                         contentDescription = null,
-                                        tint = if (status.hasAgreement) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
+                                        tint = if (status.hasAgreement) SuccessGreen else PrimaryGold,
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small))
                                     Text(
                                         if (status.hasAgreement) "Agreement Signed" else "Agreement Not Signed",
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextLight
                                     )
                                 }
                                 if (status.hasAgreement) {
-                                    status.signerName?.let { Text("Signed by: $it") }
-                                    status.agreementVersion?.let { Text("Version: $it") }
-                                    status.signedAt?.let { Text("Signed on: ${formatDate(it)}") }
-                                    Spacer(Modifier.height(8.dp))
+                                    status.signerName?.let { Text("Signed by: $it", color = TextGold, style = MaterialTheme.typography.bodyMedium) }
+                                    status.agreementVersion?.let { Text("Version: $it", color = TextGold, style = MaterialTheme.typography.bodyMedium) }
+                                    status.signedAt?.let { Text("Signed on: ${formatDate(it)}", color = TextGold, style = MaterialTheme.typography.bodyMedium) }
+                                    Spacer(modifier = Modifier.height(spacing.small))
                                     Button(
                                         onClick = { viewModel.downloadAndOpen() },
-                                        enabled = !isSubmitting
-                                    ) { Text("View Agreement") }
+                                        enabled = !isSubmitting,
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+                                    ) {
+                                        Text("View Agreement", color = DarkBrown1)
+                                    }
                                 }
                             }
                         }
 
                         if (!isPrimaryDevice) {
-                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Text("Read-only on this device", fontWeight = FontWeight.Bold)
-                                    Spacer(Modifier.height(4.dp))
+                            KhanaBookCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = KhanaRadii.lg,
+                                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.1f))
+                            ) {
+                                Column(modifier = Modifier.padding(spacing.medium)) {
+                                    Text("Read-only on this device", fontWeight = FontWeight.Bold, color = DangerRed)
+                                    Spacer(modifier = Modifier.height(spacing.small))
                                     Text(
                                         "Signing is only available on the primary device that " +
                                             "activated this restaurant. You can still view the signed " +
-                                            "agreement above from any device."
+                                            "agreement above from any device.",
+                                        color = TextGold
                                     )
                                 }
                             }
@@ -190,46 +241,62 @@ fun MerchantAgreementScreen(
                             Text(
                                 "Sign the agreement",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryGold
                             )
-                            OutlinedTextField(
-                                value = signerName,
-                                onValueChange = { signerName = it },
-                                label = { Text("Signer name") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text("Signature", style = MaterialTheme.typography.labelLarge)
-                            Card(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp),
-                                shape = RoundedCornerShape(12.dp)
+                            KhanaBookCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = KhanaRadii.lg
                             ) {
-                                SignaturePad(
-                                    modifier = Modifier.fillMaxSize(),
-                                    clearTrigger = clearTrigger,
-                                    onSignatureChange = { signatureBitmap = it }
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { clearTrigger++ }) { Text("Clear") }
-                                Button(
-                                    onClick = { viewModel.signAndUpload(signerName, signatureBitmap) },
-                                    enabled = !isSubmitting
-                                ) {
-                                    if (isSubmitting) {
-                                        CircularProgressIndicator(
-                                            Modifier.size(18.dp),
-                                            strokeWidth = 2.dp
+                                Column(modifier = Modifier.padding(spacing.medium)) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = signerName,
+                                        onValueChange = { signerName = it },
+                                        label = { Text("Signer name", color = TextGold) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = outlinedTextFieldColors()
+                                    )
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    Text("Signature", style = MaterialTheme.typography.labelLarge, color = TextGold)
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp),
+                                        shape = KhanaRadii.lg
+                                    ) {
+                                        com.khanabook.lite.pos.ui.designsystem.SignaturePad(
+                                            modifier = Modifier.fillMaxSize(),
+                                            clearTrigger = clearTrigger,
+                                            onSignatureChange = { signatureBitmap = it }
                                         )
-                                    } else {
-                                        Text("Review & Sign")
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                                        OutlinedButton(
+                                            onClick = { clearTrigger++ },
+                                            border = BorderStroke(1.dp, PrimaryGold),
+                                            shape = KhanaRadii.xl
+                                        ) { Text("Clear", color = PrimaryGold) }
+                                        Button(
+                                            onClick = { viewModel.signAndUpload(signerName, signatureBitmap) },
+                                            enabled = !isSubmitting,
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                            shape = KhanaRadii.xl
+                                        ) {
+                                            if (isSubmitting) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = DarkBrown1
+                                                )
+                                            } else {
+                                                Text("Review & Sign", color = DarkBrown1)
+                                            }
+                                        }
+                                    }
+                                    if (isSubmitting) {
+                                        LinearProgressIndicator(color = PrimaryGold, modifier = Modifier.fillMaxWidth())
                                     }
                                 }
-                            }
-                            if (isSubmitting) {
-                                LinearProgressIndicator(Modifier.fillMaxWidth())
                             }
                         }
                     }
@@ -237,6 +304,8 @@ fun MerchantAgreementScreen(
             }
         }
     }
+
+    SnackbarHost(hostState = snackbarHostState)
 }
 
 private fun formatDate(epochMillis: Long): String =

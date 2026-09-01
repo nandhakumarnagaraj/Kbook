@@ -3,7 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseConfig } from './firebase.config';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +14,9 @@ export class FirebaseInitService {
   private messaging: any;
   private token: string | null = null;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+  private platformId = inject(PLATFORM_ID);
+
+  constructor() {
     this.initialize();
   }
 
@@ -95,8 +97,7 @@ export class FirebaseInitService {
         body,
         icon: '/assets/icons/khanabook-logo.svg',
         tag: type,
-        requireInteraction: false,
-        timestamp: Date.now()
+        requireInteraction: false
       });
 
       setTimeout(() => {

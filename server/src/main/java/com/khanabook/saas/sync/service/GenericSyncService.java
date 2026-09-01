@@ -4,17 +4,14 @@ import com.khanabook.saas.utility.AppConstants;
 
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
-import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.SecurityAuditService;
-import com.khanabook.saas.service.PushNotificationService;
 import com.khanabook.saas.util.BillTerminalUtil;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
-import com.khanabook.saas.exception.BusinessRuleException;
 import com.khanabook.saas.security.authz.OfflineAuthDecider;
 import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.entity.StaffPermissionRevision;
@@ -48,11 +45,12 @@ public class GenericSyncService {
 	private final SyncFallbackSaver syncFallbackSaver;
 	private final PermissionService permissionService;
 	private final StaffPermissionRevisionRepository revisionRepo;
-
-	// Optional: push notifications are disabled until PushNotificationService is on
-	// the classpath with Firebase configured (see FirebaseConfig / PushNotificationService).
-	@org.springframework.beans.factory.annotation.Autowired(required = false)
-	private PushNotificationService pushNotificationService;
+	private final RelationalIdResolver relationalIdResolver;
+	private final TerminalOwnershipService terminalOwnershipService;
+	private final BillSyncService billSyncService;
+	private final SyncNotificationService syncNotificationService;
+	private final UserProfileSyncService userProfileSyncService;
+	private final BillPaymentSyncService billPaymentSyncService;
 
 	// Optional: recipe-based raw-material inventory (V81). Absent only if the
 	// migration hasn't run.
@@ -70,48 +68,12 @@ public class GenericSyncService {
 	private long maxClockSkewMs;
 
 	private static boolean isFinalizedOrderStatus(String orderStatus) {
-		return orderStatus != null
-				&& (orderStatus.equalsIgnoreCase("completed") || orderStatus.equalsIgnoreCase("paid"));
+		return BillSyncService.isFinalizedOrderStatus(orderStatus);
 	}
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
-		if (incomingUser.getId() != null) {
-			Optional<User> byServerId = userRepository.findById(incomingUser.getId());
-			if (byServerId.isPresent() && byServerId.get().getRestaurantId().equals(tenantId)) {
-				return byServerId.get();
-			}
-		}
-
-		if (incomingUser.getLoginId() != null && !incomingUser.getLoginId().isBlank()) {
-			Optional<User> byLoginId = userRepository.findByLoginIdIgnoreCase(incomingUser.getLoginId());
-			if (byLoginId.isPresent() && byLoginId.get().getRestaurantId().equals(tenantId)) {
-				return byLoginId.get();
-			}
-		}
-
-		if (incomingUser.getEmail() != null && !incomingUser.getEmail().isBlank()) {
-			Optional<User> byEmail = userRepository.findByEmailIgnoreCase(incomingUser.getEmail());
-			if (byEmail.isPresent() && byEmail.get().getRestaurantId().equals(tenantId)) {
-				return byEmail.get();
-			}
-		}
-
-		if (incomingUser.getGoogleEmail() != null && !incomingUser.getGoogleEmail().isBlank()) {
-			Optional<User> byGoogleEmail = userRepository.findByGoogleEmailIgnoreCase(incomingUser.getGoogleEmail());
-			if (byGoogleEmail.isPresent() && byGoogleEmail.get().getRestaurantId().equals(tenantId)) {
-				return byGoogleEmail.get();
-			}
-		}
-
-		if (incomingUser.getWhatsappNumber() != null && !incomingUser.getWhatsappNumber().isBlank()) {
-			Optional<User> byWhatsapp = userRepository.findByWhatsappNumber(incomingUser.getWhatsappNumber());
-			if (byWhatsapp.isPresent() && byWhatsapp.get().getRestaurantId().equals(tenantId)) {
-				return byWhatsapp.get();
-			}
-		}
-
-		return null;
+		return userProfileSyncService.findExistingUserByIdentity(tenantId, incomingUser, userRepository);
 	}
 
 	@Transactional
@@ -241,7 +203,7 @@ public class GenericSyncService {
 			List<T> devicePayload = entry.getValue();
 
 			// Build bulk ID maps once per device batch — eliminates N+1 queries
-			RelationalIdMaps idMaps = buildRelationalIdMaps(devicePayload, tenantId, deviceId);
+			RelationalIdResolver.IdMaps idMaps = relationalIdResolver.buildMaps(devicePayload, tenantId, deviceId);
 
 			List<Long> incomingLocalIds = devicePayload.stream().map(BaseSyncEntity::getLocalId)
 					.filter(Objects::nonNull).distinct().collect(Collectors.toList());
@@ -351,7 +313,7 @@ public class GenericSyncService {
 					}
 					if (incomingRecord instanceof Bill bill
 							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
-						validateBillNumberConflicts(targetTenantId, bill, billRepo);
+						billSyncService.validateBillNumberConflicts(targetTenantId, bill, billRepo);
 					}
 
 					// Idempotent bill upsert: if a bill with this publicToken already exists,
@@ -493,71 +455,31 @@ public class GenericSyncService {
 						if (incomingRecord.getUpdatedAt() >= existingRecord.getUpdatedAt()) {
 
 								if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
-									if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-										user.setPasswordHash(existingUser.getPasswordHash());
-									}
-									if (user.getLoginId() == null || user.getLoginId().trim().isEmpty()) {
-										user.setLoginId(existingUser.getLoginId());
-									}
-									if (user.getAuthProvider() == null) {
-										user.setAuthProvider(existingUser.getAuthProvider() != null ? existingUser.getAuthProvider()
-												: AuthProvider.PHONE);
-									}
-									// Data Overwrite Protection: Don't overwrite email with null/empty from app
-									if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-										user.setEmail(existingUser.getEmail());
-									} else if ((existingUser.getAuthProvider() == AuthProvider.GOOGLE)
-											&& existingUser.getEmail() != null
-											&& !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
-										// Preserve Google-linked identity when a synced mobile/profile payload carries a phone number.
-										user.setEmail(existingUser.getEmail());
-									}
-								
-									if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
-										user.setGoogleEmail(existingUser.getGoogleEmail());
-									}
+									userProfileSyncService.mergeUserFields(user, existingUser);
 
 									// Prevent duplicate email/phone numbers from crashing the batch sync
-										if (repository instanceof com.khanabook.saas.repository.UserRepository) {
+									if (repository instanceof com.khanabook.saas.repository.UserRepository) {
 										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
-
-										if (existingUser.getLoginId() != null && user.getLoginId() != null
-												&& !existingUser.getLoginId().equalsIgnoreCase(user.getLoginId())) {
-											if (userRepo.existsByLoginId(user.getLoginId())) {
-												throw new BusinessRuleException("Sync rejected: Login identity already exists for another user", "SYNC_LOGIN_CONFLICT");
-											}
-										}
-										
-										if (existingUser.getEmail() != null && user.getEmail() != null && !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
-											if (userRepo.existsByEmail(user.getEmail())) {
-											throw new BusinessRuleException("Sync rejected: Email/Phone already exists for another user", "SYNC_EMAIL_CONFLICT");
-										}
-									}
-									
-									if (existingUser.getWhatsappNumber() != null && user.getWhatsappNumber() != null && !existingUser.getWhatsappNumber().equalsIgnoreCase(user.getWhatsappNumber())) {
-										if (userRepo.existsByWhatsappNumber(user.getWhatsappNumber())) {
-											throw new BusinessRuleException("Sync rejected: Whatsapp number already exists for another user", "SYNC_WHATSAPP_CONFLICT");
-										}
+										userProfileSyncService.validateIdentityUniqueness(user, existingUser, userRepo);
 									}
 								}
-							}
 							
 							// Relational ID Resolution for Updates
-							resolveRelationalIds(incomingRecord, idMaps);
+							relationalIdResolver.resolve(incomingRecord, idMaps);
 							preserveServerOwnedState(incomingRecord, existingRecord);
 
 							// Enforce parent-bill terminal ownership for child records
 							// (BillItem / BillPayment) so one terminal cannot attach or mutate
 							// lines against another terminal's bill.
 							if (incomingRecord instanceof BillItem || incomingRecord instanceof BillPayment) {
-								if (!isChildOwnershipAllowed(incomingRecord, targetTenantId,
+								if (!terminalOwnershipService.isChildOwnershipAllowed(incomingRecord, targetTenantId,
 										trustedTerminalId, trustedDeviceId, isKbookAdmin)) {
 									failedLocalIds.add(incomingRecord.getLocalId());
 									failedReasons.put(incomingRecord.getLocalId(),
 											"Record references a bill owned by another terminal");
-									securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TERMINAL",
-											childParentToken(incomingRecord),
-											childOwnerTerminal(incomingRecord, targetTenantId));
+								securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TERMINAL",
+										terminalOwnershipService.childParentToken(incomingRecord),
+										terminalOwnershipService.childOwnerTerminal(incomingRecord, targetTenantId));
 									continue;
 							}
 							}
@@ -609,7 +531,7 @@ public class GenericSyncService {
 								recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
 							}
 							successfulLocalIds.add(incomingRecord.getLocalId());
-						} else if (isTransactionalIdempotentRetry(incomingRecord, existingRecord)) {
+						} else if (billSyncService.isTransactionalIdempotentRetry(incomingRecord, existingRecord)) {
 							Long localId = incomingRecord.getLocalId();
 							successfulLocalIds.add(localId);
 							localToServerIdMap.put(localId, existingRecord.getId());
@@ -622,96 +544,44 @@ public class GenericSyncService {
 							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
 						}
 					} else {
-							// Idempotency guards for bill payments:
-							// 1. gateway_txn_id: globally-unique gateway transaction ID.
-							// 2. operation_id: device-generated payment component identity,
-							//    scoped to (restaurant_id, operation_id) via partial unique index.
-							// Both scenarios: WorkManager retries a push after a dropped response,
-							// the retry arrives as a "new" record (fresh localId) but the row already
-							// exists. When the identity already exists, we MUST compare the full
-							// semantic fields: if they match exactly, return idempotent success;
-							// if any field differs (amount, mode, bill, gateway identity), reject
-							// with an explicit conflict to prevent silent data corruption.
+							// Idempotency guards for bill payments delegated to BillPaymentSyncService
 							if (incomingRecord instanceof BillPayment newBillPayment) {
-								String txnId = newBillPayment.getGatewayTxnId();
-								if (txnId != null && !txnId.isBlank()) {
-									java.util.Optional<BillPayment> existingGateway =
-											billPaymentRepository.findByRestaurantIdAndGatewayTxnId(targetTenantId, txnId);
-									if (existingGateway.isPresent()) {
-										BillPayment existing = existingGateway.get();
-										if (isExactPaymentMatch(existing, newBillPayment)) {
-											log.info("Idempotent gateway payment retry localId={} txnId={} tenantId={}",
-													newBillPayment.getLocalId(), txnId, targetTenantId);
-											successfulLocalIds.add(newBillPayment.getLocalId());
-											localToServerIdMap.put(newBillPayment.getLocalId(), existing.getId());
-											continue;
-										} else {
-											log.error("CONFLICT: Gateway txnId={} reused with different semantics on restaurant={}: " +
-														"existing billId={} amount={} mode={} vs incoming localId={} billId={} amount={} mode={}",
-													txnId, targetTenantId,
-													existing.getBillId(), existing.getAmount(), existing.getPaymentMode(),
-													newBillPayment.getLocalId(), newBillPayment.getBillId(),
-													newBillPayment.getAmount(), newBillPayment.getPaymentMode());
-											failedLocalIds.add(newBillPayment.getLocalId());
-											failedReasons.put(newBillPayment.getLocalId(),
-													"Payment gateway transaction ID conflicts with an existing payment with different details. Contact support.");
-											continue;
-										}
+								var idempotencyResult = billPaymentSyncService.checkIdempotency(targetTenantId, newBillPayment);
+								if (idempotencyResult.matched()) {
+									if (idempotencyResult.conflictReason() != null) {
+										log.error("CONFLICT: {} tenantId={}", idempotencyResult.conflictReason(), targetTenantId);
+										failedLocalIds.add(newBillPayment.getLocalId());
+										failedReasons.put(newBillPayment.getLocalId(), idempotencyResult.conflictReason());
+										continue;
 									}
-								}
-								// Operation ID dedup (Android-generated payment component identity).
-								// Uses the scoped unique index as the final authority.
-								String opId = newBillPayment.getOperationId();
-								if (opId != null && !opId.isBlank()) {
-									java.util.Optional<BillPayment> existingOp =
-											billPaymentRepository.findByRestaurantIdAndOperationId(targetTenantId, opId);
-									if (existingOp.isPresent()) {
-										BillPayment existing = existingOp.get();
-										if (isExactPaymentMatch(existing, newBillPayment)) {
-											log.info("Idempotent operation payment retry localId={} opId={} tenantId={}",
-													newBillPayment.getLocalId(), opId, targetTenantId);
-											successfulLocalIds.add(newBillPayment.getLocalId());
-											localToServerIdMap.put(newBillPayment.getLocalId(), existing.getId());
-											continue;
-										} else {
-											log.error("CONFLICT: Operation opId={} reused with different semantics on restaurant={}: " +
-														"existing billId={} amount={} mode={} vs incoming localId={} billId={} amount={} mode={}",
-													opId, targetTenantId,
-													existing.getBillId(), existing.getAmount(), existing.getPaymentMode(),
-													newBillPayment.getLocalId(), newBillPayment.getBillId(),
-													newBillPayment.getAmount(), newBillPayment.getPaymentMode());
-											failedLocalIds.add(newBillPayment.getLocalId());
-											failedReasons.put(newBillPayment.getLocalId(),
-													"Payment operation identity conflicts with an existing payment with different details. Contact support.");
-											continue;
-										}
-									}
+									BillPayment existing = idempotencyResult.existingPayment();
+									successfulLocalIds.add(newBillPayment.getLocalId());
+									localToServerIdMap.put(newBillPayment.getLocalId(), existing.getId());
+									continue;
 								}
 							}
 
 							// Relational ID Resolution for New Records
-						resolveRelationalIds(incomingRecord, idMaps);
+						relationalIdResolver.resolve(incomingRecord, idMaps);
 
 						// SECURITY: new users created via sync are always OWNER.
 						// Only KBOOK_ADMIN can create admin users (via web-admin, not sync).
-						if (incomingRecord instanceof User newUser && !isKbookAdmin) {
-							newUser.setRole(com.khanabook.saas.entity.UserRole.OWNER);
-							newUser.setIsActive(true);
-							newUser.setTokenInvalidatedAt(null);
+						if (incomingRecord instanceof User newUser) {
+							userProfileSyncService.enforceNewUserRole(newUser, isKbookAdmin);
 						}
 
-						// Enforce parent-bill terminal ownership for child records
-						// (BillItem / BillPayment) so one terminal cannot attach lines to
-						// another terminal's bill.
-						if (incomingRecord instanceof BillItem || incomingRecord instanceof BillPayment) {
-							if (!isChildOwnershipAllowed(incomingRecord, targetTenantId,
-									trustedTerminalId, trustedDeviceId, isKbookAdmin)) {
+							// Enforce parent-bill terminal ownership for child records
+							// (BillItem / BillPayment) so one terminal cannot attach lines to
+							// another terminal's bill.
+							if (incomingRecord instanceof BillItem || incomingRecord instanceof BillPayment) {
+								if (!terminalOwnershipService.isChildOwnershipAllowed(incomingRecord, targetTenantId,
+										trustedTerminalId, trustedDeviceId, isKbookAdmin)) {
 								failedLocalIds.add(incomingRecord.getLocalId());
 								failedReasons.put(incomingRecord.getLocalId(),
 										"Record references a bill owned by another terminal");
 								securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TERMINAL",
-										childParentToken(incomingRecord),
-										childOwnerTerminal(incomingRecord, targetTenantId));
+										terminalOwnershipService.childParentToken(incomingRecord),
+										terminalOwnershipService.childOwnerTerminal(incomingRecord, targetTenantId));
 								continue;
 							}
 						}
@@ -761,8 +631,8 @@ public class GenericSyncService {
 		// Decision A strict: lastRevokedRevision >= createdRevision → REJECT.
 		// Generate public_token for new bills that don't have one
 		for (T record : allRecordsToSave) {
-			if (record instanceof Bill bill && bill.getPublicToken() == null) {
-				bill.setPublicToken(java.util.UUID.randomUUID());
+			if (record instanceof Bill bill) {
+				billSyncService.ensurePublicToken(bill);
 			}
 		}
 
@@ -811,17 +681,13 @@ public class GenericSyncService {
 					} catch (DataIntegrityViolationException recordEx) {
 						// Idempotent recovery: if this is a Bill and the publicToken already exists,
 						// treat as success (the previous push succeeded but client didn't get the response)
-						if (record instanceof Bill failedBill && failedBill.getPublicToken() != null) {
-							var idempotentMatch = billRepository.findByRestaurantIdAndPublicToken(
-									record.getRestaurantId(), failedBill.getPublicToken());
-							if (idempotentMatch.isPresent()) {
-								Bill existing = idempotentMatch.get();
+						if (record instanceof Bill failedBill) {
+							Bill existing = billSyncService.attemptIdempotentRecovery(failedBill, record.getRestaurantId());
+							if (existing != null) {
 								if (record.getLocalId() != null && existing.getId() != null) {
 									localToServerIdMap.put(record.getLocalId(), existing.getId());
 								}
 								// Don't add to failedLocalIds — this is a success
-								log.info("Idempotent recovery: bill publicToken={} already persisted serverId={}",
-										failedBill.getPublicToken(), existing.getId());
 								continue;
 							}
 						}
@@ -876,57 +742,11 @@ public class GenericSyncService {
 		}
 
 		// ── Push Sync Notifications ──────────────────────────────────────
-		if (pushNotificationService != null) {
-			if (repository instanceof BillRepository) {
-				// NOTE: no "new order" push here. Bills arrive at the server on
-				// background sync — AFTER the cashier has settled them — so a
-				// sync-time "New Order Received" would fire post-payment and
-				// notify staff about orders they themselves just took. External
-				// channels already announce at ingestion time ("New QR Order").
-				for (Bill bill : cancelledBills) {
-					if (successfulLocalIds.contains(bill.getLocalId())) {
-						try {
-							String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
-							pushNotificationService.pushToRestaurant(
-								bill.getRestaurantId(),
-								"Order Cancelled",
-								"Order " + displayOrder + " has been cancelled. Reason: " + (bill.getCancelReason() != null ? bill.getCancelReason() : "None specified"),
-								"refund",
-								String.valueOf(bill.getId() != null ? bill.getId() : bill.getLocalId()),
-								"bill",
-								bill.getTotalAmount()
-							);
-						} catch (Exception e) {
-							log.warn("Failed to push cancellation notification: {}", e.getMessage());
-						}
-					}
-				}
-			}
-
-			if (repository instanceof BillPaymentRepository) {
-				for (BillPayment bp : newPayments) {
-					if (successfulLocalIds.contains(bp.getLocalId())) {
-						try {
-							String displayOrder = billRepository.findById(bp.getBillId())
-								.map(b -> b.getDailyOrderDisplay() != null ? b.getDailyOrderDisplay() : "#" + b.getId())
-								.orElse("#" + bp.getBillId());
-							String method = bp.getPaymentMode() != null ? bp.getPaymentMode() : "cash";
-							String amountStr = bp.getAmount() != null ? "₹" + bp.getAmount() : "";
-							pushNotificationService.pushToRestaurant(
-								bp.getRestaurantId(),
-								"Payment Received",
-								"Received " + amountStr + " for Order " + displayOrder + " via " + method,
-								"payment_received",
-								String.valueOf(bp.getBillId()),
-								"bill",
-								bp.getAmount()
-							);
-						} catch (Exception e) {
-							log.warn("Failed to push sync payment notification: {}", e.getMessage());
-						}
-					}
-				}
-			}
+		if (repository instanceof BillRepository) {
+			syncNotificationService.pushCancellationNotifications(cancelledBills, successfulLocalIds);
+		}
+		if (repository instanceof BillPaymentRepository) {
+			syncNotificationService.pushPaymentNotifications(newPayments, successfulLocalIds);
 		}
 		}
 
@@ -939,187 +759,13 @@ public class GenericSyncService {
 		return response;
 	}
 
-	/**
-	 * Compares immutable financial semantics of two BillPayment records
-	 * to determine whether they represent the exact same logical payment.
-	 *
-	 * Matching fields:
-	 *   - restaurant_id (already enforced by the caller)
-	 *   - bill_id (or server_bill_id)
-	 *   - amount (normalized BigDecimal comparison)
-	 *   - payment_mode
-	 *   - gateway_txn_id (null-safe)
-	 *   - gateway_status (null-safe)
-	 *   - verified_by
-	 *   - is_deleted state
-	 *
-	 * Ignores:
-	 *   - local primary key (id)
-	 *   - timestamps
-	 *   - sync metadata (server_updated_at, is_synced, sync_status)
-	 *   - server ID populated later
-	 */
-	private boolean isExactPaymentMatch(BillPayment existing, BillPayment incoming) {
-		// isDeleted: treat null as false (active) to match Android's default.
-		// If one is deleted and the other is active (or null = active), they conflict.
-		boolean existingDeleted = existing.getIsDeleted() != null && existing.getIsDeleted();
-		boolean incomingDeleted = incoming.getIsDeleted() != null && incoming.getIsDeleted();
-		if (existingDeleted != incomingDeleted) {
-			return false;
-		}
-		// Bill identity: match either bill_id (local FK) or server_bill_id.
-		boolean billMatch = Objects.equals(existing.getBillId(), incoming.getBillId())
-				|| (existing.getServerBillId() != null && incoming.getServerBillId() != null
-					&& existing.getServerBillId().equals(incoming.getServerBillId()));
-		if (!billMatch) {
-			return false;
-		}
-		// Amount: compare BigDecimal values, not scale.
-		if (existing.getAmount() == null && incoming.getAmount() != null) return false;
-		if (existing.getAmount() != null && incoming.getAmount() == null) return false;
-		if (existing.getAmount() != null && existing.getAmount().compareTo(incoming.getAmount()) != 0) {
-			return false;
-		}
-		// Payment mode.
-		if (!Objects.equals(existing.getPaymentMode(), incoming.getPaymentMode())) {
-			return false;
-		}
-		// Gateway transaction ID (null-safe).
-		if (!Objects.equals(existing.getGatewayTxnId(), incoming.getGatewayTxnId())) {
-			return false;
-		}
-		// Gateway status (null-safe).
-		if (!Objects.equals(existing.getGatewayStatus(), incoming.getGatewayStatus())) {
-			return false;
-		}
-		// Verification source.
-		if (!Objects.equals(existing.getVerifiedBy(), incoming.getVerifiedBy())) {
-			return false;
-		}
-		return true;
-	}
+	// Methods moved to BillSyncService: isExactPaymentMatch, validateBillNumberConflicts, isTransactionalIdempotentRetry
 
 	private String sanitizeFailureReason(String message) {
 		if (message == null || message.isBlank()) {
 			return "Sync rejected by server";
 		}
 		return message.length() > 240 ? message.substring(0, 240) : message;
-	}
-
-	private void validateBillNumberConflicts(
-			Long tenantId,
-			Bill incomingBill,
-			com.khanabook.saas.repository.BillRepository billRepo) {
-		if (Boolean.TRUE.equals(incomingBill.getIsDeleted())) {
-			return;
-		}
-		if (incomingBill.getDeviceId() == null || incomingBill.getLocalId() == null) {
-			throw new IllegalStateException("Bill identity missing. Sync again after opening Sync Center.");
-		}
-		if (incomingBill.getDailyOrderId() != null
-				&& incomingBill.getLastResetDate() != null
-				&& !incomingBill.getLastResetDate().isBlank()) {
-			billRepo.findConflictingDailyOrder(
-					tenantId,
-					incomingBill.getLastResetDate(),
-					incomingBill.getDailyOrderId(),
-					incomingBill.getDeviceId(),
-					incomingBill.getLocalId(),
-					incomingBill.getTerminalSeries())
-					.ifPresent(conflict -> {
-						throw new IllegalStateException(
-								"Duplicate order #" + incomingBill.getDailyOrderDisplay()
-										+ " already exists for " + incomingBill.getLastResetDate()
-										+ ". Resolve it in Sync Center.");
-					});
-		}
-	}
-
-	private boolean isTransactionalIdempotentRetry(BaseSyncEntity incoming, BaseSyncEntity existing) {
-		boolean transactional = incoming instanceof Bill
-				|| incoming instanceof BillItem
-				|| incoming instanceof BillPayment;
-		return transactional
-				&& existing != null
-				&& incoming.getLocalId() != null
-				&& existing.getLocalId() != null
-				&& incoming.getLocalId().equals(existing.getLocalId())
-				&& Objects.equals(incoming.getDeviceId(), existing.getDeviceId())
-				&& Objects.equals(incoming.getRestaurantId(), existing.getRestaurantId())
-				&& existing.getId() != null;
-	}
-
-	/**
-	 * Child records (BillItem / BillPayment) may only be written when the resolved parent
-	 * bill is modifiable by the caller's trusted terminal. Resolves the parent by server id
-	 * (set by resolveRelationalIds) and applies the same ownership rules as bill pushes.
-	 */
-	private boolean isChildOwnershipAllowed(BaseSyncEntity record, Long tenantId,
-			String trustedTerminalId, String trustedDeviceId, boolean isAdmin) {
-		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
-				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
-		if (serverBillId == null) {
-			return true; // unresolved parent is rejected by the service-layer failure logic
-		}
-		Optional<Bill> parent = billRepository.findById(serverBillId)
-				.filter(b -> b.getRestaurantId().equals(tenantId));
-		if (parent.isEmpty()) {
-			return true; // missing/foreign parent handled elsewhere
-		}
-		Bill parentBill = parent.get();
-		if (BillTerminalUtil.isFinalized(parentBill)) {
-			// A finalized bill is immutable history for OTHER terminals. But the owning
-			// terminal (or admin) must still be able to attach the payment/items that
-			// finalize its own order — e.g. dine-in "create draft → complete payment",
-			// where completing the order is what marks the bill completed/paid. Blocking
-			// this created a deadlock: the payment could never sync because its own
-			// completion had already marked the parent finalized.
-			return isOwnerTerminalOrAdmin(parentBill, trustedTerminalId, trustedDeviceId, isAdmin);
-		}
-		return BillTerminalUtil.isModifiableByTerminal(parentBill, trustedTerminalId, trustedDeviceId, isAdmin);
-	}
-
-	/**
-	 * True when the caller's trusted terminal owns the bill (or is admin, or the bill has
-	 * no recorded owner / legacy client without terminal token). Used to permit the owning
-	 * terminal to attach the child record that finalizes its own order.
-	 */
-	private boolean isOwnerTerminalOrAdmin(Bill parent, String trustedTerminalId,
-			String trustedDeviceId, boolean isAdmin) {
-		if (isAdmin) {
-			return true;
-		}
-		String owner = BillTerminalUtil.ownerTerminalId(parent);
-		if (owner == null) {
-			return true; // pre-terminal bill with no owner recorded
-		}
-		if (BillTerminalUtil.LEGACY_UNRESOLVED.equals(owner)) {
-			return trustedDeviceId != null && trustedDeviceId.equals(parent.getCreatedDeviceId());
-		}
-		if (trustedTerminalId == null) {
-			// Legacy no-token client (only reachable when terminal.sync.strict=false).
-			return true;
-		}
-		return owner.equals(trustedTerminalId);
-	}
-
-	private String childParentToken(BaseSyncEntity record) {
-		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
-				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
-		if (serverBillId == null) return null;
-		return billRepository.findById(serverBillId)
-				.map(b -> b.getPublicToken() != null ? b.getPublicToken().toString() : null)
-				.orElse(null);
-	}
-
-	private String childOwnerTerminal(BaseSyncEntity record, Long tenantId) {
-		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
-				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
-		if (serverBillId == null) return null;
-		return billRepository.findById(serverBillId)
-				.filter(b -> b.getRestaurantId().equals(tenantId))
-				.map(BillTerminalUtil::ownerTerminalId)
-				.orElse(null);
 	}
 
 	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {
@@ -1219,151 +865,4 @@ public class GenericSyncService {
 		}
 	}
 
-	/**
-	 * Builds lookup maps for all FK localIds present in a device batch.
-	 * ONE bulk query per entity type instead of one query per record —
-	 * reduces 1500 queries (500 BillItems × 3 FKs) to ~8 queries total.
-	 */
-	private RelationalIdMaps buildRelationalIdMaps(List<? extends BaseSyncEntity> devicePayload,
-			Long tenantId, String deviceId) {
-
-		// Collect all referenced localIds from the payload by type
-		Set<Long> billLocalIds      = new HashSet<>();
-		Set<Long> menuItemLocalIds  = new HashSet<>();
-		Set<Long> variantLocalIds   = new HashSet<>();
-		Set<Long> categoryLocalIds  = new HashSet<>();
-
-		for (BaseSyncEntity record : devicePayload) {
-			if (record instanceof BillItem bi) {
-				if (bi.getBillId()     != null) billLocalIds.add(bi.getBillId());
-				if (bi.getMenuItemId() != null) menuItemLocalIds.add(bi.getMenuItemId());
-				if (bi.getVariantId()  != null) variantLocalIds.add(bi.getVariantId());
-			} else if (record instanceof BillPayment bp) {
-				if (bp.getBillId()     != null) billLocalIds.add(bp.getBillId());
-			} else if (record instanceof ItemVariant iv) {
-				if (iv.getMenuItemId() != null) menuItemLocalIds.add(iv.getMenuItemId());
-			} else if (record instanceof MenuItem mi) {
-				if (mi.getCategoryId() != null) categoryLocalIds.add(mi.getCategoryId());
-			} else if (record instanceof StockLog sl) {
-				if (sl.getMenuItemId() != null) menuItemLocalIds.add(sl.getMenuItemId());
-				if (sl.getVariantId() != null) variantLocalIds.add(sl.getVariantId());
-			}
-		}
-
-		// Bulk fetch — device-specific lookup first, then cross-device fallback,
-		// merged so device-specific wins on collision.
-		RelationalIdMaps maps = new RelationalIdMaps();
-
-		if (!billLocalIds.isEmpty()) {
-			maps.billLocalToServerId = buildMergedMap(
-					billRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(billLocalIds)),
-					billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(billLocalIds)));
-		}
-		if (!menuItemLocalIds.isEmpty()) {
-			maps.menuItemLocalToServerId = buildMergedMap(
-					menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(menuItemLocalIds)),
-					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(menuItemLocalIds)));
-		}
-		if (!variantLocalIds.isEmpty()) {
-			maps.variantLocalToServerId = buildMergedMap(
-					itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(variantLocalIds)),
-					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(variantLocalIds)));
-		}
-		if (!categoryLocalIds.isEmpty()) {
-			maps.categoryLocalToServerId = buildMergedMap(
-					categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(categoryLocalIds)),
-					categoryRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(categoryLocalIds)));
-		}
-
-		return maps;
-	}
-
-	/** Cross-device results first (lower priority), device-specific second (higher priority). */
-	private Map<Long, Long> buildMergedMap(List<? extends BaseSyncEntity> crossDevice,
-			List<? extends BaseSyncEntity> deviceSpecific) {
-		Map<Long, Long> map = new HashMap<>();
-		for (BaseSyncEntity e : crossDevice) {
-			if (e.getLocalId() != null && e.getId() != null) map.put(e.getLocalId(), e.getId());
-		}
-		for (BaseSyncEntity e : deviceSpecific) {
-			if (e.getLocalId() != null && e.getId() != null) map.put(e.getLocalId(), e.getId());
-		}
-		return map;
-	}
-
-	private static class RelationalIdMaps {
-		Map<Long, Long> billLocalToServerId      = new HashMap<>();
-		Map<Long, Long> menuItemLocalToServerId  = new HashMap<>();
-		Map<Long, Long> variantLocalToServerId   = new HashMap<>();
-		Map<Long, Long> categoryLocalToServerId  = new HashMap<>();
-	}
-
-	private void resolveRelationalIds(BaseSyncEntity record, RelationalIdMaps maps) {
-		try {
-			if (record instanceof MenuItem menuItem) {
-				if (menuItem.getCategoryId() != null) {
-					Long serverId = maps.categoryLocalToServerId.get(menuItem.getCategoryId());
-					if (serverId != null) {
-						menuItem.setServerCategoryId(serverId);
-						menuItem.setCategoryId(serverId); // CRITICAL: Update FK column
-					}
-				}
-			} else if (record instanceof ItemVariant variant) {
-				if (variant.getMenuItemId() != null) {
-					Long serverId = maps.menuItemLocalToServerId.get(variant.getMenuItemId());
-					if (serverId != null) {
-						variant.setServerMenuItemId(serverId);
-						variant.setMenuItemId(serverId); // CRITICAL: Update FK column
-					}
-				}
-			} else if (record instanceof BillItem billItem) {
-				if (billItem.getBillId() != null) {
-					Long serverId = maps.billLocalToServerId.get(billItem.getBillId());
-					if (serverId != null) {
-						billItem.setServerBillId(serverId);
-						billItem.setBillId(serverId); // CRITICAL: Update FK column
-					}
-				}
-				if (billItem.getMenuItemId() != null) {
-					Long serverId = maps.menuItemLocalToServerId.get(billItem.getMenuItemId());
-					if (serverId != null) {
-						billItem.setServerMenuItemId(serverId);
-						billItem.setMenuItemId(serverId); // CRITICAL: Update FK column
-					}
-				}
-				if (billItem.getVariantId() != null) {
-					Long serverId = maps.variantLocalToServerId.get(billItem.getVariantId());
-					if (serverId != null) {
-						billItem.setServerVariantId(serverId);
-						billItem.setVariantId(serverId); // CRITICAL: Update FK column
-					}
-				}
-			} else if (record instanceof BillPayment payment) {
-				if (payment.getBillId() != null) {
-					Long serverId = maps.billLocalToServerId.get(payment.getBillId());
-					if (serverId != null) {
-						payment.setServerBillId(serverId);
-						payment.setBillId(serverId); // CRITICAL: Update FK column
-					}
-				}
-			} else if (record instanceof StockLog logRecord) {
-				if (logRecord.getMenuItemId() != null) {
-					Long serverId = maps.menuItemLocalToServerId.get(logRecord.getMenuItemId());
-					if (serverId != null) {
-						logRecord.setServerMenuItemId(serverId);
-						logRecord.setMenuItemId(serverId); // CRITICAL: Update FK column
-					}
-				}
-				if (logRecord.getVariantId() != null) {
-					Long serverId = maps.variantLocalToServerId.get(logRecord.getVariantId());
-					if (serverId != null) {
-						logRecord.setServerVariantId(serverId);
-						logRecord.setVariantId(serverId); // CRITICAL: Update FK column
-					}
-				}
-			}
-		} catch (Exception e) {
-			log.error("Resolution Failed: {}", e.getMessage(), e);
-		}
-	}
 }
