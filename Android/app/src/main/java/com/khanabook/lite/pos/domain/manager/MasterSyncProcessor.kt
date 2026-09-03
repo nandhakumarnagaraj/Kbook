@@ -33,12 +33,7 @@ class MasterSyncProcessor @Inject constructor(
     private val sessionManager: SessionManager,
     private val permissionManager: PermissionManager
 ) {
-    private fun normalizeUserRole(role: String?): String {
-        return when (role?.uppercase()) {
-            "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN" -> role.uppercase()
-            else -> "OWNER"
-        }
-    }
+    private fun normalizeUserRole(role: String?): String = SyncNormalizer.normalizeUserRole(role)
 
 
     private val tag = "MasterSyncProcessor"
@@ -66,7 +61,12 @@ class MasterSyncProcessor @Inject constructor(
         push: suspend (List<R>) -> PushSyncResponse,
         markSynced: suspend (List<Long>) -> Unit,
         onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null,
-        isolateHttpConflicts: Boolean = false
+        isolateHttpConflicts: Boolean = false,
+        // Invoked for rows the server PERMANENTLY rejects on authorization grounds
+        // (e.g. permission revoked / not granted). Such rows must not re-push every
+        // cycle. The callback receives localId -> reason and is expected to take the
+        // row out of the unsynced set (quarantine) and surface the reason to the user.
+        onPermanentlyRejected: (suspend (Map<Long, String>) -> Unit)? = null
     ): List<Long> {
         if (records.isEmpty()) return emptyList()
 
@@ -92,6 +92,18 @@ class MasterSyncProcessor @Inject constructor(
             failedIds += result.failedIds
             failedReasons += result.failedReasons
         }
+
+        // Permanent authorization rejections are terminal — handle them here so they
+        // leave the unsynced set and are not counted as "conflicts" that trigger the
+        // pull/re-push recovery loop (which would silently re-push them forever).
+        if (onPermanentlyRejected != null && failedIds.isNotEmpty()) {
+            val permanent = failedIds.filter { isPermissionRejection(failedReasons[it]) }.distinct()
+            if (permanent.isNotEmpty()) {
+                onPermanentlyRejected(permanent.associateWith { failedReasons[it].orEmpty() })
+                failedIds.removeAll(permanent.toSet())
+            }
+        }
+
         if (failedIds.isNotEmpty()) {
             if (successfulIds.isEmpty()) {
                 // ALL records failed — this is a real conflict, throw
@@ -107,6 +119,25 @@ class MasterSyncProcessor @Inject constructor(
             logWarn("$label failures isolated; continuing children for acknowledged parents")
         }
         return successfulIds
+    }
+
+    /**
+     * Classifies a server rejection reason as a PERMANENT authorization failure
+     * (permission revoked / not granted / not permitted). These stay rejected until
+     * an owner changes the user's permissions, so retrying every sync cycle is futile.
+     * Transient/LWW reasons ("older than the server record") and generic conflicts are
+     * deliberately NOT matched — those are handled by the existing conflict-recovery path.
+     *
+     * Matches the reason strings produced by the server MenuPushAuthorizer /
+     * OfflineAuthDecider (see MenuItemServiceImpl.authFailureMessage).
+     */
+    internal fun isPermissionRejection(reason: String?): Boolean {
+        if (reason.isNullOrBlank()) return false
+        val r = reason.lowercase()
+        return r.contains("not permitted") ||
+            r.contains("permission_not_granted") ||
+            r.contains("revoked_after_creation") ||
+            r.contains("cannot authorize")
     }
 
     private data class BatchPushResult(
@@ -309,18 +340,7 @@ class MasterSyncProcessor @Inject constructor(
             .toPlainString()
     }
 
-    private fun String?.toSafeAmount(): String {
-        if (this.isNullOrBlank()) return "0.00"
-        return try {
-            // Use setScale(2) WITHOUT stripTrailingZeros so "10.00" stays "10.00"
-            // and matches server's BigDecimal serialization — avoids repeated sync loops.
-            java.math.BigDecimal(this)
-                .setScale(2, java.math.RoundingMode.HALF_UP)
-                .toPlainString()
-        } catch (e: Exception) {
-            "0.00"
-        }
-    }
+    private fun String?.toSafeAmount(): String = SyncNormalizer.toSafeAmount(this)
 
     suspend fun pushSingleBill(billLocalId: Long) {
         val restaurantId = sessionManager.getRestaurantId()
@@ -463,7 +483,8 @@ class MasterSyncProcessor @Inject constructor(
             push = api::pushMenuItems,
             markSynced = { ids -> menuDao.markMenuItemsAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateMenuItemServerIdByLocalId(localId, serverId, restaurantId) } },
-            isolateHttpConflicts = isolateHttpConflicts
+            isolateHttpConflicts = isolateHttpConflicts,
+            onPermanentlyRejected = { rejected -> quarantineRejectedMenuItems(rejected, restaurantId) }
         )
 
         val unsyncedVariants = menuDao.getUnsyncedItemVariants(restaurantId)
@@ -666,8 +687,66 @@ class MasterSyncProcessor @Inject constructor(
         }
     }
 
-    private suspend fun quarantineFailedBills(exception: SyncConflictException, restaurantId: Long): Int {
-        val failedAt = System.currentTimeMillis()
+    /**
+     * Handle menu-item rows the server permanently rejected on permission grounds.
+     * Product choice: QUARANTINE (non-destructive), not revert.
+     *  - The user's edited values are preserved on the local row (we never silently
+     *    discard their change).
+     *  - We mark the row is_synced=1 so getUnsyncedMenuItems() no longer returns it —
+     *    this breaks the every-cycle re-push (the reported infinite retry).
+     *  - We record a sync_quarantine_records row (unique per (restaurant, type, localId),
+     *    so it is deduplicated across sync cycles) which surfaces to the user in the
+     *    existing Sync Center screen with the exact server reason.
+     * If the owner later grants the permission, the user simply re-saves the item.
+     *
+     * @return number of rows quarantined (used by tests).
+     */
+    internal suspend fun quarantineRejectedMenuItems(
+        rejected: Map<Long, String>,
+        restaurantId: Long
+    ): Int {
+        if (rejected.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        var quarantined = 0
+        for ((menuLocalId, reason) in rejected) {
+            val item = menuDao.getItemById(menuLocalId, restaurantId)
+            val displayName = item?.name ?: "Menu item #$menuLocalId"
+            val snapshot = item?.let {
+                runCatching {
+                    com.google.gson.Gson().toJson(
+                        mapOf(
+                            "localId" to it.id,
+                            "name" to it.name,
+                            "basePrice" to it.basePrice,
+                            "isAvailable" to it.isAvailable
+                        )
+                    )
+                }.getOrNull()
+            }
+            billDao.upsertSyncQuarantineRecord(
+                SyncQuarantineEntity(
+                    restaurantId = restaurantId,
+                    parentBillId = 0L, // not a bill child; 0 = standalone menu rejection
+                    parentBillDisplay = null,
+                    childEntityType = "menu_item",
+                    childLocalId = menuLocalId,
+                    childDisplayName = displayName,
+                    childSummary = "Menu change rejected",
+                    childSnapshotJson = snapshot,
+                    syncFailureReason = reason.ifBlank { "Menu change not permitted" },
+                    quarantinedAt = now
+                )
+            )
+            // Stop the infinite re-push: take the row out of the unsynced set while
+            // keeping the user's edited values intact on the row.
+            menuDao.markMenuItemsAsSynced(listOf(menuLocalId), restaurantId)
+            quarantined++
+        }
+        logWarn("Quarantined $quarantined menu item(s) rejected on permission grounds")
+        return quarantined
+    }
+
+    private suspend fun quarantineFailedBills(exception: SyncConflictException, restaurantId: Long): Int {        val failedAt = System.currentTimeMillis()
         var quarantined = 0
         exception.failedLocalIds.forEach { billId ->
             val reason = exception.failedReasons[billId]
@@ -1013,7 +1092,7 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Update permission cache from sync response (lightweight — just string keys)
-        permissionManager.updateFromSync(masterData.grantedPermissions)
+        permissionManager.updateFromSync(masterData.grantedPermissions, masterData.permissionRevision)
 
         val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
 
