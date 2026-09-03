@@ -156,7 +156,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_65_66,
                 AppDatabase.MIGRATION_66_67,
                 AppDatabase.MIGRATION_67_68,
-                AppDatabase.MIGRATION_68_69
+                AppDatabase.MIGRATION_68_69,
+                AppDatabase.MIGRATION_69_70
             )
             .build()
     }
@@ -212,8 +213,9 @@ object DatabaseModule {
     fun provideMenuRepository(
         menuDao: MenuDao,
         sessionManager: SessionManager,
-        workManager: androidx.work.WorkManager
-    ) = MenuRepository(menuDao, sessionManager, workManager)
+        workManager: androidx.work.WorkManager,
+        permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
+    ) = MenuRepository(menuDao, sessionManager, workManager, permissionManager)
 
     @Provides
     @Singleton

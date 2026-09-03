@@ -157,6 +157,7 @@ public class MasterSyncController {
 			Long currentUserId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
 			if (currentUserId != null) {
 				response.setGrantedPermissions(permissionService.getGrantedPermissions(tenantId, currentUserId));
+				response.setPermissionRevision(permissionService.getPermissionRevision(tenantId, currentUserId));
 			}
 		}
 

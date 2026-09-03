@@ -513,9 +513,11 @@ private fun QuarantineRecordRow(record: SyncQuarantineEntity) {
         )
         Text(
             text = buildString {
-                append("Bill #")
-                append(record.parentBillDisplay?.takeIf { it.isNotBlank() } ?: record.parentBillId.toString())
-                append(" • ")
+                if (record.parentBillId > 0L) {
+                    append("Bill #")
+                    append(record.parentBillDisplay?.takeIf { it.isNotBlank() } ?: record.parentBillId.toString())
+                    append(" • ")
+                }
                 append(record.childSummary?.takeIf { it.isNotBlank() } ?: "Local ID ${record.childLocalId}")
             },
             color = TextGold.copy(alpha = 0.78f),

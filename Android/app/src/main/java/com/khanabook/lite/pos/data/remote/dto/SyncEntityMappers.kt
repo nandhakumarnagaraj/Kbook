@@ -150,6 +150,7 @@ fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
     updatedAt        = updatedAt,
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,
+    permissionRevisionAtCreation = permissionRevisionAtCreation,
 )
 
 fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(

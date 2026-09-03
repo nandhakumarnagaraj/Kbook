@@ -32,17 +32,20 @@ public class BusinessWriteService {
     private final MenuItemRepository menuItemRepository;
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository profileRepository;
+    private final com.khanabook.saas.service.PermissionService permissionService;
 
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
                                 MenuItemRepository menuItemRepository,
                                 RestaurantTerminalRepository terminalRepository,
-                                RestaurantProfileRepository profileRepository) {
+                                RestaurantProfileRepository profileRepository,
+                                com.khanabook.saas.service.PermissionService permissionService) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
         this.terminalRepository = terminalRepository;
         this.profileRepository = profileRepository;
+        this.permissionService = permissionService;
     }
 
     // ─── Staff CRUD ──────────────────────────────────────────────────────────────
@@ -80,6 +83,16 @@ public class BusinessWriteService {
 
         User saved = userRepository.save(user);
         log.info("Staff created: userId={}, restaurant={}, role={}", saved.getId(), restaurantId, role);
+
+        // Default read-only: a new non-owner staff member starts with view-only
+        // permissions (menu.view + orders/day-summary views). Owners are all-powerful
+        // by role, so this is a no-op for them (P2 — default read-only).
+        try {
+            permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
+        } catch (Exception e) {
+            // Baseline grant must not fail staff creation; log and continue.
+            log.warn("Failed to apply default read-only permissions to userId={}: {}", saved.getId(), e.getMessage());
+        }
 
         return new StaffCreatedResponse(
                 saved.getId(), saved.getName(), saved.getPhoneNumber(),

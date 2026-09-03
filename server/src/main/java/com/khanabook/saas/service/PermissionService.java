@@ -129,6 +129,32 @@ public class PermissionService {
 
     // ── Grant / Revoke ────────────────────────────────────────────────────────
 
+    /**
+     * The read-only baseline granted to a newly-created non-owner staff member:
+     * pure "view" permissions only, no edit/settle/refund/menu-mutation authority.
+     * A staffer starts able to see the menu and orders and today's summary, and must
+     * request anything beyond that (P2 — default read-only).
+     */
+    public static final List<String> DEFAULT_READONLY_KEYS = List.of(
+            PermissionKey.MENU_VIEW.getKey(),
+            PermissionKey.ORDERS_VIEW.getKey(),
+            PermissionKey.ORDERS_KOT_VIEW.getKey(),
+            PermissionKey.REPORTS_DAY_SUMMARY.getKey()
+    );
+
+    /**
+     * Apply the read-only baseline to a user. Idempotent (grantPermission upserts).
+     * Owners/admins are all-powerful by role, so this is a no-op for them.
+     */
+    @Transactional
+    public void grantDefaultReadOnly(Long restaurantId, Long userId, Long grantedBy) {
+        var user = findTenantUser(restaurantId, userId);
+        if (user == null || isEffectiveOwner(user)) return;
+        for (String key : DEFAULT_READONLY_KEYS) {
+            grantPermission(restaurantId, userId, key, grantedBy);
+        }
+    }
+
     @Transactional
     public void grantPermission(Long restaurantId, Long userId, String permissionKey, Long grantedBy) {
         if (com.khanabook.saas.entity.PermissionKey.fromKey(permissionKey) == null) {

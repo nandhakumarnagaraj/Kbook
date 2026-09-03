@@ -1,6 +1,12 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.util.Log
+import com.khanabook.lite.pos.data.local.DatabaseProvider
+import com.khanabook.lite.pos.data.local.entity.PermissionCacheEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,14 +20,19 @@ import javax.inject.Singleton
  * - OWNER always has all permissions (no DB lookup needed)
  * - Permissions are synced from server via sync pull (grantedPermissions array)
  * - Cached in memory for instant UI checks (no DB read per check)
+ * - Persisted to Room (permission_cache) so the granted set + authorization
+ *   revision survive process death while offline (P1)
  * - Offline: uses last-known cached permissions (graceful degradation)
  * - Updated every sync cycle (15 min) or on demand
  */
 @Singleton
 class PermissionManager @Inject constructor(
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val databaseProvider: DatabaseProvider
 ) {
     private val tag = "PermissionManager"
+
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _grantedPermissions = MutableStateFlow<Set<String>>(emptySet())
     val grantedPermissions: StateFlow<Set<String>> = _grantedPermissions.asStateFlow()
@@ -30,12 +41,57 @@ class PermissionManager @Inject constructor(
     val permissionsLoaded: StateFlow<Boolean> = _permissionsLoaded.asStateFlow()
 
     /**
+     * The acting user's monotonic authorization revision (P1). Stamped onto
+     * locally-created menu edits so the server can run Decision-A-strict
+     * revalidation. 0 until the first sync (or restore) supplies a value.
+     */
+    private val _permissionRevision = MutableStateFlow(0L)
+    val permissionRevision: StateFlow<Long> = _permissionRevision.asStateFlow()
+
+    /** Current authorization revision for stamping local edits. */
+    fun currentRevision(): Long = _permissionRevision.value
+
+    /**
+     * Restore the cached granted set + revision from Room on cold start, so an
+     * offline non-owner keeps working before the first successful pull. Safe no-op
+     * on failure (offline-first: absence of cache just means "no cached grants yet").
+     */
+    fun restoreFromCache() {
+        ioScope.launch {
+            try {
+                val userId = sessionManager.getActiveUserId()
+                val dao = databaseProvider.getDatabase().permissionCacheDao()
+                val cached = (if (userId != null && userId > 0) dao.getForUser(userId) else null)
+                    ?: dao.getMostRecent()
+                if (cached != null) {
+                    val set = cached.grantedCsv.split(",").filter { it.isNotBlank() }.toSet()
+                    _grantedPermissions.value = set
+                    _permissionRevision.value = cached.permissionRevision
+                    _permissionsLoaded.value = true
+                    Log.i(tag, "Restored ${set.size} cached permissions, revision=${cached.permissionRevision}")
+                }
+            } catch (e: Exception) {
+                Log.w(tag, "Permission cache restore failed (non-fatal)", e)
+            }
+        }
+    }
+
+    /**
      * Check if the current user has a specific permission.
      * OWNER always returns true. Other roles check the cached set.
+     *
+     * Menu implication (mirrors server MenuChangeType.satisfies): holding
+     * menu.edit_full satisfies menu.edit_price and menu.toggle_availability.
      */
     fun hasPermission(permissionKey: String): Boolean {
         if (sessionManager.isOwner()) return true
-        return _grantedPermissions.value.contains(permissionKey)
+        val granted = _grantedPermissions.value
+        if (granted.contains(permissionKey)) return true
+        if ((permissionKey == MENU_EDIT_PRICE || permissionKey == MENU_TOGGLE_AVAILABILITY)
+            && granted.contains(MENU_EDIT_FULL)) {
+            return true
+        }
+        return false
     }
 
     /**
@@ -59,13 +115,50 @@ class PermissionManager @Inject constructor(
      * Called by MasterSyncProcessor after receiving grantedPermissions from server.
      */
     fun updateFromSync(permissions: List<String>?) {
-        if (permissions == null) return
-        val newSet = permissions.toSet()
-        if (newSet != _grantedPermissions.value) {
-            Log.i(tag, "Permissions updated: ${newSet.size} granted (was ${_grantedPermissions.value.size})")
-            _grantedPermissions.value = newSet
+        updateFromSync(permissions, null)
+    }
+
+    /**
+     * Update the permission cache + authorization revision from sync pull response.
+     * Persists both to Room so they survive process death while offline (P1).
+     */
+    fun updateFromSync(permissions: List<String>?, revision: Long?) {
+        if (permissions == null && revision == null) return
+        var changed = false
+        if (permissions != null) {
+            val newSet = permissions.toSet()
+            if (newSet != _grantedPermissions.value) {
+                Log.i(tag, "Permissions updated: ${newSet.size} granted (was ${_grantedPermissions.value.size})")
+                _grantedPermissions.value = newSet
+                changed = true
+            }
+            _permissionsLoaded.value = true
         }
-        _permissionsLoaded.value = true
+        if (revision != null && revision != _permissionRevision.value) {
+            _permissionRevision.value = revision
+            changed = true
+        }
+        if (changed) persistCache()
+    }
+
+    private fun persistCache() {
+        val csv = _grantedPermissions.value.joinToString(",")
+        val revision = _permissionRevision.value
+        ioScope.launch {
+            try {
+                val userId = sessionManager.getActiveUserId()
+                if (userId == null || userId <= 0) return@launch
+                databaseProvider.getDatabase().permissionCacheDao().upsert(
+                    PermissionCacheEntity(
+                        userId = userId,
+                        grantedCsv = csv,
+                        permissionRevision = revision
+                    )
+                )
+            } catch (e: Exception) {
+                Log.w(tag, "Permission cache persist failed (non-fatal)", e)
+            }
+        }
     }
 
     /**
@@ -74,6 +167,14 @@ class PermissionManager @Inject constructor(
     fun clear() {
         _grantedPermissions.value = emptySet()
         _permissionsLoaded.value = false
+        _permissionRevision.value = 0L
+        ioScope.launch {
+            try {
+                databaseProvider.getDatabase().permissionCacheDao().clear()
+            } catch (e: Exception) {
+                Log.w(tag, "Permission cache clear failed (non-fatal)", e)
+            }
+        }
     }
 
     // ── Request Access Flow ──────────────────────────────────────────────────
@@ -135,6 +236,7 @@ class PermissionManager @Inject constructor(
         MENU_VIEW to "View Menu",
         MENU_TOGGLE_AVAILABILITY to "Toggle Availability",
         MENU_EDIT_PRICE to "Change Prices",
+        MENU_EDIT_FULL to "Full Menu Editing",
         MENU_ADD_ITEM to "Add Items",
         MENU_DELETE_ITEM to "Remove Items",
         ORDERS_VIEW to "View Orders",
@@ -172,6 +274,7 @@ class PermissionManager @Inject constructor(
         const val MENU_VIEW = "menu.view"
         const val MENU_TOGGLE_AVAILABILITY = "menu.toggle_availability"
         const val MENU_EDIT_PRICE = "menu.edit_price"
+        const val MENU_EDIT_FULL = "menu.edit_full"
         const val MENU_ADD_ITEM = "menu.add_item"
         const val MENU_DELETE_ITEM = "menu.delete_item"
 

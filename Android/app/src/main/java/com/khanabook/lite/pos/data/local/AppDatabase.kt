@@ -26,9 +26,10 @@ import com.khanabook.lite.pos.data.local.entity.*
                         TerminalDailyCounterEntity::class,
                         NotificationEntity::class,
                         StaffPermissionEntity::class,
-                        PermissionRequestEntity::class
+                        PermissionRequestEntity::class,
+                        PermissionCacheEntity::class
                 ],
-        version = 69,
+        version = 70,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -42,6 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inventoryDao(): InventoryDao
     abstract fun kotEventDao(): KotEventDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun permissionCacheDao(): PermissionCacheDao
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
@@ -1022,6 +1024,30 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
         val MIGRATION_66_67 = object : Migration(66, 67) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_69_70 = object : Migration(69, 70) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // P1: stamp the acting user's permission revision on locally-created
+                // menu edits so the server can run Decision-A-strict revalidation.
+                if (!db.hasColumn("menu_items", "permission_revision_at_creation")) {
+                    db.execSQL(
+                        "ALTER TABLE `menu_items` ADD COLUMN `permission_revision_at_creation` INTEGER DEFAULT NULL"
+                    )
+                }
+                // Persist granted permissions + revision so they survive process death offline.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `permission_cache` (
+                        `user_id` INTEGER PRIMARY KEY NOT NULL,
+                        `granted_csv` TEXT NOT NULL,
+                        `permission_revision` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                android.util.Log.i("AppDatabase", "MIGRATION_69_70 complete: menu permission_revision + permission_cache")
             }
         }
 

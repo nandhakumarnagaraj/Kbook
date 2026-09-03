@@ -68,7 +68,7 @@ class AuthViewModelTest {
             syncManager,
             sessionManager,
             authManager,
-            PermissionManager(sessionManager)
+            PermissionManager(sessionManager, mockk(relaxed = true))
         )
     }
 

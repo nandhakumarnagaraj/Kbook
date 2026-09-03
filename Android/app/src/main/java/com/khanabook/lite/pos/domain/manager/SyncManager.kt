@@ -332,7 +332,7 @@ class SyncManager @Inject constructor(
 
             // Update permissions from first page response
             if (page == 0) {
-                permissionManager.updateFromSync(response.grantedPermissions)
+                permissionManager.updateFromSync(response.grantedPermissions, response.permissionRevision)
             }
 
             hasMore = response.hasMore ?: false

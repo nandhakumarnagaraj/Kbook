@@ -3,9 +3,15 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.exception.DuplicateMenuItemException;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.entity.StaffPermission;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
+import com.khanabook.saas.repository.StaffPermissionRepository;
+import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.security.authz.MenuPushAuthorizer;
+import com.khanabook.saas.security.authz.OfflineAuthDecider;
 import com.khanabook.saas.service.MenuItemService;
+import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import com.khanabook.saas.utility.PricingConstants;
@@ -26,6 +32,8 @@ public class MenuItemServiceImpl implements MenuItemService {
 	private final MenuItemRepository repository;
 	private final CategoryRepository categoryRepository;
 	private final GenericSyncService genericSyncService;
+	private final PermissionService permissionService;
+	private final StaffPermissionRepository staffPermissionRepository;
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<MenuItem> payload) {
@@ -33,8 +41,39 @@ public class MenuItemServiceImpl implements MenuItemService {
 		List<Long> failedLocalIds = new ArrayList<>();
 		Map<Long, String> failedReasons = new HashMap<>();
 
+		// Acting user + role for server-side authorization. KBOOK_ADMIN is exempt
+		// (mirrors GenericSyncService). A non-admin actor with no resolvable userId
+		// cannot be authorized — reject every row rather than silently accepting.
+		Long actingUserId = TenantContext.getCurrentUserId();
+		boolean isKbookAdmin = "KBOOK_ADMIN".equals(TenantContext.getCurrentRole());
+
 		for (MenuItem item : payload) {
 			validateMenuItem(item);
+
+			// ── P0: server-side menu permission enforcement ──────────────────
+			// Detect what this push actually changes vs the existing server row
+			// and require the matching fine-grained permission. Runs BEFORE the
+			// row reaches GenericSyncService's LWW upsert.
+			if (!isKbookAdmin) {
+				if (actingUserId == null) {
+					addFailure(failedLocalIds, failedReasons, item.getLocalId(),
+							"Cannot authorize menu change: unknown user");
+					continue;
+				}
+				MenuItem existing = resolveExisting(tenantId, item);
+				MenuPushAuthorizer.Result authz = MenuPushAuthorizer.authorize(
+						item,
+						existing,
+						/* revisionAtCreation (P1) */ item.getPermissionRevisionAtCreation(),
+						/* terminalValid: menu push has no terminal-token gate */ true,
+						menuFactsResolver(tenantId, actingUserId));
+				if (authz.decision() != OfflineAuthDecider.Decision.ACCEPT) {
+					addFailure(failedLocalIds, failedReasons, item.getLocalId(),
+							authFailureMessage(authz));
+					continue;
+				}
+			}
+
 			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
 				Optional<Category> category = categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
 						item.getDeviceId(), item.getCategoryId());
@@ -159,6 +198,68 @@ public class MenuItemServiceImpl implements MenuItemService {
 		}
 		failedReasons.put(localId, reason);
 	}
+
+	// ── P0 authorization helpers ────────────────────────────────────────────
+
+	/**
+	 * Resolve the current server row for an incoming push so the authorizer can
+	 * diff it. Prefers the server id, falls back to (deviceId, localId). Returns
+	 * null when no server row exists yet (⇒ treated as a create).
+	 */
+	private MenuItem resolveExisting(Long tenantId, MenuItem item) {
+		if (item.getId() != null) {
+			return repository.findById(item.getId())
+					.filter(m -> tenantId != null && tenantId.equals(m.getRestaurantId()))
+					.orElse(null);
+		}
+		if (item.getDeviceId() != null && item.getLocalId() != null) {
+			return repository.findByRestaurantIdAndDeviceIdAndLocalId(
+					tenantId, item.getDeviceId(), item.getLocalId()).orElse(null);
+		}
+		return null;
+	}
+
+	/**
+	 * Supplies live permission facts (granted-now + last-revoked-revision) per key
+	 * from persistent staff-permission state. OWNER/KBOOK_ADMIN grants are handled
+	 * by {@link PermissionService#hasPermission}; a per-key revocation marker only
+	 * ever exists for real staff rows.
+	 */
+	private MenuPushAuthorizer.FactsResolver menuFactsResolver(Long tenantId, Long userId) {
+		final String editFull = com.khanabook.saas.entity.PermissionKey.MENU_EDIT_FULL.getKey();
+		return MenuPushAuthorizer.factsResolver(
+				requiredKey -> {
+					// Direct grant, or satisfied by menu.edit_full (single implication rule).
+					if (permissionService.hasPermission(tenantId, userId, requiredKey)) return true;
+					return com.khanabook.saas.security.authz.MenuChangeType.satisfies(requiredKey, editFull)
+							&& permissionService.hasPermission(tenantId, userId, editFull);
+				},
+				requiredKey -> {
+					// Use the revocation marker of whichever key actually authorizes the op:
+					// the required key if held directly, otherwise menu.edit_full.
+					boolean directlyHeld = permissionService.hasPermission(tenantId, userId, requiredKey);
+					String authorizingKey = directlyHeld ? requiredKey
+							: (com.khanabook.saas.security.authz.MenuChangeType.satisfies(requiredKey, editFull)
+									? editFull : requiredKey);
+					return staffPermissionRepository
+							.findByRestaurantIdAndUserIdAndPermissionKey(tenantId, userId, authorizingKey)
+							.map(StaffPermission::getLastRevokedRevision)
+							.orElse(null);
+				});
+	}
+
+	private String authFailureMessage(MenuPushAuthorizer.Result authz) {
+		String action = switch (authz.changeType()) {
+			case PRICE, METADATA_ONLY -> "change the price of this item";
+			case AVAILABILITY -> "change item availability";
+			case PRICE_AND_AVAILABILITY -> "change price and availability";
+			case CREATE -> "add menu items";
+			case DELETE -> "remove menu items";
+			case NONE -> "modify this item";
+		};
+		return "Not permitted to " + action + " (" + authz.reason() + ")";
+	}
+
 	@Override
 	@Transactional
 	public void markItemAsUnavailable(Long tenantId, Long menuItemId) {

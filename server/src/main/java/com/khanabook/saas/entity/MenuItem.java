@@ -51,6 +51,14 @@ public class MenuItem extends BaseSyncEntity {
 	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal lowStockThreshold;
 
+	/**
+	 * Permission revision the acting user held on-device when this row was
+	 * created/edited (P1). Nullable: older clients that do not stamp it fall back
+	 * to the grant-only gate in {@link com.khanabook.saas.security.authz.MenuPushAuthorizer}.
+	 */
+	@Column(name = "permission_revision_at_creation")
+	private Long permissionRevisionAtCreation;
+
 	@Transient
 	private Boolean overwriteExisting = false;
 

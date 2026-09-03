@@ -17,7 +17,8 @@ import kotlinx.coroutines.flow.map
 class MenuRepository(
         private val menuDao: MenuDao,
         private val sessionManager: SessionManager,
-        private val workManager: WorkManager
+        private val workManager: WorkManager,
+        private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
 ) {
 
     suspend fun insertItem(item: MenuItemEntity): Long {
@@ -27,7 +28,8 @@ class MenuRepository(
                         deviceId = sessionManager.getDeviceId(),
                         basePrice = MenuPricingRules.normalizePrice(item.basePrice),
                         isSynced = false,
-                        updatedAt = System.currentTimeMillis()
+                        updatedAt = System.currentTimeMillis(),
+                        permissionRevisionAtCreation = permissionManager.currentRevision()
                 )
         val id = menuDao.insertItem(enriched)
         triggerBackgroundSync()
@@ -38,7 +40,10 @@ class MenuRepository(
         val enriched = item.copy(
             basePrice = MenuPricingRules.normalizePrice(item.basePrice),
             isSynced = false,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = System.currentTimeMillis(),
+            // Stamp the acting user's authorization revision so the server can run
+            // Decision-A-strict revalidation of this offline edit at sync (P1).
+            permissionRevisionAtCreation = permissionManager.currentRevision()
         )
         menuDao.updateItem(enriched)
         triggerBackgroundSync()

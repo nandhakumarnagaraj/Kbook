@@ -45,6 +45,9 @@ constructor(
     init {
         viewModelScope.launch {
             userRepository.loadPersistedUser()
+            // Restore cached grants + authorization revision so an offline non-owner
+            // keeps working (and stamps correct revisions) before the first pull (P1).
+            permissionManager.restoreFromCache()
         }
     }
 
