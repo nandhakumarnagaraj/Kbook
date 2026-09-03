@@ -71,7 +71,13 @@ class BillServiceImplTest {
             securityAuditService,
             new com.khanabook.saas.sync.service.SyncFallbackSaver(),
             permissionService,
-            revisionRepo
+            revisionRepo,
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.RelationalIdResolver.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.TerminalOwnershipService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.SyncNotificationService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.UserProfileSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class)
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
 
