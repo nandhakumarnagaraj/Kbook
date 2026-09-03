@@ -1,4 +1,4 @@
--- V91: Capture the acting user's permission revision at the time a menu row was
+-- V92: Capture the acting user's permission revision at the time a menu row was
 -- created/edited on-device. Enables full Decision-A-strict offline revalidation
 -- of menu price/availability changes at sync (see MenuPushAuthorizer + OfflineAuthDecider).
 -- Nullable: legacy/older clients that do not stamp it fall back to the P0 grant-only gate.
