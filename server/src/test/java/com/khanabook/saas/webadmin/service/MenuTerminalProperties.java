@@ -52,7 +52,7 @@ class MenuTerminalProperties {
         RestaurantProfile profile = new RestaurantProfile();
         when(profileRepository.findAndLockByRestaurantId(anyLong())).thenReturn(Optional.of(profile));
         service = new BusinessWriteService(userRepository, categoryRepository, menuItemRepository,
-                terminalRepository, profileRepository);
+                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class));
     }
 
     // ─── Property 11: Terminal Reactivation State Transition ─────────────────────
