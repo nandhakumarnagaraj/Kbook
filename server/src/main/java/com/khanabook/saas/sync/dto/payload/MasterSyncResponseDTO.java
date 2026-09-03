@@ -24,4 +24,11 @@ public class MasterSyncResponseDTO {
 
     /** Granted permission keys for the requesting user (lightweight sync). */
     private List<String> grantedPermissions;
+
+    /**
+     * Monotonic authorization revision for the requesting user (P1). Android stamps
+     * this onto locally-created menu edits so the server can run Decision-A-strict
+     * revalidation at push time. Null for OWNER/admin or when no user is resolved.
+     */
+    private Long permissionRevision;
 }

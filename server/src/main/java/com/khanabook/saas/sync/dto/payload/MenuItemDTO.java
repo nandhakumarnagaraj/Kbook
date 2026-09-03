@@ -31,4 +31,7 @@ public class MenuItemDTO {
     private String description;
     private Integer sortOrder;
     private Boolean overwriteExisting;
+
+    /** Permission revision captured on-device when the row was created/edited (P1). */
+    private Long permissionRevisionAtCreation;
 }

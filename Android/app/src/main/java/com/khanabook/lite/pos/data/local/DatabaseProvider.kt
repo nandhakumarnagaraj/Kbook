@@ -73,7 +73,7 @@ class DatabaseProvider @Inject constructor(
         try {
             Log.i(
                 tag,
-                "Switching to database expectedRoomVersion=68 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Switching to database expectedRoomVersion=70 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
             )
@@ -83,7 +83,7 @@ class DatabaseProvider @Inject constructor(
         } catch (e: Exception) {
             Log.e(
                 tag,
-                "Database switch failed expectedRoomVersion=68 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Database switch failed expectedRoomVersion=70 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
                 e
@@ -115,9 +115,9 @@ class DatabaseProvider @Inject constructor(
         try {
             val database = getDatabase()
             database.openHelper.writableDatabase
-            Log.i(tag, "Database warm-up completed expectedRoomVersion=68")
+            Log.i(tag, "Database warm-up completed expectedRoomVersion=70")
         } catch (e: Exception) {
-            Log.e(tag, "Database warm-up failed expectedRoomVersion=68", e)
+            Log.e(tag, "Database warm-up failed expectedRoomVersion=70", e)
             throw e
         }
     }
@@ -189,7 +189,8 @@ class DatabaseProvider @Inject constructor(
                 AppDatabase.MIGRATION_65_66,
                 AppDatabase.MIGRATION_66_67,
                 AppDatabase.MIGRATION_67_68,
-                AppDatabase.MIGRATION_68_69
+                AppDatabase.MIGRATION_68_69,
+                AppDatabase.MIGRATION_69_70
             )
             .build()
     }

@@ -136,6 +136,7 @@ data class MenuItemSyncDto(
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+    @SerializedName("permissionRevisionAtCreation") val permissionRevisionAtCreation: Long? = null,
 )
 
 data class ItemVariantSyncDto(

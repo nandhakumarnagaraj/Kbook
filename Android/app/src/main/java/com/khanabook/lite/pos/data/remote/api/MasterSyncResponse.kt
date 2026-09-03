@@ -17,7 +17,8 @@ data class MasterSyncResponse(
     @SerializedName("billPayments") val billPayments: List<BillPaymentEntity> = emptyList(),
     @SerializedName("hasMore") val hasMore: Boolean? = false,
     @SerializedName("nextPage") val nextPage: Int? = null,
-    @SerializedName("grantedPermissions") val grantedPermissions: List<String>? = null
+    @SerializedName("grantedPermissions") val grantedPermissions: List<String>? = null,
+    @SerializedName("permissionRevision") val permissionRevision: Long? = null
 )
 
 data class MenuItemPullDto(
