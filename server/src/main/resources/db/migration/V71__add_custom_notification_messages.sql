@@ -1,2 +1,15 @@
-ALTER TABLE restaurantprofiles ADD COLUMN custom_welcome_message VARCHAR(500);
-ALTER TABLE restaurantprofiles ADD COLUMN custom_fssai_message VARCHAR(500);
+-- V71: no-op (superseded by V52).
+--
+-- This migration originally re-added `custom_welcome_message` and
+-- `custom_fssai_message` to `restaurantprofiles`, but those columns are already
+-- created by V52__add_notification_and_fssai_profile_fields.sql. Running the
+-- original V71 on a clean database (or any DB already past V52) failed with
+-- PostgreSQL error 42701 (column already exists), aborting the whole migration
+-- chain — see PostgresMigrationSmokeTest.
+--
+-- It is kept as a no-op (rather than deleted) so environments that may already
+-- have V71 recorded in flyway_schema_history keep a matching version entry.
+-- NOTE: because this changes the file's checksum, any environment that already
+-- applied the original V71 must run `flyway repair` once after deploying this
+-- change (validateOnMigrate would otherwise report a checksum mismatch).
+SELECT 1;
