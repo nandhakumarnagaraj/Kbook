@@ -13,6 +13,7 @@ public enum PermissionKey {
     MENU_VIEW("menu.view", "View Menu Items", "MENU"),
     MENU_TOGGLE_AVAILABILITY("menu.toggle_availability", "Toggle Item Availability", "MENU"),
     MENU_EDIT_PRICE("menu.edit_price", "Change Prices", "MENU"),
+    MENU_EDIT_FULL("menu.edit_full", "Full Menu Editing", "MENU"),
     MENU_ADD_ITEM("menu.add_item", "Add New Items", "MENU"),
     MENU_DELETE_ITEM("menu.delete_item", "Remove Items", "MENU"),
 

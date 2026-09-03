@@ -41,6 +41,7 @@ public enum OfflineAuthClass {
         Map.entry("menu.view",                 OFFLINE_ALLOWED),
         Map.entry("menu.toggle_availability",  REVALIDATED_ON_SYNC),
         Map.entry("menu.edit_price",           REVALIDATED_ON_SYNC),
+        Map.entry("menu.edit_full",            REVALIDATED_ON_SYNC),
         Map.entry("menu.add_item",             REVALIDATED_ON_SYNC),
         Map.entry("menu.delete_item",          REVALIDATED_ON_SYNC),
         // Orders / KOT
