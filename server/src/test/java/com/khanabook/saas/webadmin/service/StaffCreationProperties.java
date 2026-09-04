@@ -61,7 +61,7 @@ class StaffCreationProperties {
             return user;
         });
 
-        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null);
+        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
         StaffCreatedResponse response = service.createStaff(1L, request);
 
         assertNotNull(response.userId(), "userId must not be null");
@@ -99,7 +99,7 @@ class StaffCreationProperties {
         when(userRepository.existsByPhoneNumber(phone)).thenReturn(false);
         when(userRepository.existsByLoginId(phone)).thenReturn(false);
 
-        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null);
+        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
 
         assertThrows(IllegalArgumentException.class, () -> service.createStaff(1L, request),
                 "Invalid role '" + role + "' should cause rejection");
@@ -127,7 +127,7 @@ class StaffCreationProperties {
 
         when(userRepository.existsByPhoneNumber(phone)).thenReturn(true);
 
-        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null);
+        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> service.createStaff(1L, request),
@@ -152,7 +152,7 @@ class StaffCreationProperties {
         when(userRepository.existsByPhoneNumber(phone)).thenReturn(false);
         when(userRepository.existsByLoginId(phone)).thenReturn(true);
 
-        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null);
+        CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> service.createStaff(1L, request),

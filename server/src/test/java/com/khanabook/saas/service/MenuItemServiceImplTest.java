@@ -83,7 +83,8 @@ class MenuItemServiceImplTest {
             org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class)
         );
         service = new MenuItemServiceImpl(
-            menuItemRepo, categoryRepo, genericSyncService, permissionService, staffPermissionRepository);
+            menuItemRepo, categoryRepo, genericSyncService, permissionService, staffPermissionRepository,
+            org.mockito.Mockito.mock(com.khanabook.saas.service.PushNotificationService.class));
     }
 
     @AfterEach

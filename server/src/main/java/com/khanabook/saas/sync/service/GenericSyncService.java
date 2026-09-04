@@ -67,6 +67,17 @@ public class GenericSyncService {
 	@org.springframework.beans.factory.annotation.Value("${sync.clock-skew.max-ms:300000}")
 	private long maxClockSkewMs;
 
+	/**
+	 * Offline backlog grace in milliseconds. Records whose updatedAt is older than
+	 * (serverTime - offlineGraceMs) are rejected as a broken device clock / stale
+	 * replay. Records between maxClockSkewMs and offlineGraceMs behind are accepted:
+	 * a device that worked offline for hours/days legitimately pushes records whose
+	 * updatedAt predates the push (bill createdAt / finalizeAt). Defaults to 30 days
+	 * to match the refresh-token / terminal-token lifecycle.
+	 */
+	@org.springframework.beans.factory.annotation.Value("${sync.clock-skew.offline-grace-ms:2592000000}")
+	private long offlineGraceMs;
+
 	private static boolean isFinalizedOrderStatus(String orderStatus) {
 		return BillSyncService.isFinalizedOrderStatus(orderStatus);
 	}
@@ -392,19 +403,29 @@ public class GenericSyncService {
 					existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
 				}
 
-				// ── P0-1: Clock skew rejection ──────────────────────────────────────
-				// Reject records whose timestamp is more than maxClockSkewMs away from
-				// the server clock. This prevents LWW corruption from clock-ahead devices
-				// and catches clock-behind devices early.
+				// ── P0-1: Clock skew guard ────────────────────────────────────────
+				// Two rules:
+				//  1. Clock-AHEAD records (more than maxClockSkewMs in the future) are
+				//     always rejected — a future-dated timestamp would win whole-record
+				//     LWW forever and corrupt shared master data.
+				//  2. Clock-BEHIND records are rejected only beyond an offline-grace
+				//     window (offlineGraceMs). A device that worked offline for hours or
+				//     days legitimately pushes records whose updatedAt predates the push.
+				//     Within the grace window they are accepted — LWW still protects
+				//     existing rows (an older timestamp can never overwrite newer server
+				//     state) and new inserts have no server record to clobber. Beyond the
+				//     grace window the device clock is presumed broken or the record is a
+				//     stale replay.
 				if (incomingRecord.getUpdatedAt() != null && maxClockSkewMs > 0) {
-					long skew = Math.abs(incomingRecord.getUpdatedAt() - serverTime);
-					if (skew > maxClockSkewMs) {
-						String direction = incomingRecord.getUpdatedAt() > serverTime ? "ahead" : "behind";
+					long updatedAt = incomingRecord.getUpdatedAt();
+					if (updatedAt > serverTime + maxClockSkewMs) {
+						long skew = updatedAt - serverTime;
+						String direction = "ahead";
 						log.warn("CLOCK_SKEW_REJECTED tenantId={} device={} localId={} type={} " +
 								"incoming={} server={} skew={}ms ({})",
 								targetTenantId, incomingRecord.getDeviceId(), incomingRecord.getLocalId(),
 								incomingRecord.getClass().getSimpleName(),
-								incomingRecord.getUpdatedAt(), serverTime, skew, direction);
+								updatedAt, serverTime, skew, direction);
 						securityAuditService.record("SYNC_PUSH", "CLOCK_SKEW_REJECTED",
 								String.valueOf(incomingRecord.getLocalId()),
 								incomingRecord.getDeviceId());
@@ -413,6 +434,36 @@ public class GenericSyncService {
 								"Terminal clock is " + direction + " by " + (skew / 1000) +
 								" seconds. Please correct time settings on the device.");
 						continue;
+					}
+					if (offlineGraceMs > 0 && updatedAt < serverTime - offlineGraceMs) {
+						long skew = serverTime - updatedAt;
+						String direction = "behind";
+						log.warn("CLOCK_SKEW_REJECTED tenantId={} device={} localId={} type={} " +
+								"incoming={} server={} skew={}ms ({}) beyond offline grace",
+								targetTenantId, incomingRecord.getDeviceId(), incomingRecord.getLocalId(),
+								incomingRecord.getClass().getSimpleName(),
+								updatedAt, serverTime, skew, direction);
+						securityAuditService.record("SYNC_PUSH", "CLOCK_SKEW_REJECTED",
+								String.valueOf(incomingRecord.getLocalId()),
+								incomingRecord.getDeviceId());
+						failedLocalIds.add(incomingRecord.getLocalId());
+						failedReasons.put(incomingRecord.getLocalId(),
+								"Terminal clock is " + direction + " by " + (skew / 1000) +
+								" seconds (older than the offline grace window). Please correct time settings on the device.");
+						continue;
+					}
+					if (updatedAt < serverTime - maxClockSkewMs) {
+						// Legitimate offline backlog within the grace window: accept, but
+						// surface for ops visibility (it is NOT a rejection).
+						long skew = serverTime - updatedAt;
+						log.warn("CLOCK_SKEW_BEHIND_WITHIN_GRACE tenantId={} device={} localId={} type={} " +
+								"incoming={} server={} skew={}ms (accepted offline backlog)",
+								targetTenantId, incomingRecord.getDeviceId(), incomingRecord.getLocalId(),
+								incomingRecord.getClass().getSimpleName(),
+								updatedAt, serverTime, skew);
+						securityAuditService.record("SYNC_PUSH", "CLOCK_SKEW_BEHIND_WITHIN_GRACE",
+								String.valueOf(incomingRecord.getLocalId()),
+								incomingRecord.getDeviceId());
 					}
 				}
 

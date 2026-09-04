@@ -5,6 +5,8 @@ import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.utility.JwtUtility;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,16 +25,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * P0 production-readiness: exercises the REAL authenticated HTTP → security →
  * JWT → MenuItemService → MenuPushAuthorizer → DB path for menu pushes.
  *
- * <h3>IMPORTANT FINDING surfaced by this test (see report)</h3>
- * The security config gates the whole sync surface with
- * {@code requestMatchers("/sync/**").hasRole("OWNER")} (SecurityConfig). So a
- * non-OWNER staff token is rejected with 403 at the route layer, BEFORE reaching
- * MenuItemServiceImpl / MenuPushAuthorizer. Consequently the fine-grained
- * per-user menu-permission enforcement only executes for OWNER today (who always
- * passes). These tests assert the ACTUAL current contract rather than the intended
- * staff-level enforcement, which is not reachable over HTTP under the current
- * security model. Whether to allow non-OWNER roles on /sync/menuitem/** is a
- * separate security decision (P1), not changed here.
+ * <h3>Previous finding, now fixed</h3>
+ * The security config used to gate the whole sync surface with
+ * {@code requestMatchers("/sync/**").hasRole("OWNER")}, so a non-OWNER staff
+ * token was rejected with 403 at the route layer BEFORE reaching
+ * MenuItemServiceImpl / MenuPushAuthorizer. That route-wide gate was replaced
+ * by the per-key permission model: staff roles now reach the service, where the
+ * fine-grained authorizer accepts only pushes the actor is actually granted
+ * (a denial surfaces via failedReasons, not a 403).
  */
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -46,6 +46,7 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
     @Autowired private PermissionService permissionService;
     @Autowired private StaffPermissionRevisionRepository revisionRepository;
     @Autowired private JwtUtility jwtUtility;
+    @Autowired private ObjectMapper objectMapper;
 
     private User owner;
     private User cashier;
@@ -120,13 +121,12 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
                     System.currentTimeMillis(), System.currentTimeMillis());
     }
 
-    // ── FINDING: non-OWNER staff cannot even reach the menu push endpoint ───────
+    // ── FINDING FIXED: non-OWNER staff reach the menu push endpoint when their
+    //    granted permission matches the guard key (menu.edit_price); blocked otherwise ──
 
     @Test
-    void staffToken_isBlockedAtRouteLayer_beforeAuthorizer() throws Exception {
+    void cashier_withPricePermission_reachesServiceAndIsApplied() throws Exception {
         MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
-        // Even WITH the permission granted, a CASHIER is blocked by SecurityConfig
-        // (/sync/** requires OWNER) — the request never reaches MenuPushAuthorizer.
         permissionService.grantPermission(RESTAURANT, cashier.getId(),
                 PermissionKey.MENU_EDIT_PRICE.getKey(), owner.getId());
 
@@ -134,7 +134,28 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + cashierToken)
                 .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
+
+        MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
+        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // applied
+    }
+
+    @Test
+    void cashier_withoutPricePermission_blockedByServiceAuthorizer() throws Exception {
+        MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
+
+        var result = mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + cashierToken)
+                .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        JsonNode failedReasons = response.get("failedReasons");
+        assertThat(failedReasons).isNotNull();
+        assertThat(failedReasons.has("1000")).isTrue();
+        assertThat(failedReasons.get("1000").asText()).contains("Not permitted");
 
         MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
         assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("250.00")); // unchanged

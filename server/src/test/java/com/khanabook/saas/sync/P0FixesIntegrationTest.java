@@ -22,7 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * P0 fixes integration tests:
- * P0-1: Clock skew rejection (>5min from server time → rejected)
+ * P0-1: Clock skew guard (clock-AHEAD >5min → rejected always; clock-BEHIND accepted
+ *       within the offline grace window, rejected beyond it — supports offline backlog)
  * P0-2: Payment/order status protection (paid → pending blocked by preserveServerOwnedState)
  * P0-3: Terminal sync status endpoint for daily closing accuracy
  */
@@ -123,17 +124,37 @@ class P0FixesIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void p01_clockBehindRejected() throws Exception {
-        // Terminal clock is 10 minutes behind → push rejected
+    void p01_clockBehindWithinGrace_accepted() throws Exception {
+        // Terminal clock is 10 minutes behind → within the 30-day offline grace
+        // window → the record is a legitimate offline backlog and is accepted.
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         long pastTimestamp = System.currentTimeMillis() - (10 * 60 * 1000L); // -10 min
+
+        mockMvc.perform(post("/sync/bills/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + ownerToken)
+                .header("X-Terminal-Token", token)
+                .content(billJson(1L, pastTimestamp, "DEV_A", "draft", "pending")))
+                .andExpect(status().isOk());
+
+        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
+        assertThat(bills).hasSize(1);
+    }
+
+    @Test
+    void p01_clockBeyondGrace_rejected() throws Exception {
+        // Terminal clock is 31 days behind → beyond the offline grace window →
+        // treated as a broken clock / stale replay and rejected.
+        RestaurantTerminal t = createTerminal("A");
+        String token = terminalToken(t);
+        long ancientTimestamp = System.currentTimeMillis() - (31L * 24L * 60L * 60L * 1000L); // -31 days
 
         var result = mockMvc.perform(post("/sync/bills/push")
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + ownerToken)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, pastTimestamp, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, ancientTimestamp, "DEV_A", "draft", "pending")))
                 .andExpect(status().isOk())
                 .andReturn();
 
