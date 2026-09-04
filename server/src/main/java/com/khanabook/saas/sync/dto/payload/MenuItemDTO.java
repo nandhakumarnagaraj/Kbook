@@ -34,4 +34,11 @@ public class MenuItemDTO {
 
     /** Permission revision captured on-device when the row was created/edited (P1). */
     private Long permissionRevisionAtCreation;
+
+    /**
+     * Comma-separated list of menu fields the device actually changed (field-level
+     * merge). Null or blank = full record (legacy LWW). "all" = new item / full record.
+     * When present, only the listed fields are merged onto the server row.
+     */
+    private String changedFields;
 }

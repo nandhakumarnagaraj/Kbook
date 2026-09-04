@@ -8,10 +8,13 @@ import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.StaffPermissionRepository;
 import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.security.authz.MenuChangeType;
 import com.khanabook.saas.security.authz.MenuPushAuthorizer;
 import com.khanabook.saas.security.authz.OfflineAuthDecider;
 import com.khanabook.saas.service.MenuItemService;
 import com.khanabook.saas.service.PermissionService;
+import com.khanabook.saas.service.PushNotificationService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import com.khanabook.saas.utility.PricingConstants;
@@ -34,6 +37,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 	private final GenericSyncService genericSyncService;
 	private final PermissionService permissionService;
 	private final StaffPermissionRepository staffPermissionRepository;
+	private final PushNotificationService pushNotificationService;
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<MenuItem> payload) {
@@ -104,6 +108,11 @@ public class MenuItemServiceImpl implements MenuItemService {
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
 		response.getFailedReasons().putAll(failedReasons);
+		// Near-real-time propagation: tell every other device to sync now so a
+		// price/name/stock edit lands within seconds, not the 2-minute window.
+		if (!toSync.isEmpty()) {
+			pushNotificationService.pushSyncNow(tenantId);
+		}
 		return response;
 	}
 
@@ -226,20 +235,17 @@ public class MenuItemServiceImpl implements MenuItemService {
 	 * ever exists for real staff rows.
 	 */
 	private MenuPushAuthorizer.FactsResolver menuFactsResolver(Long tenantId, Long userId) {
-		final String editFull = com.khanabook.saas.entity.PermissionKey.MENU_EDIT_FULL.getKey();
+		final String editFull = PermissionKey.MENU_EDIT_FULL.getKey();
 		return MenuPushAuthorizer.factsResolver(
 				requiredKey -> {
-					// Direct grant, or satisfied by menu.edit_full (single implication rule).
 					if (permissionService.hasPermission(tenantId, userId, requiredKey)) return true;
-					return com.khanabook.saas.security.authz.MenuChangeType.satisfies(requiredKey, editFull)
+					return MenuChangeType.satisfies(requiredKey, editFull)
 							&& permissionService.hasPermission(tenantId, userId, editFull);
 				},
 				requiredKey -> {
-					// Use the revocation marker of whichever key actually authorizes the op:
-					// the required key if held directly, otherwise menu.edit_full.
 					boolean directlyHeld = permissionService.hasPermission(tenantId, userId, requiredKey);
 					String authorizingKey = directlyHeld ? requiredKey
-							: (com.khanabook.saas.security.authz.MenuChangeType.satisfies(requiredKey, editFull)
+							: (MenuChangeType.satisfies(requiredKey, editFull)
 									? editFull : requiredKey);
 					return staffPermissionRepository
 							.findByRestaurantIdAndUserIdAndPermissionKey(tenantId, userId, authorizingKey)
@@ -250,7 +256,8 @@ public class MenuItemServiceImpl implements MenuItemService {
 
 	private String authFailureMessage(MenuPushAuthorizer.Result authz) {
 		String action = switch (authz.changeType()) {
-			case PRICE, METADATA_ONLY -> "change the price of this item";
+			case PRICE -> "change the price of this item";
+			case METADATA_ONLY -> "edit menu item details";
 			case AVAILABILITY -> "change item availability";
 			case PRICE_AND_AVAILABILITY -> "change price and availability";
 			case CREATE -> "add menu items";
@@ -268,6 +275,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 		if (updated == 0) {
 			throw new IllegalArgumentException("Menu item not found or already unavailable");
 		}
+		pushNotificationService.pushSyncNow(tenantId);
 	}
 
 	@Override
@@ -275,6 +283,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 	public void markAllItemsAsUnavailable(Long tenantId) {
 		long now = System.currentTimeMillis();
 		repository.markAllAsUnavailable(tenantId, now);
+		pushNotificationService.pushSyncNow(tenantId);
 	}
 
 	@Override
@@ -296,5 +305,6 @@ public class MenuItemServiceImpl implements MenuItemService {
 				repository.save(toUpdate);
 			}
 		}
+		pushNotificationService.pushSyncNow(tenantId);
 	}
 }

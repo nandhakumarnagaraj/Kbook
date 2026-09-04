@@ -8,6 +8,7 @@ import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.webadmin.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +33,14 @@ public class BusinessWriteService {
     private final MenuItemRepository menuItemRepository;
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository profileRepository;
-    private final com.khanabook.saas.service.PermissionService permissionService;
+    private final PermissionService permissionService;
 
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
                                 MenuItemRepository menuItemRepository,
                                 RestaurantTerminalRepository terminalRepository,
                                 RestaurantProfileRepository profileRepository,
-                                com.khanabook.saas.service.PermissionService permissionService) {
+                                PermissionService permissionService) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
@@ -84,15 +85,7 @@ public class BusinessWriteService {
         User saved = userRepository.save(user);
         log.info("Staff created: userId={}, restaurant={}, role={}", saved.getId(), restaurantId, role);
 
-        // Default read-only: a new non-owner staff member starts with view-only
-        // permissions (menu.view + orders/day-summary views). Owners are all-powerful
-        // by role, so this is a no-op for them (P2 — default read-only).
-        try {
-            permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
-        } catch (Exception e) {
-            // Baseline grant must not fail staff creation; log and continue.
-            log.warn("Failed to apply default read-only permissions to userId={}: {}", saved.getId(), e.getMessage());
-        }
+        permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
 
         return new StaffCreatedResponse(
                 saved.getId(), saved.getName(), saved.getPhoneNumber(),

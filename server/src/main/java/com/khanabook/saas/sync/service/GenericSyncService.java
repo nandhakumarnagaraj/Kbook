@@ -454,6 +454,25 @@ public class GenericSyncService {
 						}
 						if (incomingRecord.getUpdatedAt() >= existingRecord.getUpdatedAt()) {
 
+							// Phase 3: Stale-push conflict detection for categories, variants,
+							// and profiles. When the device's serverUpdatedAt is older than the
+							// server's current serverUpdatedAt, another device has already pushed
+							// a newer version. Quarantine instead of silently overwriting (LWW
+							// would let the stale push win by timestamp alone).
+							if ((incomingRecord instanceof Category
+									|| incomingRecord instanceof ItemVariant
+									|| incomingRecord instanceof RestaurantProfile)
+									&& existingRecord.getServerUpdatedAt() != null
+									&& incomingRecord.getServerUpdatedAt() != null
+									&& existingRecord.getServerUpdatedAt() > incomingRecord.getServerUpdatedAt()) {
+								failedLocalIds.add(incomingRecord.getLocalId());
+								failedReasons.put(incomingRecord.getLocalId(),
+										"STALE_PUSH_CONFLICT: another device updated this "
+										+ incomingRecord.getClass().getSimpleName()
+										+ " since your last sync. Pull to see the latest version.");
+								continue;
+							}
+
 								if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
 									userProfileSyncService.mergeUserFields(user, existingUser);
 
@@ -466,6 +485,15 @@ public class GenericSyncService {
 							
 							// Relational ID Resolution for Updates
 							relationalIdResolver.resolve(incomingRecord, idMaps);
+
+							// Field-level merge (field-mask): when the device tells us which
+							// fields it actually changed, only those are merged onto the server
+							// row. Unmasked fields keep the server value, so two devices editing
+							// DIFFERENT fields of the same record no longer clobber each other
+							// (Phase 1 — fixes menu price/name/category silent loss). Runs before
+							// preserveServerOwnedState so server-owned sticky state still wins.
+							applyChangedFieldsMerge(incomingRecord, existingRecord);
+
 							preserveServerOwnedState(incomingRecord, existingRecord);
 
 							// Enforce parent-bill terminal ownership for child records
@@ -502,6 +530,7 @@ public class GenericSyncService {
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
 									&& existingRecord instanceof RestaurantProfile existingProfile) {
 								incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
+								applyProfileChangedFieldsMerge(incomingRecord, existingRecord);
 								mergeCounterState(incomingProfile, existingProfile);
 							}
 
@@ -847,6 +876,138 @@ public class GenericSyncService {
 				incomingBill.setOrderStatus(existingBill.getOrderStatus());
 			}
 		}
+	}
+
+	/**
+	 * Field-level merge based on the device's declared field-mask (Phase 1).
+	 *
+	 * <p>Only {@link MenuItem} supports it today. The incoming record carries a
+	 * comma-separated {@code changedFields} list naming the menu fields the device
+	 * actually edited. For every field NOT in the mask, the server value on the
+	 * existing row is restored onto the incoming (winning) record — so two devices
+	 * editing DIFFERENT fields of the same item no longer clobber each other.
+	 *
+	 * <p>Merge semantics per field:
+	 * <ul>
+	 *   <li>{@code basePrice} — price edit only touches price</li>
+	 *   <li>{@code name} / {@code description} — text edit only</li>
+	 *   <li>{@code serverCategoryId} / {@code categoryId} — category reassignment</li>
+	 *   <li>{@code isAvailable} — availability toggle (still subject to the
+	 *       inventory-stickiness carve-out in preserveServerOwnedState)</li>
+	 *   <li>{@code isDeleted} — soft delete</li>
+	 *   <li>Everything else (foodType, barcode, sortOrder, stock fields) — gated
+	 *       behind {@code *} wildcard so unmasked values are preserved.</li>
+	 * </ul>
+	 *
+	 * <p>Null/blank {@code changedFields} = legacy whole-record LWW (older clients).
+	 * {@code "all"} = brand-new record or full overwrite — nothing restored.
+	 */
+	private void applyChangedFieldsMerge(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		if (!(incoming instanceof MenuItem incomingItem && existing instanceof MenuItem existingItem)) {
+			return;
+		}
+		String mask = incomingItem.getChangedFields();
+		if (mask == null || mask.isBlank() || "all".equalsIgnoreCase(mask.trim())) {
+			return;
+		}
+		java.util.Set<String> changed = new java.util.HashSet<>();
+		for (String f : mask.split(",")) {
+			String t = f == null ? "" : f.trim();
+			if (!t.isEmpty() && !"*".equals(t)) {
+				changed.add(t.toLowerCase());
+			}
+		}
+		boolean wildcard = mask.contains("*");
+		if (!changed.contains("baseprice")) incomingItem.setBasePrice(existingItem.getBasePrice());
+		if (!changed.contains("name")) incomingItem.setName(existingItem.getName());
+		if (!changed.contains("description")) incomingItem.setDescription(existingItem.getDescription());
+		if (!changed.contains("servercategoryid")) incomingItem.setServerCategoryId(existingItem.getServerCategoryId());
+		if (!changed.contains("categoryid")) incomingItem.setCategoryId(existingItem.getCategoryId());
+		if (!changed.contains("isavailable")) incomingItem.setIsAvailable(existingItem.getIsAvailable());
+		if (!changed.contains("isdeleted")) incomingItem.setIsDeleted(existingItem.getIsDeleted());
+		if (!wildcard) {
+			if (!changed.contains("foodtype")) incomingItem.setFoodType(existingItem.getFoodType());
+			if (!changed.contains("barcode")) incomingItem.setBarcode(existingItem.getBarcode());
+			if (!changed.contains("currentstock")) incomingItem.setCurrentStock(existingItem.getCurrentStock());
+			if (!changed.contains("lowstockthreshold")) incomingItem.setLowStockThreshold(existingItem.getLowStockThreshold());
+		}
+	}
+
+	/**
+	 * Field-level merge for {@link RestaurantProfile} (Phase 2).
+	 * Same mask protocol as {@link #applyChangedFieldsMerge}. Restores server values
+	 * for profile fields NOT in the device's changed set. Server-owned fields
+	 * (isSuspended, counters) are always restored via {@link #preserveServerOwnedState}.
+	 */
+	private void applyProfileChangedFieldsMerge(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		if (!(incoming instanceof RestaurantProfile incomingP && existing instanceof RestaurantProfile existingP)) {
+			return;
+		}
+		String mask = incomingP.getChangedFields();
+		if (mask == null || mask.isBlank() || "all".equalsIgnoreCase(mask.trim())) {
+			return;
+		}
+		java.util.Set<String> changed = new java.util.HashSet<>();
+		for (String f : mask.split(",")) {
+			String t = f == null ? "" : f.trim();
+			if (!t.isEmpty() && !"*".equals(t)) {
+				changed.add(t.toLowerCase());
+			}
+		}
+		boolean wildcard = mask.contains("*");
+		// Business info
+		if (!changed.contains("shopname")) incomingP.setShopName(existingP.getShopName());
+		if (!changed.contains("shopaddress")) incomingP.setShopAddress(existingP.getShopAddress());
+		if (!changed.contains("whatsappnumber")) incomingP.setWhatsappNumber(existingP.getWhatsappNumber());
+		if (!changed.contains("email")) incomingP.setEmail(existingP.getEmail());
+		if (!changed.contains("fssainumber")) incomingP.setFssaiNumber(existingP.getFssaiNumber());
+		if (!changed.contains("fssaiexpirydate")) incomingP.setFssaiExpiryDate(existingP.getFssaiExpiryDate());
+		if (!changed.contains("country")) incomingP.setCountry(existingP.getCountry());
+		if (!changed.contains("currency")) incomingP.setCurrency(existingP.getCurrency());
+		if (!changed.contains("timezone")) incomingP.setTimezone(existingP.getTimezone());
+		if (!changed.contains("logopath")) incomingP.setLogoPath(existingP.getLogoPath());
+		if (!changed.contains("logourl")) incomingP.setLogoUrl(existingP.getLogoUrl());
+		if (!changed.contains("logoversion")) incomingP.setLogoVersion(existingP.getLogoVersion());
+		if (!changed.contains("customwelcomemessage")) incomingP.setCustomWelcomeMessage(existingP.getCustomWelcomeMessage());
+		if (!changed.contains("customfssaicomessage")) incomingP.setCustomFssaiMessage(existingP.getCustomFssaiMessage());
+		if (!changed.contains("reviewurl")) incomingP.setReviewUrl(existingP.getReviewUrl());
+		if (!changed.contains("invoicefooter")) incomingP.setInvoiceFooter(existingP.getInvoiceFooter());
+		if (!changed.contains("showbranding")) incomingP.setShowBranding(existingP.getShowBranding());
+		if (!changed.contains("maskcustomerphone")) incomingP.setMaskCustomerPhone(existingP.getMaskCustomerPhone());
+		if (!changed.contains("printcustomerwhatsapp")) incomingP.setPrintCustomerWhatsapp(existingP.getPrintCustomerWhatsapp());
+		if (!changed.contains("emailinvoiceconsent")) incomingP.setEmailInvoiceConsent(existingP.getEmailInvoiceConsent());
+		if (!changed.contains("sessiontimeoutminutes")) incomingP.setSessionTimeoutMinutes(existingP.getSessionTimeoutMinutes());
+		if (!changed.contains("orderpaymentflowmode")) incomingP.setOrderPaymentFlowMode(existingP.getOrderPaymentFlowMode());
+		// GST group
+		if (!changed.contains("gstenabled")) incomingP.setGstEnabled(existingP.getGstEnabled());
+		if (!changed.contains("gstin")) incomingP.setGstin(existingP.getGstin());
+		if (!changed.contains("istaxinclusive")) incomingP.setIsTaxInclusive(existingP.getIsTaxInclusive());
+		if (!changed.contains("gstpercentage")) incomingP.setGstPercentage(existingP.getGstPercentage());
+		if (!changed.contains("customtaxname")) incomingP.setCustomTaxName(existingP.getCustomTaxName());
+		if (!changed.contains("customtaxnumber")) incomingP.setCustomTaxNumber(existingP.getCustomTaxNumber());
+		if (!changed.contains("customtaxpercentage")) incomingP.setCustomTaxPercentage(existingP.getCustomTaxPercentage());
+		if (!changed.contains("gstexpirydate")) incomingP.setGstExpiryDate(existingP.getGstExpiryDate());
+		if (!changed.contains("easebuzzenabled")) incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
+		// UPI/payment group
+		if (!changed.contains("upienabled")) incomingP.setUpiEnabled(existingP.getUpiEnabled());
+		if (!changed.contains("upihandle")) incomingP.setUpiHandle(existingP.getUpiHandle());
+		if (!changed.contains("upimobile")) incomingP.setUpiMobile(existingP.getUpiMobile());
+		if (!changed.contains("upiqrpath")) incomingP.setUpiQrPath(existingP.getUpiQrPath());
+		if (!changed.contains("upiqrurl")) incomingP.setUpiQrUrl(existingP.getUpiQrUrl());
+		if (!changed.contains("upiqrversion")) incomingP.setUpiQrVersion(existingP.getUpiQrVersion());
+		if (!changed.contains("cashenabled")) incomingP.setCashEnabled(existingP.getCashEnabled());
+		if (!changed.contains("posenabled")) incomingP.setPosEnabled(existingP.getPosEnabled());
+		// Printer group
+		if (!changed.contains("printerenabled")) incomingP.setPrinterEnabled(existingP.getPrinterEnabled());
+		if (!changed.contains("printername")) incomingP.setPrinterName(existingP.getPrinterName());
+		if (!changed.contains("printermac")) incomingP.setPrinterMac(existingP.getPrinterMac());
+		if (!changed.contains("papersize")) incomingP.setPaperSize(existingP.getPaperSize());
+		if (!changed.contains("autoprintonsuccess")) incomingP.setAutoPrintOnSuccess(existingP.getAutoPrintOnSuccess());
+		if (!changed.contains("includelogoInprint")) incomingP.setIncludeLogoInPrint(existingP.getIncludeLogoInPrint());
+		if (!changed.contains("kitchenprinterenabled")) incomingP.setKitchenPrinterEnabled(existingP.getKitchenPrinterEnabled());
+		if (!changed.contains("kitchenprintername")) incomingP.setKitchenPrinterName(existingP.getKitchenPrinterName());
+		if (!changed.contains("kitchenprintermac")) incomingP.setKitchenPrinterMac(existingP.getKitchenPrinterMac());
+		if (!changed.contains("kitchenprinterpapersize")) incomingP.setKitchenPrinterPaperSize(existingP.getKitchenPrinterPaperSize());
 	}
 
 	private Long maxNullable(Long a, Long b) {

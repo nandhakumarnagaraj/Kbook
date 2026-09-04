@@ -72,4 +72,7 @@ public class RestaurantProfileDTO {
     private Boolean maskCustomerPhone;
     private Boolean printCustomerWhatsapp;
     private String lastResetDateProper;
+
+    /** Comma-separated list of profile fields the device actually changed (field-level merge). */
+    private String changedFields;
 }

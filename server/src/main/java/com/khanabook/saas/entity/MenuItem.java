@@ -62,6 +62,13 @@ public class MenuItem extends BaseSyncEntity {
 	@Transient
 	private Boolean overwriteExisting = false;
 
+	/**
+	 * Comma-separated list of menu fields this device actually changed (field-level
+	 * merge). Not persisted — sync-only. Null/blank = legacy whole-record LWW.
+	 */
+	@Transient
+	private String changedFields;
+
 	public enum StockStatus {
 		IN_STOCK, RUNNING_LOW, OUT_OF_STOCK
 	}

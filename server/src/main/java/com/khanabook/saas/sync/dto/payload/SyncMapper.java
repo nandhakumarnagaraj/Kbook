@@ -133,6 +133,7 @@ public class SyncMapper {
                 entity.setCategoryId(dto.getCategoryId());
                 entity.setServerCategoryId(dto.getServerCategoryId());
                 entity.setOverwriteExisting(dto.getOverwriteExisting());
+                entity.setChangedFields(dto.getChangedFields());
                 if (dto.getIsAvailable() == null) {
                     entity.setIsAvailable(true);
                 }
@@ -179,6 +180,7 @@ public class SyncMapper {
                 entity.setWhatsappNumber(dto.getWhatsappNumber());
                 entity.setEmail(dto.getEmail());
                 entity.setFssaiNumber(dto.getFssaiNumber());
+                entity.setChangedFields(dto.getChangedFields());
                 if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isEmpty()) {
                     entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
                 } else {

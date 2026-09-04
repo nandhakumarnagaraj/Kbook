@@ -120,6 +120,55 @@ public class PushNotificationService {
     }
 
     /**
+     * Send a data-only FCM message instructing a restaurant's devices to run an
+     * immediate sync. This bypasses the 2-minute periodic window so menu/pricing
+     * edits propagate in near-real-time. Bypasses rate-limit dedup (sync_now is
+     * a control signal, not a user-visible notification).
+     */
+    public void pushSyncNow(Long restaurantId) {
+        if (firebaseApp == null || restaurantId == null) {
+            return;
+        }
+        List<DeviceToken> tokens = deviceTokenRepo.findByRestaurantIdAndActiveTrue(restaurantId);
+        if (tokens.isEmpty()) {
+            return;
+        }
+        Map<String, String> data = Map.of(
+            "type", "sync_now",
+            "title", "",
+            "message", ""
+        );
+        MulticastMessage multicast = MulticastMessage.builder()
+            .putAllData(data)
+            .addAllTokens(tokens.stream().map(DeviceToken::getToken).toList())
+            .setAndroidConfig(AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setTtl(60L)
+                .build())
+            .build();
+        try {
+            BatchResponse response = FirebaseMessaging.getInstance(firebaseApp).sendEachForMulticast(multicast);
+            if (response.getFailureCount() > 0) {
+                List<SendResponse> responses = response.getResponses();
+                for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
+                    SendResponse sendResponse = responses.get(i);
+                    if (!sendResponse.isSuccessful()) {
+                        Exception ex = sendResponse.getException();
+                        if (isUnregistered(ex)) {
+                            DeviceToken dt = tokens.get(i);
+                            dt.setActive(false);
+                            dt.setUpdatedAt(System.currentTimeMillis());
+                            deviceTokenRepo.save(dt);
+                        }
+                    }
+                }
+            }
+        } catch (FirebaseMessagingException e) {
+            log.warn("pushSyncNow failed for restaurantId={}: {}", restaurantId, e.getMessage());
+        }
+    }
+
+    /**
      * Unregister a device token (logout / disable).
      */
     @Transactional
