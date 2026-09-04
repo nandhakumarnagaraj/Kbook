@@ -6,10 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 
 public final class SyncPushGuard {
 
 	private static final int MAX_PUSH_BATCH_SIZE = 200;
+
+	private static final Set<String> MASTER_DATA_WRITER_ROLES = Set.of("OWNER", "SHOP_ADMIN", "KBOOK_ADMIN");
 
 	private SyncPushGuard() {}
 
@@ -40,6 +43,28 @@ public final class SyncPushGuard {
 				|| !permissionService.hasPermission(tenantId, userId, permissionKey)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
 					"Missing required permission: " + permissionKey);
+		}
+	}
+
+	/**
+	 * Master data (menu items, prices, availability, categories, variants) is
+	 * single-writer: only the restaurant owner account and admin roles may
+	 * mutate it. Staff terminals are offline-first readers of the cached menu
+	 * that mint bills — they never write master data, regardless of any advisory
+	 * {@code menu.*} grant.
+	 */
+	public static boolean isMasterDataWriter(String role) {
+		return role != null && MASTER_DATA_WRITER_ROLES.contains(role);
+	}
+
+	/**
+	 * Rejects the request (403) unless the current tenant role is a master-data
+	 * writer. Used as the outer gate on every master-data write endpoint.
+	 */
+	public static void requireMasterDataWriter() {
+		if (!isMasterDataWriter(TenantContext.getCurrentRole())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"Only the restaurant owner or an admin may change menu items");
 		}
 	}
 }

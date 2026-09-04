@@ -16,12 +16,10 @@ import com.khanabook.saas.security.TenantContext;
 @RequiredArgsConstructor
 public class ItemVariantController {
 	private final ItemVariantService service;
-	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<ItemVariantDTO> payload) {
-		SyncPushGuard.requirePermission(
-				com.khanabook.saas.entity.PermissionKey.MENU_EDIT_PRICE.getKey(), permissionService);
+		SyncPushGuard.requireMasterDataWriter();
 		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
 				SyncMapper.mapToEntityList(payload, ItemVariant.class)));
 	}

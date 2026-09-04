@@ -24,12 +24,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CategoryController {
 	private final CategoryService service;
-	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<CategoryDTO> payload) {
-		SyncPushGuard.requirePermission(
-				com.khanabook.saas.entity.PermissionKey.MENU_EDIT_FULL.getKey(), permissionService);
+		SyncPushGuard.requireMasterDataWriter();
 		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
 				SyncMapper.mapToEntityList(payload, Category.class)));
 	}

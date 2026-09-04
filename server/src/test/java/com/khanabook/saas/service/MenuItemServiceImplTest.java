@@ -2,15 +2,12 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.PermissionKey;
-import com.khanabook.saas.entity.StaffPermission;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.repository.StaffPermissionRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.impl.MenuItemServiceImpl;
 import com.khanabook.saas.service.SecurityAuditService;
@@ -33,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,8 +43,6 @@ class MenuItemServiceImplTest {
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
-    @Mock private PermissionService permissionService;
-    @Mock private StaffPermissionRepository staffPermissionRepository;
     @Mock private com.khanabook.saas.repository.StaffPermissionRevisionRepository revisionRepo;
 
     private GenericSyncService genericSyncService;
@@ -58,9 +52,6 @@ class MenuItemServiceImplTest {
     private static final String DEVICE = "PHONE_1";
     private static final Long STAFF_USER = 900L;
     private static final Long OWNER_USER = 1L;
-
-    private static final String PRICE = PermissionKey.MENU_EDIT_PRICE.getKey();
-    private static final String AVAIL = PermissionKey.MENU_TOGGLE_AVAILABILITY.getKey();
 
     @BeforeEach
     void setUp() {
@@ -73,7 +64,7 @@ class MenuItemServiceImplTest {
             terminalRepository,
             securityAuditService,
             new com.khanabook.saas.sync.service.SyncFallbackSaver(),
-            permissionService,
+            org.mockito.Mockito.mock(com.khanabook.saas.service.PermissionService.class),
             revisionRepo,
             org.mockito.Mockito.mock(com.khanabook.saas.sync.service.RelationalIdResolver.class),
             org.mockito.Mockito.mock(com.khanabook.saas.sync.service.TerminalOwnershipService.class),
@@ -83,7 +74,7 @@ class MenuItemServiceImplTest {
             org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class)
         );
         service = new MenuItemServiceImpl(
-            menuItemRepo, categoryRepo, genericSyncService, permissionService, staffPermissionRepository,
+            menuItemRepo, categoryRepo, genericSyncService,
             org.mockito.Mockito.mock(com.khanabook.saas.service.PushNotificationService.class));
     }
 
@@ -129,58 +120,46 @@ class MenuItemServiceImplTest {
         assertThat(resp.getSuccessfulLocalIds()).doesNotContain(1L);
     }
 
-    // ── P0: server-side permission enforcement ────────────────────────────────
+    // ── P0: master data is single-writer (role-bound) ─────────────────────────
 
     @Test
-    void staffWithoutEditPrice_cannotChangePrice() {
+    void staff_cannotChangeMenuPrice() {
         actAsStaff();
-        // Existing server row @250; incoming @300 (price change).
-        MenuItem existing = serverRow(500L, new BigDecimal("250"), true);
         MenuItem incoming = withServerId(menuItem(1L, 10L), 500L, new BigDecimal("300"), true);
-
-        when(menuItemRepo.findById(500L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(false);
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
 
         assertThat(resp.getFailedLocalIds()).contains(1L);
-        assertThat(resp.getFailedReasons().get(1L)).contains("price");
-        // Change must NOT be applied — nothing staged for save.
+        assertThat(resp.getFailedReasons().get(1L)).contains("owner or an admin");
         verify(menuItemRepo, never()).saveAll(any());
     }
 
     @Test
-    void staffWithoutToggleAvailability_cannotToggle() {
+    void staffWithEditFullGrant_stillCannotChangeMenu() {
+        // The pen is role-bound now: a menu.* grant alone does NOT let a staff
+        // member write master data.
         actAsStaff();
-        MenuItem existing = serverRow(501L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(2L, 10L), 501L, new BigDecimal("250"), false);
-
-        when(menuItemRepo.findById(501L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, AVAIL)).thenReturn(false);
+        MenuItem incoming = withServerId(menuItem(3L, 10L), 502L, new BigDecimal("300"), false);
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
 
-        assertThat(resp.getFailedLocalIds()).contains(2L);
-        assertThat(resp.getFailedReasons().get(2L)).contains("availability");
+        assertThat(resp.getFailedLocalIds()).contains(3L);
+        assertThat(resp.getFailedReasons().get(3L)).contains("owner or an admin");
         verify(menuItemRepo, never()).saveAll(any());
     }
 
     @Test
-    void staffWithEditPrice_canChangePrice() {
+    void staff_stillCannotChangeMenu_whenGrantedSinceEdit() {
+        // Even a continuously-granted staff edit is rejected: staff are bill-mint
+        // readers of the cached menu, never master-data writers.
         actAsStaff();
-        MenuItem existing = serverRow(502L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(3L, 10L), 502L, new BigDecimal("300"), true);
-
-        when(menuItemRepo.findById(502L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(true);
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
-            .thenReturn(List.of());
-        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+        MenuItem incoming = withServerId(menuItem(7L, 10L), 510L, new BigDecimal("300"), true);
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
 
-        assertThat(resp.getFailedLocalIds()).doesNotContain(3L);
-        verify(menuItemRepo).saveAll(any());
+        assertThat(resp.getFailedLocalIds()).contains(7L);
+        assertThat(resp.getFailedReasons().get(7L)).contains("owner or an admin");
+        verify(menuItemRepo, never()).saveAll(any());
     }
 
     @Test
@@ -189,9 +168,6 @@ class MenuItemServiceImplTest {
         MenuItem existing = serverRow(503L, new BigDecimal("250"), true);
         MenuItem incoming = withServerId(menuItem(4L, 10L), 503L, new BigDecimal("300"), false);
 
-        when(menuItemRepo.findById(503L)).thenReturn(Optional.of(existing));
-        // OWNER always holds every permission (PermissionService semantics).
-        when(permissionService.hasPermission(eq(TENANT_ID), eq(OWNER_USER), any())).thenReturn(true);
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
         doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
@@ -203,102 +179,23 @@ class MenuItemServiceImplTest {
     }
 
     @Test
-    void revokedPermission_isRejected() {
-        actAsStaff();
-        // P0-enforceable revocation guarantee: the permission is currently NOT granted
-        // (revoked and not re-granted). The price change must be rejected.
-        //
-        // NOTE: the stricter "revoked AFTER an offline op was created, then re-granted"
-        // case (Decision-A strict) requires the on-device creation revision, which is P1.
-        // That path is proven at the pure layer in
-        // MenuPushAuthorizerTest.authorize_revokedAfterCreation_rejected.
+    void shopAdmin_canChangePriceAndAvailability() {
+        // SHOP_ADMIN is a master-data writer by role — no menu.* grant needed.
+        TenantContext.setCurrentTenant(TENANT_ID);
+        TenantContext.setCurrentRole("SHOP_ADMIN");
+        TenantContext.setCurrentUserId(STAFF_USER);
         MenuItem existing = serverRow(504L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(5L, 10L), 504L, new BigDecimal("300"), true);
+        MenuItem incoming = withServerId(menuItem(5L, 10L), 504L, new BigDecimal("300"), false);
 
-        when(menuItemRepo.findById(504L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(false);
-        StaffPermission sp = new StaffPermission(TENANT_ID, STAFF_USER, PRICE, OWNER_USER);
-        sp.setGranted(false);
-        sp.setLastRevokedRevision(6L);
-        when(staffPermissionRepository.findByRestaurantIdAndUserIdAndPermissionKey(TENANT_ID, STAFF_USER, PRICE))
-            .thenReturn(Optional.of(sp));
+        assertThat(com.khanabook.saas.sync.validation.SyncPushGuard.isMasterDataWriter("SHOP_ADMIN")).isTrue();
 
-        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
-
-        assertThat(resp.getFailedLocalIds()).contains(5L);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(5L);
-        verify(menuItemRepo, never()).saveAll(any());
-    }
-
-    @Test
-    void p1_stampedRevisionOlderThanRevocation_isRejected() {
-        actAsStaff();
-        // Full Decision-A strict (P1): the edit was created at revision 5, but the
-        // permission was revoked at revision 6 — even though it is granted again now.
-        // With the stamped revision flowing through, this is a hard REJECT, not a
-        // QUARANTINE fallback.
-        MenuItem existing = serverRow(510L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(7L, 10L), 510L, new BigDecimal("300"), true);
-        incoming.setPermissionRevisionAtCreation(5L);
-
-        when(menuItemRepo.findById(510L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(true);
-        StaffPermission sp = new StaffPermission(TENANT_ID, STAFF_USER, PRICE, OWNER_USER);
-        sp.setLastRevokedRevision(6L);
-        when(staffPermissionRepository.findByRestaurantIdAndUserIdAndPermissionKey(TENANT_ID, STAFF_USER, PRICE))
-            .thenReturn(Optional.of(sp));
-
-        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
-
-        assertThat(resp.getFailedLocalIds()).contains(7L);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(7L);
-        verify(menuItemRepo, never()).saveAll(any());
-    }
-
-    @Test
-    void p1_stampedRevisionAfterRevocation_isAccepted() {
-        actAsStaff();
-        // Edit created at revision 7, permission last revoked at revision 6 (before the
-        // edit) and granted since. Continuously authorized → accepted.
-        MenuItem existing = serverRow(511L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(8L, 10L), 511L, new BigDecimal("300"), true);
-        incoming.setPermissionRevisionAtCreation(7L);
-
-        when(menuItemRepo.findById(511L)).thenReturn(Optional.of(existing));
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(true);
-        StaffPermission sp = new StaffPermission(TENANT_ID, STAFF_USER, PRICE, OWNER_USER);
-        sp.setLastRevokedRevision(6L);
-        when(staffPermissionRepository.findByRestaurantIdAndUserIdAndPermissionKey(TENANT_ID, STAFF_USER, PRICE))
-            .thenReturn(Optional.of(sp));
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
         doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
 
-        assertThat(resp.getFailedLocalIds()).doesNotContain(8L);
-        verify(menuItemRepo).saveAll(any());
-    }
-
-    @Test
-    void staffWithEditFull_canChangePriceAndAvailability() {
-        actAsStaff();
-        String editFull = PermissionKey.MENU_EDIT_FULL.getKey();
-        MenuItem existing = serverRow(520L, new BigDecimal("250"), true);
-        MenuItem incoming = withServerId(menuItem(9L, 10L), 520L, new BigDecimal("300"), false);
-
-        when(menuItemRepo.findById(520L)).thenReturn(Optional.of(existing));
-        // Holds ONLY menu.edit_full — implication must satisfy price + availability.
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, PRICE)).thenReturn(false);
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, AVAIL)).thenReturn(false);
-        when(permissionService.hasPermission(TENANT_ID, STAFF_USER, editFull)).thenReturn(true);
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
-            .thenReturn(List.of());
-        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
-
-        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
-
-        assertThat(resp.getFailedLocalIds()).doesNotContain(9L);
+        assertThat(resp.getFailedLocalIds()).doesNotContain(5L);
         verify(menuItemRepo).saveAll(any());
     }
 

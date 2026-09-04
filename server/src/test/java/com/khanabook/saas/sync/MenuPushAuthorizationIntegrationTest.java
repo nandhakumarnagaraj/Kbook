@@ -23,16 +23,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * P0 production-readiness: exercises the REAL authenticated HTTP → security →
- * JWT → MenuItemService → MenuPushAuthorizer → DB path for menu pushes.
+ * JWT → MenuItemService → DB path for menu pushes.
  *
- * <h3>Previous finding, now fixed</h3>
- * The security config used to gate the whole sync surface with
- * {@code requestMatchers("/sync/**").hasRole("OWNER")}, so a non-OWNER staff
- * token was rejected with 403 at the route layer BEFORE reaching
- * MenuItemServiceImpl / MenuPushAuthorizer. That route-wide gate was replaced
- * by the per-key permission model: staff roles now reach the service, where the
- * fine-grained authorizer accepts only pushes the actor is actually granted
- * (a denial surfaces via failedReasons, not a 403).
+ * <h3>Master data is single-writer</h3>
+ * Only the roles OWNER / SHOP_ADMIN / KBOOK_ADMIN may write the menu. Staff
+ * terminals are offline-first bill-mints that READ the cached menu; a staff
+ * push is denied per record via {@code failedReasons} inside a 200 batch (the
+ * device sync loop keeps running) — even when the actor holds a {@code menu.*}
+ * grant, which is now advisory/UI-only.
  */
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -121,27 +119,11 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
                     System.currentTimeMillis(), System.currentTimeMillis());
     }
 
-    // ── FINDING FIXED: non-OWNER staff reach the menu push endpoint when their
-    //    granted permission matches the guard key (menu.edit_price); blocked otherwise ──
+// ── FINDING FIXED: staff (even with a menu.* grant) cannot write master data.
+//    The pen is role-bound — denial surfaces via failedReasons, not a 403. ──
 
     @Test
-    void cashier_withPricePermission_reachesServiceAndIsApplied() throws Exception {
-        MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
-        permissionService.grantPermission(RESTAURANT, cashier.getId(),
-                PermissionKey.MENU_EDIT_PRICE.getKey(), owner.getId());
-
-        mockMvc.perform(post("/sync/menuitem/push")
-                .contentType("application/json")
-                .header("Authorization", "Bearer " + cashierToken)
-                .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
-                .andExpect(status().isOk());
-
-        MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
-        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // applied
-    }
-
-    @Test
-    void cashier_withoutPricePermission_blockedByServiceAuthorizer() throws Exception {
+    void cashier_isBlockedByRoleBoundWriterGate() throws Exception {
         MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
 
         var result = mockMvc.perform(post("/sync/menuitem/push")
@@ -151,17 +133,54 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
-        JsonNode failedReasons = response.get("failedReasons");
+        JsonNode failedReasons = objectMapper.readTree(result.getResponse().getContentAsString()).get("failedReasons");
         assertThat(failedReasons).isNotNull();
         assertThat(failedReasons.has("1000")).isTrue();
-        assertThat(failedReasons.get("1000").asText()).contains("Not permitted");
+        assertThat(failedReasons.get("1000").asText()).contains("owner or an admin");
 
         MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
         assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("250.00")); // unchanged
     }
 
-    // ── OWNER path: reaches the service, authorizer allows (OWNER has all perms) ─
+    @Test
+    void cashier_withMenuEditPriceGrant_stillBlocked_staffIsNotAWriter() throws Exception {
+        // menu.* grants are advisory (UI-only) now: the role is the pen.
+        MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
+        permissionService.grantPermission(RESTAURANT, cashier.getId(),
+                PermissionKey.MENU_EDIT_PRICE.getKey(), owner.getId());
+
+        var result = mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + cashierToken)
+                .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode failedReasons = objectMapper.readTree(result.getResponse().getContentAsString()).get("failedReasons");
+        assertThat(failedReasons.has("1000")).isTrue();
+        assertThat(failedReasons.get("1000").asText()).contains("owner or an admin");
+
+        MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
+        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("250.00")); // unchanged
+    }
+
+    // ── OWNER path: reaches the service, role-bound writer → applied ─────────
+
+    @Test
+    void shopAdminToken_priceChange_isApplied() throws Exception {
+        User shopAdmin = persistUser("shop-admin-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_ADMIN);
+        String shopAdminToken = jwtUtility.generateToken(shopAdmin.getLoginId(), RESTAURANT, UserRole.SHOP_ADMIN.name());
+        MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
+
+        mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + shopAdminToken)
+                .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
+                .andExpect(status().isOk());
+
+        MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
+        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // applied
+    }
 
     @Test
     void ownerToken_priceChange_reachesServiceAndIsApplied() throws Exception {
