@@ -48,5 +48,6 @@ data class MenuItemEntity(
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
     @SerializedName("serverCategoryId") @ColumnInfo(name = "server_category_id") val serverCategoryId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
-    @ColumnInfo(name = "permission_revision_at_creation") val permissionRevisionAtCreation: Long? = null
+    @ColumnInfo(name = "permission_revision_at_creation") val permissionRevisionAtCreation: Long? = null,
+    @ColumnInfo(name = "changed_fields") val changedFields: String? = null
 )

@@ -131,7 +131,8 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "mask_customer_phone", defaultValue = "1")
     val maskCustomerPhone: Boolean = true,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
-    @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L
+    @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
+    @ColumnInfo(name = "changed_fields") val changedFields: String? = null
 )
 
 

@@ -225,13 +225,14 @@ export interface MenuExtractionItem {
   description?: string;
 }
 
-export type StaffRole = 'OWNER' | 'SHOP_ADMIN' | 'WAITER' | 'CASHIER' | 'MANAGER';
+export type StaffRole = 'OWNER' | 'SHOP_ADMIN' | 'WAITER' | 'CASHIER' | 'MANAGER' | 'OPERATIONS';
 
 export interface CreateStaffRequest {
   name: string;
   phone: string;
   role: StaffRole;
   email?: string;
+  permissions?: string[];
 }
 
 export interface StaffCreatedResponse {

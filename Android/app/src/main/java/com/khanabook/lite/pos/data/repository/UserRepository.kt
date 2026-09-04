@@ -42,7 +42,7 @@ class UserRepository(
 ) {
     private fun normalizeAllowedRole(role: String?): String {
         return when (role?.uppercase()) {
-            "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN" -> role.uppercase()
+            "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN", "OPERATIONS" -> role.uppercase()
             else -> "OWNER"
         }
     }

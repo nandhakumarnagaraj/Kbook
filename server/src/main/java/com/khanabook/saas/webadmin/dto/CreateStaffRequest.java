@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 public record CreateStaffRequest(
         @NotBlank(message = "Name is required")
         String name,
@@ -15,5 +17,7 @@ public record CreateStaffRequest(
         @NotNull(message = "Role is required")
         String role,
 
-        String email
+        String email,
+
+        List<String> permissions
 ) {}

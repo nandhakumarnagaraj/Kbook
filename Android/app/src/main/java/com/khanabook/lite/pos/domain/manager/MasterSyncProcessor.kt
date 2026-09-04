@@ -137,7 +137,8 @@ class MasterSyncProcessor @Inject constructor(
         return r.contains("not permitted") ||
             r.contains("permission_not_granted") ||
             r.contains("revoked_after_creation") ||
-            r.contains("cannot authorize")
+            r.contains("cannot authorize") ||
+            r.contains("stale_push_conflict")
     }
 
     private data class BatchPushResult(
@@ -444,7 +445,8 @@ class MasterSyncProcessor @Inject constructor(
             push = api::pushRestaurantProfiles,
             markSynced = restaurantDao::markRestaurantProfilesAsSynced,
             onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } },
-            isolateHttpConflicts = isolateHttpConflicts
+            isolateHttpConflicts = isolateHttpConflicts,
+            onPermanentlyRejected = { rejected -> quarantineRejectedProfiles(rejected, restaurantId) }
         )
 
         val unsyncedUsers = userDao.getUnsyncedUsers()
@@ -470,7 +472,8 @@ class MasterSyncProcessor @Inject constructor(
             push = api::pushCategories,
             markSynced = { ids -> categoryDao.markCategoriesAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> categoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
-            isolateHttpConflicts = isolateHttpConflicts
+            isolateHttpConflicts = isolateHttpConflicts,
+            onPermanentlyRejected = { rejected -> quarantineRejectedCategories(rejected, restaurantId) }
         )
 
         val unsyncedMenuItems = menuDao.getUnsyncedMenuItems(restaurantId)
@@ -497,7 +500,8 @@ class MasterSyncProcessor @Inject constructor(
             push = api::pushItemVariants,
             markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } },
-            isolateHttpConflicts = isolateHttpConflicts
+            isolateHttpConflicts = isolateHttpConflicts,
+            onPermanentlyRejected = { rejected -> quarantineRejectedVariants(rejected, restaurantId) }
         )
 
         // Stock log push disabled — inventory tracking not in use
@@ -746,7 +750,114 @@ class MasterSyncProcessor @Inject constructor(
         return quarantined
     }
 
-    private suspend fun quarantineFailedBills(exception: SyncConflictException, restaurantId: Long): Int {        val failedAt = System.currentTimeMillis()
+    internal suspend fun quarantineRejectedCategories(
+        rejected: Map<Long, String>,
+        restaurantId: Long
+    ): Int {
+        if (rejected.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        var quarantined = 0
+        for ((localId, reason) in rejected) {
+            val cat = categoryDao.getCategoryById(localId, restaurantId)
+            val displayName = cat?.name ?: "Category #$localId"
+            val snapshot = cat?.let {
+                runCatching { com.google.gson.Gson().toJson(mapOf("localId" to it.id, "name" to it.name)) }.getOrNull()
+            }
+            billDao.upsertSyncQuarantineRecord(
+                SyncQuarantineEntity(
+                    restaurantId = restaurantId,
+                    parentBillId = 0L,
+                    parentBillDisplay = null,
+                    childEntityType = "category",
+                    childLocalId = localId,
+                    childDisplayName = displayName,
+                    childSummary = "Category sync conflict",
+                    childSnapshotJson = snapshot,
+                    syncFailureReason = reason.ifBlank { "Category push rejected" },
+                    quarantinedAt = now
+                )
+            )
+            categoryDao.markCategoriesAsSynced(listOf(localId), restaurantId)
+            quarantined++
+        }
+        logWarn("Quarantined $quarantined category(ies) rejected on sync conflict")
+        return quarantined
+    }
+
+    internal suspend fun quarantineRejectedVariants(
+        rejected: Map<Long, String>,
+        restaurantId: Long
+    ): Int {
+        if (rejected.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        var quarantined = 0
+        for ((localId, reason) in rejected) {
+            val variant = menuDao.getVariantById(localId, restaurantId)
+            val displayName = variant?.variantName ?: "Variant #$localId"
+            val snapshot = variant?.let {
+                runCatching {
+                    com.google.gson.Gson().toJson(mapOf("localId" to it.id, "variantName" to it.variantName, "price" to it.price))
+                }.getOrNull()
+            }
+            billDao.upsertSyncQuarantineRecord(
+                SyncQuarantineEntity(
+                    restaurantId = restaurantId,
+                    parentBillId = 0L,
+                    parentBillDisplay = null,
+                    childEntityType = "item_variant",
+                    childLocalId = localId,
+                    childDisplayName = displayName,
+                    childSummary = "Variant sync conflict",
+                    childSnapshotJson = snapshot,
+                    syncFailureReason = reason.ifBlank { "Variant push rejected" },
+                    quarantinedAt = now
+                )
+            )
+            menuDao.markItemVariantsAsSynced(listOf(localId), restaurantId)
+            quarantined++
+        }
+        logWarn("Quarantined $quarantined variant(s) rejected on sync conflict")
+        return quarantined
+    }
+
+    internal suspend fun quarantineRejectedProfiles(
+        rejected: Map<Long, String>,
+        restaurantId: Long
+    ): Int {
+        if (rejected.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        var quarantined = 0
+        for ((localId, reason) in rejected) {
+            val profile = restaurantDao.getProfile(restaurantId)
+            val displayName = profile?.shopName ?: "Restaurant profile"
+            val snapshot = profile?.let {
+                runCatching {
+                    com.google.gson.Gson().toJson(mapOf("localId" to it.id, "shopName" to it.shopName))
+                }.getOrNull()
+            }
+            billDao.upsertSyncQuarantineRecord(
+                SyncQuarantineEntity(
+                    restaurantId = restaurantId,
+                    parentBillId = 0L,
+                    parentBillDisplay = null,
+                    childEntityType = "restaurant_profile",
+                    childLocalId = localId,
+                    childDisplayName = displayName,
+                    childSummary = "Profile sync conflict",
+                    childSnapshotJson = snapshot,
+                    syncFailureReason = reason.ifBlank { "Profile push rejected" },
+                    quarantinedAt = now
+                )
+            )
+            restaurantDao.markRestaurantProfilesAsSynced(listOf(localId))
+            quarantined++
+        }
+        logWarn("Quarantined $quarantined restaurant profile(s) rejected on sync conflict")
+        return quarantined
+    }
+
+    private suspend fun quarantineFailedBills(exception: SyncConflictException, restaurantId: Long): Int {
+        val failedAt = System.currentTimeMillis()
         var quarantined = 0
         exception.failedLocalIds.forEach { billId ->
             val reason = exception.failedReasons[billId]

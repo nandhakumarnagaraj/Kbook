@@ -151,6 +151,7 @@ fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,
     permissionRevisionAtCreation = permissionRevisionAtCreation,
+    changedFields             = changedFields,
 )
 
 fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(
@@ -225,6 +226,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     kitchenPrinterPaperSize = kitchenPrinterPaperSize,
     invoiceFooter           = invoiceFooter,
     reviewUrl               = reviewUrl,
+    changedFields           = changedFields,
 )
 
 fun UserEntity.toSyncDto() = UserSyncDto(

@@ -17,10 +17,13 @@ import com.khanabook.saas.sync.validation.SyncPushGuard;
 @RequiredArgsConstructor
 public class BillPaymentController {
     private final BillPaymentService service;
+    private final com.khanabook.saas.service.PermissionService permissionService;
 
     @PostMapping("/push")
     public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillPaymentDTO> payload) {
         SyncPushGuard.validateBatchSize(payload);
+        SyncPushGuard.requirePermission(
+                com.khanabook.saas.entity.PermissionKey.BILLING_SETTLE.getKey(), permissionService);
         return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
                 SyncMapper.mapToEntityList(payload, BillPayment.class)));
     }

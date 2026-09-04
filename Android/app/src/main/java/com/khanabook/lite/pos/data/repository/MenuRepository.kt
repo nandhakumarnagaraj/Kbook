@@ -29,24 +29,44 @@ class MenuRepository(
                         basePrice = MenuPricingRules.normalizePrice(item.basePrice),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis(),
-                        permissionRevisionAtCreation = permissionManager.currentRevision()
+                        permissionRevisionAtCreation = permissionManager.currentRevision(),
+                        changedFields = "all"
                 )
         val id = menuDao.insertItem(enriched)
         triggerBackgroundSync()
         return id
     }
 
-    suspend fun updateItem(item: MenuItemEntity) {
+    suspend fun updateItem(item: MenuItemEntity, changedFields: String? = null) {
         val enriched = item.copy(
             basePrice = MenuPricingRules.normalizePrice(item.basePrice),
             isSynced = false,
             updatedAt = System.currentTimeMillis(),
-            // Stamp the acting user's authorization revision so the server can run
-            // Decision-A-strict revalidation of this offline edit at sync (P1).
-            permissionRevisionAtCreation = permissionManager.currentRevision()
+            permissionRevisionAtCreation = permissionManager.currentRevision(),
+            changedFields = changedFields ?: computeChangedFields(item)
         )
         menuDao.updateItem(enriched)
         triggerBackgroundSync()
+    }
+
+    /** Detect changed fields by diffing against the persisted row so server
+     *  field-level merge only overwrites what was actually edited. */
+    private suspend fun computeChangedFields(newItem: MenuItemEntity): String? {
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getItemById(newItem.id, restaurantId) ?: return "all"
+        return buildList {
+            if (current.name != newItem.name) add("name")
+            if (current.description != newItem.description) add("description")
+            if (current.basePrice != newItem.basePrice) add("basePrice")
+            if (current.categoryId != newItem.categoryId) add("categoryId")
+            if (current.isAvailable != newItem.isAvailable) add("isAvailable")
+            if (current.currentStock != newItem.currentStock) add("currentStock")
+            if (current.lowStockThreshold != newItem.lowStockThreshold) add("lowStockThreshold")
+            if (current.foodType != newItem.foodType) add("foodType")
+            if (current.barcode != newItem.barcode) add("barcode")
+        }.joinToString(",").ifEmpty {
+            null
+        }
     }
 
     suspend fun getItemById(id: Long): MenuItemEntity? {
@@ -95,7 +115,7 @@ class MenuRepository(
             android.util.Log.w("MenuRepository", "Invalid stock value: '${current.currentStock}' or delta: '$delta'", e)
             "0.0"
         }
-        updateItem(current.copy(currentStock = newStock))
+        updateItem(current.copy(currentStock = newStock), changedFields = "currentStock")
     }
 
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
@@ -141,13 +161,13 @@ class MenuRepository(
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
         val restaurantId = sessionManager.getRestaurantId()
         val current = menuDao.getItemById(id, restaurantId) ?: return
-        updateItem(current.copy(isAvailable = isAvailable))
+        updateItem(current.copy(isAvailable = isAvailable), changedFields = "isAvailable")
     }
 
     suspend fun deleteItem(item: MenuItemEntity) {
         val restaurantId = sessionManager.getRestaurantId()
         val now = System.currentTimeMillis()
-        menuDao.markItemDeleted(item.id, now, restaurantId)
+        menuDao.markItemDeleted(item.id, now, restaurantId, permissionManager.currentRevision())
         menuDao.markVariantsDeletedByItem(item.id, now, restaurantId)
         triggerBackgroundSync()
     }

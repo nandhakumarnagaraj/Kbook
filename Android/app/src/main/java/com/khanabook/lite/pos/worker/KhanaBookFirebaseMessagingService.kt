@@ -23,6 +23,9 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var notificationRepository: com.khanabook.lite.pos.data.repository.NotificationRepository
 
+    @Inject
+    lateinit var syncManager: com.khanabook.lite.pos.domain.manager.SyncManager
+
     override fun onCreate() {
         super.onCreate()
         // Create notification channels on first boot
@@ -48,6 +51,13 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         val title = message.notification?.title ?: message.data["title"] ?: "KhanaBook"
         val body = message.notification?.body ?: message.data["message"] ?: ""
         val type = message.data["type"] ?: "system"
+
+        // Control signal — pull the latest data now. No user-visible notification.
+        if (type == "sync_now") {
+            CoroutineScope(Dispatchers.IO).launch { syncManager.triggerImmediateSync() }
+            return
+        }
+
         val referenceId = message.data["referenceId"]
         val referenceType = message.data["referenceType"]
         val amount = message.data["amount"]

@@ -29,7 +29,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         PermissionRequestEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 70,
+        version = 71,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1048,6 +1048,25 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     """.trimIndent()
                 )
                 android.util.Log.i("AppDatabase", "MIGRATION_69_70 complete: menu permission_revision + permission_cache")
+            }
+        }
+
+        val MIGRATION_70_71 = object : Migration(70, 71) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Phase 1+2: field-level merge — add changed_fields column to track which
+                // fields the device actually modified, so the server can merge only
+                // those fields instead of whole-record LWW.
+                if (!db.hasColumn("menu_items", "changed_fields")) {
+                    db.execSQL(
+                        "ALTER TABLE `menu_items` ADD COLUMN `changed_fields` TEXT DEFAULT NULL"
+                    )
+                }
+                if (!db.hasColumn("restaurant_profile", "changed_fields")) {
+                    db.execSQL(
+                        "ALTER TABLE `restaurant_profile` ADD COLUMN `changed_fields` TEXT DEFAULT NULL"
+                    )
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_70_71 complete: menu + profile changed_fields")
             }
         }
 

@@ -15,6 +15,7 @@ import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.CategoryService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
+import com.khanabook.saas.sync.validation.SyncPushGuard;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,9 +24,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CategoryController {
 	private final CategoryService service;
+	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<CategoryDTO> payload) {
+		SyncPushGuard.requirePermission(
+				com.khanabook.saas.entity.PermissionKey.MENU_EDIT_FULL.getKey(), permissionService);
 		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
 				SyncMapper.mapToEntityList(payload, Category.class)));
 	}

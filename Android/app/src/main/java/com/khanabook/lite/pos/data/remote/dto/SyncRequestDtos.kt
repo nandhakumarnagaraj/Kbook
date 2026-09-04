@@ -137,6 +137,7 @@ data class MenuItemSyncDto(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
     @SerializedName("permissionRevisionAtCreation") val permissionRevisionAtCreation: Long? = null,
+    @SerializedName("changedFields") val changedFields: String? = null,
 )
 
 data class ItemVariantSyncDto(
@@ -211,6 +212,7 @@ data class RestaurantProfileSyncDto(
     @SerializedName("kitchenPrinterPaperSize") val kitchenPrinterPaperSize: String?,
     @SerializedName("invoiceFooter") val invoiceFooter: String?,
     @SerializedName("reviewUrl") val reviewUrl: String?,
+    @SerializedName("changedFields") val changedFields: String? = null,
 )
 
 data class UserSyncDto(

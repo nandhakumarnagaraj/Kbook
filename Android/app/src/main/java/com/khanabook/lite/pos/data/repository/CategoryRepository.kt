@@ -14,7 +14,8 @@ class CategoryRepository(
         private val categoryDao: CategoryDao,
         private val menuDao: com.khanabook.lite.pos.data.local.dao.MenuDao,
         private val sessionManager: SessionManager,
-        private val workManager: WorkManager
+        private val workManager: WorkManager,
+        private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager
 ) {
     suspend fun insertCategory(category: CategoryEntity): Long {
         val restaurantId = sessionManager.getRestaurantId()
@@ -76,9 +77,10 @@ class CategoryRepository(
     suspend fun deleteCategory(category: CategoryEntity) {
         val restaurantId = sessionManager.getRestaurantId()
         val now = System.currentTimeMillis()
+        val revision = permissionManager.currentRevision()
         categoryDao.markDeleted(category.id, now, restaurantId)
         val itemIds = menuDao.getItemIdsByCategory(category.id, restaurantId)
-        menuDao.markItemsDeletedByCategory(category.id, now, restaurantId)
+        menuDao.markItemsDeletedByCategory(category.id, now, restaurantId, revision)
         itemIds.forEach { itemId ->
             menuDao.markVariantsDeletedByItem(itemId, now, restaurantId)
         }

@@ -6,5 +6,6 @@ public enum UserRole {
     WAITER,
     CASHIER,
     MANAGER,
+    OPERATIONS,
     KBOOK_ADMIN
 }

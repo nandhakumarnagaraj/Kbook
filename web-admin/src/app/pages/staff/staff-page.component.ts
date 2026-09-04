@@ -249,7 +249,33 @@ import { formatDate } from '../../shared/formatters';
                   <option value="CASHIER">Cashier</option>
                   <option value="MANAGER">Manager</option>
                   <option value="SHOP_ADMIN">Admin</option>
+                  <option value="OPERATIONS">Operations (Custom Access)</option>
                 </select>
+              </div>
+
+              <div class="form-group" *ngIf="staffForm.get('role')?.value === 'OPERATIONS'">
+                <label>Permissions *</label>
+                <p class="muted" style="font-size:0.75rem;margin:-0.25rem 0 0.75rem;color:var(--kb-color-muted)">
+                  Pick what this member can do. Permissions apply instantly on their device.
+                </p>
+                <div *ngFor="let cat of permissionCategories" style="margin-bottom:0.75rem">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;border-bottom:1px solid var(--line)">
+                    <strong style="font-size:0.8rem;color:var(--kb-color-primary)">{{ cat.name }}</strong>
+                    <label class="toggle-switch">
+                      <input type="checkbox" [checked]="isCreateCategorySelected(cat.items)" (change)="toggleCreateCategory(cat.items)">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div>
+                    <label *ngFor="let perm of cat.items" style="display:flex;justify-content:space-between;align-items:center;padding:0.25rem 0;font-size:0.8rem;cursor:pointer">
+                      <span>{{ perm.displayName }}</span>
+                      <input type="checkbox" [checked]="customCreatePermissionsSet.has(perm.key)" (change)="toggleCreatePermission(perm.key)">
+                    </label>
+                  </div>
+                </div>
+                <div class="field-error" *ngIf="customRoleTouched && customCreatePermissionsSet.size === 0">
+                  Select at least one permission for custom access.
+                </div>
               </div>
 
               <div class="form-group">
@@ -305,6 +331,7 @@ import { formatDate } from '../../shared/formatters';
                 <option value="CASHIER">Cashier</option>
                 <option value="MANAGER">Manager</option>
                 <option value="SHOP_ADMIN">Admin</option>
+                <option value="OPERATIONS">Operations (Custom Access)</option>
               </select>
               <div class="role-disabled-note" *ngIf="isEditingSelf">
                 Cannot change your own role
@@ -633,6 +660,8 @@ export class StaffPageComponent {
     this.createError = '';
     this.createdStaff = null;
     this.staffForm.reset({ name: '', phone: '', role: '', email: '' });
+    this.customCreatePermissionsSet = new Set();
+    this.customRoleTouched = false;
   }
 
   closeCreateModal(): void {
@@ -651,11 +680,19 @@ export class StaffPageComponent {
     this.createError = '';
 
     const formValue = this.staffForm.value;
+
+    if (formValue.role === 'OPERATIONS' && this.customCreatePermissionsSet.size === 0) {
+      this.customRoleTouched = true;
+      this.creating = false;
+      return;
+    }
+
     const payload = {
       name: formValue.name!,
       phone: formValue.phone!,
       role: formValue.role! as StaffRole,
-      ...(formValue.email ? { email: formValue.email } : {})
+      ...(formValue.email ? { email: formValue.email } : {}),
+      ...(formValue.role === 'OPERATIONS' ? { permissions: [...this.customCreatePermissionsSet] } : {})
     };
 
     this.api.createStaff(payload).subscribe({
@@ -675,6 +712,31 @@ export class StaffPageComponent {
         }
       }
     });
+  }
+
+  toggleCreatePermission(key: string): void {
+    if (this.customCreatePermissionsSet.has(key)) {
+      this.customCreatePermissionsSet.delete(key);
+    } else {
+      this.customCreatePermissionsSet.add(key);
+    }
+    this.customCreatePermissionsSet = new Set(this.customCreatePermissionsSet);
+  }
+
+  toggleCreateCategory(items: any[]): void {
+    const allSelected = this.isCreateCategorySelected(items);
+    items.forEach(i => {
+      if (allSelected) {
+        this.customCreatePermissionsSet.delete(i.key);
+      } else {
+        this.customCreatePermissionsSet.add(i.key);
+      }
+    });
+    this.customCreatePermissionsSet = new Set(this.customCreatePermissionsSet);
+  }
+
+  isCreateCategorySelected(items: any[]): boolean {
+    return items.length > 0 && items.every(i => this.customCreatePermissionsSet.has(i.key));
   }
 
   // --- Edit Modal ---
@@ -870,6 +932,8 @@ export class StaffPageComponent {
   permissionsLoading = false;
   permissionsSaving = false;
   permissionsSet = new Set<string>();
+  customCreatePermissionsSet = new Set<string>();
+  customRoleTouched = false;
 
   // Server-authoritative permission keys (matches PermissionKey.java exactly)
   readonly permissionCategories = [

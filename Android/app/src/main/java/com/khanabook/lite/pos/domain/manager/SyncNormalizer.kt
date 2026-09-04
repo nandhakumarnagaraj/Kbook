@@ -17,7 +17,7 @@ object SyncNormalizer {
 
     /** Roles the server accepts; anything unknown/null collapses to OWNER. */
     fun normalizeUserRole(role: String?): String = when (role?.uppercase()) {
-        "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN" -> role.uppercase()
+        "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN", "OPERATIONS" -> role.uppercase()
         else -> "OWNER"
     }
 

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -85,7 +86,12 @@ public class BusinessWriteService {
         User saved = userRepository.save(user);
         log.info("Staff created: userId={}, restaurant={}, role={}", saved.getId(), restaurantId, role);
 
-        permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
+        List<String> customPermissions = req.permissions();
+        if (customPermissions != null && !customPermissions.isEmpty()) {
+            permissionService.bulkGrant(restaurantId, saved.getId(), customPermissions, TenantContext.getCurrentUserId());
+        } else {
+            permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
+        }
 
         return new StaffCreatedResponse(
                 saved.getId(), saved.getName(), saved.getPhoneNumber(),
@@ -264,7 +270,7 @@ public class BusinessWriteService {
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("KBOOK_ADMIN")) throw e;
             throw new IllegalArgumentException(
-                    "Invalid role: " + roleStr + ". Must be OWNER, SHOP_ADMIN, WAITER, CASHIER, or MANAGER");
+                    "Invalid role: " + roleStr + ". Must be OWNER, SHOP_ADMIN, WAITER, CASHIER, MANAGER, or OPERATIONS");
         }
     }
 

@@ -53,24 +53,24 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND restaurant_id = :restaurantId AND is_deleted = 0))")
     fun searchItems(query: String, restaurantId: Long): Flow<List<MenuItemEntity>>
 
-    @Query("UPDATE menu_items SET is_available = :isAvailable WHERE id = :id AND restaurant_id = :restaurantId")
+    @Query("UPDATE menu_items SET is_available = :isAvailable, changed_fields = 'isAvailable' WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long)
 
-    @Query("UPDATE menu_items SET current_stock = current_stock + :delta WHERE id = :id AND restaurant_id = :restaurantId")
+    @Query("UPDATE menu_items SET current_stock = current_stock + :delta, changed_fields = 'currentStock' WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updateStock(id: Long, delta: Double, restaurantId: Long)
 
-    @Query("UPDATE menu_items SET low_stock_threshold = :threshold WHERE id = :id")
+    @Query("UPDATE menu_items SET low_stock_threshold = :threshold, changed_fields = 'lowStockThreshold' WHERE id = :id")
     suspend fun updateLowStockThreshold(id: Long, threshold: Double)
 
     @Query(
-        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :id AND restaurant_id = :restaurantId"
+        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE id = :id AND restaurant_id = :restaurantId"
     )
-    suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long)
+    suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long, revision: Long? = null)
 
     @Query(
-        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE category_id = :categoryId AND restaurant_id = :restaurantId"
+        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE category_id = :categoryId AND restaurant_id = :restaurantId"
     )
-    suspend fun markItemsDeletedByCategory(categoryId: Long, updatedAt: Long, restaurantId: Long)
+    suspend fun markItemsDeletedByCategory(categoryId: Long, updatedAt: Long, restaurantId: Long, revision: Long? = null)
 
     @Query("SELECT id FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId")
     suspend fun getItemIdsByCategory(categoryId: Long, restaurantId: Long): List<Long>
@@ -115,7 +115,7 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedMenuItems(restaurantId: Long): List<MenuItemEntity>
 
-    @Query("UPDATE menu_items SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    @Query("UPDATE menu_items SET is_synced = 1, changed_fields = NULL WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markMenuItemsAsSynced(ids: List<Long>, restaurantId: Long)
 
     @Query("UPDATE menu_items SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")

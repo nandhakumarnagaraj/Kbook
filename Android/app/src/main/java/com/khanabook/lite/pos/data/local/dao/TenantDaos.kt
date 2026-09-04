@@ -293,12 +293,12 @@ class TenantMenuDao @Inject constructor(
         dao.updateLowStockThreshold(id, threshold)
     }
 
-    override suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long) {
-        dao.markItemDeleted(id, updatedAt, restaurantId)
+    override suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long, revision: Long?) {
+        dao.markItemDeleted(id, updatedAt, restaurantId, revision)
     }
 
-    override suspend fun markItemsDeletedByCategory(categoryId: Long, updatedAt: Long, restaurantId: Long) {
-        dao.markItemsDeletedByCategory(categoryId, updatedAt, restaurantId)
+    override suspend fun markItemsDeletedByCategory(categoryId: Long, updatedAt: Long, restaurantId: Long, revision: Long?) {
+        dao.markItemsDeletedByCategory(categoryId, updatedAt, restaurantId, revision)
     }
 
     override suspend fun getItemIdsByCategory(categoryId: Long, restaurantId: Long): List<Long> = dao.getItemIdsByCategory(categoryId, restaurantId)

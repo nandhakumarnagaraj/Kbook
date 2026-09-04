@@ -20,10 +20,13 @@ import com.khanabook.saas.sync.validation.SyncPushGuard;
 public class BillItemController {
 	private static final Logger log = LoggerFactory.getLogger(BillItemController.class);
 	private final BillItemService service;
+	private final com.khanabook.saas.service.PermissionService permissionService;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItemDTO> payload) {
 		SyncPushGuard.validateBatchSize(payload);
+		SyncPushGuard.requirePermission(
+				com.khanabook.saas.entity.PermissionKey.BILLING_CREATE.getKey(), permissionService);
 		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
 				TenantContext.getCurrentTenant());
 		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),

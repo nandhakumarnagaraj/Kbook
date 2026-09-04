@@ -74,7 +74,7 @@ constructor(
 
       val syncRequest =
               PeriodicWorkRequestBuilder<MasterSyncWorker>(
-                              15,
+                              2,
                               TimeUnit.MINUTES
                       )
                       .setConstraints(constraints)
@@ -88,7 +88,7 @@ constructor(
       WorkManager.getInstance(context)
           .enqueueUniquePeriodicWork(
               SyncWorkNames.PERIODIC,
-              ExistingPeriodicWorkPolicy.KEEP,
+              ExistingPeriodicWorkPolicy.UPDATE,
               syncRequest
           )
     }

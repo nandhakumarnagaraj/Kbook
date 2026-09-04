@@ -156,12 +156,15 @@ public class SecurityConfig {
 						// Terminal onboarding: OWNER and SHOP_ADMIN (activate, list, reclaim, request-status, complete)
 						.requestMatchers("/sync/terminal/**")
 						.hasAnyRole("OWNER", "SHOP_ADMIN")
-						// Master pull: KBOOK_ADMIN may read for support (uses restaurantId override)
+						// Master pull: any restaurant role reads master data + their own
+						// grantedPermissions/permissionRevision (drives offline auth).
 						.requestMatchers(org.springframework.http.HttpMethod.GET, "/sync/master/pull")
-						.hasAnyRole("OWNER", "KBOOK_ADMIN")
-						// Operational sync (bills, menu, payments, master, profile, stock, users, categories):
-						// OWNER only. SHOP_ADMIN and KBOOK_ADMIN must not push or mutate restaurant data.
-						.requestMatchers("/sync/**").hasRole("OWNER")
+						.hasAnyRole("OWNER", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS", "KBOOK_ADMIN")
+						// Operational sync (bills, menu, payments, profile, stock, users, categories):
+						// every restaurant role may sync. The sync services + permission layer
+						// enforce per-key grant/revoke rules for non-owner actors.
+						.requestMatchers("/sync/**")
+						.hasAnyRole("OWNER", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						// Menu extraction mutates tenant-owned menu data and is an OWNER workflow.
 						.requestMatchers("/menus/**").hasRole("OWNER")

@@ -99,15 +99,12 @@ class PermissionManager @Inject constructor(
      */
     fun hasAllPermissions(vararg keys: String): Boolean {
         if (sessionManager.isOwner()) return true
-        return keys.all { _grantedPermissions.value.contains(it) }
+        return keys.all { hasPermission(it) }
     }
 
-    /**
-     * Check multiple permissions. Returns true if ANY is granted.
-     */
     fun hasAnyPermission(vararg keys: String): Boolean {
         if (sessionManager.isOwner()) return true
-        return keys.any { _grantedPermissions.value.contains(it) }
+        return keys.any { hasPermission(it) }
     }
 
     /**
