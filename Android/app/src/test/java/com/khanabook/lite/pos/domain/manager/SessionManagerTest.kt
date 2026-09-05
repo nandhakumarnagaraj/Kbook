@@ -110,4 +110,25 @@ class SessionManagerTest {
             prefsEditor.apply()
         }
     }
+
+    @Test
+    fun `canWriteMasterData is role-bound to owner and admins only`() {
+        val prefsField = SessionManager::class.java.getDeclaredField("prefs")
+        prefsField.isAccessible = true
+        prefsField.set(sessionManager, prefs)
+
+        fun writeAllowedFor(role: String?): Boolean {
+            every { prefs.getString("active_user_role", null) } returns role
+            return sessionManager.canWriteMasterData()
+        }
+
+        assertTrue("OWNER may write master data", writeAllowedFor("OWNER"))
+        assertTrue("SHOP_ADMIN may write master data", writeAllowedFor("SHOP_ADMIN"))
+        assertTrue("KBOOK_ADMIN may write master data", writeAllowedFor("KBOOK_ADMIN"))
+        assertFalse("MANAGER may not write master data", writeAllowedFor("MANAGER"))
+        assertFalse("CASHIER may not write master data", writeAllowedFor("CASHIER"))
+        assertFalse("WAITER may not write master data", writeAllowedFor("WAITER"))
+        assertFalse("OPERATIONS may not write master data", writeAllowedFor("OPERATIONS"))
+        assertFalse("unknown role may not write master data", writeAllowedFor(null))
+    }
 }

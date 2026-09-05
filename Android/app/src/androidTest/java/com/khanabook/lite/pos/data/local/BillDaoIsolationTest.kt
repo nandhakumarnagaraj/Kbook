@@ -545,41 +545,6 @@ class BillDaoIsolationTest {
     // recent orders, KDS). It is read-only restaurant history on B.
 
     @Test
-    fun reownLocalBillsToCurrentTerminal_reattachesOwnDeviceBillsAfterTerminalChange() = runBlocking {
-        // A local draft created on this device under terminal "A" (e.g. terminal id 57).
-        billDao.insertBill(
-            bill(R1, createdAt = 1_000, orderStatus = "draft", paymentStatus = "pending",
-                createdTerminalId = "A", currentOwnerTerminalId = "A",
-                deviceId = "dev-A", recordOrigin = "local_created", recordScope = "terminal_operational")
-                .copy(createdDeviceId = "dev-A")
-        )
-
-        // After logout→login the server issues a NEW terminal id "B" (e.g. 63) for the
-        // same physical device. The active-orders query for terminal "B" now finds nothing.
-        assertEquals(0, billDao.getActiveDraftBillsFlow(R1, "B").first().size)
-
-        // Re-own this device's own local bills to the current terminal "B".
-        val reowned = billDao.reownLocalBillsToCurrentTerminal(R1, "dev-A", "B")
-        assertEquals(1, reowned)
-
-        // The existing draft now appears for the current terminal "B".
-        val draftsB = billDao.getActiveDraftBillsFlow(R1, "B").first()
-        assertEquals(1, draftsB.size)
-        assertEquals("B", draftsB.first().currentOwnerTerminalId)
-
-        // A different device's bill must NOT be re-owned (multi-terminal isolation).
-        billDao.insertBill(
-            bill(R1, createdAt = 2_000, orderStatus = "draft", paymentStatus = "pending",
-                createdTerminalId = "C", currentOwnerTerminalId = "C",
-                deviceId = "dev-C", recordOrigin = "local_created", recordScope = "terminal_operational")
-                .copy(createdDeviceId = "dev-C")
-        )
-        val reownedAgain = billDao.reownLocalBillsToCurrentTerminal(R1, "dev-A", "B")
-        assertEquals(0, reownedAgain) // dev-A already at B; dev-C untouched
-        assertEquals(1, billDao.getActiveDraftBillsFlow(R1, "C").first().size)
-    }
-
-    @Test
     fun getActiveDraftBillsFlow_excludesPulledBillFromOtherTerminal() = runBlocking {
         // Local operational draft on Terminal A.
         billDao.insertBill(

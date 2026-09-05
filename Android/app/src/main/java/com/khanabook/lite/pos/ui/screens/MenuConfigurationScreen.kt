@@ -76,6 +76,7 @@ fun MenuConfigurationScreen(
     val menuItems by viewModel.menuItems.collectAsStateWithLifecycle()
     val ocrUiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val canWrite = viewModel.canWriteMasterData()
 
     val pdfLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -132,8 +133,8 @@ fun MenuConfigurationScreen(
         }
     }
 
-    LaunchedEffect(ocrUiState.configMode, categories, selectedCategoryId) {
-        if (ocrUiState.configMode == "manual" && selectedCategoryId == null && categories.isNotEmpty()) {
+    LaunchedEffect(ocrUiState.configMode, categories, selectedCategoryId, canWrite) {
+        if ((ocrUiState.configMode == "manual" || !canWrite) && selectedCategoryId == null && categories.isNotEmpty()) {
             viewModel.selectCategory(categories.first().id)
         }
     }
@@ -186,7 +187,7 @@ fun MenuConfigurationScreen(
         contentWindowInsets = WindowInsets.systemBars
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (ocrUiState.configMode == null) {
+            if (canWrite && ocrUiState.configMode == null) {
                 AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
                     ModeSelectionView(
                         selectedCategoryName = categories.find { it.id == selectedCategoryId }?.name,
@@ -207,6 +208,7 @@ fun MenuConfigurationScreen(
                     categories = categories,
                     selectedCategoryId = selectedCategoryId,
                     menuItems = menuItems,
+                    canWrite = canWrite,
                     onCategorySelect = { viewModel.selectCategory(it) },
                     onAddCategory = { viewModel.addCategory(it, true) },
                     onUpdateCategory = { viewModel.updateCategory(it) },
@@ -266,6 +268,7 @@ fun MenuConfigurationScreen(
             blockedPermission?.let { blocked ->
                 com.khanabook.lite.pos.ui.designsystem.PermissionBlockedDialog(
                     permissionDisplayName = blocked.displayName,
+                    requestable = blocked.requestable,
                     isLoading = requestInFlight,
                     requestSent = requestResult is com.khanabook.lite.pos.domain.manager.PermissionManager.RequestResult.Success,
                     onRequestAccess = { viewModel.requestAccessForBlocked() },

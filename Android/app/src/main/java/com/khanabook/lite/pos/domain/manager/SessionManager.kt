@@ -270,6 +270,14 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     fun isKbookAdmin(): Boolean = getActiveUserRole() == "KBOOK_ADMIN"
     fun canUsePos(): Boolean = isOwner() || isManager() || isCashier() || isWaiter() || isOperations()
 
+    /**
+     * Master data is single-writer: only the restaurant owner account and admin
+     * roles (OWNER / SHOP_ADMIN / KBOOK_ADMIN) may edit the menu, prices and
+     * availability. Staff terminals are offline-first bill-mints that read the
+     * cached menu — mirrors SyncPushGuard.isMasterDataWriter on the server.
+     */
+    fun canWriteMasterData(): Boolean = isOwner() || isShopAdmin() || isKbookAdmin()
+
     fun isManager(): Boolean = getActiveUserRole() == "MANAGER"
     fun isCashier(): Boolean = getActiveUserRole() == "CASHIER"
     fun isWaiter(): Boolean = getActiveUserRole() == "WAITER"

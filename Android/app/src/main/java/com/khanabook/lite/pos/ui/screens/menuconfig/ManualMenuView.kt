@@ -48,6 +48,7 @@ fun ManualMenuView(
     categories: List<CategoryEntity>,
     selectedCategoryId: Long?,
     menuItems: List<MenuWithVariants>,
+    canWrite: Boolean,
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
@@ -105,7 +106,7 @@ fun ManualMenuView(
                             .padding(horizontal = spacing.smallMedium, vertical = spacing.small)
                             .combinedClickable(
                                 onClick = { onCategorySelect(category.id) },
-                                onLongClick = { showEditCategoryDialog = category }
+                                onLongClick = if (canWrite) ({ showEditCategoryDialog = category }) else (null)
                             ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -114,7 +115,7 @@ fun ManualMenuView(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
-                        if (isSelected) {
+                        if (isSelected && canWrite) {
                             Spacer(modifier = Modifier.width(spacing.extraSmall))
                             Icon(
                                 Icons.Default.Edit,
@@ -128,13 +129,15 @@ fun ManualMenuView(
                     }
                 }
             }
-            item {
-                KhanaSecondaryButton(
-                    text = "Add Category",
-                    onClick = { showAddCategoryDialog = true },
-                    leadingIcon = Icons.Default.Add,
-                    modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
-                )
+            if (canWrite) {
+                item {
+                    KhanaSecondaryButton(
+                        text = "Add Category",
+                        onClick = { showAddCategoryDialog = true },
+                        leadingIcon = Icons.Default.Add,
+                        modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
+                    )
+                }
             }
         }
 
@@ -166,7 +169,10 @@ fun ManualMenuView(
                     )
                     Spacer(modifier = Modifier.height(spacing.extraSmall))
                     Text(
-                        "Tap + above to create your first category,\nthen add your menu items.",
+                        if (canWrite)
+                            "Tap + above to create your first category,\nthen add your menu items."
+                        else
+                            "The restaurant owner or an admin\nmanages the menu on this device.",
                         color = TextGold.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
@@ -200,7 +206,10 @@ fun ManualMenuView(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
-                                    "Tap \"Add New Item\" below to get started.",
+                                    if (canWrite)
+                                        "Tap \"Add New Item\" below to get started."
+                                    else
+                                        "The restaurant owner or an admin edits the menu.",
                                     color = TextGold.copy(alpha = 0.5f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -214,6 +223,7 @@ fun ManualMenuView(
                     ) { itemWithVariants ->
                         MenuItemRow(
                             itemWithVariants = itemWithVariants,
+                            canWrite = canWrite,
                             onToggleAvailability = onToggleAvailability,
                             onEditClick = { showEditItemDialog = it }
                         )
@@ -222,7 +232,7 @@ fun ManualMenuView(
 
             }
             
-            // Fixed Footer Button
+            // Fixed Footer
             Surface(
                 color = DarkBrown1, // Match background to merge seamlessly
                 shadowElevation = 8.dp,
@@ -234,28 +244,37 @@ fun ManualMenuView(
                         .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        "Tap to edit  •  Toggle switch to enable / disable",
-                        color = TextGold.copy(alpha = 0.35f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Button(
-                        onClick = { showAddItemDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(MenuConfigurationTags.addItemButton),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryGold,
-                            contentColor = DarkBrown1
-                        ),
-                        enabled = selectedCategoryId != null,
-                        shape = KhanaRadii.lg
-                    ) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Add New Item", fontWeight = FontWeight.Bold)
+                    if (canWrite) {
+                        Text(
+                            "Tap to edit  •  Toggle switch to enable / disable",
+                            color = TextGold.copy(alpha = 0.35f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        Button(
+                            onClick = { showAddItemDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(MenuConfigurationTags.addItemButton),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGold,
+                                contentColor = DarkBrown1
+                            ),
+                            enabled = selectedCategoryId != null,
+                            shape = KhanaRadii.lg
+                        ) {
+                            Icon(Icons.Default.Add, null)
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text("Add New Item", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text(
+                            "Viewing menu in read-only mode.\nOnly the restaurant owner or an admin can edit the menu.",
+                            color = TextGold.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -360,6 +379,7 @@ fun ManualMenuView(
 @Composable
 fun MenuItemRow(
     itemWithVariants: MenuWithVariants,
+    canWrite: Boolean = true,
     onToggleAvailability: (Long, Boolean) -> Unit,
     onEditClick: (MenuWithVariants) -> Unit
 ) {
@@ -369,9 +389,15 @@ fun MenuItemRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onEditClick(itemWithVariants) },
-                onLongClick = { onEditClick(itemWithVariants) }
+            .then(
+                if (canWrite) {
+                    Modifier.combinedClickable(
+                        onClick = { onEditClick(itemWithVariants) },
+                        onLongClick = { onEditClick(itemWithVariants) }
+                    )
+                } else {
+                    Modifier
+                }
             ),
         colors = CardDefaults.cardColors(
             containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
@@ -413,12 +439,26 @@ fun MenuItemRow(
                     )
                 }
             }
-            KhanaBookSwitch(
-                checked = item.isAvailable,
-                onCheckedChange = { onToggleAvailability(item.id, it) },
-                checkedTrackColor = PrimaryGold,
-                checkedThumbColor = BrownSelected
-            )
+            if (canWrite) {
+                KhanaBookSwitch(
+                    checked = item.isAvailable,
+                    onCheckedChange = { onToggleAvailability(item.id, it) },
+                    checkedTrackColor = PrimaryGold,
+                    checkedThumbColor = BrownSelected
+                )
+            } else {
+                Surface(
+                    shape = KhanaRadii.pill,
+                    color = if (item.isAvailable) VegGreen.copy(alpha = 0.15f) else NonVegRed.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = if (item.isAvailable) "Available" else "Unavailable",
+                        color = if (item.isAvailable) VegGreen else NonVegRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = KhanaBookTheme.spacing.small, vertical = KhanaBookTheme.spacing.extraSmall)
+                    )
+                }
+            }
         }
     }
 }

@@ -12,11 +12,14 @@ import com.khanabook.lite.pos.ui.theme.*
 
 /**
  * Dialog shown when a user tries to access a feature they don't have permission for.
- * Provides a "Request Access" button that sends a permission request to the owner.
+ * When [requestable] is true it shows a "Request Access" button that sends a permission
+ * request to the owner. Role-bound restrictions (like master-data edits) are not
+ * requestable — only a dismiss-only "OK" is offered.
  */
 @Composable
 fun PermissionBlockedDialog(
     permissionDisplayName: String,
+    requestable: Boolean = true,
     isLoading: Boolean = false,
     requestSent: Boolean = false,
     onRequestAccess: () -> Unit,
@@ -40,7 +43,7 @@ fun PermissionBlockedDialog(
         },
         title = {
             Text(
-                text = if (requestSent) "Request Sent" else "Access Required",
+                text = if (requestSent) "Request Sent" else if (requestable) "Access Required" else "Access Restricted",
                 style = MaterialTheme.typography.titleLarge,
                 color = TextLight,
                 textAlign = TextAlign.Center,
@@ -53,10 +56,13 @@ fun PermissionBlockedDialog(
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 Text(
-                    text = if (requestSent)
-                        "Your request for \"$permissionDisplayName\" access has been sent to the shop owner. You'll get access once approved."
+                    text = if (requestable)
+                        if (requestSent)
+                            "Your request for \"$permissionDisplayName\" access has been sent to the shop owner. You'll get access once approved."
+                        else
+                            "You need \"$permissionDisplayName\" permission to use this feature. Request access from your shop owner."
                     else
-                        "You need \"$permissionDisplayName\" permission to use this feature. Request access from your shop owner.",
+                        permissionDisplayName,
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextGold,
                     textAlign = TextAlign.Center
@@ -68,7 +74,7 @@ fun PermissionBlockedDialog(
                 TextButton(onClick = onDismiss) {
                     Text("OK", color = PrimaryGold)
                 }
-            } else {
+            } else if (requestable) {
                 Button(
                     onClick = onRequestAccess,
                     enabled = !isLoading,
@@ -85,10 +91,18 @@ fun PermissionBlockedDialog(
                         Text("Request Access", color = DarkBrown1)
                     }
                 }
+            } else {
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = KhanaRadii.button
+                ) {
+                    Text("OK", color = DarkBrown1)
+                }
             }
         },
         dismissButton = {
-            if (!requestSent) {
+            if (requestable && !requestSent) {
                 TextButton(onClick = onDismiss) {
                     Text("Cancel", color = TextGold)
                 }

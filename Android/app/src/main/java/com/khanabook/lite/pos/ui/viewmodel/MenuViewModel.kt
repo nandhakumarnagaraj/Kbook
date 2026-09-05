@@ -31,11 +31,12 @@ class MenuViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
     private val databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider,
     private val permissionManager: com.khanabook.lite.pos.domain.manager.PermissionManager,
+    private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     private val khanaBookApi: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 ) : ViewModel() {
     private val ocrDebugTag = "OCR_DEBUG"
 
-    data class BlockedPermission(val key: String, val displayName: String)
+    data class BlockedPermission(val key: String, val displayName: String, val requestable: Boolean = true)
 
     private val _blockedPermission = MutableStateFlow<BlockedPermission?>(null)
     val blockedPermission: StateFlow<BlockedPermission?> = _blockedPermission.asStateFlow()
@@ -50,6 +51,7 @@ class MenuViewModel @Inject constructor(
 
     fun requestAccessForBlocked() {
         val blocked = _blockedPermission.value ?: return
+        if (!blocked.requestable) return
         viewModelScope.launch {
             permissionManager.requestAccess(khanaBookApi, blocked.key)
         }
@@ -62,10 +64,26 @@ class MenuViewModel @Inject constructor(
         )
     }
 
+    private fun blockMasterDataWrite() {
+        // Master data is role-bound — requesting a menu.* grant cannot unlock it.
+        _blockedPermission.value = BlockedPermission(
+            key = "master_data_write",
+            displayName = "Only the restaurant owner or an admin may edit the menu.",
+            requestable = false
+        )
+    }
+
+    /**
+     * Master data is single-writer: only the owner or an admin
+     * (OWNER / SHOP_ADMIN / KBOOK_ADMIN) may edit the menu. Fine-grained menu.*
+     * grants are advisory (UI/legacy) and never let staff write master data.
+     */
+    fun canWriteMasterData(): Boolean = sessionManager.canWriteMasterData()
+
     /** Check if current user can perform menu edits */
-    fun canEditMenu(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_EDIT_PRICE)
-    fun canAddItem(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
-    fun canDeleteItem(): Boolean = permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_DELETE_ITEM)
+    fun canEditMenu(): Boolean = canWriteMasterData()
+    fun canAddItem(): Boolean = canWriteMasterData()
+    fun canDeleteItem(): Boolean = canWriteMasterData()
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -118,6 +136,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun addCategory(name: String, isVeg: Boolean) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             try {
                 categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg))
@@ -128,18 +150,30 @@ class MenuViewModel @Inject constructor(
     }
 
     fun updateCategory(category: CategoryEntity) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             categoryRepository.updateCategory(category)
         }
     }
 
     fun toggleCategory(id: Long, enabled: Boolean) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             categoryRepository.toggleActive(id, enabled)
         }
     }
 
     fun deleteCategory(category: CategoryEntity) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             categoryRepository.deleteCategory(category)
         }
@@ -147,7 +181,7 @@ class MenuViewModel @Inject constructor(
 
     fun addItem(categoryId: Long, name: String, price: Double, foodType: String, description: String? = null) {
         if (!canAddItem()) {
-            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
+            blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
@@ -172,7 +206,7 @@ class MenuViewModel @Inject constructor(
         variants: List<Pair<String, Double>>
     ) {
         if (!canAddItem()) {
-            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_ADD_ITEM)
+            blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
@@ -199,7 +233,7 @@ class MenuViewModel @Inject constructor(
 
     fun updateItem(item: MenuItemEntity) {
         if (!canEditMenu()) {
-            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_EDIT_PRICE)
+            blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
@@ -208,8 +242,8 @@ class MenuViewModel @Inject constructor(
     }
 
     fun toggleItem(id: Long, enabled: Boolean) {
-        if (!permissionManager.hasPermission(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_TOGGLE_AVAILABILITY)) {
-            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_TOGGLE_AVAILABILITY)
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
@@ -219,7 +253,7 @@ class MenuViewModel @Inject constructor(
 
     fun deleteItem(item: MenuItemEntity) {
         if (!canDeleteItem()) {
-            block(com.khanabook.lite.pos.domain.manager.PermissionManager.MENU_DELETE_ITEM)
+            blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
@@ -228,6 +262,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun clearCategoryItems(categoryId: Long) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val items = menuRepository.getItemsByCategoryOnce(categoryId)
             items.forEach { menuRepository.deleteItem(it) }
@@ -235,6 +273,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun addVariant(menuItemId: Long, name: String, price: Double) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             menuRepository.insertVariant(
                 ItemVariantEntity(
@@ -247,12 +289,20 @@ class MenuViewModel @Inject constructor(
     }
 
     fun updateVariant(variant: ItemVariantEntity) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             menuRepository.updateVariant(variant)
         }
     }
 
     fun deleteVariant(variant: ItemVariantEntity) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             menuRepository.deleteVariant(variant)
         }
@@ -664,6 +714,10 @@ class MenuViewModel @Inject constructor(
     }
 
     fun saveImportedMenu(defaultCategoryId: Long?, overwrite: Boolean = false) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Saving menu...") }
             

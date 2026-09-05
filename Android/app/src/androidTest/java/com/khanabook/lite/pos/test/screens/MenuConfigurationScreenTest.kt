@@ -61,6 +61,7 @@ class MenuConfigurationScreenTest {
                     categories = listOf(CategoryEntity(id = 1L, name = "Biryani", isVeg = false)),
                     selectedCategoryId = 1L,
                     menuItems = emptyList<MenuWithVariants>(),
+                    canWrite = true,
                     onCategorySelect = {},
                     onAddCategory = {},
                     onUpdateCategory = {},
@@ -77,6 +78,33 @@ class MenuConfigurationScreenTest {
         composeTestRule.onNodeWithTag(MenuConfigurationTags.manualMenuRoot).assertIsDisplayed()
         composeTestRule.onNodeWithTag(MenuConfigurationTags.addCategoryButton).assertIsDisplayed()
         composeTestRule.onNodeWithTag(MenuConfigurationTags.addItemButton).assertIsDisplayed()
+    }
+
+    @Test
+    fun readOnlyManualMenuView_hidesAllEditAffordances() {
+        composeTestRule.setContent {
+            KhanaBookLiteTheme {
+                ManualMenuView(
+                    categories = listOf(CategoryEntity(id = 1L, name = "Biryani", isVeg = false)),
+                    selectedCategoryId = 1L,
+                    menuItems = emptyList<MenuWithVariants>(),
+                    canWrite = false,
+                    onCategorySelect = {},
+                    onAddCategory = {},
+                    onUpdateCategory = {},
+                    onAddItem = { _, _, _, _ -> },
+                    onUpdateItem = {},
+                    onToggleAvailability = { _, _ -> },
+                    onAddVariant = { _, _, _ -> },
+                    onUpdateVariant = {},
+                    onDeleteVariant = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(MenuConfigurationTags.manualMenuRoot).assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag(MenuConfigurationTags.addCategoryButton).assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag(MenuConfigurationTags.addItemButton).assertCountEquals(0)
     }
 
     @Test
