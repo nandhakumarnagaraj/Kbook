@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.data.repository
 
 import androidx.work.WorkManager
+import android.content.Context
+import android.content.SharedPreferences
 import com.khanabook.lite.pos.data.local.dao.MenuDao
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.domain.manager.PermissionManager
@@ -23,9 +25,10 @@ import org.junit.Test
  * P1: the acting user's authorization revision must be stamped onto every locally
  * created/edited menu row so the server can run Decision-A-strict revalidation.
  *
- * Note: SessionManager's primitive getters are left to relaxed defaults (0L / "")
- * — we intentionally do NOT record every{} on them, because MockK's auto-hinter
- * would invoke the real (prefs-backed) method during recording.
+ * SessionManager is built as a REAL instance on a mocked Context: its primitive
+ * getter getRestaurantId(): Long coexists with the restaurantId: StateFlow<Long>
+ * property getter of the same name, which MockK's relaxed name-hinter cannot
+ * disambiguate (it answers the Long call with the StateFlow → ClassCastException).
  */
 class MenuRepositoryTest {
 
@@ -40,11 +43,25 @@ class MenuRepositoryTest {
         mockkStatic(android.util.Log::class)
         every { android.util.Log.i(any(), any()) } returns 0
         every { android.util.Log.w(any(), any<String>()) } returns 0
+        every { android.util.Log.e(any(), any(), any()) } returns 0
         menuDao = mockk(relaxed = true)
-        sessionManager = mockk(relaxed = true) // getRestaurantId()/getDeviceId() → relaxed defaults
+        sessionManager = realSessionManager()
         workManager = mockk(relaxed = true)
         permissionManager = mockk(relaxed = true)
         repository = MenuRepository(menuDao, sessionManager, workManager, permissionManager)
+    }
+
+    /** A real SessionManager backed by mocked SharedPreferences (no Android runtime). */
+    private fun realSessionManager(): SessionManager {
+        val context = mockk<Context>(relaxed = true)
+        val prefs = mockk<SharedPreferences>(relaxed = true)
+        val editor = mockk<SharedPreferences.Editor>(relaxed = true)
+        every { context.getSharedPreferences(any(), any()) } returns prefs
+        every { prefs.edit() } returns editor
+        every { prefs.getString(any(), any()) } returns null
+        every { editor.putLong(any(), any()) } returns editor
+        every { editor.putBoolean(any(), any()) } returns editor
+        return SessionManager(context)
     }
 
     @After
@@ -75,7 +92,4 @@ class MenuRepositoryTest {
 
     // NOTE: toggleItemAvailability() delegates to updateItem() for the actual write,
     // so the revision-stamping guarantee above transitively covers the toggle path.
-    // A direct toggle test is omitted because SessionManager.getRestaurantId() (a
-    // final, prefs-backed getter) is not interceptable by MockK in the plain JVM
-    // unit-test runtime; exercising it here would assert the mock, not our code.
 }

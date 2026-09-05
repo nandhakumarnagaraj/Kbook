@@ -20,6 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.*
 
 /**
@@ -138,13 +140,15 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     val sb = StringBuilder()
     val shopName = profile?.shopName ?: "BIRYANIWALE ANNA"
     val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
-    
+    val gstEnabled = profile?.gstEnabled == true
     sb.append("*${shopName.uppercase()}*\n")
     profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { sb.append("$it\n") }
-    profile?.gstin?.takeIf { it.isNotBlank() }?.let { sb.append("GSTIN: $it\n") }
+    if (gstEnabled) {
+        profile?.gstin?.takeIf { it.isNotBlank() }?.let { sb.append("GSTIN: $it\n") }
+    }
     sb.append("--------------------------\n")
     sb.append("*Order ID:* #${bill.bill.dailyOrderDisplay.split("-").last()}\n")
-    val invLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
+    val invLabel = if (gstEnabled) "Tax Invoice No" else "Invoice No"
     sb.append("*$invLabel:* ${bill.bill.getInvoiceNumberDisplay()}\n")
     sb.append("*Date:* ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
     sb.append("--------------------------\n")
@@ -157,6 +161,29 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     }
     
     sb.append("--------------------------\n")
+    if (gstEnabled) {
+        val gstTotal = bill.bill.gstPercentage?.toBigDecimalOrNull()
+        val halfPct = gstTotal
+            ?.takeIf { it > BigDecimal.ZERO }
+            ?.divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
+            ?.stripTrailingZeros()
+        bill.bill.subtotal?.takeIf { it.isNotBlank() }?.let {
+            sb.append("*Sub-total: ${currency}$it*\n")
+        }
+        halfPct?.let {
+            val label = it.toPlainString()
+            bill.bill.cgstAmount?.takeIf { a -> a.isNotBlank() }?.let { a ->
+                sb.append("*CGST ($label%): ${currency}$a*\n")
+            }
+            bill.bill.sgstAmount?.takeIf { a -> a.isNotBlank() }?.let { a ->
+                sb.append("*SGST ($label%): ${currency}$a*\n")
+            }
+        }
+        sb.append("*SAC: 996331*\n")
+        profile?.gstin?.take(2)?.takeIf { it.length == 2 && it.all(Char::isDigit) }?.let {
+            sb.append("*State Code: $it*\n")
+        }
+    }
     sb.append("*Total Amount: ${currency}${bill.bill.totalAmount}*\n")
     sb.append("--------------------------\n")
     sb.append("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you for your visit!"}\n")

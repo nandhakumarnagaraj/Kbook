@@ -764,6 +764,8 @@ class MenuViewModel @Inject constructor(
                         val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
 
                         for (draft in items) {
+                            // Min price is Rs.1 (OCR plausibility floor); skip price-less rows.
+                            if (draft.price < 1.0) continue
                             if (draft.name.lowercase() !in existingNames) {
                                 val itemId = menuRepository.insertItem(
                                     MenuItemEntity(

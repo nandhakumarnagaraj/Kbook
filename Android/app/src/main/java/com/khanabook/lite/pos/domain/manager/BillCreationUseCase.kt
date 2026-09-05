@@ -277,7 +277,8 @@ class BillCreationUseCase @Inject constructor(
             financialYear = financialYear,
             invoiceSeries = invoiceSeries,
             invoiceSequence = sequence,
-            invoiceNumber = "$displaySeries${sequence.toString().padStart(2, '0')}"
+            // Must match server BillServiceImpl.buildInvoiceNumber: series-char + %06d
+            invoiceNumber = "$displaySeries${sequence.toString().padStart(6, '0')}"
         )
     }
 

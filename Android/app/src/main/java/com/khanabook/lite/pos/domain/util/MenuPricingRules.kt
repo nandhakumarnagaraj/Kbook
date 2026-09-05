@@ -4,9 +4,11 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 object MenuPricingRules {
-    val MIN_PRICE: BigDecimal = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+    // Min price is Rs. 1 — aligned with the OCR plausibility floor
+    // (isPlausiblePrice rejects 0 and sub-rupee values).
+    val MIN_PRICE: BigDecimal = BigDecimal.ONE.setScale(2, RoundingMode.HALF_UP)
     val MAX_PRICE: BigDecimal = BigDecimal("100000.00")
-    const val ERROR_MESSAGE: String = "Price must be between Rs. 0 and Rs. 1,00,000."
+    const val ERROR_MESSAGE: String = "Price must be between Rs. 1 and Rs. 1,00,000."
 
     fun normalizePrice(value: String): String {
         val amount = value.ifBlank { "0" }.toBigDecimalOrNull()
