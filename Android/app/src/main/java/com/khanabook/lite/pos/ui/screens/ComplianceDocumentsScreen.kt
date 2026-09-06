@@ -78,7 +78,7 @@ fun ComplianceDocumentsScreen(
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     val isSubmitting by vm.isSubmitting.collectAsStateWithLifecycle()
     val profile by settingsVm.profile.collectAsStateWithLifecycle()
-    val isPrimaryDevice by deviceVm.isPrimaryDevice.collectAsStateWithLifecycle()
+    val canUpload = deviceVm.canUploadDocuments
     val events = vm.events
 
     val status = when (val state = uiState) {
@@ -152,7 +152,7 @@ fun ComplianceDocumentsScreen(
             AddressProofCard(
                 title = "Address Proof 1",
                 isUploaded = status?.businessProof1Present ?: false,
-                isPrimaryDevice = isPrimaryDevice,
+                isAllowed = canUpload,
                 isSubmitting = isSubmitting,
                 onUpload = { pendingDocType = "business_proof_1"; fileLauncher.launch("application/pdf") },
                 onView = { vm.downloadKycDocument("business_proof_1") }
@@ -161,7 +161,7 @@ fun ComplianceDocumentsScreen(
             AddressProofCard(
                 title = "Address Proof 2",
                 isUploaded = status?.businessProof2Present ?: false,
-                isPrimaryDevice = isPrimaryDevice,
+                isAllowed = canUpload,
                 isSubmitting = isSubmitting,
                 onUpload = { pendingDocType = "business_proof_2"; fileLauncher.launch("application/pdf") },
                 onView = { vm.downloadKycDocument("business_proof_2") }
@@ -180,9 +180,9 @@ fun ComplianceDocumentsScreen(
                 Text("View / Sign Merchant e-Agreement", color = PrimaryGold)
             }
 
-if (!isPrimaryDevice) {
+            if (!canUpload) {
                 Spacer(Modifier.height(spacing.medium))
-                Text("Document uploads are only allowed on the primary device.", color = TextLight, style = MaterialTheme.typography.bodySmall)
+                Text("Document uploads are restricted to restaurant owners.", color = TextLight, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -206,7 +206,7 @@ private fun ComplianceCard(title: String, content: @Composable () -> Unit) {
 private fun AddressProofCard(
     title: String,
     isUploaded: Boolean,
-    isPrimaryDevice: Boolean,
+    isAllowed: Boolean,
     isSubmitting: Boolean,
     onUpload: () -> Unit,
     onView: () -> Unit
@@ -240,7 +240,7 @@ private fun AddressProofCard(
             Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
                     onClick = onUpload,
-                    enabled = isPrimaryDevice && !isSubmitting,
+                    enabled = isAllowed && !isSubmitting,
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = com.khanabook.lite.pos.ui.theme.KhanaRadii.xl
                 ) {

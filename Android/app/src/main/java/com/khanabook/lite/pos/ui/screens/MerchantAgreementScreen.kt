@@ -105,7 +105,7 @@ fun MerchantAgreementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
-    val isPrimaryDevice by viewModel.isPrimaryDevice.collectAsStateWithLifecycle()
+    val canSign = viewModel.canSignAgreement
     val context = LocalContext.current
 
     var signerName by remember { mutableStateOf("") }
@@ -218,26 +218,24 @@ fun MerchantAgreementScreen(
                             }
                         }
 
-                        if (!isPrimaryDevice) {
+                        if (!canSign) {
                             KhanaBookCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = KhanaRadii.lg,
                                 colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.1f))
                             ) {
                                 Column(modifier = Modifier.padding(spacing.medium)) {
-                                    Text("Read-only on this device", fontWeight = FontWeight.Bold, color = DangerRed)
+                                    Text("Read-only for staff", fontWeight = FontWeight.Bold, color = DangerRed)
                                     Spacer(modifier = Modifier.height(spacing.small))
                                     Text(
-                                        "Signing is only available on the primary device that " +
-                                            "activated this restaurant. You can still view the signed " +
-                                            "agreement above from any device.",
+                                        "Signing is restricted to restaurant owners. Staff members can view the signed agreement above.",
                                         color = TextGold
                                     )
                                 }
                             }
                         }
 
-                        if (isPrimaryDevice && !status.hasAgreement) {
+                        if (canSign && !status.hasAgreement) {
                             Text(
                                 "Sign the agreement",
                                 style = MaterialTheme.typography.titleMedium,

@@ -67,7 +67,6 @@ import { formatDate } from '../../shared/formatters';
                 </ng-container>
                 <ng-template #nameCell>
                   <strong>{{ terminal.terminalName || 'Unnamed' }}</strong>
-                  <span class="primary-badge" *ngIf="terminal.isPrimary" title="Primary device">★ Primary</span>
                 </ng-template>
               </td>
               <td>{{ terminal.terminalSeries || '-' }}</td>
@@ -97,14 +96,6 @@ import { formatDate } from '../../shared/formatters';
               <td>
                 <div class="action-stack">
                   <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                  <button
-                    *ngIf="terminal.status.toLowerCase() === 'active' && !terminal.isPrimary"
-                    class="ghost-btn"
-                    [disabled]="saving()"
-                    (click)="setPrimary(terminal)"
-                  >
-                    Set as primary
-                  </button>
                   <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
                   <button
                     *ngIf="terminal.status.toLowerCase() !== 'inactive'"
@@ -131,7 +122,7 @@ import { formatDate } from '../../shared/formatters';
 
         <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
           <article class="mobile-data-card" *ngFor="let terminal of terminals()">
-            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}<span class="primary-badge" *ngIf="terminal.isPrimary">★ Primary</span></strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
+            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
             <p>
               {{ terminal.terminalSeries || 'No series' }} ·
               <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
@@ -143,7 +134,6 @@ import { formatDate } from '../../shared/formatters';
             <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-              <button *ngIf="terminal.status.toLowerCase() === 'active' && !terminal.isPrimary" class="ghost-btn" [disabled]="saving()" (click)="setPrimary(terminal)">Set as primary</button>
               <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
               <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
               <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>

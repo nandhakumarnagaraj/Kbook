@@ -57,20 +57,14 @@ class MerchantAgreementViewModel @Inject constructor(
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
 
-    private val _isPrimaryDevice = MutableStateFlow(false)
-    val isPrimaryDevice: StateFlow<Boolean> = _isPrimaryDevice.asStateFlow()
+    val canSignAgreement: Boolean
+        get() = sessionManager.isOwner()
 
     init { load() }
 
     fun load() {
         viewModelScope.launch {
             _uiState.value = AgreementUiState.Loading
-            try {
-                val terminalStatus = api.getTerminalStatus()
-                _isPrimaryDevice.value = terminalStatus.isPrimary
-            } catch (e: Exception) {
-                _isPrimaryDevice.value = false
-            }
             repository.getStatus()
                 .onSuccess { map -> _uiState.value = AgreementUiState.Ready(parseStatus(map)) }
                 .onFailure { e ->

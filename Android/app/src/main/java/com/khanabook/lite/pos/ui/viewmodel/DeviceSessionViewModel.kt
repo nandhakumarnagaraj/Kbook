@@ -20,8 +20,8 @@ class DeviceSessionViewModel @Inject constructor(
     private val api: KhanaBookApi
 ) : ViewModel() {
 
-    private val _isPrimaryDevice = MutableStateFlow(false)
-    val isPrimaryDevice: StateFlow<Boolean> = _isPrimaryDevice.asStateFlow()
+    val canUploadDocuments: Boolean
+        get() = sessionManager.isOwner()
 
     private val _terminalSeries = MutableStateFlow<String?>(null)
     val terminalSeries: StateFlow<String?> = _terminalSeries.asStateFlow()
@@ -30,10 +30,8 @@ class DeviceSessionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val terminalStatus = api.getTerminalStatus()
-                _isPrimaryDevice.value = terminalStatus.isPrimary
                 _terminalSeries.value = terminalStatus.terminalSeries
             } catch (e: Exception) {
-                _isPrimaryDevice.value = false
                 _terminalSeries.value = null
             }
         }
