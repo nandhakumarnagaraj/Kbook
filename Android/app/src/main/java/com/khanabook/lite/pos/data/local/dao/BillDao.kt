@@ -414,6 +414,11 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     )
     fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
+    @Query(
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC"
+    )
+    fun getShopBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long): Flow<List<BillEntity>>
+
     @Transaction
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems?

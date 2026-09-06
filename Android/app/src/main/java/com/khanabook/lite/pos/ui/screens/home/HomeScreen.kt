@@ -2,6 +2,7 @@
 
 package com.khanabook.lite.pos.ui.screens.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +52,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
+    val summaryScope by viewModel.summaryScope.collectAsStateWithLifecycle()
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
     val stats by viewModel.todayStats.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
     val unsyncedCount by viewModel.unsyncedCount.collectAsStateWithLifecycle()
@@ -175,12 +179,126 @@ fun HomeScreen(
                                     vertical = layout.cardPaddingVertical
                                 )
                             ) {
-                                Text(
-                                    text = "Today's Summary",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Today's Summary",
+                                        color = PrimaryGold,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    // Scope toggle: This Counter vs Shop Total
+                                    Surface(
+                                        color = DarkBrown1.copy(alpha = 0.6f),
+                                        shape = KhanaRadii.pill,
+                                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(2.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            val isCounter = summaryScope == HomeViewModel.SummaryScope.THIS_COUNTER
+                                            Surface(
+                                                onClick = {
+                                                    viewModel.setSummaryScope(HomeViewModel.SummaryScope.THIS_COUNTER)
+                                                },
+                                                color = if (isCounter) PrimaryGold else androidx.compose.ui.graphics.Color.Transparent,
+                                                shape = KhanaRadii.pill
+                                            ) {
+                                                Text(
+                                                    text = "This Counter",
+                                                    color = if (isCounter) DarkBrown1 else TextGold,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = if (isCounter) FontWeight.Bold else FontWeight.Normal
+                                                    ),
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                )
+                                            }
+                                            Surface(
+                                                onClick = {
+                                                    if (isOwner) {
+                                                        viewModel.setSummaryScope(HomeViewModel.SummaryScope.SHOP_TOTAL)
+                                                    } else {
+                                                        coroutineScope.launch {
+                                                            KhanaToast.show("Shop total is only available to owner", ToastKind.Info)
+                                                        }
+                                                    }
+                                                },
+                                                color = if (!isCounter) PrimaryGold else androidx.compose.ui.graphics.Color.Transparent,
+                                                shape = KhanaRadii.pill
+                                            ) {
+                                                Text(
+                                                    text = "Shop Total",
+                                                    color = if (!isCounter) DarkBrown1 else TextGold,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = if (!isCounter) FontWeight.Bold else FontWeight.Normal
+                                                    ),
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(spacing.small))
+
+                                // Cash Drawer and UPI breakdown strip
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    Surface(
+                                        color = SuccessGreen.copy(alpha = 0.12f),
+                                        shape = KhanaRadii.sm,
+                                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.35f)),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = spacing.small, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (summaryScope == HomeViewModel.SummaryScope.THIS_COUNTER) "Cash in Drawer" else "Cash Total",
+                                                color = TextLight,
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                            Text(
+                                                text = CurrencyUtils.formatPriceCompact(stats.cashRevenue),
+                                                color = SuccessGreen,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+                                    }
+                                    Surface(
+                                        color = LightGold.copy(alpha = 0.12f),
+                                        shape = KhanaRadii.sm,
+                                        border = BorderStroke(1.dp, LightGold.copy(alpha = 0.35f)),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = spacing.small, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (summaryScope == HomeViewModel.SummaryScope.THIS_COUNTER) "UPI / Online" else "UPI Total",
+                                                color = TextLight,
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                            Text(
+                                                text = CurrencyUtils.formatPriceCompact(stats.upiRevenue),
+                                                color = LightGold,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(spacing.small))
+
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(spacing.small),

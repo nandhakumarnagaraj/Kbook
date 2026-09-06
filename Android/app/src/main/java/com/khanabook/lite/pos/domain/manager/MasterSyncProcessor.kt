@@ -863,6 +863,49 @@ class MasterSyncProcessor @Inject constructor(
             val reason = exception.failedReasons[billId]
                 ?.takeIf { it.isNotBlank() }
                 ?: "Bill sync rejected after automatic recovery"
+
+            val isDailyOrderConflict = reason.contains("duplicate order", ignoreCase = true) ||
+                reason.contains("daily_order_id", ignoreCase = true) ||
+                reason.contains("order number already exists", ignoreCase = true)
+
+            if (isDailyOrderConflict) {
+                val autoRepaired = runCatching {
+                    val bill = billDao.getBillById(billId, restaurantId)
+                    if (bill != null && !bill.isSynced && bill.serverId == null) {
+                        val correctedDate = java.time.Instant.ofEpochMilli(bill.createdAt)
+                            .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
+                            .toLocalDate()
+                            .toString()
+                        // Mark failure reason so repairFailedDailyOrderIdentity precondition passes
+                        billDao.markBillSyncFailedPermanently(billId, restaurantId, reason, failedAt)
+                        val repaired = billDao.repairFailedDailyOrderIdentity(
+                            billId = billId,
+                            restaurantId = restaurantId,
+                            correctedDate = correctedDate,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        val today = java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
+                        repaired.createdTerminalId
+                            ?.takeIf { correctedDate == today }
+                            ?.let { terminalId: String ->
+                                restaurantDao.raiseTerminalDailyCounterAtLeast(
+                                    restaurantId = restaurantId,
+                                    terminalId = terminalId,
+                                    date = correctedDate,
+                                    counter = repaired.dailyOrderId,
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                            }
+                        logInfo("Auto-healed daily order counter conflict for bill $billId (renumbered to ${repaired.dailyOrderDisplay})")
+                        true
+                    } else false
+                }.getOrDefault(false)
+
+                if (autoRepaired) {
+                    return@forEach
+                }
+            }
+
             quarantined += billDao.markBillSyncFailedPermanently(
                 billId = billId,
                 restaurantId = restaurantId,
@@ -1078,12 +1121,12 @@ class MasterSyncProcessor @Inject constructor(
                         cashEnabled = remoteProfile.cashEnabled ?: true,
                         posEnabled = remoteProfile.posEnabled ?: false,
 
-                        printerEnabled = remoteProfile.printerEnabled ?: false,
-                        printerName = remoteProfile.printerName.orFallback(""),
-                        printerMac = remoteProfile.printerMac.orFallback(""),
-                        paperSize = remoteProfile.paperSize.orFallback(currentLocalProfile?.paperSize ?: "58mm"),
-                        autoPrintOnSuccess = remoteProfile.autoPrintOnSuccess ?: false,
-                        includeLogoInPrint = remoteProfile.includeLogoInPrint ?: true,
+                        printerEnabled = currentLocalProfile?.printerEnabled ?: (remoteProfile.printerEnabled ?: false),
+                        printerName = currentLocalProfile?.printerName?.takeIf { it.isNotBlank() } ?: remoteProfile.printerName.orFallback(""),
+                        printerMac = currentLocalProfile?.printerMac?.takeIf { it.isNotBlank() } ?: remoteProfile.printerMac.orFallback(""),
+                        paperSize = currentLocalProfile?.paperSize?.takeIf { it.isNotBlank() } ?: remoteProfile.paperSize.orFallback("58mm"),
+                        autoPrintOnSuccess = currentLocalProfile?.autoPrintOnSuccess ?: (remoteProfile.autoPrintOnSuccess ?: false),
+                        includeLogoInPrint = currentLocalProfile?.includeLogoInPrint ?: (remoteProfile.includeLogoInPrint ?: true),
                         printCustomerWhatsapp = remoteProfile.printCustomerWhatsapp ?: true,
                         dailyOrderCounter = remoteProfile.dailyOrderCounter ?: 0L,
                         lifetimeOrderCounter = remoteProfile.lifetimeOrderCounter ?: 0L,
@@ -1105,10 +1148,10 @@ class MasterSyncProcessor @Inject constructor(
                         maskCustomerPhone = remoteProfile.maskCustomerPhone ?: true,
                         serverId = remoteProfile.serverId,
                         serverUpdatedAt = remoteProfile.serverUpdatedAt ?: 0L,
-                        kitchenPrinterEnabled = remoteProfile.kitchenPrinterEnabled,
-                        kitchenPrinterName = remoteProfile.kitchenPrinterName,
-                        kitchenPrinterMac = remoteProfile.kitchenPrinterMac,
-                        kitchenPrinterPaperSize = remoteProfile.kitchenPrinterPaperSize ?: "58mm"
+                        kitchenPrinterEnabled = currentLocalProfile?.kitchenPrinterEnabled ?: remoteProfile.kitchenPrinterEnabled,
+                        kitchenPrinterName = currentLocalProfile?.kitchenPrinterName?.takeIf { it.isNotBlank() } ?: remoteProfile.kitchenPrinterName,
+                        kitchenPrinterMac = currentLocalProfile?.kitchenPrinterMac?.takeIf { it.isNotBlank() } ?: remoteProfile.kitchenPrinterMac,
+                        kitchenPrinterPaperSize = currentLocalProfile?.kitchenPrinterPaperSize?.takeIf { it.isNotBlank() } ?: (remoteProfile.kitchenPrinterPaperSize ?: "58mm")
                     )
                 }
             )

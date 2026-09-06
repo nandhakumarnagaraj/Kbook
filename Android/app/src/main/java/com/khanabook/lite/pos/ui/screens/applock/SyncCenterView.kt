@@ -71,6 +71,7 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
     val duplicateIdHealth by viewModel.duplicateIdHealth.collectAsStateWithLifecycle()
     val cancellingConflictIds by viewModel.cancellingConflictBillIds.collectAsStateWithLifecycle()
     val syncCenterMessage by viewModel.syncCenterMessage.collectAsStateWithLifecycle()
+    val isAutoResolving by viewModel.isAutoResolving.collectAsStateWithLifecycle()
     val lastSyncTimestamp by viewModel.lastSyncTimestamp.collectAsStateWithLifecycle()
     val pendingCount = failedBills.size
     val retryingCount = retryingIds.size
@@ -150,6 +151,30 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
             tint = if (idConflictCount > 0) DangerRed else SuccessGreen,
             modifier = Modifier.fillMaxWidth()
         )
+
+        if (pendingCount > 0 || idConflictCount > 0) {
+            Button(
+                onClick = viewModel::autoResolveAndSyncAll,
+                enabled = !isAutoResolving,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                shape = KhanaRadii.md
+            ) {
+                if (isAutoResolving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = TextLight
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Healing conflicts & syncing...", color = TextLight, fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = null, tint = TextLight)
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Auto-Resolve Conflicts & Sync All", color = TextLight, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
 
         SyncIssuesCard(
             failedBills = failedBills,

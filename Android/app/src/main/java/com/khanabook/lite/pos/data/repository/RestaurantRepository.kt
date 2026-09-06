@@ -37,6 +37,25 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
+    /**
+     * Saves terminal-local preferences (like local Bluetooth/Wi-Fi printer pairing and paper size)
+     * without marking the profile unsynced or triggering master push sync.
+     */
+    suspend fun saveProfileLocally(profile: RestaurantProfileEntity) {
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = restaurantDao.getProfile(restaurantId) ?: restaurantDao.getProfile()
+        val enriched =
+                profile.copy(
+                        id = restaurantId,
+                        restaurantId = restaurantId,
+                        deviceId = sessionManager.getDeviceId(),
+                        dailyOrderCounter = maxOf(profile.dailyOrderCounter, current?.dailyOrderCounter ?: 0L),
+                        lifetimeOrderCounter = profile.lifetimeOrderCounter,
+                        isSynced = current?.isSynced ?: true
+                )
+        restaurantDao.saveProfile(enriched)
+    }
+
     suspend fun seedProfileIfMissing(profile: RestaurantProfileEntity) {
         val restaurantId = sessionManager.getRestaurantId()
         if (restaurantDao.getProfile(restaurantId) != null || restaurantDao.getProfile() != null) return

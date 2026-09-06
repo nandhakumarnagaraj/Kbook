@@ -533,6 +533,7 @@ class TenantBillDao @Inject constructor(
 
     override suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long, terminalId: String): Int = dao.cancelStalePendingOnlineDrafts(reason, updatedAt, restaurantId, terminalId)
     override fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long, terminalId: String): Flow<List<BillEntity>> = runFlow { it.billDao().getBillsByDateRange(startMillis, endMillis, restaurantId, terminalId) }
+    override fun getShopBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long): Flow<List<BillEntity>> = runFlow { it.billDao().getShopBillsByDateRange(startMillis, endMillis, restaurantId) }
     override suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems? = dao.getBillWithItemsById(id, restaurantId)
     override suspend fun getActivePaymentsForBill(billId: Long, restaurantId: Long): List<BillPaymentEntity> =
         dao.getActivePaymentsForBill(billId, restaurantId)

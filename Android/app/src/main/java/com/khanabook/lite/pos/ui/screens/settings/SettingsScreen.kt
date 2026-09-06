@@ -235,7 +235,7 @@ fun SettingsScreen(
                     "printer" -> {
                         PrinterConfigView(profile, onSave = {
                             pendingSaveSection = "printer"
-                            viewModel.saveProfile(it)
+                            viewModel.savePrinterSettingsLocally(it)
                         }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {

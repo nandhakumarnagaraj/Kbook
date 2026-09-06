@@ -419,6 +419,12 @@ class BillRepository(
         }
     }
 
+    fun getShopBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>> {
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getShopBillsByDateRange(startMillis, endMillis, restaurantId)
+        }
+    }
+
     fun getProfileFlow(): Flow<com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?> {
         return sessionManager.restaurantId.flatMapLatest { restaurantId ->
             if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()

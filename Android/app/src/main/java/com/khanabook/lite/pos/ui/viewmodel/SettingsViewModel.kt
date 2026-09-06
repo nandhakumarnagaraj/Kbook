@@ -156,6 +156,9 @@ class SettingsViewModel @Inject constructor(
     private val _syncCenterMessage = MutableStateFlow<String?>(null)
     val syncCenterMessage: StateFlow<String?> = _syncCenterMessage.asStateFlow()
 
+    private val _isAutoResolving = MutableStateFlow(false)
+    val isAutoResolving: StateFlow<Boolean> = _isAutoResolving.asStateFlow()
+
     private val _lastSyncTimestamp = MutableStateFlow(sessionManager.getLastSyncTimestamp())
     val lastSyncTimestamp: StateFlow<Long> = _lastSyncTimestamp.asStateFlow()
 
@@ -404,6 +407,87 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun autoResolveAndSyncAll() {
+        viewModelScope.launch {
+            _isAutoResolving.value = true
+            _syncCenterMessage.value = null
+            try {
+                val (repairedCount, totalRetry) = withContext(Dispatchers.IO) {
+                    val restaurantId = sessionManager.getRestaurantId()
+                    if (restaurantId <= 0L) return@withContext 0 to 0
+
+                    val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
+                    val today = java.time.LocalDate.now(zoneId).toString()
+                    val failedBills = billDao.getPermanentlyFailedBills(restaurantId)
+                    var repaired = 0
+
+                    failedBills.forEach { bill ->
+                        val isDailyOrderConflict = bill.syncFailureReason?.contains("Duplicate order", ignoreCase = true) == true ||
+                            bill.syncFailureReason?.contains("daily_order_id", ignoreCase = true) == true ||
+                            bill.syncFailureReason?.contains("already exists", ignoreCase = true) == true
+
+                        if (isDailyOrderConflict && !bill.isSynced && bill.serverId == null) {
+                            runCatching {
+                                val correctedDate = java.time.Instant.ofEpochMilli(bill.createdAt)
+                                    .atZone(zoneId)
+                                    .toLocalDate()
+                                    .toString()
+                                val repairedBill = billDao.repairFailedDailyOrderIdentity(
+                                    billId = bill.id,
+                                    restaurantId = restaurantId,
+                                    correctedDate = correctedDate,
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                repairedBill.createdTerminalId
+                                    ?.takeIf { correctedDate == today }
+                                    ?.let { terminalId ->
+                                        restaurantRepository.raiseTerminalDailyCounterAtLeast(
+                                            terminalId = terminalId,
+                                            counter = repairedBill.dailyOrderId,
+                                            date = correctedDate
+                                        )
+                                    }
+                                repaired++
+                            }
+                        } else {
+                            billDao.retryFailedBillSync(bill.id, restaurantId)
+                        }
+                    }
+
+                    // Also bump the local counter based on today's maximum daily order
+                    val startTime = java.time.LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant().toEpochMilli()
+                    val endTime = java.time.LocalDate.now(zoneId).plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+                    val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, sessionManager.getDeviceId(), startTime, endTime)
+                    restaurantRepository.raiseDailyCounterAtLeast(
+                        dailyCounter = maxDailyToday,
+                        date = today
+                    )
+
+                    repaired to failedBills.size
+                }
+
+                syncManager.pushUnsyncedDataWithResult()
+                _syncCenterMessage.value = if (repairedCount > 0) {
+                    "Healed $repairedCount sequence conflict(s) and synced $totalRetry bill(s)."
+                } else if (totalRetry > 0) {
+                    "Retried $totalRetry bill(s) successfully."
+                } else {
+                    "All bills up to date."
+                }
+            } catch (e: Exception) {
+                _syncCenterMessage.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Auto-resolve completed with some network errors. Will retry in background."
+                )
+            } finally {
+                _isAutoResolving.value = false
+                refreshFailedBillSyncs()
+                refreshDuplicateIdHealth()
+                refreshLastSyncTimestamp()
+            }
+        }
+    }
+
     fun testPrint(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -489,7 +573,7 @@ class SettingsViewModel @Inject constructor(
                 if (role == PrinterRole.CUSTOMER) {
                     val current = restaurantRepository.getProfile()
                     current?.copy(printerName = name, printerMac = mac, printerEnabled = true)?.let {
-                        restaurantRepository.saveProfile(it)
+                        restaurantRepository.saveProfileLocally(it)
                     }
                 } else if (role == PrinterRole.KITCHEN) {
                     kitchenPrintQueueManager.flushPendingForPrinter(mac)
@@ -555,10 +639,8 @@ class SettingsViewModel @Inject constructor(
                         printerMac = null,
                         paperSize = paperSize,
                         autoPrintOnSuccess = autoPrint,
-                        includeLogoInPrint = includeLogo,
-                        isSynced = false,
-                        updatedAt = System.currentTimeMillis()
-                    )?.let { restaurantRepository.saveProfile(it) }
+                        includeLogoInPrint = includeLogo
+                    )?.let { restaurantRepository.saveProfileLocally(it) }
                 }
                 if (role == PrinterRole.KITCHEN) {
                     kitchenPrintQueueManager.flushPendingForPrinter(profile.connectionTargetKey())
@@ -579,24 +661,45 @@ class SettingsViewModel @Inject constructor(
         includeLogo: Boolean
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val existing = printerProfileRepository.getByRole(role.name) ?: return@launch
-            printerProfileRepository.saveProfile(
+            val existing = printerProfileRepository.getByRole(role.name)
+            val profileToSave = if (existing != null) {
                 existing.copy(
                     enabled = enabled,
                     autoPrint = autoPrint,
                     paperSize = paperSize,
                     includeLogo = includeLogo
                 )
-            )
+            } else {
+                val defaultName = when (role) {
+                    PrinterRole.CUSTOMER -> "Customer Receipt Printer"
+                    PrinterRole.KITCHEN -> "Kitchen Ticket Printer"
+                }
+                PrinterProfileEntity(
+                    id = 0,
+                    role = role.name,
+                    name = defaultName,
+                    macAddress = "",
+                    connectionType = PrinterConnectionType.BLUETOOTH.name,
+                    host = null,
+                    port = 9100,
+                    enabled = enabled,
+                    autoPrint = autoPrint,
+                    paperSize = paperSize,
+                    includeLogo = includeLogo,
+                    copies = 1,
+                    createdAt = System.currentTimeMillis()
+                )
+            }
+            printerProfileRepository.saveProfile(profileToSave)
             if (role == PrinterRole.CUSTOMER) {
                 restaurantRepository.getProfile()?.copy(
                     printerEnabled = enabled,
-                    printerName = existing.name,
-                    printerMac = existing.macAddress,
+                    printerName = profileToSave.name,
+                    printerMac = profileToSave.macAddress,
                     paperSize = paperSize,
                     includeLogoInPrint = includeLogo,
                     autoPrintOnSuccess = autoPrint
-                )?.let { restaurantRepository.saveProfile(it) }
+                )?.let { restaurantRepository.saveProfileLocally(it) }
             }
         }
     }
@@ -614,7 +717,7 @@ class SettingsViewModel @Inject constructor(
                     printerEnabled = false,
                     printerName = null,
                     printerMac = null
-                )?.let { restaurantRepository.saveProfile(it) }
+                )?.let { restaurantRepository.saveProfileLocally(it) }
             }
         }
     }
@@ -687,6 +790,26 @@ class SettingsViewModel @Inject constructor(
                 _saveProfileError.value = UserMessageSanitizer.sanitize(
                     e,
                     "Couldn't save settings. Please try again."
+                )
+            } finally {
+                _saveProfileLoading.value = false
+            }
+        }
+    }
+
+    fun savePrinterSettingsLocally(profile: RestaurantProfileEntity) {
+        viewModelScope.launch {
+            _saveProfileLoading.value = true
+            _saveProfileError.value = null
+            _saveProfileSuccess.value = false
+            try {
+                restaurantRepository.saveProfileLocally(profile)
+                _saveProfileSuccess.value = true
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Printer settings save failed", e)
+                _saveProfileError.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Couldn't save printer settings. Please try again."
                 )
             } finally {
                 _saveProfileLoading.value = false

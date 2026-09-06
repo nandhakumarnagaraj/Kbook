@@ -358,27 +358,23 @@ fun PrinterConfigView(
                             autoPrintOnSuccess = autoPrint,
                             includeLogoInPrint = includeLogo,
                             maskCustomerPhone = maskPhone,
-                            isSynced = false,
+                            isSynced = true,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
-                        customerPrinter?.let {
-                            viewModel.updatePrinterProfile(
-                                role = PrinterRole.CUSTOMER,
-                                enabled = enabled,
-                                autoPrint = autoPrint,
-                                paperSize = if (paper58) "58mm" else "80mm",
-                                includeLogo = includeLogo
-                            )
-                        }
-                        kitchenPrinter?.let {
-                            viewModel.updatePrinterProfile(
-                                role = PrinterRole.KITCHEN,
-                                enabled = kitchenEnabled,
-                                autoPrint = true,
-                                paperSize = if (kitchenPaper58) "58mm" else "80mm",
-                                includeLogo = false
-                            )
-                        }
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo
+                        )
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.KITCHEN,
+                            enabled = kitchenEnabled,
+                            autoPrint = true,
+                            paperSize = if (kitchenPaper58) "58mm" else "80mm",
+                            includeLogo = false
+                        )
                     },
                     onBack = onBack
                 )

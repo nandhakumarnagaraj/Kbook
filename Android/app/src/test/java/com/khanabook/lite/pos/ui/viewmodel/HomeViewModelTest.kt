@@ -89,4 +89,30 @@ class HomeViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
     }
+
+    @Test
+    fun `setSummaryScope updates summaryScope state flow`() {
+        billRepository = mockk(relaxed = true)
+        kitchenPrintQueueRepository = mockk(relaxed = true)
+        networkMonitor = mockk(relaxed = true)
+        kitchenPrintQueueManager = mockk(relaxed = true)
+        printerProfileRepository = mockk(relaxed = true)
+        restaurantRepository = mockk(relaxed = true)
+        printerManager = mockk(relaxed = true)
+
+        val viewModel = HomeViewModel(
+            billRepository,
+            kitchenPrintQueueRepository,
+            kitchenPrintQueueManager,
+            printerProfileRepository,
+            restaurantRepository,
+            printerManager,
+            networkMonitor
+        )
+
+        org.junit.Assert.assertEquals(HomeViewModel.SummaryScope.THIS_COUNTER, viewModel.summaryScope.value)
+        viewModel.setSummaryScope(HomeViewModel.SummaryScope.SHOP_TOTAL)
+        org.junit.Assert.assertEquals(HomeViewModel.SummaryScope.SHOP_TOTAL, viewModel.summaryScope.value)
+    }
 }
+
