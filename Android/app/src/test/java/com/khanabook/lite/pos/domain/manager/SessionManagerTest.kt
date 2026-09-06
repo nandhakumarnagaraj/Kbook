@@ -172,4 +172,24 @@ class SessionManagerTest {
         assertFalse("KBOOK_ADMIN may not use POS", posAllowedFor("KBOOK_ADMIN"))
         assertFalse("unknown role may not use POS", posAllowedFor(null))
     }
+
+    @Test
+    fun `getDeviceId generates compact 12-char identifier starting with dev_`() {
+        val securePrefs = mockk<KeystoreBackedPreferences>(relaxed = true)
+        val securePrefsField = SessionManager::class.java.getDeclaredField("securePrefs")
+        securePrefsField.isAccessible = true
+        securePrefsField.set(sessionManager, securePrefs)
+
+        val slot = slot<String>()
+        every { securePrefs.getString("device_id", null) } returns null
+        every { securePrefs.putString("device_id", capture(slot)) } just Runs
+
+        val generatedId = sessionManager.getDeviceId()
+
+        assertNotNull(generatedId)
+        assertEquals(12, generatedId.length)
+        assertTrue(generatedId.startsWith("dev_"))
+        assertEquals(generatedId, slot.captured)
+    }
 }
+

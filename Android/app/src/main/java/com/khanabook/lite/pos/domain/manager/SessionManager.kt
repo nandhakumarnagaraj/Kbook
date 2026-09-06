@@ -83,7 +83,8 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         synchronized(this) {
             var deviceId = securePrefs.getString("device_id", null)
             if (deviceId == null) {
-                deviceId = java.util.UUID.randomUUID().toString()
+                val rawHex = java.util.UUID.randomUUID().toString().replace("-", "")
+                deviceId = "dev_" + rawHex.substring(0, 8)
                 saveDeviceId(deviceId)
             }
             return deviceId

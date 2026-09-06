@@ -77,7 +77,11 @@ import { formatDate } from '../../shared/formatters';
                 </span>
               </td>
               <td>
-                <span class="muted">{{ terminal.deviceId || '-' }}</span>
+                <span class="device-pill" *ngIf="terminal.deviceId; else noDevice" [title]="terminal.deviceId">
+                  {{ formatDeviceId(terminal.deviceId) }}
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
+                </span>
+                <ng-template #noDevice><span class="muted">-</span></ng-template>
               </td>
               <td>
                 <span
@@ -128,7 +132,14 @@ import { formatDate } from '../../shared/formatters';
         <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
           <article class="mobile-data-card" *ngFor="let terminal of terminals()">
             <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}<span class="primary-badge" *ngIf="terminal.isPrimary">★ Primary</span></strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
-            <p>{{ terminal.terminalSeries || 'No series' }} · {{ terminal.deviceId || 'No device assigned' }}</p>
+            <p>
+              {{ terminal.terminalSeries || 'No series' }} ·
+              <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
+                {{ formatDeviceId(terminal.deviceId) }}
+                <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
+              </span>
+              <ng-template #noCardDev>No device assigned</ng-template>
+            </p>
             <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
@@ -203,7 +214,11 @@ import { formatDate } from '../../shared/formatters';
                 <td>
                   <div class="stacked-meta">
                     <strong>{{ req.deviceName || '-' }}</strong>
-                    <span class="muted">{{ req.deviceId || 'No device id' }}</span>
+                    <span class="device-pill" *ngIf="req.deviceId; else noReqDev" [title]="req.deviceId">
+                      {{ formatDeviceId(req.deviceId) }}
+                      <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">📋</button>
+                    </span>
+                    <ng-template #noReqDev><span class="muted">No device id</span></ng-template>
                   </div>
                 </td>
                 <td>{{ req.deviceModel || '-' }}</td>
@@ -232,7 +247,14 @@ import { formatDate } from '../../shared/formatters';
           <div class="mobile-data-list" aria-label="Terminal requests">
             <article class="mobile-data-card" *ngFor="let req of pendingOrAllRequests()">
               <div class="mobile-data-card__head"><strong>{{ req.deviceName || 'Unnamed device' }}</strong><span class="chip" [class.success]="req.status.toLowerCase() === 'approved'" [class.danger]="req.status.toLowerCase() === 'rejected'" [class.warn]="req.status.toLowerCase() === 'pending'">{{ req.status }}</span></div>
-              <p>{{ req.deviceModel || 'Unknown model' }} · {{ req.deviceId || 'No device ID' }}</p>
+              <p>
+                {{ req.deviceModel || 'Unknown model' }} ·
+                <span class="device-pill" *ngIf="req.deviceId; else noReqCardDev" [title]="req.deviceId">
+                  {{ formatDeviceId(req.deviceId) }}
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">📋</button>
+                </span>
+                <ng-template #noReqCardDev>No device ID</ng-template>
+              </p>
               <dl><div><dt>Type</dt><dd>{{ req.requestType || '-' }}</dd></div><div><dt>Requested</dt><dd>{{ formatDateValue(req.requestedAt) }}</dd></div></dl>
               <div class="mobile-data-card__actions" *ngIf="req.status.toLowerCase() === 'pending'">
                 <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
@@ -431,6 +453,30 @@ import { formatDate } from '../../shared/formatters';
     }
     .error-text { margin: 0.75rem 0 0; color: var(--kb-color-error); font-weight: 600; }
     .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--kb-space-3); margin-top: var(--kb-space-4); }
+    .device-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.45rem;
+      background: var(--kb-color-surface-2, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-sm, 4px);
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+    .device-copy-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.75rem;
+      opacity: 0.6;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      transition: opacity 0.15s ease;
+    }
+    .device-copy-btn:hover { opacity: 1; }
     @media (max-width: 480px) {
       .modal-actions button { width: 100%; }
       .credential-box { padding: 0.85rem; }
@@ -883,6 +929,29 @@ export class TerminalsPageComponent implements OnDestroy {
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }
+
+  formatDeviceId(deviceId: string | null | undefined): string {
+    if (!deviceId) return '-';
+    const trimmed = deviceId.trim();
+    if (trimmed.length > 14) {
+      return trimmed.substring(0, 8) + '...' + trimmed.substring(trimmed.length - 4);
+    }
+    return trimmed;
+  }
+
+  async copyDeviceId(deviceId: string | null | undefined, event?: Event): Promise<void> {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (!deviceId) return;
+    try {
+      await navigator.clipboard.writeText(deviceId);
+      this.notify('Device ID copied to clipboard');
+    } catch {
+      this.toast.show('Could not copy automatically.', 'error');
+    }
+  }
 }
 
 
