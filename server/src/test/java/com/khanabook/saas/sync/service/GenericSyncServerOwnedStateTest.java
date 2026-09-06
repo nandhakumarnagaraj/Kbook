@@ -14,7 +14,7 @@ class GenericSyncServerOwnedStateTest {
         User existing = new User();
         existing.setIsActive(false);
         existing.setTokenInvalidatedAt(12345L);
-        existing.setRole(UserRole.SHOP_ADMIN);
+        existing.setRole(UserRole.SHOP_STAFF);
 
         User incoming = new User();
         incoming.setIsActive(true);
@@ -25,7 +25,7 @@ class GenericSyncServerOwnedStateTest {
 
         assertThat(incoming.getIsActive()).isFalse();
         assertThat(incoming.getTokenInvalidatedAt()).isEqualTo(12345L);
-        assertThat(incoming.getRole()).isEqualTo(UserRole.SHOP_ADMIN);
+        assertThat(incoming.getRole()).isEqualTo(UserRole.SHOP_STAFF);
     }
 
     @Test

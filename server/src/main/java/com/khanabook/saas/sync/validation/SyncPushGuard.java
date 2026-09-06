@@ -12,7 +12,7 @@ public final class SyncPushGuard {
 
 	private static final int MAX_PUSH_BATCH_SIZE = 200;
 
-	private static final Set<String> MASTER_DATA_WRITER_ROLES = Set.of("OWNER", "SHOP_ADMIN", "KBOOK_ADMIN");
+	private static final Set<String> MASTER_DATA_WRITER_ROLES = Set.of("OWNER", "KBOOK_ADMIN");
 
 	private SyncPushGuard() {}
 
@@ -48,7 +48,7 @@ public final class SyncPushGuard {
 
 	/**
 	 * Master data (menu items, prices, availability, categories, variants) is
-	 * single-writer: only the restaurant owner account and admin roles may
+	 * single-writer: only the restaurant owner account and the platform admin may
 	 * mutate it. Staff terminals are offline-first readers of the cached menu
 	 * that mint bills — they never write master data, regardless of any advisory
 	 * {@code menu.*} grant.
@@ -64,7 +64,7 @@ public final class SyncPushGuard {
 	public static void requireMasterDataWriter() {
 		if (!isMasterDataWriter(TenantContext.getCurrentRole())) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-					"Only the restaurant owner or an admin may change menu items");
+					"Only the restaurant owner may change menu items");
 		}
 	}
 }

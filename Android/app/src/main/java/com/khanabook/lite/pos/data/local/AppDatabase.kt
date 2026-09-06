@@ -29,7 +29,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         PermissionRequestEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 71,
+        version = 72,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1067,6 +1067,19 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     )
                 }
                 android.util.Log.i("AppDatabase", "MIGRATION_70_71 complete: menu + profile changed_fields")
+            }
+        }
+
+        val MIGRATION_71_72 = object : Migration(71, 72) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Role model collapse (server V94): legacy staff roles become
+                // SHOP_STAFF on-device too, matching what the next master sync
+                // pushes down. Access during the pre-sync window is still safe —
+                // SessionManager treats these as staff roles defensively.
+                db.execSQL(
+                    "UPDATE `users` SET `role` = 'SHOP_STAFF' WHERE `role` IN ('SHOP_ADMIN', 'WAITER', 'CASHIER', 'MANAGER', 'OPERATIONS')"
+                )
+                android.util.Log.i("AppDatabase", "MIGRATION_71_72 complete: legacy staff roles collapsed to SHOP_STAFF")
             }
         }
 

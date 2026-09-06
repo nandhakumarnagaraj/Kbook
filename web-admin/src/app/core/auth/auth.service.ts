@@ -67,7 +67,6 @@ export class AuthService {
   getLandingPath(role = this.session()?.role): string {
     if (role === 'KBOOK_ADMIN') return '/admin/dashboard';
     if (role === 'OWNER') return '/business/dashboard';
-    if (role === 'SHOP_ADMIN') return '/business/terminals';
     return '/limited-access';
   }
 

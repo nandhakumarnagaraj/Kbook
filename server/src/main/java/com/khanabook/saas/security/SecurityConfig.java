@@ -148,23 +148,24 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/**")
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
-						// Terminal management: OWNER and SHOP_ADMIN can manage devices
+						// Terminal management: OWNER only can manage devices
 						.requestMatchers("/business/terminals/**", "/business/terminal-requests/**")
-						.hasAnyRole("OWNER", "SHOP_ADMIN")
+						.hasRole("OWNER")
 						// General business APIs: OWNER only (dashboard, orders, menu, staff, refunds)
 						.requestMatchers("/business/**").hasRole("OWNER")
-						// Terminal onboarding: OWNER and SHOP_ADMIN (activate, list, reclaim, request-status, complete)
+						// Terminal onboarding happens on the device for whoever logs in: OWNER and
+						// SHOP_STAFF may activate/list/reclaim/request-status/complete.
 						.requestMatchers("/sync/terminal/**")
-						.hasAnyRole("OWNER", "SHOP_ADMIN")
+						.hasAnyRole("OWNER", "SHOP_STAFF")
 						// Master pull: any restaurant role reads master data + their own
 						// grantedPermissions/permissionRevision (drives offline auth).
 						.requestMatchers(org.springframework.http.HttpMethod.GET, "/sync/master/pull")
-						.hasAnyRole("OWNER", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS", "KBOOK_ADMIN")
+						.hasAnyRole("OWNER", "SHOP_STAFF", "KBOOK_ADMIN")
 						// Operational sync (bills, menu, payments, profile, stock, users, categories):
 						// every restaurant role may sync. The sync services + permission layer
 						// enforce per-key grant/revoke rules for non-owner actors.
 						.requestMatchers("/sync/**")
-						.hasAnyRole("OWNER", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS")
+						.hasAnyRole("OWNER", "SHOP_STAFF")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						// Menu extraction mutates tenant-owned menu data and is an OWNER workflow.
 						.requestMatchers("/menus/**").hasRole("OWNER")

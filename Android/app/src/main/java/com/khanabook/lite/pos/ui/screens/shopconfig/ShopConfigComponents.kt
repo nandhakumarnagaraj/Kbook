@@ -28,11 +28,30 @@ import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+
+@Composable
+fun ReadOnlyConfigNotice(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(modifier = modifier) {
+        Text(
+            text = message,
+            color = TextGold,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(spacing.medium))
+    }
+}
 
 @Composable
 internal fun RestaurantPaymentFlowSelector(
     selectedMode: OrderPaymentFlowMode,
-    onModeSelected: (OrderPaymentFlowMode) -> Unit
+    onModeSelected: (OrderPaymentFlowMode) -> Unit,
+    enabled: Boolean = true
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(
@@ -64,7 +83,8 @@ internal fun RestaurantPaymentFlowSelector(
         }
         PaymentFlowToggleSwitch(
             selectedMode = selectedMode,
-            onModeSelected = onModeSelected
+            onModeSelected = onModeSelected,
+            enabled = enabled
         )
     }
 }
@@ -72,7 +92,8 @@ internal fun RestaurantPaymentFlowSelector(
 @Composable
 internal fun PaymentFlowToggleSwitch(
     selectedMode: OrderPaymentFlowMode,
-    onModeSelected: (OrderPaymentFlowMode) -> Unit
+    onModeSelected: (OrderPaymentFlowMode) -> Unit,
+    enabled: Boolean = true
 ) {
     val spacing = KhanaBookTheme.spacing
     Row(
@@ -87,7 +108,8 @@ internal fun PaymentFlowToggleSwitch(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isSelected) PrimaryGold else DarkBrown1,
                     contentColor = if (isSelected) DarkBrown1 else TextLight
-                )
+                ),
+                enabled = enabled
             ) {
                 Text(mode.displayLabel, style = MaterialTheme.typography.labelLarge)
             }

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
@@ -12,7 +12,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <section class="panel page-hero">
@@ -29,7 +29,10 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
           <h3>Business Directory</h3>
           <p class="muted">Select a row to inspect revenue and business details.</p>
         </div>
-        <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="primary-btn" (click)="openCreateModal()">+ Add Restaurant</button>
+          <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+        </div>
       </div>
 
       <app-api-state
@@ -187,6 +190,78 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         </div>
       </div>
 
+      <!-- Create Restaurant Modal -->
+      <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+        <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-business-title" (click)="$event.stopPropagation()">
+          <h3 id="create-business-title">Add New Restaurant</h3>
+          <p class="muted" style="margin-bottom: 1rem; font-size: 0.85rem;">
+            Provision a new restaurant tenant and initial owner account.
+          </p>
+
+          <div class="form-error" *ngIf="createError">{{ createError }}</div>
+
+          <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
+            <div class="form-group">
+              <label for="create-shop-name">Restaurant / Shop Name *</label>
+              <input id="create-shop-name" class="field-control" type="text" formControlName="shopName" placeholder="e.g. Sagar Ratna Cafe" />
+              <div class="field-error" *ngIf="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required')">
+                Restaurant name is required.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-owner-name">Owner Full Name *</label>
+              <input id="create-owner-name" class="field-control" type="text" formControlName="ownerName" placeholder="e.g. Ramesh Sharma" />
+              <div class="field-error" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required')">
+                Owner name is required.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-owner-phone">Owner Phone (10 digits) *</label>
+              <input id="create-owner-phone" class="field-control" type="text" formControlName="ownerPhone" placeholder="10-digit mobile number" maxlength="10" />
+              <div class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required')">
+                Phone number is required.
+              </div>
+              <div class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') && !createForm.get('ownerPhone')?.hasError('required')">
+                Must be exactly 10 digits.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-initial-pwd">Initial Password *</label>
+              <input id="create-initial-pwd" class="field-control" type="password" formControlName="initialPassword" placeholder="Minimum 6 characters" />
+              <div class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required')">
+                Initial password is required.
+              </div>
+              <div class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength')">
+                Password must be at least 6 characters.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-owner-email">Owner Email (optional)</label>
+              <input id="create-owner-email" class="field-control" type="email" formControlName="ownerEmail" placeholder="e.g. owner@example.com" />
+              <div class="field-error" *ngIf="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email')">
+                Enter a valid email address.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-address">Address / City (optional)</label>
+              <input id="create-address" class="field-control" type="text" formControlName="address" placeholder="e.g. Indiranagar, Bangalore" />
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="ghost-btn" (click)="closeCreateModal()" [disabled]="creating">Cancel</button>
+              <button type="submit" class="primary-btn" [disabled]="createForm.invalid || creating">
+                {{ creating ? 'Provisioning...' : 'Create Restaurant' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Suspend confirmation dialog -->
       <app-confirm-dialog
         *ngIf="suspendTarget()"
@@ -207,17 +282,78 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     .ghost-btn--accent {
       color: var(--kb-color-primary); border-color: var(--kb-color-primary);
     }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 15, 10, 0.6);
+      backdrop-filter: blur(4px);
+      display: grid;
+      place-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: var(--panel);
+      border-radius: var(--r-xl);
+      padding: 1.75rem;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--line);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .field-error {
+      color: var(--kb-color-error, #a6372f);
+      font-size: 0.78rem;
+    }
+    .form-error {
+      background: #fdf2f2;
+      border: 1px solid #f8d7da;
+      color: #a6372f;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--r-md);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
   `]
 })
 export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly toast = inject(ToastService);
 
   businesses: AdminBusinessListItem[] = [];
   loaded = false;
   loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
   readonly suspendTarget = signal<AdminBusinessListItem | null>(null);
-  private readonly toast = inject(ToastService);
+
+  // --- Create Restaurant State ---
+  showCreateModal = false;
+  creating = false;
+  createError = '';
+
+  createForm = this.fb.group({
+    shopName: ['', [Validators.required]],
+    ownerName: ['', [Validators.required]],
+    ownerPhone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    initialPassword: ['', [Validators.required, Validators.minLength(6)]],
+    ownerEmail: ['', [Validators.email]],
+    address: ['']
+  });
 
   searchTerm = '';
   pageSize = 10;
@@ -225,6 +361,54 @@ export class BusinessesPageComponent {
 
   constructor() {
     this.loadBusinesses();
+  }
+
+  openCreateModal(): void {
+    this.showCreateModal = true;
+    this.createError = '';
+    this.createForm.reset({
+      shopName: '',
+      ownerName: '',
+      ownerPhone: '',
+      initialPassword: '',
+      ownerEmail: '',
+      address: ''
+    });
+  }
+
+  closeCreateModal(): void {
+    if (this.creating) return;
+    this.showCreateModal = false;
+  }
+
+  submitCreate(): void {
+    if (this.createForm.invalid || this.creating) return;
+
+    this.creating = true;
+    this.createError = '';
+    const formVal = this.createForm.value;
+
+    const payload = {
+      shopName: formVal.shopName!.trim(),
+      ownerName: formVal.ownerName!.trim(),
+      ownerPhone: formVal.ownerPhone!.trim(),
+      initialPassword: formVal.initialPassword!,
+      ...(formVal.ownerEmail?.trim() ? { ownerEmail: formVal.ownerEmail.trim() } : {}),
+      ...(formVal.address?.trim() ? { address: formVal.address.trim() } : {})
+    };
+
+    this.api.createBusiness(payload).subscribe({
+      next: (created) => {
+        this.creating = false;
+        this.showCreateModal = false;
+        this.showToast(`Restaurant "${created.shopName || 'New Restaurant'}" created successfully.`, 'success');
+        this.loadBusinesses();
+      },
+      error: (err) => {
+        this.creating = false;
+        this.createError = err.error?.message || err.error?.error || 'Failed to provision restaurant. Check phone number uniqueness.';
+      }
+    });
   }
 
   get filteredBusinesses(): AdminBusinessListItem[] {

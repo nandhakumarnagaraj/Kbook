@@ -59,6 +59,7 @@ fun SettingsHomeSection(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val sectionSpacing = layout.sectionSpacing
+    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
 
     // Single-column list for settings items (v1 design decision)
     val settingsColumns = 1
@@ -105,8 +106,10 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.Tune, text = "Settings", modifier = itemMod) {
                         onSectionSelected("security")
                     }
-                    SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
-                        onSectionSelected("staff_permissions")
+                    if (isOwner) {
+                        SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
+                            onSectionSelected("staff_permissions")
+                        }
                     }
                     // TODO: re-enable for next version
                     // SettingsItem(icon = Icons.Filled.Inventory2, text = "Inventory & Insights", modifier = itemMod) {

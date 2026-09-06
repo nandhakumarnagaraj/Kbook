@@ -263,15 +263,9 @@ fun MenuConfigurationScreen(
             }
 
             val blockedPermission by viewModel.blockedPermission.collectAsStateWithLifecycle()
-            val requestInFlight by viewModel.permissionRequestInFlight.collectAsStateWithLifecycle()
-            val requestResult by viewModel.permissionRequestResult.collectAsStateWithLifecycle()
             blockedPermission?.let { blocked ->
                 com.khanabook.lite.pos.ui.designsystem.PermissionBlockedDialog(
                     permissionDisplayName = blocked.displayName,
-                    requestable = blocked.requestable,
-                    isLoading = requestInFlight,
-                    requestSent = requestResult is com.khanabook.lite.pos.domain.manager.PermissionManager.RequestResult.Success,
-                    onRequestAccess = { viewModel.requestAccessForBlocked() },
                     onDismiss = { viewModel.dismissBlockedPermission() }
                 )
             }

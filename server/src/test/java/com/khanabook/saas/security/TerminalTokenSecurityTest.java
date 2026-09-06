@@ -350,25 +350,25 @@ public class TerminalTokenSecurityTest extends BaseIntegrationTest {
     }
 
     @Test
-    void shopAdmin_cannotAccessBillSync() throws Exception {
-        // Create a SHOP_ADMIN user for this restaurant
-        Long shopAdminRid = rid;
-        String shopAdminToken = jwtUtility.generateToken("shopadmin-" + shopAdminRid, shopAdminRid, "SHOP_ADMIN");
-        // Ensure user exists with SHOP_ADMIN role
-        if (userRepository.findByLoginId("shopadmin-" + shopAdminRid).isEmpty()) {
-            persistUser("shopadmin-" + shopAdminRid, shopAdminRid, UserRole.SHOP_ADMIN);
+    void staff_canPushBillsByRoleWithoutExplicitGrant() throws Exception {
+        // Create a SHOP_STAFF user for this restaurant
+        Long staffRid = rid;
+        String staffToken = jwtUtility.generateToken("staff-" + staffRid, staffRid, "SHOP_STAFF");
+        // Ensure user exists with SHOP_STAFF role
+        if (userRepository.findByLoginId("staff-" + staffRid).isEmpty()) {
+            persistUser("staff-" + staffRid, staffRid, UserRole.SHOP_STAFF);
         }
 
-        // SHOP_ADMIN cannot access bill sync
+        // SHOP_STAFF auto-passes billing.create by role — no explicit grant row needed.
         mockMvc.perform(post("/sync/bills/push")
-                .header("Authorization", "Bearer " + shopAdminToken)
+                .header("Authorization", "Bearer " + staffToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("[]"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
 
-        // But SHOP_ADMIN CAN access terminal endpoints
+        // And SHOP_STAFF CAN access terminal endpoints
         mockMvc.perform(get("/sync/terminal/list")
-                .header("Authorization", "Bearer " + shopAdminToken))
+                .header("Authorization", "Bearer " + staffToken))
                 .andExpect(status().isOk());
     }
 

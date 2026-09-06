@@ -59,7 +59,7 @@ class StaffEditProperties {
         Long targetUserId = 42L;
 
         User existingUser = createExistingUser(targetUserId, restaurantId, "OriginalName",
-                "9876543210", UserRole.SHOP_ADMIN, "old@example.com");
+                "9876543210", UserRole.SHOP_STAFF, "old@example.com");
 
         when(userRepository.findById(targetUserId)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -187,7 +187,7 @@ class StaffEditProperties {
         Long otherRestaurantId = 99L;
 
         User userInOtherRestaurant = createExistingUser(targetUserId, otherRestaurantId, name, phone,
-                UserRole.SHOP_ADMIN, null);
+                UserRole.SHOP_STAFF, null);
         userInOtherRestaurant.setIsActive(true);
 
         when(userRepository.findById(targetUserId)).thenReturn(Optional.of(userInOtherRestaurant));
@@ -245,7 +245,7 @@ class StaffEditProperties {
 
     @Provide
     Arbitrary<String> validRoles() {
-        return Arbitraries.of("OWNER", "SHOP_ADMIN");
+        return Arbitraries.of("OWNER", "SHOP_STAFF");
     }
 
     @Provide

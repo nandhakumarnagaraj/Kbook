@@ -58,7 +58,7 @@ describe('AuthService', () => {
     it('maps each role to its landing page', () => {
       expect(service.getLandingPath('KBOOK_ADMIN')).toBe('/admin/dashboard');
       expect(service.getLandingPath('OWNER')).toBe('/business/dashboard');
-      expect(service.getLandingPath('SHOP_ADMIN')).toBe('/business/terminals');
+      expect(service.getLandingPath('SHOP_STAFF')).toBe('/limited-access');
     });
 
     it('falls back to /limited-access for unknown roles', () => {

@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Management endpoints for OWNER and SHOP_ADMIN roles to manage terminals
+ * Management endpoints for the OWNER role to manage terminals
  * and device registration requests. Secured via SecurityConfig to
  * /business/terminals/** and /business/terminal-requests/**.
  */

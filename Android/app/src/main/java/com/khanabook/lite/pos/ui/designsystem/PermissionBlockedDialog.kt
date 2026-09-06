@@ -11,18 +11,13 @@ import androidx.compose.ui.text.style.TextAlign
 import com.khanabook.lite.pos.ui.theme.*
 
 /**
- * Dialog shown when a user tries to access a feature they don't have permission for.
- * When [requestable] is true it shows a "Request Access" button that sends a permission
- * request to the owner. Role-bound restrictions (like master-data edits) are not
- * requestable — only a dismiss-only "OK" is offered.
+ * Dialog shown when a user tries to access a feature restricted to the shop owner
+ * (such as master-data edits, settings changes, or unauthorized operations).
+ * Simple, dismiss-only "OK" dialog with no request-access or remote approval loop.
  */
 @Composable
 fun PermissionBlockedDialog(
     permissionDisplayName: String,
-    requestable: Boolean = true,
-    isLoading: Boolean = false,
-    requestSent: Boolean = false,
-    onRequestAccess: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -43,7 +38,7 @@ fun PermissionBlockedDialog(
         },
         title = {
             Text(
-                text = if (requestSent) "Request Sent" else if (requestable) "Access Required" else "Access Restricted",
+                text = "Access Restricted",
                 style = MaterialTheme.typography.titleLarge,
                 color = TextLight,
                 textAlign = TextAlign.Center,
@@ -56,13 +51,7 @@ fun PermissionBlockedDialog(
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 Text(
-                    text = if (requestable)
-                        if (requestSent)
-                            "Your request for \"$permissionDisplayName\" access has been sent to the shop owner. You'll get access once approved."
-                        else
-                            "You need \"$permissionDisplayName\" permission to use this feature. Request access from your shop owner."
-                    else
-                        permissionDisplayName,
+                    text = permissionDisplayName.ifBlank { "Only the restaurant owner can perform this operation." },
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextGold,
                     textAlign = TextAlign.Center
@@ -70,43 +59,14 @@ fun PermissionBlockedDialog(
             }
         },
         confirmButton = {
-            if (requestSent) {
-                TextButton(onClick = onDismiss) {
-                    Text("OK", color = PrimaryGold)
-                }
-            } else if (requestable) {
-                Button(
-                    onClick = onRequestAccess,
-                    enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = KhanaRadii.button
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(spacing.medium),
-                            color = DarkBrown1,
-                            strokeWidth = spacing.hairline
-                        )
-                    } else {
-                        Text("Request Access", color = DarkBrown1)
-                    }
-                }
-            } else {
-                Button(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = KhanaRadii.button
-                ) {
-                    Text("OK", color = DarkBrown1)
-                }
-            }
-        },
-        dismissButton = {
-            if (requestable && !requestSent) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel", color = TextGold)
-                }
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                shape = KhanaRadii.button
+            ) {
+                Text("OK", color = DarkBrown1)
             }
         }
     )
 }
+

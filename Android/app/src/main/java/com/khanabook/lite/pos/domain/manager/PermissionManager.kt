@@ -18,6 +18,8 @@ import javax.inject.Singleton
  *
  * Design principles:
  * - OWNER always has all permissions (no DB lookup needed)
+ * - SHOP_STAFF auto-granted the core POS billing set by role (create / edit /
+ *   discount / settle); void and refund need an explicit grant
  * - Permissions are synced from server via sync pull (grantedPermissions array)
  * - Cached in memory for instant UI checks (no DB read per check)
  * - Persisted to Room (permission_cache) so the granted set + authorization
@@ -78,13 +80,15 @@ class PermissionManager @Inject constructor(
 
     /**
      * Check if the current user has a specific permission.
-     * OWNER always returns true. Other roles check the cached set.
+     * OWNER always returns true; SHOP_STAFF auto-passes the core billing set by
+     * role. Other roles check the cached set.
      *
      * Menu implication (mirrors server MenuChangeType.satisfies): holding
      * menu.edit_full satisfies menu.edit_price and menu.toggle_availability.
      */
     fun hasPermission(permissionKey: String): Boolean {
         if (sessionManager.isOwner()) return true
+        if (sessionManager.isShopStaff() && SHOP_STAFF_BILLING_KEYS.contains(permissionKey)) return true
         val granted = _grantedPermissions.value
         if (granted.contains(permissionKey)) return true
         if ((permissionKey == MENU_EDIT_PRICE || permissionKey == MENU_TOGGLE_AVAILABILITY)
@@ -257,6 +261,17 @@ class PermissionManager @Inject constructor(
     )
 
     // ── Permission key constants (mirrors server PermissionKey enum) ──────────
+
+    /**
+     * Core POS billing operations auto-granted to SHOP_STAFF by role, no explicit
+     * grant row required. Mirrors server PermissionService.SHOP_STAFF_BILLING_KEYS.
+     */
+    private val SHOP_STAFF_BILLING_KEYS = setOf(
+        BILLING_CREATE,
+        BILLING_EDIT,
+        BILLING_DISCOUNT,
+        BILLING_SETTLE
+    )
 
     companion object {
         // Billing

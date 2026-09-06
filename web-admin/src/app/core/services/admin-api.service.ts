@@ -5,7 +5,8 @@ import {
   AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary,
   FeatureFlagAdminItem, FeatureFlagAuditItem,
   AdminTransaction, AdminSettlement, AdminCommission,
-  EasebuzzSubMerchant, EasebuzzSubMerchantRequest, CommissionReport
+  EasebuzzSubMerchant, EasebuzzSubMerchantRequest, CommissionReport,
+  AdminCreateBusinessRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
@@ -21,6 +22,10 @@ export class AdminApiService {
 
   getBusinesses() {
     return this.http.get<AdminBusinessListItem[]>(`${API_BASE_URL}/admin/businesses`);
+  }
+
+  createBusiness(payload: AdminCreateBusinessRequest) {
+    return this.http.post<AdminBusinessDetail>(`${API_BASE_URL}/admin/businesses`, payload);
   }
 
   getBusinessDetail(restaurantId: number) {

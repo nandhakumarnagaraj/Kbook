@@ -174,6 +174,6 @@ class InventoryServiceIntegrationTest extends BaseIntegrationTest {
 
     private String persistStaffToken() {
         return persistUserAndGetToken(
-                "inv-staff-" + restaurant + "@test.com", restaurant, UserRole.WAITER);
+                "inv-staff-" + restaurant + "@test.com", restaurant, UserRole.SHOP_STAFF);
     }
 }

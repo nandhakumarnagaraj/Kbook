@@ -42,7 +42,7 @@ import com.khanabook.lite.pos.ui.theme.WarningYellow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
+fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit, readOnly: Boolean = false) {
     val spacing = KhanaBookTheme.spacing
     val fssaiRegex = remember { Regex("^\\d{14}$") }
     var country by remember { mutableStateOf("India") }
@@ -66,9 +66,14 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
             .padding(spacing.medium)
     ) {
         ConfigCard {
+            if (readOnly) {
+                com.khanabook.lite.pos.ui.screens.shopconfig.ReadOnlyConfigNotice(
+                    "Read-only: only the restaurant owner can edit tax settings."
+                )
+            }
             ExposedDropdownMenuBox(
                 expanded = countryExpanded,
-                onExpandedChange = { countryExpanded = it }
+                onExpandedChange = { if (!readOnly) countryExpanded = it }
             ) {
                 ParchmentTextField(
                     value = country,
@@ -100,7 +105,8 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 label = "FSSAI License *",
                 isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
                 supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Enter exactly 14 digits" else null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                enabled = !readOnly
             )
             profile?.fssaiExpiryDate?.takeIf { it.isNotBlank() }?.let { expiry ->
                 val expiryWarning = expiryWarningText(expiry)
@@ -134,7 +140,8 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 KhanaBookSwitch(
                     checked = gstEnabled,
                     onCheckedChange = { gstEnabled = it },
-                    checkedTrackColor = VegGreen
+                    checkedTrackColor = VegGreen,
+                    enabled = !readOnly
                 )
             }
             if (gstEnabled) {
@@ -145,7 +152,8 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                     },
                     label = "GSTIN *",
                     isError = gstNumber.isNotEmpty() && !isGstValid,
-                    supportingText = if (gstNumber.isNotEmpty() && !isGstValid) "Enter valid 15-character GSTIN format" else null
+                    supportingText = if (gstNumber.isNotEmpty() && !isGstValid) "Enter valid 15-character GSTIN format" else null,
+                    enabled = !readOnly
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(
@@ -154,7 +162,8 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                     label = "GST % *",
                     isError = gstPct.isNotEmpty() && !isGstPctValid,
                     supportingText = if (gstPct.isNotEmpty() && !isGstPctValid) "Enter whole number from 0 to 100" else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    enabled = !readOnly
                 )
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -171,7 +180,7 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                         )?.let { onSave(it) }
                 },
                 onBack = onBack,
-                saveEnabled = isSaveEnabled
+                saveEnabled = isSaveEnabled && !readOnly
             )
         }
     }

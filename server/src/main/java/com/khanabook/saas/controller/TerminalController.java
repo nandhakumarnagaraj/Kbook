@@ -59,7 +59,7 @@ public class TerminalController {
 	}
 
 	/**
-	 * Reclaim an existing terminal after reinstall. The OWNER or SHOP_ADMIN picks their
+	 * Reclaim an existing terminal after reinstall. The OWNER or SHOP_STAFF picks their
 	 * terminal from the list and this endpoint reassigns the terminal's deviceId.
 	 * Delegates to the central TerminalManagementService for atomic credential rotation.
 	 *
@@ -387,7 +387,7 @@ public class TerminalController {
 		// ── Case 2: Unknown physical device — always requires approval ──
 		// This applies regardless of how many terminals the restaurant has.
 		// A reinstall is NOT inferred from "only one terminal exists."
-		// Recovery must go through explicit OWNER/SHOP_ADMIN approval.
+		// Recovery must go through explicit OWNER/SHOP_STAFF approval.
 		Long userId = TenantContext.getCurrentUserId();
 		DeviceRegistrationRequest pending = terminalManagementService.createOrReuseRegistrationRequest(
 				restaurantId,

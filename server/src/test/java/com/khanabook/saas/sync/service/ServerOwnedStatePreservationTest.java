@@ -59,13 +59,13 @@ class ServerOwnedStatePreservationTest {
     @Test
     void user_role_preservedFromServer() {
         User incoming = user(true);
-        incoming.setRole(UserRole.CASHIER); // device has stale role
+        incoming.setRole(UserRole.SHOP_STAFF); // device has stale role
         User existing = user(true);
-        existing.setRole(UserRole.MANAGER); // server promoted user
+        existing.setRole(UserRole.OWNER); // server promoted user
 
         GenericSyncService.preserveServerOwnedState(incoming, existing);
 
-        assertThat(incoming.getRole()).isEqualTo(UserRole.MANAGER);
+        assertThat(incoming.getRole()).isEqualTo(UserRole.OWNER);
     }
 
     // ── B2: Restaurant suspension preservation ────────────────────────

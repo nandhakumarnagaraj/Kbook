@@ -81,7 +81,7 @@ public class BusinessAdminController {
     }
 
     @PostMapping("/bills/{billId}/void")
-    @RequireRole({UserRole.OWNER, UserRole.MANAGER})
+    @RequireRole(UserRole.OWNER)
     public ResponseEntity<BusinessOrderListItemResponse> voidBill(
             @PathVariable Long billId,
             @RequestBody(required = false) java.util.Map<String, String> body) {
@@ -153,7 +153,7 @@ public class BusinessAdminController {
     // ─── Terminal Write Endpoints ────────────────────────────────────────────────
 
     @PostMapping("/terminals/{terminalId}/reactivate")
-    @RequireRole({UserRole.OWNER, UserRole.SHOP_ADMIN})
+    @RequireRole(UserRole.OWNER)
     public ResponseEntity<Void> reactivateTerminal(@PathVariable Long terminalId) {
         businessWriteService.reactivateTerminal(requireTenant(), terminalId);
         return ResponseEntity.ok().build();

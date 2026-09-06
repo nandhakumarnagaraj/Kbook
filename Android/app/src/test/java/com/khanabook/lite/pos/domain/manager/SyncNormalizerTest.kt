@@ -41,15 +41,28 @@ class SyncNormalizerTest {
     @Test
     fun `known roles are upper-cased and preserved`() {
         assertEquals("OWNER", SyncNormalizer.normalizeUserRole("owner"))
-        assertEquals("SHOP_ADMIN", SyncNormalizer.normalizeUserRole("shop_admin"))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("shop_staff"))
         assertEquals("KBOOK_ADMIN", SyncNormalizer.normalizeUserRole("KBOOK_ADMIN"))
+    }
+
+    @Test
+    fun `legacy staff roles collapse to SHOP_STAFF`() {
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("SHOP_ADMIN"))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("waiter"))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("cashier"))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("MANAGER"))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("OPERATIONS"))
+    }
+
+    @Test
+    fun `kitchen collapses to owner matching server V12`() {
+        assertEquals("OWNER", SyncNormalizer.normalizeUserRole("KITCHEN"))
     }
 
     @Test
     fun `unknown or null role collapses to OWNER`() {
         assertEquals("OWNER", SyncNormalizer.normalizeUserRole(null))
         assertEquals("OWNER", SyncNormalizer.normalizeUserRole(""))
-        assertEquals("OWNER", SyncNormalizer.normalizeUserRole("MANAGER"))
         assertEquals("OWNER", SyncNormalizer.normalizeUserRole("staff"))
     }
 }

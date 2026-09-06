@@ -52,7 +52,8 @@ fun PaymentConfigView(
     onSave: (RestaurantProfileEntity) -> Unit,
     onBack: () -> Unit,
     onNavigateToOnboarding: () -> Unit = {},
-    onSectionSelected: (String) -> Unit = {}
+    onSectionSelected: (String) -> Unit = {},
+    readOnly: Boolean = false
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -75,9 +76,14 @@ fun PaymentConfigView(
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
+            if (readOnly) {
+                com.khanabook.lite.pos.ui.screens.shopconfig.ReadOnlyConfigNotice(
+                    "Read-only: only the restaurant owner can edit payment settings."
+                )
+            }
             ExposedDropdownMenuBox(
                 expanded = currencyExpanded,
-                onExpandedChange = { currencyExpanded = it }
+                onExpandedChange = { if (!readOnly) currencyExpanded = it }
             ) {
                 ParchmentTextField(
                     value = currency,
@@ -104,18 +110,19 @@ fun PaymentConfigView(
             }
             Spacer(modifier = Modifier.height(spacing.large))
             Text("Payment Methods", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-            PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
-            PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
-            PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
+            PaymentToggle("Cash Payment", cashEnabled, onCheckedChange = { cashEnabled = it }, enabled = !readOnly)
+            PaymentToggle("POS Machine", posEnabled, onCheckedChange = { posEnabled = it }, enabled = !readOnly)
+            PaymentToggle("Offline UPI QR", upiSupported, onCheckedChange = { upiSupported = it }, enabled = !readOnly)
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
                 ParchmentTextField(
                     value = upiHandle,
                     onValueChange = { upiHandle = it.trim() },
-                    label = "UPI ID *"
+                    label = "UPI ID *",
+                    enabled = !readOnly
                 )
             }
-            PaymentToggle("Easebuzz Online", easebuzzEnabled) { easebuzzEnabled = it }
+            PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
             if (easebuzzEnabled) {
                 Spacer(modifier = Modifier.height(spacing.small))
                 androidx.compose.material3.OutlinedButton(
@@ -168,14 +175,15 @@ fun PaymentConfigView(
                         )?.let { onSave(it) }
                 },
                 onBack = onBack,
-                isSaving = saveProfileLoading
+                isSaving = saveProfileLoading,
+                saveEnabled = !readOnly
             )
         }
     }
 }
 
 @Composable
-fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, enabled: Boolean = true) {
     Row(
         modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -185,7 +193,8 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
         KhanaBookSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            checkedTrackColor = SuccessGreen
+            checkedTrackColor = SuccessGreen,
+            enabled = enabled
         )
     }
 }

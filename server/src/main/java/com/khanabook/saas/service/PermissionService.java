@@ -7,8 +7,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -96,6 +99,7 @@ public class PermissionService {
         var user = findTenantUser(restaurantId, userId);
         if (user == null) return false;
         if (UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole()) return true;
+        if (UserRole.SHOP_STAFF == user.getRole() && SHOP_STAFF_BILLING_KEYS.contains(permissionKey)) return true;
 
         return permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .map(StaffPermission::getGranted)
@@ -111,10 +115,17 @@ public class PermissionService {
                     .collect(Collectors.toList());
         }
 
-        return permissionRepo.findByRestaurantIdAndUserIdAndGrantedTrue(restaurantId, userId)
-                .stream()
-                .map(StaffPermission::getPermissionKey)
-                .collect(Collectors.toList());
+        var granted = new ArrayList<String>(
+                permissionRepo.findByRestaurantIdAndUserIdAndGrantedTrue(restaurantId, userId)
+                        .stream()
+                        .map(StaffPermission::getPermissionKey)
+                        .collect(Collectors.toList()));
+        if (UserRole.SHOP_STAFF == user.getRole()) {
+            SHOP_STAFF_BILLING_KEYS.stream()
+                    .filter(key -> !granted.contains(key))
+                    .forEach(granted::add);
+        }
+        return granted;
     }
 
     public SyncPermissionsResponse getSyncPermissions(Long restaurantId, Long userId) {
@@ -140,6 +151,19 @@ public class PermissionService {
             PermissionKey.ORDERS_VIEW.getKey(),
             PermissionKey.ORDERS_KOT_VIEW.getKey(),
             PermissionKey.REPORTS_DAY_SUMMARY.getKey()
+    );
+
+    /**
+     * Core POS billing operations auto-granted to SHOP_STAFF by role, no explicit
+     * grant row required. Void and refund stay owner/manager-level — web void is
+     * OWNER-only via @RequireRole, and billing.void/billing.refund still need an
+     * explicit manager grant on the device.
+     */
+    public static final Set<String> SHOP_STAFF_BILLING_KEYS = Set.of(
+            PermissionKey.BILLING_CREATE.getKey(),
+            PermissionKey.BILLING_EDIT.getKey(),
+            PermissionKey.BILLING_DISCOUNT.getKey(),
+            PermissionKey.BILLING_SETTLE.getKey()
     );
 
     /**
@@ -390,9 +414,15 @@ public class PermissionService {
         var user = findTenantUser(restaurantId, userId);
         if (user == null) throw new IllegalArgumentException("User not found");
 
-        var grantedSet = permissionRepo.findByRestaurantIdAndUserIdAndGrantedTrue(restaurantId, userId).stream()
-                .map(StaffPermission::getPermissionKey)
-                .collect(Collectors.toSet());
+        var grantedSet = new HashSet<String>(
+                permissionRepo.findByRestaurantIdAndUserIdAndGrantedTrue(restaurantId, userId).stream()
+                        .map(StaffPermission::getPermissionKey)
+                        .collect(Collectors.toSet()));
+        if (UserRole.SHOP_STAFF == user.getRole()) {
+            // Role-bound billing keys are de-facto granted; surface them as granted
+            // in the permission list so web-admin does not show them as revocable.
+            grantedSet.addAll(SHOP_STAFF_BILLING_KEYS);
+        }
         var grantedAtMap = permissionRepo.findByRestaurantIdAndUserId(restaurantId, userId).stream()
                 .collect(Collectors.toMap(StaffPermission::getPermissionKey, StaffPermission::getGrantedAt, (a, b) -> a));
 

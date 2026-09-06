@@ -37,13 +37,8 @@ fun RoleAccessScreen(
     onSignOut: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val isShopAdmin = role == "SHOP_ADMIN"
-    val title = if (isShopAdmin) "Terminal administration" else "Platform administration"
-    val message = if (isShopAdmin) {
-        "Your account manages terminals and device requests in KhanaBook Web Admin. POS billing is available to restaurant owners."
-    } else {
-        "Your platform administrator account is designed for KhanaBook Web Admin and cannot run restaurant POS operations."
-    }
+    val title = "Platform administration"
+    val message = "Your platform administrator account is designed for KhanaBook Web Admin and cannot run restaurant POS operations."
 
     Box(
         modifier = Modifier

@@ -804,7 +804,7 @@ export class TerminalsPageComponent implements OnDestroy {
 
   canManageTerminals(): boolean {
     const role = this.auth.session()?.role;
-    return role === 'OWNER' || role === 'SHOP_ADMIN';
+    return role === 'OWNER';
   }
 
   confirmReactivate(terminal: BusinessTerminal): void {

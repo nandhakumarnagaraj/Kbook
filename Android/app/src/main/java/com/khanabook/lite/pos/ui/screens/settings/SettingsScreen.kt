@@ -69,6 +69,10 @@ fun SettingsScreen(
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+
+    // Configuration writes on the device are owner-only; staff read restaurant /
+    // menu / payment / tax configuration but may write printer and app settings.
+    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
     var section by rememberSaveable(initialSection) { mutableStateOf(initialSection) }
@@ -152,7 +156,7 @@ fun SettingsScreen(
         return
     }
 
-    if (section == "staff_permissions") {
+    if (section == "staff_permissions" && isOwner) {
         StaffPermissionScreen(
             onBack = { section = "menu" }
         )
@@ -215,7 +219,7 @@ fun SettingsScreen(
                         )
                     }
                     "shop" -> {
-                        ShopConfigView(profile, viewModel, authViewModel) { section = "menu" }
+                        ShopConfigView(profile, viewModel, authViewModel, onBack = { section = "menu" }, readOnly = !isOwner)
                     }
                     "payment" -> {
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
@@ -224,7 +228,8 @@ fun SettingsScreen(
                             viewModel.saveProfile(it)
                         }, onBack = { section = "menu" },
                             onNavigateToOnboarding = { navController.navigate("easebuzz_onboarding") },
-                            onSectionSelected = { section = it }
+                            onSectionSelected = { section = it },
+                            readOnly = !isOwner
                         )
                     }
                     "printer" -> {
@@ -237,7 +242,7 @@ fun SettingsScreen(
                         TaxConfigView(profile, onSave = {
                             pendingSaveSection = "tax"
                             viewModel.saveProfile(it)
-                        }, onBack = { section = "menu" })
+                        }, onBack = { section = "menu" }, readOnly = !isOwner)
                     }
                     "ui_scale" -> {
                         DisplayScaleView(viewModel = viewModel)

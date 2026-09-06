@@ -32,7 +32,7 @@ class TemplateApplyAtomicityTest extends BaseIntegrationTest {
 
     @Test
     void singlePermissionGrant_createsRevision() {
-        User user = persistUser("user-e1-" + UUID.randomUUID(), RESTAURANT, UserRole.CASHIER);
+        User user = persistUser("user-e1-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_STAFF);
         User owner = persistUser("owner-e1-" + UUID.randomUUID(), RESTAURANT, UserRole.OWNER);
 
         permissionService.grantPermission(RESTAURANT, user.getId(), "billing.settle", owner.getId());
@@ -49,7 +49,7 @@ class TemplateApplyAtomicityTest extends BaseIntegrationTest {
 
     @Test
     void multiplePermissionGrants_revisionMonotonicallyIncreases() {
-        User user = persistUser("user-e1-multi-" + UUID.randomUUID(), RESTAURANT, UserRole.CASHIER);
+        User user = persistUser("user-e1-multi-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_STAFF);
         User owner = persistUser("owner-e1-multi-" + UUID.randomUUID(), RESTAURANT, UserRole.OWNER);
 
         // Grant 3 different valid permissions
@@ -64,7 +64,7 @@ class TemplateApplyAtomicityTest extends BaseIntegrationTest {
 
     @Test
     void grantRevokeGrant_revisionNeverDecreases() {
-        User user = persistUser("user-e1-monotonic-" + UUID.randomUUID(), RESTAURANT, UserRole.CASHIER);
+        User user = persistUser("user-e1-monotonic-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_STAFF);
         User owner = persistUser("owner-e1-monotonic-" + UUID.randomUUID(), RESTAURANT, UserRole.OWNER);
 
         permissionService.grantPermission(RESTAURANT, user.getId(), "billing.settle", owner.getId());
@@ -85,7 +85,7 @@ class TemplateApplyAtomicityTest extends BaseIntegrationTest {
 
     @Test
     void redundantGrant_doesNotBumpRevision() {
-        User user = persistUser("user-e1-redundant-" + UUID.randomUUID(), RESTAURANT, UserRole.CASHIER);
+        User user = persistUser("user-e1-redundant-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_STAFF);
         User owner = persistUser("owner-e1-redundant-" + UUID.randomUUID(), RESTAURANT, UserRole.OWNER);
 
         permissionService.grantPermission(RESTAURANT, user.getId(), "billing.settle", owner.getId());

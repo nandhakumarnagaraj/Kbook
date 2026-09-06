@@ -39,7 +39,7 @@ class StaffCreationProperties {
 
     /**
      * Property 2: For any valid CreateStaffRequest (name non-empty, phone exactly 10 digits,
-     * role in {OWNER, SHOP_ADMIN}), the service SHALL create a user and return a response
+     * role in {OWNER, SHOP_STAFF}), the service SHALL create a user and return a response
      * containing a non-null temporary password and the assigned userId.
      *
      * Validates: Requirements 2.2
@@ -78,7 +78,7 @@ class StaffCreationProperties {
 
     /**
      * Property 3: For any CreateStaffRequest where role is not a valid assignable staff
-     * role {OWNER, SHOP_ADMIN, WAITER, CASHIER, MANAGER} (or is KBOOK_ADMIN), the system
+     * role {OWNER, SHOP_STAFF} (or is KBOOK_ADMIN), the system
      * SHALL reject with an exception and leave the user table unchanged.
      *
      * Note: Phone format validation (exactly 10 digits) is enforced by Jakarta @Pattern
@@ -184,7 +184,7 @@ class StaffCreationProperties {
 
     @Provide
     Arbitrary<String> validRoles() {
-        return Arbitraries.of("OWNER", "SHOP_ADMIN");
+        return Arbitraries.of("OWNER", "SHOP_STAFF");
     }
 
     @Provide
@@ -195,9 +195,8 @@ class StaffCreationProperties {
                 Arbitraries.just("admin"),
                 Arbitraries.just("user"),
                 Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(20)
-                        .filter(s -> !s.equalsIgnoreCase("OWNER") && !s.equalsIgnoreCase("SHOP_ADMIN")
-                                && !s.equalsIgnoreCase("WAITER") && !s.equalsIgnoreCase("CASHIER")
-                                && !s.equalsIgnoreCase("MANAGER"))
+                        .filter(s -> !s.equalsIgnoreCase("OWNER") && !s.equalsIgnoreCase("SHOP_STAFF")
+                                && !s.equalsIgnoreCase("KBOOK_ADMIN"))
         );
     }
 }

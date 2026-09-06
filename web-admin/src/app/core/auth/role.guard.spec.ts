@@ -79,22 +79,22 @@ describe('auth guards', () => {
     });
 
     it('allows access when the session role is in the allowed list', () => {
-      authService.session.and.returnValue({ role: 'SHOP_ADMIN' } as any);
+      authService.session.and.returnValue({ role: 'OWNER' } as any);
       const result = runInInjectionContext(injector, () =>
-        roleGuard(makeRoute(['OWNER', 'SHOP_ADMIN']), {} as any)
+        roleGuard(makeRoute(['OWNER']), {} as any)
       );
       expect(result).toBe(true);
     });
 
     it('redirects to the role landing page when the role is NOT allowed', () => {
-      authService.session.and.returnValue({ role: 'SHOP_ADMIN' } as any);
-      authService.getLandingPath.and.returnValue('/business/terminals');
+      authService.session.and.returnValue({ role: 'SHOP_STAFF' } as any);
+      authService.getLandingPath.and.returnValue('/limited-access');
       const result = runInInjectionContext(injector, () =>
         roleGuard(makeRoute(['OWNER']), {} as any)
       );
       expect(result).toBe(landingTree);
-      expect(authService.getLandingPath).toHaveBeenCalledWith('SHOP_ADMIN');
-      expect(router.parseUrl).toHaveBeenCalledWith('/business/terminals');
+      expect(authService.getLandingPath).toHaveBeenCalledWith('SHOP_STAFF');
+      expect(router.parseUrl).toHaveBeenCalledWith('/limited-access');
     });
   });
 });

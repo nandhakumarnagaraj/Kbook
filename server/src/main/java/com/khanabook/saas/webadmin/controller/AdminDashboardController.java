@@ -36,6 +36,14 @@ public class AdminDashboardController {
         return ResponseEntity.ok(adminReadService.getBusinessDetail(restaurantId));
     }
 
+    @PostMapping("/businesses")
+    @RequireRole(UserRole.KBOOK_ADMIN)
+    public ResponseEntity<AdminBusinessDetailResponse> createBusiness(
+            @jakarta.validation.Valid @RequestBody com.khanabook.saas.webadmin.dto.AdminCreateBusinessRequest request) {
+        AdminBusinessDetailResponse created = adminWriteService.createBusiness(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(created);
+    }
+
     @PostMapping("/businesses/{restaurantId}/suspend")
     @RequireRole(UserRole.KBOOK_ADMIN)
     public ResponseEntity<Void> suspendBusiness(@PathVariable Long restaurantId) {

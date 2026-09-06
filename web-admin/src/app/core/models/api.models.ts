@@ -57,6 +57,15 @@ export interface AdminBusinessDetail extends AdminBusinessListItem {
   createdAt: number | null;
 }
 
+export interface AdminCreateBusinessRequest {
+  shopName: string;
+  ownerName: string;
+  ownerPhone: string;
+  ownerEmail?: string;
+  initialPassword: string;
+  address?: string;
+}
+
 export interface BusinessOrder {
   sourceType: string;
   orderId: number;
@@ -225,7 +234,7 @@ export interface MenuExtractionItem {
   description?: string;
 }
 
-export type StaffRole = 'OWNER' | 'SHOP_ADMIN' | 'WAITER' | 'CASHIER' | 'MANAGER' | 'OPERATIONS';
+export type StaffRole = 'OWNER' | 'SHOP_STAFF';
 
 export interface CreateStaffRequest {
   name: string;

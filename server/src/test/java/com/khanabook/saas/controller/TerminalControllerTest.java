@@ -96,14 +96,14 @@ class TerminalControllerTest {
 
     @Test
     void activate_firstDeviceForNewRestaurant_onlyOwnerCanAutoCreate() {
-        TenantContext.setCurrentRole("SHOP_ADMIN"); // Not OWNER
+        TenantContext.setCurrentRole("SHOP_STAFF"); // Not OWNER
 
         when(terminalRepository.findByRestaurantIdAndDeviceId(42L, "admin-device"))
                 .thenReturn(Optional.empty());
         when(terminalRepository.findByRestaurantIdOrderByIdAsc(42L))
                 .thenReturn(List.of()); // No terminals exist
 
-        // SHOP_ADMIN cannot auto-create the first terminal — should get PENDING
+        // SHOP_STAFF cannot auto-create the first terminal — should get PENDING
         DeviceRegistrationRequest pending = new DeviceRegistrationRequest();
         pending.setId(99L);
         pending.setStatus("PENDING");

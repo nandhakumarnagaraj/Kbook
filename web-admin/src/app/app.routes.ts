@@ -87,7 +87,7 @@ export const routes: Routes = [
       {
         path: 'business/terminals',
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'SHOP_ADMIN'] },
+        data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/terminals/terminals-page.component').then(m => m.TerminalsPageComponent)
       },
       {

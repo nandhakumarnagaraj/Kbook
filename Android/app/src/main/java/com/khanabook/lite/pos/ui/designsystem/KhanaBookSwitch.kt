@@ -27,7 +27,8 @@ fun KhanaBookSwitch(
     checkedTrackColor: Color = VegGreen,
     uncheckedTrackColor: Color = Color(0xFF5C5668),
     checkedThumbColor: Color = Color.Black,
-    uncheckedThumbColor: Color = Color(0xFFD6D1DE)
+    uncheckedThumbColor: Color = Color(0xFFD6D1DE),
+    enabled: Boolean = true
 ) {
     val trackColor by animateColorAsState(
         targetValue = if (checked) checkedTrackColor else uncheckedTrackColor,
@@ -45,9 +46,9 @@ fun KhanaBookSwitch(
     Box(
         modifier = modifier
             .size(width = 44.dp, height = 26.dp)
-            .background(trackColor, CircleShape)
-            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-            .clickable { onCheckedChange(!checked) }
+            .background(if (enabled) trackColor else uncheckedTrackColor.copy(alpha = 0.4f), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = if (enabled) 0.18f else 0.06f), CircleShape)
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(KhanaBookTheme.spacing.hairline),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -55,7 +56,7 @@ fun KhanaBookSwitch(
             modifier = Modifier
                 .padding(start = thumbOffset)
                 .size(16.dp)
-                .background(thumbColor, CircleShape)
+                .background(thumbColor.copy(alpha = if (enabled) 1f else 0.4f), CircleShape)
         )
     }
 }

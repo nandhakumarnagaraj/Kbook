@@ -15,9 +15,10 @@ import java.math.RoundingMode
  */
 object SyncNormalizer {
 
-    /** Roles the server accepts; anything unknown/null collapses to OWNER. */
+    /** Roles the server accepts; legacy staff roles collapse to SHOP_STAFF. Anything unknown/null collapses to OWNER. */
     fun normalizeUserRole(role: String?): String = when (role?.uppercase()) {
-        "OWNER", "SHOP_ADMIN", "KBOOK_ADMIN", "OPERATIONS" -> role.uppercase()
+        "OWNER", "KBOOK_ADMIN", "SHOP_STAFF" -> role.uppercase()
+        "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS" -> "SHOP_STAFF"
         else -> "OWNER"
     }
 

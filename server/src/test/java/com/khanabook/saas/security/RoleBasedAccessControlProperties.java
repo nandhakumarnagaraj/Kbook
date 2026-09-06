@@ -39,8 +39,8 @@ class RoleBasedAccessControlProperties {
         DELETE_MENU_ITEM(Set.of(UserRole.OWNER)),
         TOGGLE_MENU_AVAILABILITY(Set.of(UserRole.OWNER)),
 
-        // Terminal reactivation: OWNER or SHOP_ADMIN (Requirement 1.3)
-        REACTIVATE_TERMINAL(Set.of(UserRole.OWNER, UserRole.SHOP_ADMIN)),
+        // Terminal reactivation: OWNER only (Requirement 1.3)
+        REACTIVATE_TERMINAL(Set.of(UserRole.OWNER)),
 
         // Business suspend/activate: KBOOK_ADMIN only (Requirement 1.2)
         SUSPEND_BUSINESS(Set.of(UserRole.KBOOK_ADMIN)),

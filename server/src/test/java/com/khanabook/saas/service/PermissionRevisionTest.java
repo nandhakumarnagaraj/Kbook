@@ -18,12 +18,12 @@ class PermissionRevisionTest extends BaseIntegrationTest {
     @Autowired private PermissionService permissionService;
     @Autowired private StaffPermissionRepository permissionRepo;
 
-    private static final String KEY = "billing.settle";
+    private static final String KEY = "billing.refund";
 
     private Long seedStaff(Long restaurantId) {
-        // OWNER for the restaurant, plus a staff (SHOP_ADMIN) whose permissions we mutate.
+        // OWNER for the restaurant, plus a staff (SHOP_STAFF) whose permissions we mutate.
         persistUser("owner" + System.currentTimeMillis() + "@kbook.com", restaurantId, UserRole.OWNER);
-        var staff = persistUser("staff" + System.currentTimeMillis() + "@kbook.com", restaurantId, UserRole.SHOP_ADMIN);
+        var staff = persistUser("staff" + System.currentTimeMillis() + "@kbook.com", restaurantId, UserRole.SHOP_STAFF);
         return staff.getId();
     }
 

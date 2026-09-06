@@ -179,15 +179,15 @@ class MenuItemServiceImplTest {
     }
 
     @Test
-    void shopAdmin_canChangePriceAndAvailability() {
-        // SHOP_ADMIN is a master-data writer by role — no menu.* grant needed.
+    void kbookAdmin_canChangePriceAndAvailability() {
+        // KBOOK_ADMIN is a master-data writer by role — no menu.* grant needed.
         TenantContext.setCurrentTenant(TENANT_ID);
-        TenantContext.setCurrentRole("SHOP_ADMIN");
+        TenantContext.setCurrentRole("KBOOK_ADMIN");
         TenantContext.setCurrentUserId(STAFF_USER);
         MenuItem existing = serverRow(504L, new BigDecimal("250"), true);
         MenuItem incoming = withServerId(menuItem(5L, 10L), 504L, new BigDecimal("300"), false);
 
-        assertThat(com.khanabook.saas.sync.validation.SyncPushGuard.isMasterDataWriter("SHOP_ADMIN")).isTrue();
+        assertThat(com.khanabook.saas.sync.validation.SyncPushGuard.isMasterDataWriter("KBOOK_ADMIN")).isTrue();
 
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());

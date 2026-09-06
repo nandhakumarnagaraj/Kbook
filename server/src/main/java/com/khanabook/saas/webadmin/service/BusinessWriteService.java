@@ -270,7 +270,7 @@ public class BusinessWriteService {
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("KBOOK_ADMIN")) throw e;
             throw new IllegalArgumentException(
-                    "Invalid role: " + roleStr + ". Must be OWNER, SHOP_ADMIN, WAITER, CASHIER, MANAGER, or OPERATIONS");
+                    "Invalid role: " + roleStr + ". Must be OWNER or SHOP_STAFF");
         }
     }
 

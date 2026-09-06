@@ -386,8 +386,9 @@ export class SidebarLayoutComponent implements OnInit {
         { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑' }
       ];
     }
-    if (role === 'SHOP_ADMIN') {
-      return [{ label: 'Devices', path: '/business/terminals', icon: '▣' }];
+    if (role !== 'OWNER') {
+      // SHOP_STAFF has no business web access (server /business/** is OWNER-only).
+      return [];
     }
     const items: NavLink[] = [
       { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
@@ -426,7 +427,7 @@ export class SidebarLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     const role = this.session()?.role;
-    if (role && role !== 'KBOOK_ADMIN' && role !== 'SHOP_ADMIN') {
+    if (role === 'OWNER') {
       this.http.get<any>(`${API}/business/profile`).subscribe({
         next: (p) => {
           if (p?.orderPaymentFlowMode) {

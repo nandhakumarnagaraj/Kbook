@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * JWT → MenuItemService → DB path for menu pushes.
  *
  * <h3>Master data is single-writer</h3>
- * Only the roles OWNER / SHOP_ADMIN / KBOOK_ADMIN may write the menu. Staff
+ * Only the roles OWNER / KBOOK_ADMIN may write the menu. Staff
  * terminals are offline-first bill-mints that READ the cached menu; a staff
  * push is denied per record via {@code failedReasons} inside a 200 batch (the
  * device sync loop keeps running) — even when the actor holds a {@code menu.*}
@@ -47,17 +47,17 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     private User owner;
-    private User cashier;
+    private User staff;
     private String ownerToken;
-    private String cashierToken;
+    private String staffToken;
     private Category category;
 
     @BeforeEach
     void setUp() {
         owner = persistUser("owner-" + UUID.randomUUID(), RESTAURANT, UserRole.OWNER);
-        cashier = persistUser("cashier-" + UUID.randomUUID(), RESTAURANT, UserRole.CASHIER);
+        staff = persistUser("staff-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_STAFF);
         ownerToken = jwtUtility.generateToken(owner.getLoginId(), RESTAURANT, UserRole.OWNER.name());
-        cashierToken = jwtUtility.generateToken(cashier.getLoginId(), RESTAURANT, UserRole.CASHIER.name());
+        staffToken = jwtUtility.generateToken(staff.getLoginId(), RESTAURANT, UserRole.SHOP_STAFF.name());
         category = createCategory();
     }
 
@@ -123,12 +123,12 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
 //    The pen is role-bound — denial surfaces via failedReasons, not a 403. ──
 
     @Test
-    void cashier_isBlockedByRoleBoundWriterGate() throws Exception {
+    void staff_isBlockedByRoleBoundWriterGate() throws Exception {
         MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
 
         var result = mockMvc.perform(post("/sync/menuitem/push")
                 .contentType("application/json")
-                .header("Authorization", "Bearer " + cashierToken)
+                .header("Authorization", "Bearer " + staffToken)
                 .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -136,29 +136,29 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
         JsonNode failedReasons = objectMapper.readTree(result.getResponse().getContentAsString()).get("failedReasons");
         assertThat(failedReasons).isNotNull();
         assertThat(failedReasons.has("1000")).isTrue();
-        assertThat(failedReasons.get("1000").asText()).contains("owner or an admin");
+        assertThat(failedReasons.get("1000").asText()).contains("restaurant owner");
 
         MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
         assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("250.00")); // unchanged
     }
 
     @Test
-    void cashier_withMenuEditPriceGrant_stillBlocked_staffIsNotAWriter() throws Exception {
+    void staff_withMenuEditPriceGrant_stillBlocked_staffIsNotAWriter() throws Exception {
         // menu.* grants are advisory (UI-only) now: the role is the pen.
         MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
-        permissionService.grantPermission(RESTAURANT, cashier.getId(),
+        permissionService.grantPermission(RESTAURANT, staff.getId(),
                 PermissionKey.MENU_EDIT_PRICE.getKey(), owner.getId());
 
         var result = mockMvc.perform(post("/sync/menuitem/push")
                 .contentType("application/json")
-                .header("Authorization", "Bearer " + cashierToken)
+                .header("Authorization", "Bearer " + staffToken)
                 .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
                 .andExpect(status().isOk())
                 .andReturn();
 
         JsonNode failedReasons = objectMapper.readTree(result.getResponse().getContentAsString()).get("failedReasons");
         assertThat(failedReasons.has("1000")).isTrue();
-        assertThat(failedReasons.get("1000").asText()).contains("owner or an admin");
+        assertThat(failedReasons.get("1000").asText()).contains("restaurant owner");
 
         MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
         assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("250.00")); // unchanged
@@ -167,19 +167,19 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
     // ── OWNER path: reaches the service, role-bound writer → applied ─────────
 
     @Test
-    void shopAdminToken_priceChange_isApplied() throws Exception {
-        User shopAdmin = persistUser("shop-admin-" + UUID.randomUUID(), RESTAURANT, UserRole.SHOP_ADMIN);
-        String shopAdminToken = jwtUtility.generateToken(shopAdmin.getLoginId(), RESTAURANT, UserRole.SHOP_ADMIN.name());
+    void kbookAdmin_cannotPushMenuViaDeviceSyncChannel() throws Exception {
+        // KBOOK_ADMIN is a master-data writer by role, but the device sync channel
+        // (/sync/**) is restaurant-role only: OWNER or SHOP_STAFF. Platform admins
+        // mutate menu via platform tooling, not a restaurant terminal.
+        User admin = persistUser("kbook-" + UUID.randomUUID(), RESTAURANT, UserRole.KBOOK_ADMIN);
+        String adminToken = jwtUtility.generateToken(admin.getLoginId(), RESTAURANT, UserRole.KBOOK_ADMIN.name());
         MenuItem existing = createServerMenuItem(new BigDecimal("250.00"), true);
 
         mockMvc.perform(post("/sync/menuitem/push")
                 .contentType("application/json")
-                .header("Authorization", "Bearer " + shopAdminToken)
+                .header("Authorization", "Bearer " + adminToken)
                 .content(priceChangeJson(existing, new BigDecimal("300.00"), null)))
-                .andExpect(status().isOk());
-
-        MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
-        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // applied
+                .andExpect(status().isForbidden());
     }
 
     @Test

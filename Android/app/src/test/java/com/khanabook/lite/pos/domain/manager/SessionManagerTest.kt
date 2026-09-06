@@ -112,7 +112,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `canWriteMasterData is role-bound to owner and admins only`() {
+    fun `canWriteMasterData is role-bound to owner only`() {
         val prefsField = SessionManager::class.java.getDeclaredField("prefs")
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
@@ -123,12 +123,53 @@ class SessionManagerTest {
         }
 
         assertTrue("OWNER may write master data", writeAllowedFor("OWNER"))
-        assertTrue("SHOP_ADMIN may write master data", writeAllowedFor("SHOP_ADMIN"))
-        assertTrue("KBOOK_ADMIN may write master data", writeAllowedFor("KBOOK_ADMIN"))
-        assertFalse("MANAGER may not write master data", writeAllowedFor("MANAGER"))
-        assertFalse("CASHIER may not write master data", writeAllowedFor("CASHIER"))
-        assertFalse("WAITER may not write master data", writeAllowedFor("WAITER"))
-        assertFalse("OPERATIONS may not write master data", writeAllowedFor("OPERATIONS"))
+        assertFalse("SHOP_STAFF may not write master data", writeAllowedFor("SHOP_STAFF"))
+        assertFalse("SHOP_ADMIN (legacy staff) may not write master data", writeAllowedFor("SHOP_ADMIN"))
+        assertFalse("KBOOK_ADMIN may not write master data", writeAllowedFor("KBOOK_ADMIN"))
         assertFalse("unknown role may not write master data", writeAllowedFor(null))
+    }
+
+    @Test
+    fun `canWritePrinterAndSettings is allowed for all POS roles`() {
+        val prefsField = SessionManager::class.java.getDeclaredField("prefs")
+        prefsField.isAccessible = true
+        prefsField.set(sessionManager, prefs)
+
+        fun allowedFor(role: String?): Boolean {
+            every { prefs.getString("active_user_role", null) } returns role
+            return sessionManager.canWritePrinterAndSettings()
+        }
+
+        assertTrue("OWNER may write printer/settings", allowedFor("OWNER"))
+        assertTrue("SHOP_STAFF may write printer/settings", allowedFor("SHOP_STAFF"))
+        assertTrue("SHOP_ADMIN (legacy staff) may write printer/settings", allowedFor("SHOP_ADMIN"))
+        assertTrue("MANAGER (legacy staff) may write printer/settings", allowedFor("MANAGER"))
+        assertTrue("CASHIER (legacy staff) may write printer/settings", allowedFor("CASHIER"))
+        assertTrue("WAITER (legacy staff) may write printer/settings", allowedFor("WAITER"))
+        assertTrue("OPERATIONS (legacy staff) may write printer/settings", allowedFor("OPERATIONS"))
+        assertFalse("KBOOK_ADMIN is not a POS role", allowedFor("KBOOK_ADMIN"))
+        assertFalse("unknown role may not write printer/settings", allowedFor(null))
+    }
+
+    @Test
+    fun `canUsePos is bound to owner and staff roles`() {
+        val prefsField = SessionManager::class.java.getDeclaredField("prefs")
+        prefsField.isAccessible = true
+        prefsField.set(sessionManager, prefs)
+
+        fun posAllowedFor(role: String?): Boolean {
+            every { prefs.getString("active_user_role", null) } returns role
+            return sessionManager.canUsePos()
+        }
+
+        assertTrue("OWNER may use POS", posAllowedFor("OWNER"))
+        assertTrue("SHOP_STAFF may use POS", posAllowedFor("SHOP_STAFF"))
+        assertTrue("SHOP_ADMIN (legacy staff) may use POS", posAllowedFor("SHOP_ADMIN"))
+        assertTrue("MANAGER (legacy staff) may use POS", posAllowedFor("MANAGER"))
+        assertTrue("CASHIER (legacy staff) may use POS", posAllowedFor("CASHIER"))
+        assertTrue("WAITER (legacy staff) may use POS", posAllowedFor("WAITER"))
+        assertTrue("OPERATIONS (legacy staff) may use POS", posAllowedFor("OPERATIONS"))
+        assertFalse("KBOOK_ADMIN may not use POS", posAllowedFor("KBOOK_ADMIN"))
+        assertFalse("unknown role may not use POS", posAllowedFor(null))
     }
 }

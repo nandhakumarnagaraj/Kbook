@@ -86,7 +86,8 @@ fun ShopConfigView(
     viewModel: SettingsViewModel,
     authViewModel: AuthViewModel,
     appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel(),
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    readOnly: Boolean = false
 ) {
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
@@ -282,6 +283,11 @@ fun ShopConfigView(
         ConfigCard {
             Text("Shop Profile", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(spacing.medium))
+            if (readOnly) {
+                com.khanabook.lite.pos.ui.screens.shopconfig.ReadOnlyConfigNotice(
+                    "Read-only: only the restaurant owner can edit the shop configuration."
+                )
+            }
 
             val logoContent = @Composable {
                 Box(
@@ -327,7 +333,7 @@ fun ShopConfigView(
                     onClick = { logoLauncher.launch("image/*") },
                     border = BorderStroke(1.dp, PrimaryGold),
                     shape = KhanaRadii.xl,
-                    enabled = !logoUploadLoading
+                    enabled = !logoUploadLoading && !readOnly
                 ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = PrimaryGold) }
             }
 
@@ -338,9 +344,9 @@ fun ShopConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
-            ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name")
+            ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name", enabled = !readOnly)
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address")
+            ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address", enabled = !readOnly)
             val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
             val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
 
@@ -363,6 +369,7 @@ fun ShopConfigView(
                     }
                 },
                 label = "Whatsapp Number",
+                enabled = !readOnly,
                 isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
                 supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
                 trailingIcon = {
@@ -381,7 +388,7 @@ fun ShopConfigView(
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = KhanaRadii.xl,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                            enabled = isPhoneValid && !isUserChecking && userExistsError == null
+                            enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
                         ) {
                             Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
                         }
@@ -403,6 +410,7 @@ fun ShopConfigView(
                         }
                     },
                     label = "Enter 6-digit OTP",
+                    enabled = !readOnly,
                     isError = (otpValue.length == 6 && !isOtpVerified) || !otpFieldErrors["otp"].isNullOrBlank(),
                     supportingText = otpFieldErrors["otp"] ?: if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
                     trailingIcon = {
@@ -425,16 +433,18 @@ fun ShopConfigView(
                 value = email,
                 onValueChange = { if (!isGoogleAuth) email = it },
                 label = if (isGoogleAuth) "Email (Google account)" else "Email",
-                enabled = !isGoogleAuth
+                enabled = !isGoogleAuth && !readOnly
             )
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
+            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link", enabled = !readOnly)
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
+            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly)
             Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
+                enabled = !readOnly,
                 onModeSelected = { mode ->
+                    if (readOnly) return@RestaurantPaymentFlowSelector
                     if (mode == selectedPaymentFlowMode) return@RestaurantPaymentFlowSelector
                     pendingPaymentFlowMode = mode
                     if (isPinEnabled) {
@@ -474,7 +484,8 @@ fun ShopConfigView(
                         }
                 },
                 onBack = onBack,
-                isSaving = saveProfileLoading
+                isSaving = saveProfileLoading,
+                saveEnabled = !readOnly
             )
         }
     }

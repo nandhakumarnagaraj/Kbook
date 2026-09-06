@@ -37,7 +37,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 		List<Long> failedLocalIds = new ArrayList<>();
 		Map<Long, String> failedReasons = new HashMap<>();
 
-		// Master data is single-writer: only OWNER / SHOP_ADMIN / KBOOK_ADMIN may
+		// Master data is single-writer: only OWNER / KBOOK_ADMIN may
 		// write the menu. Staff terminals are bill-mints that read the cached menu;
 		// a staff push is rejected per record (failedReasons in a 200 batch) so the
 		// device sync loop keeps running instead of hard-failing on a 403.

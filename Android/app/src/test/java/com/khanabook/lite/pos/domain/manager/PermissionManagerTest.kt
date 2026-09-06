@@ -53,6 +53,33 @@ class PermissionManagerTest {
     }
 
     @Test
+    fun `shop staff auto-grants the core billing set by role`() {
+        every { session.isOwner() } returns false
+        every { session.isShopStaff() } returns true
+
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_CREATE))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_EDIT))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_DISCOUNT))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_SETTLE))
+        assertTrue(manager.hasAllPermissions(PermissionManager.BILLING_CREATE, PermissionManager.BILLING_SETTLE))
+
+        assertFalse(manager.hasPermission(PermissionManager.BILLING_VOID))
+        assertFalse(manager.hasPermission(PermissionManager.BILLING_REFUND))
+        assertFalse(manager.hasPermission(PermissionManager.MENU_EDIT_FULL))
+    }
+
+    @Test
+    fun `shop staff explicit grants expand beyond the billing auto-set`() {
+        every { session.isOwner() } returns false
+        every { session.isShopStaff() } returns true
+        manager.updateFromSync(listOf(PermissionManager.BILLING_VOID, PermissionManager.MENU_VIEW))
+
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
+        assertTrue(manager.hasPermission(PermissionManager.MENU_VIEW))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_CREATE))
+    }
+
+    @Test
     fun `hasAllPermissions requires every key for non-owner`() {
         every { session.isOwner() } returns false
         manager.updateFromSync(listOf(PermissionManager.BILLING_CREATE, PermissionManager.BILLING_SETTLE))

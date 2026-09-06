@@ -68,15 +68,15 @@ class MenuViewModel @Inject constructor(
         // Master data is role-bound — requesting a menu.* grant cannot unlock it.
         _blockedPermission.value = BlockedPermission(
             key = "master_data_write",
-            displayName = "Only the restaurant owner or an admin may edit the menu.",
+            displayName = "Only the restaurant owner may edit the menu.",
             requestable = false
         )
     }
 
     /**
-     * Master data is single-writer: only the owner or an admin
-     * (OWNER / SHOP_ADMIN / KBOOK_ADMIN) may edit the menu. Fine-grained menu.*
-     * grants are advisory (UI/legacy) and never let staff write master data.
+     * Master data is single-writer on the device: only the restaurant owner
+     * (OWNER) may edit the menu. Fine-grained menu.* grants are advisory
+     * (UI/legacy) and never let staff write master data.
      */
     fun canWriteMasterData(): Boolean = sessionManager.canWriteMasterData()
 

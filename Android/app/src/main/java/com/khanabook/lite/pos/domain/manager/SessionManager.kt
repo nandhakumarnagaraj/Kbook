@@ -18,6 +18,13 @@ private const val PREFS_NAME = "session_prefs"
 private const val SECURE_PREFS_NAME = "secure_session_prefs"
 private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
 
+/**
+ * Restaurant staff roles the app treats as SHOP_STAFF. Legacy role names are
+ * accepted for a device that has not yet received the collapsed role via sync,
+ * so a waiter/cashier/manager is never locked out mid-migration.
+ */
+private val STAFF_ROLES = setOf("SHOP_STAFF", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS")
+
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
@@ -266,23 +273,29 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun isOwner(): Boolean = getActiveUserRole() == "OWNER"
-    fun isShopAdmin(): Boolean = getActiveUserRole() == "SHOP_ADMIN"
     fun isKbookAdmin(): Boolean = getActiveUserRole() == "KBOOK_ADMIN"
-    fun canUsePos(): Boolean = isOwner() || isManager() || isCashier() || isWaiter() || isOperations()
+    fun isShopStaff(): Boolean = getActiveUserRole() in STAFF_ROLES
+    fun canUsePos(): Boolean = isOwner() || isShopStaff()
 
     /**
-     * Master data is single-writer: only the restaurant owner account and admin
-     * roles (OWNER / SHOP_ADMIN / KBOOK_ADMIN) may edit the menu, prices and
-     * availability. Staff terminals are offline-first bill-mints that read the
-     * cached menu — mirrors SyncPushGuard.isMasterDataWriter on the server.
+     * Master data is single-writer on the device: only the restaurant owner
+     * account may edit the menu, prices, availability and configuration.
+     * Staff terminals are offline-first bill-mints that read the cached menu.
+     * (The server's SyncPushGuard is intentionally broader — OWNER / KBOOK_ADMIN —
+     * so a promotion in Web Admin never gets blocked by the app.)
      */
-    fun canWriteMasterData(): Boolean = isOwner() || isShopAdmin() || isKbookAdmin()
+    fun canWriteMasterData(): Boolean = isOwner()
 
-    fun isManager(): Boolean = getActiveUserRole() == "MANAGER"
-    fun isCashier(): Boolean = getActiveUserRole() == "CASHIER"
-    fun isWaiter(): Boolean = getActiveUserRole() == "WAITER"
-    fun isOperations(): Boolean = getActiveUserRole() == "OPERATIONS"
-    fun isStaffRole(): Boolean = isManager() || isCashier() || isWaiter() || isOperations()
+    fun isStaffRole(): Boolean = isShopStaff()
+
+    /**
+     * Configuration and settings write rights on the device:
+     * - The owner writes everything (restaurant, menu, payment/Easebuzz, tax).
+     * - Staff read restaurant/menu/payment/tax configuration but may write
+     *   printer configuration and app settings (PIN, display, preferences).
+     */
+    fun canWriteConfig(): Boolean = isOwner()
+    fun canWritePrinterAndSettings(): Boolean = canUsePos()
 
     fun saveActiveUserRole(role: String) {
         val editor = prefs.edit()

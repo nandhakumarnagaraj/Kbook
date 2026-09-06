@@ -74,14 +74,12 @@ export class LimitedAccessPageComponent {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') return 'Platform Administrator';
     if (role === 'OWNER') return 'Restaurant Owner';
-    if (role === 'SHOP_ADMIN') return 'Terminal Administrator';
+    if (role === 'SHOP_STAFF') return 'Sales Staff';
     return 'Limited-access user';
   }
 
   get guidance(): string {
-    return this.session()?.role === 'SHOP_ADMIN'
-      ? 'Use the Devices area to manage terminals and device requests.'
-      : 'Ask your KhanaBook administrator to confirm your account role and business access.';
+    return 'Ask your KhanaBook administrator to confirm your account role and business access.';
   }
 
   signOut(): void { this.authService.logout(); }
