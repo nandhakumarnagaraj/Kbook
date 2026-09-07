@@ -22,6 +22,7 @@ import com.khanabook.lite.pos.ui.screens.settings.SettingsScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils
+import com.khanabook.lite.pos.ui.navigation.NavigationTabs
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -70,7 +71,12 @@ fun MainScreen(
 
     var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
-        mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
+            .let { idx ->
+                if (idx != -1) idx
+                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: 0
+                else 0
+            }
+        mutableIntStateOf(initialVisibleIndex) 
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))

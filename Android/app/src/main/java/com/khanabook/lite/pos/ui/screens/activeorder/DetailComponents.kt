@@ -101,7 +101,7 @@ internal fun ActiveOrderSummaryCard(detail: BillWithItems) {
                 )
             }
             Text(
-                text = "Created ${DateUtils.formatDisplayDate(bill.createdAt)} - Updated ${DateUtils.formatDisplayDate(bill.updatedAt)}",
+                text = "Created ${DateUtils.formatDisplay(bill.createdAt)} - Updated ${DateUtils.formatDisplay(bill.updatedAt)}",
                 color = TextGold.copy(alpha = 0.65f),
                 style = MaterialTheme.typography.labelSmall
             )

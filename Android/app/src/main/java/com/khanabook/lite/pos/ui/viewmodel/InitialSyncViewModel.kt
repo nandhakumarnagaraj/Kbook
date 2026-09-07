@@ -20,10 +20,15 @@ sealed class InitialSyncState {
     object Syncing : InitialSyncState()
     data class Success(val hasExistingMenu: Boolean = false) : InitialSyncState()
     object SessionExpired : InitialSyncState()
+    data class ChooseTerminal(
+        val terminals: List<com.khanabook.lite.pos.data.remote.api.TerminalListItem>,
+        val pendingRequestId: Long? = null
+    ) : InitialSyncState()
     data class PendingApproval(
         val requestId: Long?,
         val challengeCode: String? = null,
-        val challengeExpiresAt: Long? = null
+        val challengeExpiresAt: Long? = null,
+        val reclaimableTerminals: List<com.khanabook.lite.pos.data.remote.api.TerminalListItem> = emptyList()
     ) : InitialSyncState()
     data class Error(val message: String) : InitialSyncState()
 }
@@ -70,6 +75,7 @@ class InitialSyncViewModel @Inject constructor(
                             challengeCode = error.challengeCode,
                             challengeExpiresAt = error.challengeExpiresAt
                         )
+                        checkReclaimableTerminals(error.requestId)
                     } else if (error is HttpException && error.code() == 401) {
                         sessionManager.invalidateAuthSession()
                         _syncState.value = InitialSyncState.SessionExpired
@@ -213,5 +219,79 @@ class InitialSyncViewModel @Inject constructor(
                 "Failed to complete terminal activation. Please try again."
             )
         }
+    }
+
+    /**
+     * Reclaims an existing terminal series (e.g. "A") on this replacement device.
+     */
+    fun reclaimTerminal(terminalSeries: String) {
+        viewModelScope.launch {
+            _syncState.value = InitialSyncState.Syncing
+            try {
+                val deviceId = sessionManager.getDeviceId()
+                val response = api.reclaimTerminal(
+                    com.khanabook.lite.pos.data.remote.api.TerminalReclaimRequest(
+                        terminalSeries = terminalSeries,
+                        deviceId = deviceId
+                    )
+                )
+                if (response.terminalToken != null) {
+                    val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
+                        ?: response.terminalSeries
+                    sessionManager.saveTerminalIdentity(
+                        com.khanabook.lite.pos.domain.model.TerminalIdentity(
+                            restaurantId = sessionManager.getRestaurantId(),
+                            terminalId = terminalId,
+                            deviceId = deviceId,
+                            terminalName = response.terminalName,
+                            terminalSeries = response.terminalSeries,
+                            isActive = response.isActive ?: true,
+                            registeredAt = response.registeredAt,
+                            lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
+                            terminalToken = response.terminalToken
+                        )
+                    )
+                    Log.i("InitialSyncViewModel", "Terminal successfully reclaimed: series=${response.terminalSeries}")
+                    startInitialSync()
+                } else {
+                    _syncState.value = InitialSyncState.Error("Reclaim failed: no token returned.")
+                }
+            } catch (e: Exception) {
+                Log.e("InitialSyncViewModel", "Reclaim terminal failed", e)
+                _syncState.value = InitialSyncState.Error(
+                    UserMessageSanitizer.sanitize(e, "Failed to reclaim counter. Please try again.")
+                )
+            }
+        }
+    }
+
+    /**
+     * Checks if there are reclaimable terminals and triggers ChooseTerminal state.
+     */
+    fun checkReclaimableTerminals(pendingRequestId: Long? = null) {
+        viewModelScope.launch {
+            try {
+                val terminals = api.listTerminals().filter { it.isActive != false }
+                if (terminals.isNotEmpty()) {
+                    _syncState.value = InitialSyncState.ChooseTerminal(
+                        terminals = terminals,
+                        pendingRequestId = pendingRequestId
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("InitialSyncViewModel", "Failed to list reclaimable terminals", e)
+            }
+        }
+    }
+
+    /**
+     * User chooses to continue as a brand new device instead of reclaiming.
+     */
+    fun continueAsNewDevice(pendingRequestId: Long?, challengeCode: String? = null, challengeExpiresAt: Long? = null) {
+        _syncState.value = InitialSyncState.PendingApproval(
+            requestId = pendingRequestId,
+            challengeCode = challengeCode,
+            challengeExpiresAt = challengeExpiresAt
+        )
     }
 }

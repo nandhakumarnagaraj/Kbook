@@ -61,6 +61,13 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     private val _ifscBankInfo = MutableStateFlow<IfscBankInfo?>(null)
     val ifscBankInfo: StateFlow<IfscBankInfo?> = _ifscBankInfo.asStateFlow()
 
+    // FSSAI auto-fetch result
+    private val _fssaiInfo = MutableStateFlow<com.khanabook.lite.pos.data.remote.dto.FssaiLookupResponse?>(null)
+    val fssaiInfo: StateFlow<com.khanabook.lite.pos.data.remote.dto.FssaiLookupResponse?> = _fssaiInfo.asStateFlow()
+
+    private val _isLookingUpFssai = MutableStateFlow(false)
+    val isLookingUpFssai: StateFlow<Boolean> = _isLookingUpFssai.asStateFlow()
+
     // Retained form data across steps
     var businessName = ""
     var legalEntityName = ""
@@ -122,6 +129,33 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 _ifscBankInfo.value = null
             }
         }
+    }
+
+    fun lookupFssai(fssaiNo: String) {
+        val clean = fssaiNo.trim()
+        if (clean.length != 14 || !clean.all { it.isDigit() }) {
+            _fssaiInfo.value = null
+            return
+        }
+        viewModelScope.launch {
+            _isLookingUpFssai.value = true
+            repository.lookupFssai(clean)
+                .onSuccess { info ->
+                    if (info.valid) {
+                        _fssaiInfo.value = info
+                    } else {
+                        _fssaiInfo.value = null
+                    }
+                }
+                .onFailure {
+                    _fssaiInfo.value = null
+                }
+            _isLookingUpFssai.value = false
+        }
+    }
+
+    fun clearFssaiInfo() {
+        _fssaiInfo.value = null
     }
 
     companion object {
@@ -282,10 +316,10 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         startOnboarding()
     }
 
-    fun uploadKycDocument(docType: String, file: java.io.File) {
+    fun uploadKycDocument(docType: String, file: java.io.File, proofType: String? = null) {
         viewModelScope.launch {
             _isSubmitting.value = true
-            repository.uploadKycDocument(docType, file)
+            repository.uploadKycDocument(docType, file, proofType)
                 .onSuccess {
                     _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))
                     loadStatus()

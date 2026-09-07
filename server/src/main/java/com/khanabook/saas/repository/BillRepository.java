@@ -112,6 +112,8 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     Optional<Bill> findByRestaurantIdAndPublicToken(Long restaurantId, java.util.UUID publicToken);
 
+    Optional<Bill> findByPublicToken(java.util.UUID publicToken);
+
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
             Long restaurantId, String deviceId, Long localId);
 

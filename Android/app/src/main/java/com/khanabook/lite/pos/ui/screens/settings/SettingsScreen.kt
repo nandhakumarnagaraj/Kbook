@@ -51,7 +51,6 @@ import com.khanabook.lite.pos.ui.screens.SettingsHomeSection
 import com.khanabook.lite.pos.ui.screens.SettingsListView
 import com.khanabook.lite.pos.ui.screens.ShopConfigView
 import com.khanabook.lite.pos.ui.screens.InventoryScreen
-import com.khanabook.lite.pos.ui.screens.StaffPermissionScreen
 import com.khanabook.lite.pos.ui.screens.TaxConfigView
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -156,13 +155,6 @@ fun SettingsScreen(
         return
     }
 
-    if (section == "staff_permissions" && isOwner) {
-        StaffPermissionScreen(
-            onBack = { section = "menu" }
-        )
-        return
-    }
-
     if (section == "inventory") {
         InventoryScreen(
             onBack = { section = "menu" }
@@ -251,7 +243,13 @@ fun SettingsScreen(
                         InteractionFeedbackView()
                     }
                     "security" -> {
-                        SettingsListView(onSelectItem = { section = it })
+                        SettingsListView(onSelectItem = { selectedItem ->
+                            if (selectedItem == "notifications") {
+                                navController.navigate("notifications")
+                            } else {
+                                section = selectedItem
+                            }
+                        })
                     }
                     "app_lock" -> {
                         AppLockView()

@@ -254,6 +254,11 @@ public class AssetStorageService {
 
 	@Transactional
 	public AssetUploadResult uploadKycDocument(Long restaurantId, String docType, MultipartFile file) {
+		return uploadKycDocument(restaurantId, docType, null, file);
+	}
+
+	@Transactional
+	public AssetUploadResult uploadKycDocument(Long restaurantId, String docType, String proofType, MultipartFile file) {
 		validateKycFile(file);
 		if (!isKnownKycDocType(docType)) {
 			throw new IllegalArgumentException("Unknown KYC document type: " + docType);
@@ -295,8 +300,20 @@ public class AssetStorageService {
 			switch (docType) {
 				case "id_proof":         sm.setIdProofKey(storageKey);        sm.setIdProofUrl(null); break;
 				case "bank_proof":       sm.setBankProofKey(storageKey);      sm.setBankProofUrl(null); break;
-				case "business_proof_1": sm.setBusinessProof1Key(storageKey); sm.setBusinessProof1Url(null); break;
-				case "business_proof_2": sm.setBusinessProof2Key(storageKey); sm.setBusinessProof2Url(null); break;
+				case "business_proof_1":
+					sm.setBusinessProof1Key(storageKey);
+					sm.setBusinessProof1Url(null);
+					if (proofType != null && !proofType.isBlank()) {
+						sm.setBusinessProof1Type(proofType.trim().toUpperCase());
+					}
+					break;
+				case "business_proof_2":
+					sm.setBusinessProof2Key(storageKey);
+					sm.setBusinessProof2Url(null);
+					if (proofType != null && !proofType.isBlank()) {
+						sm.setBusinessProof2Type(proofType.trim().toUpperCase());
+					}
+					break;
 			}
 			sm.setUpdatedAt(System.currentTimeMillis());
 			subMerchantRepo.save(sm);
@@ -305,7 +322,7 @@ public class AssetStorageService {
 				deletePrivateQuietly(previousKey);
 			}
 
-			log.info("Stored KYC document {} for restaurant {} key={}", docType, restaurantId, storageKey);
+			log.info("Stored KYC document {} (proofType={}) for restaurant {} key={}", docType, proofType, restaurantId, storageKey);
 			// Return the relative storage key (NOT a public URL) to callers.
 			return new AssetUploadResult(storageKey, 1);
 		} catch (IOException e) {

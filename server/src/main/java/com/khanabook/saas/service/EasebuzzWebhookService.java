@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -62,13 +63,13 @@ public class EasebuzzWebhookService {
         String udf1 = payload.get("udf1");
 
         log.info("Payment webhook received txnid={} status={}", txnid, status);
-        if ("success".equalsIgnoreCase(status) && udf1 != null) {
+        if ("success".equalsIgnoreCase(status)) {
             if ("fssai_renewal".equalsIgnoreCase(udf1)) {
                 handleFssaiRenewalSuccess(payload);
             } else {
                 try {
-                    Long billId = Long.parseLong(udf1);
-                    billRepo.findById(billId).ifPresent(bill -> {
+                    resolveBillFromPayload(payload).ifPresent(bill -> {
+                        Long billId = bill.getId();
                         // Idempotency guard: skip if already marked paid
                         if ("paid".equals(bill.getPaymentStatus())) {
                             log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
@@ -105,50 +106,59 @@ public class EasebuzzWebhookService {
                             log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
                         }
                     });
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid billId in webhook udf1: {}", udf1);
                 } catch (Exception e) {
                     log.error("Failed to process payment webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
                     webhookRetryService.enqueue("PAYMENT", payload.toString());
                 }
             }
-        } else if ("auto refunded".equalsIgnoreCase(status) && udf1 != null) {
+        } else if ("auto refunded".equalsIgnoreCase(status)) {
             // Handle auto-refunded: customer was debited but transaction failed, funds auto-returned
-            try {
-                Long billId = Long.parseLong(udf1);
-                billRepo.findById(billId).ifPresent(bill -> {
-                    if ("paid".equals(bill.getPaymentStatus())) {
-                        log.warn("Bill {} was paid but received auto-refunded webhook txnid={} — possible reversal", billId, txnid);
-                        return;
-                    }
-                    bill.setGatewayStatus("auto_refunded");
-                    bill.setPaymentStatus("failed");
-                    billRepo.save(bill);
-                    log.info("Bill {} marked as auto-refunded via webhook txnid={}", billId, txnid);
-                });
-            } catch (NumberFormatException e) {
-                log.warn("Invalid billId in auto-refunded webhook udf1: {}", udf1);
-            }
+            resolveBillFromPayload(payload).ifPresent(bill -> {
+                Long billId = bill.getId();
+                if ("paid".equals(bill.getPaymentStatus())) {
+                    log.warn("Bill {} was paid but received auto-refunded webhook txnid={} — possible reversal", billId, txnid);
+                    return;
+                }
+                bill.setGatewayStatus("auto_refunded");
+                bill.setPaymentStatus("failed");
+                billRepo.save(bill);
+                log.info("Bill {} marked as auto-refunded via webhook txnid={}", billId, txnid);
+            });
         } else if ("failure".equalsIgnoreCase(status) || "dropped".equalsIgnoreCase(status)
                 || "bounced".equalsIgnoreCase(status) || "userCancelled".equalsIgnoreCase(status)) {
-            if (udf1 != null && !"fssai_renewal".equalsIgnoreCase(udf1)) {
-                try {
-                    Long billId = Long.parseLong(udf1);
-                    billRepo.findById(billId).ifPresent(bill -> {
-                        if ("paid".equals(bill.getPaymentStatus())) {
-                            log.info("Bill {} already paid, ignoring failure webhook txnid={} status={}", billId, txnid, status);
-                            return;
-                        }
-                        bill.setGatewayStatus(status.toLowerCase());
-                        billRepo.save(bill);
-                        log.info("Bill {} gateway status updated to {} via webhook txnid={}", billId, status, txnid);
-                    });
-                } catch (NumberFormatException e) {
-                    log.warn("Invalid billId in webhook udf1: {}", udf1);
-                }
+            if (!"fssai_renewal".equalsIgnoreCase(udf1)) {
+                resolveBillFromPayload(payload).ifPresent(bill -> {
+                    Long billId = bill.getId();
+                    if ("paid".equals(bill.getPaymentStatus())) {
+                        log.info("Bill {} already paid, ignoring failure webhook txnid={} status={}", billId, txnid, status);
+                        return;
+                    }
+                    bill.setGatewayStatus(status.toLowerCase());
+                    billRepo.save(bill);
+                    log.info("Bill {} gateway status updated to {} via webhook txnid={}", billId, status, txnid);
+                });
             }
         }
         return Map.of("status", "received");
+    }
+
+    private Optional<Bill> resolveBillFromPayload(Map<String, String> payload) {
+        String txnid = payload.get("txnid");
+        String udf1 = payload.get("udf1");
+        
+        if (udf1 != null && !udf1.isBlank()) {
+            try {
+                return billRepo.findById(Long.parseLong(udf1));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid billId in udf1: {}", udf1);
+            }
+        }
+        
+        if (txnid != null && !txnid.isBlank()) {
+            return billRepo.findByGatewayTxnId(txnid);
+        }
+        
+        return Optional.empty();
     }
 
     private void handleFssaiRenewalSuccess(Map<String, String> payload) {

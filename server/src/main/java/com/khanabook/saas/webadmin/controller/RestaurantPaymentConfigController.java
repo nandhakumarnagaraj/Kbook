@@ -76,6 +76,12 @@ public class RestaurantPaymentConfigController {
             result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
             result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
             result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
+            result.put("businessProof1Type", sm.getBusinessProof1Type());
+            result.put("businessProof2Type", sm.getBusinessProof2Type());
+            result.put("businessAddress",    sm.getBusinessAddress());
+            result.put("legalEntityName",    sm.getLegalEntityName());
+            result.put("tradeName",          sm.getBusinessName());
+            result.put("fssaiNumber",        sm.getFssaiNumber());
             // KYC documents are private PII: never return public /cdn/ URLs. Report
             // presence + the authenticated download path only. A document is present
             // if it has a private storage key (post-remediation) OR a legacy URL
@@ -96,6 +102,12 @@ public class RestaurantPaymentConfigController {
             fallback.put("kycSubmissionDate",  null);
             fallback.put("kycUrl",            "");
             fallback.put("activationDate",     null);
+            fallback.put("businessProof1Type", null);
+            fallback.put("businessProof2Type", null);
+            fallback.put("businessAddress",    null);
+            fallback.put("legalEntityName",    null);
+            fallback.put("tradeName",          null);
+            fallback.put("fssaiNumber",        null);
             putKycDoc(fallback, "idProof",        null, null, "id_proof");
             putKycDoc(fallback, "bankProof",      null, null, "bank_proof");
             putKycDoc(fallback, "businessProof1", null, null, "business_proof_1");

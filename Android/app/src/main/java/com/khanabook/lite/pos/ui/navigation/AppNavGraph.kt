@@ -33,7 +33,7 @@ internal fun AppNavGraph(
     sessionManager: SessionManager,
     context: android.app.Activity,
     authenticatedStartDestination: () -> String,
-    startDestination: String = "branded_start"
+    startDestination: String = "login"
 ) {
     NavHost(
         navController = navController,
@@ -201,11 +201,12 @@ internal fun AppNavGraph(
                     navController.navigate("active_order_detail/$draftBillId")
                 },
                 onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
-                onOpenSyncCenter = { navController.navigate("main/3?section=sync_center") },
-                onOpenPrinterSettings = { navController.navigate("main/3?section=printer") },
+                onOpenSyncCenter = { navController.navigate("main/${NavigationTabs.TAB_PROFILE}?section=sync_center") },
+                onOpenPrinterSettings = { navController.navigate("main/${NavigationTabs.TAB_PROFILE}?section=printer") },
                 onSearchBill = { navController.navigate("search_bill") },
                 onReprintKds = { navController.navigate("reprint_kds") },
                 onCallCustomer = { navController.navigate("call_customer") },
+                onOpenNotifications = { navController.navigate("notifications") },
                 menuViewModel = menuViewModel,
                 onScanClick = { categoryName ->
                     navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", categoryName)
@@ -354,7 +355,14 @@ internal fun AppNavGraph(
         }
         composable("easebuzz_onboarding") {
             com.khanabook.lite.pos.ui.screens.EasebuzzOnboardingScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onOpenComplianceDocs = { navController.navigate("compliance_documents") }
+            )
+        }
+        composable("compliance_documents") {
+            com.khanabook.lite.pos.ui.screens.ComplianceDocumentsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenAgreement = { navController.navigate("merchant_agreement") }
             )
         }
         composable("merchant_agreement") {

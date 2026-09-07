@@ -106,11 +106,6 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.Tune, text = "Settings", modifier = itemMod) {
                         onSectionSelected("security")
                     }
-                    if (isOwner) {
-                        SettingsItem(icon = Icons.Filled.People, text = "Staff Permissions", modifier = itemMod) {
-                            onSectionSelected("staff_permissions")
-                        }
-                    }
                     // TODO: re-enable for next version
                     // SettingsItem(icon = Icons.Filled.Inventory2, text = "Inventory & Insights", modifier = itemMod) {
                     //     onSectionSelected("inventory")
@@ -119,13 +114,7 @@ fun SettingsHomeSection(
             }
 
             // Section 3: Logout
-            KhanaBookCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = KhanaRadii.lg
-            ) {
-                LogoutSection(logoutViewModel)
-            }
+            LogoutSection(logoutViewModel)
         }
     }
 }

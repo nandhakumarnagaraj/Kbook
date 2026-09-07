@@ -127,6 +127,18 @@ class KitchenPrintQueueManager @Inject constructor(
         queueRepository.deleteByBillId(billId)
     }
 
+    suspend fun flushAllPending() {
+        val kitchen = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
+        if (kitchen?.enabled == true && kitchen.isConnectionConfigured()) {
+            flushPendingForPrinter(kitchen.connectionTargetKey())
+        } else {
+            val mac = printerManager.connectedDeviceMac.value
+            if (!mac.isNullOrBlank()) {
+                flushPendingForPrinter(mac)
+            }
+        }
+    }
+
     suspend fun flushPendingForPrinter(printerMac: String) = flushMutex.withLock {
         if (printerMac.isBlank()) return
 

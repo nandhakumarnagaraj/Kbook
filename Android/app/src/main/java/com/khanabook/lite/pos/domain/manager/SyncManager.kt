@@ -14,6 +14,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,6 +37,13 @@ class SyncManager @Inject constructor(
     private val stateMutex = Mutex()
     private var isSyncing = false
     private var hasPendingSync = false
+
+    private val _clockDriftSeconds = MutableStateFlow<Long?>(null)
+    val clockDriftSeconds: StateFlow<Long?> = _clockDriftSeconds.asStateFlow()
+
+    companion object {
+        const val MAX_ALLOWED_CLOCK_DRIFT_SECONDS = 180L // 3 minutes
+    }
 
     // ── Sync debounce ───────────────────────────────────────────────────────
     // Throttles rapid triggerImmediateSync() calls (e.g. during bill creation
@@ -351,6 +361,12 @@ class SyncManager @Inject constructor(
 
         // Commit the new checkpoint ONLY after all pages succeeded
         if (latestServerTimestamp > 0) {
+            val localTime = System.currentTimeMillis()
+            val driftSec = kotlin.math.abs(localTime - latestServerTimestamp) / 1000L
+            _clockDriftSeconds.value = driftSec
+            if (driftSec > MAX_ALLOWED_CLOCK_DRIFT_SECONDS) {
+                Log.w(tag, "Severe clock drift detected: device is $driftSec seconds off server time. Network automatic time is recommended.")
+            }
             sessionManager.saveLastSyncTimestamp(latestServerTimestamp)
         } else {
             throw IllegalStateException("Master sync response missing server timestamp")

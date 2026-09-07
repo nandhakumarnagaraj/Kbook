@@ -16,12 +16,19 @@ data class TabItem(
     val lottieRes: Int? = null
 )
 
+object NavigationTabs {
+    const val TAB_HOME = 0
+    const val TAB_REPORTS = 1
+    const val TAB_ORDERS = 2
+    const val TAB_PROFILE = 3
+}
+
 object NavigationUtils {
     private val allTabs = listOf(
-        TabItem("Home", Icons.Default.Home, 0),
-        TabItem("Reports", Icons.Default.Assessment, 2),
-        TabItem("Orders", Icons.AutoMirrored.Filled.List, 3),
-        TabItem("Profile", Icons.Default.AccountCircle, 4)
+        TabItem("Home", Icons.Default.Home, NavigationTabs.TAB_HOME),
+        TabItem("Reports", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
+        TabItem("Orders", Icons.AutoMirrored.Filled.List, NavigationTabs.TAB_ORDERS),
+        TabItem("Profile", Icons.Default.AccountCircle, NavigationTabs.TAB_PROFILE)
     )
 
     fun getVisibleTabs(): List<TabItem> {

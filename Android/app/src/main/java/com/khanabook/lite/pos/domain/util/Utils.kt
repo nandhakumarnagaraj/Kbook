@@ -33,19 +33,39 @@ object DateUtils {
     fun formatDisplay(timestamp: Long): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern(DISPLAY_FORMAT))
+            .format(java.time.format.DateTimeFormatter.ofPattern(DISPLAY_FORMAT, java.util.Locale.US))
     }
 
     fun formatDateOnly(timestamp: Long): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"))
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", java.util.Locale.US))
     }
 
-    fun formatDisplayDate(timestamp: Long): String {
+    fun formatDisplayDate(timestamp: Long): String = formatTableDate(timestamp)
+
+    /**
+     * Standard 2-line date and time format for POS table columns:
+     * Line 1: dd MMM yyyy (e.g. 02 Sep 2026)
+     * Line 2: hh:mm a (e.g. 06:30 pm)
+     * Using Locale.US guarantees 3-letter month abbreviations (e.g. Sep instead of Sept),
+     * preventing mid-date wrapping on narrow table columns.
+     */
+    fun formatTableDate(timestamp: Long): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("MMMM\ndd, yyyy,\nHH:mm a"))
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy\nhh:mm a", java.util.Locale.US))
+    }
+
+    /**
+     * Converts a formatted date string ("dd MMM yyyy, hh:mm a") into standard 2-line table date format.
+     */
+    fun formatTableDate(dateString: String): String {
+        var clean = dateString.replace("Sept ", "Sep ")
+        if (clean.contains(", ")) {
+            return clean.replaceFirst(", ", "\n")
+        }
+        return clean
     }
 
     fun getRelativeTimeString(timestamp: Long): String {

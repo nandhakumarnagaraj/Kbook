@@ -25,7 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.khanabook.lite.pos.ui.components.ManagerPinDialog
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.screens.activeorder.ActiveOrderActionGrid
@@ -63,10 +68,24 @@ fun ActiveOrderDetailScreen(
     val billWithItems by viewModel.bill.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showManagerPinDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { event ->
             KhanaToast.show(event.message, event.kind)
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -177,7 +196,11 @@ fun ActiveOrderDetailScreen(
                 TextButton(
                     onClick = {
                         showCancelDialog = false
-                        viewModel.cancelOrder(onBack)
+                        if (viewModel.requiresManagerPinForVoid()) {
+                            showManagerPinDialog = true
+                        } else {
+                            viewModel.cancelOrder(onBack)
+                        }
                     }
                 ) {
                     Text("Cancel Order", color = DangerRed, fontWeight = FontWeight.Bold)
@@ -187,6 +210,19 @@ fun ActiveOrderDetailScreen(
                 TextButton(onClick = { showCancelDialog = false }) {
                     Text("Keep Order", color = TextGold)
                 }
+            }
+        )
+    }
+
+    if (showManagerPinDialog) {
+        ManagerPinDialog(
+            title = "Authorize Order Cancellation",
+            subtitle = "Manager or Owner PIN is required to void active kitchen order.",
+            onDismiss = { showManagerPinDialog = false },
+            onVerify = { pin -> viewModel.verifyManagerPin(pin) },
+            onAuthorized = {
+                showManagerPinDialog = false
+                viewModel.cancelOrder(onBack)
             }
         )
     }

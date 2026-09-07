@@ -24,4 +24,14 @@ class AuthManager @Inject constructor() {
             false
         }
     }
+
+    suspend fun verifyManagerPin(enteredPin: String, sessionManager: SessionManager): Boolean = withContext(Dispatchers.Default) {
+        val pinHash = sessionManager.getPinHash()
+        if (!pinHash.isNullOrBlank()) {
+            verifyPassword(enteredPin, pinHash)
+        } else {
+            // If manager hasn't set an explicit custom PIN, allow default owner PIN "1234"
+            enteredPin == "1234"
+        }
+    }
 }

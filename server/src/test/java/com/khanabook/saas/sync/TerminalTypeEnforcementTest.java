@@ -88,26 +88,25 @@ class TerminalTypeEnforcementTest extends BaseIntegrationTest {
 
     @Test
     @Order(5)
-    void secondBillingWouldBeBlocked() {
+    void multipleBillingTerminalsAllowed() {
         createTerminal("A", "BILLING", "dev-A");
+        createTerminal("B", "BILLING", "dev-B");
 
-        // Simulate the controller's enforcement check: if a BILLING already exists, block
         List<RestaurantTerminal> all = terminalRepository.findByRestaurantIdOrderByIdAsc(TENANT);
-        boolean hasActiveBilling = all.stream()
-                .anyMatch(t -> "BILLING".equals(t.getTerminalType()) && "ACTIVE".equals(t.getStatus()));
-        assertTrue(hasActiveBilling, "Should have 1 active BILLING");
-        // The controller would reject a second BILLING here — that's the enforcement
+        long activeBilling = all.stream()
+                .filter(t -> "BILLING".equals(t.getTerminalType()) && "ACTIVE".equals(t.getStatus()))
+                .count();
+        assertEquals(2, activeBilling, "Multi-counter restaurants can run multiple active BILLING terminals");
     }
 
     @Test
     @Order(6)
-    void deactivateBilling_allowsNew() {
+    void deactivateBilling_andActivateAnother() {
         RestaurantTerminal billing = createTerminal("A", "BILLING", "dev-A");
         billing.setStatus("INACTIVE");
         billing.setIsActive(false);
         terminalRepository.save(billing);
 
-        // Now a new BILLING should be possible
         RestaurantTerminal newBilling = new RestaurantTerminal();
         newBilling.setRestaurantId(TENANT);
         newBilling.setTerminalSeries("B");
@@ -120,12 +119,12 @@ class TerminalTypeEnforcementTest extends BaseIntegrationTest {
         newBilling.setIsPrimary(false);
         newBilling.setCreatedAt(System.currentTimeMillis());
         newBilling.setUpdatedAt(System.currentTimeMillis());
-        RestaurantTerminal saved = terminalRepository.save(newBilling);
+        terminalRepository.save(newBilling);
 
         List<RestaurantTerminal> all = terminalRepository.findByRestaurantIdOrderByIdAsc(TENANT);
         long activeBilling = all.stream()
                 .filter(t -> "BILLING".equals(t.getTerminalType()) && "ACTIVE".equals(t.getStatus()))
                 .count();
-        assertEquals(1, activeBilling, "Only 1 active BILLING after deactivation");
+        assertEquals(1, activeBilling);
     }
 }

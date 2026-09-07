@@ -184,6 +184,103 @@ fun InitialSyncScreen(
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
                 }
+                is InitialSyncState.ChooseTerminal -> {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Device Recovery",
+                        tint = PrimaryGold,
+                        modifier = Modifier.size(iconSize.large)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        text = "Device Setup",
+                        color = TextLight,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        text = "Existing counters found for this shop. Is this device replacing a previous counter?",
+                        color = TextGold.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    var selectedSeries by remember { mutableStateOf(state.terminals.firstOrNull()?.terminalSeries ?: "") }
+
+                    state.terminals.forEach { term ->
+                        val isSelected = selectedSeries == term.terminalSeries
+                        Surface(
+                            onClick = { selectedSeries = term.terminalSeries },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) PrimaryGold.copy(alpha = 0.2f) else DarkBrown2,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.2f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = spacing.extraSmall)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(spacing.medium),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { selectedSeries = term.terminalSeries },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = PrimaryGold,
+                                        unselectedColor = TextGold
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(spacing.small))
+                                Column {
+                                    Text(
+                                        text = term.terminalName ?: "Counter ${term.terminalSeries}",
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "Series ${term.terminalSeries}",
+                                        color = TextGold.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    Button(
+                        onClick = { viewModel.reclaimTerminal(selectedSeries) },
+                        enabled = selectedSeries.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        shape = KhanaRadii.lg,
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                    ) {
+                        Text(
+                            "Reclaim Selected Counter",
+                            color = DarkBrown1,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    TextButton(
+                        onClick = { viewModel.continueAsNewDevice(state.pendingRequestId) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Register as a New Device Instead",
+                            color = TextGold.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
                 is InitialSyncState.SessionExpired -> {
                     Icon(
                         imageVector = Icons.Default.Warning,

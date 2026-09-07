@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.khanabook.lite.pos.data.remote.dto.AddressProofType
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.StickyBottomScaffold
@@ -46,6 +47,7 @@ import com.khanabook.lite.pos.ui.viewmodel.OnboardingUiState
 @Composable
 fun EasebuzzOnboardingScreen(
     onBack: () -> Unit,
+    onOpenComplianceDocs: (() -> Unit)? = null,
     viewModel: EasebuzzOnboardingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,6 +144,7 @@ fun EasebuzzOnboardingScreen(
                         OnboardingStep.KycStatus -> KycStatusStep(
                             viewModel = viewModel,
                             status = null,
+                            onOpenComplianceDocs = onOpenComplianceDocs,
                             spacing = spacing
                         )
                     }
@@ -151,6 +154,7 @@ fun EasebuzzOnboardingScreen(
                 KycStatusStep(
                     viewModel = viewModel,
                     status = state.status,
+                    onOpenComplianceDocs = onOpenComplianceDocs,
                     spacing = spacing
                 )
             }
@@ -313,15 +317,97 @@ private fun BusinessDetailsStep(
                     keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.Characters)
                 OnboardingField("GST Number", gst, { gst = it.uppercase().take(15) }, focusManager, ImeAction.Next,
                     capitalization = KeyboardCapitalization.Characters)
-                OnboardingField("FSSAI Number", fssaiNumber, { fssaiNumber = it.filter { c -> c.isDigit() }.take(14) },
-                    focusManager, ImeAction.Next, keyboardType = KeyboardType.Number)
-                if (fssaiNumber.isNotBlank() && fssaiNumber.length != 14) {
+                OnboardingField("FSSAI Number", fssaiNumber, { 
+                    fssaiNumber = it.filter { c -> c.isDigit() }.take(14)
+                    if (fssaiNumber.length == 14) {
+                        viewModel.lookupFssai(fssaiNumber)
+                    } else {
+                        viewModel.clearFssaiInfo()
+                    }
+                }, focusManager, ImeAction.Next, keyboardType = KeyboardType.Number)
+
+                val fssaiInfo by viewModel.fssaiInfo.collectAsStateWithLifecycle()
+                val isLookingUpFssai by viewModel.isLookingUpFssai.collectAsStateWithLifecycle()
+
+                if (isLookingUpFssai) {
+                    Row(
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            color = PrimaryGold,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(spacing.small))
+                        Text(
+                            "Verifying FSSAI license...",
+                            color = TextGold,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                } else if (fssaiNumber.isNotBlank() && fssaiNumber.length != 14) {
                     Text(
                         "FSSAI must be 14 digits",
                         color = DangerRed,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
                     )
+                } else if (fssaiInfo != null && fssaiInfo?.valid == true) {
+                    val info = fssaiInfo!!
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = spacing.small),
+                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(spacing.medium)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(spacing.small))
+                                Text(
+                                    "Verified FSSAI License",
+                                    color = SuccessGreen,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            info.businessName?.let {
+                                Text("Business: $it", color = TextLight, style = MaterialTheme.typography.bodySmall)
+                            }
+                            info.expiryDate?.let {
+                                Text("Valid Upto: $it", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (!info.pan.isNullOrBlank()) {
+                                Text("Linked PAN: ${info.pan}", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                            }
+                            Spacer(Modifier.height(spacing.small))
+                            OutlinedButton(
+                                onClick = {
+                                    info.businessName?.let { if (it.isNotBlank()) businessName = it }
+                                    info.legalEntityName?.let { if (it.isNotBlank()) legalEntityName = it }
+                                    info.address?.let { if (it.isNotBlank()) businessAddress = it }
+                                    info.state?.let { if (it.isNotBlank()) state = it }
+                                    if (pan.isBlank() && !info.pan.isNullOrBlank()) {
+                                        pan = info.pan.uppercase()
+                                    }
+                                    if (contactEmail.isBlank() && !info.contactEmail.isNullOrBlank()) {
+                                        contactEmail = info.contactEmail.trim()
+                                    }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Auto-fill Details from FSSAI", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
                 }
                 OnboardingField("Business Address *", businessAddress, { businessAddress = it }, focusManager, ImeAction.Next)
                 OnboardingField("State *", state, { state = it }, focusManager, ImeAction.Next)
@@ -546,6 +632,7 @@ private fun OtpVerificationStep(
 private fun KycStatusStep(
     viewModel: EasebuzzOnboardingViewModel,
     status: com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingStatusResponse?,
+    onOpenComplianceDocs: (() -> Unit)?,
     spacing: Spacing
 ) {
     Column(
@@ -582,6 +669,98 @@ private fun KycStatusStep(
             }
             if (!status.subMerchantId.isNullOrBlank()) {
                 StatusCard("Merchant ID", status.subMerchantId, spacing)
+            }
+
+            Spacer(Modifier.height(spacing.medium))
+
+            // Address Proofs & KYC Documents Summary Card
+            Surface(
+                color = DarkBrown2,
+                shape = KhanaRadii.card,
+                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
+            ) {
+                Column(modifier = Modifier.padding(spacing.medium)) {
+                    Text(
+                        "KYC Compliance Documents",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(Modifier.height(spacing.small))
+
+                    val p1Label = AddressProofType.fromCode(status.businessProof1Type)?.label ?: status.businessProof1Type ?: "Proof 1"
+                    val p2Label = AddressProofType.fromCode(status.businessProof2Type)?.label ?: status.businessProof2Type ?: "Proof 2"
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Address Proof 1 ($p1Label):", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (status.businessProof1Present) "✓ Uploaded" else "⚠️ Missing",
+                            color = if (status.businessProof1Present) SuccessGreen else DangerRed,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Address Proof 2 ($p2Label):", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (status.businessProof2Present) "✓ Uploaded" else "⚠️ Missing",
+                            color = if (status.businessProof2Present) SuccessGreen else DangerRed,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("FSSAI License:", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (!status.fssaiNumber.isNullOrBlank()) "✓ Provided" else "⚠️ Missing",
+                            color = if (!status.fssaiNumber.isNullOrBlank()) SuccessGreen else DangerRed,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    if (onOpenComplianceDocs != null) {
+                        Spacer(Modifier.height(spacing.medium))
+                        Button(
+                            onClick = onOpenComplianceDocs,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.button,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Upload & Manage Address Proofs", color = DarkBrown1)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(spacing.small))
+
+            // CPV Physical Verification Notice
+            Surface(
+                color = DarkBrown2.copy(alpha = 0.6f),
+                shape = KhanaRadii.card,
+                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
+            ) {
+                Column(modifier = Modifier.padding(spacing.medium)) {
+                    Text(
+                        "📍 CPV Physical Verification",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(Modifier.height(spacing.extraSmall))
+                    Text(
+                        "An Easebuzz field representative will visit your shop to verify the storefront signboard matches your trade name (${status.tradeName ?: "registered name"}), GPS coordinates match your shop address, and printed original documents are at the counter.",
+                        color = TextGold.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 

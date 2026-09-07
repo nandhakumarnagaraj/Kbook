@@ -195,8 +195,9 @@ fun MenuConfigurationScreen(
                         totalItemsCount = totalItemsCount,
                         onManualClick = { viewModel.setConfigMode("manual") },
                         onSmartImportClick = {
-                            val catName = categories.find { it.id == selectedCategoryId }?.name ?: ""
-                            navController.navigate("ocr_scanner/$catName")
+                            val catName = categories.find { it.id == selectedCategoryId }?.name
+                            navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", catName)
+                            navController.navigate("ocr_scanner/menu_config")
                         },
                         onGalleryClick = { galleryLauncher.launch("image/*") },
                         onPdfClick = { pdfLauncher.launch("application/pdf") }

@@ -367,22 +367,9 @@ public class TerminalController {
 			}
 		}
 
-		// ── Enforce: max 1 BILLING terminal per restaurant ──
-		// Admin approval is the primary gatekeeper — the admin sees terminal types
-		// and will not approve a second BILLING. This check guards against the
-		// case where a known device re-activates directly (Case 1b) and upgrades
-		// to BILLING without admin review.
-		if ("BILLING".equals(terminalType) && existing != null) {
-			boolean hasOtherBilling = allTerminals.stream()
-					.anyMatch(t -> "BILLING".equals(t.getTerminalType())
-							&& "ACTIVE".equals(t.getStatus())
-							&& !t.getId().equals(existing.getId()));
-			if (hasOtherBilling) {
-				return ResponseEntity.status(HttpStatus.CONFLICT)
-						.body(new TerminalPendingResponse("BILLING_EXISTS", null,
-								"Restaurant already has an active BILLING terminal. Use type KOT or ADMIN."));
-			}
-		}
+		// ── Valid terminal types: BILLING, KOT, ADMIN (up to 5 active terminals total) ──
+		// Multi-counter restaurants are allowed to run multiple BILLING stations (e.g. Counter 1 Dine-in,
+		// Counter 2 Takeaway). The central 5-terminal limit is strictly enforced on approval.
 
 		// ── Case 2: Unknown physical device — always requires approval ──
 		// This applies regardless of how many terminals the restaurant has.

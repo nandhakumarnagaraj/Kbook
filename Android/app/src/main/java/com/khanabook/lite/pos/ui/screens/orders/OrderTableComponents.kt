@@ -206,7 +206,12 @@ fun OrderTableRow(
                 }
             }
 
-            TableCell(DateUtils.formatDisplayDate(row.salesDate), COL_DATE)
+            TableCell(
+                DateUtils.formatTableDate(row.salesDate),
+                COL_DATE,
+                fontSize = 11.sp,
+                maxLines = 2
+            )
         }
 
         if (isCancelled && row.cancelReason.isNotBlank()) {
@@ -363,7 +368,8 @@ fun RowScope.TableCell(
     weight: Float,
     fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     fontWeight: FontWeight = FontWeight.Normal,
-    color: Color = TextLight
+    color: Color = TextLight,
+    maxLines: Int = 1
 ) {
     // Use bodySmall from theme (already tier-scaled) unless caller provides explicit override.
     // On tablets this resolves to ~13sp; on compact phones ~11.4sp.
@@ -378,7 +384,7 @@ fun RowScope.TableCell(
         color = color,
         style = style,
         textAlign = TextAlign.Center,
-        maxLines = 1,
+        maxLines = maxLines,
         overflow = TextOverflow.Ellipsis
     )
 }

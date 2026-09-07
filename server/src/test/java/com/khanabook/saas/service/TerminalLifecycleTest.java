@@ -457,4 +457,29 @@ class TerminalLifecycleTest extends BaseIntegrationTest {
                 .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
     }
+
+    @Test
+    void seriesLetter_recycledWhenTerminalDeactivated() {
+        // 1. Create Terminal A
+        var respA = (TerminalController.TerminalActivationResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("dev-recycle-a", null, "BILLING")).getBody();
+        assertThat(respA.terminalSeries()).isEqualTo("A");
+
+        // 2. Request Terminal B and approve
+        var pendB = (TerminalController.TerminalPendingResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("dev-recycle-b", null, "BILLING")).getBody();
+        var approvedB = managementController.approveRequest(pendB.requestId(),
+                new TerminalManagementController.ApproveRequest(pendB.challengeCode())).getBody();
+        assertThat(approvedB.terminalSeries()).isEqualTo("B");
+
+        // 3. Deactivate Terminal B
+        managementController.deactivateTerminal(approvedB.terminalId());
+
+        // 4. Request a new terminal — because B was deactivated, series "B" should be recycled!
+        var pendNew = (TerminalController.TerminalPendingResponse) terminalController.activate(
+                new TerminalController.TerminalActivationRequest("dev-recycle-c", null, "BILLING")).getBody();
+        var approvedNew = managementController.approveRequest(pendNew.requestId(),
+                new TerminalManagementController.ApproveRequest(pendNew.challengeCode())).getBody();
+        assertThat(approvedNew.terminalSeries()).isEqualTo("B");
+    }
 }

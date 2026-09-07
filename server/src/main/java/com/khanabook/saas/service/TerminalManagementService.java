@@ -356,16 +356,29 @@ public class TerminalManagementService {
             // Allocate series
             String series = allocateNextSeries(restaurantId);
             long now = System.currentTimeMillis();
-            terminal = new RestaurantTerminal();
-            terminal.setRestaurantId(restaurantId);
-            terminal.setTerminalSeries(series);
-            terminal.setTerminalName("Terminal " + series);
-            terminal.setDeviceId(request.getDeviceId());
-            terminal.setIsActive(true);
-            terminal.setStatus("ACTIVE");
-            terminal.setCredentialVersion(1L);
-            terminal.setCreatedAt(now);
-            terminal.setUpdatedAt(now);
+
+            // If an inactive terminal row already exists for this (restaurantId, series),
+            // reuse and reactivate that row to respect the ux_restaurant_terminal_series unique constraint.
+            var existingBySeries = terminalRepository.findByRestaurantIdAndTerminalSeries(restaurantId, series);
+            if (existingBySeries.isPresent()) {
+                terminal = existingBySeries.get();
+                terminal.setDeviceId(request.getDeviceId());
+                terminal.setIsActive(true);
+                terminal.setStatus("ACTIVE");
+                terminal.setCredentialVersion(terminal.getCredentialVersion() + 1);
+                terminal.setUpdatedAt(now);
+            } else {
+                terminal = new RestaurantTerminal();
+                terminal.setRestaurantId(restaurantId);
+                terminal.setTerminalSeries(series);
+                terminal.setTerminalName("Terminal " + series);
+                terminal.setDeviceId(request.getDeviceId());
+                terminal.setIsActive(true);
+                terminal.setStatus("ACTIVE");
+                terminal.setCredentialVersion(1L);
+                terminal.setCreatedAt(now);
+                terminal.setUpdatedAt(now);
+            }
             terminal = terminalRepository.save(terminal);
             // First terminal for the restaurant becomes primary automatically.
             ensurePrimaryAssigned(restaurantId, terminal);
@@ -572,9 +585,9 @@ public class TerminalManagementService {
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
     private String allocateNextSeries(Long restaurantId) {
-        List<RestaurantTerminal> all = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
+        List<RestaurantTerminal> activeTerminals = terminalRepository.findByRestaurantIdAndStatus(restaurantId, "ACTIVE");
         Set<String> assigned = new HashSet<>();
-        for (RestaurantTerminal t : all) {
+        for (RestaurantTerminal t : activeTerminals) {
             if (t.getTerminalSeries() != null && !t.getTerminalSeries().isBlank()) {
                 assigned.add(t.getTerminalSeries().toUpperCase());
             }

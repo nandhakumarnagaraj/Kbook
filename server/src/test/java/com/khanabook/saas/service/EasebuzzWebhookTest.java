@@ -88,6 +88,35 @@ class EasebuzzWebhookTest {
     }
 
     @Test
+    void testHandlePaymentWebhookSuccessWithTxnidFallback() throws Exception {
+        // Prepare payload with missing udf1 but known txnid
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", "PL12345678");
+        payload.put("status", "success");
+        payload.put("amount", "250.00");
+        payload.put("easepayid", "E250TEST2");
+        payload.put("firstname", "Alice");
+        payload.put("email", "alice@example.com");
+        payload.put("productinfo", "Order Payment");
+        
+        String hash = generateReverseHash(payload);
+        payload.put("hash", hash);
+
+        Bill mockBill = new Bill();
+        mockBill.setId(777L);
+        mockBill.setRestaurantId(1L);
+        mockBill.setGatewayTxnId("PL12345678");
+        when(billRepo.findByGatewayTxnId("PL12345678")).thenReturn(Optional.of(mockBill));
+
+        Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
+
+        assertEquals("received", response.get("status"));
+        assertEquals("paid", mockBill.getPaymentStatus());
+        assertEquals("success", mockBill.getGatewayStatus());
+        verify(postSplitService, times(1)).createPostSplitAsync(eq(777L), eq("E250TEST2"), eq("PL12345678"));
+    }
+
+    @Test
     void testHandlePaymentWebhookHashMismatch() {
         Map<String, String> payload = new HashMap<>();
         payload.put("txnid", "KB12345");

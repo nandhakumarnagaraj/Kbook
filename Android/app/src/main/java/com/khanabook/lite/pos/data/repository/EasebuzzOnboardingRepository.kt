@@ -42,12 +42,28 @@ class EasebuzzOnboardingRepository @Inject constructor(
     suspend fun resendOtp(): Result<Map<String, Any?>> =
         runApi { api.resendEasebuzzOtp() }
 
-    suspend fun uploadKycDocument(docType: String, file: File): Result<Map<String, String>> {
+    suspend fun lookupFssai(fssaiNo: String): Result<com.khanabook.lite.pos.data.remote.dto.FssaiLookupResponse> =
+        runApi { api.lookupFssai(fssaiNo) }
+
+    suspend fun uploadKycDocument(
+        docType: String,
+        file: File,
+        proofType: String? = null
+    ): Result<Map<String, String>> {
         return runApi {
-            val requestBody = file.readBytes().toRequestBody("application/pdf".toMediaTypeOrNull())
+            val extension = file.extension.lowercase()
+            val mimeType = when (extension) {
+                "pdf" -> "application/pdf"
+                "png" -> "image/png"
+                "jpg", "jpeg" -> "image/jpeg"
+                "webp" -> "image/webp"
+                else -> "application/octet-stream"
+            }
+            val requestBody = file.readBytes().toRequestBody(mimeType.toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
             val typePart = MultipartBody.Part.createFormData("type", docType)
-            api.uploadKycDocument(filePart, typePart)
+            val proofTypePart = proofType?.let { MultipartBody.Part.createFormData("proofType", it) }
+            api.uploadKycDocument(filePart, typePart, proofTypePart)
         }
     }
 

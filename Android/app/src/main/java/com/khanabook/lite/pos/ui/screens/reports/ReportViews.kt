@@ -28,6 +28,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.ui.screens.orders.HeaderCell
 import com.khanabook.lite.pos.ui.screens.orders.TableCell
 import com.khanabook.lite.pos.ui.theme.*
@@ -383,8 +384,13 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                     )
                 }
             }
-            
-            TableCell(formatDate(row.date), COL_DATE)
+
+            TableCell(
+                DateUtils.formatTableDate(row.date),
+                COL_DATE,
+                fontSize = 11.sp,
+                maxLines = 2
+            )
         }
     }
 }

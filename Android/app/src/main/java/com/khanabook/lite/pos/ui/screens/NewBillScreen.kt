@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.navigation.NavigationTabs
 import com.khanabook.lite.pos.ui.feedback.printFeedbackKind
 import com.khanabook.lite.pos.ui.feedback.performMenuItemAdd
 import com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackPreferences
@@ -194,9 +195,9 @@ fun NewBillScreen(
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
             val route = if (highlightedBillId != null) {
-                "main/3?source=ALL&highlightBillId=$highlightedBillId"
+                "main/${NavigationTabs.TAB_ORDERS}?source=ALL&highlightBillId=$highlightedBillId"
             } else {
-                "main/3?source=ALL"
+                "main/${NavigationTabs.TAB_ORDERS}?source=ALL"
             }
             navController.navigate(route) {
                 popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
@@ -211,17 +212,26 @@ fun NewBillScreen(
 
     val returnToNewBillTables: () -> Unit = {
         if (navController != null) {
-            val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
-            val route = if (highlightedBillId != null) {
-                "main/3?source=ALL&highlightBillId=$highlightedBillId"
-            } else {
-                "main/3?source=ALL"
-            }
-            navController.navigate(route) {
-                popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
-                    inclusive = true
+            val targetDraftId = draftBillId ?: billingViewModel.editingBillId ?: billingViewModel.lastBill.value?.bill?.id
+            if (targetDraftId != null) {
+                val prevRoute = navController.previousBackStackEntry?.destination?.route
+                if (prevRoute?.startsWith("active_order_detail") == true) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("active_order_detail/$targetDraftId") {
+                        popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                 }
-                launchSingleTop = true
+            } else {
+                navController.navigate("active_orders") {
+                    popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
             }
         } else {
             onBack()

@@ -27,8 +27,9 @@ public class RestaurantAssetController {
 	@PostMapping(value = "/kyc-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, String>> uploadKycDocument(
 			@RequestParam("type") String docType,
+			@RequestParam(value = "proofType", required = false) String proofType,
 			@RequestPart("file") MultipartFile file) {
-		AssetUploadResult result = assetStorageService.uploadKycDocument(TenantContext.getCurrentTenant(), docType, file);
+		AssetUploadResult result = assetStorageService.uploadKycDocument(TenantContext.getCurrentTenant(), docType, proofType, file);
 		return ResponseEntity.ok(Map.of("url", result.url()));
 	}
 

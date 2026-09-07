@@ -131,7 +131,6 @@ public class SecurityConfig {
 								"/auth/forgot-password/verify-otp",
 								"/auth/forgot-password/reset-password",
 							"/public/**",
-							"/qr/**",
 							"/cdn/**",
 							"/error",
 							// Easebuzz server-to-server callbacks (v2 port): must be unauthenticated.

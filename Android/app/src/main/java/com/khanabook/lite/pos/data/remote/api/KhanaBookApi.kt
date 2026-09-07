@@ -142,7 +142,7 @@ interface KhanaBookApi {
 
         // ── FSSAI ──────────────────────────────────────────────────────────
         @GET("api/v1/business/lookup/fssai")
-        suspend fun lookupFssai(@Query("fssaiNo") fssaiNo: String): Map<String, Any>
+        suspend fun lookupFssai(@Query("fssaiNo") fssaiNo: String): com.khanabook.lite.pos.data.remote.dto.FssaiLookupResponse
 
         // ── Permissions ──────────────────────────────────────────────────────────
 
@@ -299,7 +299,8 @@ interface KhanaBookApi {
         @POST("api/v1/restaurants/kyc-document")
         suspend fun uploadKycDocument(
             @Part file: MultipartBody.Part,
-            @Part type: MultipartBody.Part
+            @Part type: MultipartBody.Part,
+            @Part proofType: MultipartBody.Part? = null
         ): Map<String, String>
 
         @GET("api/v1/business/kyc-document/{docType}/download")

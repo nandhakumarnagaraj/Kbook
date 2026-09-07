@@ -30,9 +30,16 @@ class ActiveOrderDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val billRepository: BillRepository,
     private val restaurantRepository: RestaurantRepository,
-    private val printRouter: PrintRouter
+    private val printRouter: PrintRouter,
+    private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
+    private val authManager: com.khanabook.lite.pos.domain.manager.AuthManager
 ) : ViewModel() {
     private val billId: Long = checkNotNull(savedStateHandle["billId"])
+
+    fun requiresManagerPinForVoid(): Boolean = !sessionManager.isOwner()
+
+    suspend fun verifyManagerPin(pin: String): Boolean =
+        authManager.verifyManagerPin(pin, sessionManager)
 
     private val _bill = MutableStateFlow<BillWithItems?>(null)
     val bill: StateFlow<BillWithItems?> = _bill.asStateFlow()

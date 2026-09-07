@@ -74,14 +74,7 @@ fun OrdersScreen(
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     var detailCancelBillId by remember { mutableStateOf<Long?>(null) }
-    val normalizedInitialSource = remember(initialSource) {
-        when {
-            initialSource.equals("ONLINE", ignoreCase = true) -> "ONLINE"
-            else -> "STORE"
-        }
-    }
-    var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
-    val visibleRows = remember(allRows, selectedSource) {
+    val visibleRows = remember(allRows) {
         allRows.filter { row ->
             row.orderStatus != OrderStatus.DRAFT
         }
@@ -248,185 +241,141 @@ fun OrdersScreen(
 
             val isGstEnabled = profile?.gstEnabled == true
 
-            ListLayout(
-                modifier = Modifier.weight(1f),
-                filterBar = {
-                    AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                        Column {
-                            PeriodTabs(
-                                selectedFilter = timeFilter,
-                                onTabSelected = {
-                                    if (it == "Custom") {
-                                        showDateRangePicker = true
-                                    } else {
-                                        viewModel.setTimeFilter(it)
-                                    }
-                                }
-                            )
-
-                            Spacer(modifier = Modifier.height(spacing.medium))
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.medium),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                            ) {
-                                OrderFilterChip(
-                                    label = "Store Orders",
-                                    isSelected = selectedSource == "STORE",
-                                    onClick = { selectedSource = "STORE" },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OrderFilterChip(
-                                    label = "Online Orders",
-                                    isSelected = selectedSource == "ONLINE",
-                                    onClick = { selectedSource = "ONLINE" },
-                                    modifier = Modifier.weight(1f)
-                                )
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                Column {
+                    PeriodTabs(
+                        selectedFilter = timeFilter,
+                        onTabSelected = {
+                            if (it == "Custom") {
+                                showDateRangePicker = true
+                            } else {
+                                viewModel.setTimeFilter(it)
                             }
-
-                            Spacer(modifier = Modifier.height(spacing.medium))
                         }
-                    }
-                },
-                isEmpty = !isLoading && visibleRows.isEmpty(),
-                emptyState = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = spacing.large)
-                    ) {
-                        Icon(
-                            Icons.Default.Description,
-                            contentDescription = null,
-                            tint = TextGold.copy(alpha = 0.25f),
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(KhanaBookTheme.spacing.small))
-                        Text(
-                            when (selectedSource) {
-                                "ONLINE" -> "No online orders in this period"
-                                else -> "No store orders in this period"
-                            },
-                            color = TextGold.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(spacing.extraSmall))
-                        Text(
-                            "Try another date or source filter.",
-                            color = TextGold.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
                 }
+            }
+
+            AnimatedVisibility(
+                visible = bodyVisible,
+                enter = enterSpec,
+                exit = exitSpec,
+                modifier = Modifier.weight(1f)
             ) {
-                if (isLoading) {
-                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium)
-                        ) {
-                            TableHeader(isGstEnabled = isGstEnabled)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = spacing.medium)
+                ) {
+                    TableHeader(isGstEnabled = isGstEnabled)
+
+                    if (isLoading) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             repeat(10) {
                                 SkeletonTableRow(columns = 5)
                                 Spacer(modifier = Modifier.height(spacing.hairline))
                             }
                         }
-                    }
-                } else {
-                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
-                    LaunchedEffect(highlightedBillId, visibleRows) {
-                        val highlightedIndex = highlightedBillId?.let { billId ->
-                            visibleRows.indexOfFirst { it.billId == billId }
-                        } ?: -1
-                        if (highlightedIndex >= 0) {
-                            orderListState.animateScrollToItem(highlightedIndex + 1)
+                    } else if (visibleRows.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = spacing.extraLarge),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            KhanaEmptyState(
+                                title = "No orders in this period",
+                                message = "Try another date filter.",
+                                icon = Icons.Default.Description
+                            )
                         }
-                    }
-                    LazyColumn(
-                        state = orderListState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        contentPadding = PaddingValues(top = spacing.small, bottom = spacing.medium)
-                    ) {
-                        stickyHeader {
-                            TableHeader(isGstEnabled = isGstEnabled)
+                    } else {
+                        LaunchedEffect(highlightedBillId, visibleRows) {
+                            val highlightedIndex = highlightedBillId?.let { billId ->
+                                visibleRows.indexOfFirst { it.billId == billId }
+                            } ?: -1
+                            if (highlightedIndex >= 0) {
+                                orderListState.animateScrollToItem(highlightedIndex)
+                            }
                         }
-                        items(visibleRows) { row ->
-                            var showCancelDialog by remember { mutableStateOf(false) }
-                            var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+                        LazyColumn(
+                            state = orderListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(top = spacing.hairline, bottom = spacing.medium)
+                        ) {
+                            items(visibleRows) { row ->
+                                var showCancelDialog by remember { mutableStateOf(false) }
+                                var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
 
-                            OrderTableRow(
-                                row = row,
-                                enabledModes = enabledModes,
-                                isHighlighted = row.billId == highlightedBillId,
-                                onClick = {
-                                    if (row.orderStatus == OrderStatus.DRAFT) {
-                                        navController?.navigate("new_bill?draftBillId=${row.billId}&targetStep=2")
-                                    } else {
-                                        selectedBillId = row.billId
-                                        viewModel.loadBillDetails(row.billId)
-                                    }
-                                },
-                                onShare = {
-                                    scope.launch {
-                                        viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                            if (detail.bill.serverId == null) {
-                                                sendInvoiceViaSms(context, detail, profile)
-                                            } else {
+                                OrderTableRow(
+                                    row = row,
+                                    enabledModes = enabledModes,
+                                    isHighlighted = row.billId == highlightedBillId,
+                                    onClick = {
+                                        if (row.orderStatus == OrderStatus.DRAFT) {
+                                            navController?.navigate("new_bill?draftBillId=${row.billId}&targetStep=2")
+                                        } else {
+                                            selectedBillId = row.billId
+                                            viewModel.loadBillDetails(row.billId)
+                                        }
+                                    },
+                                    onShare = {
+                                        scope.launch {
+                                            viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                                if (detail.bill.serverId == null) {
+                                                    sendInvoiceViaSms(context, detail, profile)
+                                                } else {
+                                                    shareInvoiceViaWhatsAppLink(context, detail, profile)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onShareText = {
+                                        scope.launch {
+                                            viewModel.getOrderDetail(row.billId)?.let { detail ->
                                                 shareInvoiceViaWhatsAppLink(context, detail, profile)
                                             }
                                         }
-                                    }
-                                },
-                                onShareText = {
-                                    scope.launch {
-                                        viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                            shareInvoiceViaWhatsAppLink(context, detail, profile)
+                                    },
+                                    onRequestCancel = { showCancelDialog = true },
+                                    onStatusChange = { newStatus ->
+                                        onStatusChange(row.billId, newStatus)
+                                    },
+                                    onPayModeChange = { newMode ->
+                                        if (PaymentModeManager.isPartPayment(newMode)) {
+                                            pendingPartMode = newMode
+                                        } else {
+                                            viewModel.updatePaymentMode(row.billId, newMode.dbValue)
                                         }
                                     }
-                                },
-                                onRequestCancel = { showCancelDialog = true },
-                                onStatusChange = { newStatus ->
-                                    onStatusChange(row.billId, newStatus)
-                                },
-                                onPayModeChange = { newMode ->
-                                    if (PaymentModeManager.isPartPayment(newMode)) {
-                                        pendingPartMode = newMode
-                                    } else {
-                                        viewModel.updatePaymentMode(row.billId, newMode.dbValue)
-                                    }
+                                )
+
+                                if (showCancelDialog) {
+                                    CancelOrderDialog(
+                                        onDismiss = { showCancelDialog = false },
+                                        onConfirm = { reason ->
+                                            viewModel.cancelOrder(row.billId, reason)
+                                            showCancelDialog = false
+                                        }
+                                    )
                                 }
-                            )
 
-                            if (showCancelDialog) {
-                                CancelOrderDialog(
-                                    onDismiss = { showCancelDialog = false },
-                                    onConfirm = { reason ->
-                                        viewModel.cancelOrder(row.billId, reason)
-                                        showCancelDialog = false
-                                    }
-                                )
-                            }
-
-                            pendingPartMode?.let { mode ->
-                                PartAmountDialog(
-                                    mode = mode,
-                                    totalAmount = row.salesAmount,
-                                    onDismiss = { pendingPartMode = null },
-                                    onConfirm = { p1, p2 ->
-                                        viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
-                                        pendingPartMode = null
-                                    }
-                                )
+                                pendingPartMode?.let { mode ->
+                                    PartAmountDialog(
+                                        mode = mode,
+                                        totalAmount = row.salesAmount,
+                                        onDismiss = { pendingPartMode = null },
+                                        onConfirm = { p1, p2 ->
+                                            viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
+                                            pendingPartMode = null
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
-                }
                 }
             }
         }

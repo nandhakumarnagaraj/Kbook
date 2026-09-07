@@ -630,8 +630,10 @@ public class SubMerchantService {
         }
         // EaseBuzz CPV: proprietorship entities must provide two valid business proofs.
         if (requireBusinessProofs && isProprietorship(sm.getBusinessType())) {
-            boolean proof1 = sm.getBusinessProof1Url() != null && !sm.getBusinessProof1Url().isBlank();
-            boolean proof2 = sm.getBusinessProof2Url() != null && !sm.getBusinessProof2Url().isBlank();
+            boolean proof1 = (sm.getBusinessProof1Url() != null && !sm.getBusinessProof1Url().isBlank())
+                    || (sm.getBusinessProof1Key() != null && !sm.getBusinessProof1Key().isBlank());
+            boolean proof2 = (sm.getBusinessProof2Url() != null && !sm.getBusinessProof2Url().isBlank())
+                    || (sm.getBusinessProof2Key() != null && !sm.getBusinessProof2Key().isBlank());
             if (!proof1 || !proof2) {
                 throw new BusinessRuleException(
                     "Proprietorship entities require two valid business proof documents for CPV.",

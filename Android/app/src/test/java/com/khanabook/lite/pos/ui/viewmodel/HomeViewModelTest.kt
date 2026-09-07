@@ -8,6 +8,7 @@ import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
+import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
 import io.mockk.coEvery
@@ -35,6 +36,7 @@ class HomeViewModelTest {
     private lateinit var restaurantRepository: RestaurantRepository
     private lateinit var printerManager: BluetoothPrinterManager
     private lateinit var networkMonitor: NetworkMonitor
+    private lateinit var syncManager: SyncManager
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
@@ -73,6 +75,8 @@ class HomeViewModelTest {
         printerProfileRepository = mockk(relaxed = true)
         restaurantRepository = mockk(relaxed = true)
         printerManager = mockk(relaxed = true)
+        syncManager = mockk(relaxed = true)
+        every { syncManager.clockDriftSeconds } returns MutableStateFlow(null)
 
         every { printerProfileRepository.getProfilesFlow() } returns flowOf(emptyList())
         every { printerManager.connectedDeviceMacs } returns MutableStateFlow(emptySet())
@@ -85,7 +89,8 @@ class HomeViewModelTest {
             printerProfileRepository,
             restaurantRepository,
             printerManager,
-            networkMonitor
+            networkMonitor,
+            syncManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
     }
@@ -99,6 +104,8 @@ class HomeViewModelTest {
         printerProfileRepository = mockk(relaxed = true)
         restaurantRepository = mockk(relaxed = true)
         printerManager = mockk(relaxed = true)
+        syncManager = mockk(relaxed = true)
+        every { syncManager.clockDriftSeconds } returns MutableStateFlow(null)
 
         val viewModel = HomeViewModel(
             billRepository,
@@ -107,7 +114,8 @@ class HomeViewModelTest {
             printerProfileRepository,
             restaurantRepository,
             printerManager,
-            networkMonitor
+            networkMonitor,
+            syncManager
         )
 
         org.junit.Assert.assertEquals(HomeViewModel.SummaryScope.THIS_COUNTER, viewModel.summaryScope.value)

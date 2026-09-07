@@ -37,8 +37,17 @@ class HomeViewModel @Inject constructor(
     private val printerProfileRepository: PrinterProfileRepository,
     private val restaurantRepository: RestaurantRepository,
     private val printerManager: BluetoothPrinterManager,
-    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
+    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
+    private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager
 ) : ViewModel() {
+
+    val clockDriftWarning: StateFlow<Boolean> = syncManager.clockDriftSeconds
+        .map { drift -> (drift ?: 0L) > com.khanabook.lite.pos.domain.manager.SyncManager.MAX_ALLOWED_CLOCK_DRIFT_SECONDS }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     private val profileFlow = billRepository.getProfileFlow()
 
@@ -251,12 +260,12 @@ class HomeViewModel @Inject constructor(
             val kitchenPrinter = printerProfileRepository.getProfiles().firstOrNull {
                 it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
             }
-            if (kitchenPrinter == null) {
-                _message.emit(UiMessage("No kitchen printer configured.", ToastKind.Warning))
+            if (kitchenPrinter == null && printerManager.connectedDeviceMac.value.isNullOrBlank()) {
+                _message.emit(UiMessage("No kitchen printer configured or connected.", ToastKind.Warning))
                 return@launch
             }
 
-            kitchenPrintQueueManager.flushPendingForPrinter(kitchenPrinter.connectionTargetKey())
+            kitchenPrintQueueManager.flushAllPending()
             val remainingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
             if (remainingCount == 0) {
                 _message.emit(UiMessage("KDS tickets reprinted.", ToastKind.Success))

@@ -12,7 +12,17 @@ import java.util.Map;
 public class GstFssaiLookupService {
 
     private static final Logger log = LoggerFactory.getLogger(GstFssaiLookupService.class);
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${fssai.lookup.url:https://iadv.in/tracker/dist/lic-info.php?lic_num=}")
+    private String fssaiLookupUrl;
+
+    public GstFssaiLookupService() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(8000);
+        factory.setReadTimeout(12000);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> lookupGst(String gstin) {
@@ -47,26 +57,45 @@ public class GstFssaiLookupService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> lookupFssai(String fssaiNo) {
         Map<String, Object> result = new HashMap<>();
-        if (fssaiNo == null || fssaiNo.length() != 14) {
+        if (fssaiNo == null || fssaiNo.trim().length() != 14) {
             result.put("valid", false);
             result.put("error", "Invalid FSSAI format (must be 14 digits)");
             return result;
         }
+        String cleanFssaiNo = fssaiNo.trim();
         try {
-            String url = "https://pcts.tech/api/details/lic-info.php?lic_num=" + fssaiNo;
+            String url = (fssaiLookupUrl != null && !fssaiLookupUrl.isBlank())
+                    ? fssaiLookupUrl + cleanFssaiNo
+                    : "https://iadv.in/tracker/dist/lic-info.php?lic_num=" + cleanFssaiNo;
+
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null && response.containsKey("license")) {
                 Map<String, Object> license = (Map<String, Object>) response.get("license");
-                @SuppressWarnings("unchecked")
-                Map<String, Object> details = 
-                    (Map<String, Object>) response.getOrDefault("details", new HashMap<String, Object>());
+                Map<String, Object> details = (Map<String, Object>) response.getOrDefault("details", new HashMap<String, Object>());
+
                 result.put("valid", true);
-                result.put("businessName", String.valueOf(details.getOrDefault("companyName", "")).trim());
+                result.put("licenseNo", String.valueOf(license.getOrDefault("LicenseNo", cleanFssaiNo)).trim());
+                result.put("expiryDate", String.valueOf(license.getOrDefault("expiryDate", "")).trim());
+                if (license.get("fboId") != null) result.put("fboId", license.get("fboId"));
+                if (license.get("refId") != null) result.put("refId", license.get("refId"));
+
+                String companyName = String.valueOf(details.getOrDefault("companyName", "")).trim();
+                result.put("businessName", companyName);
+                result.put("legalEntityName", companyName);
+                result.put("contactPerson", String.valueOf(details.getOrDefault("contactPerson", "")).trim());
                 result.put("address", String.valueOf(details.getOrDefault("addressPremises", "")).trim());
                 result.put("state", String.valueOf(details.getOrDefault("statePremises", "")).trim());
                 result.put("pincode", String.valueOf(details.getOrDefault("pincodePremises", "")).trim());
-                result.put("fssaiStatus", String.valueOf(details.getOrDefault("licenseCategoryName", "")).trim());
-                result.put("expiryDate", String.valueOf(license.getOrDefault("expiryDate", "")).trim());
+                result.put("contactEmail", String.valueOf(details.getOrDefault("contactEmail", "")).trim());
+
+                Object panNo = details.get("panNo");
+                if (panNo != null && !String.valueOf(panNo).trim().isBlank()) {
+                    result.put("pan", String.valueOf(panNo).trim().toUpperCase());
+                }
+
+                if (details.containsKey("licenseCategoryName")) {
+                    result.put("fssaiStatus", String.valueOf(details.get("licenseCategoryName")).trim());
+                }
             } else {
                 String error = (response != null && response.get("error") != null)
                         ? String.valueOf(response.get("error"))
@@ -75,7 +104,7 @@ public class GstFssaiLookupService {
                 result.put("error", error);
             }
         } catch (Exception e) {
-            log.warn("FSSAI lookup failed for {}: {}", fssaiNo, e.getMessage());
+            log.warn("FSSAI lookup failed for {}: {}", cleanFssaiNo, e.getMessage());
             result.put("valid", false);
             result.put("error", "Lookup service unavailable");
         }
