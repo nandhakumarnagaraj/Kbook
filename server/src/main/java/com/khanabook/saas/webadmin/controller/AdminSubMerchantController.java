@@ -135,8 +135,17 @@ public class AdminSubMerchantController {
     }
 
     @GetMapping("/settlements/retrieve")
-    public ResponseEntity<Map<String, Object>> retrieveSettlements(@RequestParam String date) {
-        return ResponseEntity.ok(subMerchantService.retrieveSettlements(date));
+    public ResponseEntity<Map<String, Object>> retrieveSettlements(
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String subMerchantId) {
+        String start = startDate != null ? startDate : date;
+        String end = endDate != null ? endDate : (date != null ? date : start);
+        if (start == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "error", "date or startDate is required"));
+        }
+        return ResponseEntity.ok(subMerchantService.retrieveSettlements(start, end, subMerchantId));
     }
 
     // ============================================================

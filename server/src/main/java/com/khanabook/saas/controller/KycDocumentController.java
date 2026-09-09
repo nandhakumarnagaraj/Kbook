@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.AssetStorageService;
+import com.khanabook.saas.service.SubMerchantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -61,7 +62,7 @@ public class KycDocumentController {
             return ResponseEntity.notFound().build();
         }
         String key = keyFor(smOpt.get(), docType);
-        if (key == null || key.isBlank()) {
+        if (key == null || key.isBlank() || SubMerchantService.EASEBUZZ_HOSTED_MARKER.equals(key)) {
             return ResponseEntity.notFound().build();
         }
 

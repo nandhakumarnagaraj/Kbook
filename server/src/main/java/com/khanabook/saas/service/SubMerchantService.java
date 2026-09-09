@@ -14,9 +14,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -231,74 +234,238 @@ public class SubMerchantService {
         log.info("Updated KYC doc URL type={} for restaurantId={}: {}", docType, restaurantId, url);
     }
 
+    /**
+     * Sentinel stored in the {@code *_key} columns to mark a document that was
+     * delivered to Easebuzz's servers. It is NOT a local storage key: the file
+     * itself lives on Easebuzz (upload_kyc_documents), so the download endpoints
+     * must not try to resolve it from disk.
+     */
+    public static final String EASEBUZZ_HOSTED_MARKER = "EASEBUZZ_HOSTED";
+
+    private static final long KYC_FILE_MAX_BYTES = 10L * 1024 * 1024;
+    private static final long KYC_FILE_MIN_BYTES = 64L;
+
+    /**
+     * Uploads a KYC/address proof document directly to Easebuzz via
+     * {@code POST /submerchant/v1/upload_kyc_documents} (multipart + SHA-256).
+     * Per the Easebuzz aggregator model the document is stored on Easebuzz's
+     * servers — KhanaBook keeps only submission metadata, never a local PII copy.
+     */
+    @Transactional
+    public Map<String, Object> submitKycDocument(Long restaurantId, String docType, String proofType, MultipartFile file) {
+        EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
+                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", "restaurantId=" + restaurantId));
+        if (sm.getSubMerchantId() == null || sm.getSubMerchantId().isBlank()) {
+            throw new BusinessRuleException("Restaurant is not registered with Easebuzz yet. Complete registration first.",
+                    "sub_merchant_not_registered");
+        }
+        String documentType = easebuzzDocumentType(docType);
+        if (documentType == null) {
+            throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty");
+        }
+        if (file.getSize() < KYC_FILE_MIN_BYTES) {
+            throw new IllegalArgumentException("Uploaded file is too small to be a valid document");
+        }
+        if (file.getSize() > KYC_FILE_MAX_BYTES) {
+            throw new IllegalArgumentException("File too large; max " + (KYC_FILE_MAX_BYTES / (1024 * 1024)) + " MB");
+        }
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read uploaded KYC document", e);
+        }
+
+        log.info("Submitting KYC document restaurantId={} docType={} easebuzzType={} subMerchant={}",
+                restaurantId, docType, documentType, sm.getSubMerchantId());
+        Map<String, Object> result = easebuzzApi.uploadKycDocument(sm.getSubMerchantId(), documentType, bytes, sanitizeFilename(file.getOriginalFilename()));
+
+        if (!isTruthy(result.get("status"))) {
+            String error = result.get("error") != null ? result.get("error").toString() : "Easebuzz rejected the document";
+            log.warn("Easebuzz KYC upload rejected restaurantId={} docType={} error={}", restaurantId, docType, error);
+            throw new BusinessRuleException("Easebuzz could not accept the document: " + error, "kyc_upload_rejected");
+        }
+
+        switch (docType) {
+            case "id_proof" -> sm.setIdProofKey(EASEBUZZ_HOSTED_MARKER);
+            case "bank_proof" -> sm.setBankProofKey(EASEBUZZ_HOSTED_MARKER);
+            case "business_proof_1" -> {
+                sm.setBusinessProof1Key(EASEBUZZ_HOSTED_MARKER);
+                if (proofType != null && !proofType.isBlank()) {
+                    sm.setBusinessProof1Type(proofType.trim().toUpperCase());
+                }
+            }
+            case "business_proof_2" -> {
+                sm.setBusinessProof2Key(EASEBUZZ_HOSTED_MARKER);
+                if (proofType != null && !proofType.isBlank()) {
+                    sm.setBusinessProof2Type(proofType.trim().toUpperCase());
+                }
+            }
+            default -> throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+        }
+        if (sm.getKycSubmittedAt() == null) {
+            sm.setKycSubmittedAt(System.currentTimeMillis());
+        }
+        sm.setEasebuzzResponse("KYC_UPLOADED:" + documentType);
+        sm.setUpdatedAt(System.currentTimeMillis());
+        subMerchantRepo.save(sm);
+        log.info("KYC document accepted by Easebuzz restaurantId={} docType={} — no local copy stored", restaurantId, docType);
+        return Map.of("status", "success", "subMerchantId", sm.getSubMerchantId(), "documentType", documentType);
+    }
+
+    private static String easebuzzDocumentType(String docType) {
+        return switch (docType) {
+            case "id_proof" -> "ID_PROOF";
+            case "bank_proof" -> "BANK_PROOF";
+            case "business_proof_1", "business_proof_2" -> "ADDRESS_PROOF";
+            default -> null;
+        };
+    }
+
+    private static boolean isTruthy(Object o) {
+        if (o == null) return false;
+        if (o instanceof Boolean b) return b;
+        return "true".equalsIgnoreCase(o.toString()) || "success".equalsIgnoreCase(o.toString());
+    }
+
+    private static String sanitizeFilename(String name) {
+        if (name == null || name.isBlank()) return "document.pdf";
+        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    public static String resolveSubMerchantId(Map<String, Object> data) {
+        if (data == null) return null;
+        if (data.containsKey("submerchant_id") && data.get("submerchant_id") != null) {
+            return data.get("submerchant_id").toString();
+        } else if (data.containsKey("sub_merchant_id") && data.get("sub_merchant_id") != null) {
+            return data.get("sub_merchant_id").toString();
+        } else if (data.containsKey("id") && data.get("id") != null) {
+            return data.get("id").toString();
+        }
+        return null;
+    }
+
     @Transactional
     @SuppressWarnings("unchecked")
     public void processWebhook(Map<String, Object> payload) {
-        Map<String, Object> data = (Map<String, Object>) payload.get("data");
-        String subMerchantId = data != null ? (String) data.get("submerchant_id") : null;
-        String kycStatus = data != null ? (String) data.get("status") : null;
+        Object eventTypeObj = payload.get("event");
+        String eventType = eventTypeObj != null ? eventTypeObj.toString() : "kyc_status";
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = payload.get("data") instanceof Map ? (Map<String, Object>) payload.get("data") : null;
+        if (data == null) {
+            data = payload;
+        }
+
+        String subMerchantId = resolveSubMerchantId(data);
+
+        String email = data.containsKey("email") && data.get("email") != null ? data.get("email").toString() : null;
+
+        Object kycStatusObj = data.containsKey("kyc_status") ? data.get("kyc_status") : data.get("status");
+        String kycStatus = kycStatusObj != null ? kycStatusObj.toString() : null;
+        String kycProfileStatus = data.containsKey("kyc_profile_status") && data.get("kyc_profile_status") != null
+                ? data.get("kyc_profile_status").toString() : null;
+        String kycUrl = data.containsKey("kyc_url") && data.get("kyc_url") != null ? data.get("kyc_url").toString() : null;
+
         long now = System.currentTimeMillis();
 
-        if (subMerchantId == null) {
-            log.warn("Sub-merchant webhook missing submerchant_id in data");
+        Optional<EasebuzzSubMerchant> smOpt = Optional.empty();
+        if (subMerchantId != null && !subMerchantId.isBlank()) {
+            smOpt = subMerchantRepo.findBySubMerchantId(subMerchantId);
+        }
+        if (smOpt.isEmpty() && email != null && !email.isBlank()) {
+            smOpt = subMerchantRepo.findByContactEmail(email);
+        }
+
+        if (smOpt.isEmpty()) {
+            log.warn("Sub-merchant webhook could not resolve sub-merchant (subMerchantId={}, email={})", subMerchantId, email);
             return;
         }
 
+        EasebuzzSubMerchant sm = smOpt.get();
+        if (subMerchantId != null && !subMerchantId.isBlank() && !subMerchantId.equalsIgnoreCase(sm.getSubMerchantId())) {
+            log.info("Updating local sub-merchant ID {} to official Easebuzz ID {}", sm.getSubMerchantId(), subMerchantId);
+            sm.setSubMerchantId(subMerchantId);
+        }
+
         EasebuzzSubMerchantWebhookEvent event = new EasebuzzSubMerchantWebhookEvent();
-        event.setSubMerchantId(subMerchantId);
-        event.setEventType("kyc_status");
-        event.setRawStatus(kycStatus);
+        event.setSubMerchantId(sm.getSubMerchantId() != null ? sm.getSubMerchantId() : subMerchantId);
+        event.setEventType(eventType);
+        event.setRawStatus(kycProfileStatus != null ? kycProfileStatus : kycStatus);
         event.setPayload(payload.toString());
         event.setReceivedAt(now);
         event.setProcessed(false);
         webhookEventRepo.save(event);
 
-        subMerchantRepo.findBySubMerchantId(subMerchantId).ifPresent(sm -> {
-            if (kycStatus != null) {
-                sm.setKycStatus(kycStatus);
-                if ("True".equalsIgnoreCase(kycStatus)) {
-                    sm.setStatus("ACTIVE");
-                    sm.setKycActivatedAt(now);
-                } else if ("False".equalsIgnoreCase(kycStatus)) {
-                    sm.setStatus("REJECTED");
-                } else if ("Pending".equalsIgnoreCase(kycStatus)) {
-                    sm.setStatus("KYC_SUBMITTED");
-                    sm.setKycSubmittedAt(System.currentTimeMillis());
-                }
+        if (kycUrl != null && !kycUrl.isBlank()) {
+            sm.setKycPortalUrl(kycUrl);
+        }
 
-                // Store virtual_account details from KYC approval webhook
-                @SuppressWarnings("unchecked")
-                Map<String, Object> virtualAccount = (Map<String, Object>) data.get("virtual_account");
-                if (virtualAccount != null) {
-                    sm.setVirtualAccountId(virtualAccount.get("id") != null ? virtualAccount.get("id").toString() : null);
-                    sm.setVirtualAccountNumber(virtualAccount.get("account_number") != null ? virtualAccount.get("account_number").toString() : null);
-                    sm.setVirtualAccountIfsc(virtualAccount.get("ifsc") != null ? virtualAccount.get("ifsc").toString() : null);
-                    sm.setVirtualAccountBank(virtualAccount.get("bank_name") != null ? virtualAccount.get("bank_name").toString() : null);
-                }
+        if (kycProfileStatus != null || kycStatus != null) {
+            if ("Completed".equalsIgnoreCase(kycProfileStatus) || "True".equalsIgnoreCase(kycStatus) || Boolean.TRUE.equals(kycStatusObj)) {
+                sm.setStatus("ACTIVE");
+                sm.setKycStatus("True");
+                sm.setKycActivatedAt(now);
+            } else if ("CPV_PENDING".equalsIgnoreCase(kycProfileStatus)) {
+                sm.setStatus("CPV_PENDING");
+                sm.setKycStatus("Pending");
+            } else if ("Rejected".equalsIgnoreCase(kycProfileStatus) || "False".equalsIgnoreCase(kycStatus) || Boolean.FALSE.equals(kycStatusObj)) {
+                sm.setStatus("REJECTED");
+                sm.setKycStatus("False");
+            } else if ("Pending".equalsIgnoreCase(kycProfileStatus) || "Pending".equalsIgnoreCase(kycStatus)) {
+                sm.setStatus("KYC_SUBMITTED");
+                sm.setKycStatus("Pending");
+                sm.setKycSubmittedAt(now);
+            }
 
-                sm.setUpdatedAt(now);
-                subMerchantRepo.save(sm);
-                
-                try {
-                    String statusMessage = "True".equalsIgnoreCase(kycStatus) ? "Approved & Activated! 🚀" :
-                                           "False".equalsIgnoreCase(kycStatus) ? "Rejected/Needs attention ⚠️" : "Pending Verification ⏳";
-                    pushNotificationService.pushToRestaurant(
-                        sm.getRestaurantId(),
-                        "KYC Status Update",
-                        "Your sub-merchant KYC status is now: " + statusMessage,
-                        "kyc",
-                        String.valueOf(sm.getId()),
-                        "submerchant",
-                        java.math.BigDecimal.ZERO
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to push KYC status update notification: {}", e.getMessage());
+            // Store virtual_account details from KYC approval webhook
+            @SuppressWarnings("unchecked")
+            Map<String, Object> virtualAccount = data.get("virtual_account") instanceof Map ? (Map<String, Object>) data.get("virtual_account") : null;
+            if (virtualAccount != null) {
+                if (virtualAccount.get("id") != null) sm.setVirtualAccountId(virtualAccount.get("id").toString());
+                if (virtualAccount.get("account_number") != null) sm.setVirtualAccountNumber(virtualAccount.get("account_number").toString());
+                if (virtualAccount.get("ifsc") != null) sm.setVirtualAccountIfsc(virtualAccount.get("ifsc").toString());
+                if (virtualAccount.get("bank_name") != null) sm.setVirtualAccountBank(virtualAccount.get("bank_name").toString());
+                if (virtualAccount.get("status") != null) {
+                    log.info("Sub-merchant {} virtual account status={}", sm.getSubMerchantId(), virtualAccount.get("status"));
                 }
             }
-            event.setProcessed(true);
-            webhookEventRepo.save(event);
-            log.info("Processed sub-merchant KYC webhook subMerchantId={} kycStatus={}", subMerchantId, kycStatus);
-        });
+
+            sm.setUpdatedAt(now);
+            subMerchantRepo.save(sm);
+
+            try {
+                String statusMessage;
+                if ("ACTIVE".equals(sm.getStatus())) {
+                    statusMessage = "Approved & Activated! 🚀";
+                } else if ("CPV_PENDING".equals(sm.getStatus())) {
+                    statusMessage = "CPV Verification in Progress ⏳";
+                } else if ("REJECTED".equals(sm.getStatus())) {
+                    statusMessage = "Rejected/Needs attention ⚠️";
+                } else {
+                    statusMessage = "Pending Verification ⏳";
+                }
+
+                pushNotificationService.pushToRestaurant(
+                    sm.getRestaurantId(),
+                    "KYC Status Update",
+                    "Your sub-merchant KYC status is now: " + statusMessage,
+                    "kyc",
+                    String.valueOf(sm.getId()),
+                    "submerchant",
+                    java.math.BigDecimal.ZERO
+                );
+            } catch (Exception e) {
+                log.warn("Failed to push KYC status update notification: {}", e.getMessage());
+            }
+        }
+        event.setProcessed(true);
+        webhookEventRepo.save(event);
+        log.info("Processed sub-merchant KYC webhook subMerchantId={} kycStatus={}", subMerchantId, kycStatus);
     }
 
     @Transactional
@@ -527,6 +694,10 @@ public class SubMerchantService {
         return easebuzzApi.retrieveSettlements(date);
     }
 
+    public Map<String, Object> retrieveSettlements(String startDate, String endDate, String subMerchantId) {
+        return easebuzzApi.retrieveSettlements(startDate, endDate, subMerchantId);
+    }
+
     @Transactional
     public void ensureEasebuzzEnabled(Long restaurantId) {
         restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
@@ -628,38 +799,50 @@ public class SubMerchantService {
                 "MANDATORY_FIELDS_MISSING"
             );
         }
-        // EaseBuzz CPV: proprietorship entities must provide two valid business proofs.
         if (requireBusinessProofs && isProprietorship(sm.getBusinessType())) {
             boolean proof1 = (sm.getBusinessProof1Url() != null && !sm.getBusinessProof1Url().isBlank())
                     || (sm.getBusinessProof1Key() != null && !sm.getBusinessProof1Key().isBlank());
             boolean proof2 = (sm.getBusinessProof2Url() != null && !sm.getBusinessProof2Url().isBlank())
                     || (sm.getBusinessProof2Key() != null && !sm.getBusinessProof2Key().isBlank());
-            if (!proof1 || !proof2) {
+            if (!proof1 && !proof2) {
                 throw new BusinessRuleException(
-                    "Proprietorship entities require two valid business proof documents for CPV.",
+                    "Proprietorship entities require at least one valid business/address proof document for CPV.",
                     "BUSINESS_PROOFS_REQUIRED"
                 );
             }
-            // EaseBuzz CPV: the two proofs must be of DISTINCT document types (two copies
-            // of the same document do not corroborate the entity). The accepted-type enum
-            // is deferred until EaseBuzz confirms the authoritative list; for now we only
-            // require both types to be present and different (case-insensitive).
             String type1 = sm.getBusinessProof1Type();
             String type2 = sm.getBusinessProof2Type();
-            if (isBlank(type1) || isBlank(type2)) {
+            if (proof1 && isBlank(type1)) {
                 throw new BusinessRuleException(
-                    "Both business proof document types must be specified for CPV.",
+                    "Business proof 1 document type must be specified for CPV.",
                     "BUSINESS_PROOF_TYPES_REQUIRED"
                 );
             }
-            if (type1.trim().equalsIgnoreCase(type2.trim())) {
+            if (proof2 && isBlank(type2)) {
+                throw new BusinessRuleException(
+                    "Business proof 2 document type must be specified for CPV.",
+                    "BUSINESS_PROOF_TYPES_REQUIRED"
+                );
+            }
+            // If both proofs are provided, they must be of DISTINCT document types.
+            if (proof1 && proof2 && type1.trim().equalsIgnoreCase(type2.trim())) {
                 throw new BusinessRuleException(
                     "The two business proofs must be of different document types for CPV.",
                     "BUSINESS_PROOF_TYPES_NOT_DISTINCT"
                 );
             }
         }
+        String subMerchantId = sm.getSubMerchantId();
+        if (subMerchantId == null || subMerchantId.isBlank()) {
+            Long restId = sm.getRestaurantId() != null ? sm.getRestaurantId() : 0L;
+            String restTail = String.format("%06d", restId % 1000000);
+            String uuidTail = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
+            subMerchantId = "KBSM" + restTail + uuidTail;
+            sm.setSubMerchantId(subMerchantId);
+        }
+
         Map<String, Object> result = easebuzzApi.createSubMerchant(
+            subMerchantId,
             sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
             sm.getBankAccountNo(), sm.getIfsc(), sm.getBankName(),
             sm.getBeneficiaryName(), sm.getBranchName(),
@@ -670,9 +853,10 @@ public class SubMerchantService {
         Object statusObj = result != null ? result.get("status") : null;
         boolean apiStatus = EasebuzzApiClient.toBool(statusObj);
         if (apiStatus && result != null) {
-            Object subMerchantIdObj = result.get("submerchant_id");
-            String subMerchantId = subMerchantIdObj != null ? subMerchantIdObj.toString() : null;
-            sm.setSubMerchantId(subMerchantId);
+            Object returnedSmIdObj = result.get("submerchant_id");
+            if (returnedSmIdObj != null && !returnedSmIdObj.toString().isBlank()) {
+                sm.setSubMerchantId(returnedSmIdObj.toString());
+            }
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());

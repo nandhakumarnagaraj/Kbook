@@ -120,11 +120,15 @@ public class RestaurantPaymentConfigController {
      * Emits KYC document presence without leaking a public URL:
      *   <prefix>Present  -> boolean
      *   <prefix>DownloadPath -> authenticated relative API path (or null)
+     * Documents submitted to Easebuzz's servers carry the EASEBUZZ_HOSTED marker
+     * (no local file), so they report present but expose no download path.
      */
     private void putKycDoc(Map<String, Object> result, String prefix, String key, String legacyUrl, String docType) {
+        boolean hostedByEasebuzz = SubMerchantService.EASEBUZZ_HOSTED_MARKER.equals(key);
         boolean present = (key != null && !key.isBlank()) || (legacyUrl != null && !legacyUrl.isBlank());
         result.put(prefix + "Present", present);
-        result.put(prefix + "DownloadPath", present ? "/business/kyc-document/" + docType + "/download" : null);
+        result.put(prefix + "DownloadPath",
+                (present && !hostedByEasebuzz) ? "/business/kyc-document/" + docType + "/download" : null);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
