@@ -174,7 +174,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                     _uiState.value = when {
                         status.isActive -> OnboardingUiState.Active(status)
                         status.status == "REJECTED" -> OnboardingUiState.Rejected(status)
-                        status.status == "KYC_SUBMITTED" || status.status == "PENDING_KYC" ->
+                        status.status == "KYC_SUBMITTED" || status.status == "PENDING_KYC" || status.status == "CPV_PENDING" ->
                             OnboardingUiState.AwaitingKyc(status)
                         status.hasSubMerchant -> OnboardingUiState.AwaitingKyc(status)
                         else -> OnboardingUiState.NotStarted

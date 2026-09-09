@@ -30,8 +30,8 @@ class AuthManager @Inject constructor() {
         if (!pinHash.isNullOrBlank()) {
             verifyPassword(enteredPin, pinHash)
         } else {
-            // If manager hasn't set an explicit custom PIN, allow default owner PIN "1234"
-            enteredPin == "1234"
+            Log.w(TAG, "No manager PIN configured — access denied until PIN is set")
+            false
         }
     }
 }

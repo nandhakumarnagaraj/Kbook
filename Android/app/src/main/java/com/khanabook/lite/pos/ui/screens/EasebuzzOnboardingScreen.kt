@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -650,7 +651,8 @@ private fun KycStatusStep(
             modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
         )
         Spacer(Modifier.height(spacing.medium))
-        Text("KYC Verification Pending", style = MaterialTheme.typography.titleMedium, color = TextLight)
+        val titleText = if (status?.status == "CPV_PENDING") "CPV Physical Verification Pending" else "KYC Verification Pending"
+        Text(titleText, style = MaterialTheme.typography.titleMedium, color = TextLight)
         Spacer(Modifier.height(spacing.medium))
         Text(
             "Your registration has been submitted to Easebuzz for verification. " +
@@ -669,6 +671,37 @@ private fun KycStatusStep(
             }
             if (!status.subMerchantId.isNullOrBlank()) {
                 StatusCard("Merchant ID", status.subMerchantId, spacing)
+            }
+
+            if (status.status == "CPV_PENDING") {
+                Spacer(Modifier.height(spacing.small))
+                Surface(
+                    color = WarningYellow.copy(alpha = 0.15f),
+                    shape = KhanaRadii.card,
+                    border = BorderStroke(1.dp, WarningYellow),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(spacing.medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Text("⏳", style = MaterialTheme.typography.titleMedium)
+                        Column {
+                            Text(
+                                "CPV Verification In Progress",
+                                color = WarningYellow,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Spacer(Modifier.height(spacing.extraSmall))
+                            Text(
+                                "Easebuzz is verifying your restaurant premises. Keep counter originals and storefront signage ready.",
+                                color = TextLight,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(Modifier.height(spacing.medium))
@@ -706,10 +739,10 @@ private fun KycStatusStep(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Address Proof 2 ($p2Label):", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                        Text("Address Proof 2 ($p2Label - Optional):", color = TextGold, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            if (status.businessProof2Present) "✓ Uploaded" else "⚠️ Missing",
-                            color = if (status.businessProof2Present) SuccessGreen else DangerRed,
+                            if (status.businessProof2Present) "✓ Uploaded" else "Optional",
+                            color = if (status.businessProof2Present) SuccessGreen else TextGold.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -726,15 +759,38 @@ private fun KycStatusStep(
                         )
                     }
 
-                    if (onOpenComplianceDocs != null) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    if (!status.kycUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(spacing.medium))
                         Button(
-                            onClick = onOpenComplianceDocs,
+                            onClick = {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(status.kycUrl)
+                                )
+                                context.startActivity(intent)
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = KhanaRadii.button,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Upload & Manage Address Proofs", color = DarkBrown1)
+                            val buttonText = if (status.status == "CPV_PENDING") {
+                                "Complete Agentless CPV Verification ↗"
+                            } else {
+                                "Open Easebuzz KYC Portal (Upload Proofs) ↗"
+                            }
+                            Text(buttonText, color = DarkBrown1)
+                        }
+                    }
+
+                    if (onOpenComplianceDocs != null) {
+                        Spacer(Modifier.height(spacing.small))
+                        OutlinedButton(
+                            onClick = onOpenComplianceDocs,
+                            shape = KhanaRadii.button,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Upload & Manage Address Proofs", color = PrimaryGold)
                         }
                     }
                 }
@@ -742,7 +798,7 @@ private fun KycStatusStep(
 
             Spacer(Modifier.height(spacing.small))
 
-            // CPV Physical Verification Notice
+            // CPV Physical / Agentless Verification Notice
             Surface(
                 color = DarkBrown2.copy(alpha = 0.6f),
                 shape = KhanaRadii.card,
@@ -750,13 +806,13 @@ private fun KycStatusStep(
             ) {
                 Column(modifier = Modifier.padding(spacing.medium)) {
                     Text(
-                        "📍 CPV Physical Verification",
+                        "📍 CPV Verification (Fast 48-hr Approval)",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(Modifier.height(spacing.extraSmall))
                     Text(
-                        "An Easebuzz field representative will visit your shop to verify the storefront signboard matches your trade name (${status.tradeName ?: "registered name"}), GPS coordinates match your shop address, and printed original documents are at the counter.",
+                        "Complete verification online via the link above (geotagged signboard photo, shop interior, and owner consent) or keep printed counter originals ready for physical verification.",
                         color = TextGold.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodySmall
                     )

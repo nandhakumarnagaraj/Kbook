@@ -91,7 +91,7 @@ fun ComplianceDocumentsScreen(
         }
     }
 
-    val isDuplicateTypeError = selectedProof1Type == selectedProof2Type
+    val isDuplicateTypeError = (selectedProof1Type == selectedProof2Type) && (status?.businessProof2Present == true)
 
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         val docType = pendingDocType ?: return@rememberLauncherForActivityResult
@@ -174,12 +174,12 @@ fun ComplianceDocumentsScreen(
 
             // ── 3. Address Proofs Section Header ────────────────────────
             Text(
-                "Business Address Proofs (2 Distinct Documents Required)",
+                "Business Address Proof (At least 1 Document Required)",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                "Upload clear photos or PDFs. For Sole Proprietorships, Easebuzz compliance requires 2 different proof types to pass Contact Point Verification (CPV).",
+                "Upload clear photos or PDFs. Any 1 valid document (Electricity Bill, GST, Shop Act, Trade License, Udyam, or Rent Agreement) is accepted for CPV. You may optionally upload a 2nd distinct document.",
                 color = TextGold.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -198,7 +198,7 @@ fun ComplianceDocumentsScreen(
                     ) {
                         Icon(Icons.Default.Warning, contentDescription = null, tint = DangerRed)
                         Text(
-                            "Proof 1 and Proof 2 cannot be the same document type. Easebuzz CPV will reject duplicates.",
+                            "Proof 1 and Proof 2 cannot be the same document type if you choose to upload a second proof.",
                             color = DangerRed,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -208,12 +208,13 @@ fun ComplianceDocumentsScreen(
 
             // ── 4. Address Proof 1 ──────────────────────────────────────
             AddressProofCard(
-                title = "Address Proof 1",
+                title = "Address Proof 1 (Mandatory)",
                 selectedType = selectedProof1Type,
                 onTypeSelected = { selectedProof1Type = it },
                 uploadedType = status?.businessProof1Type,
                 isUploaded = status?.businessProof1Present ?: false,
-                isAllowed = canUpload && !isDuplicateTypeError,
+                canView = status?.businessProof1DownloadPath != null,
+                isAllowed = canUpload,
                 isSubmitting = isSubmitting,
                 onUpload = {
                     pendingDocType = "business_proof_1"
@@ -226,12 +227,13 @@ fun ComplianceDocumentsScreen(
 
             // ── 5. Address Proof 2 ──────────────────────────────────────
             AddressProofCard(
-                title = "Address Proof 2",
+                title = "Address Proof 2 (Optional)",
                 selectedType = selectedProof2Type,
                 onTypeSelected = { selectedProof2Type = it },
                 uploadedType = status?.businessProof2Type,
                 isUploaded = status?.businessProof2Present ?: false,
-                isAllowed = canUpload && !isDuplicateTypeError,
+                canView = status?.businessProof2DownloadPath != null,
+                isAllowed = canUpload && (selectedProof1Type != selectedProof2Type),
                 isSubmitting = isSubmitting,
                 onUpload = {
                     pendingDocType = "business_proof_2"
@@ -241,6 +243,15 @@ fun ComplianceDocumentsScreen(
                 onView = { vm.downloadKycDocument("business_proof_2") },
                 spacing = spacing
             )
+
+            if (selectedProof1Type == selectedProof2Type && !(status?.businessProof2Present ?: false)) {
+                Text(
+                    "To upload a second proof, select a document type distinct from Proof 1.",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = spacing.extraSmall)
+                )
+            }
 
             Spacer(Modifier.height(spacing.medium))
 
@@ -366,6 +377,7 @@ private fun AddressProofCard(
     onTypeSelected: (AddressProofType) -> Unit,
     uploadedType: String?,
     isUploaded: Boolean,
+    canView: Boolean,
     isAllowed: Boolean,
     isSubmitting: Boolean,
     onUpload: () -> Unit,
@@ -487,7 +499,7 @@ private fun AddressProofCard(
                 }
                 OutlinedButton(
                     onClick = onView,
-                    enabled = isUploaded,
+                    enabled = isUploaded && canView,
                     border = BorderStroke(1.dp, PrimaryGold),
                     shape = KhanaRadii.xl
                 ) {
@@ -513,7 +525,7 @@ private fun CpvChecklistCard(spacing: Spacing) {
             ) {
                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryGold)
                 Text(
-                    "Contact Point Verification (CPV) Checklist",
+                    "Contact Point Verification (CPV) Guide",
                     color = PrimaryGold,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
@@ -521,7 +533,7 @@ private fun CpvChecklistCard(spacing: Spacing) {
             }
             Spacer(Modifier.height(spacing.small))
             Text(
-                "An Easebuzz representative visits your outlet to confirm authenticity before activating online settlements. Prepare the following:",
+                "Easebuzz uses fast agentless CPV (self-service via secure link) for most merchants. For physical visits (high-risk or discrepancy cases), prepare:",
                 color = TextGold.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -529,7 +541,7 @@ private fun CpvChecklistCard(spacing: Spacing) {
             CpvChecklistItem("1. Storefront Signage: Ensure outlet name board displays your Trade Name.")
             CpvChecklistItem("2. Counter Originals: Keep printed copies of uploaded FSSAI & address proofs at the desk.")
             CpvChecklistItem("3. Operational Kitchen: Counter, menu card, and food service setup must be visible.")
-            CpvChecklistItem("4. GPS Match: Field check is executed inside the registered shop premises.")
+            CpvChecklistItem("4. GPS Match: Field check or self-service photo capture is executed inside the registered shop premises.")
         }
     }
 }

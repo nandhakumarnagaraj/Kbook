@@ -41,8 +41,15 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.graphics.asImageBitmap
+import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+
+private val UPI_VPA_REGEX = Regex("^[a-zA-Z0-9.\\-_]{2,256}@[a-zA-Z]{2,64}$")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +71,9 @@ fun PaymentConfigView(
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
-
+    var showTestQrDialog by remember { mutableStateOf(false) }
+    val feedbackPrefs = com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackPreferences()
+    val feedbackSettings by com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackSettings(feedbackPrefs)
     val toastScope = rememberCoroutineScope()
 
     Column(
@@ -113,14 +122,40 @@ fun PaymentConfigView(
             PaymentToggle("Cash Payment", cashEnabled, onCheckedChange = { cashEnabled = it }, enabled = !readOnly)
             PaymentToggle("POS Machine", posEnabled, onCheckedChange = { posEnabled = it }, enabled = !readOnly)
             PaymentToggle("Offline UPI QR", upiSupported, onCheckedChange = { upiSupported = it }, enabled = !readOnly)
+            PaymentToggle(
+                "Voice Soundbox (Audio Alert)",
+                feedbackSettings.voiceAnnouncementEnabled,
+                onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
+                enabled = !readOnly
+            )
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
                 ParchmentTextField(
                     value = upiHandle,
-                    onValueChange = { upiHandle = it.trim() },
+                    onValueChange = { upiHandle = it.trim().lowercase() },
                     label = "UPI ID *",
                     enabled = !readOnly
                 )
+                if (upiHandle.isNotBlank()) {
+                    val isValid = UPI_VPA_REGEX.matches(upiHandle)
+                    if (isValid) {
+                        Spacer(modifier = Modifier.height(spacing.extraSmall))
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { showTestQrDialog = true },
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Test UPI QR Code ↗", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
+                        }
+                    } else {
+                        Text(
+                            "Format: yourname@bank (e.g. cafe@okhdfcbank)",
+                            color = PrimaryGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
             }
             PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
             if (easebuzzEnabled) {
@@ -150,29 +185,81 @@ fun PaymentConfigView(
                 }
             }
 
+            if (showTestQrDialog && upiHandle.isNotBlank()) {
+                val qrBitmap = remember(upiHandle, profile?.shopName) {
+                    QrCodeManager.generateUpiQr(upiHandle, profile?.shopName ?: "KhanaBook Merchant", 1.0, 512)
+                }
+                AlertDialog(
+                    onDismissRequest = { showTestQrDialog = false },
+                    containerColor = DarkBrownSheet,
+                    title = {
+                        Text("Interactive UPI Verification Test", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                    },
+                    text = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "Scan this test QR with Google Pay, PhonePe, or Paytm to confirm your registered bank account name.",
+                                color = TextGold,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            if (qrBitmap != null) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "Test UPI QR",
+                                    modifier = Modifier.size(180.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Text(
+                                "UPI ID: $upiHandle\nTest Amount: ₹1.00",
+                                color = TextGold.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = { showTestQrDialog = false }) {
+                            Text("Done", color = PrimaryGold)
+                        }
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             ConfigActionButtons(
                 onSave = {
-                        if (upiSupported && upiHandle.isBlank()) {
+                    if (upiSupported) {
+                        if (upiHandle.isBlank()) {
                             toastScope.launch {
                                 KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)
                             }
                             return@ConfigActionButtons
                         }
-                        profile?.copy(
-                            currency = currency,
-                            upiEnabled = upiSupported,
-                            upiHandle = upiHandle.trim(),
-                            upiMobile = null,
-                            upiQrPath = null,
-                            upiQrUrl = null,
-                            cashEnabled = cashEnabled,
-                            posEnabled = posEnabled,
-                            easebuzzEnabled = easebuzzEnabled,
+                        if (!UPI_VPA_REGEX.matches(upiHandle.trim())) {
+                            toastScope.launch {
+                                KhanaToast.show("Invalid UPI ID format. Format: yourname@bank", ToastKind.Error)
+                            }
+                            return@ConfigActionButtons
+                        }
+                    }
+                    profile?.copy(
+                        currency = currency,
+                        upiEnabled = upiSupported,
+                        upiHandle = upiHandle.trim().lowercase(),
+                        upiMobile = null,
+                        upiQrPath = null,
+                        upiQrUrl = null,
+                        cashEnabled = cashEnabled,
+                        posEnabled = posEnabled,
+                        easebuzzEnabled = easebuzzEnabled,
 
-                            isSynced = false,
-                            updatedAt = System.currentTimeMillis()
-                        )?.let { onSave(it) }
+                        isSynced = false,
+                        updatedAt = System.currentTimeMillis()
+                    )?.let { onSave(it) }
                 },
                 onBack = onBack,
                 isSaving = saveProfileLoading,
