@@ -39,6 +39,15 @@ public class EasebuzzPaymentService {
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
         Bill bill = billRepo.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+        if (!bill.getRestaurantId().equals(restaurantId)) {
+            log.warn("Blocked cross-tenant order creation billId={} restaurantId={} billRestaurantId={}",
+                    billId, restaurantId, bill.getRestaurantId());
+            return Map.of(
+                    "status", "failure",
+                    "code", "ACCESS_DENIED",
+                    "error", "Bill does not belong to this restaurant"
+            );
+        }
         if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
             log.warn("Blocked Easebuzz order creation for already paid billId={} restaurantId={} existingTxnid={}",
                     billId, restaurantId, bill.getGatewayTxnId());
@@ -314,7 +323,7 @@ public class EasebuzzPaymentService {
     @Transactional
     @SuppressWarnings("unchecked")
     public Map<String, Object> initiateRefund(Long billId, BigDecimal amount, String reason) {
-        Bill bill = billRepo.findById(billId)
+        Bill bill = billRepo.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found for refund");
@@ -329,7 +338,23 @@ public class EasebuzzPaymentService {
             easebuzzId = webhookEvent.get().getEasebuzzId();
         }
         if (easebuzzId.isBlank()) {
-            log.warn("Could not find easebuzz_id for billId={} txnid={}, proceeding with txnid as fallback", billId, txnid);
+            try {
+                Map<String, Object> raw = easebuzzApi.getTransactionStatus(txnid);
+                Object msgObj = raw != null ? raw.get("msg") : null;
+                if (msgObj instanceof Map) {
+                    easebuzzId = str(((Map<String, Object>) msgObj).getOrDefault("easebuzz_id", ""));
+                } else if (msgObj instanceof List && !((List<?>) msgObj).isEmpty()) {
+                    Object first = ((List<?>) msgObj).get(0);
+                    if (first instanceof Map) {
+                        easebuzzId = str(((Map<String, Object>) first).getOrDefault("easebuzz_id", ""));
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to retrieve easebuzz_id via status API for billId={}: {}", billId, e.getMessage());
+            }
+        }
+        if (easebuzzId.isBlank()) {
+            log.warn("Could not resolve easebuzz_id for billId={} txnid={}, proceeding with txnid as fallback", billId, txnid);
             easebuzzId = txnid;
         }
 
@@ -535,7 +560,7 @@ public class EasebuzzPaymentService {
             log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
         }
 
-        String email = customerEmail != null && !customerEmail.isBlank() ? customerName : subMerchantEmail;
+        String email = customerEmail != null && !customerEmail.isBlank() ? customerEmail : subMerchantEmail;
         String phone = customerPhone != null && !customerPhone.isBlank() ? customerPhone : subMerchantPhone;
         if (email == null || email.isBlank()) email = "customer@khanabook.in";
         if (phone == null || phone.isBlank()) phone = "9000000000";
@@ -570,14 +595,25 @@ public class EasebuzzPaymentService {
     }
 
     /**
-     * Creates a payment link for an existing bill, pulling customer/amount data from the bill entity.
+     * Creates an Easebuzz EasyCollect payment link specifically tied to a KhanaBook Bill.
      * This is used by the New Bill → Payment → "Send Payment Link" flow.
      * The link is tied to the bill via udf1=billId so the webhook can reconcile it.
      */
     @Transactional
     public Map<String, Object> createPaymentLinkForBill(Long billId, Long restaurantId) {
+        return createPaymentLinkForBill(billId, restaurantId, null, null);
+    }
+
+    @Transactional
+    public Map<String, Object> createPaymentLinkForBill(Long billId, Long restaurantId, String customerPhone, String customerEmail) {
         Bill bill = billRepo.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+        if (!bill.getRestaurantId().equals(restaurantId)) {
+            log.warn("Blocked cross-tenant payment link billId={} restaurantId={} billRestaurantId={}",
+                    billId, restaurantId, bill.getRestaurantId());
+            return Map.of("status", "failure", "code", "ACCESS_DENIED",
+                    "error", "Bill does not belong to this restaurant");
+        }
 
         // Block if already paid
         if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
@@ -600,7 +636,17 @@ public class EasebuzzPaymentService {
         String customerName = bill.getCustomerName() != null
                 ? bill.getCustomerName().replaceAll("[^a-zA-Z0-9 ]", "").trim()
                 : "Customer";
-        String customerPhone = bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "";
+        String resolvedPhone = customerPhone != null && !customerPhone.isBlank()
+                ? customerPhone.trim()
+                : (bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "");
+        String resolvedEmail = customerEmail != null && !customerEmail.isBlank()
+                ? customerEmail.trim()
+                : "";
+
+        if (customerPhone != null && !customerPhone.isBlank() && (bill.getCustomerWhatsapp() == null || bill.getCustomerWhatsapp().isBlank())) {
+            bill.setCustomerWhatsapp(customerPhone.trim());
+        }
+
         String message = "Payment for KhanaBook Order "
                 + (bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId);
 
@@ -614,8 +660,8 @@ public class EasebuzzPaymentService {
         request.put("restaurantId", restaurantId);
         request.put("amount", amount);
         request.put("customerName", customerName);
-        request.put("customerEmail", ""); // Fallback handled inside createPaymentLink
-        request.put("customerPhone", customerPhone);
+        request.put("customerEmail", resolvedEmail);
+        request.put("customerPhone", resolvedPhone);
         request.put("message", message);
         request.put("merchantTxn", merchantTxn);
         request.put("udf1", billId.toString());  // CRITICAL: webhook uses this to find the bill

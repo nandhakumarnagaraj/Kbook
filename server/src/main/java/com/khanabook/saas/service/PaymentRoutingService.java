@@ -67,7 +67,7 @@ public class PaymentRoutingService {
             ));
         }
 
-        List<Map<String, Object>> methodRates = getPaymentMethodRates(last24h, nowMs);
+        List<Map<String, Object>> methodRates = getPaymentMethodRates(null, last24h, nowMs);
         for (Map<String, Object> method : methodRates) {
             BigDecimal rate = (BigDecimal) method.get("successRate");
             String methodName = (String) method.get("method");
@@ -110,7 +110,7 @@ public class PaymentRoutingService {
         long last24h = ZonedDateTime.now(ist).minusHours(24).toInstant().toEpochMilli();
         long nowMs = System.currentTimeMillis();
 
-        List<Map<String, Object>> methodRates = getPaymentMethodRates(last24h, nowMs);
+        List<Map<String, Object>> methodRates = getPaymentMethodRates(restaurantId, last24h, nowMs);
         String optimalMethod = "upi";
         BigDecimal bestRate = BigDecimal.ZERO;
 
@@ -140,8 +140,10 @@ public class PaymentRoutingService {
         return decision;
     }
 
-    private List<Map<String, Object>> getPaymentMethodRates(long fromMs, long toMs) {
-        List<Object[]> raw = billRepository.countByModeAndStatusBetween(fromMs, toMs);
+    private List<Map<String, Object>> getPaymentMethodRates(Long restaurantId, long fromMs, long toMs) {
+        List<Object[]> raw = (restaurantId != null && restaurantId > 0)
+                ? billRepository.countByRestaurantIdAndModeAndStatusBetween(restaurantId, fromMs, toMs)
+                : billRepository.countByModeAndStatusBetween(fromMs, toMs);
         Map<String, Map<String, Long>> methodStats = new HashMap<>();
         for (Object[] row : raw) {
             String mode = (String) row[0];

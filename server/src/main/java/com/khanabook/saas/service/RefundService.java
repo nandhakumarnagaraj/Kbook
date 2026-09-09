@@ -50,7 +50,10 @@ public class RefundService {
 
     @Transactional
     public Map<String, Object> initiatePartialRefund(Long billId, Long restaurantId, BigDecimal refundAmount, String reason) {
-        Bill bill = billRepository.findById(billId)
+        // Pessimistic write lock: serializes concurrent refunds for the same bill.
+        // The second attempt blocks here, then re-reads the committed refundAmount
+        // and fails eligibility checks instead of double-refunding.
+        Bill bill = billRepository.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (!bill.getRestaurantId().equals(restaurantId)) {
             throw new BusinessRuleException("Order does not belong to this business");
@@ -90,9 +93,14 @@ public class RefundService {
             result.put("remainingRefundable", bill.getTotalAmount().subtract(newTotalRefund));
 
             if (bill.getCustomerWhatsapp() != null && !bill.getCustomerWhatsapp().isBlank()) {
-                String orderCode = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
-                emailNotificationService.sendRefundConfirmation(
-                    bill.getCustomerWhatsapp(), bill.getCustomerName(), orderCode, refundAmount, reason);
+                try {
+                    String orderCode = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
+                    emailNotificationService.sendRefundConfirmation(
+                        bill.getCustomerWhatsapp(), bill.getCustomerName(), orderCode, refundAmount, reason);
+                } catch (Exception e) {
+                    // Never roll back a gateway-confirmed refund because a notification failed.
+                    log.warn("Refund confirmed but notification failed for billId={}: {}", billId, e.getMessage(), e);
+                }
             }
         }
         result.put("billId", billId);
@@ -101,7 +109,7 @@ public class RefundService {
 
     @Transactional
     public Map<String, Object> cancelAndAutoRefund(Long billId, Long restaurantId, String reason, int delayMinutes) {
-        Bill bill = billRepository.findById(billId)
+        Bill bill = billRepository.findByIdForUpdate(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (!bill.getRestaurantId().equals(restaurantId)) {
             throw new BusinessRuleException("Order does not belong to this business");

@@ -1,12 +1,14 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.config.EasebuzzProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.EasebuzzWebhookEvent;
 import com.khanabook.saas.entity.EasebuzzPayout;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
+import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.FssaiRenewalRepository;
 import com.khanabook.saas.repository.FssaiTrackerRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,6 +31,7 @@ public class EasebuzzWebhookService {
     private static final Logger log = LoggerFactory.getLogger(EasebuzzWebhookService.class);
     private final BillRepository billRepo;
     private final SubMerchantService subMerchantService;
+    private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzWebhookEventRepository webhookEventRepo;
     private final EasebuzzProperties props;
     private final PostSplitService postSplitService;
@@ -37,6 +41,10 @@ public class EasebuzzWebhookService {
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
     private final WebhookRetryService webhookRetryService;
+    private final ObjectMapper objectMapper;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private EasebuzzWireApiClient wireApiClient;
 
     @Transactional
     public Map<String, Object> handlePaymentWebhook(Map<String, String> payload) {
@@ -108,7 +116,11 @@ public class EasebuzzWebhookService {
                     });
                 } catch (Exception e) {
                     log.error("Failed to process payment webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
-                    webhookRetryService.enqueue("PAYMENT", payload.toString());
+                    try {
+                        webhookRetryService.enqueue("PAYMENT", objectMapper.writeValueAsString(payload));
+                    } catch (Exception jsonEx) {
+                        webhookRetryService.enqueue("PAYMENT", payload.toString());
+                    }
                 }
             }
         } else if ("auto refunded".equalsIgnoreCase(status)) {
@@ -226,7 +238,11 @@ public class EasebuzzWebhookService {
             });
         } catch (Exception e) {
             log.error("Failed to process refund webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
-            webhookRetryService.enqueue("REFUND", payload.toString());
+            try {
+                webhookRetryService.enqueue("REFUND", objectMapper.writeValueAsString(payload));
+            } catch (Exception jsonEx) {
+                webhookRetryService.enqueue("REFUND", payload.toString());
+            }
         }
 
         return Map.of("status", "received");
@@ -333,48 +349,75 @@ public class EasebuzzWebhookService {
     }
 
     @Transactional
-    public Map<String, Object> handlePayoutWebhook(Map<String, String> payload) {
-        // Transfer (Payout V2) sends unique_request_number
+    public Map<String, Object> handlePayoutWebhook(Map<String, ?> rawPayload) {
+        Map<String, String> payload = new HashMap<>();
+        Object dataObj = rawPayload.get("data");
+        if (dataObj instanceof Map<?, ?> dataMap) {
+            for (Map.Entry<?, ?> entry : dataMap.entrySet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    payload.put(entry.getKey().toString(), entry.getValue().toString());
+                }
+            }
+        }
+        // Copy top-level entries (if not already populated from data, or as fallback)
+        for (Map.Entry<String, ?> entry : rawPayload.entrySet()) {
+            if (!"data".equals(entry.getKey()) && entry.getValue() != null) {
+                payload.putIfAbsent(entry.getKey(), entry.getValue().toString());
+            }
+        }
+
         String requestId = payload.getOrDefault("unique_request_number", payload.get("merchant_request_id"));
-        String status = payload.get("status");
-        String utr = payload.get("unique_transaction_reference");
+        String payoutId = payload.get("payout_id");
+        String rawStatus = payload.get("status");
+        if (rawStatus == null && rawPayload.get("status") != null) {
+            rawStatus = rawPayload.get("status").toString();
+        }
+        final String resolvedStatus = ("1".equals(rawStatus) || "success".equalsIgnoreCase(rawStatus))
+                ? "success"
+                : ("0".equals(rawStatus) ? "failure" : (rawStatus != null ? rawStatus.toLowerCase() : "unknown"));
+
+        String utr = payload.getOrDefault("bank_transaction_id", payload.get("unique_transaction_reference"));
 
         // Payout webhook hash verification
         if (!verifyPayoutHash(payload)) {
-            log.warn("Payout webhook hash mismatch requestId={}", requestId);
+            log.warn("Payout webhook hash mismatch requestId={} payoutId={}", requestId, payoutId);
             return Map.of("status", "hash_mismatch");
         }
 
-        log.info("Payout webhook received requestId={} status={} utr={}", requestId, status, utr);
+        log.info("Payout webhook received requestId={} payoutId={} status={} utr={}", requestId, payoutId, resolvedStatus, utr);
 
-        if (requestId != null) {
-            java.util.Optional<EasebuzzPayout> foundPayout = payoutRepo.findByMerchantRequestId(requestId);
-            foundPayout.ifPresent(payout -> {
-                payout.setStatus(status != null ? status.toLowerCase() : "unknown");
-                if (utr != null) payout.setUtr(utr);
-                if ("failure".equalsIgnoreCase(status)) {
-                    payout.setErrorMessage(payload.get("failure_reason"));
-                }
-                payout.setUpdatedAt(System.currentTimeMillis());
-                payoutRepo.save(payout);
-                log.info("Updated payout record {} to status={}", requestId, status);
-                
-                try {
-                    String amountDisplay = payout.getAmount() != null ? "₹" + payout.getAmount() : "";
-                    pushNotificationService.pushToRestaurant(
-                        payout.getRestaurantId(),
-                        "Payout Status Updated",
-                        "Payout of " + amountDisplay + " status updated to: " + status,
-                        "settlement",
-                        String.valueOf(payout.getId()),
-                        "payout",
-                        payout.getAmount()
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to push payout status notification: {}", e.getMessage());
-                }
-            });
-        }
+        java.util.Optional<EasebuzzPayout> foundPayout = (requestId != null && !requestId.isBlank())
+                ? payoutRepo.findByMerchantRequestId(requestId)
+                : ((payoutId != null && !payoutId.isBlank()) ? payoutRepo.findByPayoutId(payoutId) : java.util.Optional.empty());
+
+        foundPayout.ifPresent(payout -> {
+            payout.setStatus(resolvedStatus);
+            if (utr != null && !utr.isBlank()) payout.setUtr(utr);
+            if (payoutId != null && !payoutId.isBlank() && payout.getPayoutId() == null) {
+                payout.setPayoutId(payoutId);
+            }
+            if ("failure".equalsIgnoreCase(resolvedStatus)) {
+                payout.setErrorMessage(payload.get("failure_reason"));
+            }
+            payout.setUpdatedAt(System.currentTimeMillis());
+            payoutRepo.save(payout);
+            log.info("Updated payout record {} to status={}", requestId != null ? requestId : payoutId, resolvedStatus);
+            
+            try {
+                String amountDisplay = payout.getAmount() != null ? "₹" + payout.getAmount() : "";
+                pushNotificationService.pushToRestaurant(
+                    payout.getRestaurantId(),
+                    "Payout Status Updated",
+                    "Payout of " + amountDisplay + " status updated to: " + resolvedStatus,
+                    "settlement",
+                    String.valueOf(payout.getId()),
+                    "payout",
+                    payout.getAmount()
+                );
+            } catch (Exception e) {
+                log.warn("Failed to push payout status notification: {}", e.getMessage());
+            }
+        });
 
         return Map.of("status", "received");
     }
@@ -401,7 +444,7 @@ public class EasebuzzWebhookService {
     private boolean isDevOrSandboxProfile() {
         if (env == null) return false;
         for (String profile : env.getActiveProfiles()) {
-            if ("dev".equalsIgnoreCase(profile) || "sandbox".equalsIgnoreCase(profile)) {
+            if ("dev".equalsIgnoreCase(profile) || "sandbox".equalsIgnoreCase(profile) || "test".equalsIgnoreCase(profile)) {
                 return true;
             }
         }
@@ -492,32 +535,75 @@ public class EasebuzzWebhookService {
     private boolean verifySubMerchantWebhookHash(Map<String, Object> payload) {
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) payload.get("data");
-            if (data == null) {
-                log.warn("Sub-merchant webhook missing 'data' field");
-                return false;
+            Map<String, Object> data = payload.get("data") instanceof Map ? (Map<String, Object>) payload.get("data") : payload;
+
+            String receivedHash = data.get("hash") != null ? data.get("hash").toString() :
+                    (payload.get("hash") != null ? payload.get("hash").toString() : null);
+
+            if ("skip_for_test".equals(receivedHash) && isDevOrSandboxProfile()) {
+                log.info("Bypassing sub-merchant webhook hash verification for test simulation");
+                return true;
             }
 
-            String receivedHash = data.get("hash") != null ? data.get("hash").toString() : null;
-            String subMerchantId = data.get("submerchant_id") != null ? data.get("submerchant_id").toString() : null;
+            String subMerchantId = SubMerchantService.resolveSubMerchantId(data);
 
-            if (receivedHash == null || receivedHash.isBlank() || subMerchantId == null || subMerchantId.isBlank()) {
-                log.warn("Sub-merchant webhook missing hash or submerchant_id in data");
-                return false;
+            // If hash is provided, verify it strictly: sha512(key|submerchant_id|salt)
+            if (receivedHash != null && !receivedHash.isBlank()) {
+                if (subMerchantId == null || subMerchantId.isBlank()) {
+                    log.warn("Sub-merchant webhook has hash but missing submerchant_id");
+                    return false;
+                }
+                String hashInput = props.getMerchantKey() + "|" + subMerchantId + "|" + props.getSalt();
+                String computedHash = sha512(hashInput);
+
+                String receivedHashClean = receivedHash.trim().toLowerCase();
+                String computedHashClean = computedHash.trim().toLowerCase();
+                boolean match = MessageDigest.isEqual(computedHashClean.getBytes(StandardCharsets.UTF_8), receivedHashClean.getBytes(StandardCharsets.UTF_8));
+                if (!match) {
+                    log.warn("Sub-merchant webhook hash mismatch for submerchant_id={}", subMerchantId);
+                }
+                return match;
             }
 
-            // Sub-merchant KYC Webhook Hash Sequence:
-            // sha512(key|submerchant_id|salt)
-            String hashInput = props.getMerchantKey() + "|" + subMerchantId + "|" + props.getSalt();
-            String computedHash = sha512(hashInput);
-
-            String receivedHashClean = receivedHash.trim().toLowerCase();
-            String computedHashClean = computedHash.trim().toLowerCase();
-            boolean match = MessageDigest.isEqual(computedHashClean.getBytes(StandardCharsets.UTF_8), receivedHashClean.getBytes(StandardCharsets.UTF_8));
-            if (!match) {
-                log.warn("Sub-merchant webhook hash mismatch for submerchant_id={}", subMerchantId);
+            // If no hash is provided, permit official Easebuzz MERCHANT_KYC_APPROVAL event only after verification
+            Object eventObj = payload.get("event");
+            if (eventObj != null && "MERCHANT_KYC_APPROVAL".equalsIgnoreCase(eventObj.toString())) {
+                String email = data.containsKey("email") && data.get("email") != null ? data.get("email").toString() : null;
+                boolean exists = false;
+                if (subMerchantId != null && !subMerchantId.isBlank()) {
+                    exists = subMerchantRepo.findBySubMerchantId(subMerchantId).isPresent();
+                }
+                if (!exists && email != null && !email.isBlank()) {
+                    exists = subMerchantRepo.findByContactEmail(email).isPresent();
+                }
+                if (exists) {
+                    if (isDevOrSandboxProfile()) {
+                        log.info("Processing unhashed MERCHANT_KYC_APPROVAL event in dev/sandbox (subMerchantId={}, email={})", subMerchantId, email);
+                        return true;
+                    }
+                    if (wireApiClient != null) {
+                        try {
+                            Map<String, Object> wireCheck = (email != null && !email.isBlank())
+                                    ? wireApiClient.getSubMerchantByEmail(email)
+                                    : (subMerchantId != null ? wireApiClient.getSubMerchantByKey(subMerchantId) : null);
+                            if (wireCheck != null && Boolean.TRUE.equals(wireCheck.get("success"))) {
+                                log.info("Verified unhashed MERCHANT_KYC_APPROVAL event via official WIRE API for email={}", email);
+                                return true;
+                            }
+                        } catch (Exception e) {
+                            log.warn("Server-to-server WIRE verification failed for unhashed webhook: {}", e.getMessage());
+                        }
+                    }
+                    log.warn("Rejected unverified unhashed MERCHANT_KYC_APPROVAL event in production (subMerchantId={}, email={})", subMerchantId, email);
+                    return false;
+                } else {
+                    log.warn("Rejected unhashed MERCHANT_KYC_APPROVAL event for unknown entity (subMerchantId={}, email={})", subMerchantId, email);
+                    return false;
+                }
             }
-            return match;
+
+            log.warn("Sub-merchant webhook missing hash or submerchant_id in data");
+            return false;
         } catch (Exception e) {
             log.error("Sub-merchant webhook hash verification failed", e);
             return false;

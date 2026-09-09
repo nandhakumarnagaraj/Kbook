@@ -18,6 +18,7 @@ public class EasebuzzProperties {
     private String returnUrl;
     private String notifyUrl;
     private String webhookUrl;
+    private String merchantEmail = "finance@khanabook.in";
 
     public String getPayMode() {
         return paymentBaseUrl != null && paymentBaseUrl.contains("test") ? "test" : "production";

@@ -5,6 +5,7 @@ import com.khanabook.saas.exception.EasebuzzApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -233,13 +234,52 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body);
 	}
 
+	private String normalizeDate(String date) {
+		if (date == null) return "";
+		String trimmed = date.trim();
+		try {
+			if (trimmed.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+				java.time.LocalDate d = java.time.LocalDate.parse(trimmed, java.time.format.DateTimeFormatter.ofPattern("yyyy-M-d"));
+				return d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+			} else if (trimmed.matches("\\d{4}/\\d{1,2}/\\d{1,2}")) {
+				java.time.LocalDate d = java.time.LocalDate.parse(trimmed, java.time.format.DateTimeFormatter.ofPattern("yyyy/M/d"));
+				return d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+			} else if (trimmed.matches("\\d{1,2}-\\d{1,2}-\\d{4}")) {
+				java.time.LocalDate d = java.time.LocalDate.parse(trimmed, java.time.format.DateTimeFormatter.ofPattern("d-M-yyyy"));
+				return d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+			}
+		} catch (Exception ignored) {}
+		return trimmed;
+	}
+
 	public Map<String, Object> retrieveSettlements(String date) {
+		return retrieveSettlements(date, date, null);
+	}
+
+	public Map<String, Object> retrieveSettlements(String startDate, String endDate, String subMerchantId) {
 		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), date);
+		String normStart = normalizeDate(startDate);
+		String normEnd = normalizeDate(endDate);
+		String hash = generateHash(props.getMerchantKey(), normStart, normEnd);
 		Map<String, Object> body = new HashMap<>();
+		body.put("merchant_key", props.getMerchantKey());
 		body.put("key", props.getMerchantKey());
-		body.put("date", date);
+		if (props.getMerchantEmail() != null && !props.getMerchantEmail().isBlank()) {
+			body.put("merchant_email", props.getMerchantEmail());
+		}
 		body.put("hash", hash);
+
+		Map<String, String> payoutDate = new HashMap<>();
+		payoutDate.put("start_date", normStart);
+		payoutDate.put("end_date", normEnd);
+		body.put("payout_date", payoutDate);
+		// Also provide top-level date fields for backward compatibility with older gateway proxies
+		body.put("date", normStart);
+
+		if (subMerchantId != null && !subMerchantId.isBlank()) {
+			body.put("submerchant_id", subMerchantId);
+		}
+
 		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body);
 	}
 
@@ -309,7 +349,7 @@ return result;
 	}
 
 	@SuppressWarnings("unchecked")
-	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
+	public Map<String, Object> createSubMerchant(String subMerchantId, String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress,
 			String legalEntityName, String state, String fssaiNumber) {
@@ -347,6 +387,9 @@ return result;
 		submerchantDetails.put("sub_merchant_ifsc_code", ifsc);
 		submerchantDetails.put("sub_merchant_password", password);
 		submerchantDetails.put("sub_merchant_confirm_password", password);
+		if (subMerchantId != null && !subMerchantId.isBlank()) {
+			submerchantDetails.put("sub_merchant_id", subMerchantId);
+		}
 
 		Map<String, Object> businessDetails = new HashMap<>();
 		String nature = "INDIVIDUAL/FREELANCERS";
@@ -373,6 +416,14 @@ return result;
 		body.put("submerchant_details", submerchantDetails);
 		body.put("business_details", businessDetails);
 		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
+	}
+
+	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
+			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
+			String businessType, String pan, String gst, String businessAddress,
+			String legalEntityName, String state, String fssaiNumber) {
+		return createSubMerchant(null, subMerchantName, email, phone, accountNumber, ifsc, bankName, nameInBank, branchName,
+				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber);
 	}
 
 	public Map<String, Object> updateSubMerchant(String subMerchantId, String subMerchantName, String email,
@@ -508,6 +559,70 @@ return result;
 		} catch (Exception e) {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());
+		}
+	}
+
+	/**
+	 * Direct API upload of sub-merchant KYC and address proof documents.
+	 * Endpoint: POST /submerchant/v1/upload_kyc_documents
+	 * Method: Multipart/Form-Data
+	 * Fields: submerchant_id, document_type, file, hash (SHA-256 of file)
+	 * Supported types: ADDRESS_PROOF, ID_PROOF, BANK_PROOF, FSSAI_LICENSE
+	 */
+	public Map<String, Object> uploadKycDocument(String subMerchantId, String documentType, byte[] fileBytes, String filename) {
+		checkCredentials();
+		String fileHash = sha256(fileBytes);
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+		MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+		body.add("submerchant_id", subMerchantId);
+		body.add("document_type", documentType);
+		body.add("hash", fileHash);
+
+		ByteArrayResource fileResource = new ByteArrayResource(fileBytes) {
+			@Override
+			public String getFilename() {
+				return filename != null && !filename.isBlank() ? filename : "document.pdf";
+			}
+		};
+		body.add("file", fileResource);
+
+		HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+		String url = props.getDashboardBaseUrl() + "/submerchant/v1/upload_kyc_documents";
+		try {
+			log.info("Uploading KYC document type={} for submerchant={} to Easebuzz (hash={})",
+					documentType, subMerchantId, fileHash);
+			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				new ParameterizedTypeReference<>() {}
+			);
+			return response.getBody();
+		} catch (org.springframework.web.client.HttpStatusCodeException e) {
+			log.error("Easebuzz KYC document upload {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
+			return Map.of("status", false, "error", e.getResponseBodyAsString());
+		} catch (Exception e) {
+			log.error("Easebuzz KYC document upload {} failed: {}", url, e.getMessage());
+			return Map.of("status", false, "error", e.getMessage());
+		}
+	}
+
+	public static String sha256(byte[] data) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hash = md.digest(data);
+			StringBuilder hexString = new StringBuilder();
+			for (byte b : hash) {
+				String hex = Integer.toHexString(0xff & b);
+				if (hex.length() == 1) hexString.append('0');
+				hexString.append(hex);
+			}
+			return hexString.toString();
+		} catch (Exception e) {
+			throw new RuntimeException("SHA-256 algorithm not available", e);
 		}
 	}
 

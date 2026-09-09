@@ -14,6 +14,8 @@ public interface EasebuzzSubMerchantRepository extends JpaRepository<EasebuzzSub
 
     Optional<EasebuzzSubMerchant> findBySubMerchantId(String subMerchantId);
 
+    Optional<EasebuzzSubMerchant> findByContactEmail(String contactEmail);
+
     List<EasebuzzSubMerchant> findByStatus(String status);
 
     boolean existsByRestaurantId(Long restaurantId);

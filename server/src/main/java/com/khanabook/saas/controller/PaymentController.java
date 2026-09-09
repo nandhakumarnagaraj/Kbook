@@ -2,6 +2,8 @@ package com.khanabook.saas.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
@@ -21,6 +23,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/payments/easebuzz")
@@ -33,6 +36,10 @@ public class PaymentController {
     private final RefundService refundService;
     private final ObjectMapper objectMapper;
     private final PermissionService permissionService;
+    private final BillRepository billRepository;
+
+    private static final int FSSAI_MAX_YEARS = 5;
+    private static final Pattern FSSAI_LICENSE_PATTERN = Pattern.compile("^[0-9]{14}$");
 
     private void requirePermission(String permissionKey) {
         Long restaurantId = TenantContext.getCurrentTenant();
@@ -42,6 +49,32 @@ public class PaymentController {
         }
         if (!permissionService.hasPermission(restaurantId, userId, permissionKey)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Missing permission: " + permissionKey);
+        }
+    }
+
+    private ResponseStatusException tenantMismatch() {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    /**
+     * Returns the bill only if it belongs to the caller's tenant; otherwise 404
+     * (we intentionally do not reveal whether another tenant's bill exists).
+     */
+    private Bill requireScopedBill(Long billId) {
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        if (callerRestaurantId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        return billRepository.findByIdAndRestaurantId(billId, callerRestaurantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bill not found"));
+    }
+
+    private void requireOwnedRestaurantId(Long callerRestaurantId, Long restaurantId) {
+        if (callerRestaurantId == null) {
+            throw tenantMismatch();
+        }
+        if (!callerRestaurantId.equals(restaurantId)) {
+            throw tenantMismatch();
         }
     }
 
@@ -57,7 +90,9 @@ public class PaymentController {
         Long restaurantId = Long.valueOf(restaurantIdObj.toString());
         // Verify caller owns this restaurant
         Long callerRestaurantId = TenantContext.getCurrentTenant();
-        if (callerRestaurantId != null && !callerRestaurantId.equals(restaurantId)) {
+        try {
+            requireOwnedRestaurantId(callerRestaurantId, restaurantId);
+        } catch (ResponseStatusException e) {
             return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
         }
         Map<String, Object> result = paymentService.createOrder(billId, restaurantId);
@@ -81,6 +116,14 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "restaurantId and amount are required"));
         }
 
+        Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        try {
+            requireOwnedRestaurantId(callerRestaurantId, restaurantId);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
+        }
+
         Map<String, Object> result = paymentService.createPaymentLink(request);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);
@@ -98,12 +141,16 @@ public class PaymentController {
         }
         Long billId = Long.valueOf(billIdObj.toString());
         Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        String customerPhone = request.get("customerPhone") != null ? request.get("customerPhone").toString() : null;
+        String customerEmail = request.get("customerEmail") != null ? request.get("customerEmail").toString() : null;
         // Verify caller owns this restaurant
         Long callerRestaurantId = TenantContext.getCurrentTenant();
-        if (callerRestaurantId != null && !callerRestaurantId.equals(restaurantId)) {
+        try {
+            requireOwnedRestaurantId(callerRestaurantId, restaurantId);
+        } catch (ResponseStatusException e) {
             return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
         }
-        Map<String, Object> result = paymentService.createPaymentLinkForBill(billId, restaurantId);
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(billId, restaurantId, customerPhone, customerEmail);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);
         }
@@ -122,6 +169,18 @@ public class PaymentController {
         Integer years = Integer.valueOf(yearsObj.toString());
         String fssaiNumber = fssaiNumberObj.toString();
         Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        Long callerRestaurantId = TenantContext.getCurrentTenant();
+        try {
+            requireOwnedRestaurantId(callerRestaurantId, restaurantId);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
+        }
+        if (years < 1 || years > FSSAI_MAX_YEARS) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "years must be between 1 and " + FSSAI_MAX_YEARS));
+        }
+        if (!FSSAI_LICENSE_PATTERN.matcher(fssaiNumber).matches()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "fssaiNumber must be the 14-digit FSSAI license number"));
+        }
         Map<String, Object> result = paymentService.createFssaiRenewalOrder(years, fssaiNumber, restaurantId);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);
@@ -133,11 +192,15 @@ public class PaymentController {
     public ResponseEntity<Map<String, Object>> getStatus(
             @PathVariable Long billId,
             @RequestParam(name = "refresh", defaultValue = "false") boolean refresh) {
+        requirePermission("billing.settle");
+        requireScopedBill(billId);
         return ResponseEntity.ok(paymentService.getPaymentStatus(billId, refresh));
     }
 
     @PostMapping("/verify/{billId}")
     public ResponseEntity<Map<String, Object>> verify(@PathVariable Long billId) {
+        requirePermission("billing.settle");
+        requireScopedBill(billId);
         return ResponseEntity.ok(paymentService.verifyPayment(billId));
     }
 
@@ -170,6 +233,8 @@ public class PaymentController {
 
     @GetMapping("/refund-status/{billId}")
     public ResponseEntity<Map<String, Object>> getRefundStatus(@PathVariable Long billId) {
+        requirePermission("billing.refund");
+        requireScopedBill(billId);
         return ResponseEntity.ok(paymentService.getRefundStatus(billId));
     }
 
@@ -213,20 +278,51 @@ public class PaymentController {
                 .build();
     }
 
-    @PostMapping("/webhook")
-    public ResponseEntity<Map<String, Object>> paymentWebhook(@RequestBody Map<String, String> payload) {
-        log.debug("Payment webhook received: {}", payload);
-        Map<String, Object> result = webhookService.handlePaymentWebhook(payload);
+    @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> paymentWebhookJson(@RequestBody Map<String, Object> payload) {
+        log.debug("Payment webhook (JSON) received: {}", payload);
+        if (payload.containsKey("event") && "MERCHANT_KYC_APPROVAL".equalsIgnoreCase(String.valueOf(payload.get("event")))) {
+            Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+            if ("hash_mismatch".equals(result.get("status"))) {
+                return ResponseEntity.status(401).body(result);
+            }
+            return ResponseEntity.ok(result);
+        }
+        Map<String, String> stringPayload = new HashMap<>();
+        for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            stringPayload.put(entry.getKey(), entry.getValue() != null ? entry.getValue().toString() : null);
+        }
+        Map<String, Object> result = webhookService.handlePaymentWebhook(stringPayload);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
         }
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/refund/webhook")
-    public ResponseEntity<Map<String, Object>> refundWebhook(@RequestBody Map<String, String> payload) {
-        log.debug("Refund webhook received: {}", payload);
+    @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Map<String, Object>> paymentWebhookForm(@RequestParam Map<String, String> params) {
+        log.debug("Payment webhook (form-url-encoded) received: {}", params);
+        Map<String, Object> result = webhookService.handlePaymentWebhook(params);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> refundWebhookJson(@RequestBody Map<String, String> payload) {
+        log.debug("Refund webhook (JSON) received: {}", payload);
         Map<String, Object> result = webhookService.handleRefundWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Map<String, Object>> refundWebhookForm(@RequestParam Map<String, String> params) {
+        log.debug("Refund webhook (form-url-encoded) received: {}", params);
+        Map<String, Object> result = webhookService.handleRefundWebhook(params);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
         }
@@ -269,9 +365,36 @@ public class PaymentController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/payout/webhook")
-    public ResponseEntity<Map<String, Object>> payoutWebhook(@RequestBody Map<String, String> payload) {
-        log.debug("Payout webhook received: {}", payload);
+    @PostMapping(value = "/payout/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> payoutWebhookJson(@RequestBody Map<String, Object> payload) {
+        log.debug("Payout webhook (JSON) received: {}", payload);
+        Map<String, Object> result = webhookService.handlePayoutWebhook(payload);
+        if ("hash_mismatch".equals(result.get("status"))) {
+            return ResponseEntity.status(401).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping(value = "/payout/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Map<String, Object>> payoutWebhookForm(@RequestParam Map<String, String> params) {
+        log.debug("Payout webhook (form-url-encoded) received: {}", params);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", params.get("status"));
+
+        String dataJson = params.get("data");
+        if (dataJson != null && !dataJson.isBlank()) {
+            try {
+                Map<String, Object> dataMap = objectMapper.readValue(dataJson,
+                        new TypeReference<Map<String, Object>>() {});
+                payload.put("data", dataMap);
+            } catch (Exception e) {
+                log.warn("Failed to parse 'data' JSON in form-url-encoded payout webhook", e);
+                return ResponseEntity.badRequest().body(Map.of("status", "error", "error", "Invalid data payload"));
+            }
+        } else {
+            payload.putAll(params);
+        }
+
         Map<String, Object> result = webhookService.handlePayoutWebhook(payload);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
