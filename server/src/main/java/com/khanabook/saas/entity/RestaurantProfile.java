@@ -226,5 +226,11 @@ public class RestaurantProfile extends BaseSyncEntity {
 				// ignore parsing errors
 			}
 		}
+		if (upiHandle != null) {
+			upiHandle = upiHandle.trim().toLowerCase();
+			if (upiHandle.isEmpty()) {
+				upiHandle = null;
+			}
+		}
 	}
 }

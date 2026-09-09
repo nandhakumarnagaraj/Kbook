@@ -20,6 +20,8 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Query("SELECT b FROM Bill b WHERE b.id = :id")
     Optional<Bill> findByIdForUpdate(@Param("id") Long id);
 
+    Optional<Bill> findByIdAndRestaurantId(Long id, Long restaurantId);
+
     @Query("""
             SELECT COALESCE(MAX(b.invoiceSequence), 0)
             FROM Bill b
@@ -188,8 +190,20 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, b.paymentStatus, COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt BETWEEN :from AND :to GROUP BY b.paymentMode, b.paymentStatus")
     java.util.List<Object[]> countByModeAndStatusBetween(@org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
 
+    @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, b.paymentStatus, COUNT(b) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND b.createdAt BETWEEN :from AND :to GROUP BY b.paymentMode, b.paymentStatus")
+    java.util.List<Object[]> countByRestaurantIdAndModeAndStatusBetween(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId, @org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
     @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt BETWEEN :from AND :to AND LOWER(b.paymentStatus) IN ('success','paid') GROUP BY b.paymentMode")
     java.util.List<Object[]> countSuccessfulByModeBetween(@org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
+    @org.springframework.data.jpa.repository.Query("SELECT b.paymentMode, COUNT(b), COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND b.createdAt BETWEEN :from AND :to AND LOWER(b.paymentStatus) IN ('success','paid') GROUP BY b.paymentMode")
+    java.util.List<Object[]> sumSuccessfulByRestaurantIdAndModeBetween(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId, @org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND b.createdAt BETWEEN :from AND :to AND LOWER(b.paymentStatus) IN ('success','paid')")
+    java.math.BigDecimal sumRevenueByRestaurantIdBetween(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId, @org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(b.refundAmount), 0) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND b.createdAt BETWEEN :from AND :to")
+    java.math.BigDecimal sumRefundByRestaurantIdBetween(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId, @org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
 
     // ─── v2 port: settlement / metrics finders not present in the v1 repository ───
     java.util.List<Bill> findBySettledAmountIsNotNull();

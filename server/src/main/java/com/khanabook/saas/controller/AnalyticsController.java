@@ -146,7 +146,7 @@ public class AnalyticsController {
                 restaurantId, range.from(), range.to())) {
             Long menuItemId = (Long) row[0];
             long qty = row[2] != null ? ((Number) row[2]).longValue() : 0L;
-            BigDecimal revenue = row[3] != null ? (BigDecimal) row[3] : BigDecimal.ZERO;
+            BigDecimal revenue = toBigDecimal(row[3]);
 
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("menuItemId", menuItemId);
@@ -190,23 +190,18 @@ public class AnalyticsController {
         long to = day.plusDays(1).atStartOfDay(ZONE).toInstant().toEpochMilli();
 
         // Payment mode breakdown: [mode, status, count]
-        List<Object[]> modeStatus = billRepository.countByModeAndStatusBetween(from, to);
+        List<Object[]> modeStatus = billRepository.countByRestaurantIdAndModeAndStatusBetween(restaurantId, from, to);
         long totalOrders = 0;
         long completedOrders = 0;
         long cancelledOrders = 0;
         long draftOrders = 0;
-        BigDecimal totalRevenue = BigDecimal.ZERO;
-        BigDecimal refundedAmount = BigDecimal.ZERO;
-        Map<String, long[]> modeSplits = new LinkedHashMap<>();
 
         for (Object[] row : modeStatus) {
-            String mode = row[0] != null ? row[0].toString() : "unknown";
             String status = row[1] != null ? row[1].toString().toLowerCase() : "";
             long count = row[2] != null ? ((Number) row[2]).longValue() : 0L;
             totalOrders += count;
             if ("completed".equals(status) || "paid".equals(status)) {
                 completedOrders += count;
-                modeSplits.computeIfAbsent(mode, k -> new long[]{0, 0})[0] += count;
             } else if ("cancelled".equals(status)) {
                 cancelledOrders += count;
             } else if ("draft".equals(status)) {
@@ -216,32 +211,34 @@ public class AnalyticsController {
             }
         }
 
-        // Revenue from successful bills
-        List<Object[]> successfulByMode = billRepository.countSuccessfulByModeBetween(from, to);
+        // Authoritative revenue from successful bills (scoped to restaurantId)
+        BigDecimal totalRevenue = billRepository.sumRevenueByRestaurantIdBetween(restaurantId, from, to);
+        if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
+
+        BigDecimal refundedAmount = billRepository.sumRefundByRestaurantIdBetween(restaurantId, from, to);
+        if (refundedAmount == null) refundedAmount = BigDecimal.ZERO;
+
+        BigDecimal netRevenue = totalRevenue.subtract(refundedAmount);
+        if (netRevenue.compareTo(BigDecimal.ZERO) < 0) netRevenue = BigDecimal.ZERO;
+
+        // Payment splits with count and revenue amount per mode: [mode, count, sumAmount]
+        List<Object[]> successfulByMode = billRepository.sumSuccessfulByRestaurantIdAndModeBetween(restaurantId, from, to);
+        List<Map<String, Object>> paymentSplits = new ArrayList<>();
+        BigDecimal expectedCash = BigDecimal.ZERO;
+
         for (Object[] row : successfulByMode) {
             String mode = row[0] != null ? row[0].toString() : "unknown";
             long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
-            modeSplits.computeIfAbsent(mode, k -> new long[]{0, 0});
-        }
+            BigDecimal amount = toBigDecimal(row[2]);
 
-        // Get actual revenue from bill items in range
-        var billItems = billItemRepository.findByRestaurantIdAndCreatedAtBetween(restaurantId, from, to);
-        for (var bi : billItems) {
-            if (bi.getItemTotal() != null) {
-                totalRevenue = totalRevenue.add(bi.getItemTotal());
-            }
-        }
-
-        // Payment splits with revenue
-        List<Map<String, Object>> paymentSplits = new ArrayList<>();
-        BigDecimal expectedCash = BigDecimal.ZERO;
-        for (Map.Entry<String, long[]> entry : modeSplits.entrySet()) {
             Map<String, Object> split = new LinkedHashMap<>();
-            split.put("mode", entry.getKey());
-            split.put("count", entry.getValue()[0]);
+            split.put("mode", mode);
+            split.put("count", count);
+            split.put("total", amount);
             paymentSplits.add(split);
-            if (entry.getKey().toLowerCase().contains("cash")) {
-                // Approximate cash amount (count * avg would need per-bill query)
+
+            if (mode.toLowerCase().contains("cash")) {
+                expectedCash = expectedCash.add(amount);
             }
         }
 
@@ -252,6 +249,9 @@ public class AnalyticsController {
         result.put("cancelledOrders", cancelledOrders);
         result.put("draftOrders", draftOrders);
         result.put("totalRevenue", totalRevenue);
+        result.put("refundedAmount", refundedAmount);
+        result.put("netRevenue", netRevenue);
+        result.put("expectedCash", expectedCash);
         result.put("paymentSplits", paymentSplits);
         return ResponseEntity.ok(result);
     }
@@ -270,5 +270,16 @@ public class AnalyticsController {
                     org.springframework.http.HttpStatus.BAD_REQUEST, "No restaurant context");
         }
         return restaurantId;
+    }
+
+    private static BigDecimal toBigDecimal(Object obj) {
+        if (obj == null) return BigDecimal.ZERO;
+        if (obj instanceof BigDecimal bd) return bd;
+        if (obj instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        try {
+            return new BigDecimal(obj.toString());
+        } catch (Exception ignored) {
+            return BigDecimal.ZERO;
+        }
     }
 }
