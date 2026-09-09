@@ -82,9 +82,6 @@ public class PostSplitService {
 
         List<Map<String, String>> configuration = new ArrayList<>();
         configuration.add(Map.of("label", sm.getSplitLabel(), "amount", String.format("%.2f", restaurantAmount)));
-        if (commissionAmount.compareTo(BigDecimal.ZERO) > 0) {
-            configuration.add(Map.of("label", "kb_commission", "amount", String.format("%.2f", commissionAmount)));
-        }
 
         String description = "Split for order #" + bill.getDailyOrderDisplay();
 

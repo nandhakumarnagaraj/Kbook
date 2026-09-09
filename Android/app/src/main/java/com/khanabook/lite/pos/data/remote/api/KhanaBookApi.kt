@@ -223,11 +223,6 @@ interface KhanaBookApi {
         suspend fun getUserPermissions(@Path("userId") userId: Long): UserPermissionsResponse
 
         // ── Easebuzz Payments ────────────────────────────────────────────────
-        @POST("api/v1/payments/easebuzz/create-order")
-        suspend fun createEasebuzzOrder(
-            @Body request: CreateEasebuzzOrderRequest
-        ): CreateEasebuzzOrderResponse
-
         @GET("api/v1/payments/easebuzz/status/{billId}")
         suspend fun getEasebuzzPaymentStatus(
             @Path("billId") billId: Long,

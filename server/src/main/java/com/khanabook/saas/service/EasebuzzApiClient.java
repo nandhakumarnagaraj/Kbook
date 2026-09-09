@@ -13,6 +13,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
@@ -173,13 +174,27 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/transaction/v2/refund", body);
 	}
 
-	public Map<String, Object> getRefundStatus(String txnid, String refundId) {
+	/**
+	 * Refund Status API — ERA-confirmed (2026-09-09):
+	 *   - txnid is NOT accepted; the lookup key is the payment's easepayid (easebuzz_id).
+	 *   - Hash sequence: key|easepayid|salt (optionally filterable by merchant_refund_id).
+	 * Send both easebuzz_id and easepayid field names with the same value so the request
+	 * works regardless of which field name the current SDK version expects.
+	 */
+	public Map<String, Object> getRefundStatus(String easebuzzId, String refundId) {
 		checkCredentials();
+		String hash = generateHash(props.getMerchantKey(), easebuzzId == null ? "" : easebuzzId);
+
 		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 		params.add("key", props.getMerchantKey());
-		params.add("txnid", txnid);
-		params.add("refund_id", refundId);
-		params.add("hash", generateHash(props.getMerchantKey(), txnid, refundId));
+		if (easebuzzId != null && !easebuzzId.isBlank()) {
+			params.add("easebuzz_id", easebuzzId);
+			params.add("easepayid", easebuzzId);
+		}
+		if (refundId != null && !refundId.isBlank()) {
+			params.add("refund_id", refundId);
+		}
+		params.add("hash", hash);
 
 		return post(props.getDashboardBaseUrl() + "/transaction/v2/refund_status", params);
 	}
@@ -352,7 +367,8 @@ return result;
 	public Map<String, Object> createSubMerchant(String subMerchantId, String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress,
-			String legalEntityName, String state, String fssaiNumber) {
+			String legalEntityName, String state, String fssaiNumber,
+			BigDecimal upiDeductionLtLimit, BigDecimal dcDeductionGtTwoThousand) {
 		checkCredentials();
 
 		// Compliance (EaseBuzz CPV): the business name registered must be the verified
@@ -415,6 +431,16 @@ return result;
 		body.put("merchant_details", merchantDetails);
 		body.put("submerchant_details", submerchantDetails);
 		body.put("business_details", businessDetails);
+
+		if (upiDeductionLtLimit != null || dcDeductionGtTwoThousand != null) {
+			Map<String, Object> deductions = new HashMap<>();
+			if (upiDeductionLtLimit != null)
+				deductions.put("upi_deduction_percentage_lt_limit", upiDeductionLtLimit.toPlainString());
+			if (dcDeductionGtTwoThousand != null)
+				deductions.put("dc_deduction_percentage_gt_two_thousand", dcDeductionGtTwoThousand.toPlainString());
+			body.put("submerchant_deduction_percentage", deductions);
+		}
+
 		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
 	}
 
@@ -423,7 +449,7 @@ return result;
 			String businessType, String pan, String gst, String businessAddress,
 			String legalEntityName, String state, String fssaiNumber) {
 		return createSubMerchant(null, subMerchantName, email, phone, accountNumber, ifsc, bankName, nameInBank, branchName,
-				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber);
+				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber, null, null);
 	}
 
 	public Map<String, Object> updateSubMerchant(String subMerchantId, String subMerchantName, String email,

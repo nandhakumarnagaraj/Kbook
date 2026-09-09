@@ -20,7 +20,7 @@ public class DeveloperPortalService {
                 apiEndpoint("PUT", "/bills/{id}/status", "Update order status", "write")
             )),
             endpointGroup("Payments", List.of(
-                apiEndpoint("POST", "/payments/easebuzz/create-order", "Initiate payment", "write"),
+                apiEndpoint("POST", "/payments/easebuzz/create-link", "Create payment link", "write"),
                 apiEndpoint("GET", "/payments/easebuzz/status/{billId}", "Check payment status", "read"),
                 apiEndpoint("POST", "/payments/easebuzz/refund", "Initiate refund", "write")
             )),

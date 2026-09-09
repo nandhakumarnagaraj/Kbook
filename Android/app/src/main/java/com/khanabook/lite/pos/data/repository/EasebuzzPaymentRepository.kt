@@ -2,8 +2,6 @@ package com.khanabook.lite.pos.data.repository
 
 import android.util.Log
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderRequest
-import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderResponse
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzPaymentLinkRequest
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest
 import javax.inject.Inject
@@ -13,13 +11,6 @@ import javax.inject.Singleton
 class EasebuzzPaymentRepository @Inject constructor(
     private val api: KhanaBookApi
 ) {
-
-    suspend fun createOrder(billId: Long, restaurantId: Long): Result<CreateEasebuzzOrderResponse> =
-        runApi {
-            api.createEasebuzzOrder(
-                CreateEasebuzzOrderRequest(billId = billId, restaurantId = restaurantId)
-            )
-        }
 
     suspend fun getPaymentStatus(billId: Long, refresh: Boolean = false): Result<Map<String, Any?>> =
         runApi { api.getEasebuzzPaymentStatus(billId, refresh) }

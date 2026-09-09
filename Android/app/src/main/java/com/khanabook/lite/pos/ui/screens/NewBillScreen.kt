@@ -331,15 +331,7 @@ fun NewBillScreen(
                                     onComplete = { step = 4 },
                                     onFailed = { step = 5 },
                                     onFlowLockChange = { paymentFlowLocked = it },
-                                    resumePendingPayment = shouldResumePendingPayment,
-onPayOnline = { serverBillId, restaurantId, amount ->
-                        navController?.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("localBillId", billingViewModel.lastBill.value?.bill?.id)
-                        navController?.navigate(
-                            "easebuzz_payment/$restaurantId/$serverBillId/$amount"
-                        )
-                    }
+                                    resumePendingPayment = shouldResumePendingPayment
                             )
                     4 ->
                             SuccessStep(

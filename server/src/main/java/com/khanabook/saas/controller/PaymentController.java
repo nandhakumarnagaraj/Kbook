@@ -78,30 +78,6 @@ public class PaymentController {
         }
     }
 
-    @PostMapping("/create-order")
-    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> request) {
-        requirePermission("billing.settle");
-        Object billIdObj = request.get("billId");
-        Object restaurantIdObj = request.get("restaurantId");
-        if (billIdObj == null || restaurantIdObj == null) {
-            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "billId and restaurantId are required"));
-        }
-        Long billId = Long.valueOf(billIdObj.toString());
-        Long restaurantId = Long.valueOf(restaurantIdObj.toString());
-        // Verify caller owns this restaurant
-        Long callerRestaurantId = TenantContext.getCurrentTenant();
-        try {
-            requireOwnedRestaurantId(callerRestaurantId, restaurantId);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(403).body(Map.of("status", "failure", "error", "Access denied"));
-        }
-        Map<String, Object> result = paymentService.createOrder(billId, restaurantId);
-        if ("failure".equals(result.get("status"))) {
-            return ResponseEntity.badRequest().body(result);
-        }
-        return ResponseEntity.ok(result);
-    }
-
     @PostMapping("/create-link")
     public ResponseEntity<Map<String, Object>> createPaymentLink(@RequestBody Map<String, Object> request) {
         requirePermission("billing.settle");

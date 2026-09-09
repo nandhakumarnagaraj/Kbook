@@ -127,7 +127,8 @@ class PaymentStateManager {
             partAmount2 = partAmount2
         ).map { component ->
             val isGatewayComponent = component.mode == PaymentMode.EASEBUZZ ||
-                (!_gatewayTxnId.value.isNullOrBlank() && (component.mode == PaymentMode.UPI || component.mode == PaymentMode.EASEBUZZ))
+                component.mode == PaymentMode.PAYMENT_LINK ||
+                (!_gatewayTxnId.value.isNullOrBlank() && (component.mode == PaymentMode.UPI || component.mode == PaymentMode.EASEBUZZ || component.mode == PaymentMode.PAYMENT_LINK))
             val gwTxnId = if (isGatewayComponent) _gatewayTxnId.value else null
             val gwStatus = if (isGatewayComponent) (_gatewayStatus.value ?: "success") else null
             val verifiedBy = if (gwTxnId != null) "gateway" else "manual"

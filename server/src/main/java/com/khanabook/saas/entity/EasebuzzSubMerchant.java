@@ -121,6 +121,18 @@ public class EasebuzzSubMerchant {
     @Column(name = "split_label")
     private String splitLabel;
 
+    /** Version of the registered split label (0 = original sm_<id>, N = rotated sm_<id>_vN). */
+    @Column(name = "split_label_version", nullable = false)
+    private Integer splitLabelVersion = 0;
+
+    /**
+     * Bank account snapshot ("account|ifsc") the current split label was registered
+     * against. Used to detect a bank change and rotate to a new label (Easebuzz has
+     * no label-update API; a bank change requires a new label).
+     */
+    @Column(name = "split_label_bank_snapshot", columnDefinition = "TEXT")
+    private String splitLabelBankSnapshot;
+
     @Column(name = "id_proof_url", columnDefinition = "TEXT")
     private String idProofUrl;
 

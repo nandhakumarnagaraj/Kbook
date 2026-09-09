@@ -57,8 +57,7 @@ fun PaymentStep(
     onComplete: () -> Unit,
     onFailed: () -> Unit = {},
     onFlowLockChange: (Boolean) -> Unit = {},
-    resumePendingPayment: Boolean = false,
-    onPayOnline: ((serverBillId: Long, restaurantId: Long, amount: String) -> Unit)? = null
+    resumePendingPayment: Boolean = false
 ) {
     val summary by viewModel.billSummary.collectAsStateWithLifecycle()
     val persistedPaymentTotal by viewModel.persistedPaymentTotal.collectAsStateWithLifecycle()
@@ -551,31 +550,6 @@ fun PaymentStep(
                             if (!isAmountValid || isSubmitting) return@Button
                             isSubmitting = true
                             scope.launch {
-                                // If EASEBUZZ mode selected, trigger online payment flow
-                                if (selectedMode == PaymentMode.EASEBUZZ && onPayOnline != null) {
-                                    val localBillId = viewModel.editingBillId
-                                        ?: viewModel.createDraftOnlineBill()
-                                        ?: run { isSubmitting = false; return@launch }
-                                    var serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
-                                    if (serverBillId == null || serverBillId == 0L) {
-                                        viewModel.triggerSyncAndWait()
-                                        repeat(5) {
-                                            kotlinx.coroutines.delay(500L)
-                                            serverBillId = viewModel.getBillById(localBillId)?.bill?.serverId
-                                            if (serverBillId != null && serverBillId != 0L) return@repeat
-                                        }
-                                    }
-                                    if (serverBillId == null || serverBillId == 0L) {
-                                        KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
-                                        isSubmitting = false
-                                        return@launch
-                                    }
-                                    val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
-                                    val id = serverBillId ?: run { isSubmitting = false; return@launch }
-                                    onPayOnline(id, restaurantId, paymentTotal)
-                                    return@launch
-                                }
-
                                 if (selectedMode == PaymentMode.PAYMENT_LINK) {
                                     val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
                                     val phoneToUse = linkCustomerPhone.ifBlank { customerWhatsapp }.ifBlank { null }
@@ -638,7 +612,6 @@ fun PaymentStep(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = when {
                                 !isAmountValid -> Color.Gray
-                                selectedMode == PaymentMode.EASEBUZZ -> Brown500
                                 selectedMode == PaymentMode.PAYMENT_LINK -> SmsBlue
                                 else -> SuccessGreen
                             }
@@ -648,7 +621,6 @@ fun PaymentStep(
                     ) {
                         Text(
                             when {
-                                selectedMode == PaymentMode.EASEBUZZ -> "Pay Online"
                                 selectedMode == PaymentMode.PAYMENT_LINK -> "Send Payment Link"
                                 partialRecovery != null -> "Confirm Remaining Payment"
                                 else -> "Payment Successful"

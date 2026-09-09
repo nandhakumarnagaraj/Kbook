@@ -88,7 +88,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("Test Restaurant", sm.getBusinessName());
 
         // 2. Submit to Easebuzz (mock)
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -205,7 +205,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof2Type", "UDYAM_CERTIFICATE",
             "businessProof2Url", "https://docs.kbook.test/proof2.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -224,7 +224,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof1Type", "ELECTRICITY_BILL",
             "businessProof1Url", "https://docs.kbook.test/bill.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -247,7 +247,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Supplying the legal entity name allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("legalEntityName", "Test Restaurant Pvt Ltd"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -273,7 +273,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Supplying the missing fields allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("pan", "ABCDE1234F", "ifsc", "HDFC0000123"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -300,7 +300,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Making the second proof a distinct type allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("businessProof2Type", "UDYAM_CERTIFICATE"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -329,35 +329,30 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void testPaymentInitiationAndWebhook() {
+    void testPaymentLinkAndWebhook() {
         // Setup active sub-merchant
         EasebuzzSubMerchant sm = createActiveSubMerchant();
 
         // Create a bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
 
-        // Mock payment initiation
-        when(easebuzzApi.initiatePayment(any()))
+        // Mock payment link creation
+        when(easebuzzApi.createPaymentLink(any()))
             .thenReturn(Map.of(
                 "status", "success",
-                "access_token", "test_token_123",
-                "payment_url", "https://testpay.easebuzz.in/pay/test"
+                "link", "https://pay.easebuzz.in/link/test-link-123"
             ));
 
-        // 1. Create payment order
-        Map<String, Object> result = paymentService.createOrder(bill.getId(), testRestaurantId);
+        // 1. Create payment link
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
         assertEquals("success", result.get("status"));
-        assertNotNull(result.get("txnid"));
-        String txnid = result.get("txnid").toString();
-        assertNotNull(txnid, "txnid must not be null");
-        assertTrue(txnid.startsWith("KB"), "txnid should start with 'KB' prefix, got: " + txnid);
-        assertEquals(20, txnid.length(), "txnid must be exactly 20 chars (Easebuzz limit), got: " + txnid);
-
 
         // Verify bill updated
         Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
         assertNotNull(updatedBill.getGatewayTxnId());
-        assertEquals("success", updatedBill.getGatewayStatus());
+        assertTrue(updatedBill.getGatewayTxnId().startsWith("PL"), "merchant_txn should start with 'PL' prefix, got: " + updatedBill.getGatewayTxnId());
+        assertEquals("link_sent", updatedBill.getPaymentStatus());
+        assertEquals("payment_link", updatedBill.getPaymentMode());
 
         // 2. Payment webhook success (state after webhook processing)
         Bill processedBill = billRepository.findById(bill.getId()).orElseThrow();
@@ -445,6 +440,53 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         // Verify bill NOT settled
         Bill unsettledBill = billRepository.findById(bill.getId()).orElseThrow();
         assertNull(unsettledBill.getSettledAt());
+    }
+
+    @Transactional
+    @Test
+    void testSplitLabelRotatesOnBankChange() {
+        EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setSplitLabel("sm_" + testSubMerchantId);
+        sm.setSplitLabelVersion(1);
+        sm.setSplitLabelBankSnapshot("123456789012|HDFC0000123");
+        subMerchantRepo.save(sm);
+
+        // Change bank account + IFSC, then push to Easebuzz
+        Map<String, String> update = new java.util.HashMap<>();
+        update.put("bankAccountNo", "987654321098");
+        update.put("ifsc", "ICIC0000456");
+        subMerchantService.update(sm.getId(), update);
+
+        when(easebuzzApi.updateSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true));
+        when(easebuzzApi.createSplitLabel(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", "success", "msg", "Label created"));
+
+        subMerchantService.updateOnEasebuzz(sm.getId());
+
+        EasebuzzSubMerchant rotated = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertEquals("sm_" + testSubMerchantId + "_v1", rotated.getSplitLabel());
+        assertEquals(Integer.valueOf(2), rotated.getSplitLabelVersion());
+        assertEquals("987654321098|ICIC0000456", rotated.getSplitLabelBankSnapshot());
+    }
+
+    @Transactional
+    @Test
+    void testSplitLabelNotRotatedWhenBankUnchanged() {
+        EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setSplitLabel("sm_" + testSubMerchantId);
+        sm.setSplitLabelVersion(1);
+        sm.setSplitLabelBankSnapshot("123456789012|HDFC0000123");
+        subMerchantRepo.save(sm);
+
+        when(easebuzzApi.updateSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true));
+
+        subMerchantService.updateOnEasebuzz(sm.getId());
+
+        EasebuzzSubMerchant unchanged = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertEquals("sm_" + testSubMerchantId, unchanged.getSplitLabel());
+        assertEquals(Integer.valueOf(1), unchanged.getSplitLabelVersion());
     }
 
     // --- Helpers ---

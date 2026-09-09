@@ -16,9 +16,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import android.content.Intent
 import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.ui.MainActivity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.screens.auth.SignUpScreen
@@ -326,33 +324,6 @@ internal fun AppNavGraph(
             )
         }
 
-        composable(
-            route = "easebuzz_payment/{restaurantId}/{billId}/{amount}",
-            arguments = listOf(
-                navArgument("restaurantId") { type = NavType.LongType },
-                navArgument("billId") { type = NavType.LongType },
-                navArgument("amount") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val context = LocalContext.current
-            EasebuzzPaymentScreen(
-                onBack = { navController.popBackStack() },
-                onPaymentComplete = { gatewayTxnId ->
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("gatewayTxnId", gatewayTxnId)
-
-                    // Bring MainActivity to the front and close PWECheckoutActivity
-                    // or any Custom Tab left on top
-                    val clearTopIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    }
-                    context.startActivity(clearTopIntent)
-
-                    navController.popBackStack()
-                }
-            )
-        }
         composable("easebuzz_onboarding") {
             com.khanabook.lite.pos.ui.screens.EasebuzzOnboardingScreen(
                 onBack = { navController.popBackStack() },

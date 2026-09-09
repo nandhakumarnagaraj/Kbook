@@ -134,7 +134,7 @@ public class SecurityConfig {
 							"/cdn/**",
 							"/error",
 							// Easebuzz server-to-server callbacks (v2 port): must be unauthenticated.
-							// create-order is deliberately NOT public - the app sends a bearer token.
+							// Payment endpoints are deliberately NOT public - the app sends a bearer token.
 							"/payments/easebuzz/webhook",
 							"/payments/easebuzz/*/webhook",
 							"/payments/easebuzz/return",

@@ -123,8 +123,9 @@ public class EasebuzzWebhookService {
                     }
                 }
             }
-        } else if ("auto refunded".equalsIgnoreCase(status)) {
+        } else if ("auto refunded".equalsIgnoreCase(status) || "auto_refunded".equalsIgnoreCase(status)) {
             // Handle auto-refunded: customer was debited but transaction failed, funds auto-returned
+            // (ERA 2026-09-09: status arrives via the payment webhook; both spellings have been observed)
             resolveBillFromPayload(payload).ifPresent(bill -> {
                 Long billId = bill.getId();
                 if ("paid".equals(bill.getPaymentStatus())) {
@@ -136,7 +137,8 @@ public class EasebuzzWebhookService {
                 billRepo.save(bill);
                 log.info("Bill {} marked as auto-refunded via webhook txnid={}", billId, txnid);
             });
-        } else if ("failure".equalsIgnoreCase(status) || "dropped".equalsIgnoreCase(status)
+        } else if ("expired".equalsIgnoreCase(status)
+                || "failure".equalsIgnoreCase(status) || "dropped".equalsIgnoreCase(status)
                 || "bounced".equalsIgnoreCase(status) || "userCancelled".equalsIgnoreCase(status)) {
             if (!"fssai_renewal".equalsIgnoreCase(udf1)) {
                 resolveBillFromPayload(payload).ifPresent(bill -> {
@@ -146,6 +148,15 @@ public class EasebuzzWebhookService {
                         return;
                     }
                     bill.setGatewayStatus(status.toLowerCase());
+                    // ERA 2026-09-09: EasyCollect links expire (~7 days) and the webhook
+                    // reports "expired". Clear the stale link (and link_sent state) so the
+                    // POS can create a fresh link for the same bill.
+                    if ("expired".equalsIgnoreCase(status)) {
+                        bill.setGatewayTxnId(null);
+                        if ("link_sent".equalsIgnoreCase(bill.getPaymentStatus())) {
+                            bill.setPaymentStatus("pending");
+                        }
+                    }
                     billRepo.save(bill);
                     log.info("Bill {} gateway status updated to {} via webhook txnid={}", billId, status, txnid);
                 });

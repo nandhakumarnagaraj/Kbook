@@ -2,20 +2,6 @@ package com.khanabook.lite.pos.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
-data class CreateEasebuzzOrderRequest(
-    @SerializedName("billId") val billId: Long,
-    @SerializedName("restaurantId") val restaurantId: Long
-)
-
-data class CreateEasebuzzOrderResponse(
-    @SerializedName("status") val status: String,
-    @SerializedName("access_token") val accessToken: String? = null,
-    @SerializedName("payment_url") val paymentUrl: String? = null,
-    @SerializedName("txnid") val txnId: String? = null,
-    @SerializedName("error") val error: String? = null,
-    @SerializedName("code") val code: String? = null
-)
-
 data class EasebuzzPaymentStatusResponse(
     @SerializedName("billId") val billId: Long? = null,
     @SerializedName("status") val status: String? = null,

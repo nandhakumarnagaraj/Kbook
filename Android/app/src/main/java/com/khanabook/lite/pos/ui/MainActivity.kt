@@ -273,7 +273,6 @@ class MainActivity : FragmentActivity() {
                         if (sessionManager.canUsePos()
                             && event != null
                             && currentRoute?.startsWith("new_bill") != true
-                            && currentRoute?.startsWith("easebuzz_payment") != true
                         ) {
                             navController.navigate("new_bill?resumePayment=true")
                         }

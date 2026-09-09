@@ -485,6 +485,7 @@ public class SubMerchantService {
         Boolean apiStatus = (Boolean) result.get("status");
         if (Boolean.TRUE.equals(apiStatus)) {
             sm.setEasebuzzResponse(result.toString());
+            rotateSplitLabelIfBankChanged(sm);
         } else {
             String error = (String) result.get("error");
             sm.setEasebuzzResponse(error != null ? error : result.toString());
@@ -495,6 +496,34 @@ public class SubMerchantService {
         return sm;
     }
 
+    /**
+     * If a split label is already registered and the restaurant's bank account or
+     * IFSC no longer matches the snapshot that label was registered against, register
+     * a new versioned label (sm_<id>_vN) pointing at the new bank. Easebuzz has no
+     * label-update API (ERA Q5), so rotation is the only safe path; old labels may be
+     * retired via support. Runs in reachable state only — best-effort, never throws.
+     */
+    private void rotateSplitLabelIfBankChanged(EasebuzzSubMerchant sm) {
+        if (sm.getSplitLabel() == null || sm.getSplitLabel().isBlank()) {
+            return;
+        }
+        if (sm.getBankAccountNo() == null || sm.getIfsc() == null) {
+            return;
+        }
+        String currentSnapshot = sm.getBankAccountNo() + "|" + sm.getIfsc();
+        if (currentSnapshot.equals(sm.getSplitLabelBankSnapshot())) {
+            return;
+        }
+        log.info("Bank change detected for sub-merchant {} (label {}): {} -> {}",
+            sm.getSubMerchantId(), sm.getSplitLabel(), sm.getSplitLabelBankSnapshot(), currentSnapshot);
+        try {
+            createSplitLabel(sm.getId());
+            log.info("Rotated split label for sub-merchant {} to {}", sm.getSubMerchantId(), sm.getSplitLabel());
+        } catch (Exception e) {
+            log.error("Split label rotation failed for sub-merchant {}: {}", sm.getSubMerchantId(), e.getMessage());
+        }
+    }
+
     public Map<String, Object> createSplitLabel(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
@@ -503,13 +532,17 @@ public class SubMerchantService {
                 "MISSING_EASEBUZZ_ID"
             );
         }
-        String label = "sm_" + sm.getSubMerchantId();
+        int version = sm.getSplitLabelVersion() != null ? sm.getSplitLabelVersion() : 0;
+        String base = "sm_" + sm.getSubMerchantId();
+        String label = version == 0 ? base : base + "_v" + version;
         Map<String, Object> result = easebuzzApi.createSplitLabel(
             sm.getBeneficiaryName(), sm.getBankName(), sm.getBranchName(),
             sm.getIfsc(), sm.getBankAccountNo(), label, "100"
         );
         if (toBool(result.get("status"))) {
             sm.setSplitLabel(label);
+            sm.setSplitLabelVersion(version + 1);
+            sm.setSplitLabelBankSnapshot(sm.getBankAccountNo() + "|" + sm.getIfsc());
             sm.setUpdatedAt(System.currentTimeMillis());
             subMerchantRepo.save(sm);
         }
@@ -848,7 +881,8 @@ public class SubMerchantService {
             sm.getBeneficiaryName(), sm.getBranchName(),
             sm.getBusinessType(), sm.getPan(), sm.getGst(),
             sm.getBusinessAddress(),
-            sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber()
+            sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber(),
+            sm.getUpiDeductionLtLimit(), sm.getDcDeductionGtTwoThousand()
         );
         Object statusObj = result != null ? result.get("status") : null;
         boolean apiStatus = EasebuzzApiClient.toBool(statusObj);
