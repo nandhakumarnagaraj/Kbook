@@ -75,7 +75,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .success-section p.muted {
       font-size: 0.76rem;
-      color: var(--kb-color-muted);
+      color: var(--kb-color-muted-foreground);
     }
     .action-cell {
       display: flex;
@@ -91,10 +91,13 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid var(--kb-color-border);
       background: transparent;
       color: var(--kb-color-foreground);
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, transform 0.12s var(--ease-out, ease-out);
     }
     .action-btn:hover:not(:disabled) {
       background: var(--kb-color-surface-2);
+    }
+    .action-btn:active:not(:disabled) {
+      transform: scale(0.96);
     }
     .action-btn--danger {
       color: var(--kb-color-error);
@@ -131,7 +134,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .role-disabled-note {
       font-size: 0.75rem;
-      color: var(--kb-color-muted);
+      color: var(--kb-color-muted-foreground);
       font-style: italic;
       margin-top: var(--kb-space-1);
     }
@@ -489,11 +492,11 @@ import { formatDate } from '../../shared/formatters';
 
             <!-- Server DB templates -->
             <div *ngIf="roleTemplates.length > 0" style="margin-bottom:1rem">
-              <strong style="font-size:0.75rem;color:var(--kb-color-muted);text-transform:uppercase;letter-spacing:0.05em">Saved Templates</strong>
+              <strong style="font-size:0.75rem;color:var(--kb-color-muted-foreground);text-transform:uppercase;letter-spacing:0.05em">Saved Templates</strong>
               <div *ngFor="let tpl of roleTemplates" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
                 <div>
                   <span style="font-size:0.875rem;font-weight:500">{{ tpl.name }}</span>
-                  <span style="font-size:0.75rem;color:var(--kb-color-muted);margin-left:0.5rem">{{ tpl.permissions?.length || 0 }} permissions</span>
+                  <span style="font-size:0.75rem;color:var(--kb-color-muted-foreground);margin-left:0.5rem">{{ tpl.permissions?.length || 0 }} permissions</span>
                 </div>
                 <button class="ghost-btn" style="font-size:0.75rem" (click)="applyServerTemplate(tpl)">Apply</button>
               </div>

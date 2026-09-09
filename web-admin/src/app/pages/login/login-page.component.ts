@@ -208,7 +208,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); }
     .brand-logo {
       width: 44px; height: 44px; border-radius: var(--kb-radius-md);
-      background: rgba(59, 130, 246, 0.12); backdrop-filter: blur(8px);
+      background: var(--kb-color-primary-soft); backdrop-filter: blur(8px);
       display: grid; place-items: center;
       font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: var(--kb-color-primary);
     }
@@ -241,7 +241,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .point-num {
       width: 28px; height: 28px; border-radius: var(--kb-radius-sm);
-      background: rgba(59, 130, 246, 0.12); display: grid; place-items: center;
+      background: var(--kb-color-primary); display: grid; place-items: center;
       font-size: 0.75rem; font-weight: 700; color: var(--kb-color-primary-foreground); flex-shrink: 0;
     }
     .brand-foot { font-size: 0.78rem; color: rgba(26, 26, 26, 0.7); margin: 0; }
@@ -258,7 +258,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     @media (max-width: 960px) { .mobile-brand { display: flex; } }
     .auth-head h2 { margin: 0 0 var(--kb-space-2); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
-    .auth-head p { margin: 0; color: var(--kb-color-muted); }
+    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); }
     .auth-form { display: grid; gap: var(--kb-space-4); }
     .field { display: grid; gap: var(--kb-space-2); }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
@@ -280,7 +280,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .divider {
       display: flex; align-items: center; gap: var(--kb-space-3);
-      color: var(--kb-color-muted); font-size: 0.78rem; margin: var(--kb-space-2) 0;
+      color: var(--kb-color-muted-foreground); font-size: 0.78rem; margin: var(--kb-space-2) 0;
     }
     .divider::before, .divider::after {
       content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
@@ -288,7 +288,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .google-wrap { display: grid; gap: var(--kb-space-3); }
     #google-btn { display: flex; justify-content: center; }
     .google-loading {
-      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted);
+      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted-foreground);
       padding: var(--kb-space-2) 0;
     }
     .link-right {
@@ -300,7 +300,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .link-right:hover { text-decoration: underline; }
     .back-link {
-      color: var(--kb-color-muted);
+      color: var(--kb-color-muted-foreground);
       font-size: 0.84rem;
       cursor: pointer;
       text-decoration: none;
@@ -309,7 +309,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .back-link:hover { color: var(--kb-color-primary); text-decoration: underline; }
     .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.88rem; }
     .primary-btn--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
+      background: var(--kb-gradient-hero);
       border: none;
       box-shadow: var(--kb-shadow-lg);
     }

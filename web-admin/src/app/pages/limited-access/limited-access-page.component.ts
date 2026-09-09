@@ -40,7 +40,7 @@ import { AuthService } from '../../core/auth/auth.service';
       height: 3.25rem;
       margin: 0 auto var(--kb-space-4);
       color: var(--kb-color-primary-foreground);
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
+      background: var(--kb-gradient-hero);
       border-radius: var(--kb-radius-lg);
       box-shadow: var(--kb-shadow-sm);
       font-size: 1.35rem;

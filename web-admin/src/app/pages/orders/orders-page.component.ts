@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -363,11 +363,11 @@ export function filterBusinessOrders(
     }
     .field input:focus { border-color: var(--kb-color-primary); }
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .hint-text { color: var(--kb-color-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+    .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: 0.35rem 0 0; }
     .toolbar-actions { display: flex; gap: var(--kb-space-3); align-items: center; }
     .refund-review { display: grid; grid-template-columns: minmax(0, 111) auto; gap: var(--kb-space-3) var(--kb-space-2); margin: var(--kb-space-3) 0; padding: var(--kb-space-3); background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); }
-    .refund-review span { color: var(--kb-color-muted); }
-    .refund-review strong { text-align: right; overflow-wrap: anywhere; }
+    .refund-review span { color: var(--kb-color-muted-foreground); }
+    .refund-review strong { text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
     .mobile-order-list { display: none; }
     @media (max-width: 767px) {
       .table-wrap > .data-table { display: none; }
@@ -377,14 +377,14 @@ export function filterBusinessOrders(
       .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-2) var(--kb-space-3); padding: var(--kb-space-3); text-align: left; color: var(--kb-color-foreground); background: transparent; border: 0; cursor: pointer; }
       .mobile-order-card__main:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
       .mobile-order-card__title { font-weight: 700; }
-      .mobile-order-card__customer { color: var(--kb-color-muted); }
+      .mobile-order-card__customer { color: var(--kb-color-muted-foreground); }
       .mobile-order-card__amount { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted); font-size: 0.75rem; }
+      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted-foreground); font-size: 0.75rem; }
       .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: var(--kb-space-2); padding: var(--kb-space-2) var(--kb-space-3); border-top: 1px solid var(--kb-color-border); background: var(--kb-color-surface-2); }
     }
   `]
 })
-export class OrdersPageComponent {
+export class OrdersPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly toast = inject(ToastService);
 
@@ -516,13 +516,14 @@ export class OrdersPageComponent {
   cancelOrder(order: BusinessOrder): void {
     const reason = prompt('Enter cancellation reason:');
     if (reason === null) return; // user clicked Cancel
-    this.api.manualRefundOrder(order.orderId, { refundAmount: 0, reason: reason || 'Cancelled by admin' }).subscribe({
+    this.api.voidBill(order.orderId, reason || 'Cancelled by admin').subscribe({
       next: () => {
         this.toast.show('Order cancelled.', 'success');
         this.loadOrders();
       },
-      error: () => {
-        this.toast.show('Failed to cancel order.', 'error');
+      error: (err: any) => {
+        const msg = err?.error?.message || err?.error?.error || 'Failed to cancel order.';
+        this.toast.show(msg, 'error');
       }
     });
   }
@@ -621,6 +622,11 @@ export class OrdersPageComponent {
   @HostListener('document:keydown.escape')
   handleEscape(): void {
     if (this.refundTarget && !this.refunding) this.closeRefund();
+  }
+
+  ngOnDestroy(): void {
+    // Release the refund dialog's body scroll-lock when navigating away mid-dialog.
+    document.body.style.overflow = '';
   }
 
   confirmRefund(): void {

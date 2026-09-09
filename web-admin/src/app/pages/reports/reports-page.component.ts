@@ -138,7 +138,7 @@ import { formatCurrency } from '../../shared/formatters';
       box-shadow: var(--kb-shadow-xs);
     }
     .kpi-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%); border-color: transparent; color: var(--kb-color-primary-foreground);
+      background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
       box-shadow: var(--kb-shadow-lg);
     }
     .kpi-card--hero .kpi-label { color: rgba(255,255,255,0.85); }
@@ -154,13 +154,13 @@ import { formatCurrency } from '../../shared/formatters';
     .kpi-spark { flex-shrink: 0; opacity: 0.6; }
     .kpi-card--hero .kpi-spark { opacity: 0.9; }
 
-    .kpi-label { font-size: 0.78rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .kpi-label { font-size: 0.78rem; color: var(--kb-color-muted-foreground); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
     .kpi-value { font-size: calc(1.5rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-    .kpi-delta { display: flex; align-items: center; gap: var(--kb-space-2); font-size: 0.78rem; color: var(--kb-color-muted); }
+    .kpi-delta { display: flex; align-items: center; gap: var(--kb-space-2); font-size: 0.78rem; color: var(--kb-color-muted-foreground); }
     .kpi-arrow { font-size: 0.7rem; font-weight: 700; }
     .kpi-arrow.up { color: var(--kb-color-success); }
     .kpi-arrow.down { color: var(--kb-color-error); }
-    .kpi-compare { color: var(--kb-color-muted); }
+    .kpi-compare { color: var(--kb-color-muted-foreground); }
 
     .kpi-secondary {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
@@ -177,7 +177,7 @@ import { formatCurrency } from '../../shared/formatters';
       .kpi-mini { border-right: none; border-bottom: 1px solid var(--kb-color-border); }
       .kpi-mini:last-child { border-bottom: none; }
     }
-    .kpi-mini-label { font-size: 0.76rem; color: var(--kb-color-muted); font-weight: 600; }
+    .kpi-mini-label { font-size: 0.76rem; color: var(--kb-color-muted-foreground); font-weight: 600; }
     .kpi-mini-value { font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
 
     .note-panel {
@@ -185,7 +185,7 @@ import { formatCurrency } from '../../shared/formatters';
       border-radius: var(--kb-radius-lg); padding: var(--kb-space-3) var(--kb-space-4);
     }
     .note-panel h3 { margin: 0 0 var(--kb-space-2); font-size: 1rem; }
-    .note-panel p { margin: 0; line-height: 1.55; color: var(--kb-color-muted); }
+    .note-panel p { margin: 0; line-height: 1.55; color: var(--kb-color-muted-foreground); }
 
     .skeleton { background: var(--line); border-radius: var(--r-md); animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 130px; }
@@ -205,28 +205,30 @@ export class ReportsPageComponent {
     const range = this.selectedRange();
     return this.api.getDashboard(range?.from, range?.to).pipe(
       map(data => {
-        this.refreshing.set(false);
-        const net = Math.max(0, data.totalRevenue - data.refundedAmount);
-        const rev = Math.max(data.totalRevenue || 284220, 1000);
-        const bil = Math.max(data.posOrderCount || 1284, 100);
-        const pen = Math.max(data.pendingPosPayments || 5, 1);
+        const totalRev = Number(data.totalRevenue) || 0;
+        const refunded = Number(data.refundedAmount) || 0;
+        const net = Math.max(0, totalRev - refunded);
+        const billCount = Number(data.posOrderCount) || 0;
+        const pending = Number(data.pendingPosPayments) || 0;
+
         function sp(v: number): string {
-          const pts = Array.from({length:6}, (_,i) => v * (0.85 + Math.random() * 0.25));
+          if (v <= 0) return '0,20 64,20';
+          const pts = Array.from({length:6}, (_,i) => v * (0.85 + (i * 0.05)));
           const mx=Math.max(...pts), mn=Math.min(...pts), rn=mx-mn||1;
           return pts.map((p,i)=>{const x=(i/5)*64,y=20-((p-mn)/rn)*20;return `${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
         }
         return {
-          sparkRevenue: sp(rev),
-          sparkBills: sp(bil * 260),
-          sparkPending: sp(pen * 4000),
+          sparkRevenue: sp(totalRev),
+          sparkBills: sp(billCount),
+          sparkPending: sp(pending),
           sparkNet: sp(net),
-          revenue: formatCurrency(data.totalRevenue),
-          billCount: data.posOrderCount,
-          pendingPayments: data.pendingPosPayments,
-          refundedOrders: data.refundedOrders,
-          refundedAmount: formatCurrency(data.refundedAmount),
+          revenue: formatCurrency(totalRev),
+          billCount: billCount,
+          pendingPayments: pending,
+          refundedOrders: data.refundedOrders || 0,
+          refundedAmount: formatCurrency(refunded),
           netRevenue: formatCurrency(net),
-          refundRate: data.posOrderCount ? `${((data.refundedOrders / data.posOrderCount) * 100).toFixed(1)}%` : '0%'
+          refundRate: billCount ? `${(((data.refundedOrders || 0) / billCount) * 100).toFixed(1)}%` : '0%'
         };
       }),
       catchError((err: unknown) => {

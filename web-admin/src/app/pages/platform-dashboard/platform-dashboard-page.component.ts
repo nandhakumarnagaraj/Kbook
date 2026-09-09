@@ -167,7 +167,7 @@ function sparkPath(value: number): string {
       box-shadow: var(--kb-shadow-xs);
     }
     .kpi-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%); border-color: transparent; color: var(--kb-color-primary-foreground);
+      background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
     }
     .kpi-card--hero:hover { transform: translateY(-1px); box-shadow: var(--kb-shadow-md); border-color: var(--kb-color-primary); }
     .kpi-card--warn {
@@ -179,7 +179,7 @@ function sparkPath(value: number): string {
     .kpi-spark { flex-shrink: 0; opacity: 0.6; }
 
     .kpi-label {
-      font-size: 0.78rem; color: var(--kb-color-muted);
+      font-size: 0.78rem; color: var(--kb-color-muted-foreground);
       text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
     }
     .kpi-value {
@@ -208,7 +208,7 @@ function sparkPath(value: number): string {
       .kpi-mini:nth-child(2n) { border-right: none; }
       .kpi-mini:nth-child(-n+2) { border-bottom: 1px solid var(--kb-color-border); }
     }
-    .kpi-mini-label { font-size: 0.76rem; color: var(--kb-color-muted); font-weight: 600; }
+    .kpi-mini-label { font-size: 0.76rem; color: var(--kb-color-muted-foreground); font-weight: 600; }
     .kpi-mini-value { font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
 
     .focus-panel {
@@ -226,7 +226,7 @@ function sparkPath(value: number): string {
       border-radius: var(--kb-radius-lg); display: grid; gap: var(--kb-space-2);
     }
     .focus-card h4 { margin: 0.1rem 0 0; font-size: 0.98rem; }
-    .focus-card p { margin: 0; color: var(--kb-color-muted); font-size: 0.88rem; line-height: 1.5; }
+    .focus-card p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.88rem; line-height: 1.5; }
     .focus-tag {
       justify-self: start; font-size: 0.7rem; font-weight: 700;
       letter-spacing: 0.06em; text-transform: uppercase;

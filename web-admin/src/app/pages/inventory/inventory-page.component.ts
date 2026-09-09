@@ -28,8 +28,8 @@ import { ToastService } from '../../core/services/toast.service';
     .material-card:hover { border-color: var(--kb-color-primary); box-shadow: 0 0 0 1px var(--kb-color-primary); }
     .material-card.low-stock { border-left: 3px solid var(--kb-color-warning, #f59e0b); }
     .material-name { font-weight: 600; font-size: 0.95rem; }
-    .material-stock { font-size: 0.85rem; color: var(--kb-color-muted); }
-    .material-stock strong { color: var(--kb-color-foreground); }
+    .material-stock { font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
+    .material-stock strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
     .low-label { color: var(--kb-color-error); font-weight: 600; font-size: 0.75rem; }
     .chip { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
     .chip-green { background: rgba(34,197,94,0.12); color: #16a34a; }
@@ -42,7 +42,7 @@ import { ToastService } from '../../core/services/toast.service';
     .form-group .field-control { width: 100%; box-sizing: border-box; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); }
-    .tab { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .tab { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out); }
     .tab:hover { color: var(--kb-color-foreground); }
     .tab.active { color: var(--kb-color-primary); border-bottom-color: var(--kb-color-primary); }
     .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--kb-color-border); font-size: 0.85rem; }
@@ -119,17 +119,17 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
 
         <div *ngIf="selectedMaterialId && movements.length === 0" class="card">
-          <p style="margin:0;color:var(--kb-color-muted)">No movements recorded yet.</p>
+          <p style="margin:0;color:var(--kb-color-muted-foreground)">No movements recorded yet.</p>
         </div>
 
         <div *ngIf="movements.length > 0" class="card">
           <div *ngFor="let mv of movements" class="movement-row">
             <div>
               <span class="movement-type">{{ formatMovementType(mv.kind) }}</span>
-              <span style="margin-left:0.5rem;color:var(--kb-color-muted);font-size:0.8rem">
+              <span style="margin-left:0.5rem;color:var(--kb-color-muted-foreground);font-size:0.8rem">
                 {{ mv.createdAt | date:'short' }}
               </span>
-              <span *ngIf="mv.reason" style="margin-left:0.5rem;font-size:0.8rem;color:var(--kb-color-muted)">
+              <span *ngIf="mv.reason" style="margin-left:0.5rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
                 — {{ mv.reason }}
               </span>
             </div>
@@ -140,7 +140,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
 
         <div *ngIf="!selectedMaterialId" class="card">
-          <p style="margin:0;color:var(--kb-color-muted)">Select a material to view its stock movement history.</p>
+          <p style="margin:0;color:var(--kb-color-muted-foreground)">Select a material to view its stock movement history.</p>
         </div>
       </div>
 
@@ -238,9 +238,9 @@ import { ToastService } from '../../core/services/toast.service';
       <div class="modal-backdrop" *ngIf="showDetailModal" (click)="closeDetailModal()">
         <div class="modal-box modal-content" style="max-width:520px" (click)="$event.stopPropagation()">
           <h3>{{ selectedMaterial?.name }}</h3>
-          <p style="margin:0 0 1rem;color:var(--kb-color-muted)">
-            Current stock: <strong>{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
-            <span *ngIf="selectedMaterial?.costPerUnit"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
+          <p style="margin:0 0 1rem;color:var(--kb-color-muted-foreground)">
+            Current stock: <strong style="font-variant-numeric:tabular-nums">{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
+            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
           </p>
 
           <!-- Action sub-tabs -->
@@ -284,7 +284,7 @@ import { ToastService } from '../../core/services/toast.service';
               <label>Counted Quantity *</label>
               <input class="field-control" type="number" [(ngModel)]="countForm.countedQty" min="0" step="0.01" />
             </div>
-            <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted)">
+            <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
               System shows {{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}. Any variance will create an adjustment entry.
             </p>
             <button class="primary-btn" (click)="submitPhysicalCount()" [disabled]="countForm.countedQty === null">Submit Count</button>

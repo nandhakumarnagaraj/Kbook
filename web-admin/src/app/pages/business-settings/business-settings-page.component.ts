@@ -5,6 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService, MerchantAgreementStatus } from '../../core/services/business-api.service';
+import { validateUpiHandle, UpiValidationResult } from '../../core/utils/upi-validator.util';
+import { generateUpiQrDataUrl } from '../../core/utils/qr-code.util';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -130,7 +132,23 @@ interface RestaurantProfile {
             </div>
             <div class="field" *ngIf="p.upiEnabled">
               <label>UPI Handle</label>
-              <input class="field-control" [(ngModel)]="p.upiHandle" placeholder="yourname@upi" />
+              <input class="field-control" [(ngModel)]="p.upiHandle" (ngModelChange)="onUpiHandleChange()" placeholder="yourname@upi" />
+              
+              <!-- Real-time UPI verification feedback -->
+              <div *ngIf="upiValidation" class="upi-feedback">
+                <div *ngIf="upiValidation.isValid && upiValidation.isKnownBank" class="feedback-success">
+                  <span class="icon">&#10003;</span> Verified Bank Handle (&#64;{{ upiValidation.suffix }})
+                </div>
+                <div *ngIf="upiValidation.suggestion" class="feedback-warning">
+                  <span>&#9888; Unrecognized handle &#64;{{ upiValidation.suffix }}. Did you mean:</span>
+                  <button type="button" class="suggestion-btn" (click)="applyUpiSuggestion(upiValidation.suggestion)">
+                    {{ upiValidation.suggestion }}
+                  </button>
+                </div>
+                <div *ngIf="!upiValidation.isValid && p.upiHandle" class="feedback-error">
+                  <span>&#10007;</span> {{ upiValidation.message }}
+                </div>
+              </div>
             </div>
             <div class="field" *ngIf="p.upiEnabled">
               <label>UPI Mobile</label>
@@ -139,9 +157,50 @@ interface RestaurantProfile {
             <div class="field">
               <label>Order Payment Flow</label>
               <select class="field-select" [(ngModel)]="p.orderPaymentFlowMode">
-                <option value="pay_before_food">Pay before food</option>
-                <option value="pay_after_food">Pay after food (dine-in)</option>
+                <option value="pay_before_food">Pay before food (Fast Counter / QSR)</option>
+                <option value="pay_after_food">Pay after food (Dine-in Table Service)</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Flow Mode Guide Cards -->
+          <div class="flow-mode-cards">
+            <div class="flow-mode-card" [class.active]="p.orderPaymentFlowMode === 'pay_before_food'" (click)="p.orderPaymentFlowMode = 'pay_before_food'">
+              <div class="mode-header">
+                <span class="mode-radio"></span>
+                <strong>Pay Before Food (Fast Counter / QSR)</strong>
+              </div>
+              <p class="muted">Customers settle payment at billing counter. KOTs and receipts print immediately upon payment success.</p>
+            </div>
+            <div class="flow-mode-card" [class.active]="p.orderPaymentFlowMode === 'pay_after_food'" (click)="p.orderPaymentFlowMode = 'pay_after_food'">
+              <div class="mode-header">
+                <span class="mode-radio"></span>
+                <strong>Pay After Food (Dine-In Table Service)</strong>
+              </div>
+              <p class="muted">Orders fire straight to kitchen KDS. Tables remain open in Active Orders and are settled at checkout.</p>
+            </div>
+          </div>
+
+          <!-- Interactive Live Test QR Code Preview -->
+          <div *ngIf="p.upiEnabled && upiValidation?.isValid" class="upi-test-panel">
+            <div class="test-qr-card">
+              <div class="test-qr-media">
+                <img *ngIf="testQrDataUrl" [src]="testQrDataUrl" alt="Test UPI QR" class="test-qr-img" />
+                <div *ngIf="generatingQr" class="test-qr-loading">Generating QR...</div>
+              </div>
+              <div class="test-qr-content">
+                <div class="test-qr-badge">&#10003; Ready to Scan &amp; Verify</div>
+                <h4>Interactive UPI Verification Test</h4>
+                <p class="muted">
+                  Point your camera with <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong> at this test QR.
+                  Your UPI app will immediately resolve NPCI records and display your <strong>registered legal bank account name</strong> on your phone.
+                </p>
+                <div class="test-qr-meta">
+                  <span class="meta-tag">VPA: <strong>{{ p.upiHandle }}</strong></span>
+                  <span class="meta-tag">Payee: <strong>{{ p.shopName || 'Merchant' }}</strong></span>
+                  <span class="meta-tag">Test Amount: <strong>&#8377;1.00</strong></span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -284,6 +343,67 @@ interface RestaurantProfile {
     .success-text { color: var(--kb-color-success); font-size: 0.85rem; }
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; }
     .agreement-actions { margin-top: var(--kb-space-2); }
+    .upi-feedback { margin-top: 6px; font-size: 0.8rem; }
+    .feedback-success { color: var(--kb-color-success, #10b981); display: flex; align-items: center; gap: 4px; font-weight: 500; }
+    .feedback-warning { color: var(--kb-color-warning, #d97706); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .feedback-error { color: var(--kb-color-error, #ef4444); font-weight: 500; }
+    .suggestion-btn {
+      background: none; border: 1px solid var(--kb-color-primary, #e59500);
+      color: var(--kb-color-primary, #e59500); border-radius: 4px;
+      padding: 2px 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
+    }
+    .suggestion-btn:hover { background: rgba(229, 149, 0, 0.1); }
+    .flow-mode-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--kb-space-3); margin-top: var(--kb-space-3);
+    }
+    .flow-mode-card {
+      border: 1px solid var(--kb-color-border); border-radius: 8px;
+      padding: 0.85rem; background: var(--kb-color-surface-2, #f9fafb);
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }
+    .flow-mode-card:hover { border-color: var(--kb-color-primary, #e59500); }
+    .flow-mode-card.active {
+      border-color: var(--kb-color-primary, #e59500);
+      background: rgba(229, 149, 0, 0.05);
+    }
+    .mode-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .mode-radio {
+      width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--kb-color-border);
+      display: inline-block; box-sizing: border-box;
+    }
+    .flow-mode-card.active .mode-radio {
+      border-color: var(--kb-color-primary, #e59500);
+      background: var(--kb-color-primary, #e59500);
+      box-shadow: inset 0 0 0 2px #fff;
+    }
+    .flow-mode-card p { margin: 0; font-size: 0.8rem; line-height: 1.4; }
+    .upi-test-panel { margin-top: var(--kb-space-3); }
+    .test-qr-card {
+      display: flex; gap: var(--kb-space-3); align-items: center;
+      background: var(--kb-color-surface-2, #f9fafb); border: 1px solid var(--kb-color-border);
+      border-radius: 10px; padding: 1rem; flex-wrap: wrap;
+    }
+    .test-qr-media {
+      width: 140px; height: 140px; background: #ffffff; border-radius: 8px;
+      padding: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .test-qr-img { width: 100%; height: 100%; object-fit: contain; }
+    .test-qr-loading { font-size: 0.75rem; color: var(--kb-color-muted); }
+    .test-qr-content { flex: 1; min-width: 240px; }
+    .test-qr-badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success, #10b981);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+    }
+    .test-qr-content h4 { margin: 0 0 4px; font-size: 1rem; color: var(--kb-color-foreground); }
+    .test-qr-content p { margin: 0 0 8px; font-size: 0.82rem; }
+    .test-qr-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.78rem; }
+    .meta-tag {
+      background: var(--kb-color-surface-1, #ffffff); border: 1px solid var(--kb-color-border);
+      padding: 3px 8px; border-radius: 4px;
+    }
   `]
 })
 export class BusinessSettingsPageComponent {
@@ -308,6 +428,11 @@ export class BusinessSettingsPageComponent {
   easebuzzConfig: any = null;
   easebuzzLoading = false;
   easebuzzEnabled = false;
+
+  // Offline UPI Validation & Test QR State
+  upiValidation: UpiValidationResult | null = null;
+  testQrDataUrl: string | null = null;
+  generatingQr = false;
 
   // Change password state
   pwPhone = '';
@@ -357,6 +482,9 @@ export class BusinessSettingsPageComponent {
           });
         }
         this.loading.set(false);
+        if (this.profile()?.upiEnabled && this.profile()?.upiHandle) {
+          this.onUpiHandleChange();
+        }
       },
       error: () => {
         this.loading.set(false);
@@ -451,11 +579,60 @@ export class BusinessSettingsPageComponent {
     });
   }
 
+  onUpiHandleChange(): void {
+    const handle = this.profile()?.upiHandle;
+    if (!handle || !handle.trim()) {
+      this.upiValidation = null;
+      this.testQrDataUrl = null;
+      return;
+    }
+    this.upiValidation = validateUpiHandle(handle);
+    if (this.upiValidation.isValid) {
+      this.generateTestQr();
+    } else {
+      this.testQrDataUrl = null;
+    }
+  }
+
+  applyUpiSuggestion(suggestion: string): void {
+    const p = this.profile();
+    if (p) {
+      p.upiHandle = suggestion;
+      this.onUpiHandleChange();
+    }
+  }
+
+  generateTestQr(): void {
+    const p = this.profile();
+    if (!p || !p.upiHandle) return;
+    this.generatingQr = true;
+    generateUpiQrDataUrl({
+      vpa: p.upiHandle,
+      payeeName: p.shopName || 'KhanaBook Merchant',
+      amount: 1.00,
+      note: 'KhanaBook Verification',
+      size: 256
+    }).then((dataUrl) => {
+      this.testQrDataUrl = dataUrl;
+      this.generatingQr = false;
+    }).catch(() => {
+      this.generatingQr = false;
+    });
+  }
+
   saveProfile(): void {
     const p = this.profile();
     if (!p || !p.shopName?.trim()) {
       this.toast.show('Shop name is required.', 'error');
       return;
+    }
+    if (p.upiEnabled) {
+      const v = validateUpiHandle(p.upiHandle);
+      if (!v.isValid) {
+        this.toast.show(v.message || 'Please enter a valid UPI ID (e.g. yourname@okhdfcbank)', 'error');
+        return;
+      }
+      p.upiHandle = v.normalizedHandle;
     }
     this.saving.set(true);
     const now = Date.now();

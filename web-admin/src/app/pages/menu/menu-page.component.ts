@@ -315,13 +315,13 @@ import { environment } from '../../../environments/environment';
       background: var(--kb-color-surface-2); color: var(--kb-color-foreground);
     }
     .ocr-state strong, .ocr-state p { margin: 0; }
-    .ocr-state p { margin-top: var(--kb-space-1); color: var(--kb-color-muted); font-size: 0.82rem; }
+    .ocr-state p { margin-top: var(--kb-space-1); color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
     .ocr-state .spanner { flex: 0 0 auto; margin: var(--kb-space-1) 0 0; }
     .ocr-state--error { border-color: rgba(239,68,68,0.15); background: var(--kb-color-surface-2); color: var(--kb-color-error); }
     .ocr-state--warning { border-color: rgba(245,158,11,0.15); background: var(--kb-color-surface-2); color: var(--kb-color-warning); }
     .result-header { display: flex; align-items: center; gap: var(--kb-space-2); }
     .extracted-table { margin-top: var(--kb-space-2); }
-    .hint-text { color: var(--kb-color-muted); font-size: 0.85rem; margin: var(--kb-space-2) 0 0.75rem; }
+    .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: var(--kb-space-2) 0 0.75rem; }
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
     .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
@@ -333,8 +333,9 @@ import { environment } from '../../../environments/environment';
       font-size: 0.78rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s ease;
+      transition: transform 120ms var(--ease-out, ease-out), background-color 150ms ease;
     }
+    .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
     .toggle-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
     .toggle-btn--off { border-color: var(--kb-color-error); color: var(--kb-color-error); }

@@ -76,10 +76,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .order-card__code { font-size: 1rem; color: var(--kb-color-foreground); }
     .order-card__customer { font-size: 0.88rem; color: var(--kb-color-foreground); font-weight: 500; }
     .order-card__meta { display: flex; justify-content: space-between; font-size: 0.85rem; }
-    .order-card__meta span:first-child { font-weight: 700; color: var(--kb-color-foreground); }
-    .order-card__time { font-size: 0.8rem; color: var(--kb-color-muted); }
-    .chip.warn { background: rgba(59, 130, 246, 0.12); color: var(--kb-color-primary); }
-    .chip.success { background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success); }
+    .order-card__meta span:first-child { font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
+    .order-card__time { font-size: 0.8rem; color: var(--kb-color-muted-foreground); }
+    .chip.warn { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .chip.success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
   `]
 })
 export class ActiveOrdersPageComponent implements OnDestroy {

@@ -147,14 +147,14 @@ interface DailyClosingData {
       display: flex; flex-direction: column; gap: var(--kb-space-1);
     }
     .kpi-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%); border-color: transparent; color: var(--kb-color-primary-foreground);
+      background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
     }
     .kpi-card--hero .kpi-label, .kpi-card--hero .kpi-sub { color: rgba(255,255,255,0.8); }
     .kpi-card--warn { border-color: var(--kb-color-error); }
-    .kpi-label { font-size: 0.8rem; font-weight: 600; color: var(--kb-color-muted); }
+    .kpi-label { font-size: 0.8rem; font-weight: 600; color: var(--kb-color-muted-foreground); }
     .kpi-value { font-size: calc(1.25rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
     .kpi-card--hero .kpi-value { color: var(--kb-color-primary-foreground); }
-    .kpi-sub { font-size: 0.75rem; color: var(--kb-color-muted); }
+    .kpi-sub { font-size: 0.75rem; color: var(--kb-color-muted-foreground); }
 
     .payment-grid {
       display: grid;
@@ -169,9 +169,9 @@ interface DailyClosingData {
     }
     .payment-card__icon { font-size: 1.5rem; color: var(--kb-color-primary); }
     .payment-card__info { display: flex; flex-direction: column; }
-    .payment-card__label { font-size: 0.8rem; color: var(--kb-color-muted); font-weight: 600; }
-    .payment-card__amount { font-size: calc(1.1rem + 0.2vw); font-weight: 700; color: var(--kb-color-foreground); }
-    .payment-card__count { font-size: 0.75rem; color: var(--kb-color-muted); }
+    .payment-card__label { font-size: 0.8rem; color: var(--kb-color-muted-foreground); font-weight: 600; }
+    .payment-card__amount { font-size: calc(1.1rem + 0.2vw); font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
+    .payment-card__count { font-size: 0.75rem; color: var(--kb-color-muted-foreground); }
 
     .cash-box {
       background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
@@ -179,8 +179,8 @@ interface DailyClosingData {
     }
     .cash-box__header { display: flex; justify-content: space-between; align-items: center; }
     .cash-box__header span { font-weight: 600; color: var(--kb-color-foreground); }
-    .cash-box__amount { font-size: calc(1.2rem + 0.2vw); font-weight: 700; color: var(--kb-color-primary); }
-    .cash-box__note { font-size: 0.8rem; color: var(--kb-color-muted); margin-top: var(--kb-space-1); }
+    .cash-box__amount { font-size: calc(1.2rem + 0.2vw); font-weight: 700; color: var(--kb-color-primary); font-variant-numeric: tabular-nums; }
+    .cash-box__note { font-size: 0.8rem; color: var(--kb-color-muted-foreground); margin-top: var(--kb-space-1); }
 
     .summary-grid { display: flex; flex-direction: column; gap: var(--kb-space-2); }
     .summary-row {
@@ -229,13 +229,13 @@ export class DailyClosingPageComponent {
           cancelledOrders: res.cancelledOrders || 0,
           draftOrders: res.draftOrders || 0,
           totalRevenue: res.totalRevenue || 0,
-          refundedAmount: 0,
-          netRevenue: res.totalRevenue || 0,
+          refundedAmount: res.refundedAmount || 0,
+          netRevenue: res.netRevenue != null ? res.netRevenue : (res.totalRevenue || 0),
           paymentSplits: (res.paymentSplits || []).map((s: any) => ({
-            mode: s.mode, label: s.mode, count: s.count, total: 0
+            mode: s.mode, label: s.mode, count: s.count || 0, total: s.total || 0
           })),
-          expectedCash: 0,
-          topItems: []
+          expectedCash: res.expectedCash || 0,
+          topItems: res.topItems || []
         });
       },
       error: () => {

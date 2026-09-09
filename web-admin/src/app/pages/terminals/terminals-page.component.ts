@@ -390,13 +390,13 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .ghost-btn.active { background: rgba(59, 130, 246, 0.16); color: var(--kb-color-primary-foreground); }
+    .ghost-btn.active { background: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
     .primary-badge {
       display: inline-block;
       margin-left: 0.45rem;
       padding: 0.1rem 0.5rem;
-      background: rgba(59, 130, 246, 0.14);
-      color: var(--kb-color-primary-foreground);
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
       border: 1px solid var(--kb-color-primary);
       border-radius: 999px;
       font-size: 0.72rem;
@@ -522,6 +522,10 @@ export class TerminalsPageComponent implements OnDestroy {
       clearInterval(this.challengeTimer);
       this.challengeTimer = null;
     }
+    // Guarantee the recovery dialog's scroll-lock + key handler never leak when
+    // navigating away without clicking Close.
+    document.removeEventListener('keydown', this.recoveryKeydownHandler);
+    document.body.style.overflow = '';
   }
 
   reload(): void {

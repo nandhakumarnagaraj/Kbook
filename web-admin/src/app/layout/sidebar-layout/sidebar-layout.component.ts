@@ -64,18 +64,16 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
             </div>
             <div class="brand-copy">
               <span class="eyebrow">KhanaBook</span>
-              <h1>Web Admin</h1>
+              <h1>{{ contextTitle() }}</h1>
+              <span class="tenant-chip" *ngIf="session()?.restaurantId as restaurantId">Restaurant #{{ restaurantId }}</span>
             </div>
           </div>
-          <div class="user-card">
-            <div class="user-avatar" aria-hidden="true">
-              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
-            </div>
-            <div class="user-meta">
-              <span class="user-name">{{ session()?.userName || 'Operator' }}</span>
-              <span class="user-role">{{ session()?.role }}</span>
-            </div>
-          </div>
+
+          <button *ngIf="session()?.role === 'OWNER'" type="button" class="sidebar-search" (click)="openOrders()" aria-label="Search orders">
+            <span class="sidebar-search__icon" aria-hidden="true">⌕</span>
+            <span class="sidebar-search__label">Search orders</span>
+            <kbd class="sidebar-search__kbd">Ctrl K</kbd>
+          </button>
         </div>
 
         <nav class="nav-links" aria-label="Main">
@@ -90,33 +88,25 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
           </a>
         </nav>
 
-        <button class="logout-btn" (click)="logout()" type="button">
-          <span aria-hidden="true">↩</span>
-          <span>Sign out</span>
-        </button>
+        <div class="sidebar-footer">
+          <div class="user-card">
+            <div class="user-avatar" aria-hidden="true">
+              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
+            </div>
+            <div class="user-meta">
+              <span class="user-name">{{ session()?.userName || 'Operator' }}</span>
+              <span class="user-role">{{ session()?.role }}</span>
+            </div>
+          </div>
+
+          <button class="logout-btn" (click)="logout()" type="button" aria-label="Sign out">
+            <span aria-hidden="true">↩</span>
+            <span>Sign out</span>
+          </button>
+        </div>
       </aside>
 
       <div class="workspace">
-        <header class="desktop-topbar">
-          <div class="business-context">
-            <div class="context-mark" aria-hidden="true">{{ contextInitial() }}</div>
-            <div class="context-copy">
-              <strong>{{ contextTitle() }}</strong>
-              <span>{{ contextSubtitle() }}</span>
-            </div>
-          </div>
-          <div class="topbar-actions">
-            <button *ngIf="session()?.role === 'OWNER'" type="button" class="quick-search" (click)="openOrders()">
-              <span aria-hidden="true">⌕</span>
-              <span>Search orders</span>
-              <kbd>Ctrl K</kbd>
-            </button>
-            <span class="restaurant-chip" *ngIf="session()?.restaurantId as restaurantId">Restaurant #{{ restaurantId }}</span>
-            <div class="topbar-avatar" [attr.aria-label]="'Signed in as ' + (session()?.userName || 'Operator')">
-              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
-            </div>
-          </div>
-        </header>
         <main id="main-content" class="content-shell" tabindex="-1">
           <router-outlet />
         </main>
@@ -150,22 +140,24 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
 
     /* ── Sidebar (minimalism dark) ── */
     .sidebar {
-      padding: var(--kb-space-3) var(--kb-space-4);
+      padding: var(--kb-space-4);
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-4);
+      gap: var(--kb-space-3);
       position: sticky;
       top: 0;
       height: 100vh;
+      overflow-y: auto;
       background: var(--kb-color-foreground);
       border-right: 1px solid var(--kb-color-border);
       color: var(--kb-color-foreground-contrast);
     }
 
-    .brand-block { display: grid; gap: var(--kb-space-4); padding: 0 var(--kb-space-3); }
+    .brand-block { display: grid; gap: var(--kb-space-3); padding: 0 var(--kb-space-1); }
     .brand-row { display: flex; align-items: center; gap: var(--kb-space-3); }
-    .brand-copy { display: grid; }
-    .brand-copy h1 { margin: 0; font-size: clamp(1rem, 4vw, var(--kb-font-size-h1)); font-weight: 700; letter-spacing: -0.02em; color: var(--kb-color-foreground-contrast); }
+    .brand-copy { display: grid; min-width: 0; }
+    .brand-copy h1 { margin: 0; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: 700; letter-spacing: -0.02em; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tenant-chip { display: inline-block; font-size: 0.7rem; font-weight: 600; color: var(--kb-color-primary); letter-spacing: 0.02em; }
 
     .brand-logo {
       display: inline-flex;
@@ -174,7 +166,7 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       width: 40px;
       height: 40px;
       border-radius: var(--kb-radius-md);
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, #60A5FA 100%);
+      background: var(--kb-gradient-hero);
       box-shadow: var(--kb-shadow-sm);
       flex-shrink: 0;
     }
@@ -184,34 +176,40 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
 
     .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; color: var(--kb-color-muted); font-size: 0.65rem; font-weight: 700; }
 
-    /* User card */
-    .user-card {
+    /* Integrated Search */
+    .sidebar-search {
+      width: 100%;
       display: flex;
       align-items: center;
-      gap: var(--kb-space-3);
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-card);
-      backdrop-filter: blur(8px);
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--kb-radius-md);
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-align: left;
+      transition: background-color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
     }
-    .user-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--kb-radius-full);
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-      box-shadow: var(--kb-shadow-xs);
+    .sidebar-search:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-foreground-contrast);
     }
-    .user-meta { display: grid; min-width: 0; }
-    .user-name { font-weight: 600; font-size: 0.85rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.68rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .sidebar-search:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+    .sidebar-search:active { transform: scale(0.98); }
+    .sidebar-search__icon { font-size: 1rem; color: var(--kb-color-muted-foreground); }
+    .sidebar-search__label { flex: 1; }
+    .sidebar-search__kbd {
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--kb-radius-sm);
+      font-size: 0.65rem;
+      font-family: inherit;
+      color: var(--kb-color-foreground-contrast);
+    }
 
     /* Navigation */
     .nav-links { display: flex; flex-direction: column; gap: var(--kb-space-2); }
@@ -226,10 +224,11 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       text-decoration: none;
       font-weight: 500;
       font-size: 0.88rem;
-      transition: all 0.15s ease;
+      transition: background-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
     }
     .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 20px; }
     .nav-link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
+    .nav-link:active { transform: scale(0.98); }
     .nav-link.active-link {
       background: var(--kb-color-primary);
       color: var(--kb-color-primary-foreground);
@@ -248,57 +247,66 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       box-shadow: 0 0 8px var(--kb-color-primary);
     }
 
+    /* Sidebar Footer */
+    .sidebar-footer {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-2);
+      padding-top: var(--kb-space-3);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* User card */
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--kb-radius-card);
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.82rem;
+      flex-shrink: 0;
+      box-shadow: var(--kb-shadow-xs);
+    }
+    .user-meta { display: grid; min-width: 0; }
+    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+
     /* Logout */
     .logout-btn {
-      margin-top: auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: var(--kb-space-2);
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: rgba(255, 255, 255, 0.04);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      background: transparent;
       color: var(--kb-color-muted-foreground);
-      border: 1px solid var(--kb-color-border);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--kb-radius-card);
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.85rem;
-      transition: all 0.15s ease;
+      font-size: 0.82rem;
+      transition: background-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
     }
-    .logout-btn:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); border-color: var(--kb-color-border-strong); }
+    .logout-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--kb-color-foreground-contrast); border-color: rgba(255, 255, 255, 0.2); }
+    .logout-btn:active { transform: scale(0.97); }
 
     /* Content */
     .content-shell { min-width: 0; width: 100%; flex: 1; }
     .content-shell:focus { outline: none; }
-
-    .desktop-topbar {
-      position: sticky; top: 0; z-index: var(--kb-z-topbar);
-      height: var(--kb-topbar-height); padding: var(--kb-space-4) 1.5rem;
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      background: var(--kb-color-surface); border-bottom: 1px solid var(--kb-color-border);
-      backdrop-filter: blur(12px);
-    }
-    .business-context { display: flex; align-items: center; gap: var(--kb-space-3); min-width: 0; }
-    .context-mark, .topbar-avatar {
-      display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px;
-      border-radius: var(--kb-radius-lg); background: var(--kb-color-primary); color: var(--kb-color-primary-foreground);
-      font-weight: 700;
-    }
-    .topbar-avatar { border-radius: var(--kb-radius-full); background: var(--kb-color-surface-2); color: var(--kb-color-muted); }
-    .context-copy { display: grid; min-width: 0; line-height: 1.2; }
-    .context-copy strong { overflow: hidden; color: var(--kb-color-foreground); font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-    .context-copy span { color: var(--kb-color-muted); font-size: 0.7rem; }
-    .topbar-actions { display: flex; align-items: center; gap: var(--kb-space-3); }
-    .quick-search, .restaurant-chip {
-      min-height: var(--kb-space-5); display: inline-flex; align-items: center; gap: var(--kb-space-2);
-      padding: var(--kb-space-2) var(--kb-space-3); color: var(--kb-color-muted); background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); font-size: 0.78rem;
-    }
-    .quick-search { width: 220px; cursor: pointer; text-align: left; }
-    .quick-search:hover { border-color: var(--kb-color-primary); color: var(--kb-color-foreground); }
-    .quick-search:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
-    .quick-search kbd { margin-left: auto; padding: var(--kb-space-1) var(--kb-space-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-sm); background: var(--kb-color-surface-2); font-size: 0.65rem; }
-    .restaurant-chip { min-height: var(--kb-space-4); background: var(--kb-color-surface-2); }
 
     /* ── Topbar (mobile only) ── */
     .topbar { display: none; }
@@ -323,7 +331,6 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       .layout-shell { grid-template-columns: 1fr; }
-      .desktop-topbar { display: none; }
       .topbar {
         display: flex;
         align-items: center;
@@ -375,8 +382,6 @@ export class SidebarLayoutComponent implements OnInit {
 
   readonly session = this.authService.session;
   readonly contextTitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'KhanaBook Platform' : 'Restaurant operations');
-  readonly contextSubtitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'Administration workspace' : 'Live business workspace');
-  readonly contextInitial = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'K' : 'R');
   readonly links = computed<NavLink[]>(() => {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
