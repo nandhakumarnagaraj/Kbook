@@ -395,11 +395,13 @@ fun HomeScreen(
                         }
                     }
 
-                    PrintSpoolerStatusBadge(
-                        pendingCount = stats.kdsPendingCount,
-                        onRetryAll = { viewModel.reprintPendingKds() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (stats.kdsPendingCount > 0) {
+                        PrintSpoolerStatusBadge(
+                            pendingCount = stats.kdsPendingCount,
+                            onRetryAll = { viewModel.executeReprintPendingKds() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     val primaryActionLabel = if (orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
                         "Create New Order"

@@ -11,7 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 
 data class MenuFeedbackSettings(
     val soundEnabled: Boolean = true,
-    val hapticEnabled: Boolean = false
+    val hapticEnabled: Boolean = false,
+    val voiceAnnouncementEnabled: Boolean = true
 )
 
 class MenuFeedbackPreferences(context: Context) {
@@ -22,7 +23,8 @@ class MenuFeedbackPreferences(context: Context) {
 
     fun read(): MenuFeedbackSettings = MenuFeedbackSettings(
         soundEnabled = preferences.getBoolean(KEY_SOUND_ENABLED, true),
-        hapticEnabled = preferences.getBoolean(KEY_HAPTIC_ENABLED, false)
+        hapticEnabled = preferences.getBoolean(KEY_HAPTIC_ENABLED, false),
+        voiceAnnouncementEnabled = preferences.getBoolean(KEY_VOICE_ANNOUNCEMENT_ENABLED, true)
     )
 
     fun setSoundEnabled(enabled: Boolean) {
@@ -31,6 +33,10 @@ class MenuFeedbackPreferences(context: Context) {
 
     fun setHapticEnabled(enabled: Boolean) {
         preferences.edit().putBoolean(KEY_HAPTIC_ENABLED, enabled).apply()
+    }
+
+    fun setVoiceAnnouncementEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_VOICE_ANNOUNCEMENT_ENABLED, enabled).apply()
     }
 
     internal fun registerListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
@@ -45,6 +51,7 @@ class MenuFeedbackPreferences(context: Context) {
         const val PREFERENCES_NAME = "menu_feedback_preferences"
         const val KEY_SOUND_ENABLED = "sound_enabled"
         const val KEY_HAPTIC_ENABLED = "haptic_enabled"
+        const val KEY_VOICE_ANNOUNCEMENT_ENABLED = "voice_announcement_enabled"
     }
 }
 

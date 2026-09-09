@@ -70,7 +70,13 @@ fun SuccessStep(
     var isTtsReady by remember { mutableStateOf(false) }
     val tts = remember { mutableStateOf<TextToSpeech?>(null) }
 
-    DisposableEffect(context) {
+    val feedbackPrefs = com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackPreferences()
+    val feedbackSettings by com.khanabook.lite.pos.ui.feedback.rememberMenuFeedbackSettings(feedbackPrefs)
+
+    DisposableEffect(context, feedbackSettings.voiceAnnouncementEnabled) {
+        if (!feedbackSettings.voiceAnnouncementEnabled) {
+            return@DisposableEffect onDispose { }
+        }
         var engine: TextToSpeech? = null
         try {
             engine = TextToSpeech(context.applicationContext) { status ->
@@ -93,8 +99,8 @@ fun SuccessStep(
         }
     }
 
-    LaunchedEffect(isTtsReady, lastBill?.bill?.id) {
-        if (!isTtsReady || lastBill == null) return@LaunchedEffect
+    LaunchedEffect(isTtsReady, lastBill?.bill?.id, feedbackSettings.voiceAnnouncementEnabled) {
+        if (!feedbackSettings.voiceAnnouncementEnabled || !isTtsReady || lastBill == null) return@LaunchedEffect
         tts.value?.let { ttsEngine ->
             try {
                 ttsEngine.language = Locale("en", "IN")

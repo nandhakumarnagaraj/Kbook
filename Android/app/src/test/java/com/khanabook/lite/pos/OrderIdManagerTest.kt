@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import org.junit.Assert.assertEquals
@@ -67,6 +67,14 @@ class OrderIdManagerTest {
         assertEquals("01", OrderIdManager.getDailyOrderDisplay("2026-03-01", 1))
         assertEquals("10", OrderIdManager.getDailyOrderDisplay("2026-03-01", 10))
         assertEquals("100", OrderIdManager.getDailyOrderDisplay("2026-03-01", 100))
+    }
+
+    @Test
+    fun `getDailyOrderDisplay should prepend terminalSeries when present`() {
+        assertEquals("A-01", OrderIdManager.getDailyOrderDisplay("2026-03-01", 1, "A"))
+        assertEquals("B1-15", OrderIdManager.getDailyOrderDisplay("2026-03-01", 15, "B1"))
+        assertEquals("05", OrderIdManager.getDailyOrderDisplay("2026-03-01", 5, null))
+        assertEquals("05", OrderIdManager.getDailyOrderDisplay("2026-03-01", 5, ""))
     }
 }
 

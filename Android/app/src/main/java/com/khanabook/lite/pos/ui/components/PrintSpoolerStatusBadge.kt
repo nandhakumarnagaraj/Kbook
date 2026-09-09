@@ -74,7 +74,7 @@ fun PrintSpoolerStatusBadge(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = " KOT print queued (offline/busy)",
+                        text = "$pendingCount KOT print${if (pendingCount > 1) "s" else ""} queued (offline/busy)",
                         color = WarningYellow,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold

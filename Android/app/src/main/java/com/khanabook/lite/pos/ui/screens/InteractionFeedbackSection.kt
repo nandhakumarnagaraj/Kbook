@@ -92,6 +92,23 @@ fun InteractionFeedbackView() {
                     checked = settings.hapticEnabled,
                     onCheckedChange = preferences::setHapticEnabled
                 )
+
+                HorizontalDivider(color = BorderGold.copy(alpha = 0.25f))
+
+                FeedbackPreferenceRow(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(iconSize.medium)
+                        )
+                    },
+                    title = "Payment voice soundbox",
+                    description = "Announce received payment amount aloud on device speaker after each bill",
+                    checked = settings.voiceAnnouncementEnabled,
+                    onCheckedChange = preferences::setVoiceAnnouncementEnabled
+                )
             }
         }
 

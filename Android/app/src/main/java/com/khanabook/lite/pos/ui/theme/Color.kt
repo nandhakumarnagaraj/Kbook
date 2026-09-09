@@ -38,3 +38,4 @@ val Green800 = Color(0xFF2E7D32)
 
 val GoogleRed = Color(0xFFDB4437)
 val WhatsAppGreen = Color(0xFF25D366)
+val SmsBlue = Color(0xFF1976D2)

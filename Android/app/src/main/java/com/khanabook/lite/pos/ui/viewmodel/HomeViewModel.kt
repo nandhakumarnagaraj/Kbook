@@ -249,29 +249,33 @@ class HomeViewModel @Inject constructor(
     suspend fun reprintPendingKdsList(): List<com.khanabook.lite.pos.data.local.relation.BillWithItems> =
         billRepository.getBillsWithPendingKds()
 
+    suspend fun executeReprintPendingKds() {
+        val pendingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
+        if (pendingCount == 0) {
+            _message.emit(UiMessage("No pending KDS tickets.", ToastKind.Info))
+            return
+        }
+
+        val kitchenPrinter = printerProfileRepository.getProfiles().firstOrNull {
+            it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
+        }
+        if (kitchenPrinter == null && printerManager.connectedDeviceMac.value.isNullOrBlank()) {
+            _message.emit(UiMessage("No kitchen printer configured or connected.", ToastKind.Warning))
+            return
+        }
+
+        kitchenPrintQueueManager.flushAllPending()
+        val remainingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
+        if (remainingCount == 0) {
+            _message.emit(UiMessage("KDS tickets reprinted.", ToastKind.Success))
+        } else {
+            _message.emit(UiMessage("$remainingCount KDS ticket(s) still pending.", ToastKind.Warning))
+        }
+    }
+
     fun reprintPendingKds() {
         viewModelScope.launch {
-            val pendingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
-            if (pendingCount == 0) {
-                _message.emit(UiMessage("No pending KDS tickets.", ToastKind.Info))
-                return@launch
-            }
-
-            val kitchenPrinter = printerProfileRepository.getProfiles().firstOrNull {
-                it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
-            }
-            if (kitchenPrinter == null && printerManager.connectedDeviceMac.value.isNullOrBlank()) {
-                _message.emit(UiMessage("No kitchen printer configured or connected.", ToastKind.Warning))
-                return@launch
-            }
-
-            kitchenPrintQueueManager.flushAllPending()
-            val remainingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
-            if (remainingCount == 0) {
-                _message.emit(UiMessage("KDS tickets reprinted.", ToastKind.Success))
-            } else {
-                _message.emit(UiMessage("$remainingCount KDS ticket(s) still pending.", ToastKind.Warning))
-            }
+            executeReprintPendingKds()
         }
     }
 
