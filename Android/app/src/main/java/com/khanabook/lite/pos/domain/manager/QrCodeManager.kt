@@ -38,12 +38,31 @@ object QrCodeManager {
     }
 
     /**
+     * Builds the standard NPCI UPI payment URI string.
+     */
+    fun buildUpiUri(vpa: String, name: String = "", amount: Double = 0.0): String {
+        val cleanVpa = vpa.trim()
+        val encodedVpa = URLEncoder.encode(cleanVpa, "UTF-8")
+        val cleanName = name.trim()
+        val encodedName = if (cleanName.isNotEmpty()) URLEncoder.encode(cleanName, "UTF-8") else null
+        val encodedAmount = String.format(Locale.US, "%.2f", amount.coerceAtLeast(0.0))
+
+        val sb = StringBuilder("upi://pay?pa=").append(encodedVpa)
+        if (encodedName != null) {
+            sb.append("&pn=").append(encodedName)
+        }
+        if (amount > 0.0) {
+            sb.append("&am=").append(encodedAmount)
+        }
+        sb.append("&cu=INR")
+        return sb.toString()
+    }
+
+    /**
      * Generates a UPI QR code from the given VPA, name, and amount.
      */
     fun generateUpiQr(vpa: String, name: String, amount: Double, size: Int = 512): Bitmap? {
-        val encodedVpa = URLEncoder.encode(vpa.trim(), "UTF-8")
-        val encodedAmount = String.format(Locale.US, "%.2f", amount.coerceAtLeast(0.0))
-        val uri = "upi://pay?pa=$encodedVpa&am=$encodedAmount&cu=INR"
+        val uri = buildUpiUri(vpa, name, amount)
         return generateQr(uri, size)
     }
 

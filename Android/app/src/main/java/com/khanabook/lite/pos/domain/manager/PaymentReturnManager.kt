@@ -17,7 +17,8 @@ object PaymentReturnManager {
 
     enum class Status {
         SUCCESS,
-        FAILURE
+        FAILURE,
+        STATUS
     }
 
     private val _events = MutableSharedFlow<ReturnEvent>(
@@ -45,6 +46,7 @@ object PaymentReturnManager {
         val status = when (uri.path?.lowercase()) {
             "/success" -> Status.SUCCESS
             "/failure" -> Status.FAILURE
+            "/status" -> Status.STATUS
             else -> return
         }
 

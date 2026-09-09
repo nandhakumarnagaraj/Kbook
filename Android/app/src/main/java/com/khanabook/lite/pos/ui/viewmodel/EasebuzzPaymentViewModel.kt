@@ -48,6 +48,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
 
     private var pollJob: Job? = null
     private var countdownJob: Job? = null
+    private var verifyJob: Job? = null
 
     val billId: Long = savedStateHandle["billId"] ?: 0L
     val restaurantId: Long = savedStateHandle["restaurantId"] ?: 0L
@@ -59,6 +60,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
     override fun onCleared() {
         pollJob?.cancel()
         countdownJob?.cancel()
+        verifyJob?.cancel()
         super.onCleared()
     }
 
@@ -113,15 +115,20 @@ class EasebuzzPaymentViewModel @Inject constructor(
         }
     }
 
-    fun verifyAndComplete(txnIdFromSdk: String? = null) {
+    fun verifyAndComplete(
+        txnIdFromSdk: String? = null,
+        pollLimit: Int = MAX_STATUS_POLLS,
+        failureMessage: String = "Payment verification failed"
+    ) {
         if (_state.value is EasebuzzPaymentState.Verifying) return
+        if (verifyJob?.isActive == true) return
         pollJob?.cancel()
         countdownJob?.cancel()
-        viewModelScope.launch {
+        verifyJob = viewModelScope.launch {
             _state.value = EasebuzzPaymentState.Verifying
             var paid = false
             var pollAttempts = 0
-            while (pollAttempts < MAX_STATUS_POLLS) {
+            while (pollAttempts < pollLimit) {
                 paymentRepository.getPaymentStatus(billId, refresh = true)
                     .onSuccess { result ->
                         val status = result["paymentStatus"]?.toString()
@@ -130,7 +137,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
                     }
                 pollAttempts++
                 if (paid) break
-                if (pollAttempts < MAX_STATUS_POLLS) delay(3000)
+                if (pollAttempts < pollLimit) delay(3000)
             }
             paymentRepository.verifyPayment(billId)
                 .onSuccess { result ->
@@ -146,7 +153,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
                         _state.value = if (paid) {
                             EasebuzzPaymentState.PaymentSuccess(txnIdFromSdk ?: currentTxnId)
                         } else {
-                            EasebuzzPaymentState.PaymentFailed("Payment verification failed")
+                            EasebuzzPaymentState.PaymentFailed(failureMessage)
                         }
                     }
                 }
@@ -155,7 +162,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
                         EasebuzzPaymentState.PaymentSuccess(txnIdFromSdk ?: currentTxnId)
                     } else {
                         EasebuzzPaymentState.PaymentFailed(
-                            e.message ?: "Payment verification failed"
+                            e.message ?: failureMessage
                         )
                     }
                 }
@@ -163,6 +170,7 @@ class EasebuzzPaymentViewModel @Inject constructor(
     }
 
     fun verifyPayment() {
+        if (verifyJob?.isActive == true) return
         viewModelScope.launch {
             paymentRepository.verifyPayment(billId)
                 .onSuccess { result ->
@@ -200,6 +208,28 @@ class EasebuzzPaymentViewModel @Inject constructor(
 
     fun onSdkUnavailable(message: String) {
         _state.value = EasebuzzPaymentState.Error(message)
+    }
+
+    fun onUserCancelled() {
+        pollJob?.cancel()
+        countdownJob?.cancel()
+        _state.value = EasebuzzPaymentState.PaymentFailed("Payment cancelled by user")
+        viewModelScope.launch { KhanaToast.show("Payment was cancelled", ToastKind.Info) }
+    }
+
+    fun onSessionTimeout() {
+        pollJob?.cancel()
+        countdownJob?.cancel()
+        _secondsLeft.value = 0
+        _state.value = EasebuzzPaymentState.PaymentFailed("Payment session expired (15-minute limit)")
+        viewModelScope.launch { KhanaToast.show("Payment session expired", ToastKind.Error) }
+    }
+
+    fun onError(message: String) {
+        pollJob?.cancel()
+        countdownJob?.cancel()
+        _state.value = EasebuzzPaymentState.Error(message)
+        viewModelScope.launch { KhanaToast.show(message, ToastKind.Error) }
     }
 
     private fun startSessionTimers() {

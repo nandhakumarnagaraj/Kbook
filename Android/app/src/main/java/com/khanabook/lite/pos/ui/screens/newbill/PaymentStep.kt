@@ -38,7 +38,11 @@ import com.khanabook.lite.pos.domain.util.PaymentLimits
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
+import android.content.Intent
+import android.net.Uri
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
+import com.khanabook.lite.pos.ui.viewmodel.PaymentLinkForBillState
+import com.khanabook.lite.pos.ui.viewmodel.PaymentLinkPrepResult
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,6 +65,7 @@ fun PaymentStep(
     val paymentRecovery by viewModel.paymentRecovery.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val context = LocalContext.current
 
     val blockedPermission by viewModel.blockedPermission.collectAsStateWithLifecycle()
     blockedPermission?.let { blocked ->
@@ -103,7 +108,19 @@ fun PaymentStep(
     var isCreatingPaymentAttempt by remember { mutableStateOf(false) }
     var recoveryAutoFinalizeStarted by remember { mutableStateOf(false) }
     var showResetRecoveryDialog by remember { mutableStateOf(false) }
+    var showPaymentLinkDialog by remember { mutableStateOf(false) }
+    val paymentLinkState by viewModel.paymentLinkState.collectAsStateWithLifecycle()
     val latestPaymentEvent by PaymentReturnManager.latestEvent.collectAsStateWithLifecycle()
+    val customerWhatsapp by viewModel.customerWhatsapp.collectAsStateWithLifecycle()
+    val customerName by viewModel.customerName.collectAsStateWithLifecycle()
+    var linkCustomerPhone by remember { mutableStateOf("") }
+    var linkCustomerEmail by remember { mutableStateOf("") }
+
+    LaunchedEffect(customerWhatsapp) {
+        if (linkCustomerPhone.isBlank() && customerWhatsapp.isNotBlank()) {
+            linkCustomerPhone = customerWhatsapp
+        }
+    }
 
     
     LaunchedEffect(selectableModes) {
@@ -120,8 +137,8 @@ fun PaymentStep(
     }
 
     // Observe Easebuzz payment return events (deep-link / browser flow returns).
-// The SDK path returns via savedStateHandle (see NewBillScreen); this only
-// records a gateway hint on the resume flow — finalization stays manual.
+    // The SDK path returns via savedStateHandle (see NewBillScreen); this only
+    // records a gateway hint on the resume flow — finalization stays manual.
     LaunchedEffect(latestPaymentEvent) {
         val event = latestPaymentEvent ?: return@LaunchedEffect
         if (event.status == PaymentReturnManager.Status.SUCCESS && resumedPendingBillId != null) {
@@ -129,6 +146,10 @@ fun PaymentStep(
         } else if (event.status == PaymentReturnManager.Status.FAILURE) {
             PaymentReturnManager.clearLatestEvent()
             KhanaToast.show("Payment was cancelled or failed.", ToastKind.Warning)
+        } else if (event.status == PaymentReturnManager.Status.STATUS && resumedPendingBillId != null) {
+            PaymentReturnManager.clearLatestEvent()
+            viewModel.setGatewayResult(event.txnId, "pending")
+            KhanaToast.show("Payment return received. Checking status...", ToastKind.Info)
         }
     }
 
@@ -312,8 +333,179 @@ fun PaymentStep(
         )
     }
 
+    if (showPaymentLinkDialog && paymentLinkState is PaymentLinkForBillState.Success) {
+        val linkUrl = (paymentLinkState as PaymentLinkForBillState.Success).linkUrl
+        val cleanPhone = linkCustomerPhone.filter { it.isDigit() }.let {
+            if (it.length == 10) "91$it" else it
+        }
+        val recipientName = customerName.ifBlank { "Customer" }
+        KhanaBookDialog(
+            onDismissRequest = {
+                showPaymentLinkDialog = false
+                viewModel.resetPaymentLinkState()
+            },
+            title = "Payment Link Created",
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Text(
+                        "Send this payment link to customer number or email:",
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    ParchmentTextField(
+                        value = linkCustomerPhone,
+                        onValueChange = { linkCustomerPhone = it },
+                        label = "Customer Mobile / WhatsApp",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    ParchmentTextField(
+                        value = linkCustomerEmail,
+                        onValueChange = { linkCustomerEmail = it },
+                        label = "Customer Email (Optional)",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            linkUrl,
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(spacing.medium),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    val billPaymentMessage = "Hello $recipientName, please pay your KhanaBook bill of ₹$paymentTotal using this link: $linkUrl"
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Button(
+                            onClick = {
+                                val waUri = if (cleanPhone.isNotBlank()) {
+                                    Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=" + Uri.encode(billPaymentMessage))
+                                } else {
+                                    Uri.parse("https://api.whatsapp.com/send?text=" + Uri.encode(billPaymentMessage))
+                                }
+                                val waIntent = Intent(Intent.ACTION_VIEW, waUri)
+                                try {
+                                    context.startActivity(waIntent)
+                                } catch (e: Exception) {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, billPaymentMessage)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Payment Link"))
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            shape = KhanaRadii.md
+                        ) {
+                            Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = {
+                                val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("smsto:${linkCustomerPhone.ifBlank { "" }}")
+                                    putExtra("sms_body", billPaymentMessage)
+                                }
+                                try {
+                                    context.startActivity(smsIntent)
+                                } catch (e: Exception) {
+                                    scope.launch { KhanaToast.show("Cannot open SMS app", ToastKind.Warning) }
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.md
+                        ) {
+                            Text("SMS", color = DarkBrown1, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("Payment Link", linkUrl)
+                                clipboard?.setPrimaryClip(clip)
+                                scope.launch {
+                                    KhanaToast.show("Payment link copied to clipboard!", ToastKind.Success)
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
+                            shape = KhanaRadii.md
+                        ) {
+                            Text("Copy", color = TextLight, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        }
+                    }
+
+                    if (linkCustomerEmail.isNotBlank()) {
+                        Button(
+                            onClick = {
+                                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("mailto:${linkCustomerEmail.trim()}")
+                                    putExtra(Intent.EXTRA_SUBJECT, "Payment Link - KhanaBook")
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "Hello $recipientName,\n\nPlease pay your KhanaBook bill of ₹$paymentTotal using this link:\n$linkUrl\n\nThank you!"
+                                    )
+                                }
+                                try {
+                                    context.startActivity(emailIntent)
+                                } catch (e: Exception) {
+                                    scope.launch { KhanaToast.show("Cannot open Email app", ToastKind.Warning) }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(spacing.buttonHeightCompact),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
+                            shape = KhanaRadii.md
+                        ) {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text("Send Email (${linkCustomerEmail.trim()})", color = TextLight, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            },
+            actions = {
+                TextButton(onClick = {
+                    showPaymentLinkDialog = false
+                    viewModel.resetPaymentLinkState()
+                    viewModel.clearActiveSession()
+                    onBackToMenu()
+                }) {
+                    Text("Keep Pending & Exit", color = WarningYellow)
+                }
+                TextButton(onClick = {
+                    showPaymentLinkDialog = false
+                    viewModel.resetPaymentLinkState()
+                }) {
+                    Text("Close", color = TextLight)
+                }
+            }
+        )
+    }
+
     // Generate UPI QR locally with ZXing. This must not wait for the background payment-attempt save.
-    val context = LocalContext.current
     val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(
         null,
         profile?.upiHandle,
@@ -383,6 +575,28 @@ fun PaymentStep(
                                     onPayOnline(id, restaurantId, paymentTotal)
                                     return@launch
                                 }
+
+                                if (selectedMode == PaymentMode.PAYMENT_LINK) {
+                                    val restaurantId = profile?.restaurantId ?: run { isSubmitting = false; return@launch }
+                                    val phoneToUse = linkCustomerPhone.ifBlank { customerWhatsapp }.ifBlank { null }
+                                    val emailToUse = linkCustomerEmail.ifBlank { null }
+                                    when (val prepResult = viewModel.prepareAndCreatePaymentLink(restaurantId, phoneToUse, emailToUse)) {
+                                        is PaymentLinkPrepResult.Success -> {
+                                            if (linkCustomerPhone.isBlank() && customerWhatsapp.isNotBlank()) {
+                                                linkCustomerPhone = customerWhatsapp
+                                            }
+                                            showPaymentLinkDialog = true
+                                        }
+                                        is PaymentLinkPrepResult.SyncPending -> {
+                                            KhanaToast.show("Bill sync pending. Please wait and try again.", ToastKind.Warning)
+                                        }
+                                        is PaymentLinkPrepResult.Failed -> {
+                                            KhanaToast.show(prepResult.message.ifBlank { "Failed to create payment link. Please try again." }, ToastKind.Error)
+                                        }
+                                    }
+                                    isSubmitting = false
+                                    return@launch
+                                }
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 val success = when {
                                     resumedPendingBillId != null -> {
@@ -425,6 +639,7 @@ fun PaymentStep(
                             containerColor = when {
                                 !isAmountValid -> Color.Gray
                                 selectedMode == PaymentMode.EASEBUZZ -> Brown500
+                                selectedMode == PaymentMode.PAYMENT_LINK -> SmsBlue
                                 else -> SuccessGreen
                             }
                         ),
@@ -434,6 +649,7 @@ fun PaymentStep(
                         Text(
                             when {
                                 selectedMode == PaymentMode.EASEBUZZ -> "Pay Online"
+                                selectedMode == PaymentMode.PAYMENT_LINK -> "Send Payment Link"
                                 partialRecovery != null -> "Confirm Remaining Payment"
                                 else -> "Payment Successful"
                             },

@@ -64,8 +64,6 @@ import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.EasebuzzPaymentState
 import com.khanabook.lite.pos.ui.viewmodel.EasebuzzPaymentViewModel
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -83,11 +81,8 @@ fun EasebuzzPaymentScreen(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
-    var sdkLaunched by remember { mutableStateOf(false) }
+    var sdkLaunched by remember { mutableStateOf<String?>(null) }
     var verificationStarted by remember { mutableStateOf(false) }
-
-    // Scope that survives composition teardown — return verification must always run
-    val sdkScope = remember { MainScope() }
 
     val sdkLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -100,16 +95,34 @@ fun EasebuzzPaymentScreen(
             verificationStarted = true
             when (resultData) {
                 "payment_successfull" -> {
-                    sdkScope.launch { viewModel.verifyAndComplete(viewModel.currentTxnId) }
+                    viewModel.verifyAndComplete(viewModel.currentTxnId)
                 }
                 "payment_failed" -> {
-                    sdkScope.launch { viewModel.verifyAndComplete() }
+                    viewModel.verifyAndComplete()
                 }
-                "user_cancelled" -> {
-                    sdkScope.launch { viewModel.verifyAndComplete() }
+                "back_pressed", "user_cancelled", "bank_back_pressed" -> {
+                    viewModel.verifyAndComplete(txnIdFromSdk = null, pollLimit = 1, failureMessage = "Payment cancelled by user")
+                }
+                "txn_session_timeout" -> {
+                    viewModel.onSessionTimeout()
+                }
+                "error_server_error" -> {
+                    viewModel.onError("Easebuzz gateway error. Please try again or use Cash/UPI.")
+                }
+                "error_noretry" -> {
+                    viewModel.onError("Transaction rejected. Please use another card or payment mode.")
+                }
+                "invalid_input_data" -> {
+                    viewModel.onError("Invalid payment parameters. Please contact support.")
+                }
+                "retry_fail_error" -> {
+                    viewModel.onError("Payment attempts exceeded. Please try another card or UPI.")
+                }
+                "trxn_not_allowed" -> {
+                    viewModel.onError("Transaction not permitted for this merchant. Please verify KYC status.")
                 }
                 else -> {
-                    sdkScope.launch { viewModel.verifyAndComplete() }
+                    viewModel.verifyAndComplete()
                 }
             }
         }
@@ -119,8 +132,9 @@ fun EasebuzzPaymentScreen(
     LaunchedEffect(state) {
         when (val currentState = state) {
             is EasebuzzPaymentState.PaymentReady -> {
-                if (activity != null && !sdkLaunched) {
-                    sdkLaunched = true
+                if (activity != null && sdkLaunched != currentState.txnId) {
+                    sdkLaunched = currentState.txnId
+                    verificationStarted = false
                     try {
                         val intent = Intent(
                             activity,
@@ -168,19 +182,15 @@ fun EasebuzzPaymentScreen(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && sdkLaunched && !verificationStarted) {
+            if (event == Lifecycle.Event.ON_RESUME && sdkLaunched != null && !verificationStarted) {
                 verificationStarted = true
-                sdkScope.launch { viewModel.verifyAndComplete() }
+                viewModel.verifyAndComplete()
             }
         }
         lifecycle.addObserver(observer)
         onDispose {
             lifecycle.removeObserver(observer)
         }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { sdkScope.cancel() }
     }
 
     val isPaymentActive = state is EasebuzzPaymentState.CreatingOrder ||
