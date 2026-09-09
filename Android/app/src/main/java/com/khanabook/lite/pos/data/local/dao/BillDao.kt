@@ -74,7 +74,7 @@ interface BillDao {
     """)
     suspend fun hideDuplicateBill(billId: Long, restaurantId: Long): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBill(bill: BillEntity): Long
 
     @Update
@@ -130,7 +130,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
     suspend fun markItemsSentToKot(itemIds: List<Long>, restaurantId: Long)
 
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBillItems(items: List<BillItemEntity>)
 
     @Update
@@ -1172,8 +1172,26 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     @Query("UPDATE bill_items SET server_variant_id = :serverVariantId WHERE variant_id = :variantLocalId AND restaurant_id = :restaurantId AND server_variant_id IS NULL")
     suspend fun updateBillItemsServerVariantIdByVariantLocalId(variantLocalId: Long, serverVariantId: Long, restaurantId: Long): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedBillItems(items: List<BillItemEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedBillItems(items: List<BillItemEntity>) {
+        for (item in items) {
+            val existing = item.serverId?.let { findBillItemByServerId(it, item.restaurantId) }
+            if (existing != null) {
+                updateBillItem(item)
+            } else {
+                insertBillItem(item)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM bill_items WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findBillItemByServerId(serverId: Long, restaurantId: Long): BillItemEntity?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillItem(item: BillItemEntity): Long
 
     @Query("SELECT COUNT(*) FROM bill_items WHERE restaurant_id = :restaurantId")
     suspend fun countBillItems(restaurantId: Long): Int
@@ -1253,8 +1271,26 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     """)
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int, restaurantId: Long, terminalId: String): List<com.khanabook.lite.pos.domain.model.TopSellingItem>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedBillPayments(payments: List<BillPaymentEntity>) {
+        for (payment in payments) {
+            val existing = payment.serverId?.let { findBillPaymentByServerId(it, payment.restaurantId) }
+            if (existing != null) {
+                updateBillPayment(payment)
+            } else {
+                insertBillPayment(payment)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM bill_payments WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findBillPaymentByServerId(serverId: Long, restaurantId: Long): BillPaymentEntity?
+
+    @Update
+    suspend fun updateBillPayment(payment: BillPaymentEntity)
 
     @Query("SELECT * FROM sync_quarantine_records WHERE restaurant_id = :restaurantId ORDER BY quarantined_at DESC, id DESC")
     fun getSyncQuarantineRecordsFlow(restaurantId: Long): Flow<List<SyncQuarantineEntity>>

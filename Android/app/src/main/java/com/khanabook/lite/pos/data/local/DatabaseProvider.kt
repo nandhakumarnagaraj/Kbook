@@ -252,17 +252,17 @@ class DatabaseProvider @Inject constructor(
                     // 3. Migrate Categories
                     val categories = legacyDb!!.categoryDao().getAllCategoriesOnce(restaurantId)
                     if (categories.isNotEmpty()) {
-                        newDb!!.categoryDao().insertSyncedCategories(categories)
+                        newDb!!.categoryDao().upsertSyncedCategories(categories)
                     }
 
                     // 4. Migrate MenuItems & Variants
                     val menuItems = legacyDb!!.menuDao().getAllMenuItemsOnce(restaurantId)
                     if (menuItems.isNotEmpty()) {
-                        newDb!!.menuDao().insertSyncedMenuItems(menuItems)
+                        newDb!!.menuDao().upsertSyncedMenuItems(menuItems)
                     }
                     val variants = legacyDb!!.menuDao().getAllVariantsOnce(restaurantId)
                     if (variants.isNotEmpty()) {
-                        newDb!!.menuDao().insertSyncedItemVariants(variants)
+                        newDb!!.menuDao().upsertSyncedItemVariants(variants)
                     }
 
                     // 5. Migrate StockLogs
@@ -278,11 +278,11 @@ class DatabaseProvider @Inject constructor(
                     }
                     val unsyncedItems = legacyDb!!.billDao().getUnsyncedBillItems(restaurantId)
                     if (unsyncedItems.isNotEmpty()) {
-                        newDb!!.billDao().insertSyncedBillItems(unsyncedItems)
+                        newDb!!.billDao().upsertSyncedBillItems(unsyncedItems)
                     }
                     val unsyncedPayments = legacyDb!!.billDao().getUnsyncedBillPayments(restaurantId)
                     if (unsyncedPayments.isNotEmpty()) {
-                        newDb!!.billDao().insertSyncedBillPayments(unsyncedPayments)
+                        newDb!!.billDao().upsertSyncedBillPayments(unsyncedPayments)
                     }
 
                     // Migrate Printer Profiles

@@ -49,6 +49,21 @@ interface CategoryDao {
     @Query("UPDATE categories SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
     suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedCategories(items: List<com.khanabook.lite.pos.data.local.entity.CategoryEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedCategories(items: List<com.khanabook.lite.pos.data.local.entity.CategoryEntity>) {
+        for (category in items) {
+            val existing = category.serverId?.let { findCategoryByServerId(it, category.restaurantId) }
+            if (existing != null) {
+                updateCategory(category)
+            } else {
+                insertCategory(category)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM categories WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findCategoryByServerId(serverId: Long, restaurantId: Long): com.khanabook.lite.pos.data.local.entity.CategoryEntity?
 }

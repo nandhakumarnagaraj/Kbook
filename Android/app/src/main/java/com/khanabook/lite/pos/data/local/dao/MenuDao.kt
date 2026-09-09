@@ -20,7 +20,7 @@ interface MenuDao {
     @Query("SELECT id, server_id as serverId FROM item_variants WHERE id IN (:ids) AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
     suspend fun getVariantServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertItem(item: MenuItemEntity): Long
 
     @Update
@@ -76,7 +76,7 @@ interface MenuDao {
     suspend fun getItemIdsByCategory(categoryId: Long, restaurantId: Long): List<Long>
 
     
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertVariant(variant: ItemVariantEntity): Long
 
     @Update
@@ -121,8 +121,23 @@ interface MenuDao {
     @Query("UPDATE menu_items SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
     suspend fun updateMenuItemServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedMenuItems(items: List<MenuItemEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedMenuItems(items: List<MenuItemEntity>) {
+        for (item in items) {
+            val existing = item.serverId?.let { findItemByServerId(it, item.restaurantId) }
+            if (existing != null) {
+                updateItem(item)
+            } else {
+                insertItem(item)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM menu_items WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findItemByServerId(serverId: Long, restaurantId: Long): MenuItemEntity?
 
     @Query("""
         UPDATE menu_items
@@ -142,8 +157,23 @@ interface MenuDao {
     @Query("UPDATE item_variants SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
     suspend fun updateVariantServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedItemVariants(items: List<ItemVariantEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedItemVariants(items: List<ItemVariantEntity>) {
+        for (variant in items) {
+            val existing = variant.serverId?.let { findVariantByServerId(it, variant.restaurantId) }
+            if (existing != null) {
+                updateVariant(variant)
+            } else {
+                insertVariant(variant)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM item_variants WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findVariantByServerId(serverId: Long, restaurantId: Long): ItemVariantEntity?
 
     @Query("""
         UPDATE item_variants

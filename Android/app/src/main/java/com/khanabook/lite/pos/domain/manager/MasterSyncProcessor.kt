@@ -1251,7 +1251,7 @@ class MasterSyncProcessor @Inject constructor(
         val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
 
         if (masterData.categories.isNotEmpty()) {
-            categoryDao.insertSyncedCategories(
+            categoryDao.upsertSyncedCategories(
                 masterData.categories.map { remoteCategory ->
                     CategoryEntity(
                         id = remoteCategory.serverId ?: remoteCategory.id,
@@ -1331,7 +1331,7 @@ class MasterSyncProcessor @Inject constructor(
             ) { remoteMenuItem ->
                 "menuItemId=${remoteMenuItem.localId ?: remoteMenuItem.serverId}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
             }
-            menuDao.insertSyncedMenuItems(resolvedMenuItems)
+            menuDao.upsertSyncedMenuItems(resolvedMenuItems)
             if (preferredMenuItemIdsByServerId.isNotEmpty()) {
                 menuDao.hideDuplicateMenuItemsByServerIds(
                     serverIds = preferredMenuItemIdsByServerId.keys.toList(),
@@ -1395,7 +1395,7 @@ class MasterSyncProcessor @Inject constructor(
             ) { remoteVariant ->
                 "variantId=${remoteVariant.localId ?: remoteVariant.serverId}, menuItemId=${remoteVariant.menuItemId}, serverMenuItemId=${remoteVariant.serverMenuItemId}"
             }
-            menuDao.insertSyncedItemVariants(resolvedVariants)
+            menuDao.upsertSyncedItemVariants(resolvedVariants)
             if (preferredVariantIdsByServerId.isNotEmpty()) {
                 menuDao.hideDuplicateVariantsByServerIds(
                     serverIds = preferredVariantIdsByServerId.keys.toList(),
@@ -1590,7 +1590,7 @@ BillEntity(
             resolvedBillItems.mapNotNull { it.serverId }.takeIf { it.isNotEmpty() }?.let { serverIds ->
                 billDao.deleteSyncedBillItemsByServerIds(serverIds, restaurantId)
             }
-            billDao.insertSyncedBillItems(resolvedBillItems)
+            billDao.upsertSyncedBillItems(resolvedBillItems)
         }
 
         if (masterData.billPayments.isNotEmpty()) {
@@ -1637,7 +1637,7 @@ BillEntity(
             resolvedBillPayments.mapNotNull { it.serverId }.takeIf { it.isNotEmpty() }?.let { serverIds ->
                 billDao.deleteSyncedBillPaymentsByServerIds(serverIds, restaurantId)
             }
-            billDao.insertSyncedBillPayments(resolvedBillPayments)
+            billDao.upsertSyncedBillPayments(resolvedBillPayments)
         }
 
         // After pulling all data, ensure counters are never behind the actual bills on server.

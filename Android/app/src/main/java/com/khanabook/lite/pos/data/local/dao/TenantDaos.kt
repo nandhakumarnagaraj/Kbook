@@ -252,6 +252,13 @@ class TenantCategoryDao @Inject constructor(
     override suspend fun insertSyncedCategories(items: List<CategoryEntity>) {
         dao.insertSyncedCategories(items)
     }
+
+    override suspend fun upsertSyncedCategories(items: List<CategoryEntity>) {
+        dao.upsertSyncedCategories(items)
+    }
+
+    override suspend fun findCategoryByServerId(serverId: Long, restaurantId: Long): CategoryEntity? =
+        dao.findCategoryByServerId(serverId, restaurantId)
 }
 
 @Singleton
@@ -339,6 +346,13 @@ class TenantMenuDao @Inject constructor(
         dao.insertSyncedMenuItems(items)
     }
 
+    override suspend fun upsertSyncedMenuItems(items: List<MenuItemEntity>) {
+        dao.upsertSyncedMenuItems(items)
+    }
+
+    override suspend fun findItemByServerId(serverId: Long, restaurantId: Long): MenuItemEntity? =
+        dao.findItemByServerId(serverId, restaurantId)
+
     override suspend fun hideDuplicateMenuItemsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long) {
         dao.hideDuplicateMenuItemsByServerIds(serverIds, preferredIds, restaurantId)
     }
@@ -356,6 +370,13 @@ class TenantMenuDao @Inject constructor(
     override suspend fun insertSyncedItemVariants(items: List<ItemVariantEntity>) {
         dao.insertSyncedItemVariants(items)
     }
+
+    override suspend fun upsertSyncedItemVariants(items: List<ItemVariantEntity>) {
+        dao.upsertSyncedItemVariants(items)
+    }
+
+    override suspend fun findVariantByServerId(serverId: Long, restaurantId: Long): ItemVariantEntity? =
+        dao.findVariantByServerId(serverId, restaurantId)
 
     override suspend fun hideDuplicateVariantsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long) {
         dao.hideDuplicateVariantsByServerIds(serverIds, preferredIds, restaurantId)
@@ -458,10 +479,12 @@ class TenantBillDao @Inject constructor(
     override suspend fun insertBill(bill: BillEntity): Long = dao.insertBill(bill)
     override suspend fun updateBill(bill: BillEntity) = dao.updateBill(bill)
     override suspend fun insertBillItems(items: List<BillItemEntity>) = dao.insertBillItems(items)
+    override suspend fun insertBillItem(item: BillItemEntity): Long = dao.insertBillItem(item)
     override suspend fun updateBillItem(item: BillItemEntity) = dao.updateBillItem(item)
     override suspend fun deleteBillItemById(id: Long) = dao.deleteBillItemById(id)
     override suspend fun insertBillPayments(payments: List<BillPaymentEntity>) = dao.insertBillPayments(payments)
     override suspend fun insertBillPayment(payment: BillPaymentEntity) = dao.insertBillPayment(payment)
+    override suspend fun updateBillPayment(payment: BillPaymentEntity) = dao.updateBillPayment(payment)
     override suspend fun updateBillPayments(payments: List<BillPaymentEntity>) = dao.updateBillPayments(payments)
     override suspend fun getBillById(id: Long, restaurantId: Long): BillEntity? = dao.getBillById(id, restaurantId)
     override suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity? =
@@ -709,6 +732,13 @@ class TenantBillDao @Inject constructor(
         dao.insertSyncedBillItems(items)
     }
 
+    override suspend fun upsertSyncedBillItems(items: List<BillItemEntity>) {
+        dao.upsertSyncedBillItems(items)
+    }
+
+    override suspend fun findBillItemByServerId(serverId: Long, restaurantId: Long): BillItemEntity? =
+        dao.findBillItemByServerId(serverId, restaurantId)
+
     override suspend fun countBillItems(restaurantId: Long): Int = dao.countBillItems(restaurantId)
     override suspend fun countBillsWithItems(restaurantId: Long): Int = dao.countBillsWithItems(restaurantId)
     override suspend fun countActiveBills(restaurantId: Long): Int = dao.countActiveBills(restaurantId)
@@ -747,6 +777,13 @@ class TenantBillDao @Inject constructor(
     override suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>) {
         dao.insertSyncedBillPayments(payments)
     }
+
+    override suspend fun upsertSyncedBillPayments(payments: List<BillPaymentEntity>) {
+        dao.upsertSyncedBillPayments(payments)
+    }
+
+    override suspend fun findBillPaymentByServerId(serverId: Long, restaurantId: Long): BillPaymentEntity? =
+        dao.findBillPaymentByServerId(serverId, restaurantId)
 
     override suspend fun upsertSyncQuarantineRecord(record: SyncQuarantineEntity) {
         dao.upsertSyncQuarantineRecord(record)
