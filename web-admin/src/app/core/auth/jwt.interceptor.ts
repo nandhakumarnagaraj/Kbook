@@ -48,6 +48,8 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
             break;
           case 403:
             if (err.error?.error !== 'BUSINESS_SUSPENDED') {
+              void router.navigate(['/limited-access']);
+            } else {
               toastService.show(
                 err.error?.message || err.error?.error || 'Access denied: you do not have permission to perform this action.',
                 'error'
