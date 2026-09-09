@@ -137,6 +137,34 @@ class EasebuzzNewFeaturesTest extends BaseIntegrationTest {
         assertEquals("hash_mismatch", result.get("status"), "Missing data should be rejected");
     }
 
+    @Transactional
+    @Test
+    void testSubMerchantWebhook_MerchantKycApprovalEvent() {
+        EasebuzzSubMerchant sm = createPendingSubMerchant();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", testSubMerchantId);
+        data.put("kyc_status", true);
+        data.put("kyc_profile_status", "Completed");
+        data.put("email", sm.getContactEmail());
+        data.put("virtual_account", Map.of(
+            "account_number", "10100000001234",
+            "ifsc", "ICIC0000104",
+            "status", "active"
+        ));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("event", "MERCHANT_KYC_APPROVAL");
+        payload.put("data", data);
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("received", result.get("status"));
+
+        EasebuzzSubMerchant updated = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertEquals("ACTIVE", updated.getStatus());
+        assertEquals("10100000001234", updated.getVirtualAccountNumber());
+    }
+
     private String sha512Hex(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-512");

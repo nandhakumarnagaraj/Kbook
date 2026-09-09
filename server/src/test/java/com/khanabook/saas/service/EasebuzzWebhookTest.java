@@ -4,9 +4,11 @@ import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
+import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import com.khanabook.saas.repository.FssaiRenewalRepository;
 import com.khanabook.saas.repository.FssaiTrackerRepository;
+import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.FssaiRenewal;
 import com.khanabook.saas.entity.FssaiTracker;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +40,9 @@ class EasebuzzWebhookTest {
     @Mock private PushNotificationService pushNotificationService;
     @Mock private FssaiRenewalRepository fssaiRenewalRepo;
     @Mock private FssaiTrackerRepository fssaiTrackerRepo;
+    @Mock private EasebuzzSubMerchantRepository subMerchantRepo;
+    @Mock private org.springframework.core.env.Environment env;
+    @Mock private EasebuzzWireApiClient wireApiClient;
 
     @InjectMocks
     private EasebuzzWebhookService webhookService;
@@ -49,6 +54,7 @@ class EasebuzzWebhookTest {
     void setup() {
         lenient().when(props.getMerchantKey()).thenReturn(TEST_KEY);
         lenient().when(props.getSalt()).thenReturn(TEST_SALT);
+        lenient().when(env.getActiveProfiles()).thenReturn(new String[]{"dev"});
     }
 
     @Test
@@ -147,6 +153,28 @@ class EasebuzzWebhookTest {
     }
 
     @Test
+    void testHandleEraSettlementPayoutWebhookWithNestedData() throws Exception {
+        // Era's official format with status: 1 and nested "data" object
+        Map<String, Object> data = new HashMap<>();
+        data.put("payout_id", "PT1LCHKBAB");
+        data.put("bank_transaction_id", "YESBN5202501300640000000");
+        data.put("payout_amount", 2.0);
+        data.put("settled_transactions", java.util.Collections.emptyList());
+        
+        // Reverse Hash Formula: sha512(key|payout_id|salt)
+        String hashStr = TEST_KEY + "|PT1LCHKBAB|" + TEST_SALT;
+        data.put("hash", sha512(hashStr));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", 1);
+        payload.put("data", data);
+
+        Map<String, Object> response = webhookService.handlePayoutWebhook(payload);
+
+        assertEquals("received", response.get("status"));
+    }
+
+    @Test
     void testHandleTransferPayoutWebhookSuccess() throws Exception {
         // 2. Scenario 2: Transfer (Payout V2) Webhook 
         // Hash: key|beneficiary_account_number|ifsc|beneficiary_upi_handle|unique_request_number|amount|unique_transaction_reference|status|salt
@@ -217,6 +245,64 @@ class EasebuzzWebhookTest {
                 eq("fssai"),
                 eq(new java.math.BigDecimal("2000.00"))
         );
+    }
+
+    @Test
+    void testUnhashedMerchantKycApproval_SubMerchantNotFound_Rejected() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", "UNKNOWN_SM_ID");
+        data.put("email", "unknown@restaurant.com");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("event", "MERCHANT_KYC_APPROVAL");
+        payload.put("data", data);
+
+        when(subMerchantRepo.findBySubMerchantId("UNKNOWN_SM_ID")).thenReturn(Optional.empty());
+        when(subMerchantRepo.findByContactEmail("unknown@restaurant.com")).thenReturn(Optional.empty());
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("hash_mismatch", result.get("status"));
+        verify(subMerchantService, never()).processWebhook(any());
+    }
+
+    @Test
+    void testUnhashedMerchantKycApproval_SubMerchantFound_Accepted() {
+        Map<String, Object> data = new HashMap<>();
+        data.put("submerchant_id", "KNOWN_SM_ID");
+        data.put("email", "known@restaurant.com");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("event", "MERCHANT_KYC_APPROVAL");
+        payload.put("data", data);
+
+        EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
+        sm.setSubMerchantId("KNOWN_SM_ID");
+        when(subMerchantRepo.findBySubMerchantId("KNOWN_SM_ID")).thenReturn(Optional.of(sm));
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("received", result.get("status"));
+        verify(subMerchantService, times(1)).processWebhook(payload);
+    }
+
+    @Test
+    void testUnhashedMerchantKycApproval_InProduction_WithoutWire_Rejected() {
+        when(env.getActiveProfiles()).thenReturn(new String[]{"prod"});
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("submerchant_id", "KNOWN_SM_ID");
+        data.put("email", "known@restaurant.com");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("event", "MERCHANT_KYC_APPROVAL");
+        payload.put("data", data);
+
+        EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
+        sm.setSubMerchantId("KNOWN_SM_ID");
+        when(subMerchantRepo.findBySubMerchantId("KNOWN_SM_ID")).thenReturn(Optional.of(sm));
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("hash_mismatch", result.get("status"));
+        verify(subMerchantService, never()).processWebhook(any());
     }
 
     // --- Helpers ---

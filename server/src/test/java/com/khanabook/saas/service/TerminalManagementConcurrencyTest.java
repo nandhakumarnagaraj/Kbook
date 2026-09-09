@@ -190,17 +190,25 @@ class TerminalManagementConcurrencyTest extends BaseIntegrationTest {
             // Expected
         }
 
-        // Instead deactivate one, approve the 6th, then deactivate another
-        List<RestaurantTerminal> active = terminalRepository.findByRestaurantIdAndStatus(restaurantId, "ACTIVE");
-        terminalManagementService.deactivateTerminal(active.get(0).getId(), restaurantId);
-        // Now 4 active — approve the 6th request
-        terminalManagementService.approveRequest(sixthReq.getId(), restaurantId, 1L, "OWNER");
+        // Create an inactive terminal (e.g. series "F" that was previously provisioned/deactivated)
+        RestaurantTerminal inactive = new RestaurantTerminal();
+        inactive.setRestaurantId(restaurantId);
+        inactive.setDeviceId("device-inactive-overflow");
+        inactive.setTerminalSeries("F");
+        inactive.setStatus("INACTIVE");
+        inactive.setIsActive(false);
+        inactive.setCredentialVersion(1L);
+        inactive.setCreatedAt(System.currentTimeMillis());
+        inactive.setUpdatedAt(System.currentTimeMillis());
+        inactive = terminalRepository.save(inactive);
+
+        // There are exactly 5 active terminals
         assertThat(terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE")).isEqualTo(5);
 
-        // Now try to recover the deactivated terminal — should FAIL (already at 5)
+        // Now try to recover the deactivated/inactive terminal — should FAIL (already at limit of 5)
         try {
             terminalManagementService.recoverTerminal(
-                    active.get(0).getId(), restaurantId, "device-overflow", "OWNER");
+                    inactive.getId(), restaurantId, "device-overflow", "OWNER");
             assertThat(false).as("Should have thrown TERMINAL_LIMIT_REACHED").isTrue();
         } catch (ResponseStatusException e) {
             assertThat(e.getBody().getDetail()).contains("TERMINAL_LIMIT_REACHED");

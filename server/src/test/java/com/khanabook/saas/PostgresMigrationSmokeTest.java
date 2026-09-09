@@ -63,12 +63,12 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
-    void migrationHistoryHeadIsV72() {
+    void migrationHistoryHeadIsV94() {
         List<String> versions = jdbcTemplate.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC",
                 String.class);
         assertThat(versions).isNotEmpty();
-        assertThat(versions.get(0)).isEqualTo("72");
+        assertThat(versions.get(0)).isEqualTo("94");
     }
 
     @Test
