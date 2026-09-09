@@ -1,0 +1,492 @@
+================================================================================
+         KHANABOOK VS. AROW APP: DEEP GAP ANALYSIS & MASTER ARCHITECTURAL PLAN
+================================================================================
+Date: 2026-09-09
+Scope: Competitor Feature Audit (Arow App APK + Web KDS Network Capture) vs.
+       KhanaBook POS & Spring Boot SaaS Architecture.
+Status: Technical Blueprint & Architectural Roadmap (Read-Only Analysis)
+================================================================================
+
+TABLE OF CONTENTS:
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY & FEATURE GAP MATRIX
+2. DECONSTRUCTION OF AROW APP (APK & WEB KDS NETWORK HAR LOGS)
+3. KHANABOOK'S CURRENT ARCHITECTURE & DEFICITS
+4. STRATEGIC ADVANTAGES KHANABOOK CAN EXPLOIT (THE "UNFAIR MOATS")
+5. DETAILED TARGET ARCHITECTURE & DOMAIN DESIGNS
+   5.1 Floor & Table Management (Dine-In Operations)
+   5.2 Web & TV Kitchen Display System (KDS)
+   5.3 Multi-Station Kitchen Printing & Ticket Routing
+   5.4 Menu Modifiers, Add-ons & Customizations
+   5.5 Multi-Tier Channel Pricing (Dine-In, AC, Delivery)
+   5.6 Coupons, Discounts & Customer Khata (Credit Ledger)
+   5.7 Petty Cash Register & Daily Expense Tracking
+6. THREE-PHASE IMPLEMENTATION ROADMAP
+7. MIGRATION & DEPLOYMENT STRATEGY
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY & FEATURE GAP MATRIX
+--------------------------------------------------------------------------------
+
+Arow App has established a strong presence in Indian F&B outlets by offering
+a rapid dine-in table layout, zero-friction web KDS pairing, and flexible item
+modifiers. However, Arow is heavily dependent on constant cloud connectivity.
+
+KhanaBook already possesses a vastly superior core: a local-first Room database,
+resilient multi-terminal sequence generation, and an enterprise offline sync engine.
+By implementing the missing domain features natively on top of KhanaBook's
+offline-first engine, KhanaBook will leapfrog Arow in performance, reliability,
+and operational depth.
+
+FEATURE COMPARISON MATRIX:
++------------------------+--------------------------+--------------------------+----------+
+| Domain / Feature       | Arow App Capability      | KhanaBook Current State  | Gap      |
++------------------------+--------------------------+--------------------------+----------+
+| Floor & Table Grid     | Visual floor tabs, color | Free-text string inside  | CRITICAL |
+|                        | coded table status       | BillEntity.customerName. |          |
+|                        | (Vacant/Occupied/Bill-   | Unpaid drafts in flat    |          |
+|                        | Printed), elapsed timer, | list. No floor/table     |          |
+|                        | table transfer & merge.  | database entities.       |          |
++------------------------+--------------------------+--------------------------+----------+
+| Web / TV KDS Screen    | QR paired web display    | ReprintKdsScreen is only | CRITICAL |
+|                        | (arowapp.com/kds), live  | an invoice search to     |          |
+|                        | stream, /siren.mp3 sound,| reprint physical slips.  |          |
+|                        | cook summary batch view. | No live kitchen screen.  |          |
++------------------------+--------------------------+--------------------------+----------+
+| Multi-Station Routing  | Station-tagged items.    | PrinterProfileEntity has | HIGH     |
+|                        | Separate printers for    | unique=true on role.     |          |
+|                        | Bar, Tandoor, Curry, etc.| Only 1 kitchen printer   |          |
+|                        |                          | allowed per restaurant.  |          |
++------------------------+--------------------------+--------------------------+----------+
+| Menu Modifiers         | Modifier groups, min/max | Single 1-level variant   | HIGH     |
+| & Add-ons              | selection rules, price   | (Half/Full only). No     |          |
+|                        | add-ons (+Rs 30 cheese). | add-ons or custom notes. |          |
++------------------------+--------------------------+--------------------------+----------+
+| Multi-Tier Pricing     | Dine-In vs AC vs Delivery| Single basePrice on      | MEDIUM   |
+|                        | pricing auto-switched by | MenuItemEntity. Must     |          |
+|                        | order type or section.   | duplicate items for AC.  |          |
++------------------------+--------------------------+--------------------------+----------+
+| Coupons & Discounts    | Promo coupon codes, staff| Staff permission flag    | MEDIUM   |
+|                        | discount limits, customer| exists, but no discount  |          |
+|                        | Khata / credit ledger.   | logic, coupons, or Khata.|          |
++------------------------+--------------------------+--------------------------+----------+
+| Petty Cash & Expenses  | Daily petty cash out     | Sales reports only. No   | LOW-MED  |
+|                        | tracker with day-end     | expense ledger or cash   |          |
+|                        | drawer balancing.        | drawer reconciliation.   |          |
++------------------------+--------------------------+--------------------------+----------+
+
+
+--------------------------------------------------------------------------------
+2. DECONSTRUCTION OF AROW APP (APK & WEB KDS HAR LOGS)
+--------------------------------------------------------------------------------
+
+From decompilation of the Arow APK and deep inspection of the Chrome HAR capture
+from https://www.arowapp.com/kds (specifically chunk `0xqo4iag.-0p6.js`), the
+exact mechanics of Arow were reverse-engineered:
+
+A. Zero-Authentication Web KDS Pairing:
+   1. Browser visits `arowapp.com/kds`.
+   2. Generates a random `deviceId`: "device_" + Math.random().toString(36).substr(2, 9).
+   3. Saves `arow_kds_device_id` into browser localStorage.
+   4. Writes a document to Firestore: `kds_devices/{deviceId}` with status="waiting".
+   5. Renders a QR code containing `deviceId` on the TV/browser screen.
+   6. Waiter/manager opens Arow mobile POS, taps "Scan KDS QR", scans screen.
+   7. Mobile app writes `{ outletId: "outlet_123", status: "paired" }` to `kds_devices/{deviceId}`.
+   8. Browser Firestore snapshot triggers instantly, loads outlet profile, and transitions
+      into the live kitchen view without entering usernames or passwords.
+
+B. Live Ticket Stream & Audio Alarm:
+   1. The browser queries `outlets/{outletId}/kots` where status IN ["pending", "cooking"].
+   2. Compares incoming item snapshot array against in-memory map.
+   3. If new KOT arrives or items change, it triggers `audio.play('/siren.mp3')`.
+
+C. Batch Cook Summary Drawer:
+   1. Iterates all pending tickets and aggregates identical items:
+      Summary[(name, variant)] = SUM(qty).
+   2. Displays a floating badge & sidebar: e.g. "Total 14 Roti, 5 Butter Chicken,
+      3 Paneer Tikka needed right now". Chefs can batch cook without reading 10
+      separate tickets.
+
+D. Visual Dine-In Floor Management:
+   1. Categorized by floors: Ground Floor, 1st Floor, Rooftop, Garden.
+   2. Tables show occupancy color:
+      - Green/Gray: Vacant
+      - Orange: Occupied with elapsed seating timer ("34 mins")
+      - Purple: Bill Printed (guest asked for check)
+   3. Table transfer: reassigns running bill to another table.
+   4. Table merge: merges items from two tables into a unified bill.
+
+
+--------------------------------------------------------------------------------
+3. KHANABOOK'S CURRENT ARCHITECTURE & DEFICITS
+--------------------------------------------------------------------------------
+
+An exhaustive audit of KhanaBook's codebase reveals the exact gaps:
+
+1. Dine-In Tables:
+   - BillEntity.kt has `customerName` and `orderType` ("dine_in" or "takeaway").
+   - In CartStep.kt line 317: `label = { Text("Table name / Customer name") }`.
+     The cashier literally types "Table 3" into an open text box.
+   - ActiveOrdersScreen.kt displays unpaid bills in a vertical card list. There is
+     no floor layout, no visual grid, no seating timer, and no occupancy state machine.
+
+2. Kitchen Display (KDS):
+   - ReprintKdsScreen.kt is misnamed: it is simply an invoice/daily-id search screen
+     to reprint a paper thermal receipt via Bluetooth or Wi-Fi ESC/POS printers.
+   - There is no web display, no real-time stream, and no kitchen screen.
+
+3. Printer Routing:
+   - PrinterProfileEntity.kt enforces:
+     `indices = [Index(value = ["restaurant_id", "role"], unique = true)]`
+     where role is either "customer" or "kitchen".
+   - Only ONE kitchen printer can be registered! Outlets cannot route drinks to a
+     Bar printer and food to a Kitchen printer.
+
+4. Menu Variants vs Modifiers:
+   - ItemVariantEntity.kt only supports flat 1-level variants (Half / Full).
+   - There is no concept of Modifier Groups (e.g. "Choose Bread", "Extra Toppings")
+     or min/max rules (compulsory vs optional).
+
+5. Pricing:
+   - MenuItemEntity.kt has a single `basePrice`.
+   - Outlets charging higher prices for AC dining or Swiggy/Zomato delivery have
+     to manually create duplicate items in the catalog.
+
+6. Coupons & Khata:
+   - BillEntity.kt has no `discountAmount` or `couponCode`.
+   - Customer credit (Udhar) cannot be tracked cumulatively.
+
+
+--------------------------------------------------------------------------------
+4. STRATEGIC ADVANTAGES KHANABOOK CAN EXPLOIT (THE "UNFAIR MOATS")
+--------------------------------------------------------------------------------
+
+Arow App's Achilles heel is that it is fundamentally CLOUD-BOUND.
+If an Indian restaurant loses internet connectivity:
+- Arow's web KDS stops receiving orders.
+- Arow's multi-device table synchronization halts.
+- Operations freeze.
+
+KhanaBook already has an offline-first architecture:
+1. Room Database (SQLite) on Android executes reads/writes in under 1 millisecond.
+2. Terminal sequence counters (terminalSeries + invoiceSequence) ensure guaranteed
+   zero-duplicate invoicing offline.
+3. MasterSyncProcessor queues changes and merges them seamlessly when online.
+
+KhanaBook can build:
+- Zero-Latency Table Grid: Renders instantly from local Room DB without spinners.
+- Dual-Mode KDS (The Killer Differentiator):
+  * When online: Spring Boot Server-Sent Events (SSE).
+  * When broadband is cut: The Master Android POS runs a lightweight embedded
+    HTTP/WebSocket server on the local Wi-Fi router (e.g. 192.168.1.50:8080/kds).
+    The Kitchen TV continues receiving tickets over local Wi-Fi without internet!
+
+
+--------------------------------------------------------------------------------
+5. DETAILED TARGET ARCHITECTURE & DOMAIN DESIGNS
+--------------------------------------------------------------------------------
+
+================================================================================
+5.1 FLOOR & TABLE MANAGEMENT (DINE-IN OPERATIONS)
+================================================================================
+
+Room Database Entities (Android POS):
+-------------------------------------
+@Entity(tableName = "floors")
+data class FloorEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "restaurant_id") val restaurantId: Long,
+    val name: String,                  // "Ground Floor", "AC Hall", "Rooftop"
+    @ColumnInfo(name = "sort_order") val sortOrder: Int = 0,
+    @ColumnInfo(name = "is_active") val isActive: Boolean = true,
+    @ColumnInfo(name = "is_synced") val isSynced: Boolean = false,
+    @ColumnInfo(name = "server_id") val serverId: Long? = null,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "dining_tables",
+    foreignKeys = [
+        ForeignKey(
+            entity = FloorEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["floor_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("floor_id"), Index("restaurant_id")]
+)
+data class DiningTableEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "floor_id") val floorId: Long,
+    @ColumnInfo(name = "restaurant_id") val restaurantId: Long,
+    @ColumnInfo(name = "table_number") val tableNumber: String, // "T1", "A4"
+    @ColumnInfo(name = "seating_capacity") val seatingCapacity: Int = 4,
+    val status: String = "VACANT",     // VACANT, OCCUPIED, BILL_PRINTED, RESERVED
+    @ColumnInfo(name = "current_bill_id") val currentBillId: Long? = null,
+    @ColumnInfo(name = "occupied_since") val occupiedSince: Long? = null,
+    @ColumnInfo(name = "assigned_waiter") val assignedWaiter: String? = null,
+    @ColumnInfo(name = "is_synced") val isSynced: Boolean = false,
+    @ColumnInfo(name = "server_id") val serverId: Long? = null,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+)
+
+POS UI Screen (`TableGridScreen.kt`):
+- Top ScrollableTabRow for Floors (e.g. "All Tables", "Ground Floor", "AC Section").
+- LazyVerticalGrid of responsive table cards.
+- Card Visual States:
+  * VACANT: Outline border with DarkBrown background.
+  * OCCUPIED: Amber glowing border, displaying elapsed time badge ("32m"),
+              running amount (CurrencyUtils.formatPrice(bill.total)), and item count.
+  * BILL_PRINTED: Soft purple badge indicating guest requested final bill.
+- Quick Actions Bottom Sheet:
+  * "Transfer Table" (Select target vacant table -> reassigns bill_id and updates table states).
+  * "Merge Tables" (Select secondary table -> consolidates items into primary bill).
+  * "Add Items" (Navigates to MenuSelectionStep with table pre-attached).
+
+Backend MySQL Schema:
+- Add `floors` and `dining_tables` tables in Spring Boot SaaS.
+- Include in `/api/v1/sync/push` and `/pull` payload contracts.
+
+
+================================================================================
+5.2 WEB & TV KITCHEN DISPLAY SYSTEM (KDS)
+================================================================================
+
+Architecture Overview:
+- Front-End: Lightweight React / Vite SPA hosted at `khanabook.com/kds`
+  (or embedded in `web-admin`).
+- Backend: Spring Boot SSE Endpoint (`/api/v1/kds/stream`) + Local LAN fallback.
+
+Zero-Auth Pairing Flow:
+1. Kitchen TV opens `khanabook.com/kds`.
+2. App checks localStorage for `kds_device_id`; if missing, generates UUID.
+3. Calls `POST /api/v1/kds/device/register` with `{ deviceId }`.
+4. Renders QR Code containing JSON `{ "type": "KDS_PAIR", "deviceId": "..." }`.
+5. POS Terminal: Cashier navigates to Settings -> Kitchen Displays -> Scan QR.
+6. POS calls `POST /api/v1/kds/device/pair` with `{ deviceId, restaurantId, stationId }`.
+7. Kitchen TV receives instant confirmation via SSE and loads active ticket view.
+
+Live Kitchen Screen UX:
+- High-contrast Dark Theme (`#0F0E0D` background, `#FBBF24` gold accents).
+- Ticket Cards sorted by `created_at ASC`:
+  * Header: Table Number / Takeaway Token, Order Age (green <10m, amber 10-20m, red flashing >20m).
+  * Body: Items with variant and modifier badges (`+ Extra Cheese`, `Less Spicy`).
+  * Action:
+    - Tap ticket: `PENDING` -> `COOKING`
+    - Tap "Mark Ready": `COOKING` -> `READY` (dismisses ticket, sends alert to POS).
+- Cook Summary Drawer (Batch Preparation View):
+  * Aggregates identical pending items:
+    Example:
+    - Butter Naan: 14
+    - Garlic Naan: 6
+    - Chicken Biryani: 4
+    - Paneer Butter Masala: 3
+- Audio Siren Alert:
+  * Triggers `/siren.mp3` or pleasant acoustic chime whenever a new KOT arrives.
+
+
+================================================================================
+5.3 MULTI-STATION KITCHEN PRINTING & TICKET ROUTING
+================================================================================
+
+Database Changes:
+1. Room Database Migration:
+   - Drop unique index `index_printer_profiles_restaurant_id_role` on `printer_profiles`.
+   - Create non-unique index `index_printer_profiles_restaurant_id`.
+2. Add `KitchenStationEntity`:
+   @Entity(tableName = "kitchen_stations")
+   data class KitchenStationEntity(
+       @PrimaryKey(autoGenerate = true) val id: Long = 0,
+       @ColumnInfo(name = "restaurant_id") val restaurantId: Long,
+       val name: String,               // "Main Kitchen", "Tandoor", "Bar", "Bakery"
+       @ColumnInfo(name = "printer_profile_id") val printerProfileId: Long? = null,
+       @ColumnInfo(name = "is_active") val isActive: Boolean = true
+   )
+3. Update `MenuItemEntity` and `CategoryEntity`:
+   - Add `station_id: Long? = null` column. Items inherit category station if null.
+
+PrintRouter Dispatch Logic:
+```kotlin
+fun routeAndPrintKot(billWithItems: BillWithItems, kotEvent: KotEventEntity) {
+    // 1. Group items by their assigned kitchen station
+    val itemsByStation = billWithItems.items.groupBy { item ->
+        menuItemDao.getStationId(item.menuItemId) ?: defaultStationId
+    }
+
+    // 2. For each station, generate sub-KOT and dispatch to station printer
+    for ((stationId, stationItems) in itemsByStation) {
+        val station = kitchenStationDao.getById(stationId)
+        val printerProfile = station?.printerProfileId?.let { printerProfileDao.getById(it) }
+            ?: printerProfileDao.getDefaultKitchenPrinter(restaurantId)
+
+        if (printerProfile != null && printerProfile.enabled) {
+            val subTicketBytes = kitchenTicketFormatter.formatSubKot(
+                bill = billWithItems.bill,
+                stationName = station?.name ?: "Kitchen",
+                items = stationItems,
+                kotRevision = kotEvent.kotRevision
+            )
+            printerTransport.print(printerProfile, subTicketBytes)
+        }
+    }
+}
+```
+
+
+================================================================================
+5.4 MENU MODIFIERS, ADD-ONS & CUSTOMIZATIONS
+================================================================================
+
+Data Model:
+- `ModifierGroupEntity`:
+  * `id`: Long
+  * `restaurant_id`: Long
+  * `name`: String              ("Choose Bread", "Add Extra Toppings", "Spice Level")
+  * `min_selection`: Int        (1 for compulsory single-choice, 0 for optional)
+  * `max_selection`: Int        (1 for radio, >1 for multi-select checkboxes)
+  * `is_mandatory`: Boolean
+- `ModifierOptionEntity`:
+  * `id`: Long
+  * `modifier_group_id`: Long
+  * `name`: String              ("Butter Naan", "Extra Cheese", "Mild", "Spicy")
+  * `price_delta`: String       ("0.00", "30.00", "50.00")
+  * `is_available`: Boolean
+- `MenuItemModifierGroupCrossRef`:
+  * `menu_item_id`: Long
+  * `modifier_group_id`: Long
+- `BillItemModifierEntity`:
+  * `id`: Long
+  * `bill_item_id`: Long
+  * `modifier_option_id`: Long
+  * `option_name`: String
+  * `price_delta`: String
+
+POS Cart Experience:
+- Clicking an item with attached modifier groups in `MenuSelectionStep.kt` opens
+  `ModifierSelectionBottomSheet.kt`.
+- Cashier picks compulsory choices (radio buttons) and optional add-ons (checkboxes).
+- Real-time price delta updates on the "Add Item" button (e.g. "Add to Cart - Rs 280 (+Rs 30)").
+- Printed neatly on KOT thermal slips:
+  * 1 x Chicken Tikka Pizza
+    + Extra Mozzarella (Rs 40)
+    + Thin Crust
+
+
+================================================================================
+5.5 MULTI-TIER CHANNEL PRICING (DINE-IN, AC, DELIVERY)
+================================================================================
+
+Model Design:
+- `PriceTierEntity`:
+  * `id`: Long
+  * `restaurant_id`: Long
+  * `name`: String              ("Dine-In Standard", "AC Hall (+15%)", "Delivery")
+  * `type`: String              ("PERCENTAGE_MARKUP", "FIXED_OVERRIDE")
+  * `percentage`: String        ("15.0")
+- Link `FloorEntity.price_tier_id` to automatic tier (e.g. AC Section has AC Tier).
+- Link Order Type (`takeaway`, `delivery`) to respective tier.
+- When an order is initialized on Table 14 (AC Hall), items automatically reflect
+  tier prices without requiring cashiers to memorize or select duplicate menu items.
+
+
+================================================================================
+5.6 COUPONS, DISCOUNTS & CUSTOMER KHATA (CREDIT LEDGER)
+================================================================================
+
+A. Discount & Promo Coupons:
+- Add columns to `BillEntity`:
+  * `discount_amount`: String = "0.0"
+  * `discount_type`: String = "none" (none, percentage, flat, coupon)
+  * `coupon_code`: String? = null
+- `CouponEntity`:
+  * `code`: String, `discount_type`: String, `discount_value`: String
+  * `min_order_value`: String, `max_discount_cap`: String
+  * `valid_until`: Long, `usage_limit`: Int, `times_used`: Int
+
+B. Customer Khata (Credit / Udhar Ledger):
+- `CustomerLedgerEntity`:
+  * `id`: Long, `customer_phone`: String, `customer_name`: String
+  * `bill_id`: Long?, `type`: String ("CREDIT_GIVEN", "PAYMENT_RECEIVED")
+  * `amount`: String, `balance_after`: String, `notes`: String, `created_at`: Long
+- Checkout Mode in `PaymentStep.kt`: "Pay via Khata / Udhar".
+- Cashier can view Customer Ledger balance and tap "Send WhatsApp Reminder" with
+  an integrated Easebuzz / UPI payment link.
+
+
+================================================================================
+5.7 PETTY CASH REGISTER & DAILY EXPENSE TRACKING
+================================================================================
+
+- `CashExpenseEntity`:
+  * `id`: Long, `restaurant_id`: Long, `terminal_id`: String
+  * `category`: String ("Raw Materials", "Gas/Utility", "Staff Advance", "Repairs")
+  * `amount`: String, `paid_to`: String, `payment_mode`: String ("CASH", "UPI")
+  * `timestamp`: Long
+- End-of-Day Cash Drawer Reconciliation Report:
+  Expected Cash in Drawer = Opening Float + Total Cash Sales - Total Cash Expenses.
+  Cashier inputs Actual Cash Counted -> Displays Cash Variance (Overage / Shortage).
+
+
+--------------------------------------------------------------------------------
+6. THREE-PHASE IMPLEMENTATION ROADMAP
+--------------------------------------------------------------------------------
+
+PHASE 1: DINE-IN & MULTI-STATION FOUNDATION (Estimated: 2 Weeks)
+--------------------------------------------------------------------------------
+Goal: Convert KhanaBook into a visual dine-in powerhouse with multi-printer routing.
+Deliverables:
+1. Database Migrations:
+   - Room Migration MIGRATION_72_73: Add `floors`, `dining_tables`, `kitchen_stations`.
+   - Remove unique constraint on `printer_profiles (restaurant_id, role)`.
+   - Add MySQL migrations in Spring Boot backend.
+2. Android POS UI:
+   - Create `TableGridScreen.kt` with Floor tabs and status color cards.
+   - Implement Table Transfer and Table Merge bottom sheets.
+   - Add live elapsed seating timer badge.
+3. Multi-Station Kitchen Printing:
+   - Refactor `PrintRouter.kt` to group cart items by station and dispatch sub-KOTs.
+
+PHASE 2: LIVE WEB/TV KDS & MENU MODIFIERS (Estimated: 2 Weeks)
+--------------------------------------------------------------------------------
+Goal: Introduce live kitchen screen experience and deep item customization.
+Deliverables:
+1. Web KDS Front-End (`web-kds` React/Vite SPA):
+   - Zero-auth QR pairing screen.
+   - Reactive ticket cards with PENDING -> COOKING -> READY transitions.
+   - Audio siren chime on new KOT arrivals.
+   - Cook Summary batch drawer for kitchen chefs.
+2. Backend KDS Service:
+   - Spring Boot SSE endpoint `/api/v1/kds/outlets/{id}/stream`.
+   - Optional local Wi-Fi LAN WebSocket bridge from Master POS.
+3. Menu Customization Engine:
+   - Create `modifier_groups`, `modifier_options`, and item cross-refs.
+   - `ModifierSelectionBottomSheet.kt` in Compose with min/max selection enforcement.
+   - Formatting on thermal receipts and KDS cards.
+
+PHASE 3: PRICING, PROMOTIONS & FINANCIAL LEDGERS (Estimated: 2 Weeks)
+--------------------------------------------------------------------------------
+Goal: Maximize merchant revenue and streamline financial reconciliation.
+Deliverables:
+1. Multi-Tier Channel Pricing:
+   - Auto-tier selection based on order channel and dining floor.
+2. Coupons & Discounts:
+   - Promo code validation engine and staff discount manager PIN control.
+3. Customer Khata & Daily Expenses:
+   - Customer Udhar ledger with WhatsApp statement dispatch.
+   - Petty cash expense recording and day-end drawer balancing.
+
+
+--------------------------------------------------------------------------------
+7. CONCLUSION & NEXT STEPS
+--------------------------------------------------------------------------------
+
+This architectural plan positions KhanaBook not merely to replicate Arow App's
+features, but to surpass it decisively by pairing modern visual workflows (Table
+Grids, Web KDS, Modifiers) with KhanaBook's battle-tested offline-first resilience.
+
+When approved, development will commence with Phase 1 (Floor & Table Management
+and Multi-Station Printer Routing).
+================================================================================

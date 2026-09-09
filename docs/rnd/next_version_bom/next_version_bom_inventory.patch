@@ -1,0 +1,564 @@
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt
+index 59428f91..39b84352 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt
+@@ -27,9 +27,11 @@ import com.khanabook.lite.pos.data.local.entity.*
+                         NotificationEntity::class,
+                         StaffPermissionEntity::class,
+                         PermissionRequestEntity::class,
+-                        PermissionCacheEntity::class
++                        PermissionCacheEntity::class,
++                        RawMaterialEntity::class,
++                        ItemRecipeEntity::class
+                 ],
+-        version = 72,
++        version = 73,
+         exportSchema = true
+ )
+ abstract class AppDatabase : RoomDatabase() {
+@@ -44,6 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
+     abstract fun kotEventDao(): KotEventDao
+     abstract fun notificationDao(): NotificationDao
+     abstract fun permissionCacheDao(): PermissionCacheDao
++    abstract fun rawMaterialDao(): RawMaterialDao
++    abstract fun itemRecipeDao(): ItemRecipeDao
+ 
+ 	    companion object {
+ 	        const val DATABASE_NAME = "khanabook_lite_db"
+@@ -1083,6 +1087,52 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
+             }
+         }
+ 
++        val MIGRATION_72_73 = object : Migration(72, 73) {
++            override fun migrate(db: SupportSQLiteDatabase) {
++                db.execSQL(
++                    """
++                    CREATE TABLE IF NOT EXISTS `raw_materials` (
++                        `id` INTEGER NOT NULL,
++                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
++                        `name` TEXT NOT NULL,
++                        `unit` TEXT NOT NULL DEFAULT 'kg',
++                        `stock_quantity` TEXT NOT NULL DEFAULT '0.0',
++                        `low_stock_threshold` TEXT NOT NULL DEFAULT '0.0',
++                        `cost_per_unit` TEXT DEFAULT NULL,
++                        `expiry_date` INTEGER DEFAULT NULL,
++                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
++                        `created_at` INTEGER NOT NULL DEFAULT 0,
++                        `updated_at` INTEGER NOT NULL DEFAULT 0,
++                        PRIMARY KEY(`id`)
++                    )
++                    """.trimIndent()
++                )
++                db.execSQL("CREATE INDEX IF NOT EXISTS `index_raw_materials_restaurant_id` ON `raw_materials` (`restaurant_id`)")
++                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_raw_materials_restaurant_id_name` ON `raw_materials` (`restaurant_id`, `name`)")
++
++                db.execSQL(
++                    """
++                    CREATE TABLE IF NOT EXISTS `item_recipes` (
++                        `id` INTEGER NOT NULL,
++                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
++                        `menu_item_id` INTEGER NOT NULL,
++                        `raw_material_id` INTEGER NOT NULL,
++                        `quantity_per_item` TEXT NOT NULL DEFAULT '0.0',
++                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
++                        `created_at` INTEGER NOT NULL DEFAULT 0,
++                        `updated_at` INTEGER NOT NULL DEFAULT 0,
++                        PRIMARY KEY(`id`),
++                        FOREIGN KEY(`raw_material_id`) REFERENCES `raw_materials`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
++                    )
++                    """.trimIndent()
++                )
++                db.execSQL("CREATE INDEX IF NOT EXISTS `index_item_recipes_restaurant_id` ON `item_recipes` (`restaurant_id`)")
++                db.execSQL("CREATE INDEX IF NOT EXISTS `index_item_recipes_restaurant_id_menu_item_id` ON `item_recipes` (`restaurant_id`, `menu_item_id`)")
++                db.execSQL("CREATE INDEX IF NOT EXISTS `index_item_recipes_raw_material_id` ON `item_recipes` (`raw_material_id`)")
++                android.util.Log.i("AppDatabase", "MIGRATION_72_73 complete: raw_materials + item_recipes tables")
++            }
++        }
++
+         val MIGRATION_68_69 = object : Migration(68, 69) {
+             override fun migrate(db: SupportSQLiteDatabase) {
+                 // Drop marketplace columns removed from RestaurantProfileEntity in commit eea83ce8
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/DatabaseProvider.kt b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/DatabaseProvider.kt
+index 1eeb2b76..6413f5cd 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/DatabaseProvider.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/DatabaseProvider.kt
+@@ -192,7 +192,8 @@ class DatabaseProvider @Inject constructor(
+                 AppDatabase.MIGRATION_68_69,
+                 AppDatabase.MIGRATION_69_70,
+                 AppDatabase.MIGRATION_70_71,
+-                AppDatabase.MIGRATION_71_72
++                AppDatabase.MIGRATION_71_72,
++                AppDatabase.MIGRATION_72_73
+             )
+             .build()
+     }
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/TenantDaos.kt b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/TenantDaos.kt
+index e28cc5e8..c80d0655 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/TenantDaos.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/TenantDaos.kt
+@@ -848,3 +848,45 @@ class TenantNotificationDao @Inject constructor(
+     override suspend fun deleteOlderThan(beforeTimestamp: Long) = dao.deleteOlderThan(beforeTimestamp)
+     override suspend fun clearAll() = dao.clearAll()
+ }
++
++@Singleton
++class TenantRawMaterialDao @Inject constructor(
++    private val databaseProvider: DatabaseProvider
++) : RawMaterialDao {
++    private val dao get() = databaseProvider.getDatabase().rawMaterialDao()
++
++    @OptIn(ExperimentalCoroutinesApi::class)
++    private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {
++        return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }
++    }
++
++    override fun getAllFlow(restaurantId: Long): Flow<List<RawMaterialEntity>> = runFlow { it.rawMaterialDao().getAllFlow(restaurantId) }
++    override suspend fun getAll(restaurantId: Long): List<RawMaterialEntity> = dao.getAll(restaurantId)
++    override suspend fun getById(id: Long, restaurantId: Long): RawMaterialEntity? = dao.getById(id, restaurantId)
++    override suspend fun insertOrUpdate(material: RawMaterialEntity) = dao.insertOrUpdate(material)
++    override suspend fun insertOrUpdateAll(materials: List<RawMaterialEntity>) = dao.insertOrUpdateAll(materials)
++    override suspend fun decrementStock(id: Long, delta: Double, restaurantId: Long, now: Long) = dao.decrementStock(id, delta, restaurantId, now)
++    override suspend fun updateStock(id: Long, newStock: String, restaurantId: Long, now: Long) = dao.updateStock(id, newStock, restaurantId, now)
++    override suspend fun deleteAllForRestaurant(restaurantId: Long) = dao.deleteAllForRestaurant(restaurantId)
++}
++
++@Singleton
++class TenantItemRecipeDao @Inject constructor(
++    private val databaseProvider: DatabaseProvider
++) : ItemRecipeDao {
++    private val dao get() = databaseProvider.getDatabase().itemRecipeDao()
++
++    @OptIn(ExperimentalCoroutinesApi::class)
++    private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {
++        return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }
++    }
++
++    override suspend fun getRecipesForMenuItem(restaurantId: Long, menuItemId: Long): List<ItemRecipeEntity> = dao.getRecipesForMenuItem(restaurantId, menuItemId)
++    override fun getRecipesForMenuItemFlow(restaurantId: Long, menuItemId: Long): Flow<List<ItemRecipeEntity>> = runFlow { it.itemRecipeDao().getRecipesForMenuItemFlow(restaurantId, menuItemId) }
++    override suspend fun getAll(restaurantId: Long): List<ItemRecipeEntity> = dao.getAll(restaurantId)
++    override suspend fun insertOrUpdate(recipe: ItemRecipeEntity) = dao.insertOrUpdate(recipe)
++    override suspend fun insertOrUpdateAll(recipes: List<ItemRecipeEntity>) = dao.insertOrUpdateAll(recipes)
++    override suspend fun deleteForMenuItem(menuItemId: Long, restaurantId: Long) = dao.deleteForMenuItem(menuItemId, restaurantId)
++    override suspend fun deleteAllForRestaurant(restaurantId: Long) = dao.deleteAllForRestaurant(restaurantId)
++}
++
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/MasterSyncResponse.kt b/Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/MasterSyncResponse.kt
+index 5b5d39ab..ed2e7f73 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/MasterSyncResponse.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/MasterSyncResponse.kt
+@@ -15,6 +15,8 @@ data class MasterSyncResponse(
+     @SerializedName("bills") val bills: List<BillEntity> = emptyList(),
+     @SerializedName("billItems") val billItems: List<BillItemEntity> = emptyList(),
+     @SerializedName("billPayments") val billPayments: List<BillPaymentEntity> = emptyList(),
++    @SerializedName("rawMaterials") val rawMaterials: List<RawMaterialEntity> = emptyList(),
++    @SerializedName("itemRecipes") val itemRecipes: List<ItemRecipeEntity> = emptyList(),
+     @SerializedName("hasMore") val hasMore: Boolean? = false,
+     @SerializedName("nextPage") val nextPage: Int? = null,
+     @SerializedName("grantedPermissions") val grantedPermissions: List<String>? = null,
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt b/Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt
+index 5a420d54..8aa49699 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt
+@@ -159,7 +159,8 @@ object DatabaseModule {
+                 AppDatabase.MIGRATION_68_69,
+                 AppDatabase.MIGRATION_69_70,
+                 AppDatabase.MIGRATION_70_71,
+-                AppDatabase.MIGRATION_71_72
++                AppDatabase.MIGRATION_71_72,
++                AppDatabase.MIGRATION_72_73
+             )
+             .build()
+     }
+@@ -179,6 +180,8 @@ object DatabaseModule {
+     @Provides @Singleton fun provideInventoryDao(databaseProvider: DatabaseProvider): InventoryDao = TenantInventoryDao(databaseProvider)
+     @Provides @Singleton fun provideKotEventDao(databaseProvider: DatabaseProvider): KotEventDao = TenantKotEventDao(databaseProvider)
+     @Provides @Singleton fun provideNotificationDao(databaseProvider: DatabaseProvider): NotificationDao = TenantNotificationDao(databaseProvider)
++    @Provides @Singleton fun provideRawMaterialDao(databaseProvider: DatabaseProvider): RawMaterialDao = TenantRawMaterialDao(databaseProvider)
++    @Provides @Singleton fun provideItemRecipeDao(databaseProvider: DatabaseProvider): ItemRecipeDao = TenantItemRecipeDao(databaseProvider)
+ 
+     @Provides
+     @Singleton
+@@ -272,8 +275,11 @@ object DatabaseModule {
+     @Singleton
+     fun provideInventoryConsumptionManager(
+         menuRepository: MenuRepository,
+-        inventoryRepository: InventoryRepository
+-    ) = InventoryConsumptionManager(menuRepository, inventoryRepository)
++        inventoryRepository: InventoryRepository,
++        rawMaterialDao: RawMaterialDao,
++        itemRecipeDao: ItemRecipeDao,
++        sessionManager: SessionManager
++    ) = InventoryConsumptionManager(menuRepository, inventoryRepository, rawMaterialDao, itemRecipeDao, sessionManager)
+ 
+ 
+     @Provides
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InventoryConsumptionManager.kt b/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InventoryConsumptionManager.kt
+index 11401605..9203fb77 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InventoryConsumptionManager.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InventoryConsumptionManager.kt
+@@ -1,5 +1,7 @@
+ package com.khanabook.lite.pos.domain.manager
+ 
++import com.khanabook.lite.pos.data.local.dao.ItemRecipeDao
++import com.khanabook.lite.pos.data.local.dao.RawMaterialDao
+ import com.khanabook.lite.pos.data.local.entity.BillItemEntity
+ import com.khanabook.lite.pos.data.local.entity.StockLogEntity
+ import com.khanabook.lite.pos.data.repository.InventoryRepository
+@@ -10,20 +12,25 @@ import javax.inject.Singleton
+ @Singleton
+ class InventoryConsumptionManager @Inject constructor(
+     private val menuRepository: MenuRepository,
+-    private val inventoryRepository: InventoryRepository
++    private val inventoryRepository: InventoryRepository,
++    private val rawMaterialDao: RawMaterialDao? = null,
++    private val itemRecipeDao: ItemRecipeDao? = null,
++    private val sessionManager: SessionManager? = null
+ ) {
+     
+     suspend fun consumeMaterialsForBill(items: List<BillItemEntity>) {
++        val restaurantId = items.firstOrNull { it.restaurantId > 0L }?.restaurantId
++            ?: (try { sessionManager?.getRestaurantId() } catch (_: Exception) { null })
++            ?: 0L
++
+         for (item in items) {
+             val delta = "-${item.quantity}"
+             val variantId: Long? = item.variantId
+             val menuItemId: Long? = item.menuItemId
+ 
+             if (variantId != null) {
+-                
+                 menuRepository.updateVariantStock(variantId, delta)
+ 
+-                
+                 inventoryRepository.insertStockLog(
+                     StockLogEntity(
+                         menuItemId = menuItemId ?: 0,
+@@ -34,10 +41,8 @@ class InventoryConsumptionManager @Inject constructor(
+                     )
+                 )
+             } else if (menuItemId != null) {
+-                
+                 menuRepository.updateStock(menuItemId, delta)
+ 
+-                
+                 inventoryRepository.insertStockLog(
+                     StockLogEntity(
+                         menuItemId = menuItemId,
+@@ -47,6 +52,23 @@ class InventoryConsumptionManager @Inject constructor(
+                     )
+                 )
+             }
++
++            // Recipe-based ingredient depletion for raw materials
++            if (menuItemId != null && itemRecipeDao != null && rawMaterialDao != null && restaurantId > 0L) {
++                try {
++                    val recipes = itemRecipeDao.getRecipesForMenuItem(restaurantId, menuItemId)
++                    for (recipe in recipes) {
++                        val perItemQty = recipe.quantityPerItem.toDoubleOrNull() ?: continue
++                        val totalDeduction = perItemQty * item.quantity
++                        if (totalDeduction > 0.0) {
++                            rawMaterialDao.decrementStock(recipe.rawMaterialId, totalDeduction, restaurantId)
++                        }
++                    }
++                } catch (e: Exception) {
++                    android.util.Log.w("InventoryConsumption", "Failed to deduct raw materials for item $menuItemId: ${e.message}")
++                }
++            }
+         }
+     }
+ }
++
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt b/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt
+index 6ab68bb3..ba83a926 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt
+@@ -31,7 +31,9 @@ class MasterSyncProcessor @Inject constructor(
+     private val inventoryDao: InventoryDao,
+     private val printerProfileDao: PrinterProfileDao,
+     private val sessionManager: SessionManager,
+-    private val permissionManager: PermissionManager
++    private val permissionManager: PermissionManager,
++    private val rawMaterialDao: RawMaterialDao? = null,
++    private val itemRecipeDao: ItemRecipeDao? = null
+ ) {
+     private fun normalizeUserRole(role: String?): String = SyncNormalizer.normalizeUserRole(role)
+ 
+@@ -1428,6 +1430,24 @@ class MasterSyncProcessor @Inject constructor(
+             inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
+         }
+ 
++        if (masterData.rawMaterials.isNotEmpty()) {
++            val materials = masterData.rawMaterials.map {
++                if (it.restaurantId == 0L) it.copy(restaurantId = restaurantId) else it
++            }
++            rawMaterialDao?.insertOrUpdateAll(materials)
++        }
++
++        if (masterData.itemRecipes.isNotEmpty()) {
++            val resolvedRecipes = masterData.itemRecipes.map { remoteRecipe ->
++                val localMenuItemId = menuItemIdMap[remoteRecipe.menuItemId] ?: remoteRecipe.menuItemId
++                remoteRecipe.copy(
++                    menuItemId = localMenuItemId,
++                    restaurantId = if (remoteRecipe.restaurantId == 0L) restaurantId else remoteRecipe.restaurantId
++                )
++            }
++            itemRecipeDao?.insertOrUpdateAll(resolvedRecipes)
++        }
++
+         if (masterData.bills.isNotEmpty()) {
+             val repairedBills = mutableListOf<String>()
+             val resolvedBills = masterData.bills.map { remoteBill ->
+diff --git a/Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/InventoryViewModel.kt b/Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/InventoryViewModel.kt
+index 3442fcad..183a2394 100644
+--- a/Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/InventoryViewModel.kt
++++ b/Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/InventoryViewModel.kt
+@@ -3,6 +3,9 @@ package com.khanabook.lite.pos.ui.viewmodel
+ import android.util.Log
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.viewModelScope
++import com.khanabook.lite.pos.data.local.dao.ItemRecipeDao
++import com.khanabook.lite.pos.data.local.dao.RawMaterialDao
++import com.khanabook.lite.pos.data.local.entity.RawMaterialEntity
+ import com.khanabook.lite.pos.data.remote.api.CreateMaterialBody
+ import com.khanabook.lite.pos.data.remote.api.CreateRecipeBody
+ import com.khanabook.lite.pos.data.remote.api.FoodCostRow
+@@ -11,7 +14,9 @@ import com.khanabook.lite.pos.data.remote.api.ItemSalesRow
+ import com.khanabook.lite.pos.data.remote.api.ItemRecipeDto
+ import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+ import com.khanabook.lite.pos.data.remote.api.RawMaterialDto
++import com.khanabook.lite.pos.data.remote.api.RecipeMaterialDto
+ import com.khanabook.lite.pos.data.remote.api.UpdateMaterialBody
++import com.khanabook.lite.pos.domain.manager.SessionManager
+ import dagger.hilt.android.lifecycle.HiltViewModel
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+@@ -34,7 +39,10 @@ data class InventoryUiState(
+ 
+ @HiltViewModel
+ class InventoryViewModel @Inject constructor(
+-    private val api: KhanaBookApi
++    private val api: KhanaBookApi,
++    private val rawMaterialDao: RawMaterialDao,
++    private val itemRecipeDao: ItemRecipeDao,
++    private val sessionManager: SessionManager
+ ) : ViewModel() {
+ 
+     private val tag = "InventoryVM"
+@@ -45,10 +53,29 @@ class InventoryViewModel @Inject constructor(
+     init { refresh() }
+ 
+     fun refresh() {
++        val restaurantId = sessionManager.getRestaurantId()
+         viewModelScope.launch {
+             _uiState.value = _uiState.value.copy(isLoading = true, loadError = null)
+             try {
+                 val materials = api.getRawMaterials()
++                // Cache raw materials locally in Room for offline access & depletion
++                if (restaurantId > 0L && materials.isNotEmpty()) {
++                    val entities = materials.map { dto ->
++                        RawMaterialEntity(
++                            id = dto.id,
++                            restaurantId = if (dto.restaurantId > 0L) dto.restaurantId else restaurantId,
++                            name = dto.name,
++                            unit = dto.unit,
++                            stockQuantity = dto.stockQuantity.toString(),
++                            lowStockThreshold = dto.lowStockThreshold.toString(),
++                            costPerUnit = dto.costPerUnit?.toString(),
++                            isDeleted = dto.isDeleted,
++                            createdAt = dto.createdAt,
++                            updatedAt = dto.updatedAt
++                        )
++                    }
++                    rawMaterialDao.insertOrUpdateAll(entities)
++                }
+                 val today = LocalDate.now()
+                 val from = today.minusDays(7).toString()
+                 val to = today.toString()
+@@ -63,11 +90,41 @@ class InventoryViewModel @Inject constructor(
+                     foodCost = foodCost
+                 )
+             } catch (e: Exception) {
+-                Log.e(tag, "Failed to load inventory", e)
+-                _uiState.value = _uiState.value.copy(
+-                    isLoading = false,
+-                    loadError = "Failed to load inventory. Check your connection."
+-                )
++                Log.e(tag, "Failed to load inventory from API, attempting local fallback", e)
++                val localMaterials = if (restaurantId > 0L) {
++                    try {
++                        rawMaterialDao.getAll(restaurantId).map { rm ->
++                            RawMaterialDto(
++                                id = rm.id,
++                                restaurantId = rm.restaurantId,
++                                name = rm.name,
++                                unit = rm.unit,
++                                stockQuantity = rm.stockQuantity.toDoubleOrNull() ?: 0.0,
++                                lowStockThreshold = rm.lowStockThreshold.toDoubleOrNull() ?: 0.0,
++                                costPerUnit = rm.costPerUnit?.toDoubleOrNull(),
++                                isDeleted = rm.isDeleted,
++                                createdAt = rm.createdAt,
++                                updatedAt = rm.updatedAt
++                            )
++                        }
++                    } catch (dbEx: Exception) {
++                        Log.e(tag, "Failed to load local materials", dbEx)
++                        emptyList()
++                    }
++                } else emptyList()
++
++                if (localMaterials.isNotEmpty()) {
++                    _uiState.value = _uiState.value.copy(
++                        isLoading = false,
++                        materials = localMaterials,
++                        loadError = null
++                    )
++                } else {
++                    _uiState.value = _uiState.value.copy(
++                        isLoading = false,
++                        loadError = "Failed to load inventory. Check your connection."
++                    )
++                }
+             }
+         }
+     }
+@@ -88,14 +145,28 @@ class InventoryViewModel @Inject constructor(
+     }
+ 
+     fun updateStock(materialId: Long, newStock: Double) {
++        val restaurantId = sessionManager.getRestaurantId()
+         viewModelScope.launch {
+             _uiState.value = _uiState.value.copy(actionInFlight = true)
+             try {
+                 api.updateRawMaterial(materialId, UpdateMaterialBody(stockQuantity = newStock))
++                if (restaurantId > 0L) {
++                    rawMaterialDao.updateStock(materialId, newStock.toString(), restaurantId)
++                }
+                 _uiState.value = _uiState.value.copy(actionInFlight = false)
+                 refresh()
+             } catch (e: Exception) {
+-                Log.e(tag, "updateStock failed", e)
++                Log.e(tag, "updateStock failed remotely, updating locally if offline", e)
++                if (restaurantId > 0L) {
++                    try {
++                        rawMaterialDao.updateStock(materialId, newStock.toString(), restaurantId)
++                        _uiState.value = _uiState.value.copy(actionInFlight = false)
++                        refresh()
++                        return@launch
++                    } catch (dbEx: Exception) {
++                        Log.e(tag, "Local stock update also failed", dbEx)
++                    }
++                }
+                 fail("Could not update stock.")
+             }
+         }
+@@ -116,6 +187,7 @@ class InventoryViewModel @Inject constructor(
+     }
+ 
+     fun loadRecipes(menuItemId: Long) {
++        val restaurantId = sessionManager.getRestaurantId()
+         viewModelScope.launch {
+             try {
+                 val lines = api.getItemRecipes(menuItemId)
+@@ -123,7 +195,33 @@ class InventoryViewModel @Inject constructor(
+                     recipes = _uiState.value.recipes + (menuItemId to lines)
+                 )
+             } catch (e: Exception) {
+-                Log.e(tag, "loadRecipes failed", e)
++                Log.e(tag, "loadRecipes failed, checking local database", e)
++                if (restaurantId > 0L) {
++                    try {
++                        val localRecipes = itemRecipeDao.getRecipesForMenuItem(restaurantId, menuItemId)
++                        val dtos = localRecipes.map { recipe ->
++                            val material = rawMaterialDao.getById(recipe.rawMaterialId, restaurantId)
++                            ItemRecipeDto(
++                                id = recipe.id,
++                                restaurantId = recipe.restaurantId,
++                                menuItemId = recipe.menuItemId,
++                                rawMaterial = RecipeMaterialDto(
++                                    id = recipe.rawMaterialId,
++                                    name = material?.name ?: "Material #${recipe.rawMaterialId}",
++                                    unit = material?.unit ?: "unit"
++                                ),
++                                quantityPerItem = recipe.quantityPerItem.toDoubleOrNull() ?: 0.0
++                            )
++                        }
++                        if (dtos.isNotEmpty()) {
++                            _uiState.value = _uiState.value.copy(
++                                recipes = _uiState.value.recipes + (menuItemId to dtos)
++                            )
++                        }
++                    } catch (dbEx: Exception) {
++                        Log.e(tag, "Failed to load local recipes", dbEx)
++                    }
++                }
+             }
+         }
+     }
+diff --git a/Android/app/src/test/java/com/khanabook/lite/pos/InventoryConsumptionTest.kt b/Android/app/src/test/java/com/khanabook/lite/pos/InventoryConsumptionTest.kt
+index 84534517..8dc1fac9 100644
+--- a/Android/app/src/test/java/com/khanabook/lite/pos/InventoryConsumptionTest.kt
++++ b/Android/app/src/test/java/com/khanabook/lite/pos/InventoryConsumptionTest.kt
+@@ -26,6 +26,7 @@ class InventoryConsumptionTest {
+         mockkStatic(android.util.Log::class)
+         every { android.util.Log.d(any(), any()) } returns 0
+         every { android.util.Log.e(any(), any()) } returns 0
++        every { android.util.Log.w(any(), any<String>()) } returns 0
+         
+         menuRepository = mockk(relaxed = true)
+         inventoryRepository = mockk(relaxed = true)
+@@ -82,4 +83,55 @@ class InventoryConsumptionTest {
+             it.menuItemId == 101L && it.variantId == 501L && it.delta == "-2" && it.reason == "Sale (Bill #7)"
+         }) }
+     }
++
++    @Test
++    fun `consumeMaterialsForBill should deduct raw material ingredients according to item recipes`() = runTest {
++        val rawMaterialDao = mockk<com.khanabook.lite.pos.data.local.dao.RawMaterialDao>(relaxed = true)
++        val itemRecipeDao = mockk<com.khanabook.lite.pos.data.local.dao.ItemRecipeDao>(relaxed = true)
++
++        io.mockk.coEvery { itemRecipeDao.getRecipesForMenuItem(42L, 101L) } returns listOf(
++            com.khanabook.lite.pos.data.local.entity.ItemRecipeEntity(
++                id = 1L,
++                restaurantId = 42L,
++                menuItemId = 101L,
++                rawMaterialId = 10L,
++                quantityPerItem = "0.25"
++            ),
++            com.khanabook.lite.pos.data.local.entity.ItemRecipeEntity(
++                id = 2L,
++                restaurantId = 42L,
++                menuItemId = 101L,
++                rawMaterialId = 20L,
++                quantityPerItem = "0.10"
++            )
++        )
++
++        val manager = InventoryConsumptionManager(
++            menuRepository = menuRepository,
++            inventoryRepository = inventoryRepository,
++            rawMaterialDao = rawMaterialDao,
++            itemRecipeDao = itemRecipeDao,
++            sessionManager = null
++        )
++
++        val billItems = listOf(
++            BillItemEntity(
++                id = 1,
++                billId = 100,
++                menuItemId = 101L,
++                itemName = "Special Biryani",
++                quantity = 4,
++                price = "250.00",
++                itemTotal = "1000.00",
++                restaurantId = 42L
++            )
++        )
++
++        manager.consumeMaterialsForBill(billItems)
++
++        // 0.25 * 4 = 1.0 kg for material 10
++        coVerify { rawMaterialDao.decrementStock(eq(10L), eq(1.0), eq(42L), any()) }
++        // 0.10 * 4 = 0.40 kg for material 20
++        coVerify { rawMaterialDao.decrementStock(eq(20L), eq(0.4), eq(42L), any()) }
++    }
+ }
