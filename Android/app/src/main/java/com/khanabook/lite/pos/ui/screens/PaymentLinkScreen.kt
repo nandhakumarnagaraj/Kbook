@@ -189,40 +189,91 @@ fun PaymentLinkScreen(
                         if (state is PaymentLinkState.Success) {
                             val linkUrl = (state as PaymentLinkState.Success).linkUrl
                             val ref = (state as PaymentLinkState.Success).merchantTxn
+                            val cleanPhone = customerPhone.filter { it.isDigit() }.let {
+                                if (it.length == 10) "91$it" else it
+                            }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
+                                // Direct WhatsApp button
+                                Button(
+                                    onClick = {
+                                        val waUri = if (cleanPhone.isNotBlank()) {
+                                            Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=" + Uri.encode("Hello $customerName, here is the payment link for your bill of ₹$amount: $linkUrl"))
+                                        } else {
+                                            Uri.parse("https://api.whatsapp.com/send?text=" + Uri.encode("Here is your payment link: $linkUrl"))
+                                        }
+                                        try {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, waUri))
+                                        } catch (e: Exception) {
+                                            coroutineScope.launch { KhanaToast.show("WhatsApp not installed", ToastKind.Warning) }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF25D366)),
+                                    shape = KhanaShapes.medium
+                                ) {
+                                    Text("WhatsApp", style = MaterialTheme.typography.labelLarge, color = androidx.compose.ui.graphics.Color.White, maxLines = 1)
+                                }
+
+                                // Direct SMS button
+                                Button(
+                                    onClick = {
+                                        val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = Uri.parse("smsto:${customerPhone.ifBlank { "" }}")
+                                            putExtra("sms_body", "Hello $customerName, payment link for your bill: $linkUrl")
+                                        }
+                                        try {
+                                            context.startActivity(smsIntent)
+                                        } catch (e: Exception) {
+                                            coroutineScope.launch { KhanaToast.show("Cannot open SMS", ToastKind.Warning) }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                    shape = KhanaShapes.medium
+                                ) {
+                                    Text("SMS", style = MaterialTheme.typography.labelLarge, color = DarkBrown1, maxLines = 1)
+                                }
+
+                                // Copy Link button
                                 Button(
                                     onClick = {
                                         copyToClipboard(context, linkUrl)
                                         coroutineScope.launch { KhanaToast.show("Link copied to clipboard!", ToastKind.Success) }
                                     },
-                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
-                                    shape = KhanaShapes.large
+                                    shape = KhanaShapes.medium
                                 ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-                                    Spacer(modifier = Modifier.width(spacing.small))
-                                    Text("Copy Link", style = MaterialTheme.typography.labelLarge, color = TextLight, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("Copy", style = MaterialTheme.typography.labelLarge, color = TextLight, maxLines = 1)
                                 }
+                            }
 
+                            // Email button if email is provided
+                            if (customerEmail.isNotBlank()) {
                                 Button(
                                     onClick = {
-                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_TEXT, "Payment Link: $linkUrl\nReference: $ref")
+                                        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = Uri.parse("mailto:$customerEmail")
+                                            putExtra(Intent.EXTRA_SUBJECT, "Payment Link - KhanaBook")
+                                            putExtra(Intent.EXTRA_TEXT, "Hello $customerName,\n\nPlease complete your payment of ₹$amount using this link:\n$linkUrl\n\nThank you!")
                                         }
-                                        context.startActivity(Intent.createChooser(shareIntent, "Share Payment Link"))
+                                        try {
+                                            context.startActivity(emailIntent)
+                                        } catch (e: Exception) {
+                                            coroutineScope.launch { KhanaToast.show("Cannot open Email client", ToastKind.Warning) }
+                                        }
                                     },
-                                    modifier = Modifier.weight(1f).height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                    shape = KhanaShapes.large
+                                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkBrown2),
+                                    shape = KhanaShapes.medium
                                 ) {
-                                    Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(spacing.small))
-                                    Text("Share", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("Send Email ($customerEmail)", style = MaterialTheme.typography.labelMedium, color = TextLight)
                                 }
                             }
                         }

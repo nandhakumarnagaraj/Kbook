@@ -44,6 +44,12 @@ sealed class PaymentLinkForBillState {
     data class Error(val error: String) : PaymentLinkForBillState()
 }
 
+sealed interface PaymentLinkPrepResult {
+    data object Success : PaymentLinkPrepResult
+    data object SyncPending : PaymentLinkPrepResult
+    data class Failed(val message: String) : PaymentLinkPrepResult
+}
+
 @HiltViewModel
 class BillingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -241,12 +247,21 @@ class BillingViewModel @Inject constructor(
     private val _paymentLinkState = MutableStateFlow<PaymentLinkForBillState>(PaymentLinkForBillState.Idle)
     val paymentLinkState: StateFlow<PaymentLinkForBillState> = _paymentLinkState.asStateFlow()
 
-    suspend fun createPaymentLinkForBill(serverBillId: Long, restaurantId: Long): Boolean {
+    suspend fun createPaymentLinkForBill(
+        serverBillId: Long,
+        restaurantId: Long,
+        customerPhone: String? = null,
+        customerEmail: String? = null
+    ): Boolean {
         _paymentLinkState.value = PaymentLinkForBillState.Loading
+        val phoneToUse = customerPhone?.ifBlank { null } ?: _customerWhatsapp.value.ifBlank { null }
+        val emailToUse = customerEmail?.ifBlank { null }
         return withContext(Dispatchers.IO) {
             easebuzzPaymentRepository.createPaymentLinkForBill(
                 billId = serverBillId,
-                restaurantId = restaurantId
+                restaurantId = restaurantId,
+                customerPhone = phoneToUse,
+                customerEmail = emailToUse
             ).fold(
                 onSuccess = { result ->
                     val status = result["status"]?.toString() ?: "failure"
@@ -271,6 +286,43 @@ class BillingViewModel @Inject constructor(
 
     fun resetPaymentLinkState() {
         _paymentLinkState.value = PaymentLinkForBillState.Idle
+    }
+
+    suspend fun prepareAndCreatePaymentLink(
+        restaurantId: Long,
+        customerPhone: String? = null,
+        customerEmail: String? = null
+    ): PaymentLinkPrepResult {
+        val localBillId = editingBillId
+            ?: createDraftOnlineBill()
+            ?: return PaymentLinkPrepResult.Failed("Unable to initialize draft bill")
+
+        var serverBillId = getBillById(localBillId)?.bill?.serverId
+        if (serverBillId == null || serverBillId == 0L) {
+            triggerSyncAndWait()
+            repeat(5) {
+                kotlinx.coroutines.delay(500L)
+                serverBillId = getBillById(localBillId)?.bill?.serverId
+                if (serverBillId != null && serverBillId != 0L) return@repeat
+            }
+        }
+
+        val id = serverBillId?.takeIf { it != 0L }
+            ?: return PaymentLinkPrepResult.SyncPending
+
+        val created = createPaymentLinkForBill(
+            serverBillId = id,
+            restaurantId = restaurantId,
+            customerPhone = customerPhone,
+            customerEmail = customerEmail
+        )
+
+        return if (created) {
+            PaymentLinkPrepResult.Success
+        } else {
+            val errorMsg = (_paymentLinkState.value as? PaymentLinkForBillState.Error)?.error ?: "Failed to create payment link"
+            PaymentLinkPrepResult.Failed(errorMsg)
+        }
     }
 
     private fun validatePaymentLimits(

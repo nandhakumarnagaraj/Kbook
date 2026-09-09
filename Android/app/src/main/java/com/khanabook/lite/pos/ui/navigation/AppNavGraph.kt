@@ -370,5 +370,18 @@ internal fun AppNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
+        composable(
+            route = "payment_link?restaurantId={restaurantId}",
+            arguments = listOf(
+                navArgument("restaurantId") {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                }
+            )
+        ) {
+            com.khanabook.lite.pos.ui.screens.PaymentLinkScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }

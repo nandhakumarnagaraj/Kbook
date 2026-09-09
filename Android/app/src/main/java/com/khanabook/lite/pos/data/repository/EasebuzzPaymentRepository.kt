@@ -60,13 +60,17 @@ class EasebuzzPaymentRepository @Inject constructor(
 
     suspend fun createPaymentLinkForBill(
         billId: Long,
-        restaurantId: Long
+        restaurantId: Long,
+        customerPhone: String? = null,
+        customerEmail: String? = null
     ): Result<Map<String, Any?>> =
         runApi {
             api.createPaymentLinkForBill(
                 com.khanabook.lite.pos.data.remote.dto.CreatePaymentLinkForBillRequest(
                     billId = billId,
-                    restaurantId = restaurantId
+                    restaurantId = restaurantId,
+                    customerPhone = customerPhone,
+                    customerEmail = customerEmail
                 )
             )
         }

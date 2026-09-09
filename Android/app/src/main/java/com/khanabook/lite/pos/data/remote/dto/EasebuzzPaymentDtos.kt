@@ -50,5 +50,7 @@ data class CreateEasebuzzPaymentLinkRequest(
 
 data class CreatePaymentLinkForBillRequest(
     @SerializedName("billId") val billId: Long,
-    @SerializedName("restaurantId") val restaurantId: Long
+    @SerializedName("restaurantId") val restaurantId: Long,
+    @SerializedName("customerPhone") val customerPhone: String? = null,
+    @SerializedName("customerEmail") val customerEmail: String? = null
 )
