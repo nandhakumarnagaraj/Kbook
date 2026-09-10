@@ -2,7 +2,9 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class AssetStorageService {
 
 	private final RestaurantProfileRepository restaurantProfileRepository;
 	private final EasebuzzSubMerchantRepository subMerchantRepo;
+	private final MenuItemRepository menuItemRepository;
 
 	@Value("${kbook.cdn.base-path}")
 	private String basePath;
@@ -58,6 +61,105 @@ public class AssetStorageService {
 	@Transactional
 	public void deleteLogo(Long restaurantId) {
 		deleteAsset(restaurantId, "logo");
+	}
+
+	@Transactional
+	public AssetUploadResult uploadMenuItemImage(Long restaurantId, Long menuItemId, MultipartFile file) {
+		validate(file);
+
+		MenuItem item = menuItemRepository.findById(menuItemId)
+				.filter(m -> restaurantId.equals(m.getRestaurantId()) && !Boolean.TRUE.equals(m.getIsDeleted()))
+				.orElseThrow(() -> new IllegalArgumentException("Menu item not found: " + menuItemId));
+
+		Path tmp = null;
+		try {
+			tmp = saveToTmp(file);
+
+			int currentVersion = item.getImageVersion() != null ? item.getImageVersion() : 0;
+			int newVersion = currentVersion + 1;
+			boolean hasCwebp = cwebpBin != null && !cwebpBin.isBlank();
+			String ext = hasCwebp ? ".webp" : guessExtension(file.getContentType());
+			String filename = "item_" + menuItemId + "_v" + newVersion + ext;
+			Path target = Paths.get(basePath, String.valueOf(restaurantId), "menu_items", filename);
+			Files.createDirectories(target.getParent());
+
+			if (hasCwebp) {
+				// Food photos: lossy WebP at 80% quality balances crisp appearance with fast mobile loading
+				runCwebp(tmp, target, false, 80);
+			} else {
+				log.warn("cwebp not configured; copying {} -> {}", tmp, target);
+				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+			}
+
+			if (!Files.exists(target) || Files.size(target) == 0) {
+				throw new IllegalStateException("Item image upload produced no output");
+			}
+
+			String url = resolveCdnUrl(restaurantId, "menu_items/" + filename);
+			long now = System.currentTimeMillis();
+			item.setImageUrl(url);
+			item.setImageVersion(newVersion);
+			item.setUpdatedAt(now);
+			item.setServerUpdatedAt(now);
+			menuItemRepository.save(item);
+
+			deleteOldItemImageVersions(restaurantId, menuItemId, newVersion);
+
+			log.info("Uploaded image for menu item {} (restaurant {}) -> {}", menuItemId, restaurantId, url);
+			return new AssetUploadResult(url, newVersion);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Item image upload failed", e);
+		} catch (IOException e) {
+			throw new RuntimeException("Item image upload failed", e);
+		} finally {
+			if (tmp != null) {
+				try { Files.deleteIfExists(tmp); } catch (IOException ignored) {}
+			}
+		}
+	}
+
+	@Transactional
+	public void deleteMenuItemImage(Long restaurantId, Long menuItemId) {
+		MenuItem item = menuItemRepository.findById(menuItemId)
+				.filter(m -> restaurantId.equals(m.getRestaurantId()) && !Boolean.TRUE.equals(m.getIsDeleted()))
+				.orElseThrow(() -> new IllegalArgumentException("Menu item not found: " + menuItemId));
+
+		Path dir = Paths.get(basePath, String.valueOf(restaurantId), "menu_items");
+		if (Files.exists(dir)) {
+			try (Stream<Path> files = Files.list(dir)) {
+				String prefix = "item_" + menuItemId + "_v";
+				files.filter(p -> p.getFileName().toString().startsWith(prefix))
+						.forEach(p -> {
+							try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+						});
+			} catch (IOException e) {
+				log.warn("Failed to delete item image files for menuItem {}", menuItemId, e);
+			}
+		}
+
+		long now = System.currentTimeMillis();
+		item.setImageUrl(null);
+		item.setImageVersion(0);
+		item.setUpdatedAt(now);
+		item.setServerUpdatedAt(now);
+		menuItemRepository.save(item);
+	}
+
+	private void deleteOldItemImageVersions(Long restaurantId, Long menuItemId, int keepVersion) {
+		Path dir = Paths.get(basePath, String.valueOf(restaurantId), "menu_items");
+		if (!Files.exists(dir)) return;
+		String prefix = "item_" + menuItemId + "_v";
+		String keepName = prefix + keepVersion + ".webp";
+		try (Stream<Path> files = Files.list(dir)) {
+			files.filter(p -> p.getFileName().toString().startsWith(prefix))
+					.filter(p -> !p.getFileName().toString().equals(keepName))
+					.forEach(p -> {
+						try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+					});
+		} catch (IOException e) {
+			log.warn("Old item image version cleanup failed for menuItem {}", menuItemId, e);
+		}
 	}
 
 	private AssetUploadResult uploadAsset(Long restaurantId, MultipartFile file, String kind,

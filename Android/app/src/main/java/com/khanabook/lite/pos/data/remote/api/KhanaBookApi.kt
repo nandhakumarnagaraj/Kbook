@@ -21,6 +21,39 @@ data class LogoUploadResponse(
         val logoVersion: Int = 0
 )
 
+data class MenuItemImageUploadResponse(
+        val menuItemId: Long,
+        val imageUrl: String,
+        val imageVersion: Int = 0
+)
+
+data class ExtractTextRequest(
+        val rawText: String
+)
+
+data class ExtractedVariantDto(
+        val name: String,
+        val price: Double
+)
+
+data class ExtractedItemDto(
+        val name: String,
+        val foodType: String = "veg",
+        val basePrice: Double = 0.0,
+        val description: String? = null,
+        val variants: List<ExtractedVariantDto> = emptyList()
+)
+
+data class ExtractedCategoryDto(
+        val name: String,
+        val items: List<ExtractedItemDto> = emptyList()
+)
+
+data class ExtractedMenuDto(
+        val categories: List<ExtractedCategoryDto> = emptyList(),
+        val totalItemsExtracted: Int = 0
+)
+
 interface KhanaBookApi {
 
         // ── Auth ────────────────────────────────────────────────────────────
@@ -102,6 +135,24 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v1/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
+
+        // ── Menu Item Photo & AI Text Extraction ─────────────────────────────
+        @Multipart
+        @POST("api/v1/menus/items/{menuItemId}/image")
+        suspend fun uploadMenuItemImage(
+                @retrofit2.http.Path("menuItemId") menuItemId: Long,
+                @Part file: MultipartBody.Part
+        ): MenuItemImageUploadResponse
+
+        @DELETE("api/v1/menus/items/{menuItemId}/image")
+        suspend fun deleteMenuItemImage(
+                @retrofit2.http.Path("menuItemId") menuItemId: Long
+        ): retrofit2.Response<Unit>
+
+        @POST("api/v1/menus/ai-extract-text")
+        suspend fun extractMenuFromText(
+                @Body request: ExtractTextRequest
+        ): retrofit2.Response<ExtractedMenuDto>
 
         @POST("api/v1/sync/terminal/activate")
         suspend fun activateTerminal(@Body request: TerminalActivationRequest): retrofit2.Response<okhttp3.ResponseBody>

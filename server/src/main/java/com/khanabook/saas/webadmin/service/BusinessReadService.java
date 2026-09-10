@@ -192,6 +192,8 @@ public class BusinessReadService {
                         .available(Boolean.TRUE.equals(item.getIsAvailable()))
                         .stockStatus(item.getStockStatus().name())
                         .variantCount(variantCountByMenuId.getOrDefault(item.getId(), 0L))
+                        .imageUrl(item.getImageUrl())
+                        .imageVersion(item.getImageVersion())
                         .updatedAt(item.getUpdatedAt())
                         .build())
                 .sorted(Comparator.comparing(BusinessMenuListItemResponse::updatedAt, Comparator.nullsLast(Long::compareTo)).reversed())
@@ -491,6 +493,8 @@ public class BusinessReadService {
                 .available(Boolean.TRUE.equals(item.getIsAvailable()))
                 .stockStatus(item.getStockStatus() != null ? item.getStockStatus().name() : "IN_STOCK")
                 .variantCount(variantCount)
+                .imageUrl(item.getImageUrl())
+                .imageVersion(item.getImageVersion())
                 .updatedAt(item.getUpdatedAt())
                 .build();
     }

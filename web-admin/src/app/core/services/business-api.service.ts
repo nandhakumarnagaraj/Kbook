@@ -154,6 +154,33 @@ export class BusinessApiService {
     return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu/${menuItemId}/toggle-availability`, {});
   }
 
+  uploadMenuItemImage(menuItemId: number, file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ menuItemId: number; imageUrl: string; imageVersion: number }>(
+      `${API_BASE_URL}/business/menu/${menuItemId}/image`,
+      form
+    );
+  }
+
+  deleteMenuItemImage(menuItemId: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/business/menu/${menuItemId}/image`);
+  }
+
+  extractMenuFromText(rawText: string) {
+    return this.http.post<{ categories: any[]; totalItemsExtracted: number }>(
+      `${API_BASE_URL}/menus/ai-extract-text`,
+      { rawText }
+    );
+  }
+
+  bulkImportExtractedMenu(payload: any) {
+    return this.http.post<{ categoriesCreated: number; itemsCreated: number; variantsCreated: number }>(
+      `${API_BASE_URL}/menus/ai-bulk-import`,
+      payload
+    );
+  }
+
   // Terminal
   reactivateTerminal(terminalId: number) {
     return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/reactivate`, {});

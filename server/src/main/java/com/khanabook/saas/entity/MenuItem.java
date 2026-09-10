@@ -42,6 +42,12 @@ public class MenuItem extends BaseSyncEntity {
 	@Column(name = "barcode")
 	private String barcode;
 
+	@Column(name = "image_url")
+	private String imageUrl;
+
+	@Column(name = "image_version", nullable = false)
+	private Integer imageVersion = 0;
+
 	@Column(name = "is_available", nullable = false)
 	private Boolean isAvailable = true;
 

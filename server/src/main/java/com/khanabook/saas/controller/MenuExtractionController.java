@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.sync.validation.SyncPushGuard;
 import org.springframework.beans.factory.annotation.Value;
 
 @RestController
@@ -41,6 +42,12 @@ public class MenuExtractionController {
 
     @Autowired
     private MenuExtractionWorker menuExtractionWorker;
+
+    @Autowired
+    private com.khanabook.saas.service.AiMenuExtractionService aiMenuExtractionService;
+
+    @Autowired
+    private com.khanabook.saas.service.AssetStorageService assetStorageService;
 
     @Value("${storage.upload-dir}")
     private String uploadDir;
@@ -168,5 +175,58 @@ public class MenuExtractionController {
                     job.getErrorMessage()
             );
         }
+    }
+
+    public record ExtractTextRequest(String rawText) {}
+
+    @Operation(summary = "Extract structured menu from text", description = "Parses raw menu text (from OCR or manual paste) into structured categories, items, prices, and variants using text-only AI.")
+    @PostMapping("/ai-extract-text")
+    public ResponseEntity<?> extractMenuFromText(@RequestBody ExtractTextRequest request) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        if (request.rawText() == null || request.rawText().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "rawText must not be empty"));
+        }
+        return ResponseEntity.ok(aiMenuExtractionService.extractMenuFromText(request.rawText()));
+    }
+
+    @Operation(summary = "Bulk import extracted menu", description = "Transactionally persists verified categories, items, and variants.")
+    @PostMapping("/ai-bulk-import")
+    public ResponseEntity<?> bulkImportMenu(@RequestBody com.khanabook.saas.service.AiMenuExtractionService.ExtractedMenuResponse payload) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        SyncPushGuard.requireMasterDataWriter();
+        if (payload.categories() == null || payload.categories().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No categories provided to import"));
+        }
+        return ResponseEntity.ok(aiMenuExtractionService.bulkImportMenu(restaurantId, payload));
+    }
+
+    @Operation(summary = "Upload item food photo", description = "Uploads and compresses dish image to WebP on CDN, updating the menu item.")
+    @PostMapping(value = "/items/{menuItemId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadMenuItemImage(
+            @PathVariable Long menuItemId, @RequestParam("file") MultipartFile file) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        SyncPushGuard.requireMasterDataWriter();
+        return ResponseEntity.ok(assetStorageService.uploadMenuItemImage(restaurantId, menuItemId, file));
+    }
+
+    @Operation(summary = "Delete item food photo", description = "Deletes the dish image from CDN and clears imageUrl on the menu item.")
+    @DeleteMapping("/items/{menuItemId}/image")
+    public ResponseEntity<?> deleteMenuItemImage(@PathVariable Long menuItemId) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        SyncPushGuard.requireMasterDataWriter();
+        assetStorageService.deleteMenuItemImage(restaurantId, menuItemId);
+        return ResponseEntity.ok().build();
     }
 }

@@ -16,6 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.khanabook.saas.service.AssetStorageService;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequestMapping("/business")
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class BusinessAdminController {
 
     private final BusinessReadService businessReadService;
     private final BusinessWriteService businessWriteService;
+    private final AssetStorageService assetStorageService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<BusinessDashboardResponse> getDashboard(
@@ -148,6 +153,20 @@ public class BusinessAdminController {
     public ResponseEntity<BusinessMenuListItemResponse> toggleMenuItemAvailability(@PathVariable Long menuItemId) {
         var item = businessWriteService.toggleMenuItemAvailability(requireTenant(), menuItemId);
         return ResponseEntity.ok(businessReadService.mapMenuItemToResponse(item));
+    }
+
+    @PostMapping(value = "/menu/{menuItemId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<AssetStorageService.AssetUploadResult> uploadMenuItemImage(
+            @PathVariable Long menuItemId, @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(assetStorageService.uploadMenuItemImage(requireTenant(), menuItemId, file));
+    }
+
+    @DeleteMapping("/menu/{menuItemId}/image")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> deleteMenuItemImage(@PathVariable Long menuItemId) {
+        assetStorageService.deleteMenuItemImage(requireTenant(), menuItemId);
+        return ResponseEntity.ok().build();
     }
 
     // ─── Terminal Write Endpoints ────────────────────────────────────────────────

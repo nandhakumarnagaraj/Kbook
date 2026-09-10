@@ -143,6 +143,8 @@ export interface BusinessMenuItem {
   stockStatus: string;
   variantCount: number;
   updatedAt: number | null;
+  imageUrl?: string | null;
+  imageVersion?: number;
 }
 
 export interface BusinessCategory {
@@ -265,6 +267,7 @@ export interface CreateMenuItemRequest {
   foodType: 'veg' | 'non-veg';
   basePrice: number;
   description?: string;
+  imageUrl?: string | null;
 }
 
 export interface UpdateMenuItemRequest {
@@ -273,6 +276,7 @@ export interface UpdateMenuItemRequest {
   foodType: 'veg' | 'non-veg';
   basePrice: number;
   description?: string;
+  imageUrl?: string | null;
 }
 
 export interface OrderDetailResponse {

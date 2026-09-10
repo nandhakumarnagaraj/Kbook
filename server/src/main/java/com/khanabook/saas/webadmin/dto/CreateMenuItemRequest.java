@@ -13,5 +13,11 @@ public record CreateMenuItemRequest(
         @NotBlank(message = "Base price is required")
         String basePrice,
 
-        String description
-) {}
+        String description,
+
+        String imageUrl
+) {
+    public CreateMenuItemRequest(String name, Long categoryId, String foodType, String basePrice, String description) {
+        this(name, categoryId, foodType, basePrice, description, null);
+    }
+}

@@ -16,6 +16,8 @@ public record BusinessMenuListItemResponse(
         boolean available,
         String stockStatus,
         long variantCount,
+        String imageUrl,
+        Integer imageVersion,
         Long updatedAt
 ) {
 }

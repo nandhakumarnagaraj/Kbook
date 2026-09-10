@@ -175,6 +175,9 @@ public class BusinessWriteService {
         item.setFoodType(req.foodType());
         item.setBasePrice(new java.math.BigDecimal(req.basePrice()));
         item.setDescription(req.description());
+        if (req.imageUrl() != null && !req.imageUrl().isBlank()) {
+            item.setImageUrl(req.imageUrl().trim());
+        }
         item.setIsAvailable(true);
         item.setRestaurantId(restaurantId);
         item.setDeviceId("web-admin");
@@ -201,6 +204,9 @@ public class BusinessWriteService {
         item.setFoodType(req.foodType());
         item.setBasePrice(new java.math.BigDecimal(req.basePrice()));
         item.setDescription(req.description());
+        if (req.imageUrl() != null) {
+            item.setImageUrl(req.imageUrl().trim().isEmpty() ? null : req.imageUrl().trim());
+        }
         touch(item, System.currentTimeMillis());
 
         return menuItemRepository.save(item);

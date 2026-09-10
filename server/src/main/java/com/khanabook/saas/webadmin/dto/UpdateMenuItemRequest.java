@@ -11,5 +11,11 @@ public record UpdateMenuItemRequest(
 
         String basePrice,
 
-        String description
-) {}
+        String description,
+
+        String imageUrl
+) {
+    public UpdateMenuItemRequest(String name, Long categoryId, String foodType, String basePrice, String description) {
+        this(name, categoryId, foodType, basePrice, description, null);
+    }
+}

@@ -39,6 +39,8 @@ data class MenuItemEntity(
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "barcode", defaultValue = "NULL")
     val barcode: String? = null,
+    @SerializedName("imageUrl") @ColumnInfo(name = "image_url") val imageUrl: String? = null,
+    @SerializedName("imageVersion") @ColumnInfo(name = "image_version", defaultValue = "0") val imageVersion: Int = 0,
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

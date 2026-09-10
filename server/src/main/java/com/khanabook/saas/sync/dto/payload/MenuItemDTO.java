@@ -26,6 +26,7 @@ public class MenuItemDTO {
 
     private java.math.BigDecimal basePrice;
     private String imageUrl;
+    private Integer imageVersion;
     private Boolean isVeg;
     private Boolean isAvailable;
     private String description;

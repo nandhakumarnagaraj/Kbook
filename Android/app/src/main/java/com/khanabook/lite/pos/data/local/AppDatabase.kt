@@ -29,7 +29,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         PermissionRequestEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 72,
+        version = 73,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1067,6 +1067,17 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     )
                 }
                 android.util.Log.i("AppDatabase", "MIGRATION_70_71 complete: menu + profile changed_fields")
+            }
+        }
+        val MIGRATION_72_73 = object : Migration(72, 73) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("menu_items", "image_url")) {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `image_url` TEXT")
+                }
+                if (!db.hasColumn("menu_items", "image_version")) {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `image_version` INTEGER NOT NULL DEFAULT 0")
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_72_73 complete: added image_url and image_version to menu_items")
             }
         }
 

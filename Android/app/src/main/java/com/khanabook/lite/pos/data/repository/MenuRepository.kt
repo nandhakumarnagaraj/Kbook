@@ -64,6 +64,8 @@ class MenuRepository(
             if (current.lowStockThreshold != newItem.lowStockThreshold) add("lowStockThreshold")
             if (current.foodType != newItem.foodType) add("foodType")
             if (current.barcode != newItem.barcode) add("barcode")
+            if (current.imageUrl != newItem.imageUrl) add("imageUrl")
+            if (current.imageVersion != newItem.imageVersion) add("imageVersion")
         }.joinToString(",").ifEmpty {
             null
         }
