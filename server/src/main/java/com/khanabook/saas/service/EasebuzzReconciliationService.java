@@ -2,6 +2,7 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.repository.BillRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ public class EasebuzzReconciliationService {
     private final EasebuzzApiClient easebuzzApi;
     private final BillRepository billRepo;
     private final EasebuzzProperties props;
+    private final SubMerchantService subMerchantService;
 
     /**
      * Runs daily at 6:00 AM IST. Reconciles yesterday's settlements.
@@ -54,11 +56,21 @@ public class EasebuzzReconciliationService {
             int orphans = (int) result.getOrDefault("orphanTransactions", 0);
             int missingWebhooks = (int) result.getOrDefault("missingWebhooks", 0);
 
-            if (mismatches > 0 || orphans > 0 || missingWebhooks > 0) {
-                log.warn("RECONCILIATION ALERT date={}: matched={}, mismatches={}, orphanTxns={}, missingWebhooks={}",
-                        yesterday, matched, mismatches, orphans, missingWebhooks);
+            Map<String, Object> splitResult = reconcileSplits(yesterday);
+            int splitMatched = (int) splitResult.getOrDefault("splitMatched", 0);
+            int splitMismatches = (int) splitResult.getOrDefault("splitMismatches", 0);
+            int splitMissingSettlements = (int) splitResult.getOrDefault("splitMissingSettlements", 0);
+            int splitOrphans = (int) splitResult.getOrDefault("splitOrphanTransactions", 0);
+
+            if (mismatches > 0 || orphans > 0 || missingWebhooks > 0
+                    || splitMismatches > 0 || splitMissingSettlements > 0 || splitOrphans > 0) {
+                log.warn("RECONCILIATION ALERT date={}: matched={}, mismatches={}, orphanTxns={}, missingWebhooks={}, " +
+                        "splitMatched={}, splitMismatches={}, splitMissingSettlements={}, splitOrphanTxns={}",
+                        yesterday, matched, mismatches, orphans, missingWebhooks,
+                        splitMatched, splitMismatches, splitMissingSettlements, splitOrphans);
             } else {
-                log.info("Reconciliation complete date={}: all {} transactions matched", yesterday, matched);
+                log.info("Reconciliation complete date={}: all {} transactions and {} splits matched",
+                        yesterday, matched, splitMatched);
             }
         } catch (Exception e) {
             log.error("Daily reconciliation failed for date={}: {}", yesterday, e.getMessage(), e);
@@ -166,6 +178,206 @@ public class EasebuzzReconciliationService {
             result.put("amountMismatchDetails", amountMismatches.subList(0, Math.min(20, amountMismatches.size())));
         }
         return result;
+    }
+
+    /**
+     * Settlement-level split reconciliation (ERA Q9: 2026-09-09).
+     *
+     * The payment-level pass ({@link #reconcileDate}) only checks that a successful
+     * Easebuzz transaction maps to a matching bill. This pass additionally verifies
+     * the POST-split actually landed and that the restaurant's share matches our
+     * ledger — i.e. bill.total − bill.commission.
+     *
+     * ERA guidance applied:
+     *  - Restaurant payout is `payout_amount`, NOT `amount` (amount is the parent/gross).
+     *  - Restaurants can have their own MDR/GST slab, deducted from their share;
+     *    `peb_service_charge`/`peb_service_tax` appear ONLY on the sub-merchant row.
+     *  - /settlements/v1/retrieve can be filtered by `submerchant_id`; rows carry the
+     *    `label` (sm_<id>) and `submerchant_id` used for our split configuration.
+     *
+     * Flags (non-destructive):
+     *  - splitMismatch: restaurant share at Easebuzz != bill.total − bill.commission.
+     *  - splitMissingSettlement: bill was marked split-settled locally but no sub-merchant
+     *    row exists at Easebuzz for that txnid (post-split lost / manual intervention).
+     *  - splitOrphan: sub-merchant row at Easebuzz referencing a bill we don't know.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> reconcileSplits(String date) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("date", date);
+
+        Map<String, Object> settlementResponse = easebuzzApi.retrieveSettlements(date);
+        if (!toBool(settlementResponse.get("status"))) {
+            String error = String.valueOf(settlementResponse.getOrDefault("error", "Unknown error"));
+            result.put("status", "error");
+            result.put("error", error);
+            return result;
+        }
+
+        List<Map<String, Object>> rows = extractTransactions(settlementResponse);
+        if (rows.isEmpty()) {
+            result.put("status", "success");
+            result.put("totalSettlementRows", 0);
+            result.put("splitMatched", 0);
+            result.put("splitMismatches", 0);
+            result.put("splitMismatchDetails", Collections.emptyList());
+            result.put("splitMissingSettlements", 0);
+            result.put("splitOrphanTransactions", 0);
+            result.put("splitOrphanDetails", Collections.emptyList());
+            return result;
+        }
+
+        // Index bills by gateway txnid for O(1) lookup
+        Map<String, Bill> billByTxn = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            String txnid = str(row.get("txnid"));
+            if (txnid.isBlank()) continue;
+            if (billByTxn.containsKey(txnid)) continue;
+            billRepo.findByGatewayTxnId(txnid).ifPresent(b -> billByTxn.put(txnid, b));
+        }
+
+        int splitMatched = 0;
+        int splitMismatches = 0;
+        List<Map<String, Object>> splitMismatchDetails = new ArrayList<>();
+
+        Set<String> seenSubMerchantTxns = new HashSet<>();
+        List<Map<String, Object>> splitOrphans = new ArrayList<>();
+
+        for (Map<String, Object> row : rows) {
+            String txnid = str(row.get("txnid"));
+            String subMerchantRef = str(row.getOrDefault("submerchant_id", row.get("sub_merchant_id")));
+            String label = str(row.get("label"));
+            boolean isSubMerchantRow = !subMerchantRef.isBlank() || label.toLowerCase().contains("sm_");
+
+            if (!isSubMerchantRow) {
+                continue; // parent/gross row — only restaurant rows carry the split payout
+            }
+
+            if (txnid.isBlank()) continue;
+            seenSubMerchantTxns.add(txnid);
+
+            Bill bill = billByTxn.get(txnid);
+            if (bill == null) {
+                splitOrphans.add(Map.of("txnid", txnid, "submerchantId", subMerchantRef,
+                        "label", label, "payoutAmount", str(row.get("payout_amount"))));
+                log.warn("SPLIT-RECON: Orphan sub-merchant row txnid={} submerchantId={} label={}",
+                        txnid, subMerchantRef, label);
+                continue;
+            }
+
+            // Expected restaurant share = bill.total − KhanaBook commission.
+            BigDecimal expected = expectedRestaurantShare(bill);
+            if (expected == null) {
+                // No commission stored and no rate resolvable — cannot validate
+                continue;
+            }
+
+            BigDecimal payout = parseAmount(row.get("payout_amount"));
+            if (payout == null) {
+                // Fallback: payout_amount missing; derive from amount minus MDR/GST
+                BigDecimal gross = parseAmount(row.get("amount"));
+                BigDecimal charge = parseAmount(row.get("peb_service_charge"));
+                BigDecimal tax = parseAmount(row.get("peb_service_tax"));
+                if (gross != null) {
+                    payout = gross.subtract(nz(charge)).subtract(nz(tax));
+                }
+            }
+
+            if (payout == null) {
+                log.warn("SPLIT-RECON: No payout_amount/amount on sub-merchant row txnid={} label={} — skipping",
+                        txnid, label);
+                continue;
+            }
+
+            if (payout.abs().compareTo(expected.abs()) != 0) {
+                splitMismatches++;
+                splitMismatchDetails.add(Map.of(
+                        "txnid", txnid,
+                        "billId", bill.getId(),
+                        "label", label,
+                        "submerchantId", subMerchantRef,
+                        "expectedRestaurantShare", expected.toPlainString(),
+                        "ebPayoutAmount", payout.toPlainString(),
+                        "pebServiceCharge", str(row.get("peb_service_charge")),
+                        "pebServiceTax", str(row.get("peb_service_tax"))
+                ));
+                log.warn("SPLIT-RECON MISMATCH txnid={} billId={} expectedRestaurantShare={} ebPayoutAmount={}",
+                        txnid, bill.getId(), expected, payout);
+                continue;
+            }
+
+            splitMatched++;
+        }
+
+        // Bills we split locally that have no sub-merchant settlement row at all.
+        int splitMissingSettlements = checkMissingSettlements(date, seenSubMerchantTxns);
+
+        result.put("status", "success");
+        result.put("totalSettlementRows", rows.size());
+        result.put("splitMatched", splitMatched);
+        result.put("splitMismatches", splitMismatches);
+        result.put("splitMismatchDetails", splitMismatchDetails);
+        result.put("splitMissingSettlements", splitMissingSettlements);
+        result.put("splitOrphanTransactions", splitOrphans.size());
+        if (!splitOrphans.isEmpty()) {
+            result.put("splitOrphanDetails", splitOrphans.subList(0, Math.min(20, splitOrphans.size())));
+        }
+        return result;
+    }
+
+    /**
+     * Expected restaurant (sub-merchant) share for a bill: total − KhanaBook commission.
+     * Uses the bill's recorded commissionAmount when a split already succeeded; otherwise
+     * looks up the restaurant's commission rate via the sub-merchant record.
+     */
+    private BigDecimal expectedRestaurantShare(Bill bill) {
+        if (bill.getTotalAmount() == null) return null;
+        if (bill.getCommissionAmount() != null) {
+            return bill.getTotalAmount().subtract(bill.getCommissionAmount());
+        }
+        try {
+            EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(bill.getRestaurantId());
+            BigDecimal rate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
+            BigDecimal commission = bill.getTotalAmount().multiply(rate).divide(new BigDecimal("100"),
+                    2, java.math.RoundingMode.HALF_UP);
+            return bill.getTotalAmount().subtract(commission);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Bills marked split-settled on this date with no sub-merchant settlement row at Easebuzz. */
+    private int checkMissingSettlements(String date, Set<String> ebSubMerchantTxns) {
+        int missing = 0;
+        LocalDate targetDate = LocalDate.parse(date);
+        long dayStart = targetDate.atStartOfDay(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        long dayEnd = targetDate.plusDays(1).atStartOfDay(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+
+        List<Bill> splitSettled = billRepo.findBySettledAtBetween(dayStart, dayEnd);
+        for (Bill bill : splitSettled) {
+            if (bill.getGatewayTxnId() != null && !bill.getGatewayTxnId().isBlank()
+                    && !ebSubMerchantTxns.contains(bill.getGatewayTxnId())) {
+                log.warn("SPLIT-RECON: Bill {} (txnid={}) marked split-settled on {} but no sub-merchant settlement row found",
+                        bill.getId(), bill.getGatewayTxnId(), date);
+                missing++;
+            }
+        }
+        return missing;
+    }
+
+    private BigDecimal nz(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private BigDecimal parseAmount(Object value) {
+        if (value == null) return null;
+        String s = value.toString().trim();
+        if (s.isBlank()) return null;
+        try {
+            return new BigDecimal(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**

@@ -226,4 +226,6 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     // --- Reconciliation ---
     java.util.List<Bill> findByPaymentStatusAndPaidAtBetween(String paymentStatus, Long paidAtStart, Long paidAtEnd);
+
+    java.util.List<Bill> findBySettledAtBetween(Long settledAtStart, Long settledAtEnd);
 }

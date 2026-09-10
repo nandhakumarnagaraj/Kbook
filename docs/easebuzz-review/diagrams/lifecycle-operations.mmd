@@ -1,0 +1,67 @@
+sequenceDiagram
+    autonumber
+    actor Admin as Kbook Admin
+    actor Owner as Restaurant Owner
+    actor POS as Android POS
+    actor Customer
+    participant API as KhanaBook API
+    participant DB as PostgreSQL
+    participant EB as Easebuzz
+    participant KYC as Easebuzz KYC CPV
+    participant SET as Easebuzz Settlement
+    actor Recon as Daily 6AM Job
+
+    Note over Admin,SET: 1) ONBOARDING — one sub-merchant twin per outlet
+    Admin->>API: Create sub-merchant draft (restaurantId)
+    API->>DB: easebuzz_sub_merchant status=DRAFT
+    API->>EB: /merchant/v1/submerchant/create (email|phone, MDR slabs)
+    EB-->>API: submerchant_id
+    API->>DB: status=PENDING_KYC, subMerchantId, slabs snapshot
+    Admin->>API: Generate KYC access key
+    API->>EB: generate_kyc_access_key
+    EB-->>API: hosted KYC URL
+    Owner->>KYC: Upload PAN/bank/GST/FSSAI docs
+    EB-->>API: OTP auto-sent -> verified (OTP_SENT->VERIFIED)
+    EB-->>API: MERCHANT_KYC_APPROVAL webhook (kyc_status=true)
+    API->>DB: status=ACTIVE, save virtual account (+IFSC)
+    Admin->>API: Create split label
+    API->>EB: /split/v1/create label=sm_{id} (bank, IFSC)
+    EB-->>API: label created (unique per parent, multi-use), payout_percentage ignored
+    API->>DB: splitLabel, splitLabelVersion=0, bank snapshot
+
+    Note over POS,SET: 2) PAYMENT + POST-SPLIT
+    POS->>API: collect payment for billId
+    API->>EB: /payment/initiateLink with sub_merchant_id
+    EB-->>API: access_token/txnid/payment URL
+    Customer->>EB: Pay via EasyCollect link
+    EB-->>API: Payment webhook (verify reverse hash)
+    API->>DB: Bill paid, gatewayTxnId, webhook event
+    API->>EB: /post-split/v1/create (merchant_request_id idempotent, config=restaurant share only)
+    EB-->>API: Split accepted (or SCEO2 invalid label -> whole call fails)
+    API->>DB: commissionAmount, settledAt on success
+
+    Note over SET,Recon: 3) SETTLEMENT (T+1) + RECONCILIATION
+    SET-->>API: Payout webhook per cycle (payout_id, UTR, txnid, submerchant_id, label, peb_transaction_id)
+    SET-->>Owner: restaurant share -> restaurant bank (payout_amount = total - commission - MDR/GST)
+    SET-->>Admin: commission stays at parent (parent pays its own MDR on commission)
+    Recon->>API: 06:00 IST runDailyReconciliation
+    API->>EB: /settlements/v1/retrieve (date range)
+    EB-->>API: rows (payment pass: txnid+amount; split pass: payout_amount vs total-commission)
+    API->>Recon: RECONCILIATION ALERT on mismatch/missing/orphan (admin /reconciliation/splits)
+
+    Note over API,SET: 4) MONEY-BACK PATHS — all debit the PARENT, never the twin
+    Admin->>API: Refund (merchant_refund_id idempotent)
+    API->>EB: /refund/v1/initiate (parent)
+    EB-->>API: REFUND_INITIATED / REFUND_STATUS_UPDATE webhooks (ARN on refunded)
+    EB-->>Admin: Refund deducted from PARENT settlement (no auto split-reversal)
+    EB-->>API: CASE_STATUS_UPDATE webhook (chargeback) -> parent only, merchant_txn+udf1
+    EB-->>Admin: dispute won -> auto-credit parent's next settlement
+    Admin->>API: Clawback: NO reversal API -> manual adjust of future payout
+    API->>DB: manual clawback ledger entry visible in restaurant settlement history
+
+    Note over Admin,SET: 5) SUSPENSION -> CLOSURE
+    Admin->>API: Update Sub-Merchant (suspend)
+    EB-->>SET: blocks new txns; queued splits still complete
+    Admin->>API: drain pending settlements, then request deactivation
+    EB-->>API: twin deactivated (no public delete; VA frozen, label inactive)
+    EB-->>Admin: post-closure refunds/chargebacks still hit PARENT

@@ -216,4 +216,10 @@ public class AdminSubMerchantController {
     public ResponseEntity<Map<String, Object>> reconcile(@RequestParam String date) {
         return ResponseEntity.ok(reconciliationService.reconcileDate(date));
     }
+
+    /** Settlement-level split reconciliation: verifies restaurant payout == bill.total − commission */
+    @GetMapping("/reconciliation/splits")
+    public ResponseEntity<Map<String, Object>> reconcileSplits(@RequestParam String date) {
+        return ResponseEntity.ok(reconciliationService.reconcileSplits(date));
+    }
 }
