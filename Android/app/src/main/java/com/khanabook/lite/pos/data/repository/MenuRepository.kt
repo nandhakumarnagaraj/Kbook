@@ -49,6 +49,16 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
+    /**
+     * Updates photo URL and version directly from a successful server upload/delete.
+     * Marks the record as is_synced = true without triggering a background push,
+     * preventing clock-skew sync conflicts.
+     */
+    suspend fun updateItemPhotoMetadata(itemId: Long, imageUrl: String?, imageVersion: Int) {
+        val restaurantId = sessionManager.getRestaurantId()
+        menuDao.updateImageMetadataLocally(itemId, restaurantId, imageUrl, imageVersion)
+    }
+
     /** Detect changed fields by diffing against the persisted row so server
      *  field-level merge only overwrites what was actually edited. */
     private suspend fun computeChangedFields(newItem: MenuItemEntity): String? {

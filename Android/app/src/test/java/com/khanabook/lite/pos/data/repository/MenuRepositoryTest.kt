@@ -92,4 +92,18 @@ class MenuRepositoryTest {
 
     // NOTE: toggleItemAvailability() delegates to updateItem() for the actual write,
     // so the revision-stamping guarantee above transitively covers the toggle path.
+
+    @Test
+    fun `updateItemPhotoMetadata updates dao locally without queuing sync`() = runTest {
+        coEvery { menuDao.updateImageMetadataLocally(any(), any(), any(), any()) } just Runs
+
+        repository.updateItemPhotoMetadata(1L, "https://cdn.example.com/photo.jpg", 3)
+
+        io.mockk.coVerify(exactly = 1) {
+            menuDao.updateImageMetadataLocally(1L, 0L, "https://cdn.example.com/photo.jpg", 3)
+        }
+        io.mockk.verify(exactly = 0) {
+            workManager.enqueueUniqueWork(any(), any(), any<androidx.work.OneTimeWorkRequest>())
+        }
+    }
 }

@@ -62,6 +62,9 @@ interface MenuDao {
     @Query("UPDATE menu_items SET low_stock_threshold = :threshold, changed_fields = 'lowStockThreshold' WHERE id = :id")
     suspend fun updateLowStockThreshold(id: Long, threshold: Double)
 
+    @Query("UPDATE menu_items SET image_url = :imageUrl, image_version = :imageVersion, is_synced = 1 WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun updateImageMetadataLocally(id: Long, restaurantId: Long, imageUrl: String?, imageVersion: Int)
+
     @Query(
         "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE id = :id AND restaurant_id = :restaurantId"
     )

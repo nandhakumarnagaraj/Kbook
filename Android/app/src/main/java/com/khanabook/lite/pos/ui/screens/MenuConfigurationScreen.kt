@@ -233,7 +233,14 @@ fun MenuConfigurationScreen(
                     },
                     onUpdateItem = { viewModel.updateItem(it) },
                     onUpdateItemPhoto = { item, photoUri, removePhoto ->
-                        viewModel.updateItem(item)
+                        val existing = menuItems.find { it.menuItem.id == item.id }?.menuItem
+                        val hasFieldChanges = existing == null ||
+                            existing.name != item.name ||
+                            existing.basePrice != item.basePrice ||
+                            existing.foodType != item.foodType
+                        if (hasFieldChanges) {
+                            viewModel.updateItem(item)
+                        }
                         if (photoUri != null) {
                             viewModel.uploadItemPhoto(context, item.id, photoUri)
                         } else if (removePhoto) {

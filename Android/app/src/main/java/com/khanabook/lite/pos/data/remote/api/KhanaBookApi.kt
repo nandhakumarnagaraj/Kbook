@@ -23,8 +23,8 @@ data class LogoUploadResponse(
 
 data class MenuItemImageUploadResponse(
         val menuItemId: Long,
-        val imageUrl: String,
-        val imageVersion: Int = 0
+        @com.google.gson.annotations.SerializedName("url") val imageUrl: String,
+        @com.google.gson.annotations.SerializedName("version") val imageVersion: Int = 0
 )
 
 data class ExtractTextRequest(

@@ -127,6 +127,8 @@ class MenuViewModel @Inject constructor(
 
     val disabledItemsCount = MutableStateFlow(0)
     val menuAddOnsCount = MutableStateFlow(0)
+    private val _isPhotoUploading = MutableStateFlow(false)
+    val isPhotoUploading: StateFlow<Boolean> = _isPhotoUploading.asStateFlow()
 
     fun selectCategory(id: Long?) {
         selectedCategoryId.value = id
@@ -269,30 +271,24 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Uploading dish photo...") }
+            _isPhotoUploading.value = true
             try {
+                val currentItem = menuRepository.getItemById(menuItemId)
+                val targetId = currentItem?.serverId ?: menuItemId
                 val part = withContext(Dispatchers.IO) {
                     com.khanabook.lite.pos.domain.util.MultipartUtils.imageUriToPart(context.applicationContext, uri)
                 }
-                val response = khanaBookApi.uploadMenuItemImage(menuItemId, part)
-                val currentItem = menuRepository.getItemById(menuItemId)
-                if (currentItem != null) {
-                    val updated = currentItem.copy(
-                        imageUrl = response.imageUrl,
-                        imageVersion = response.imageVersion
-                    )
-                    menuRepository.updateItem(updated, changedFields = "imageUrl,imageVersion")
-                }
-                _ocrImportUiState.update { it.copy(successMessage = "Dish photo updated") }
+                val response = khanaBookApi.uploadMenuItemImage(targetId, part)
+                menuRepository.updateItemPhotoMetadata(menuItemId, response.imageUrl, response.imageVersion)
+                com.khanabook.lite.pos.ui.designsystem.KhanaToast.show("Dish photo updated", com.khanabook.lite.pos.ui.designsystem.ToastKind.Success)
                 onUploaded(response.imageUrl)
             } catch (e: IllegalArgumentException) {
-                _ocrImportUiState.update { it.copy(error = e.message) }
+                com.khanabook.lite.pos.ui.designsystem.KhanaToast.show(e.message ?: "Invalid photo", com.khanabook.lite.pos.ui.designsystem.ToastKind.Error)
             } catch (e: Exception) {
-                _ocrImportUiState.update {
-                    it.copy(error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again."))
-                }
+                val msg = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again.")
+                com.khanabook.lite.pos.ui.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.ui.designsystem.ToastKind.Error)
             } finally {
-                _ocrImportUiState.update { it.copy(isProcessing = false) }
+                _isPhotoUploading.value = false
             }
         }
     }
@@ -306,25 +302,20 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Removing dish photo...") }
+            _isPhotoUploading.value = true
             try {
-                khanaBookApi.deleteMenuItemImage(menuItemId)
                 val currentItem = menuRepository.getItemById(menuItemId)
-                if (currentItem != null) {
-                    val updated = currentItem.copy(
-                        imageUrl = null,
-                        imageVersion = (currentItem.imageVersion ?: 0) + 1
-                    )
-                    menuRepository.updateItem(updated, changedFields = "imageUrl,imageVersion")
-                }
-                _ocrImportUiState.update { it.copy(successMessage = "Dish photo removed") }
+                val targetId = currentItem?.serverId ?: menuItemId
+                khanaBookApi.deleteMenuItemImage(targetId)
+                val nextVersion = (currentItem?.imageVersion ?: 0) + 1
+                menuRepository.updateItemPhotoMetadata(menuItemId, null, nextVersion)
+                com.khanabook.lite.pos.ui.designsystem.KhanaToast.show("Dish photo removed", com.khanabook.lite.pos.ui.designsystem.ToastKind.Success)
                 onDeleted()
             } catch (e: Exception) {
-                _ocrImportUiState.update {
-                    it.copy(error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Failed to remove photo."))
-                }
+                val msg = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Failed to remove photo.")
+                com.khanabook.lite.pos.ui.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.ui.designsystem.ToastKind.Error)
             } finally {
-                _ocrImportUiState.update { it.copy(isProcessing = false) }
+                _isPhotoUploading.value = false
             }
         }
     }
