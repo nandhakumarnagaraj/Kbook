@@ -14,9 +14,13 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -192,7 +196,7 @@ class MainActivity : FragmentActivity() {
             val startTime = System.currentTimeMillis()
             val destination = computeStartupDestination()
             val elapsed = System.currentTimeMillis() - startTime
-            val minDisplayMs = 800L
+            val minDisplayMs = 1800L
             if (elapsed < minDisplayMs) {
                 kotlinx.coroutines.delay(minDisplayMs - elapsed)
             }
@@ -329,28 +333,40 @@ class MainActivity : FragmentActivity() {
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                val startDestination by startupDestination.collectAsStateWithLifecycle()
-                // Paytm-style: show branded content while computing destination,
-                // then instantly swap to NavGraph. No delay, no nav route for splash.
-                if (startDestination == null) {
-                    // Full branded splash as first Compose frame — visible while
-                    // auth/routing decision runs (typically <500ms)
-                    BrandedStartFrame()
-                } else {
-                    AppNavGraph(
-                        navController = navController,
-                        authViewModel = authViewModel,
-                        menuViewModel = menuViewModel,
-                        sessionManager = sessionManager,
-                        context = context,
-                        authenticatedStartDestination = ::authenticatedStartDestination,
-                        startDestination = startDestination!!
+                    val startDestination by startupDestination.collectAsStateWithLifecycle()
+
+                    // App navigation mounts beneath splash when ready
+                    if (startDestination != null) {
+                        AppNavGraph(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            menuViewModel = menuViewModel,
+                            sessionManager = sessionManager,
+                            context = context,
+                            authenticatedStartDestination = ::authenticatedStartDestination,
+                            startDestination = startDestination!!
+                        )
+                    }
+
+                    // Seamless branded splash overlay: stays rock-solid while routing,
+                    // then fades out smoothly over 200ms into the main app (no hard cuts, no flicker)
+                    AnimatedVisibility(
+                        visible = startDestination == null,
+                        enter = EnterTransition.None,
+                        exit = fadeOut(
+                            animationSpec = tween(
+                                durationMillis = 200,
+                                easing = LinearOutSlowInEasing
+                            )
+                        )
+                    ) {
+                        BrandedStartFrame()
+                    }
+
+                    KhanaBookSnackbarHost(
+                        hostState = KhanaToast.host,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
-                }
-                KhanaBookSnackbarHost(
-                    hostState = KhanaToast.host,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
                 } // end Box
             }
         }

@@ -33,7 +33,6 @@ import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.viewmodel.NotificationViewModel
-import com.khanabook.lite.pos.ui.components.PrintSpoolerStatusBadge
 import com.khanabook.lite.pos.ui.designsystem.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -395,13 +394,6 @@ fun HomeScreen(
                         }
                     }
 
-                    if (stats.kdsPendingCount > 0) {
-                        PrintSpoolerStatusBadge(
-                            pendingCount = stats.kdsPendingCount,
-                            onRetryAll = { viewModel.executeReprintPendingKds() },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
 
                     val primaryActionLabel = if (orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
                         "Create New Order"

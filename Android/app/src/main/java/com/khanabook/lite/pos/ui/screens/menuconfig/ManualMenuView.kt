@@ -31,7 +31,8 @@ private data class PendingManualItemOverwrite(
     val name: String,
     val price: Double,
     val foodType: String,
-    val variants: List<Pair<String, Double>>
+    val variants: List<Pair<String, Double>>,
+    val photoUri: android.net.Uri? = null
 )
 
 internal data class EditableVariantDraft(
@@ -57,7 +58,9 @@ fun ManualMenuView(
     onToggleAvailability: (Long, Boolean) -> Unit,
     onAddVariant: (Long, String, Double) -> Unit,
     onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
-    onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit
+    onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
+    onAddItemWithPhoto: ((String, Double, String, List<Pair<String, Double>>, android.net.Uri?) -> Unit)? = null,
+    onUpdateItemPhoto: ((MenuItemEntity, android.net.Uri?, Boolean) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -68,16 +71,19 @@ fun ManualMenuView(
     var pendingOverwrite by remember { mutableStateOf<PendingManualItemOverwrite?>(null) }
     val visibleMenuItems = menuItems
 
-    val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>) -> Unit =
-        { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants ->
-            onUpdateItem(
-                existingItem.menuItem.copy(
-                    name = updatedName.trim(),
-                    basePrice = updatedPrice.toString(),
-                    foodType = updatedFoodType,
-                    updatedAt = System.currentTimeMillis()
-                )
+    val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>, android.net.Uri?) -> Unit =
+        { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants, photoUri ->
+            val updatedEntity = existingItem.menuItem.copy(
+                name = updatedName.trim(),
+                basePrice = updatedPrice.toString(),
+                foodType = updatedFoodType,
+                updatedAt = System.currentTimeMillis()
             )
+            if (onUpdateItemPhoto != null) {
+                onUpdateItemPhoto(updatedEntity, photoUri, false)
+            } else {
+                onUpdateItem(updatedEntity)
+            }
             existingItem.variants.forEach { onDeleteVariant(it) }
             updatedVariants.forEach { (variantName, variantPrice) ->
                 onAddVariant(existingItem.menuItem.id, variantName, variantPrice)
@@ -297,7 +303,8 @@ fun ManualMenuView(
                         pending.name,
                         pending.price,
                         pending.foodType,
-                        pending.variants
+                        pending.variants,
+                        pending.photoUri
                     )
                     pendingOverwrite = null
                 }
@@ -338,7 +345,7 @@ fun ManualMenuView(
         ItemEditDialog(
             title = "Add New Item",
             onDismiss = { showAddItemDialog = false },
-            onConfirm = { name, price, type, draftVariants ->
+            onConfirmWithPhoto = { name, price, type, draftVariants, photoUri, _ ->
                 val normalizedName = normalizeMenuItemName(name)
                 val existing = visibleMenuItems.firstOrNull {
                     normalizeMenuItemName(it.menuItem.name) == normalizedName
@@ -349,10 +356,15 @@ fun ManualMenuView(
                         name = name.trim(),
                         price = price,
                         foodType = type,
-                        variants = draftVariants
+                        variants = draftVariants,
+                        photoUri = photoUri
                     )
                 } else {
-                    onAddItem(name.trim(), price, type, draftVariants)
+                    if (onAddItemWithPhoto != null) {
+                        onAddItemWithPhoto(name.trim(), price, type, draftVariants, photoUri)
+                    } else {
+                        onAddItem(name.trim(), price, type, draftVariants)
+                    }
                 }
                 showAddItemDialog = false
             }
@@ -365,10 +377,25 @@ fun ManualMenuView(
             initialName = itemWithVariants.menuItem.name,
             initialPrice = itemWithVariants.menuItem.basePrice.toDoubleOrNull() ?: 0.0,
             initialType = itemWithVariants.menuItem.foodType,
+            initialImageUrl = itemWithVariants.menuItem.imageUrl,
             variants = itemWithVariants.variants,
             onDismiss = { showEditItemDialog = null },
-            onConfirm = { name, price, type, updatedVariants ->
-                applyItemDraftToExisting(itemWithVariants, name, price, type, updatedVariants)
+            onConfirmWithPhoto = { name, price, type, updatedVariants, photoUri, removePhoto ->
+                val updatedEntity = itemWithVariants.menuItem.copy(
+                    name = name.trim(),
+                    basePrice = price.toString(),
+                    foodType = type,
+                    updatedAt = System.currentTimeMillis()
+                )
+                if (onUpdateItemPhoto != null) {
+                    onUpdateItemPhoto(updatedEntity, photoUri, removePhoto)
+                } else {
+                    onUpdateItem(updatedEntity)
+                }
+                itemWithVariants.variants.forEach { onDeleteVariant(it) }
+                updatedVariants.forEach { (variantName, variantPrice) ->
+                    onAddVariant(itemWithVariants.menuItem.id, variantName, variantPrice)
+                }
                 showEditItemDialog = null
             }
         )
@@ -411,11 +438,11 @@ fun MenuItemRow(
             modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Circle,
-                contentDescription = null,
-                tint = if (item.foodType == "veg") VegGreen else NonVegRed,
-                modifier = Modifier.size(12.dp)
+            MenuItemThumbnail(
+                imageUrl = item.imageUrl,
+                imageVersion = item.imageVersion,
+                foodType = item.foodType,
+                size = 40.dp
             )
             Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {

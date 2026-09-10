@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     System splash icon (API 31+).
-    Uses the logo mark only (no text) — text is handled by BrandedStartFrame.
-    Sized to fit within the 160dp safe circle of the 240dp icon area.
-    The system applies circular masking: content outside the inner 2/3 is clipped.
+    Calibrated to 150dp x 150dp (1:1 square) perfectly centered inside the 160dp circular safe area.
+    Matches the Compose BrandedStartFrame logo dimensions pixel-for-pixel with zero clipping and zero jump.
 -->
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/splash_logo"
-    android:insetLeft="20%"
-    android:insetTop="20%"
-    android:insetRight="20%"
-    android:insetBottom="20%" />
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="150dp"
+        android:height="150dp"
+        android:gravity="center"
+        android:drawable="@drawable/splash_logo" />
+</layer-list>

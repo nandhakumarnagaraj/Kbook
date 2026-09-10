@@ -308,7 +308,12 @@ fun MenuSelectionStep(
                                     modifier = Modifier.padding(spacing.smallMedium),
                                     verticalAlignment = Alignment.CenterVertically
                             ) {
-                                FoodTypeIcon(item.foodType)
+                                MenuItemThumbnail(
+                                    imageUrl = item.imageUrl,
+                                    imageVersion = item.imageVersion,
+                                    foodType = item.foodType,
+                                    size = 44.dp
+                                )
                                 Spacer(modifier = Modifier.width(spacing.smallMedium))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -337,7 +342,12 @@ fun MenuSelectionStep(
                         } else {
                             Column(modifier = Modifier.fillMaxWidth().padding(spacing.smallMedium)) {
                                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    FoodTypeIcon(item.foodType)
+                                    MenuItemThumbnail(
+                                        imageUrl = item.imageUrl,
+                                        imageVersion = item.imageVersion,
+                                        foodType = item.foodType,
+                                        size = 44.dp
+                                    )
                                     Spacer(modifier = Modifier.width(spacing.smallMedium))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(

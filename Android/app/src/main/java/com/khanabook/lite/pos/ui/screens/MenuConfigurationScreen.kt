@@ -222,7 +222,24 @@ fun MenuConfigurationScreen(
                             }
                         }
                     },
+                    onAddItemWithPhoto = { name, price, type, variants, photoUri ->
+                        selectedCategoryId?.let {
+                            if (variants.isEmpty()) {
+                                viewModel.addItem(it, name, price, type, photoUri = photoUri, context = context)
+                            } else {
+                                viewModel.addItemWithVariants(it, name, price, type, variants, photoUri = photoUri, context = context)
+                            }
+                        }
+                    },
                     onUpdateItem = { viewModel.updateItem(it) },
+                    onUpdateItemPhoto = { item, photoUri, removePhoto ->
+                        viewModel.updateItem(item)
+                        if (photoUri != null) {
+                            viewModel.uploadItemPhoto(context, item.id, photoUri)
+                        } else if (removePhoto) {
+                            viewModel.deleteItemPhoto(item.id)
+                        }
+                    },
                     onToggleAvailability = { id, available -> viewModel.toggleItem(id, available) },
                     onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
                     onUpdateVariant = { viewModel.updateVariant(it) },

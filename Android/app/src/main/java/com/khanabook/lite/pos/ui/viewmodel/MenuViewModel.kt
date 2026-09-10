@@ -16,6 +16,7 @@ import com.khanabook.lite.pos.data.repository.CategoryRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import androidx.room.withTransaction
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -179,13 +180,21 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun addItem(categoryId: Long, name: String, price: Double, foodType: String, description: String? = null) {
+    fun addItem(
+        categoryId: Long,
+        name: String,
+        price: Double,
+        foodType: String,
+        description: String? = null,
+        photoUri: Uri? = null,
+        context: Context? = null
+    ) {
         if (!canAddItem()) {
             blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
-            menuRepository.insertItem(
+            val id = menuRepository.insertItem(
                 MenuItemEntity(
                     categoryId = categoryId,
                     name = name,
@@ -195,6 +204,9 @@ class MenuViewModel @Inject constructor(
                     createdAt = System.currentTimeMillis()
                 )
             )
+            if (photoUri != null && context != null) {
+                uploadItemPhoto(context, id, photoUri)
+            }
         }
     }
 
@@ -203,7 +215,9 @@ class MenuViewModel @Inject constructor(
         name: String,
         basePrice: Double,
         foodType: String,
-        variants: List<Pair<String, Double>>
+        variants: List<Pair<String, Double>>,
+        photoUri: Uri? = null,
+        context: Context? = null
     ) {
         if (!canAddItem()) {
             blockMasterDataWrite()
@@ -228,6 +242,9 @@ class MenuViewModel @Inject constructor(
                     )
                 )
             }
+            if (photoUri != null && context != null) {
+                uploadItemPhoto(context, itemId, photoUri)
+            }
         }
     }
 
@@ -238,6 +255,77 @@ class MenuViewModel @Inject constructor(
         }
         viewModelScope.launch {
             menuRepository.updateItem(item)
+        }
+    }
+
+    fun uploadItemPhoto(
+        context: Context,
+        menuItemId: Long,
+        uri: Uri,
+        onUploaded: (String) -> Unit = {}
+    ) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
+        viewModelScope.launch {
+            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Uploading dish photo...") }
+            try {
+                val part = withContext(Dispatchers.IO) {
+                    com.khanabook.lite.pos.domain.util.MultipartUtils.imageUriToPart(context.applicationContext, uri)
+                }
+                val response = khanaBookApi.uploadMenuItemImage(menuItemId, part)
+                val currentItem = menuRepository.getItemById(menuItemId)
+                if (currentItem != null) {
+                    val updated = currentItem.copy(
+                        imageUrl = response.imageUrl,
+                        imageVersion = response.imageVersion
+                    )
+                    menuRepository.updateItem(updated, changedFields = "imageUrl,imageVersion")
+                }
+                _ocrImportUiState.update { it.copy(successMessage = "Dish photo updated") }
+                onUploaded(response.imageUrl)
+            } catch (e: IllegalArgumentException) {
+                _ocrImportUiState.update { it.copy(error = e.message) }
+            } catch (e: Exception) {
+                _ocrImportUiState.update {
+                    it.copy(error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again."))
+                }
+            } finally {
+                _ocrImportUiState.update { it.copy(isProcessing = false) }
+            }
+        }
+    }
+
+    fun deleteItemPhoto(
+        menuItemId: Long,
+        onDeleted: () -> Unit = {}
+    ) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
+        viewModelScope.launch {
+            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Removing dish photo...") }
+            try {
+                khanaBookApi.deleteMenuItemImage(menuItemId)
+                val currentItem = menuRepository.getItemById(menuItemId)
+                if (currentItem != null) {
+                    val updated = currentItem.copy(
+                        imageUrl = null,
+                        imageVersion = (currentItem.imageVersion ?: 0) + 1
+                    )
+                    menuRepository.updateItem(updated, changedFields = "imageUrl,imageVersion")
+                }
+                _ocrImportUiState.update { it.copy(successMessage = "Dish photo removed") }
+                onDeleted()
+            } catch (e: Exception) {
+                _ocrImportUiState.update {
+                    it.copy(error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Failed to remove photo."))
+                }
+            } finally {
+                _ocrImportUiState.update { it.copy(isProcessing = false) }
+            }
         }
     }
 

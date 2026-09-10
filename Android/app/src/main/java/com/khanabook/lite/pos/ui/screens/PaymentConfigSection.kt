@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -48,6 +49,39 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingStatusResponse
+import com.khanabook.lite.pos.ui.viewmodel.AgreementStatus
+import com.khanabook.lite.pos.ui.viewmodel.AgreementUiState
+import com.khanabook.lite.pos.ui.viewmodel.EasebuzzOnboardingViewModel
+import com.khanabook.lite.pos.ui.viewmodel.MerchantAgreementViewModel
+import com.khanabook.lite.pos.ui.viewmodel.OnboardingUiState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.font.FontWeight
+import com.khanabook.lite.pos.ui.theme.BorderGold
+import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
+import com.khanabook.lite.pos.ui.theme.DangerRed
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
+import com.khanabook.lite.pos.ui.theme.TextLight
 
 private val UPI_VPA_REGEX = Regex("^[a-zA-Z0-9.\\-_]{2,256}@[a-zA-Z]{2,64}$")
 
@@ -122,12 +156,6 @@ fun PaymentConfigView(
             PaymentToggle("Cash Payment", cashEnabled, onCheckedChange = { cashEnabled = it }, enabled = !readOnly)
             PaymentToggle("POS Machine", posEnabled, onCheckedChange = { posEnabled = it }, enabled = !readOnly)
             PaymentToggle("Offline UPI QR", upiSupported, onCheckedChange = { upiSupported = it }, enabled = !readOnly)
-            PaymentToggle(
-                "Voice Soundbox (Audio Alert)",
-                feedbackSettings.voiceAnnouncementEnabled,
-                onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
-                enabled = !readOnly
-            )
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
                 ParchmentTextField(
@@ -157,32 +185,21 @@ fun PaymentConfigView(
                     }
                 }
             }
+            PaymentToggle(
+                "Voice Soundbox (Audio Alert)",
+                feedbackSettings.voiceAnnouncementEnabled,
+                onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
+                enabled = !readOnly
+            )
             PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
             if (easebuzzEnabled) {
                 Spacer(modifier = Modifier.height(spacing.small))
-                androidx.compose.material3.OutlinedButton(
-                    onClick = onNavigateToOnboarding,
-                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Setup Online Payments →", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
-                }
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
-                androidx.compose.material3.OutlinedButton(
-                    onClick = { onSectionSelected("merchant_agreement") },
-                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Merchant Agreement", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
-                }
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
-                androidx.compose.material3.OutlinedButton(
-                    onClick = { onSectionSelected("compliance_documents") },
-                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Compliance Documents", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
-                }
+                EasebuzzOnboardingHub(
+                    onNavigateToOnboarding = onNavigateToOnboarding,
+                    onOpenAgreement = { onSectionSelected("merchant_agreement") },
+                    onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
+                    readOnly = readOnly
+                )
             }
 
             if (showTestQrDialog && upiHandle.isNotBlank()) {
@@ -283,5 +300,259 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
             checkedTrackColor = SuccessGreen,
             enabled = enabled
         )
+    }
+}
+
+@Composable
+fun EasebuzzOnboardingHub(
+    onNavigateToOnboarding: () -> Unit,
+    onOpenAgreement: () -> Unit,
+    onOpenComplianceDocs: () -> Unit,
+    readOnly: Boolean = false,
+    easebuzzVm: EasebuzzOnboardingViewModel = hiltViewModel(),
+    agreementVm: MerchantAgreementViewModel = hiltViewModel()
+) {
+    val onboardingUiState by easebuzzVm.uiState.collectAsStateWithLifecycle()
+    val agreementUiState by agreementVm.uiState.collectAsStateWithLifecycle()
+    val spacing = KhanaBookTheme.spacing
+
+    LaunchedEffect(Unit) {
+        easebuzzVm.loadStatus()
+        agreementVm.load()
+    }
+
+    val ebStatus: EasebuzzOnboardingStatusResponse? = when (val s = onboardingUiState) {
+        is OnboardingUiState.Active -> s.status
+        is OnboardingUiState.AwaitingKyc -> s.status
+        is OnboardingUiState.Rejected -> s.status
+        else -> null
+    }
+
+    val agreementStatus: AgreementStatus? = when (val s = agreementUiState) {
+        is AgreementUiState.Ready -> s.status
+        else -> null
+    }
+
+    val isRegistered = ebStatus?.hasSubMerchant == true || ebStatus?.isActive == true
+
+    if (!isRegistered) {
+        // ── State 1: Unregistered (Ultra-clean 1-step call to action) ──
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = spacing.small),
+            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+            shape = KhanaRadii.card,
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.large),
+                verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CreditCard,
+                        contentDescription = null,
+                        tint = PrimaryGold,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Accept Online Payments",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryGold
+                    )
+                }
+
+                Text(
+                    text = "Link your bank account & PAN to start accepting customer payments via Dynamic UPI QR & Payment Gateway in 2 minutes.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGold.copy(alpha = 0.85f)
+                )
+
+                Button(
+                    onClick = onNavigateToOnboarding,
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = KhanaRadii.button,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Setup Online Payments →",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBrown1,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    // ── State 2: Registered & Active ──
+    val kycStatusStr = ebStatus?.kycStatus?.uppercase() ?: ""
+    val isKycActive = kycStatusStr == "ACTIVE"
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = spacing.small),
+        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+        shape = KhanaRadii.card,
+        border = BorderStroke(
+            1.dp,
+            if (ebStatus?.isActive == true) SuccessGreen.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.4f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.large),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            // Active Header with Sub-Merchant ID
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = if (ebStatus?.isActive == true) "Online Payments Active" else "Registration Submitted",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLight
+                    )
+                }
+                if (!ebStatus?.subMerchantId.isNullOrBlank()) {
+                    Surface(
+                        color = SuccessGreen.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(4.dp),
+                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "ID: ${ebStatus?.subMerchantId}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = SuccessGreen,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Your restaurant is ready to accept online payments via Dynamic UPI QR codes and payment links.",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextGold.copy(alpha = 0.85f)
+            )
+
+            // Bank Payout Verification prompt (only shown if KYC is not yet active)
+            if (!isKycActive) {
+                Surface(
+                    color = DarkBrown1,
+                    shape = KhanaRadii.card,
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Schedule,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Daily Bank Payout Verification",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PrimaryGold
+                            )
+                        }
+
+                        Text(
+                            text = when {
+                                kycStatusStr == "CPV_PENDING" ->
+                                    "Complete the quick agentless contact verification to unlock automatic daily 6:00 AM bank payouts."
+                                kycStatusStr == "REJECTED" ->
+                                    "A submitted document was rejected. Please upload a fresh copy."
+                                ebStatus?.businessProof1Present == true ->
+                                    "Address proof submitted. Payout verification is under review by Easebuzz."
+                                else ->
+                                    "Upload 1 business address proof (Electricity bill, GST, or Rent deed) to unlock automated daily 6:00 AM settlements to your bank account."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextLight.copy(alpha = 0.85f)
+                        )
+
+                        Button(
+                            onClick = onOpenComplianceDocs,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.button,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = when {
+                                    kycStatusStr == "CPV_PENDING" -> "Complete Verification →"
+                                    kycStatusStr == "REJECTED" -> "Re-upload Proof →"
+                                    ebStatus?.businessProof1Present == true -> "View Uploaded Proofs"
+                                    else -> "Upload Payout Proof →"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkBrown1
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Quick footer actions: Account Details & Merchant Agreement
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onNavigateToOnboarding,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
+                    shape = KhanaRadii.button
+                ) {
+                    Text("Account Details ↗", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
+                }
+
+                TextButton(onClick = onOpenAgreement) {
+                    Text(
+                        text = if (agreementStatus?.hasAgreement == true) "✓ Agreement Signed" else "Merchant Agreement ↗",
+                        color = if (agreementStatus?.hasAgreement == true) SuccessGreen else TextGold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
     }
 }

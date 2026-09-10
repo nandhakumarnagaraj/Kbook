@@ -41,50 +41,43 @@ private val TextMuted = Color(0xFFB0B0B0)
  */
 @Composable
 internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
-    // ── Simple fade-in animation (fast, clean) ────────────────────────────────
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
+    // ── Seamless entrance (Logo starts visible to match OS splash without blinking) ──
+    var textVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { textVisible = true }
 
-    // Logo fade + subtle scale
-    val logoAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
-        label = "logoAlpha"
-    )
-    val logoScale by animateFloatAsState(
-        targetValue = if (visible) 1f else 0.9f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
-        label = "logoScale"
-    )
-
-    // Title fade
+    // Title fade & subtle slide
     val titleAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 100, easing = FastOutSlowInEasing),
+        targetValue = if (textVisible) 1f else 0f,
+        animationSpec = tween(350, delayMillis = 60, easing = FastOutSlowInEasing),
         label = "titleAlpha"
+    )
+    val titleOffsetY by animateFloatAsState(
+        targetValue = if (textVisible) 0f else 6f,
+        animationSpec = tween(350, delayMillis = 60, easing = FastOutSlowInEasing),
+        label = "titleOffsetY"
     )
 
     // Subtitle fade
     val subtitleAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 200, easing = FastOutSlowInEasing),
+        targetValue = if (textVisible) 1f else 0f,
+        animationSpec = tween(350, delayMillis = 160, easing = FastOutSlowInEasing),
         label = "subtitleAlpha"
     )
 
     // Version fade
     val versionAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 300, easing = FastOutSlowInEasing),
+        targetValue = if (textVisible) 1f else 0f,
+        animationSpec = tween(350, delayMillis = 240, easing = FastOutSlowInEasing),
         label = "versionAlpha"
     )
 
-    // Subtle pulsing glow (infinite, gentle)
+    // Subtle breathing glow halo (0 GPU blur overhead, butter smooth on all devices)
     val infiniteTransition = rememberInfiniteTransition(label = "glowPulse")
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.05f,
-        targetValue = 0.12f,
+        initialValue = 0.12f,
+        targetValue = 0.24f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
+            animation = tween(2200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "glowAlpha"
@@ -115,50 +108,47 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxSize()
         ) {
-            // Logo with subtle glow (fixed: outer box is now larger to contain glow)
+            // Logo container with breathing radial halo (rock-solid, 0 flicker from system splash)
             Box(
-                modifier = Modifier
-                    .size(160.dp)
-                    .graphicsLayer {
-                        alpha = logoAlpha
-                        scaleX = logoScale
-                        scaleY = logoScale
-                    },
+                modifier = Modifier.size(180.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Soft glow behind logo
+                // Feathered golden halo
                 Box(
                     modifier = Modifier
-                        .size(160.dp)
-                        .blur(25.dp)
+                        .size(180.dp)
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
                                     GoldPrimary.copy(alpha = glowAlpha),
+                                    GoldPrimary.copy(alpha = glowAlpha * 0.35f),
                                     Color.Transparent
                                 )
                             ),
                             shape = CircleShape
                         )
                 )
-                // Logo
+                // Logo — fully visible from frame 0 to match system splash seamlessly
                 Image(
                     painter = painterResource(id = R.drawable.splash_logo),
-                    contentDescription = "Khanabook PoS",
-                    modifier = Modifier.size(110.dp)
+                    contentDescription = "KhanaBook POS",
+                    modifier = Modifier.size(150.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // App name
+            // App name — KhanaBook POS
             Text(
-                text = "Khanabook PoS",
+                text = "KhanaBook POS",
                 color = TextWhite,
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 2.sp,
-                modifier = Modifier.graphicsLayer { alpha = titleAlpha }
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = titleAlpha
+                    translationY = titleOffsetY
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -166,10 +156,10 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
             // Tagline
             Text(
                 text = "Restaurant POS & Billing",
-                color = GoldPrimary.copy(alpha = subtitleAlpha),
+                color = GoldPrimary.copy(alpha = subtitleAlpha * 0.9f),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Normal,
-                letterSpacing = 1.sp
+                letterSpacing = 0.8.sp
             )
         }
 

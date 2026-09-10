@@ -177,11 +177,15 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                         status.status == "KYC_SUBMITTED" || status.status == "PENDING_KYC" || status.status == "CPV_PENDING" ->
                             OnboardingUiState.AwaitingKyc(status)
                         status.hasSubMerchant -> OnboardingUiState.AwaitingKyc(status)
-                        else -> OnboardingUiState.NotStarted
+                        else -> {
+                            _currentStep.value = OnboardingStep.BusinessDetails
+                            OnboardingUiState.InProgress(OnboardingStep.BusinessDetails)
+                        }
                     }
                 }
                 .onFailure { e ->
-                    _uiState.value = OnboardingUiState.NotStarted
+                    _currentStep.value = OnboardingStep.BusinessDetails
+                    _uiState.value = OnboardingUiState.InProgress(OnboardingStep.BusinessDetails)
                 }
         }
     }

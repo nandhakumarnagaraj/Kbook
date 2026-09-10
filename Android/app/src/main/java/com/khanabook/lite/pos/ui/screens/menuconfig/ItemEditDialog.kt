@@ -2,17 +2,28 @@
 
 package com.khanabook.lite.pos.ui.screens.menuconfig
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,15 +42,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.util.MenuPricingRules
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.ui.theme.BorderGold
+import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.theme.NonVegRed
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.TextGold
@@ -52,9 +72,18 @@ fun ItemEditDialog(
     initialName: String = "",
     initialPrice: Double = 0.0,
     initialType: String = "veg",
+    initialImageUrl: String? = null,
     variants: List<com.khanabook.lite.pos.data.local.entity.ItemVariantEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, String, List<Pair<String, Double>>) -> Unit
+    onConfirm: (String, Double, String, List<Pair<String, Double>>) -> Unit = { _, _, _, _ -> },
+    onConfirmWithPhoto: (
+        name: String,
+        price: Double,
+        foodType: String,
+        variants: List<Pair<String, Double>>,
+        photoUri: Uri?,
+        removePhoto: Boolean
+    ) -> Unit = { name, price, type, vars, _, _ -> onConfirm(name, price, type, vars) }
 ) {
     var name by remember(initialName) { mutableStateOf(initialName) }
     var price by remember(initialPrice) { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
@@ -75,6 +104,18 @@ fun ItemEditDialog(
         )
     }
 
+    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var isPhotoRemoved by remember { mutableStateOf(false) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            selectedPhotoUri = uri
+            isPhotoRemoved = false
+        }
+    }
+
     KhanaBookDialog(
         onDismissRequest = onDismiss,
         title = title,
@@ -85,6 +126,93 @@ fun ItemEditDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // ── Dish Photo Section ─────────────────────────────────────────
+                val hasPhoto = (selectedPhotoUri != null) || (!isPhotoRemoved && !initialImageUrl.isNullOrBlank())
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkBrown2, KhanaRadii.md)
+                        .border(1.dp, BorderGold.copy(alpha = 0.25f), KhanaRadii.md)
+                        .padding(KhanaBookTheme.spacing.smallMedium),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(KhanaRadii.md)
+                            .background(DarkBrown1),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedPhotoUri != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(selectedPhotoUri)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Dish photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (!isPhotoRemoved && !initialImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(initialImageUrl)
+                                    .crossfade(true)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .build(),
+                                contentDescription = "Dish photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.AddPhotoAlternate,
+                                contentDescription = null,
+                                tint = TextGold.copy(alpha = 0.5f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (hasPhoto) "Dish Photo" else "Add Dish Photo",
+                            color = TextLight,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (hasPhoto) "Tap edit or remove" else "Optional photo (PNG, JPG, WebP)",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
+                            Icon(
+                                if (hasPhoto) Icons.Default.Edit else Icons.Default.AddAPhoto,
+                                contentDescription = "Choose Photo",
+                                tint = PrimaryGold
+                            )
+                        }
+                        if (hasPhoto) {
+                            IconButton(onClick = {
+                                selectedPhotoUri = null
+                                isPhotoRemoved = true
+                            }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Remove Photo",
+                                    tint = NonVegRed.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = {
@@ -247,11 +375,13 @@ fun ItemEditDialog(
                     !hasInlineVariants && !MenuPricingRules.isValidPrice(parsedPrice) -> priceError = MenuPricingRules.ERROR_MESSAGE
                     invalidDraftVariant != null -> variantError = "Enter a valid item price"
                     outOfRangeDraftVariant != null -> variantError = MenuPricingRules.ERROR_MESSAGE
-                    else -> onConfirm(
+                    else -> onConfirmWithPhoto(
                         normalizedName,
                         parsedPrice ?: 0.0,
                         foodType,
-                        editableVariants.map { it.name.trim() to it.price }
+                        editableVariants.map { it.name.trim() to it.price },
+                        selectedPhotoUri,
+                        isPhotoRemoved
                     )
                 }
             }

@@ -112,8 +112,12 @@ fun EasebuzzOnboardingScreen(
                 KhanaBookLoadingOverlay(visible = true, message = "Checking status...")
             }
             is OnboardingUiState.NotStarted -> {
-                NotStartedContent(
-                    onStart = { viewModel.startOnboarding() },
+                LaunchedEffect(Unit) {
+                    viewModel.startOnboarding()
+                }
+                BusinessDetailsStep(
+                    viewModel = viewModel,
+                    isSubmitting = isSubmitting,
                     spacing = spacing
                 )
             }
