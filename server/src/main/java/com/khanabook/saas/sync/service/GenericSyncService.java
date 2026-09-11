@@ -894,6 +894,8 @@ public class GenericSyncService {
 			if (!Boolean.TRUE.equals(existingItem.getIsAvailable())) {
 				incomingItem.setIsAvailable(false);
 			}
+			if (incomingItem.getImageUrl() == null) { incomingItem.setImageUrl(existingItem.getImageUrl()); }
+			if (incomingItem.getImageVersion() == null || incomingItem.getImageVersion() < existingItem.getImageVersion()) { incomingItem.setImageVersion(existingItem.getImageVersion()); }
 		}
 		if (incoming instanceof ItemVariant incomingVariant
 				&& existing instanceof ItemVariant existingVariant) {
@@ -953,7 +955,7 @@ public class GenericSyncService {
 	 * <p>Null/blank {@code changedFields} = legacy whole-record LWW (older clients).
 	 * {@code "all"} = brand-new record or full overwrite — nothing restored.
 	 */
-	private void applyChangedFieldsMerge(BaseSyncEntity incoming, BaseSyncEntity existing) {
+	static void applyChangedFieldsMerge(BaseSyncEntity incoming, BaseSyncEntity existing) {
 		if (!(incoming instanceof MenuItem incomingItem && existing instanceof MenuItem existingItem)) {
 			return;
 		}
@@ -976,6 +978,8 @@ public class GenericSyncService {
 		if (!changed.contains("categoryid")) incomingItem.setCategoryId(existingItem.getCategoryId());
 		if (!changed.contains("isavailable")) incomingItem.setIsAvailable(existingItem.getIsAvailable());
 		if (!changed.contains("isdeleted")) incomingItem.setIsDeleted(existingItem.getIsDeleted());
+		if (!changed.contains("imageurl")) incomingItem.setImageUrl(existingItem.getImageUrl());
+		if (!changed.contains("imageversion")) incomingItem.setImageVersion(existingItem.getImageVersion());
 		if (!wildcard) {
 			if (!changed.contains("foodtype")) incomingItem.setFoodType(existingItem.getFoodType());
 			if (!changed.contains("barcode")) incomingItem.setBarcode(existingItem.getBarcode());

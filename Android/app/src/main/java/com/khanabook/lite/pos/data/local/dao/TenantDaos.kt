@@ -268,6 +268,7 @@ class TenantMenuDao @Inject constructor(
     private val dao get() = databaseProvider.getDatabase().menuDao()
 
     override suspend fun getAllMenuItemServerIds(restaurantId: Long): List<ServerIdMapping> = dao.getAllMenuItemServerIds(restaurantId)
+    override suspend fun getAllMenuItemImageInfo(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.MenuItemImageInfo> = dao.getAllMenuItemImageInfo(restaurantId)
     override suspend fun getAllVariantServerIds(restaurantId: Long): List<ServerIdMapping> = dao.getAllVariantServerIds(restaurantId)
     override suspend fun getMenuItemServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<ServerIdMapping> = dao.getMenuItemServerIdsByLocalIds(ids, restaurantId)
     override suspend fun getVariantServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<ServerIdMapping> = dao.getVariantServerIdsByLocalIds(ids, restaurantId)

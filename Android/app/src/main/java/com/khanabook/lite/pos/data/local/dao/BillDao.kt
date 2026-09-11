@@ -1025,23 +1025,18 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
             "This bill does not have a repairable daily-order conflict."
         }
 
-        val hasConflict = countDailyOrderIdentityConflicts(
+        // The server has authoritatively reported a duplicate order (verified by the
+        // check above that syncFailureReason contains "Duplicate order"). A server/other-
+        // terminal duplicate is invisible to the LOCAL-only countDailyOrderIdentityConflicts
+        // query, so relying on it alone would renumber to the same id (a no-op) and the bill
+        // would be quarantined again. Since the failure is a duplicate-order conflict, always
+        // treat it as a conflict and advance to the next available id.
+        val repairedDailyOrderId = getMaxDailyOrderIdForIdentity(
             restaurantId,
             billId,
             correctedDate,
-            bill.dailyOrderId,
             bill.terminalSeries
-        ) > 0
-        val repairedDailyOrderId = if (hasConflict) {
-            getMaxDailyOrderIdForIdentity(
-                restaurantId,
-                billId,
-                correctedDate,
-                bill.terminalSeries
-            ) + 1L
-        } else {
-            bill.dailyOrderId
-        }
+        ) + 1L
         val displayCounter = repairedDailyOrderId.toString().padStart(2, '0')
         val repairedDisplay = bill.terminalSeries
             ?.takeIf { it.isNotBlank() }

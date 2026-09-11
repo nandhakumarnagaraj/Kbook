@@ -442,7 +442,8 @@ fun MenuItemRow(
                 imageUrl = item.imageUrl,
                 imageVersion = item.imageVersion,
                 foodType = item.foodType,
-                size = 40.dp
+                size = 40.dp,
+                showAddPhotoHint = canWrite
             )
             Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {

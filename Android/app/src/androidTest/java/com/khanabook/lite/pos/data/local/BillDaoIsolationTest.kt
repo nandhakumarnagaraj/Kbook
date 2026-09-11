@@ -1123,6 +1123,60 @@ class BillDaoIsolationTest {
     }
 
     @Test
+    fun repairFailedDailyOrderIdentity_renumbersServerOnlyDuplicateWithoutLocalSibling() = runBlocking {
+        // A synced sibling exists at a HIGHER id on the corrected date, but there is NO local
+        // bill occupying the failed bill's current daily_order_id (id=1). The duplicate was
+        // reported by the SERVER/another terminal, so the local-only conflict count is 0.
+        // Previously the repair kept id=1 (no-op) and the bill was quarantined again; now it
+        // must always advance to getMaxDailyOrderIdForIdentity + 1.
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000).copy(
+                dailyOrderId = 7L,
+                dailyOrderDisplay = "L-07",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "L",
+                isSynced = true,
+                syncStatus = "synced",
+                serverId = 401L
+            )
+        )
+        val failedId = billDao.insertBill(
+            bill(R1, createdAt = 2_000).copy(
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "L-01",
+                lastResetDate = "2026-07-28",
+                terminalSeries = "L",
+                isSynced = false,
+                serverId = null,
+                recordOrigin = "local_created",
+                recordScope = "terminal_operational",
+                syncStatus = "failed_permanent",
+                syncFailureReason = "Duplicate order #L-01 already exists for 2026-07-28."
+            )
+        )
+
+        // Sanity: no LOCAL sibling occupies the failed bill's current id -> local conflict = 0.
+        assertEquals(
+            0,
+            billDao.countDailyOrderIdentityConflicts(R1, failedId, "2026-07-28", 1L, "L")
+        )
+
+        val repaired = billDao.repairFailedDailyOrderIdentity(
+            billId = failedId,
+            restaurantId = R1,
+            correctedDate = "2026-07-28",
+            updatedAt = 3_000
+        )
+
+        // getMaxDailyOrderIdForIdentity = 7 (the synced sibling) -> renumber to 8.
+        assertEquals(8L, repaired.dailyOrderId)
+        assertEquals("L-08", repaired.dailyOrderDisplay)
+        assertEquals("2026-07-28", repaired.lastResetDate)
+        assertEquals("pending", repaired.syncStatus)
+        assertNull(repaired.syncFailureReason)
+    }
+
+    @Test
     fun terminalDailyCounter_startsAfterMaximumForSameServerIdentityDateAndSeries() = runBlocking {
         billDao.insertBill(
             bill(R1, createdAt = 1_000).copy(

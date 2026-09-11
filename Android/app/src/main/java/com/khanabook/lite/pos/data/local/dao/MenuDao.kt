@@ -11,6 +11,9 @@ interface MenuDao {
     @Query("SELECT id, server_id as serverId FROM menu_items WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllMenuItemServerIds(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 
+    @Query("SELECT id, image_url AS imageUrl, image_version AS imageVersion FROM menu_items WHERE restaurant_id = :restaurantId")
+    suspend fun getAllMenuItemImageInfo(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.MenuItemImageInfo>
+
     @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllVariantServerIds(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 

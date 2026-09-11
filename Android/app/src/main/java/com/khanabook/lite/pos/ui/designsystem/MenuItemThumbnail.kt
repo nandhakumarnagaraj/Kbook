@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +28,7 @@ import coil.request.ImageRequest
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaRadii
 import com.khanabook.lite.pos.ui.theme.NonVegRed
+import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
 
 /**
@@ -69,7 +73,8 @@ fun MenuItemThumbnail(
     imageVersion: Int?,
     foodType: String,
     modifier: Modifier = Modifier,
-    size: Dp = 44.dp
+    size: Dp = 44.dp,
+    showAddPhotoHint: Boolean = false
 ) {
     var loadFailed by remember(imageUrl, imageVersion) { mutableStateOf(false) }
     val showImage = !imageUrl.isNullOrBlank() && !loadFailed
@@ -104,10 +109,26 @@ fun MenuItemThumbnail(
                 size = 10.dp
             )
         } else {
-            FoodTypeBadge(
-                type = foodType,
-                size = (size.value * 0.35f).dp.coerceIn(12.dp, 16.dp)
-            )
+            if (showAddPhotoHint) {
+                Icon(
+                    imageVector = Icons.Default.AddPhotoAlternate,
+                    contentDescription = "Add dish photo",
+                    tint = TextGold.copy(alpha = 0.5f),
+                    modifier = Modifier.size((size.value * 0.5f).dp.coerceIn(16.dp, 28.dp))
+                )
+                FoodTypeBadge(
+                    type = foodType,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(2.dp),
+                    size = 10.dp
+                )
+            } else {
+                FoodTypeBadge(
+                    type = foodType,
+                    size = (size.value * 0.35f).dp.coerceIn(12.dp, 16.dp)
+                )
+            }
         }
     }
 }

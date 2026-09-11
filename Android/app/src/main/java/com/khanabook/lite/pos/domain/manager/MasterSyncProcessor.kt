@@ -1278,6 +1278,7 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.menuItems.isNotEmpty()) {
             val currentDeviceId = sessionManager.getDeviceId()
             val preferredMenuItemIdsByServerId = mutableMapOf<Long, Long>()
+            val existingImageById = menuDao.getAllMenuItemImageInfo(restaurantId).associateBy { it.id }
             val resolvedMenuItems = masterData.menuItems.mapNotNull { remoteMenuItem ->
                     // categoryIdMap keys are server IDs (Long). Only look up via serverCategoryId.
                     // Falling back to categoryId (a foreign device's local ID) would look up the
@@ -1309,6 +1310,13 @@ class MasterSyncProcessor @Inject constructor(
                         currentStock = remoteMenuItem.currentStock.toSafeString(),
                         lowStockThreshold = remoteMenuItem.lowStockThreshold.toSafeString(),
                         barcode = remoteMenuItem.barcode,
+                        imageUrl = run {
+                            val local = existingImageById[assignedId]
+                            val remoteVer = remoteMenuItem.imageVersion ?: 0
+                            val localVer = local?.imageVersion ?: 0
+                            if (remoteVer >= localVer) remoteMenuItem.imageUrl else local?.imageUrl
+                        },
+                        imageVersion = maxOf(remoteMenuItem.imageVersion ?: 0, existingImageById[assignedId]?.imageVersion ?: 0),
                         createdAt = remoteMenuItem.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteMenuItem.restaurantId ?: 0L,
                         deviceId = remoteMenuItem.deviceId.orFallback(""),

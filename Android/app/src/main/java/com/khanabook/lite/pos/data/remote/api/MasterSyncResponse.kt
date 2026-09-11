@@ -36,6 +36,8 @@ data class MenuItemPullDto(
     @SerializedName("currentStock") val currentStock: BigDecimal? = null,
     @SerializedName("lowStockThreshold") val lowStockThreshold: BigDecimal? = null,
     @SerializedName("barcode") val barcode: String? = null,
+    @SerializedName("imageUrl") val imageUrl: String? = null,
+    @SerializedName("imageVersion") val imageVersion: Int? = null,
     @SerializedName("createdAt") val createdAt: Long? = null,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @SerializedName("isDeleted") val isDeleted: Boolean? = null,
