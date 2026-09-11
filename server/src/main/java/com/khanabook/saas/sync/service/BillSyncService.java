@@ -64,6 +64,33 @@ public class BillSyncService {
                                         + ". Resolve it in Sync Center.");
                     });
         }
+        // Pre-flight check mirroring ux_bills_restaurant_invoice_series_active: an
+        // identical (financial_year, invoice_series, invoice_sequence) tuple on an
+        // active bill means a duplicate invoice is being pushed. Failing it here (as
+        // IllegalStateException) routes the bill to failedLocalIds without tripping the
+        // unique index at batch save time — a batch DIVE would abort the whole
+        // PostgreSQL transaction and burn the rest of the payload.
+        if (incomingBill.getInvoiceSeries() != null
+                && incomingBill.getFinancialYear() != null
+                && incomingBill.getInvoiceSequence() != null) {
+            String invoiceNumber = incomingBill.getInvoiceNumber();
+            billRepo.findConflictingInvoiceSeries(
+                    tenantId,
+                    incomingBill.getFinancialYear(),
+                    incomingBill.getInvoiceSeries(),
+                    incomingBill.getInvoiceSequence(),
+                    incomingBill.getDeviceId(),
+                    incomingBill.getLocalId())
+                    .ifPresent(conflict -> {
+                        throw new IllegalStateException(
+                                "Duplicate invoice " + (invoiceNumber != null ? invoiceNumber : "")
+                                        + " already exists for "
+                                        + (conflict.getTerminalSeries() != null
+                                                ? "terminal " + conflict.getTerminalSeries()
+                                                : "this restaurant")
+                                        + ". Resolve it in Sync Center.");
+                    });
+        }
     }
 
     /**

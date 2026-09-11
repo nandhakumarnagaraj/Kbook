@@ -152,6 +152,31 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("localId") Long localId,
             @Param("terminalSeries") String terminalSeries);
 
+    /**
+     * Mirrors the V26 guarded partial index ux_bills_restaurant_invoice_series_active
+     * (restaurant_id, financial_year, invoice_series, invoice_sequence WHERE
+     * is_deleted = false AND invoice_number IS NOT NULL). Used as a pre-flight check so
+     * a duplicate invoice push is routed to failedLocalIds instead of tripping the index
+     * at batch save time (which aborts the whole PostgreSQL transaction).
+     */
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.isDeleted = false
+              AND b.invoiceNumber IS NOT NULL
+              AND b.financialYear = :financialYear
+              AND b.invoiceSeries = :invoiceSeries
+              AND b.invoiceSequence = :invoiceSequence
+              AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
+            """)
+    Optional<Bill> findConflictingInvoiceSeries(
+            @Param("restaurantId") Long restaurantId,
+            @Param("financialYear") String financialYear,
+            @Param("invoiceSeries") String invoiceSeries,
+            @Param("invoiceSequence") Long invoiceSequence,
+            @Param("deviceId") String deviceId,
+            @Param("localId") Long localId);
+
     // --- Easebuzz / metrics queries (v2 port) ---
     Optional<Bill> findByGatewayTxnId(String gatewayTxnId);
 

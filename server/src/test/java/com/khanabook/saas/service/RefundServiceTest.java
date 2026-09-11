@@ -45,7 +45,7 @@ class RefundServiceTest {
 
     @Test
     void initiatePartialRefund_firstRefund_succeeds() {
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
         java.util.Map<String, Object> refundResult = new java.util.LinkedHashMap<>();
         refundResult.put("status", "success");
         when(easebuzzPaymentService.initiateRefund(eq(1L), eq(new BigDecimal("300")), anyString()))
@@ -63,7 +63,7 @@ class RefundServiceTest {
     void initiatePartialRefund_secondPartialRefund_succeeds() {
         testBill.setRefundAmount(new BigDecimal("300"));
         testBill.setPaymentStatus("partially_refunded");
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
         java.util.Map<String, Object> refundResult = new java.util.LinkedHashMap<>();
         refundResult.put("status", "success");
         when(easebuzzPaymentService.initiateRefund(eq(1L), eq(new BigDecimal("200")), anyString()))
@@ -79,7 +79,7 @@ class RefundServiceTest {
     @Test
     void initiatePartialRefund_exceedsRemaining_throwsException() {
         testBill.setRefundAmount(new BigDecimal("800"));
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
 
         assertThatThrownBy(() -> refundService.initiatePartialRefund(1L, 100L, new BigDecimal("300"), "test"))
                 .isInstanceOf(BusinessRuleException.class)
@@ -89,7 +89,7 @@ class RefundServiceTest {
     @Test
     void initiatePartialRefund_alreadyFullyRefunded_throwsException() {
         testBill.setRefundAmount(new BigDecimal("1000"));
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
 
         assertThatThrownBy(() -> refundService.initiatePartialRefund(1L, 100L, new BigDecimal("100"), "test"))
                 .isInstanceOf(BusinessRuleException.class)
@@ -99,7 +99,7 @@ class RefundServiceTest {
     @Test
     void initiatePartialRefund_notPaidBill_throwsException() {
         testBill.setPaymentStatus("pending");
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
 
         assertThatThrownBy(() -> refundService.initiatePartialRefund(1L, 100L, new BigDecimal("100"), "test"))
                 .isInstanceOf(BusinessRuleException.class)
@@ -108,7 +108,7 @@ class RefundServiceTest {
 
     @Test
     void initiatePartialRefund_negativeAmount_throwsException() {
-        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
 
         assertThatThrownBy(() -> refundService.initiatePartialRefund(1L, 100L, new BigDecimal("-100"), "test"))
                 .isInstanceOf(BusinessRuleException.class)

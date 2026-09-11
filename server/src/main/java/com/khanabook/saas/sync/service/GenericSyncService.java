@@ -737,9 +737,9 @@ public class GenericSyncService {
 				String causeMessage = e.getMostSpecificCause() != null
 						? e.getMostSpecificCause().getMessage()
 						: e.getMessage();
-				log.error("DataIntegrityViolationException during saveAll for {} records; falling back to per-record save. Cause: {}",
-						allRecordsToSave.size(), causeMessage);
-				for (T record : allRecordsToSave) {
+log.error("DataIntegrityViolationException during saveAll for {} records; falling back to per-record save. Cause: {}",
+					allRecordsToSave.size(), causeMessage);
+			for (T record : allRecordsToSave) {
 					if (record instanceof Bill bill) {
 						log.error("  Bill: localId={} serverId={} deviceId={} restaurantId={} dailyOrderId={} lifetimeOrderId={} orderType={} subtotal={} total={} paymentMode={} paymentStatus={} orderStatus={} lastResetDate={} createdBy={}",
 								bill.getLocalId(), bill.getId(), bill.getDeviceId(),

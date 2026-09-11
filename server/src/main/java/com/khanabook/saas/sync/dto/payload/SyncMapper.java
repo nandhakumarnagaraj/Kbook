@@ -137,6 +137,9 @@ public class SyncMapper {
                 if (dto.getIsAvailable() == null) {
                     entity.setIsAvailable(true);
                 }
+                if (dto.getImageVersion() == null) {
+                    entity.setImageVersion(0);
+                }
             } else if (source instanceof ItemVariantDTO dto) {
                 ItemVariant entity = (ItemVariant) target;
                 entity.setId(dto.getId());

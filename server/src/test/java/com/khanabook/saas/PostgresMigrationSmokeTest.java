@@ -63,12 +63,12 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
-    void migrationHistoryHeadIsV94() {
+    void migrationHistoryHeadIsV96() {
         List<String> versions = jdbcTemplate.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC",
                 String.class);
         assertThat(versions).isNotEmpty();
-        assertThat(versions.get(0)).isEqualTo("94");
+        assertThat(versions.get(0)).isEqualTo("96");
     }
 
     @Test
@@ -159,10 +159,10 @@ class PostgresMigrationSmokeTest {
                 Integer.class);
         assertThat(failedCount).isZero();
 
-        // Verify expected count: V1-V68, V71-V72 = 70 migrations (V69/V70 were removed as duplicates)
+        // Verify expected count: V1-V68, V71-V96 = 78 migrations (V69/V70 were removed as duplicates)
         Integer totalMigrations = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE type = 'SQL'",
                 Integer.class);
-        assertThat(totalMigrations).isEqualTo(70);
+        assertThat(totalMigrations).isEqualTo(78);
     }
 }

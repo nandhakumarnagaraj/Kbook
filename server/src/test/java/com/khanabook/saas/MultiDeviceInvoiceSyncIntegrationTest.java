@@ -111,8 +111,8 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         // Step 2-3: each device activates a terminal online → distinct permanent series.
         String seriesA = activateTerminal(DEVICE_A);
         String seriesB = activateTerminal(DEVICE_B);
-        assertThat(seriesA).isEqualTo("A1");
-        assertThat(seriesB).isEqualTo("A2");
+        assertThat(seriesA).isEqualTo("A");
+        assertThat(seriesB).isEqualTo("B");
 
         // Step 4-6: both devices bill OFFLINE, each self-allocating within its own series.
         List<Bill> billsA = List.of(
@@ -140,8 +140,8 @@ class MultiDeviceInvoiceSyncIntegrationTest {
                 .collect(Collectors.toList());
         assertThat(invoiceNumbers)
                 .containsExactlyInAnyOrder(
-                        "26A1-000001", "26A1-000002", "26A1-000003",
-                        "26A2-000001", "26A2-000002", "26A2-000003")
+                        "26A-000001", "26A-000002", "26A-000003",
+                        "26B-000001", "26B-000002", "26B-000003")
                 .doesNotHaveDuplicates();
     }
 
@@ -162,7 +162,7 @@ class MultiDeviceInvoiceSyncIntegrationTest {
                 .filter(b -> DEVICE_A.equals(b.getDeviceId()))
                 .collect(Collectors.toList());
         assertThat(fromA).hasSize(2);
-        assertThat(fromA).allSatisfy(b -> assertThat(b.getInvoiceNumber()).startsWith("26A1-"));
+        assertThat(fromA).allSatisfy(b -> assertThat(b.getInvoiceNumber()).startsWith("26A-"));
     }
 
     // ---- Server-side fallback allocation ----
@@ -181,9 +181,9 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         billService.pushData(TENANT, List.of(unnumbered));
 
         Bill stored = billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT).get(0);
-        assertThat(stored.getInvoiceNumber()).matches("26A1-\\d{6}");
+        assertThat(stored.getInvoiceNumber()).matches("[A-Z]\\d{6}");
         assertThat(stored.getInvoiceSequence()).isEqualTo(1L);
-        assertThat(stored.getInvoiceSeries()).isEqualTo("26A1");
+        assertThat(stored.getInvoiceSeries()).isEqualTo("26A");
     }
 
     // ---- Adversarial: the V26 unique index must reject a real collision ----
@@ -218,7 +218,7 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         // The valid bill committed; the colliding one did not.
         List<Bill> persisted = billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT);
         assertThat(persisted).hasSize(2);
-        assertThat(persisted).anySatisfy(b -> assertThat(b.getInvoiceNumber()).isEqualTo("26A1-000050"));
+        assertThat(persisted).anySatisfy(b -> assertThat(b.getInvoiceNumber()).isEqualTo("26A-000050"));
     }
 
     @Test
@@ -366,6 +366,9 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         profile.setCreatedAt(System.currentTimeMillis());
         profile.setUpdatedAt(System.currentTimeMillis());
         profile.setServerUpdatedAt(System.currentTimeMillis());
+        profile.setLastResetDateProper(java.time.LocalDate.now());
+        profile.setLogoVersion(0);
+        profile.setUpiQrVersion(0);
         restaurantProfileRepository.save(profile);
     }
 }

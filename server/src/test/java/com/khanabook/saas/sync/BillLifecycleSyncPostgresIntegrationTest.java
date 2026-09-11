@@ -50,7 +50,8 @@ class BillLifecycleSyncPostgresIntegrationTest {
     private static final long ITEM_1_LOCAL_ID = 900101L;
     private static final long ITEM_2_LOCAL_ID = 900102L;
     private static final long PAYMENT_LOCAL_ID = 900201L;
-    private static final long FIXED_TIMESTAMP = Instant.parse("2026-07-28T09:00:00Z").toEpochMilli();
+    private static final long FIXED_TIMESTAMP =
+            Instant.now().minus(java.time.Duration.ofHours(1)).toEpochMilli();
     private static final UUID FIXED_PUBLIC_TOKEN =
             UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 
@@ -331,6 +332,9 @@ class BillLifecycleSyncPostgresIntegrationTest {
         profile.setCreatedAt(FIXED_TIMESTAMP);
         profile.setUpdatedAt(FIXED_TIMESTAMP);
         profile.setServerUpdatedAt(FIXED_TIMESTAMP);
+        profile.setLastResetDateProper(java.time.LocalDate.of(2026, 7, 28));
+        profile.setLogoVersion(0);
+        profile.setUpiQrVersion(0);
         restaurantProfileRepository.save(profile);
     }
 

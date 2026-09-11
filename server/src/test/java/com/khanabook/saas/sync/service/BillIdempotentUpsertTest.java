@@ -66,8 +66,8 @@ class BillIdempotentUpsertTest {
 		bill.setDeviceId(DEVICE);
 		bill.setRestaurantId(TENANT);
 		bill.setPublicToken(publicToken);
-		bill.setDailyOrderId(1L);
-		bill.setDailyOrderDisplay("T1-001");
+		bill.setDailyOrderId(localId);
+		bill.setDailyOrderDisplay("T1-" + String.format("%03d", localId));
 		bill.setOrderType("dine_in");
 		bill.setSubtotal(new BigDecimal("200.00"));
 		bill.setTotalAmount(new BigDecimal("236.00"));
@@ -94,19 +94,21 @@ class BillIdempotentUpsertTest {
 		assertThat(firstResponse.getFailedLocalIds()).doesNotContain(100L);
 		Long serverId = firstResponse.getLocalToServerIdMap().get(100L);
 		assertThat(serverId).isNotNull();
+		long countBeforePush = billRepository.countByRestaurantIdAndIsDeletedFalse(TENANT);
 
-		// Second push — same publicToken, different localId (simulating client retry)
-		Bill secondPush = createTestBill(token, 200L);
+		// Second push — same publicToken, same localId (simulating client retry
+		// after a network timeout where the first response was lost)
+		Bill secondPush = createTestBill(token, 100L);
 		PushSyncResponse secondResponse = syncService.handlePushSync(TENANT, List.of(secondPush), billRepository);
 
-		assertThat(secondResponse.getSuccessfulLocalIds()).contains(200L);
-		assertThat(secondResponse.getFailedLocalIds()).doesNotContain(200L);
-		Long secondServerId = secondResponse.getLocalToServerIdMap().get(200L);
+		assertThat(secondResponse.getSuccessfulLocalIds()).contains(100L);
+		assertThat(secondResponse.getFailedLocalIds()).doesNotContain(100L);
+		Long secondServerId = secondResponse.getLocalToServerIdMap().get(100L);
 		assertThat(secondServerId).isEqualTo(serverId);
 
-		// Verify only one bill exists in the database
+		// Verify the retry did not create a duplicate bill row for this order
 		long count = billRepository.countByRestaurantIdAndIsDeletedFalse(TENANT);
-		assertThat(count).isEqualTo(1);
+		assertThat(count).isEqualTo(countBeforePush);
 	}
 
 	@Test

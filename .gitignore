@@ -26,6 +26,9 @@
 *.swo
 *~
 
+# DB backups (contain sensitive customer/transaction data)
+backups/
+
 # Node.js
 node_modules/
 server/.env*

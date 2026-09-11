@@ -12,5 +12,5 @@ docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d postgres
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d server
 
 echo "Waiting for backend health..."
-sleep 6
+sleep 15
 curl -fsS http://127.0.0.1:8081/api/v1/actuator/health
