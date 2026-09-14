@@ -1,4 +1,6 @@
-package com.khanabook.lite.pos.ui.theme
+package com.khanabook.lite.pos.core.theme
+import com.khanabook.lite.pos.core.theme.ResponsiveLayout
+import com.khanabook.lite.pos.core.theme.WindowWidthTier
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

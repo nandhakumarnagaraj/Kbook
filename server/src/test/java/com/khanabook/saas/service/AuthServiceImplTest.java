@@ -155,6 +155,31 @@ class AuthServiceImplTest {
         verify(userRepository).saveAndFlush(any());
     }
 
+    @Test
+    void requestPasswordResetOtp_unknownPhone_isSilentAndIssuesNoOtp() {
+        when(userRepository.findByPhoneNumber("9999999999")).thenReturn(Optional.empty());
+        when(userRepository.findByLoginIdIgnoreCase("9999999999")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("9999999999")).thenReturn(Optional.empty());
+        when(userRepository.findByWhatsappNumber("9999999999")).thenReturn(Optional.empty());
+
+        // Must not throw (no account-existence disclosure) and must not issue an OTP.
+        assertThatCode(() -> authService.requestPasswordResetOtp("9999999999"))
+                .doesNotThrowAnyException();
+
+        verify(passwordResetOtpService, never()).issueOtp(anyString());
+    }
+
+    @Test
+    void requestPasswordResetOtp_knownPhone_issuesOtp() {
+        User user = activeUser("9876543210", "hash", 100L);
+        user.setPhoneNumber("9876543210");
+        when(userRepository.findByPhoneNumber("9876543210")).thenReturn(Optional.of(user));
+
+        authService.requestPasswordResetOtp("9876543210");
+
+        verify(passwordResetOtpService).issueOtp("9876543210");
+    }
+
     private User activeUser(String phone, String hash, Long restaurantId) {
         User u = new User();
         u.setEmail(phone);

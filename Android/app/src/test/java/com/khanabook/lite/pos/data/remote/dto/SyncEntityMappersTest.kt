@@ -1,7 +1,8 @@
 package com.khanabook.lite.pos.data.remote.dto
+import com.khanabook.lite.pos.feature.sync.data.toSyncDto
 
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

@@ -1,13 +1,14 @@
 package com.khanabook.lite.pos.ui.viewmodel
+import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 
 import android.content.Context
-import com.khanabook.lite.pos.data.local.entity.UserEntity
-import com.khanabook.lite.pos.data.repository.RestaurantRepository
-import com.khanabook.lite.pos.data.repository.UserRepository
-import com.khanabook.lite.pos.domain.manager.AuthManager
-import com.khanabook.lite.pos.domain.manager.PermissionManager
-import com.khanabook.lite.pos.domain.manager.SyncManager
-import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.feature.auth.data.UserEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
+import com.khanabook.lite.pos.feature.auth.data.UserRepository
+import com.khanabook.lite.pos.feature.auth.domain.AuthManager
+import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
+import com.khanabook.lite.pos.feature.sync.domain.SyncManager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

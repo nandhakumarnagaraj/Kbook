@@ -1,0 +1,214 @@
+package com.khanabook.lite.pos.feature.settings.ui
+
+import com.khanabook.lite.pos.core.theme.KhanaRadii
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.auth.data.UserEntity
+import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.core.theme.BorderGold
+import com.khanabook.lite.pos.core.theme.CardBG
+import com.khanabook.lite.pos.core.theme.DarkBrown1
+import com.khanabook.lite.pos.core.theme.KhanaBookTheme
+import com.khanabook.lite.pos.core.theme.PrimaryGold
+import com.khanabook.lite.pos.core.theme.SuccessGreen
+import com.khanabook.lite.pos.core.theme.TextGold
+import com.khanabook.lite.pos.core.theme.TextLight
+import java.text.SimpleDateFormat
+
+@Composable
+fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTimestamp: Long = 0L) {
+    val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
+    // Show the signed-in person's OWN number here (this is the account line), not the
+    // shared restaurant/shop contact number, which is configured separately.
+    val displayPhone = user?.whatsappNumber?.takeIf { it.isNotBlank() }
+        ?: user?.phoneNumber?.takeIf { it.isNotBlank() }
+        ?: profile?.whatsappNumber ?: ""
+    val spacing = KhanaBookTheme.spacing
+    val syncLabel = remember(lastSyncTimestamp) {
+        if (lastSyncTimestamp > 0L) {
+            "Last sync: " + SimpleDateFormat("dd MMM, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTimestamp))
+        } else "Not synced yet"
+    }
+
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = KhanaRadii.xl
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.large),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .size(KhanaBookTheme.iconSize.xxlarge)
+                    .background(PrimaryGold, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.headlineSmall)
+            }
+            Spacer(modifier = Modifier.size(spacing.medium))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.titleLarge)
+                if (displayPhone.isNotBlank()) {
+                    Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
+                }
+                Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingsItem(icon: ImageVector, text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    KhanaBookCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = KhanaRadii.lg
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = layout.cardPaddingHorizontal,
+                    vertical = layout.cardPaddingVertical
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(layout.actionIconContainerSize)
+                    .background(PrimaryGold.copy(alpha = 0.15f), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(layout.actionIconSize)
+                )
+            }
+            Text(
+                text = text,
+                color = TextLight,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = PrimaryGold,
+                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+            )
+        }
+    }
+}
+
+@Composable
+fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
+    val spacing = KhanaBookTheme.spacing
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = spacing.medium),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = KhanaRadii.lg,
+        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(spacing.large)) { content() }
+    }
+}
+
+@Composable
+fun ConfigActionButtons(
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    saveEnabled: Boolean = true,
+    isSaving: Boolean = false
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = PrimaryGold,
+                disabledContentColor = TextGold.copy(alpha = 0.45f)
+            ),
+            shape = KhanaRadii.lg
+        ) {
+            Text("Back", style = MaterialTheme.typography.titleMedium)
+        }
+        Button(
+            onClick = onSave,
+            enabled = saveEnabled && !isSaving,
+            modifier = Modifier.weight(1f).height(KhanaBookTheme.spacing.buttonHeightLarge),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = SuccessGreen,
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFF5F5F5F),
+                disabledContentColor = Color.White.copy(alpha = 0.65f)
+            ),
+            shape = KhanaRadii.lg
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.size(spacing.small))
+            }
+            Text(
+                text = if (isSaving) "Saving..." else "Save",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+    }
+}

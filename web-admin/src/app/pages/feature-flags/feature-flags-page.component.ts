@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -10,6 +10,7 @@ import { formatDate } from '../../shared/formatters';
 @Component({
   selector: 'app-feature-flags-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, EmptyStateComponent],
   template: `
     <div class="page-shell">
@@ -47,7 +48,7 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let flag of flags()">
+            <tr *ngFor="let flag of flags(); trackBy: trackByFlagKey">
               <td>
                 <strong>{{ flag.flagKey }}</strong>
                 <div class="muted">{{ flag.description }}</div>
@@ -109,7 +110,7 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of audit()">
+            <tr *ngFor="let row of audit(); trackBy: trackByIndex">
               <td>{{ formatDateValue(row.changedAt) }}</td>
               <td>
                 <span class="chip">{{ row.scope }}</span>
@@ -251,4 +252,7 @@ export class FeatureFlagsPageComponent {
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByFlagKey = (_: number, flag: FeatureFlagAdminItem) => flag.flagKey;
 }

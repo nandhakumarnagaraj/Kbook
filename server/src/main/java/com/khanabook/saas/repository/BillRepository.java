@@ -136,6 +136,17 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             Pageable pageable);
 
     @Query("""
+            SELECT COALESCE(MAX(b.dailyOrderId), 0) FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.lastResetDate = :lastResetDate
+              AND COALESCE(b.terminalSeries, '') = COALESCE(:terminalSeries, '')
+            """)
+    Long findMaxDailyOrderId(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastResetDate") String lastResetDate,
+            @Param("terminalSeries") String terminalSeries);
+
+    @Query("""
             SELECT b FROM Bill b
             WHERE b.restaurantId = :restaurantId
               AND b.isDeleted = false
@@ -143,6 +154,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
               AND b.dailyOrderId = :dailyOrderId
               AND COALESCE(b.terminalSeries, '') = COALESCE(:terminalSeries, '')
               AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
+              AND (:publicToken IS NULL OR b.publicToken IS NULL OR b.publicToken <> :publicToken)
             """)
     Optional<Bill> findConflictingDailyOrder(
             @Param("restaurantId") Long restaurantId,
@@ -150,7 +162,8 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("dailyOrderId") Long dailyOrderId,
             @Param("deviceId") String deviceId,
             @Param("localId") Long localId,
-            @Param("terminalSeries") String terminalSeries);
+            @Param("terminalSeries") String terminalSeries,
+            @Param("publicToken") java.util.UUID publicToken);
 
     /**
      * Mirrors the V26 guarded partial index ux_bills_restaurant_invoice_series_active

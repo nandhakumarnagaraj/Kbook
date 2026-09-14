@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -27,7 +26,6 @@ public class BusinessWriteService {
 
     private static final Logger log = LoggerFactory.getLogger(BusinessWriteService.class);
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private static final SecureRandom random = new SecureRandom();
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -35,19 +33,22 @@ public class BusinessWriteService {
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository profileRepository;
     private final PermissionService permissionService;
+    private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
 
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
                                 MenuItemRepository menuItemRepository,
                                 RestaurantTerminalRepository terminalRepository,
                                 RestaurantProfileRepository profileRepository,
-                                PermissionService permissionService) {
+                                PermissionService permissionService,
+                                com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
         this.terminalRepository = terminalRepository;
         this.profileRepository = profileRepository;
         this.permissionService = permissionService;
+        this.passwordResetOtpService = passwordResetOtpService;
     }
 
     // ─── Staff CRUD ──────────────────────────────────────────────────────────────
@@ -56,15 +57,21 @@ public class BusinessWriteService {
     public StaffCreatedResponse createStaff(Long restaurantId, CreateStaffRequest req) {
         UserRole role = parseRole(req.role());
 
-        if (userRepository.existsByPhoneNumber(req.phone())) {
+        // Only a LIVE (not soft-deleted) account blocks re-adding this phone.
+        // Soft-deleted staff must not reserve the number forever — mirrors signup
+        // (AuthServiceImpl#ensurePhoneNumberAvailableForSignup).
+        if (userRepository.findActiveByAnyIdentifier(req.phone()).isPresent()) {
             throw new DuplicateStaffPhoneException();
         }
-        if (userRepository.existsByLoginId(req.phone())) {
-            throw new DuplicateStaffPhoneException();
-        }
+        // Release the identifier from any soft-deleted rows so the partial unique
+        // indexes (phone_number / login_id / whatsapp_number) don't block reuse.
+        releaseIdentifierFromDeletedUsers(req.phone());
 
-        String tempPassword = generateTempPassword();
-        String hash = passwordEncoder.encode(tempPassword);
+        // OTP-based onboarding: no temp password is generated or shared. The account
+        // is created with an unguessable hash so nobody can log in until the staff
+        // member sets their own password via the OTP (Forgot Password) flow. This
+        // removes the shared-secret weak link where the owner knew each staff password.
+        String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
 
         User user = new User();
         user.setName(req.name());
@@ -93,9 +100,22 @@ public class BusinessWriteService {
             permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
         }
 
+        // Auto-issue an OTP straight to the staff member's phone so they can set
+        // their own password on first login. Never block staff creation if the
+        // OTP send fails (owner can trigger a resend from the login screen).
+        boolean otpSent;
+        try {
+            passwordResetOtpService.issueOtp(saved.getPhoneNumber());
+            otpSent = true;
+        } catch (RuntimeException e) {
+            log.warn("Staff created but onboarding OTP send failed for userId={}: {}",
+                    saved.getId(), e.getMessage());
+            otpSent = false;
+        }
+
         return new StaffCreatedResponse(
                 saved.getId(), saved.getName(), saved.getPhoneNumber(),
-                saved.getRole().name(), tempPassword
+                saved.getRole().name(), otpSent
         );
     }
 
@@ -280,13 +300,36 @@ public class BusinessWriteService {
         }
     }
 
-    private String generateTempPassword() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
+    /**
+     * Release this phone/identifier from any soft-deleted user rows so the partial
+     * unique indexes (phone_number / login_id / whatsapp_number) do not block
+     * re-adding a previously-removed staff member. Non-destructive: the deleted
+     * account and its history are preserved; only the reusable identifier columns
+     * are detached (phone/whatsapp nulled, login_id tombstoned but still readable).
+     * Mirrors AuthServiceImpl#releaseIdentifierFromDeletedUsers.
+     */
+    private void releaseIdentifierFromDeletedUsers(String phone) {
+        var deleted = userRepository.findDeletedHoldingIdentifier(phone);
+        if (deleted.isEmpty()) {
+            return;
         }
-        return sb.toString();
+        long now = System.currentTimeMillis();
+        for (User u : deleted) {
+            if (phone.equalsIgnoreCase(u.getPhoneNumber())) {
+                u.setPhoneNumber(null);
+            }
+            if (phone.equalsIgnoreCase(u.getWhatsappNumber())) {
+                u.setWhatsappNumber(null);
+            }
+            if (phone.equalsIgnoreCase(u.getLoginId())) {
+                u.setLoginId(u.getLoginId() + "|deleted:" + u.getId());
+            }
+            u.setUpdatedAt(now);
+            u.setServerUpdatedAt(now);
+        }
+        userRepository.saveAll(deleted);
+        userRepository.flush();
+        log.info("Released staff identifier from {} soft-deleted user row(s)", deleted.size());
     }
 
     private void validateMenuItemFields(String name, String basePrice) {

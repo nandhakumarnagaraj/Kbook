@@ -1,6 +1,9 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.ui.screens
+import com.khanabook.lite.pos.feature.reports.ui.ReportsScreen
+import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.feature.billing.ui.OrdersScreen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,15 +17,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.theme.*
-import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
-import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
-import com.khanabook.lite.pos.ui.screens.home.HomeScreen
-import com.khanabook.lite.pos.ui.screens.settings.SettingsScreen
+import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
+import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
+import com.khanabook.lite.pos.feature.reports.ui.HomeScreen
+import com.khanabook.lite.pos.feature.settings.ui.SettingsScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.khanabook.lite.pos.ui.navigation.TabItem
-import com.khanabook.lite.pos.ui.navigation.NavigationUtils
-import com.khanabook.lite.pos.ui.navigation.NavigationTabs
+import com.khanabook.lite.pos.core.navigation.TabItem
+import com.khanabook.lite.pos.core.navigation.NavigationUtils
+import com.khanabook.lite.pos.core.navigation.NavigationTabs
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -43,7 +46,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import androidx.navigation.NavController
-import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
+import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
 
 @Composable
 fun MainScreen(

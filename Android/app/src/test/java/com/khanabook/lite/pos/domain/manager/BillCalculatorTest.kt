@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.billing.domain.BillCalculator
 
 import org.junit.Test
 import org.junit.Assert.*

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -9,6 +9,7 @@ import { formatCurrency } from '../../shared/formatters';
 @Component({
   selector: 'app-reports-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, DateRangeSelectorComponent],
   template: `
     <div class="page-shell">
@@ -113,7 +114,7 @@ import { formatCurrency } from '../../shared/formatters';
         </div>
         <ng-template #loadingState>
           <div class="kpi-row" role="status" aria-label="Loading reports">
-            <div class="skeleton skeleton-stat" *ngFor="let item of [1,2,3,4]"></div>
+            <div class="skeleton skeleton-stat" *ngFor="let item of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
         </ng-template>
       </ng-template>
@@ -245,6 +246,8 @@ export class ReportsPageComponent {
     this.trigger$.next();
   }
   refresh(): void { this.trigger$.next(); }
+
+  trackByIndex = (_: number, __: unknown) => _;
 
   exportCsv(): void {
     const data = this.report();

@@ -1,4 +1,6 @@
 package com.khanabook.lite.pos.ui.feedback
+import com.khanabook.lite.pos.feature.menu.ui.createMenuItemAddWaveFile
+import com.khanabook.lite.pos.feature.menu.ui.performMenuItemAdd
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

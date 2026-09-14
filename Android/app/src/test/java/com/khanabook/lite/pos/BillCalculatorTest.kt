@@ -1,6 +1,6 @@
 package com.khanabook.lite.pos
 
-import com.khanabook.lite.pos.domain.manager.BillCalculator
+import com.khanabook.lite.pos.feature.billing.domain.BillCalculator
 import org.junit.Assert.*
 import org.junit.Test
 

@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.feedback
+import com.khanabook.lite.pos.feature.printing.ui.printFeedbackKind
 
-import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.core.designsystem.ToastKind
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

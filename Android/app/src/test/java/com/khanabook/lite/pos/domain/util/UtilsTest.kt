@@ -3,7 +3,7 @@ package com.khanabook.lite.pos.domain.util
 import android.content.Context
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
+import com.khanabook.lite.pos.feature.printing.domain.InvoicePDFGenerator
 import io.mockk.*
 import org.junit.After
 import org.junit.Before

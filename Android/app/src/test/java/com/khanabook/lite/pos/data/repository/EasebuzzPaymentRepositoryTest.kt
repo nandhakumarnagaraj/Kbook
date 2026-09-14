@@ -1,7 +1,8 @@
 package com.khanabook.lite.pos.data.repository
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentRepository
 
-import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.dto.CreatePaymentLinkForBillRequest
+import com.khanabook.lite.pos.core.network.KhanaBookApi
+import com.khanabook.lite.pos.feature.payments.data.CreatePaymentLinkForBillRequest
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic

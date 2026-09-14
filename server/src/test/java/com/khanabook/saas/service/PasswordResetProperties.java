@@ -22,13 +22,17 @@ class PasswordResetProperties {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private PasswordResetOtpService passwordResetOtpService;
+    private com.khanabook.saas.repository.RefreshTokenRepository refreshTokenRepository;
     private WebAdminPasswordResetService resetService;
 
     private void setup() {
         userRepository = mock(UserRepository.class);
         passwordEncoder = mock(PasswordEncoder.class);
         passwordResetOtpService = mock(PasswordResetOtpService.class);
-        resetService = new WebAdminPasswordResetService(passwordResetOtpService, userRepository, passwordEncoder);
+        refreshTokenRepository = mock(com.khanabook.saas.repository.RefreshTokenRepository.class);
+        resetService = new WebAdminPasswordResetService(
+                passwordResetOtpService, userRepository, refreshTokenRepository, passwordEncoder,
+                "test-signing-secret-at-least-32-bytes-long!!");
     }
 
     // ─── Property 16: Valid passwords (>= 6 chars) with valid tokens work ───────

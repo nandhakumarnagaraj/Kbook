@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 @Component({
   selector: 'app-active-orders-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="page-shell">
@@ -33,7 +34,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       <div class="panel loading" *ngIf="error()">{{ error() }}</div>
 
       <div class="orders-grid" *ngIf="activeOrders().length">
-        <article class="order-card" *ngFor="let order of activeOrders()" [class.order-card--old]="isOld(order)">
+        <article class="order-card" *ngFor="let order of activeOrders(); trackBy: trackByOrderId" [class.order-card--old]="isOld(order)">
           <div class="order-card__header">
             <strong class="order-card__code">{{ order.orderCode }}</strong>
             <span class="chip" [class.warn]="order.orderStatus === 'draft'" [class.success]="order.paymentStatus === 'pending'">
@@ -131,4 +132,6 @@ export class ActiveOrdersPageComponent implements OnDestroy {
     if (!order.createdAt) return false;
     return (Date.now() - order.createdAt) > 90 * 60 * 1000; // > 90 min = old
   }
+
+  trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;
 }

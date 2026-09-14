@@ -365,9 +365,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void requestPasswordResetOtp(String phoneNumber) {
-        findUserByLoginId(phoneNumber)
-                .orElseThrow(() -> new IllegalArgumentException("No account found with this number"));
-        passwordResetOtpService.issueOtp(phoneNumber);
+        // Anti-enumeration: never reveal whether an account exists for this phone.
+        // Issue the OTP only when the account is present; otherwise return silently
+        // so the endpoint responds identically (200) for known and unknown numbers.
+        if (findUserByLoginId(phoneNumber).isPresent()) {
+            passwordResetOtpService.issueOtp(phoneNumber);
+        } else {
+            log.info("Password reset OTP requested for unknown phone={}*** — responding silently",
+                    phoneNumber.length() >= 3 ? phoneNumber.substring(0, 3) : "***");
+        }
     }
 
     @Override

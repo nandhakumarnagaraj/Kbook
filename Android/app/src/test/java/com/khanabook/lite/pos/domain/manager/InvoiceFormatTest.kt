@@ -1,10 +1,11 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.printing.domain.InvoicePDFGenerator
 
 import android.content.Context
-import com.khanabook.lite.pos.data.local.entity.BillEntity
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test

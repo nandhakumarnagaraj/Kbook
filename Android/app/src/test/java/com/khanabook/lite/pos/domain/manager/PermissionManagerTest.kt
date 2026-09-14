@@ -1,4 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.core.database.DatabaseProvider
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 
 import io.mockk.every
 import io.mockk.mockk
@@ -14,7 +17,7 @@ import org.junit.Test
 class PermissionManagerTest {
 
     private lateinit var session: SessionManager
-    private lateinit var databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
+    private lateinit var databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
     private lateinit var manager: PermissionManager
 
     @Before

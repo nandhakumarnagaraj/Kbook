@@ -1,0 +1,479 @@
+package com.khanabook.lite.pos.feature.auth.data
+import com.khanabook.lite.pos.feature.notifications.data.NotificationRepository
+
+import com.khanabook.lite.pos.core.util.AppConstants
+
+import androidx.work.WorkManager
+import com.khanabook.lite.pos.core.database.DatabaseProvider
+import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
+import com.khanabook.lite.pos.feature.auth.data.UserDao
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.auth.data.UserEntity
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.sync.domain.enqueueMasterSyncOnce
+import com.khanabook.lite.pos.feature.auth.data.ResetPasswordRequest
+import com.khanabook.lite.pos.feature.auth.data.PasswordResetOtpRequest
+import com.khanabook.lite.pos.core.network.KhanaBookApi
+import com.khanabook.lite.pos.feature.auth.data.UpdateMobileOtpRequest
+import com.khanabook.lite.pos.feature.auth.data.UpdateMobileRequest
+import com.khanabook.lite.pos.feature.auth.data.LoginRequest
+import com.khanabook.lite.pos.feature.auth.data.GoogleLoginRequest
+import com.khanabook.lite.pos.feature.auth.data.SignupRequest
+import com.khanabook.lite.pos.feature.auth.data.SignupOtpRequest
+import com.khanabook.lite.pos.core.util.BackendErrorParser
+import com.khanabook.lite.pos.core.util.BackendException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import retrofit2.HttpException
+import java.time.LocalDate
+import java.time.ZoneId
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class UserRepository(
+        private val userDao: UserDao,
+        private val sessionManager: SessionManager,
+        private val workManager: WorkManager,
+        private val api: KhanaBookApi,
+        private val databaseProvider: DatabaseProvider,
+        private val restaurantDao: RestaurantDao,
+        private val notificationRepository: NotificationRepository
+) {
+    private fun normalizeAllowedRole(role: String?): String {
+        return when (role?.uppercase()) {
+            "OWNER", "KBOOK_ADMIN", "SHOP_STAFF" -> role.uppercase()
+            "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS" -> "SHOP_STAFF"
+            else -> "OWNER"
+        }
+    }
+
+    private val _currentUser = MutableStateFlow<UserEntity?>(null)
+    val currentUser: StateFlow<UserEntity?> = _currentUser
+
+    private fun UserEntity.persistedLoginIdentity(): String = loginId?.takeIf { it.isNotBlank() } ?: email
+
+    private suspend fun findLocalUser(loginId: String, userEmail: String?): UserEntity? {
+        return userDao.getUserByLoginId(loginId)
+            ?: userEmail?.takeIf { it.isNotBlank() }?.let { userDao.getUserByEmail(it) }
+            ?: userDao.getUserByEmail(loginId)
+    }
+
+    private suspend fun findCanonicalLocalUser(loginId: String, userEmail: String?): UserEntity? {
+        return findLocalUser(loginId, userEmail)
+            ?: userDao.getAllUsersOnce()
+                .asSequence()
+                .filter { !it.isDeleted }
+                .sortedWith(
+                    compareByDescending<UserEntity> { it.serverId != null }
+                        .thenByDescending { it.role.equals("OWNER", ignoreCase = true) }
+                        .thenByDescending { it.isActive }
+                )
+                .firstOrNull()
+    }
+
+    private suspend fun upsertAuthenticatedUser(
+        name: String,
+        loginId: String,
+        userEmail: String,
+        whatsappNumber: String?,
+        restaurantId: Long,
+        role: String,
+        authProvider: String,
+        googleEmail: String? = null,
+        fallbackPhone: String? = null
+    ): UserEntity {
+        val deviceId = sessionManager.getDeviceId()
+        val existing = findCanonicalLocalUser(loginId, userEmail)
+        val merged = if (existing == null) {
+            UserEntity(
+                name = name,
+                email = userEmail,
+                loginId = loginId,
+                googleEmail = googleEmail,
+                authProvider = authProvider,
+                phoneNumber = fallbackPhone,
+                whatsappNumber = whatsappNumber ?: fallbackPhone,
+                restaurantId = restaurantId,
+                role = role,
+                deviceId = deviceId,
+                isActive = true,
+                isSynced = true,
+                createdAt = System.currentTimeMillis()
+            )
+        } else {
+            existing.copy(
+                name = name,
+                email = userEmail,
+                loginId = loginId,
+                googleEmail = googleEmail ?: existing.googleEmail,
+                authProvider = authProvider,
+                phoneNumber = existing.phoneNumber ?: fallbackPhone,
+                whatsappNumber = whatsappNumber ?: existing.whatsappNumber ?: fallbackPhone,
+                restaurantId = restaurantId,
+                role = role,
+                deviceId = deviceId,
+                isActive = true,
+                isSynced = true
+            )
+        }
+        val id = userDao.insertUser(merged)
+        return merged.copy(id = id)
+    }
+
+    suspend fun remoteLogin(loginIdInput: String, passwordPlain: String): Result<UserEntity> {
+        return try {
+            val deviceId = sessionManager.getDeviceId()
+            val request = LoginRequest(loginIdInput, passwordPlain, deviceId)
+
+            val response = api.login(request)
+            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: loginIdInput
+            val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
+            val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
+
+            sessionManager.saveAuthToken(response.token)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            // 1. Detect first-time BEFORE any database operation
+            // 2. Open/switch the target restaurant database silently
+            // 3. THEN publish restaurantId — collectors always see a ready DB
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
+            sessionManager.saveActiveUserRole(allowedRole)
+
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = restaurantId,
+                role = allowedRole,
+                authProvider = "PHONE",
+                fallbackPhone = loginIdInput
+            )
+
+            // ── First-time vs re-login initialization ──────────────────────────
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
+
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
+            Result.success(localUser)
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun remoteSignup(name: String, phoneNumber: String, otp: String, passwordPlain: String): Result<UserEntity> {
+        return try {
+            val deviceId = sessionManager.getDeviceId()
+            val request = SignupRequest(phoneNumber, name, passwordPlain, otp, deviceId)
+
+            val response = api.signup(request)
+            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
+            val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
+            val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
+
+            sessionManager.saveAuthToken(response.token)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
+            sessionManager.saveActiveUserRole(allowedRole)
+
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = restaurantId,
+                role = allowedRole,
+                authProvider = "PHONE",
+                fallbackPhone = phoneNumber
+            )
+
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
+
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
+            Result.success(localUser)
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun remoteGoogleLogin(idToken: String): Result<UserEntity> {
+        return try {
+            val deviceId = sessionManager.getDeviceId()
+            val request = GoogleLoginRequest(idToken, deviceId)
+            val response = api.loginWithGoogle(request)
+            val loginId =
+                response.loginId?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Auth response missing login identifier")
+            val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
+            val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
+
+            sessionManager.saveAuthToken(response.token)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
+            sessionManager.saveActiveUserRole(allowedRole)
+
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = restaurantId,
+                role = allowedRole,
+                authProvider = "GOOGLE",
+                googleEmail = userEmail
+            )
+
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
+
+            setCurrentUser(localUser, scheduleBackgroundSync = false)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
+            Result.success(localUser)
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun loadPersistedUser() {
+        val activeUserId = sessionManager.getActiveUserId()
+
+        if (activeUserId != null) {
+            val user = userDao.getUserById(activeUserId)
+            _currentUser.value = user
+            if (user != null) {
+                sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
+                sessionManager.setSessionState(SessionManager.SessionState.READY)
+                notificationRepository.registerCurrentDeviceTokenInBackground()
+            }
+        } else {
+            val loginId = sessionManager.getPersistedLoginId()
+            if (loginId != null) {
+                val user = userDao.getUserByLoginId(loginId) ?: userDao.getUserByEmail(loginId)
+                _currentUser.value = user
+                user?.let {
+                    sessionManager.saveActiveUserId(it.id)
+                    sessionManager.saveActiveUserRole(normalizeAllowedRole(it.role))
+                    sessionManager.setSessionState(SessionManager.SessionState.READY)
+                    notificationRepository.registerCurrentDeviceTokenInBackground()
+                }
+            }
+        }
+    }
+
+    fun setCurrentUser(
+        user: UserEntity?,
+        scheduleBackgroundSync: Boolean = true
+    ) {
+        _currentUser.value = user
+        if (user != null) {
+            sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
+            sessionManager.saveActiveUserId(user.id)
+            sessionManager.saveActiveUserRole(normalizeAllowedRole(user.role))
+            sessionManager.setSessionState(SessionManager.SessionState.READY)
+            if (scheduleBackgroundSync) {
+                triggerBackgroundSync()
+            }
+        } else {
+            sessionManager.clearPersistedLoginId()
+            sessionManager.clearLocalUserSession()
+            sessionManager.setSessionState(SessionManager.SessionState.INACTIVE)
+        }
+    }
+
+    suspend fun insertUser(user: UserEntity): Long {
+        val enriched =
+                user.copy(
+                        restaurantId = sessionManager.getRestaurantId(),
+                        deviceId = sessionManager.getDeviceId(),
+                        isSynced = false,
+                        updatedAt = System.currentTimeMillis()
+                )
+        val id = userDao.insertUser(enriched)
+        triggerBackgroundSync()
+        return id
+    }
+
+    suspend fun getUserByLoginId(loginId: String): UserEntity? {
+        return userDao.getUserByLoginId(loginId) ?: userDao.getUserByEmail(loginId)
+    }
+
+    suspend fun requestPasswordResetOtp(phoneNumber: String) {
+        try {
+            api.requestPasswordResetOtp(PasswordResetOtpRequest(phoneNumber))
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
+    }
+
+    suspend fun requestSignupOtp(phoneNumber: String) {
+        try {
+            api.requestSignupOtp(SignupOtpRequest(phoneNumber))
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
+    }
+
+    suspend fun remoteResetPassword(phoneNumber: String, otp: String, newPasswordPlain: String) {
+        val request = ResetPasswordRequest(phoneNumber, otp, newPasswordPlain)
+        try {
+            api.resetPassword(request)
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
+    }
+
+    suspend fun checkUserExistsRemotely(phoneNumber: String): Boolean {
+        return api.checkUser(phoneNumber)
+    }
+
+    suspend fun requestMobileNumberUpdateOtp(newPhone: String): Result<Unit> {
+        return try {
+            val request = UpdateMobileOtpRequest(newPhone)
+            val response = api.requestMobileNumberUpdateOtp(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(response.toBackendException("Failed to send OTP. Please try again."))
+            }
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun confirmMobileNumberUpdate(newPhone: String, otp: String): Result<Unit> {
+        return try {
+            val request = UpdateMobileRequest(newPhone, otp)
+            val response = api.updateMobileNumber(request)
+            if (response.isSuccessful) {
+                val current = currentUser.value ?: userDao.getAnyUser()
+                if (current != null) {
+                    val now = System.currentTimeMillis()
+                    val isPhoneAuth = current.authProvider.equals("PHONE", ignoreCase = true)
+                    val updatedUser = current.copy(
+                        loginId = if (isPhoneAuth) newPhone else current.loginId,
+                        email = if (isPhoneAuth) newPhone else current.email,
+                        whatsappNumber = newPhone,
+                        isSynced = true,
+                        updatedAt = now,
+                        serverUpdatedAt = now
+                    )
+                    userDao.updateIdentityAndWhatsappNumber(
+                        userId = current.id,
+                        newLoginId = updatedUser.loginId?.takeIf { it.isNotBlank() } ?: updatedUser.email,
+                        newEmail = updatedUser.email,
+                        newPhone = newPhone,
+                        isSynced = true,
+                        updatedAt = now,
+                        serverUpdatedAt = now
+                    )
+                    setCurrentUser(updatedUser)
+                }
+                Result.success(Unit)
+            } else {
+                Result.failure(response.toBackendException("Failed to update mobile number."))
+            }
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun updateWhatsappNumber(userId: Long, newPhone: String) {
+        userDao.updateWhatsappNumber(userId, newPhone, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
+    suspend fun updateAccountDetails(userId: Long, loginId: String, newPhone: String) {
+        userDao.updateAccountDetails(userId, loginId, newPhone, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
+    fun getAllUsers(): Flow<List<UserEntity>> {
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            userDao.getAllUsers(restaurantId)
+        }
+    }
+
+    suspend fun setActivationStatus(userId: Long, isActive: Boolean) {
+        userDao.setActivationStatus(userId, isActive, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
+    suspend fun deleteUser(user: UserEntity) {
+        userDao.markDeleted(user.id, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
+    private fun triggerBackgroundSync() {
+        if (sessionManager.canUsePos()) {
+            workManager.enqueueMasterSyncOnce()
+        }
+    }
+
+    private fun mapBackendException(error: Throwable): Throwable {
+        return when (error) {
+            is BackendException -> error
+            is HttpException -> BackendException(BackendErrorParser.fromHttpException(error), error)
+            else -> error
+        }
+    }
+
+    private fun retrofit2.Response<*>.toBackendException(fallback: String): BackendException {
+        val parsed = BackendErrorParser.parse(
+            errorBody = runCatching { errorBody()?.string() }.getOrNull(),
+            statusCode = code()
+        )
+        return BackendException(
+            if (parsed.message.isNullOrBlank() && parsed.fieldErrors.isEmpty()) {
+                parsed.copy(message = fallback)
+            } else {
+                parsed
+            }
+        )
+    }
+}

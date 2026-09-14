@@ -1,6 +1,6 @@
 package com.khanabook.lite.pos
 
-import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
+import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
 import org.junit.Assert.*
 import org.junit.Test
 

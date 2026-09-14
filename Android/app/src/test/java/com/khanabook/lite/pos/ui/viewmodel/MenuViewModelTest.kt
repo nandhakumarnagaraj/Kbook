@@ -1,9 +1,10 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
-import com.khanabook.lite.pos.data.repository.CategoryRepository
-import com.khanabook.lite.pos.data.repository.MenuRepository
-import com.khanabook.lite.pos.domain.manager.PermissionManager
-import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
+import com.khanabook.lite.pos.feature.menu.data.MenuRepository
+import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

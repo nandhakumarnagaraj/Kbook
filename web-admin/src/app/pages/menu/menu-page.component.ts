@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
@@ -16,6 +16,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-menu-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
@@ -123,11 +124,29 @@ import { environment } from '../../../environments/environment';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of pagedItems">
+            <tr *ngFor="let item of pagedItems; trackBy: trackByMenuItemId">
               <td>
-                <div class="stacked-meta">
-                  <strong>{{ item.name }}</strong>
-                  <span class="muted">{{ item.description || 'No description added yet.' }}</span>
+                <div class="item-cell">
+                  <div class="thumb" [class.thumb--empty]="!hasPhoto(item)">
+                    <img
+                      *ngIf="hasPhoto(item)"
+                      [src]="item.imageUrl"
+                      [alt]="item.name + ' photo'"
+                      loading="lazy"
+                      (error)="onImageError(item)"
+                    />
+                    <span
+                      *ngIf="!hasPhoto(item)"
+                      class="food-dot"
+                      [class.food-dot--veg]="isVeg(item)"
+                      [attr.aria-label]="(isVeg(item) ? 'Veg' : 'Non-veg') + ', no photo added'"
+                      role="img"
+                    ></span>
+                  </div>
+                  <div class="stacked-meta">
+                    <strong>{{ item.name }}</strong>
+                    <span class="muted">{{ item.description || 'No description added yet.' }}</span>
+                  </div>
                 </div>
               </td>
               <td>{{ item.categoryName || '-' }}</td>
@@ -165,8 +184,29 @@ import { environment } from '../../../environments/environment';
         </table>
 
         <div class="mobile-data-list" aria-label="Menu items">
-          <article class="mobile-data-card" *ngFor="let item of pagedItems">
-            <div class="mobile-data-card__head"><strong>{{ item.name }}</strong><span class="chip" [class.success]="item.available" [class.danger]="!item.available">{{ item.available ? item.stockStatus : 'Unavailable' }}</span></div>
+          <article class="mobile-data-card" *ngFor="let item of pagedItems; trackBy: trackByMenuItemId">
+            <div class="mobile-data-card__head">
+              <div class="item-cell">
+                <div class="thumb" [class.thumb--empty]="!hasPhoto(item)">
+                  <img
+                    *ngIf="hasPhoto(item)"
+                    [src]="item.imageUrl"
+                    [alt]="item.name + ' photo'"
+                    loading="lazy"
+                    (error)="onImageError(item)"
+                  />
+                  <span
+                    *ngIf="!hasPhoto(item)"
+                    class="food-dot"
+                    [class.food-dot--veg]="isVeg(item)"
+                    [attr.aria-label]="(isVeg(item) ? 'Veg' : 'Non-veg') + ', no photo added'"
+                    role="img"
+                  ></span>
+                </div>
+                <strong>{{ item.name }}</strong>
+              </div>
+              <span class="chip" [class.success]="item.available" [class.danger]="!item.available">{{ item.available ? item.stockStatus : 'Unavailable' }}</span>
+            </div>
             <p>{{ item.description || 'No description added yet.' }}</p>
             <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd>{{ formatCurrencyValue(item.basePrice) }}</dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
@@ -189,7 +229,7 @@ import { environment } from '../../../environments/environment';
       <ng-template #loading>
         <div class="panel loading" *ngIf="!loaded; else menuEmpty">
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
         </div>
         <ng-template #menuEmpty>
@@ -224,7 +264,7 @@ import { environment } from '../../../environments/environment';
             <div style="display:flex;gap:0.5rem;align-items:center;">
               <select class="field-select" [(ngModel)]="formCategoryId" style="flex:1;">
                 <option [ngValue]="null" disabled>Select a category</option>
-                <option *ngFor="let category of categories" [ngValue]="category.categoryId">
+                <option *ngFor="let category of categories; trackBy: trackByCategoryId" [ngValue]="category.categoryId">
                   {{ category.name }}
                 </option>
               </select>
@@ -661,9 +701,30 @@ export class MenuPageComponent implements OnDestroy {
     return formatCurrency(value);
   }
 
+  // ─── Dish photo thumbnail ──────────────────────────────────────────────────
+  // Items without a photo (or whose photo fails to load) fall back to a veg /
+  // non-veg FSSAI dot on a neutral tile, matching the Android MenuItemThumbnail.
+  private readonly failedImages = new Set<number>();
+
+  hasPhoto(item: BusinessMenuItem): boolean {
+    return !!item.imageUrl && item.imageUrl.trim().length > 0 && !this.failedImages.has(item.menuItemId);
+  }
+
+  isVeg(item: BusinessMenuItem): boolean {
+    return (item.foodType || '').toLowerCase() === 'veg';
+  }
+
+  onImageError(item: BusinessMenuItem): void {
+    this.failedImages.add(item.menuItemId);
+  }
+
   formatDateValue(value: number | null): string {
     return formatDate(value);
   }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByMenuItemId = (_: number, item: BusinessMenuItem) => item.menuItemId;
+  trackByCategoryId = (_: number, cat: BusinessCategory) => cat.categoryId;
 
   // --- OCR Upload ---
 

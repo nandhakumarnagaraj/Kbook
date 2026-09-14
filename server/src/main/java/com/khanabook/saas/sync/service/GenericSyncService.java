@@ -143,6 +143,18 @@ public class GenericSyncService {
 		List<Bill> cancelledBills = new ArrayList<>();
 		List<Bill> finalizedBills = new ArrayList<>();
 		List<BillPayment> newPayments = new ArrayList<>();
+		// Deduplicate publicToken within the same push batch — prevents duplicate bills
+		// when network retries cause the same bill to appear twice in one payload.
+		//
+		// Rather than discarding whichever duplicate arrives second (which could drop a
+		// NEWER snapshot, e.g. a completed bill following an earlier draft snapshot of the
+		// same token — see B3), we keep the snapshot with the greatest updatedAt as the
+		// winner and record every other same-token localId as an alias of that winner.
+		// Aliases are acknowledged as successful and mapped to the winner's server id after
+		// save, so the device never re-pushes a snapshot we silently dropped.
+		java.util.Map<java.util.UUID, Bill> winningBillByToken = new java.util.HashMap<>();
+		// alias localId -> winning localId (same publicToken, superseded snapshot)
+		java.util.Map<Long, Long> billAliasLocalIds = new java.util.HashMap<>();
 
 		for (T record : payload) {
 			if (record.getLocalId() == null && record.getId() != null) {
@@ -260,6 +272,11 @@ public class GenericSyncService {
 
 			Map<Long, T> recordsToSaveMap = new HashMap<>();
 
+			// Daily order numbers reassigned during THIS push, keyed by tenant|date|series.
+			// findMaxDailyOrderId only sees committed rows, so without this two conflicting
+			// bills in one payload would both be given the same number and collide with each
+			// other at saveAll time.
+			java.util.Map<String, Long> dailyOrderBatchAssignments = new java.util.HashMap<>();
 			for (T incomingRecord : devicePayload) {
 				try {
 					log.info("Processing push record: localId={}, type={}", incomingRecord.getLocalId(), incomingRecord.getClass().getSimpleName());
@@ -289,9 +306,14 @@ public class GenericSyncService {
 					}
 
 					if (incomingRecord instanceof Bill bill) {
-						if (bill.getLastResetDate() == null || bill.getLastResetDate().isEmpty()) {
-							bill.setLastResetDate(java.time.LocalDate.now().toString());
-						}
+						// Business day is server-authoritative, derived from createdAt in the
+						// restaurant's timezone. Previously this only filled a blank value using
+						// LocalDate.now() with no zone (UTC in the container), which put bills
+						// created between 00:00–05:29 IST on the previous day and made the
+						// server's duplicate key disagree with the client's createdAt window.
+						// Mirrors the KBOOK_ADMIN tenant fallback used further below.
+						billSyncService.applyServerBusinessDate(
+								tenantId != null ? tenantId : bill.getRestaurantId(), bill);
 						if (bill.getRefundAmount() == null) {
 							bill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
@@ -324,7 +346,8 @@ public class GenericSyncService {
 					}
 					if (incomingRecord instanceof Bill bill
 							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
-						billSyncService.validateBillNumberConflicts(targetTenantId, bill, billRepo);
+						billSyncService.validateBillNumberConflicts(targetTenantId, bill, billRepo,
+								dailyOrderBatchAssignments);
 					}
 
 					// Idempotent bill upsert: if a bill with this publicToken already exists,
@@ -676,6 +699,40 @@ public class GenericSyncService {
 							newBill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
 						if (incomingRecord instanceof Bill freshBill) {
+							// Batch-level dedup: multiple snapshots of the same publicToken can
+							// appear in one push (e.g. draft then completed). Keep the snapshot
+							// with the greatest updatedAt as the winner; treat the others as
+							// aliases so they are acknowledged and mapped, never silently dropped.
+							java.util.UUID token = freshBill.getPublicToken();
+							if (token != null) {
+								Bill currentWinner = winningBillByToken.get(token);
+								if (currentWinner != null) {
+									if (freshBill.getUpdatedAt() > currentWinner.getUpdatedAt()) {
+										// New snapshot supersedes the previous winner.
+										// Unstage the old winner and alias its localId to the new one.
+										recordsToSaveMap.remove(currentWinner.getLocalId());
+										newBills.remove(currentWinner);
+										finalizedBills.remove(currentWinner);
+										billAliasLocalIds.put(currentWinner.getLocalId(), freshBill.getLocalId());
+										// Any prior aliases pointing at the old winner now point at the new one.
+										billAliasLocalIds.replaceAll((alias, winner) ->
+												winner.equals(currentWinner.getLocalId()) ? freshBill.getLocalId() : winner);
+										winningBillByToken.put(token, freshBill);
+										log.warn("Duplicate publicToken={} in same push batch — newer snapshot localId={} supersedes localId={}",
+												token, freshBill.getLocalId(), currentWinner.getLocalId());
+										// fall through to stage freshBill below
+									} else {
+										// Older/equal snapshot: alias it to the current winner and skip staging.
+										billAliasLocalIds.put(freshBill.getLocalId(), currentWinner.getLocalId());
+										successfulLocalIds.add(freshBill.getLocalId());
+										log.warn("Duplicate publicToken={} in same push batch — keeping newer localId={}, aliasing localId={}",
+												token, currentWinner.getLocalId(), freshBill.getLocalId());
+										continue;
+									}
+								} else {
+									winningBillByToken.put(token, freshBill);
+								}
+							}
 							newBills.add(freshBill);
 							if (isFinalizedOrderStatus(freshBill.getOrderStatus())) {
 								finalizedBills.add(freshBill);
@@ -741,14 +798,10 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 					allRecordsToSave.size(), causeMessage);
 			for (T record : allRecordsToSave) {
 					if (record instanceof Bill bill) {
-						log.error("  Bill: localId={} serverId={} deviceId={} restaurantId={} dailyOrderId={} lifetimeOrderId={} orderType={} subtotal={} total={} paymentMode={} paymentStatus={} orderStatus={} lastResetDate={} createdBy={}",
-								bill.getLocalId(), bill.getId(), bill.getDeviceId(),
-								bill.getRestaurantId(), bill.getDailyOrderId(),
-								bill.getLifetimeOrderId(), bill.getOrderType(),
-								bill.getSubtotal(), bill.getTotalAmount(),
-								bill.getPaymentMode(), bill.getPaymentStatus(),
-								bill.getOrderStatus(), bill.getLastResetDate(),
-								bill.getCreatedBy());
+						log.warn("  Bill: localId={} serverId={} restaurantId={} orderType={} orderStatus={}",
+								bill.getLocalId(), bill.getId(),
+								bill.getRestaurantId(), bill.getOrderType(),
+								bill.getOrderStatus());
 					}
 					try {
 						// REQUIRES_NEW: the batch failure may have aborted the outer
@@ -795,6 +848,28 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 						}
 					}
 				}
+			}
+		}
+
+		// ── Resolve same-batch publicToken aliases ───────────────────────
+		// Superseded/duplicate snapshots were acknowledged as successful but not persisted
+		// under their own localId. Map each alias to its winner's outcome so the device
+		// receives a server id for every acknowledged localId (or a matching failure),
+		// and never re-pushes a snapshot we intentionally dropped.
+		for (Map.Entry<Long, Long> alias : billAliasLocalIds.entrySet()) {
+			Long aliasLocalId = alias.getKey();
+			Long winnerLocalId = alias.getValue();
+			Long winnerServerId = localToServerIdMap.get(winnerLocalId);
+			if (winnerServerId != null) {
+				localToServerIdMap.put(aliasLocalId, winnerServerId);
+				successfulLocalIds.add(aliasLocalId);
+				failedLocalIds.remove(aliasLocalId);
+			} else if (failedLocalIds.contains(winnerLocalId)) {
+				// Winner failed to persist — the alias cannot be acknowledged either.
+				successfulLocalIds.remove(aliasLocalId);
+				failedLocalIds.add(aliasLocalId);
+				failedReasons.put(aliasLocalId,
+						failedReasons.getOrDefault(winnerLocalId, "Superseding snapshot failed to persist"));
 			}
 		}
 

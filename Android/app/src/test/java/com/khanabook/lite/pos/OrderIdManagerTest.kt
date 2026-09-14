@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.billing.domain.OrderIdManager
 
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -77,4 +78,3 @@ class OrderIdManagerTest {
         assertEquals("05", OrderIdManager.getDailyOrderDisplay("2026-03-01", 5, ""))
     }
 }
-

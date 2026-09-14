@@ -1,0 +1,622 @@
+================================================================================
+                         KHANABOOK — ABOUT OUR SAAS
+================================================================================
+
+KhanaBook is an offline-first restaurant POS and billing platform with cloud
+synchronization and integrated digital payments.
+
+Three components:
+  - Android App   — POS terminal for billing, menu, orders (offline-first)
+  - Server (API)  — Spring Boot backend with sync, auth, payments
+  - Web Admin     — Angular dashboard for restaurant & platform management
+
+================================================================================
+                         ROLE SYSTEM
+================================================================================
+
+Three roles in the system:
+
+  OWNER          — Restaurant owner. Full access to everything.
+  SHOP_STAF_F    — All restaurant staff (waiter, cashier, manager, etc.)
+  KBOOK_ADMIN    — Platform admin. Web Admin access only; cannot run POS.
+
+Source: UserRole.java (server), SyncNormalizer.kt (Android)
+
+================================================================================
+                  SINGLE-WRITER MASTER DATA ARCHITECTURE
+================================================================================
+
+THE CORE DESIGN RULE
+  Restrictions exist only where data is SHARED.
+  Access is full wherever data is INDEPENDENT.
+
+TWO DATA DOMAINS
+
+  1. MASTER DATA (shared across all devices)
+     Restaurant config, Menu, Payment config, Tax config.
+     Every device reads the SAME rows — one menu item, one GST setting.
+
+  2. TERMINAL DATA (independent per device)
+     Bills, orders, KOT, reports. Each terminal mints and owns its own
+     records. Terminal A cannot see or touch Terminal B's data.
+
+WHY MASTER DATA IS SINGLE-WRITER
+  Offline-first means edits do not propagate instantly. If multiple
+  devices could edit the same menu item while offline, whole-record LWW
+  (Last-Write-Wins) sync would silently drop fields: Device B's price
+  edit would erase Device A's name edit, and neither user would know.
+
+  Solution: among 4 devices, exactly ONE device (the OWNER's) may WRITE
+  master data. The other 3 are read-only consumers. One writer per
+  shared domain = zero divergence = zero silent field loss.
+
+  Enforcement (verified in code):
+    Android UI:    readOnly = !isOwner (Shop/Payment/Tax config),
+                   canWriteMasterData() guards in MenuViewModel
+    Server:        SyncPushGuard.requireMasterDataWriter() on category/
+                   variant push endpoints; per-record rejection in
+                   MenuItemServiceImpl (staff menu pushes come back as
+                   failedReasons inside a 200 batch so the device sync
+                   loop never hard-fails on a 403); MenuPushAuthorizer
+                   revalidates price/availability/delete per record;
+                   GenericSyncService adds STALE_PUSH_CONFLICT quarantine
+                   and field-level changed-fields merge.
+
+WHY TERMINAL DATA IS FULL-ACCESS
+  Each terminal works independently — terminal records are never edited
+  by two devices, so there is no shared row and nothing to conflict.
+  Isolation replaces authorization: every terminal operation is open to
+  every POS role with no permission gate.
+
+  Isolation enforcement (verified in code):
+    Android DAO:   bill list/detail queries filter
+                   current_owner_terminal_id = :terminalId
+    Server:       cross-terminal pushes rejected (publicToken replay
+                   guard, CROSS_TERMINAL_UPDATE), child records checked
+                   against parent-bill owner (TerminalOwnershipService)
+
+DEVICE-LOCAL SETTINGS (a third domain — per-terminal, never conflict)
+
+  Some settings live only on the device and never sync. Every terminal
+  has its OWN value — that is why staff get full edit access on them:
+  one device's setting can never clash with another's.
+
+    App Lock PIN          Hashed and encrypted in Android Keystore-backed
+                          device prefs (SessionManager:33,384-391 —
+                          KeystoreBackedPreferences). Never pushed to the
+                          server. Terminal A's PIN ≠ Terminal B's PIN.
+
+    Interaction Feedback  Menu sound / haptic / voice toggles stored in
+                          device-local SharedPreferences
+                          (MenuFeedbackPreferences:18-19). Never synced.
+
+    Printer Config        Stored inside the synced RestaurantProfile BUT
+                          merged local-first on every pull
+                          (MasterSyncProcessor:1127-1154): each device
+                          keeps its own printer name/MAC/paper size/
+                          auto-print; remote values only bootstrap a
+                          device whose local value is blank. Paired
+                          printers also live in a local Room table
+                          (PrinterProfileEntity). Result: Terminal A can
+                          print on its counter printer, Terminal B on
+                          its own — no conflict.
+
+    Password (nuance)     Change Password is the ONE exception: it is
+                          per-USER-ACCOUNT, not per-terminal. In a
+                          restaurant with 1 owner + 4 staff, each person
+                          has their OWN account and changes only their
+                          own password. The screen pre-fills the phone
+                          of the logged-in user
+                          (ChangePasswordView:77-78 currentUser), the
+                          OTP goes to THAT person's phone via WhatsApp,
+                          and the server updates only the account that
+                          phone belongs to (UserRepository:361
+                          remoteResetPassword). Owner changing their
+                          password never touches staff passwords and
+                          vice versa. It DOES apply on every device
+                          where that account signs in — correct for a
+                          login credential, but it is shared state
+                          across devices, not across people.
+
+  These device-local settings are editable by any role on the device.
+  No single-writer rule needed: there is no shared record to diverge.
+
+SUMMARY TABLE
+
+  Data                        Who writes      Who reads
+  ─────────────────────────────────────────────────────────────
+  Restaurant config           OWNER only      All devices
+  Menu                        OWNER only      All devices
+  Payment config              OWNER only      All devices
+  Tax config                  OWNER only      All devices
+  Bills/Orders/KOT/Reports    Own terminal    Own terminal only
+  App lock PIN                Own device      Own device only
+  Interaction feedback        Own device      Own device only
+  Printer config              Own device      Own device only
+  Account password            Own user account All devices (that account)
+
+--------------------------------------------------------------------------------
+                    MOBILE NUMBER = UNIQUE IDENTITY
+--------------------------------------------------------------------------------
+
+  Every account (1 owner + N staff) is identified by a UNIQUE 10-digit
+  mobile number. Uniqueness is enforced at the DATABASE level:
+
+    User.java:29        @Column(name = "phone_number", unique = true)
+    UserRepository:28   findByPhoneNumber() — resolves exactly ONE user
+    LoginRequest        login accepts 10-digit phone OR email
+
+  Because the phone resolves to exactly one account, OTP-based password
+  flows are inherently self-scoping: the OTP proves ownership of THAT
+  number, so only THAT account's password can change. Owner and each
+  staff member manage their own login independently.
+
+--------------------------------------------------------------------------------
+                    PASSWORD RESET — TWO FLOWS (OTP-BASED)
+--------------------------------------------------------------------------------
+
+  A. CHANGE PASSWORD (logged in — Android Settings)
+     /auth/reset-password/request  → issue OTP
+     /auth/reset-password          → verify OTP + set new password
+     - Phone field is LOCKED to the logged-in account
+       (ChangePasswordView — readOnly, synced from currentUser)
+     - Server (AuthServiceImpl:375-394): validates OTP, rejects
+       new==old, sets passwordHash, sets tokenInvalidatedAt, and
+       REVOKES ALL REFRESH TOKENS for that user — that account is
+       logged out on every device; other users are unaffected.
+     - Rate limited per phone AND per IP.
+
+  B. FORGOT PASSWORD (login screen — no session)
+     Android app:  /auth/reset-password/* (same endpoints as above)
+     Web Admin:    /auth/forgot-password/request-otp
+                   /auth/forgot-password/verify-otp  → temp token (10 min)
+                   /auth/forgot-password/reset-password
+     - Any phone can be typed, but the OTP goes to THAT phone via
+       WhatsApp — possession of the number IS the authorization.
+     - Account-not-found still returns 200 (no user enumeration).
+
+  Known inconsistencies (web flow): does not revoke refresh tokens
+  (Android flow does), no new==old check, and the temp-token store is
+  in-memory (single server instance only).
+
+================================================================================
+================================================================================
+                         ANDROID APP
+================================================================================
+================================================================================
+
+--------------------------------------------------------------------------------
+                    SHOP OWNER — FULL CAPABILITY MAP (ANDROID)
+--------------------------------------------------------------------------------
+
+The OWNER is the super-user. hasPermission() returns true for all 27
+permission keys automatically. No PIN required for voiding bills.
+
+  BILLING (no restrictions)
+    - Create, edit, void/cancel bills — no PIN required for void
+    - Apply discounts, process refunds
+    - Settle payments (Cash, POS, UPI QR, UPI Collect, Easebuzz Online, Payment Link)
+    - Dynamic UPI QR generation per order
+    - Print/reprint bills and kitchen tickets (KOT)
+
+  MENU MANAGEMENT (OWNER only)
+    - Full CRUD — add/edit/delete categories and items
+    - OCR import via camera, gallery, or PDF
+    - Toggle item availability, edit prices
+    - Staff sees read-only menu
+
+  REPORTS
+    - Daily/Weekly/Monthly/Custom date range
+    - Payment-level and order-level reports
+    - PDF export and share, GST reports
+
+  ORDERS
+    - View all active/completed orders
+    - Add items to draft orders, collect payment, cancel orders
+
+  RESTAURANT CONFIG (OWNER only)
+    - Shop name, address, phone, logo, review URL, invoice footer
+    - Staff sees read-only
+
+  PAYMENT CONFIG (OWNER only)
+    - Toggle Cash/POS/UPI/Easebuzz, set UPI VPA, Easebuzz onboarding
+
+  TAX CONFIG (OWNER only)
+    - GST number, rate, HSN code, tax-inclusive/exclusive, FSSAI
+
+  PRINTER CONFIG (OWNER + Staff)
+    - Bluetooth/WiFi printer pairing, bill and kitchen printer targets
+
+  STAFF MANAGEMENT (OWNER only)
+    - 27 granular permissions, create/apply templates
+    - Staff auto-gets: billing.create, billing.edit, billing.discount, billing.settle
+
+  COMPLIANCE (OWNER only)
+    - Upload settlement KYC documents, sign merchant agreement
+
+  OTHER
+    - App lock, change password, sync center, notifications
+    - Search invoices, call customers, payment links, quick start wizard
+
+--------------------------------------------------------------------------------
+                    SHOP STAFF — CAPABILITY MAP (ANDROID)
+--------------------------------------------------------------------------------
+
+Staff devices are read-only consumers of master data (see SINGLE-WRITER
+MASTER DATA ARCHITECTURE above). Terminal operations are full-access,
+scoped to the staff member's own terminal. No "request access" flow —
+staff cannot prompt the owner for permissions.
+
+  BILLING (auto-granted)
+    - Create bills (billing.create)
+    - Edit bills (billing.edit)
+    - Apply discounts (billing.discount)
+    - Settle payments (billing.settle)
+    - Cancel bill via Orders tab:   allowed, no PIN (reason dialog only)
+    - Cancel bill via Active order: allowed with Manager/Owner PIN
+    - Cannot process refunds (needs billing.refund)
+
+  MENU
+    - View only — read-only, cannot edit
+    - Needs menu.edit_full or individual grants for any write
+
+  TERMINAL OPERATIONS — FULL ACCESS (own terminal only)
+    Every terminal works independently, so all terminal operations are
+    open with no permission gate (isolation replaces authorization):
+    - Create new bill / create new order
+    - Edit billing mode / payment mode of own bills
+    - Cancel bill (Orders tab: no PIN; Active order: Manager PIN)
+    - Call customers
+    - Reprint KOT / reprint KDS
+    - Find/search bills
+    - View active orders
+    - View reports / download reports (PDF + share)
+
+  REPORTS
+    - Full access — terminal-scoped (shows own terminal's bills, the
+      same data staff already see in Orders/Active Orders)
+    - reports.* permission keys exist but are intentionally not enforced
+      in the POS UI; reserved for future use
+
+  SETTINGS — READ-ONLY
+    Shop Config:    readOnly = !isOwner, banner shown, all fields disabled
+    Payment Config: readOnly = !isOwner, banner shown, all toggles disabled
+    Tax Config:     readOnly = !isOwner, banner shown, all fields disabled
+
+  SETTINGS — DEVICE-LOCAL (full edit, per-terminal — see architecture section)
+    Printer Config:       Merged local-first on sync; each terminal pairs
+                          and drives its own printer fully
+    App Lock:             PIN hashed in Keystore-backed device prefs;
+                          per-terminal, never synced
+    Interaction Feedback: Sound/haptic/voice in device-local prefs;
+                          per-terminal, never synced
+    Change Password:      Own account ONLY — OTP is sent to the logged-in
+                          person's own phone, so 1 owner + N staff each
+                          manage their own login independently; a change
+                          affects that account on all devices it signs
+                          in from (not other users)
+    Sync Center:          View sync health, force sync, repair conflicts
+    Notifications:        View, mark read, refresh from server
+
+  STAFF MANAGEMENT:    No access — needs staff.view/add/edit/remove/permissions
+  COMPLIANCE:          No access — OWNER only
+
+--------------------------------------------------------------------------------
+                    AUTO-GRANTED PERMISSIONS (STAFF — ANDROID)
+--------------------------------------------------------------------------------
+
+  billing.create    — Create Bills
+  billing.edit      — Edit Bills
+  billing.discount  — Apply Discounts
+  billing.settle    — Mark Payment Received
+
+================================================================================
+================================================================================
+                         SERVER (API)
+================================================================================
+================================================================================
+
+--------------------------------------------------------------------------------
+                    ENDPOINT AUTHORIZATION MAP
+--------------------------------------------------------------------------------
+
+  PUBLIC (no authentication)
+    /auth/login, /auth/pin/login, /auth/refresh, /auth/signup
+    /auth/google, /auth/check-user
+    /auth/reset-password/**, /auth/forgot-password/**
+    /payments/easebuzz/webhook, /payments/easebuzz/return
+    /public/**, /cdn/**, /docs/**, /swagger-ui/**
+    /actuator/health
+
+  KBOOK_ADMIN ONLY
+    /admin/**                    — All admin endpoints (SecurityConfig line 151)
+    /actuator/**                 — Actuator endpoints (SecurityConfig line 150)
+    /admin/dashboard/**          — Platform dashboard
+    /admin/businesses/**         — Business management
+    /admin/feature-flags/**      — Feature flag management
+    /admin/settlements/**        — Settlement reports
+    /admin/transactions/**       — Transaction reports
+    /admin/commission/**         — Commission management
+    /admin/reports/**            — Admin reports
+    /admin/notifications/**      — Notification management
+    /admin/sub-merchants/**      — Sub-merchant management
+    /admin/webhooks/**           — Webhook health
+
+  OWNER ONLY (SecurityConfig line 156)
+    /business/**                 — All business endpoints
+    /business/dashboard          — Business dashboard
+    /business/orders/**          — Order management
+    /business/menu/**            — Menu CRUD
+    /business/staff/**           — Staff management
+    /business/terminals/**       — Terminal management
+    /business/bills/**           — Bill operations
+    /menus/**                    — Menu extraction (AI/OCR)
+    @RequireRole(OWNER) on write operations in BusinessAdminController
+
+  OWNER + SHOP_STAFF (SecurityConfig lines 160, 169)
+    /sync/terminal/**            — Terminal onboarding
+    /sync/**                     — Operational sync (push/pull)
+
+  ALL AUTHENTICATED (OWNER + SHOP_STAFF + KBOOK_ADMIN)
+    /sync/master/pull            — Master data sync pull
+
+--------------------------------------------------------------------------------
+                    SERVER-SIDE PERMISSION CHECKS
+--------------------------------------------------------------------------------
+
+  PermissionService.hasPermission() (line 98-107):
+    - OWNER and KBOOK_ADMIN: always returns true (all 27 keys)
+    - SHOP_STAFF: auto-grants 4 billing keys, rest require explicit DB grant
+
+  SyncPushGuard:
+    - requireMasterDataWriter(): Only OWNER/KBOOK_ADMIN can push menu changes
+    - requirePermission(key): SHOP_STAFF must have explicit grant
+
+  @RequireRole annotation:
+    - Method-level role gate via AOP aspect
+    - Used on: staff CRUD, permission management, terminal management,
+      menu writes, inventory, bill void
+
+  Offline Authorization (OfflineAuthClass):
+    - OFFLINE_ALLOWED: billing.create, billing.edit, menu.view, orders.view
+    - REVALIDATED_ON_SYNC: billing.settle, billing.void, menu edits
+    - ONLINE_ONLY: billing.refund, reports.full, reports.gst
+    - NEVER_OFFLINE: all staff.*, settings.*
+
+--------------------------------------------------------------------------------
+                    SERVER ROLE ENFORCEMENT
+--------------------------------------------------------------------------------
+
+  JwtRequestFilter:
+    - Extracts role from JWT, sets as Spring Security authority
+    - Blocks suspended businesses (KBOOK_ADMIN exempt)
+    - Admin IP allowlist (KBOOK_ADMIN only)
+    - Token revocation via JTI blocklist
+
+  TenantContext (Thread-Local):
+    - Stores: restaurantId, role, userId, terminalId
+    - Set per-request, cleared in filter finally block
+
+  TerminalRequestFilter:
+    - Validates X-Terminal-Token header for sync endpoints
+    - KBOOK_ADMIN exempt from terminal identity requirements
+
+  UserProfileSyncService:
+    - New users created via sync are always OWNER
+    - KBOOK_ADMIN can only be created via web-admin
+
+--------------------------------------------------------------------------------
+                    SERVER ROLE ACCESS MATRIX
+--------------------------------------------------------------------------------
+
+  Operation                       OWNER   SHOP_STAFF   KBOOK_ADMIN
+  ─────────────────────────────────────────────────────────────────
+  Auth (login/signup/refresh)     YES     YES          YES
+  Sync pull (master data)         YES     YES          YES (+ tenant impersonation)
+  Bill/item/payment push          YES     With perm    YES (no terminal required)
+  Menu/category/variant push      YES     NO (master)  YES
+  Staff management (CRUD)         YES     NO           Via /admin/**
+  Permission management           YES     Can request  N/A
+  Inventory management            YES     NO           Via sync
+  Terminal management (web)       YES     NO           N/A
+  Terminal onboarding (device)    YES     YES          Blocked from reclaim
+  Payment operations              YES     With perm    Different path
+  Feature flags                   N/A     N/A          YES
+  Business suspend/activate       N/A     N/A          YES
+
+================================================================================
+================================================================================
+                         WEB ADMIN (ANGULAR)
+================================================================================
+================================================================================
+
+--------------------------------------------------------------------------------
+                    PAGE ACCESS BY ROLE
+--------------------------------------------------------------------------------
+
+  Page                            KBOOK_ADMIN   OWNER   SHOP_STAFF
+  ─────────────────────────────────────────────────────────────────
+  Platform Dashboard              YES           NO      NO
+  Businesses                      YES           NO      NO
+  Feature Flags                   YES           NO      NO
+  Business Dashboard              NO            YES     NO
+  Reports                         NO            YES     NO
+  Daily Closing                   NO            YES     NO
+  Orders                          NO            YES     NO
+  Active Orders                   NO            YES*    NO
+  Menu                            NO            YES     NO
+  Inventory                       NO            YES     NO
+  Staff                           NO            YES     NO
+  Terminals                       NO            YES     NO
+  Settings                        NO            YES     NO
+  Limited Access                  YES**         YES**   YES**
+
+  * Active Orders only when orderPaymentFlowMode === 'pay_after_food'
+  ** Any authenticated user can land here if redirected
+
+--------------------------------------------------------------------------------
+                    POST-LOGIN REDIRECT
+--------------------------------------------------------------------------------
+
+  KBOOK_ADMIN  → /admin/dashboard
+  OWNER        → /business/dashboard
+  SHOP_STAFF   → /limited-access (zero sidebar links, all routes blocked)
+
+--------------------------------------------------------------------------------
+                    SIDEBAR NAVIGATION
+--------------------------------------------------------------------------------
+
+  KBOOK_ADMIN sees:
+    - Platform Dashboard
+    - Businesses
+    - Feature Flags
+
+  OWNER sees:
+    - Business Dashboard
+    - Active Orders (if pay_after_food mode)
+    - Daily Closing
+    - Reports
+    - Orders
+    - Menu
+    - Inventory
+    - Staff
+    - Settings
+    - Devices (Terminals)
+
+  SHOP_STAFF sees:
+    - Zero navigation links (empty sidebar)
+    - Redirected to /limited-access on any route attempt
+
+--------------------------------------------------------------------------------
+                    BUTTON-LEVEL PERMISSIONS (WEB — OWNER PAGES)
+--------------------------------------------------------------------------------
+
+  Staff Page:
+    - "Add Staff" button: OWNER only
+    - Actions column (edit/deactivate): OWNER only
+    - Permissions button: OWNER only, not for self, not for other OWNERs
+    - Self-deactivate prevention: button disabled with tooltip
+
+  Menu Page:
+    - "Add Item" button: OWNER only
+    - Actions column (edit/delete): OWNER only
+    - Mobile actions: OWNER only
+
+  Terminals Page:
+    - "Reactivate" button: OWNER only via canManageTerminals()
+    - Inactive terminal shows "Deactivated" text for non-OWNER
+
+  Staff Form Modal:
+    - Only SHOP_STAFF can be created (no OWNER/KBOOK_ADMIN option)
+    - Self-role-change prevention: role dropdown disabled for self
+
+  Staff Permissions Modal:
+    - 27 permission keys across 6 categories
+    - Built-in templates: Counter Staff, Manager
+    - Server-backed templates: create, apply
+
+--------------------------------------------------------------------------------
+                    WEB ADMIN — SHOP_STAFF EXPERIENCE
+--------------------------------------------------------------------------------
+
+  1. Login → redirected to /limited-access
+  2. Sidebar shows zero navigation links
+  3. Any route attempt → roleGuard redirects back to /limited-access
+  4. Any API 403 → interceptor redirects to /limited-access
+  5. Page shows: role label "Sales Staff" + guidance message
+
+  SHOP_STAFF has effectively ZERO access to web-admin UI.
+  Their interaction is entirely through the Android POS device.
+
+--------------------------------------------------------------------------------
+                    WEB ADMIN — AUTH & SECURITY
+--------------------------------------------------------------------------------
+
+  Token Storage: sessionStorage (not localStorage) — reduced XSS surface
+  Role Guard: canActivate function checks route.data['roles'] against session.role
+  JWT Interceptor: 401 → logout + redirect to /login
+                   403 → redirect to /limited-access (unless BUSINESS_SUSPENDED)
+  Auth Guard: checks isAuthenticated() before any protected route
+
+================================================================================
+                         ALL 27 PERMISSION KEYS
+================================================================================
+
+  BILLING
+    billing.create       — Create Bills
+    billing.edit         — Edit Bills
+    billing.void         — Cancel/Void Bills
+    billing.discount     — Apply Discounts
+    billing.refund       — Process Refunds
+    billing.settle       — Mark Payment Received
+
+  MENU
+    menu.view                — View Menu
+    menu.toggle_availability — Toggle Availability
+    menu.edit_price          — Change Prices
+    menu.edit_full           — Full Menu Editing
+    menu.add_item            — Add Items
+    menu.delete_item         — Remove Items
+
+  ORDERS
+    orders.view      — View Orders
+    orders.kot_view  — Kitchen Queue
+    orders.kot_ready — Mark Ready
+    orders.kot_void  — Void KOT Items
+
+  REPORTS
+    reports.day_summary — Day Summary
+    reports.full        — Full Reports
+    reports.gst         — GST Reports
+    reports.export      — Export Data
+
+  STAFF
+    staff.view        — View Staff
+    staff.add         — Add Staff
+    staff.edit        — Edit Staff
+    staff.remove      — Deactivate Staff
+    staff.permissions — Manage Permissions
+
+  SETTINGS
+    settings.shop_profile — Shop Profile
+    settings.payment      — Payment Settings
+    settings.printer      — Printer Settings
+    settings.terminal     — Manage Devices
+    settings.gst          — GST/FSSAI Settings
+
+================================================================================
+                         KEY SOURCE FILES
+================================================================================
+
+  ANDROID
+    PermissionManager.kt        — 27 permission keys, role checks
+    SessionManager.kt           — isOwner(), canWriteConfig(), canUsePos()
+    SyncNormalizer.kt           — Role normalization
+    SettingsScreen.kt           — isOwner computation, readOnly routing
+    StaffPermissionScreen.kt    — Owner-facing permission management UI
+    AppNavGraph.kt              — Navigation routes
+
+  SERVER
+    UserRole.java               — Role enum (OWNER, SHOP_STAFF, KBOOK_ADMIN)
+    PermissionKey.java          — 27 permission key constants
+    PermissionService.java      — hasPermission(), auto-grant logic
+    SecurityConfig.java         — URL-level role gating
+    JwtRequestFilter.java       — Auth, role extraction, suspension check
+    RequireRole.java            — Method-level role annotation
+    SyncPushGuard.java          — Sync write authorization
+    OfflineAuthClass.java       — Offline permission classification
+    BusinessAdminController.java — Owner-only business endpoints
+    AdminDashboardController.java — Admin-only platform endpoints
+    PermissionController.java   — Permission CRUD endpoints
+
+  WEB ADMIN
+    app.routes.ts               — Route definitions with roleGuard
+    role.guard.ts               — canActivate role check
+    auth.service.ts             — getLandingPath(), navigateByRole()
+    sidebar-layout.component.ts — Role-based sidebar links
+    staff-page.component.ts     — isOwner button gating
+    menu-page.component.ts      — isOwner button gating
+    terminals-page.component.ts — canManageTerminals() gating
+    staff-permissions-modal.component.ts — 27 permission keys UI
+    token-storage.service.ts    — sessionStorage for JWT
+    jwt.interceptor.ts          — 401/403 handling

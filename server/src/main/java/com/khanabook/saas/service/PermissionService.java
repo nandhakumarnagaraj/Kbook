@@ -244,14 +244,15 @@ public class PermissionService {
 
         var keys = parsePermissionsList(template.getPermissions());
 
-        // Revoke all existing, then grant template permissions
-        permissionRepo.findByRestaurantIdAndUserId(restaurantId, userId)
-                .forEach(p -> {
-                    p.setGranted(false);
-                    p.setRevokedAt(System.currentTimeMillis());
-                    p.setUpdatedAt(System.currentTimeMillis());
-                    permissionRepo.save(p);
-                });
+        // Revoke all currently-granted permissions via revokePermission so each
+        // removed key bumps the revision and stamps lastRevokedRevision (strict
+        // sync revalidation). Materialize the key list first to avoid mutating rows
+        // while iterating the query result. Then grant the template's permissions.
+        List<String> grantedKeys = permissionRepo.findByRestaurantIdAndUserId(restaurantId, userId).stream()
+                .filter(p -> Boolean.TRUE.equals(p.getGranted()))
+                .map(StaffPermission::getPermissionKey)
+                .collect(Collectors.toList());
+        grantedKeys.forEach(key -> revokePermission(restaurantId, userId, key));
 
         bulkGrant(restaurantId, userId, keys, grantedBy);
     }

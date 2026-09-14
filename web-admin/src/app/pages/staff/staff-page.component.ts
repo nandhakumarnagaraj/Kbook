@@ -1,175 +1,46 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/models/api.models';
+import { BusinessStaffItem } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 import { formatDate } from '../../shared/formatters';
+import { StaffFormModalComponent } from './staff-form-modal.component';
+import { StaffPermissionsModalComponent } from './staff-permissions-modal.component';
 
 @Component({
   selector: 'app-staff-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
   styles: [`
-    .modal-content {
-      width: 100%;
-      max-width: 460px;
-    }
-    .modal-content h3 {
-      margin: 0 0 1.5rem;
-      color: var(--kb-color-foreground);
-    }
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 0.25rem;
-      font-size: 0.875rem;
-      color: var(--kb-color-foreground);
-      font-weight: 500;
-    }
-    .form-group .field-control,
-    .form-group .field-select {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .field-error {
-      color: var(--kb-color-error);
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-    .form-error {
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid var(--kb-color-error);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      color: var(--kb-color-error);
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-    }
-    .success-section {
-      text-align: center;
-      padding: var(--kb-space-4) 0;
-    }
-    .success-section h4 {
-      color: var(--kb-color-primary);
-      margin: 0 0 var(--kb-space-2);
-    }
-    .temp-password {
-      background: var(--kb-color-surface);
-      border: 1px dashed var(--kb-color-primary);
-      border-radius: var(--kb-radius-lg);
-      padding: var(--kb-space-3);
-      margin: var(--kb-space-3) 0;
-      font-family: ui-monospace, monospace;
-      font-size: 0.85rem;
-      letter-spacing: 0.05em;
-      color: var(--kb-color-foreground);
-      word-break: break-all;
-    }
-    .success-section p.muted {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-    }
     .action-cell {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
+      display: flex; gap: 0.5rem; align-items: center;
     }
     .action-btn {
-      padding: var(--kb-space-2) var(--kb-space-3);
-      border-radius: var(--kb-radius-lg);
-      font-size: 0.78rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid var(--kb-color-border);
-      background: transparent;
-      color: var(--kb-color-foreground);
-      transition: background 0.15s ease, transform 0.12s var(--ease-out, ease-out);
+      padding: var(--kb-space-2) var(--kb-space-3); border-radius: var(--kb-radius-lg);
+      font-size: 0.78rem; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--kb-color-border); background: transparent;
+      color: var(--kb-color-foreground); transition: background 0.15s ease, transform 0.12s var(--ease-out, ease-out);
     }
-    .action-btn:hover:not(:disabled) {
-      background: var(--kb-color-surface-2);
-    }
-    .action-btn:active:not(:disabled) {
-      transform: scale(0.96);
-    }
-    .action-btn--danger {
-      color: var(--kb-color-error);
-      border-color: var(--danger);
-    }
-    .action-btn--danger:hover:not(:disabled) {
-      background: rgba(239, 68, 68, 0.06);
-    }
-    .action-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .tooltip-wrapper {
-      position: relative;
-      display: inline-block;
-    }
+    .action-btn:hover:not(:disabled) { background: var(--kb-color-surface-2); }
+    .action-btn:active:not(:disabled) { transform: scale(0.96); }
+    .action-btn--danger { color: var(--kb-color-error); border-color: var(--danger); }
+    .action-btn--danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.06); }
+    .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .tooltip-wrapper { position: relative; display: inline-block; }
     .tooltip-wrapper .tooltip-text {
-      visibility: hidden;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--kb-color-foreground);
-      color: #fff;
-      font-size: 0.7rem;
-      padding: var(--kb-space-1) var(--kb-space-2);
-      border-radius: var(--kb-radius-md);
-      white-space: nowrap;
-      z-index: 10;
+      visibility: hidden; position: absolute; bottom: 100%; left: 50%;
+      transform: translateX(-50%); background: var(--kb-color-foreground); color: #fff;
+      font-size: 0.7rem; padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-md); white-space: nowrap; z-index: 10;
       margin-bottom: var(--kb-space-1);
     }
-    .tooltip-wrapper:hover .tooltip-text {
-      visibility: visible;
-    }
-    .role-disabled-note {
-      font-size: 0.75rem;
-      color: var(--kb-color-muted-foreground);
-      font-style: italic;
-      margin-top: var(--kb-space-1);
-    }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 22px;
-    }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: var(--kb-color-border);
-      border-radius: 22px;
-      transition: 0.2s;
-    }
-    .toggle-slider::before {
-      content: "";
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      left: 3px;
-      bottom: 3px;
-      background: var(--kb-color-foreground);
-      border-radius: 50%;
-      transition: 0.2s;
-    }
-    .toggle-switch input:checked + .toggle-slider {
-      background: var(--kb-color-primary);
-    }
-    .toggle-switch input:checked + .toggle-slider::before {
-      transform: translateX(18px);
-    }
+    .tooltip-wrapper:hover .tooltip-text { visibility: visible; }
   `],
   template: `
     <div class="page-shell">
@@ -194,137 +65,21 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <app-api-state
-        *ngIf="loadError"
+        *ngIf="loadError()"
         [loading]="false"
-        [error]="loadError"
+        [error]="loadError()"
         (retry)="loadStaff()"
       ></app-api-state>
 
-      <!-- Create Staff Modal -->
-      <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
-          <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-staff-title" (click)="$event.stopPropagation()">
-            <!-- Success View -->
-          <ng-container *ngIf="createdStaff; else createFormView">
-            <div class="success-section">
-              <h4 id="create-staff-title">Staff Member Created</h4>
-              <p><strong>{{ createdStaff.name }}</strong> ({{ createdStaff.role }})</p>
-              <p>Temporary Password:</p>
-              <div class="temp-password">{{ createdStaff.temporaryPassword }}</div>
-              <button type="button" class="ghost-btn" (click)="copyTemporaryPassword()">Copy temporary password</button>
-              <p class="muted">This password is shown once. Share it securely; the staff member will need it for their first login.</p>
-            </div>
-            <div class="modal-actions">
-              <button class="primary-btn" (click)="closeCreateModal()">Done</button>
-            </div>
-          </ng-container>
-
-          <!-- Form View -->
-          <ng-template #createFormView>
-            <h3 id="create-staff-title">Add Staff Member</h3>
-
-            <div class="form-error" *ngIf="createError">{{ createError }}</div>
-
-            <form [formGroup]="staffForm" (ngSubmit)="submitCreate()">
-              <div class="form-group">
-                <label for="staff-name">Name *</label>
-                <input id="staff-name" class="field-control" type="text" formControlName="name" placeholder="Full name" />
-                <div class="field-error" *ngIf="staffForm.get('name')?.touched && staffForm.get('name')?.hasError('required')">
-                  Name is required.
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="staff-phone">Phone (10 digits) *</label>
-                <input id="staff-phone" class="field-control" type="text" formControlName="phone" placeholder="10-digit phone number" maxlength="10" />
-                <div class="field-error" *ngIf="staffForm.get('phone')?.touched && staffForm.get('phone')?.hasError('required')">
-                  Phone is required.
-                </div>
-                <div class="field-error" *ngIf="staffForm.get('phone')?.touched && staffForm.get('phone')?.hasError('pattern') && !staffForm.get('phone')?.hasError('required')">
-                  Phone must be exactly 10 digits.
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="staff-role-select">Role *</label>
-                <select id="staff-role-select" class="field-select" formControlName="role">
-                  <option value="" disabled>Select a role</option>
-                  <option value="SHOP_STAFF">Staff</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="staff-email">Email (optional)</label>
-                <input id="staff-email" class="field-control" type="email" formControlName="email" placeholder="Email address" />
-                <div class="field-error" *ngIf="staffForm.get('email')?.touched && staffForm.get('email')?.hasError('email')">
-                  Enter a valid email address.
-                </div>
-              </div>
-
-              <div class="modal-actions">
-                <button type="button" class="ghost-btn" (click)="closeCreateModal()" [disabled]="creating">Cancel</button>
-                <button type="submit" class="primary-btn" [disabled]="staffForm.invalid || creating">
-                  {{ creating ? 'Creating...' : 'Create Staff' }}
-                </button>
-              </div>
-            </form>
-          </ng-template>
-        </div>
-      </div>
-
-      <!-- Edit Staff Modal -->
-      <div class="modal-backdrop" *ngIf="showEditModal" (click)="closeEditModal()">
-          <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="edit-staff-title" (click)="$event.stopPropagation()">
-            <h3 id="edit-staff-title">Edit Staff Member</h3>
-
-          <div class="form-error" *ngIf="editError">{{ editError }}</div>
-
-          <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
-            <div class="form-group">
-              <label for="edit-staff-name">Name *</label>
-              <input id="edit-staff-name" class="field-control" type="text" formControlName="name" placeholder="Full name" />
-              <div class="field-error" *ngIf="editForm.get('name')?.touched && editForm.get('name')?.hasError('required')">
-                Name is required.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-staff-phone">Phone (10 digits) *</label>
-              <input id="edit-staff-phone" class="field-control" type="text" formControlName="phone" placeholder="10-digit phone number" maxlength="10" />
-              <div class="field-error" *ngIf="editForm.get('phone')?.touched && editForm.get('phone')?.hasError('required')">
-                Phone is required.
-              </div>
-              <div class="field-error" *ngIf="editForm.get('phone')?.touched && editForm.get('phone')?.hasError('pattern') && !editForm.get('phone')?.hasError('required')">
-                Phone must be exactly 10 digits.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-staff-role">Role *</label>
-              <select id="edit-staff-role" class="field-select" formControlName="role">
-                <option value="SHOP_STAFF">Staff</option>
-              </select>
-              <div class="role-disabled-note" *ngIf="isEditingSelf">
-                Cannot change your own role
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-staff-email">Email (optional)</label>
-              <input id="edit-staff-email" class="field-control" type="email" formControlName="email" placeholder="Email address" />
-              <div class="field-error" *ngIf="editForm.get('email')?.touched && editForm.get('email')?.hasError('email')">
-                Enter a valid email address.
-              </div>
-            </div>
-
-            <div class="modal-actions">
-              <button type="button" class="ghost-btn" (click)="closeEditModal()" [disabled]="editing">Cancel</button>
-              <button type="submit" class="primary-btn" [disabled]="editForm.invalid || editing">
-                {{ editing ? 'Saving...' : 'Save Changes' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <!-- Staff Form Modal (Create/Edit) -->
+      <app-staff-form-modal
+        [open]="showFormModal()"
+        [isEdit]="formMode() === 'edit'"
+        [editItem]="editingStaff()"
+        [disableRoleForSelf]="editingSelf()"
+        (close)="closeFormModal()"
+        (saved)="loadStaff()"
+      />
 
       <!-- Deactivate Confirmation Dialog -->
       <app-confirm-dialog
@@ -338,7 +93,7 @@ import { formatDate } from '../../shared/formatters';
         (cancelled)="cancelDeactivate()"
       ></app-confirm-dialog>
 
-      <section class="panel filter-panel" *ngIf="loaded && staff.length">
+      <section class="panel filter-panel" *ngIf="loaded() && staff().length">
         <div class="filter-grid">
           <div class="filter-group">
             <label for="staff-search">Search</label>
@@ -355,7 +110,7 @@ import { formatDate } from '../../shared/formatters';
             <label for="staff-role">Role</label>
             <select id="staff-role" class="field-select" [(ngModel)]="roleFilter" (ngModelChange)="resetPage()">
               <option value="ALL">All roles</option>
-              <option *ngFor="let role of roleOptions" [value]="role">{{ role }}</option>
+              <option *ngFor="let role of roleOptions; trackBy: trackByIndex" [value]="role">{{ role }}</option>
             </select>
           </div>
           <div class="filter-group">
@@ -377,12 +132,12 @@ import { formatDate } from '../../shared/formatters';
         </div>
 
         <div class="filter-summary">
-          <p class="muted">{{ filteredStaff.length }} of {{ staff.length }} staff members</p>
+          <p class="muted">{{ filteredStaff.length }} of {{ staff().length }} staff members</p>
           <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
         </div>
       </section>
 
-      <div class="panel table-wrap" *ngIf="loaded && pagedStaff.length; else loading">
+      <div class="panel table-wrap" *ngIf="loaded() && pagedStaff.length; else loading">
         <table class="data-table">
           <thead>
             <tr>
@@ -396,7 +151,7 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of pagedStaff">
+            <tr *ngFor="let item of pagedStaff; trackBy: trackByUserId">
               <td>{{ item.name }}</td>
               <td>{{ item.loginId }}</td>
               <td><span class="chip-pill" [class.chip-pill--ok]="item.role === 'OWNER'">{{ item.role }}</span></td>
@@ -434,7 +189,7 @@ import { formatDate } from '../../shared/formatters';
         </table>
 
         <div class="mobile-data-list" aria-label="Staff members">
-          <article class="mobile-data-card" *ngFor="let item of pagedStaff">
+          <article class="mobile-data-card" *ngFor="let item of pagedStaff; trackBy: trackByUserId">
             <div class="mobile-data-card__head"><strong>{{ item.name }}</strong><span class="chip" [class.success]="item.active" [class.warn]="!item.active">{{ item.active ? 'Active' : 'Inactive' }}</span></div>
             <p>{{ item.loginId }} · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
             <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
@@ -455,14 +210,14 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading" *ngIf="!loaded; else staffEmpty">
+        <div class="panel loading" *ngIf="!loaded(); else staffEmpty">
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
         </div>
         <ng-template #staffEmpty>
           <app-empty-state
-            *ngIf="!loadError"
+            *ngIf="!loadError()"
             icon="👥"
             title="No staff match the current filters"
             text="Try a different search, role, or status filter. Owners can add a new team member."
@@ -473,101 +228,23 @@ import { formatDate } from '../../shared/formatters';
       </ng-template>
 
       <!-- Permissions Modal -->
-      <div class="modal-backdrop" *ngIf="showPermissionsModal" (click)="closePermissionsModal()">
-        <div class="modal-box modal-content" role="dialog" aria-modal="true" style="max-width:560px" (click)="$event.stopPropagation()">
-          <h3 style="margin:0 0 0.5rem">Permissions — {{ permissionsStaff?.name }}</h3>
-          <p class="muted" style="margin:0 0 1.25rem;font-size:0.85rem">
-            Role: <span class="chip">{{ permissionsStaff?.role }}</span>
-          </p>
-
-          <div *ngIf="permissionsLoading" class="loading">Loading permissions...</div>
-
-          <div *ngIf="!permissionsLoading">
-            <!-- Built-in quick templates -->
-            <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-              <button class="ghost-btn" (click)="applyCounterStaffTemplate()" style="font-size:0.8rem">Counter Staff</button>
-              <button class="ghost-btn" (click)="applyManagerTemplate()" style="font-size:0.8rem">Manager</button>
-              <button class="ghost-btn" (click)="openCreateTemplate()" style="font-size:0.8rem;border-style:dashed">+ Save as Template</button>
-            </div>
-
-            <!-- Server DB templates -->
-            <div *ngIf="roleTemplates.length > 0" style="margin-bottom:1rem">
-              <strong style="font-size:0.75rem;color:var(--kb-color-muted-foreground);text-transform:uppercase;letter-spacing:0.05em">Saved Templates</strong>
-              <div *ngFor="let tpl of roleTemplates" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
-                <div>
-                  <span style="font-size:0.875rem;font-weight:500">{{ tpl.name }}</span>
-                  <span style="font-size:0.75rem;color:var(--kb-color-muted-foreground);margin-left:0.5rem">{{ tpl.permissions?.length || 0 }} permissions</span>
-                </div>
-                <button class="ghost-btn" style="font-size:0.75rem" (click)="applyServerTemplate(tpl)">Apply</button>
-              </div>
-            </div>
-
-            <!-- Permission categories -->
-            <div *ngFor="let cat of permissionCategories" style="margin-bottom:1rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;border-bottom:2px solid var(--kb-color-primary);margin-bottom:0.25rem">
-                <strong style="font-size:0.8rem;color:var(--kb-color-primary);cursor:pointer" (click)="toggleCategory(cat.name, cat.items)">
-                  {{ cat.name }}
-                </strong>
-                <label class="toggle-switch">
-                  <input type="checkbox"
-                    [checked]="isCategoryFullySelected(cat.items)"
-                    [indeterminate]="isCategoryPartiallySelected(cat.items)"
-                    (change)="toggleCategory(cat.name, cat.items)">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-              <div *ngFor="let perm of cat.items" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
-                <span style="font-size:0.875rem">{{ perm.displayName }}</span>
-                <label class="toggle-switch">
-                  <input type="checkbox" [checked]="permissionsSet.has(perm.key)" (change)="togglePermission(perm.key)">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-actions" *ngIf="!permissionsLoading">
-            <button class="ghost-btn" (click)="closePermissionsModal()">Cancel</button>
-            <button class="primary-btn" (click)="savePermissions()" [disabled]="permissionsSaving">
-              {{ permissionsSaving ? 'Saving...' : 'Save Permissions' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Create Template Dialog -->
-      <div class="modal-backdrop" *ngIf="showCreateTemplate" (click)="closeCreateTemplate()">
-        <div class="modal-box modal-content" role="dialog" style="max-width:400px" (click)="$event.stopPropagation()">
-          <h3 style="margin:0 0 1rem">Save as Role Template</h3>
-          <div class="form-group">
-            <label>Template Name *</label>
-            <input class="field-control" type="text" [(ngModel)]="templateName" placeholder="e.g. Senior Cashier" />
-          </div>
-          <div class="form-group">
-            <label>Description</label>
-            <input class="field-control" type="text" [(ngModel)]="templateDescription" placeholder="Optional description" />
-          </div>
-          <p class="muted" style="font-size:0.8rem;margin-bottom:1rem">
-            Will save {{ permissionsSet.size }} selected permissions as a reusable template.
-          </p>
-          <div class="modal-actions">
-            <button class="ghost-btn" (click)="closeCreateTemplate()">Cancel</button>
-            <button class="primary-btn" (click)="saveTemplate()" [disabled]="!templateName.trim()">Save Template</button>
-          </div>
-        </div>
-      </div>
+      <app-staff-permissions-modal
+        [open]="showPermissionsModal()"
+        [staff]="permissionsStaff()"
+        (close)="closePermissionsModal()"
+        (saved)="toast.show('Permissions updated', 'success')"
+      />
     </div>
   `
 })
 export class StaffPageComponent {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
-  private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(ToastService);
+  readonly toast = inject(ToastService);
 
-  staff: BusinessStaffItem[] = [];
-  loaded = false;
-  loadError = '';
+  staff = signal<BusinessStaffItem[]>([]);
+  loaded = signal(false);
+  loadError = signal('');
 
   searchTerm = '';
   roleFilter = 'ALL';
@@ -575,42 +252,18 @@ export class StaffPageComponent {
   pageSize = 10;
   currentPage = 1;
 
-  // Staff creation state
-  showCreateModal = false;
-  creating = false;
-  createError = '';
-  createdStaff: StaffCreatedResponse | null = null;
+  showFormModal = signal(false);
+  formMode = signal<'create' | 'edit'>('create');
+  editingStaff = signal<BusinessStaffItem | null>(null);
+  editingSelf = signal(false);
 
-  // Staff edit state
-  showEditModal = false;
-  editing = false;
-  editError = '';
-  editingStaff: BusinessStaffItem | null = null;
-
-  // Staff deactivation state
   staffToDeactivate: BusinessStaffItem | null = null;
 
-  staffForm = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    role: ['', [Validators.required]],
-    email: ['', [Validators.email]]
-  });
-
-  editForm = this.fb.group({
-    name: ['', [Validators.required]],
-    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    role: ['SHOP_STAFF' as StaffRole, [Validators.required]],
-    email: ['', [Validators.email]]
-  });
+  showPermissionsModal = signal(false);
+  permissionsStaff = signal<BusinessStaffItem | null>(null);
 
   get isOwner(): boolean {
     return this.auth.session()?.role === 'OWNER';
-  }
-
-  get isEditingSelf(): boolean {
-    if (!this.editingStaff) return false;
-    return this.isSelf(this.editingStaff);
   }
 
   constructor() {
@@ -623,121 +276,34 @@ export class StaffPageComponent {
     return item.loginId === session.loginId;
   }
 
-  // --- Create Modal ---
-
   openCreateModal(): void {
-    this.showCreateModal = true;
-    this.createError = '';
-    this.createdStaff = null;
-    this.staffForm.reset({ name: '', phone: '', role: '', email: '' });
+    this.formMode.set('create');
+    this.editingStaff.set(null);
+    this.editingSelf.set(false);
+    this.showFormModal.set(true);
   }
-
-  closeCreateModal(): void {
-    this.showCreateModal = false;
-    this.createError = '';
-    if (this.createdStaff) {
-      this.createdStaff = null;
-      this.loadStaff();
-    }
-  }
-
-  submitCreate(): void {
-    if (this.staffForm.invalid || this.creating) return;
-
-    this.creating = true;
-    this.createError = '';
-
-    const formValue = this.staffForm.value;
-
-    const payload = {
-      name: formValue.name!,
-      phone: formValue.phone!,
-      role: formValue.role! as StaffRole,
-      ...(formValue.email ? { email: formValue.email } : {})
-    };
-
-    this.api.createStaff(payload).subscribe({
-      next: (response) => {
-        this.createdStaff = response;
-        this.creating = false;
-      },
-      error: (err: HttpErrorResponse) => {
-        this.creating = false;
-        if (err.status === 409) {
-          this.createError = 'This phone number is already registered. Please use a different number.';
-        } else if (err.status === 400 && err.error?.fields) {
-          const fields = err.error.fields;
-          this.createError = Object.values(fields).join('. ');
-        } else {
-          this.createError = err.error?.message || 'Failed to create staff member. Please try again.';
-        }
-      }
-    });
-  }
-
-  // --- Edit Modal ---
 
   openEditModal(item: BusinessStaffItem): void {
-    this.editingStaff = item;
-    this.showEditModal = true;
-    this.editError = '';
-
-    this.editForm.reset({
-      name: item.name,
-      phone: item.whatsappNumber || item.loginId,
-      role: item.role as StaffRole,
-      email: item.email || ''
-    });
-
-    if (this.isSelf(item)) {
-      this.editForm.get('role')?.disable();
-    } else {
-      this.editForm.get('role')?.enable();
-    }
+    this.formMode.set('edit');
+    this.editingStaff.set(item);
+    this.editingSelf.set(this.isSelf(item));
+    this.showFormModal.set(true);
   }
 
-  closeEditModal(): void {
-    this.showEditModal = false;
-    this.editError = '';
-    this.editingStaff = null;
-    this.editForm.get('role')?.enable();
+  closeFormModal(): void {
+    this.showFormModal.set(false);
+    this.editingStaff.set(null);
   }
 
-  submitEdit(): void {
-    if (this.editForm.invalid || this.editing || !this.editingStaff) return;
-
-    this.editing = true;
-    this.editError = '';
-
-    const formValue = this.editForm.getRawValue();
-    const payload = {
-      name: formValue.name!,
-      phone: formValue.phone!,
-      role: formValue.role! as StaffRole,
-      ...(formValue.email ? { email: formValue.email } : {})
-    };
-
-    this.api.updateStaff(this.editingStaff.userId, payload).subscribe({
-      next: () => {
-        this.editing = false;
-        this.closeEditModal();
-        this.loadStaff();
-      },
-      error: (err: HttpErrorResponse) => {
-        this.editing = false;
-        if (err.status === 409) {
-          this.editError = 'This phone number is already registered. Please use a different number.';
-        } else if (err.status === 400 && err.error?.fields) {
-          const fields = err.error.fields;
-          this.editError = Object.values(fields).join('. ');
-        } else {
-          this.editError = err.error?.message || 'Failed to update staff member. Please try again.';
-        }
-      }
-    });
+  openPermissionsModal(item: BusinessStaffItem): void {
+    this.permissionsStaff.set(item);
+    this.showPermissionsModal.set(true);
   }
 
-  // --- Deactivation ---
+  closePermissionsModal(): void {
+    this.showPermissionsModal.set(false);
+    this.permissionsStaff.set(null);
+  }
 
   requestDeactivate(item: BusinessStaffItem): void {
     if (this.isSelf(item)) return;
@@ -776,27 +342,14 @@ export class StaffPageComponent {
     this.staffToDeactivate = null;
   }
 
-  async copyTemporaryPassword(): Promise<void> {
-    const password = this.createdStaff?.temporaryPassword;
-    if (!password) return;
-    try {
-      await navigator.clipboard.writeText(password);
-      this.toast.show('Temporary password copied.', 'success');
-    } catch {
-      this.toast.show('Could not copy the password. Select and copy it manually.', 'error');
-    }
-  }
-
-  // --- Filters and Pagination ---
-
   get roleOptions(): string[] {
-    return [...new Set(this.staff.map((item) => item.role))].sort();
+    return [...new Set(this.staff().map((item) => item.role))].sort();
   }
 
   get filteredStaff(): BusinessStaffItem[] {
     const search = this.searchTerm.trim().toLowerCase();
 
-    return this.staff.filter((item) => {
+    return this.staff().filter((item) => {
       const matchesSearch = !search || [
         item.name,
         item.loginId,
@@ -825,18 +378,18 @@ export class StaffPageComponent {
   }
 
   loadStaff(): void {
-    this.loaded = false;
-    this.loadError = '';
+    this.loaded.set(false);
+    this.loadError.set('');
     this.api.getStaff().subscribe({
       next: (data) => {
-        this.staff = data;
-        this.loaded = true;
+        this.staff.set(data);
+        this.loaded.set(true);
         this.currentPage = 1;
       },
       error: () => {
-        this.staff = [];
-        this.loadError = 'Unable to load staff accounts. Check your connection and try again.';
-        this.loaded = true;
+        this.staff.set([]);
+        this.loadError.set('Unable to load staff accounts. Check your connection and try again.');
+        this.loaded.set(true);
       }
     });
   }
@@ -861,239 +414,6 @@ export class StaffPageComponent {
     return formatDate(value);
   }
 
-  // ── Permissions Modal ─────────────────────────────────────────────────────
-
-  showPermissionsModal = false;
-  permissionsStaff: BusinessStaffItem | null = null;
-  permissionsLoading = false;
-  permissionsSaving = false;
-  permissionsSet = new Set<string>();
-
-  // Server-authoritative permission keys (matches PermissionKey.java exactly)
-  readonly permissionCategories = [
-    {
-      name: 'Billing',
-      items: [
-        { key: 'billing.create', displayName: 'Create Bills' },
-        { key: 'billing.edit', displayName: 'Edit Open Bills' },
-        { key: 'billing.void', displayName: 'Cancel/Void Bills' },
-        { key: 'billing.discount', displayName: 'Apply Discounts' },
-        { key: 'billing.refund', displayName: 'Process Refunds' },
-        { key: 'billing.settle', displayName: 'Mark Payment Received' },
-      ]
-    },
-    {
-      name: 'Menu',
-      items: [
-        { key: 'menu.view', displayName: 'View Menu Items' },
-        { key: 'menu.toggle_availability', displayName: 'Toggle Item Availability' },
-        { key: 'menu.edit_price', displayName: 'Change Prices' },
-        { key: 'menu.add_item', displayName: 'Add New Items' },
-        { key: 'menu.delete_item', displayName: 'Remove Items' },
-      ]
-    },
-    {
-      name: 'Orders',
-      items: [
-        { key: 'orders.view', displayName: 'View Order List' },
-        { key: 'orders.kot_view', displayName: 'See Kitchen Queue' },
-        { key: 'orders.kot_ready', displayName: 'Mark Items Ready' },
-        { key: 'orders.kot_void', displayName: 'Void KOT Items' },
-      ]
-    },
-    {
-      name: 'Reports',
-      items: [
-        { key: 'reports.day_summary', displayName: "Today's Sales Summary" },
-        { key: 'reports.full', displayName: 'Full Revenue Reports' },
-        { key: 'reports.gst', displayName: 'GST/Tax Reports' },
-        { key: 'reports.export', displayName: 'Export/Download Data' },
-      ]
-    },
-    {
-      name: 'Staff',
-      items: [
-        { key: 'staff.view', displayName: 'View Staff List' },
-        { key: 'staff.add', displayName: 'Add New Staff' },
-        { key: 'staff.edit', displayName: 'Edit Staff Details' },
-        { key: 'staff.remove', displayName: 'Deactivate Staff' },
-        { key: 'staff.permissions', displayName: 'Manage Permissions' },
-      ]
-    },
-    {
-      name: 'Settings',
-      items: [
-        { key: 'settings.shop_profile', displayName: 'Edit Shop Profile' },
-        { key: 'settings.payment', displayName: 'Bank/UPI Settings' },
-        { key: 'settings.printer', displayName: 'Printer Configuration' },
-        { key: 'settings.terminal', displayName: 'Manage Devices' },
-        { key: 'settings.gst', displayName: 'GST/FSSAI Settings' },
-      ]
-    }
-  ];
-
-  // Role templates from server DB
-  roleTemplates: any[] = [];
-  showCreateTemplate = false;
-  templateName = '';
-  templateDescription = '';
-  showApplyTemplate = false;
-  templateToApply: any = null;
-  applyTemplateUserId: number | null = null;
-
-  openPermissionsModal(item: BusinessStaffItem): void {
-    this.permissionsStaff = item;
-    this.showPermissionsModal = true;
-    this.permissionsLoading = true;
-    this.permissionsSet = new Set();
-
-    this.api.getUserPermissions(item.userId).subscribe({
-      next: (res: any) => {
-        this.permissionsSet = new Set(res.grantedPermissions);
-        this.permissionsLoading = false;
-      },
-      error: () => {
-        this.permissionsLoading = false;
-      }
-    });
-
-    // Load role templates from server
-    this.api.getRoleTemplates().subscribe({
-      next: (templates) => { this.roleTemplates = templates; },
-      error: () => { this.roleTemplates = []; }
-    });
-  }
-
-  closePermissionsModal(): void {
-    this.showPermissionsModal = false;
-    this.permissionsStaff = null;
-  }
-
-  togglePermission(key: string): void {
-    if (this.permissionsSet.has(key)) {
-      this.permissionsSet.delete(key);
-    } else {
-      this.permissionsSet.add(key);
-    }
-    this.permissionsSet = new Set(this.permissionsSet);
-  }
-
-  // Quick-select: apply all permissions for a category
-  toggleCategory(categoryName: string, items: { key: string }[]): void {
-    const allSelected = items.every(i => this.permissionsSet.has(i.key));
-    if (allSelected) {
-      items.forEach(i => this.permissionsSet.delete(i.key));
-    } else {
-      items.forEach(i => this.permissionsSet.add(i.key));
-    }
-    this.permissionsSet = new Set(this.permissionsSet);
-  }
-
-  isCategoryFullySelected(items: { key: string }[]): boolean {
-    return items.every(i => this.permissionsSet.has(i.key));
-  }
-
-  isCategoryPartiallySelected(items: { key: string }[]): boolean {
-    const selected = items.filter(i => this.permissionsSet.has(i.key)).length;
-    return selected > 0 && selected < items.length;
-  }
-
-  applyCounterStaffTemplate(): void {
-    this.permissionsSet = new Set([
-      'billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability',
-      'reports.day_summary', 'orders.view', 'orders.kot_view'
-    ]);
-  }
-
-  applyManagerTemplate(): void {
-    this.permissionsSet = new Set([
-      'billing.create', 'billing.edit', 'billing.void', 'billing.discount',
-      'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability',
-      'menu.edit_price', 'menu.add_item', 'reports.day_summary', 'reports.full',
-      'orders.view', 'orders.kot_view', 'orders.kot_ready', 'staff.view'
-    ]);
-  }
-
-  applyServerTemplate(template: any): void {
-    if (template?.permissions) {
-      this.permissionsSet = new Set(template.permissions);
-    }
-  }
-
-  openCreateTemplate(): void {
-    this.showCreateTemplate = true;
-    this.templateName = '';
-    this.templateDescription = '';
-  }
-
-  closeCreateTemplate(): void {
-    this.showCreateTemplate = false;
-  }
-
-  saveTemplate(): void {
-    if (!this.templateName.trim()) return;
-    this.api.createRoleTemplate({
-      name: this.templateName.trim(),
-      description: this.templateDescription.trim() || null,
-      permissions: [...this.permissionsSet]
-    }).subscribe({
-      next: (created) => {
-        this.roleTemplates = [...this.roleTemplates, created];
-        this.closeCreateTemplate();
-        this.toast.show('Template created', 'success');
-      },
-      error: () => {
-        this.toast.show('Failed to create template', 'error');
-      }
-    });
-  }
-
-  openApplyTemplate(template: any): void {
-    this.templateToApply = template;
-    this.showApplyTemplate = true;
-    this.applyTemplateUserId = this.permissionsStaff?.userId ?? null;
-  }
-
-  closeApplyTemplate(): void {
-    this.showApplyTemplate = false;
-    this.templateToApply = null;
-  }
-
-  confirmApplyTemplate(): void {
-    if (!this.templateToApply || !this.applyTemplateUserId) return;
-    this.api.applyRoleTemplate({
-      userId: this.applyTemplateUserId,
-      templateId: this.templateToApply.id
-    }).subscribe({
-      next: () => {
-        // Reload permissions
-        this.api.getUserPermissions(this.applyTemplateUserId!).subscribe({
-          next: (res: any) => {
-            this.permissionsSet = new Set(res.grantedPermissions);
-          }
-        });
-        this.closeApplyTemplate();
-        this.toast.show('Template applied', 'success');
-      },
-      error: () => {
-        this.toast.show('Failed to apply template', 'error');
-      }
-    });
-  }
-
-  savePermissions(): void {
-    if (!this.permissionsStaff) return;
-    this.permissionsSaving = true;
-    this.api.updateUserPermissions(this.permissionsStaff.userId, [...this.permissionsSet]).subscribe({
-      next: () => {
-        this.permissionsSaving = false;
-        this.closePermissionsModal();
-        this.toast.show('Permissions updated', 'success');
-      },
-      error: () => {
-        this.permissionsSaving = false;
-        this.toast.show('Failed to save permissions', 'error');
-      }
-    });
-  }
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByUserId = (_: number, item: BusinessStaffItem) => item.userId;
 }

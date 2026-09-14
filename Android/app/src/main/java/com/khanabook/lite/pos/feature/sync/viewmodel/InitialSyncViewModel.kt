@@ -1,0 +1,299 @@
+package com.khanabook.lite.pos.feature.sync.viewmodel
+
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.sync.domain.SyncManager
+import com.khanabook.lite.pos.feature.sync.domain.TerminalPendingApprovalException
+import com.khanabook.lite.pos.core.util.UserMessageSanitizer
+import com.khanabook.lite.pos.feature.menu.data.MenuRepository
+import retrofit2.HttpException
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+sealed class InitialSyncState {
+    object Idle : InitialSyncState()
+    object Syncing : InitialSyncState()
+    data class Success(val hasExistingMenu: Boolean = false) : InitialSyncState()
+    object SessionExpired : InitialSyncState()
+    data class ChooseTerminal(
+        val terminals: List<com.khanabook.lite.pos.core.network.TerminalListItem>,
+        val pendingRequestId: Long? = null
+    ) : InitialSyncState()
+    data class PendingApproval(
+        val requestId: Long?,
+        val challengeCode: String? = null,
+        val challengeExpiresAt: Long? = null,
+        val reclaimableTerminals: List<com.khanabook.lite.pos.core.network.TerminalListItem> = emptyList()
+    ) : InitialSyncState()
+    data class Error(val message: String) : InitialSyncState()
+}
+
+@HiltViewModel
+class InitialSyncViewModel @Inject constructor(
+    private val sessionManager: SessionManager,
+    private val syncManager: SyncManager,
+    private val api: com.khanabook.lite.pos.core.network.KhanaBookApi,
+    private val menuRepository: com.khanabook.lite.pos.feature.menu.data.MenuRepository
+) : ViewModel() {
+
+    private val _syncState = MutableStateFlow<InitialSyncState>(InitialSyncState.Idle)
+    val syncState: StateFlow<InitialSyncState> = _syncState.asStateFlow()
+
+    init {
+        startInitialSync()
+    }
+
+    fun startInitialSync() {
+        viewModelScope.launch {
+            _syncState.value = InitialSyncState.Syncing
+            try {
+                // Use pull-only on initial sync — no local data exists to push yet.
+                // This saves 1-2 seconds and avoids unnecessary push overhead.
+                val result = syncManager.performMasterPull()
+
+                if (result.isSuccess) {
+                    sessionManager.setInitialSyncCompleted(true)
+                    // Check if sync pulled down existing menu items (existing restaurant on new device)
+                    val existingItems = menuRepository.getAllMenuItemsOnce()
+                    val hasExistingMenu = existingItems.isNotEmpty()
+                    if (hasExistingMenu) {
+                        // Existing restaurant — skip quick start wizard
+                        sessionManager.setQuickStartCompleted(true)
+                    }
+                    _syncState.value = InitialSyncState.Success(hasExistingMenu = hasExistingMenu)
+                } else {
+                    val error = result.exceptionOrNull()
+                    Log.e("InitialSyncViewModel", "Master pull failed", error)
+                    if (error is TerminalPendingApprovalException) {
+                        _syncState.value = InitialSyncState.PendingApproval(
+                            requestId = error.requestId,
+                            challengeCode = error.challengeCode,
+                            challengeExpiresAt = error.challengeExpiresAt
+                        )
+                        checkReclaimableTerminals(error.requestId)
+                    } else if (error is HttpException && error.code() == 401) {
+                        sessionManager.invalidateAuthSession()
+                        _syncState.value = InitialSyncState.SessionExpired
+                    } else if (error is android.database.sqlite.SQLiteException) {
+                        _syncState.value = InitialSyncState.Error(
+                            "Setup failed. Please clear app data and try again."
+                        )
+                    } else {
+                        _syncState.value = InitialSyncState.Error(
+                            UserMessageSanitizer.sanitize(error, "Setup failed. Please check your connection and try again.")
+                        )
+                    }
+                }
+            } catch (e: TerminalPendingApprovalException) {
+                Log.w("InitialSyncViewModel", "Terminal pending approval: requestId=${e.requestId}")
+                _syncState.value = InitialSyncState.PendingApproval(
+                    requestId = e.requestId,
+                    challengeCode = e.challengeCode,
+                    challengeExpiresAt = e.challengeExpiresAt
+                )
+            } catch (e: Exception) {
+                Log.e("InitialSyncViewModel", "Unexpected error during initial sync", e)
+                if (e is HttpException && e.code() == 401) {
+                    sessionManager.invalidateAuthSession()
+                    _syncState.value = InitialSyncState.SessionExpired
+                } else if (e is android.database.sqlite.SQLiteException) {
+                    _syncState.value = InitialSyncState.Error(
+                        "Setup failed. Please clear app data and try again."
+                    )
+                } else {
+                    _syncState.value = InitialSyncState.Error(
+                        UserMessageSanitizer.sanitize(e, "Setup failed. Please check your connection and try again.")
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Polls the request status endpoint using the stored requestId.
+     * Does NOT create a new activation request — only checks existing request status.
+     * If approved, calls complete-activation to securely obtain terminal credentials.
+     * If rejected, shows rejection state.
+     */
+    fun pollRequestStatus() {
+        val state = _syncState.value
+        if (state !is InitialSyncState.PendingApproval) return
+        val requestId = state.requestId ?: return
+
+        viewModelScope.launch {
+            try {
+                val response = api.getTerminalRequestStatus(requestId)
+                val body = response.body()?.string()
+                if (body.isNullOrBlank()) return@launch
+
+                val gson = com.google.gson.Gson()
+                val pendingResponse = gson.fromJson(body,
+                    com.khanabook.lite.pos.core.network.TerminalPendingResponse::class.java)
+
+                when (pendingResponse.status) {
+                    "APPROVED" -> {
+                        // Approved — securely obtain credentials via complete-activation
+                        completeActivation(requestId)
+                    }
+                    "REJECTED" -> {
+                        _syncState.value = InitialSyncState.Error(
+                            pendingResponse.message ?: "Device registration was rejected by admin"
+                        )
+                    }
+                    "EXPIRED" -> {
+                        // Auto-retry: restart the sync which will create a new activation request
+                        Log.i("InitialSyncViewModel", "Request expired, auto-restarting activation")
+                        startInitialSync()
+                    }
+                    "PENDING" -> {
+                        // Update challenge code if server sent a fresh one
+                        if (pendingResponse.challengeCode != null) {
+                            _syncState.value = InitialSyncState.PendingApproval(
+                                requestId = requestId,
+                                challengeCode = pendingResponse.challengeCode,
+                                challengeExpiresAt = pendingResponse.challengeExpiresAt
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("InitialSyncViewModel", "Poll request status failed", e)
+                // Don't change state on network errors during polling — just retry next cycle
+            }
+        }
+    }
+
+    /**
+     * Securely completes activation by calling POST /complete-activation with
+     * the request ID and this device's ID. This proves the caller is the same
+     * installation that submitted the original request.
+     */
+    private suspend fun completeActivation(requestId: Long) {
+        try {
+            val deviceId = sessionManager.getDeviceId()
+            val completeRequest = com.khanabook.lite.pos.core.network.CompleteActivationRequest(
+                requestId = requestId,
+                deviceId = deviceId
+            )
+            val response = api.completeActivation(completeRequest)
+            val body = response.body()?.string()
+
+            if (response.isSuccessful && !body.isNullOrBlank()) {
+                val gson = com.google.gson.Gson()
+                val terminalResponse = gson.fromJson(body,
+                    com.khanabook.lite.pos.core.network.TerminalActivationResponse::class.java)
+                if (terminalResponse.terminalToken != null) {
+                    val terminalId = terminalResponse.terminalId?.takeIf { it.isNotBlank() }
+                        ?: terminalResponse.terminalSeries
+                    sessionManager.saveTerminalIdentity(
+                        com.khanabook.lite.pos.feature.auth.domain.TerminalIdentity(
+                            restaurantId = sessionManager.getRestaurantId(),
+                            terminalId = terminalId,
+                            deviceId = deviceId,
+                            terminalName = terminalResponse.terminalName,
+                            terminalSeries = terminalResponse.terminalSeries,
+                            isActive = terminalResponse.isActive ?: true,
+                            registeredAt = terminalResponse.registeredAt,
+                            lastVerifiedAt = terminalResponse.lastVerifiedAt ?: System.currentTimeMillis(),
+                            terminalToken = terminalResponse.terminalToken
+                        )
+                    )
+                    // Terminal credentials obtained — proceed to full sync
+                    startInitialSync()
+                    return
+                }
+            }
+
+            // Completion failed — show error
+            _syncState.value = InitialSyncState.Error(
+                "Failed to complete terminal activation. Please try again."
+            )
+        } catch (e: Exception) {
+            Log.e("InitialSyncViewModel", "Complete activation failed", e)
+            _syncState.value = InitialSyncState.Error(
+                "Failed to complete terminal activation. Please try again."
+            )
+        }
+    }
+
+    /**
+     * Reclaims an existing terminal series (e.g. "A") on this replacement device.
+     */
+    fun reclaimTerminal(terminalSeries: String) {
+        viewModelScope.launch {
+            _syncState.value = InitialSyncState.Syncing
+            try {
+                val deviceId = sessionManager.getDeviceId()
+                val response = api.reclaimTerminal(
+                    com.khanabook.lite.pos.core.network.TerminalReclaimRequest(
+                        terminalSeries = terminalSeries,
+                        deviceId = deviceId
+                    )
+                )
+                if (response.terminalToken != null) {
+                    val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
+                        ?: response.terminalSeries
+                    sessionManager.saveTerminalIdentity(
+                        com.khanabook.lite.pos.feature.auth.domain.TerminalIdentity(
+                            restaurantId = sessionManager.getRestaurantId(),
+                            terminalId = terminalId,
+                            deviceId = deviceId,
+                            terminalName = response.terminalName,
+                            terminalSeries = response.terminalSeries,
+                            isActive = response.isActive ?: true,
+                            registeredAt = response.registeredAt,
+                            lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
+                            terminalToken = response.terminalToken
+                        )
+                    )
+                    Log.i("InitialSyncViewModel", "Terminal successfully reclaimed: series=${response.terminalSeries}")
+                    startInitialSync()
+                } else {
+                    _syncState.value = InitialSyncState.Error("Reclaim failed: no token returned.")
+                }
+            } catch (e: Exception) {
+                Log.e("InitialSyncViewModel", "Reclaim terminal failed", e)
+                _syncState.value = InitialSyncState.Error(
+                    UserMessageSanitizer.sanitize(e, "Failed to reclaim counter. Please try again.")
+                )
+            }
+        }
+    }
+
+    /**
+     * Checks if there are reclaimable terminals and triggers ChooseTerminal state.
+     */
+    fun checkReclaimableTerminals(pendingRequestId: Long? = null) {
+        viewModelScope.launch {
+            try {
+                val terminals = api.listTerminals().filter { it.isActive != false }
+                if (terminals.isNotEmpty()) {
+                    _syncState.value = InitialSyncState.ChooseTerminal(
+                        terminals = terminals,
+                        pendingRequestId = pendingRequestId
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("InitialSyncViewModel", "Failed to list reclaimable terminals", e)
+            }
+        }
+    }
+
+    /**
+     * User chooses to continue as a brand new device instead of reclaiming.
+     */
+    fun continueAsNewDevice(pendingRequestId: Long?, challengeCode: String? = null, challengeExpiresAt: Long? = null) {
+        _syncState.value = InitialSyncState.PendingApproval(
+            requestId = pendingRequestId,
+            challengeCode = challengeCode,
+            challengeExpiresAt = challengeExpiresAt
+        )
+    }
+}

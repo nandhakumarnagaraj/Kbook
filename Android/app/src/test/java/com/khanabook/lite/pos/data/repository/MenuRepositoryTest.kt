@@ -1,12 +1,13 @@
 package com.khanabook.lite.pos.data.repository
+import com.khanabook.lite.pos.feature.menu.data.MenuRepository
 
 import androidx.work.WorkManager
 import android.content.Context
 import android.content.SharedPreferences
-import com.khanabook.lite.pos.data.local.dao.MenuDao
-import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
-import com.khanabook.lite.pos.domain.manager.PermissionManager
-import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.feature.menu.data.MenuDao
+import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
+import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every

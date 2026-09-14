@@ -24,6 +24,7 @@ import static org.mockito.Mockito.*;
 class StaffCreationProperties {
 
     private UserRepository userRepository;
+    private com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
     private BusinessWriteService service;
 
     private void setupService() {
@@ -31,8 +32,14 @@ class StaffCreationProperties {
         MenuItemRepository menuItemRepository = mock(MenuItemRepository.class);
         RestaurantTerminalRepository terminalRepository = mock(RestaurantTerminalRepository.class);
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
+        passwordResetOtpService = mock(com.khanabook.saas.service.PasswordResetOtpService.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
-                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class));
+                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class),
+                passwordResetOtpService);
+        // Tombstone-aware staff create: only a LIVE account blocks the phone, and any
+        // soft-deleted rows holding it are released first. Default to "available".
+        when(userRepository.findActiveByAnyIdentifier(anyString())).thenReturn(java.util.Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier(anyString())).thenReturn(java.util.List.of());
     }
 
     // ─── Property 2: Staff Creation Produces Valid User ──────────────────────────
@@ -45,7 +52,7 @@ class StaffCreationProperties {
      * Validates: Requirements 2.2
      */
     @Property(tries = 20)
-    @Label("Property 2: Valid staff request produces user with non-null tempPassword and userId")
+    @Label("Property 2: Valid staff request produces user with OTP sent and userId")
     void validStaffRequestProducesValidUser(
             @ForAll("validNames") String name,
             @ForAll("validPhones") String phone,
@@ -65,13 +72,13 @@ class StaffCreationProperties {
         StaffCreatedResponse response = service.createStaff(1L, request);
 
         assertNotNull(response.userId(), "userId must not be null");
-        assertNotNull(response.temporaryPassword(), "temporaryPassword must not be null");
-        assertFalse(response.temporaryPassword().isEmpty(), "temporaryPassword must not be empty");
+        assertTrue(response.otpSent(), "otpSent must be true on successful onboarding");
         assertEquals(name, response.name());
         assertEquals(phone, response.phone());
         assertEquals(role.toUpperCase(), response.role());
 
         verify(userRepository).save(any(User.class));
+        verify(passwordResetOtpService).issueOtp(phone);
     }
 
     // ─── Property 3: Staff Input Validation ──────────────────────────────────────
@@ -125,7 +132,8 @@ class StaffCreationProperties {
     ) {
         setupService();
 
-        when(userRepository.existsByPhoneNumber(phone)).thenReturn(true);
+        // A LIVE account already holds this identifier.
+        when(userRepository.findActiveByAnyIdentifier(phone)).thenReturn(java.util.Optional.of(new User()));
 
         CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
 
@@ -149,8 +157,9 @@ class StaffCreationProperties {
     ) {
         setupService();
 
-        when(userRepository.existsByPhoneNumber(phone)).thenReturn(false);
-        when(userRepository.existsByLoginId(phone)).thenReturn(true);
+        // findActiveByAnyIdentifier matches on phone OR loginId OR email OR whatsapp,
+        // so a live account holding the loginId is surfaced by the same lookup.
+        when(userRepository.findActiveByAnyIdentifier(phone)).thenReturn(java.util.Optional.of(new User()));
 
         CreateStaffRequest request = new CreateStaffRequest(name, phone, role, null, null);
 
@@ -163,6 +172,48 @@ class StaffCreationProperties {
                 "Error message should reference phone/duplicate: " + ex.getMessage());
 
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    /**
+     * Soft-deleted staff must not reserve a phone number forever. Re-adding a
+     * previously-removed staff member SHALL succeed, and the identifier SHALL be
+     * released from the soft-deleted row(s) so the partial unique indexes do not
+     * block the insert. Mirrors signup's releaseIdentifierFromDeletedUsers.
+     */
+    @Property(tries = 10)
+    @Label("Soft-deleted staff phone can be re-added; tombstoned identifier is released")
+    void softDeletedPhoneCanBeReAdded(
+            @ForAll("validNames") String name,
+            @ForAll("validPhones") String phone
+    ) {
+        setupService();
+
+        // No LIVE account holds the number, but a soft-deleted row still does.
+        when(userRepository.findActiveByAnyIdentifier(phone)).thenReturn(java.util.Optional.empty());
+        User dead = new User();
+        dead.setId(77L);
+        dead.setIsDeleted(true);
+        dead.setPhoneNumber(phone);
+        dead.setWhatsappNumber(phone);
+        dead.setLoginId(phone);
+        when(userRepository.findDeletedHoldingIdentifier(phone)).thenReturn(java.util.List.of(dead));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(42L);
+            return u;
+        });
+
+        CreateStaffRequest request = new CreateStaffRequest(name, phone, "SHOP_STAFF", null, null);
+        StaffCreatedResponse response = service.createStaff(1L, request);
+
+        assertNotNull(response.userId(), "Re-adding a removed staff phone must succeed");
+
+        // The tombstoned row released its reusable identifiers; history is preserved.
+        verify(userRepository).saveAll(any());
+        assertNull(dead.getPhoneNumber(), "phoneNumber must be detached from the deleted row");
+        assertNull(dead.getWhatsappNumber(), "whatsappNumber must be detached from the deleted row");
+        assertTrue(dead.getLoginId().contains("deleted:77"), "loginId must be tombstoned, was: " + dead.getLoginId());
+        assertTrue(dead.getIsDeleted(), "the deleted row must remain soft-deleted");
     }
 
     // ─── Generators ─────────────────────────────────────────────────────────────

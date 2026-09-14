@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { combineLatest, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, startWith } from 'rxjs/operators';
@@ -31,6 +31,7 @@ const W = 72, H = 24;
 @Component({
   selector: 'app-business-dashboard-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
@@ -79,7 +80,9 @@ const W = 72, H = 24;
           </div>
           <strong class="kpi-value">{{ data.totalRevenueFormatted }}</strong>
           <div class="kpi-delta">
-            <span class="kpi-arrow up">\u25B2 {{ data.deltaTotal }}%</span>
+            <span class="kpi-arrow" [class.up]="data.deltaTotal >= 0" [class.down]="data.deltaTotal < 0">
+              {{ data.deltaTotal >= 0 ? '\u25B2' : '\u25BC' }} {{ Math.abs(data.deltaTotal) }}%
+            </span>
             <span class="kpi-compare">vs last period</span>
           </div>
         </article>
@@ -122,15 +125,15 @@ const W = 72, H = 24;
               <p class="muted">Last 7 days</p>
             </div>
             <div class="chart-tabs">
-              <button class="chart-tab active">Revenue</button>
-              <button class="chart-tab">Orders</button>
-              <button class="chart-tab">AOV</button>
+              <button type="button" class="chart-tab" [class.active]="chartMetric() === 'revenue'" (click)="setChartMetric('revenue')">Revenue</button>
+              <button type="button" class="chart-tab" [class.active]="chartMetric() === 'orders'" (click)="setChartMetric('orders')">Orders</button>
+              <button type="button" class="chart-tab" [class.active]="chartMetric() === 'aov'" (click)="setChartMetric('aov')">AOV</button>
             </div>
           </div>
           <div class="trend-chart">
-            <div class="bar-group" *ngFor="let bar of data.trendBars">
+            <div class="bar-group" *ngFor="let bar of chartBars(); trackBy: trackByIndex">
               <div class="bar-track">
-                <div class="bar-fill" [style.height.%]="bar.pct" [title]="'₹' + bar.value.toLocaleString('en-IN')"></div>
+                <div class="bar-fill" [style.height.%]="bar.pct" [title]="formatBarValue(bar.value)"></div>
               </div>
               <span class="bar-label">{{ bar.day }}</span>
             </div>
@@ -146,7 +149,7 @@ const W = 72, H = 24;
             <div class="setup-bar-fill" [style.width.%]="(getReadySetupCount(data.setupChecks) / data.setupChecks.length) * 100"></div>
           </div>
           <ul class="setup-list">
-            <li *ngFor="let item of data.setupChecks" class="setup-item"
+            <li *ngFor="let item of data.setupChecks; trackBy: trackByIndex" class="setup-item"
               [class.done]="item.ready" [class.pending]="!item.ready">
               <span class="setup-check">
                 <svg *ngIf="item.ready" viewBox="0 0 12 12" width="10" height="10"><path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -202,15 +205,15 @@ const W = 72, H = 24;
             <thead>
               <tr>
                 <th>Order</th>
-                <th>Items</th>
-                <th>Payment</th>
+                <th>Customer</th>
+                <th>Source</th>
                 <th>Status</th>
                 <th class="text-right">Amount</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                *ngFor="let order of data.recentOrders"
+                *ngFor="let order of data.recentOrders; trackBy: trackByOrderId"
                 class="clickable-row"
                 tabindex="0"
                 role="button"
@@ -248,6 +251,35 @@ const W = 72, H = 24;
               </tr>
             </tbody>
           </table>
+
+          <!-- Mobile fallback: the global stylesheet hides .table-wrap > .data-table
+               below 768px, so without this list the recent orders would vanish on
+               phones (dashboard mobile-orders-hidden fix). -->
+          <div class="mobile-data-list" aria-label="Recent orders" *ngIf="data.recentOrders && data.recentOrders.length">
+            <article
+              class="mobile-data-card"
+              *ngFor="let order of data.recentOrders; trackBy: trackByOrderId"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'View order ' + order.orderCode"
+              (click)="openOrderDetail(order.orderId)"
+              (keydown.enter)="openOrderDetail(order.orderId)">
+              <div class="mobile-data-card__head">
+                <strong class="mono">{{ order.orderCode }}</strong>
+                <span class="chip"
+                  [class.chip--ok]="order.orderStatus.toLowerCase() === 'completed'"
+                  [class.chip--danger]="order.orderStatus.toLowerCase() === 'cancelled'"
+                  [class.chip--warn]="order.orderStatus.toLowerCase() === 'draft'">
+                  {{ order.orderStatus }}
+                </span>
+              </div>
+              <p>{{ order.customerName || '\u2014' }} · {{ order.sourceType || 'POS' }}</p>
+              <dl>
+                <div><dt>Placed</dt><dd>{{ formatDateValue(order.createdAt) }}</dd></div>
+                <div><dt>Amount</dt><dd class="mono">{{ formatCurrencyValue(order.totalAmount) }}</dd></div>
+              </dl>
+            </article>
+          </div>
         </div>
       </section>
     </div>
@@ -262,7 +294,7 @@ const W = 72, H = 24;
       <ng-template #dashboardSkeleton>
         <div class="page-shell">
           <div class="kpi-row">
-            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]"></div>
+            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
           <div class="grid-2col">
             <div class="skeleton skeleton-row" style="height:240px"></div>
@@ -500,6 +532,9 @@ export class BusinessDashboardPageComponent {
 
   readonly Math = Math;
 
+  /** Selected metric for the revenue-trend chart tabs. */
+  readonly chartMetric = signal<'revenue' | 'orders' | 'aov'>('revenue');
+
   private readonly refresh$ = new Subject<void>();
 
   readonly selectedDateRange = signal<{ from: string; to: string } | null>(this.readStoredRange());
@@ -535,11 +570,13 @@ export class BusinessDashboardPageComponent {
             const sparkOrders = orderData.length > 0 ? sparklinePath(orderData) : '';
             const sparkPending = sparklinePath(pendingData);
 
-            // Use real trend data for chart bars
+            // Use real trend data for chart bars. Normalize each bar against the
+            // maximum value in the series (never against "today"), so a zero-revenue
+            // today no longer flattens the entire 7-day history (B3-dashboard).
             const trendBars = last7.map((d: DashboardTrendDay) => ({
               day: d.day,
               value: d.revenue,
-              pct: trends.todayRevenue > 0 ? (d.revenue / Math.max(...revenueData, 1)) * 100 : 0
+              pct: (d.revenue / Math.max(...revenueData, 1)) * 100
             }));
 
             // Compute real deltas
@@ -563,6 +600,7 @@ export class BusinessDashboardPageComponent {
               deltaToday,
               deltaTotal,
               trendBars,
+              trendDays: last7,
               setupChecks: [
                 {
                   label: 'Website Checkout',
@@ -608,6 +646,45 @@ export class BusinessDashboardPageComponent {
     )
   );
 
+  /**
+   * Bars for the trend chart, derived from the selected metric tab. Reactive to both the
+   * loaded dashboard data and the chartMetric signal, so switching tabs re-renders the
+   * chart (the tab buttons were previously inert — dashboard chart-tabs no-op fix).
+   */
+  readonly chartBars = computed(() => {
+    const data = this.dashboard();
+    const days = data?.trendDays as DashboardTrendDay[] | undefined;
+    if (!days || days.length === 0) return [];
+    const metric = this.chartMetric();
+    const valueOf = (d: DashboardTrendDay): number => {
+      switch (metric) {
+        case 'orders': return d.orderCount;
+        case 'aov': return d.avgOrderValue;
+        default: return d.revenue;
+      }
+    };
+    const values = days.map(valueOf);
+    const max = Math.max(...values, 1);
+    return days.map((d) => {
+      const value = valueOf(d);
+      return { day: d.day, value, pct: (value / max) * 100 };
+    });
+  });
+
+  readonly chartMetricUnit = computed<'currency' | 'count'>(() =>
+    this.chartMetric() === 'orders' ? 'count' : 'currency'
+  );
+
+  setChartMetric(metric: 'revenue' | 'orders' | 'aov'): void {
+    this.chartMetric.set(metric);
+  }
+
+  formatBarValue(value: number): string {
+    return this.chartMetricUnit() === 'count'
+      ? value.toLocaleString('en-IN')
+      : formatCurrency(value);
+  }
+
   onDateRangeChanged(range: { from: string; to: string }): void {
     this.selectedDateRange.set(range);
     sessionStorage.setItem(BusinessDashboardPageComponent.RANGE_STORAGE_KEY, JSON.stringify(range));
@@ -634,6 +711,9 @@ export class BusinessDashboardPageComponent {
 
   formatCurrencyValue(value: number): string { return formatCurrency(value); }
   formatDateValue(value: number | null): string { return formatDate(value); }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByOrderId = (_: number, order: { orderId: number }) => order.orderId;
 
   navigateToOrders(): void { this.router.navigate(['/business/orders']); }
   navigateToStaff(): void { this.router.navigate(['/business/staff']); }

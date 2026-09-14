@@ -51,8 +51,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private final TokenRevocationCache tokenRevocationCache;
 
 	private String getClientIp(HttpServletRequest request) {
-		String forwarded = request.getHeader("X-Forwarded-For");
-		if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+		// Use getRemoteAddr() which reflects the actual connection IP after
+		// Spring's ForwardedHeaderFilter has processed trusted proxy headers.
+		// Do NOT read X-Forwarded-For directly — it is trivially spoofable.
 		return request.getRemoteAddr();
 	}
 
@@ -154,7 +155,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 					}
 				}
 			} catch (Exception e) {
-				logger.warn("JWT validation failed: {}", e.getClass().getSimpleName());
+				logger.debug("JWT validation failed: {} - {}", e.getClass().getSimpleName(), e.getMessage());
 			}
 
 		}

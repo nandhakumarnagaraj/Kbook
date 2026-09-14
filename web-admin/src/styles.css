@@ -696,6 +696,30 @@ td.price,
 
 .soft-section { padding: 1.25rem 1.5rem; }
 
+/* ---- Dish photo thumbnail + no-photo placeholder ----
+   Items without a photo fall back to a neutral tile carrying the veg /
+   non-veg FSSAI dot, so the dietary marker is never lost. Mirrors the
+   Android MenuItemThumbnail treatment. */
+.item-cell { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+.item-cell .stacked-meta { min-width: 0; }
+.thumb {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--r-md, 8px);
+  overflow: hidden; background: var(--panel-2); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb--empty { border-style: dashed; }
+.food-dot {
+  width: 12px; height: 12px; border-radius: 2px;
+  border: 1.5px solid var(--danger); position: relative;
+}
+.food-dot::after {
+  content: ''; position: absolute; inset: 2px; border-radius: 50%;
+  background: var(--danger);
+}
+.food-dot--veg { border-color: var(--success); }
+.food-dot--veg::after { background: var(--success); }
+
 /* Mobile record cards replace dense operational tables below 768px. */
 .mobile-data-list { display: none; }
 .mobile-data-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-xs); overflow: hidden; }

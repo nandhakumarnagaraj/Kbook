@@ -1,0 +1,1332 @@
+package com.khanabook.lite.pos.feature.billing.data
+
+
+import com.khanabook.lite.pos.core.util.AppConstants
+
+import androidx.room.*
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import com.khanabook.lite.pos.feature.sync.data.SyncQuarantineEntity
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.feature.billing.data.BillFinalizationOutcome
+import com.khanabook.lite.pos.feature.billing.data.BillFinalizationResult
+import com.khanabook.lite.pos.feature.payments.domain.PaymentRecoveryAssessment
+import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
+import kotlinx.coroutines.flow.Flow
+
+data class BillIdDuplicateGroup(
+    val idValue: String,
+    val duplicateCount: Int,
+    val sampleBills: String?
+)
+
+data class BillIdConflictBill(
+    val id: Long,
+    val dailyOrderDisplay: String,
+    val lifetimeOrderId: Long?,
+    val invoiceNumber: String?,
+    val orderType: String,
+    val orderStatus: String,
+    val paymentStatus: String,
+    val paymentMode: String,
+    val totalAmount: String,
+    val createdAt: Long
+)
+
+data class OperationIdDuplicate(
+    val operation_id: String,
+    val cnt: Int
+)
+
+@Dao
+interface BillDao {
+    @Query("SELECT id, server_id as serverId FROM bills WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
+    suspend fun getAllBillServerIds(restaurantId: Long): List<com.khanabook.lite.pos.feature.sync.domain.ServerIdMapping>
+
+    @Query("SELECT id, server_id as serverId FROM bills WHERE id IN (:ids) AND server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
+    suspend fun getBillServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<com.khanabook.lite.pos.feature.sync.domain.ServerIdMapping>
+
+    @Query("SELECT * FROM bills WHERE server_id = :serverId AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")
+    suspend fun getBillByServerId(serverId: Long, restaurantId: Long): BillEntity?
+
+    @Query("SELECT * FROM bills WHERE id = :localId AND device_id = :deviceId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun getBillByLocalId(localId: Long, deviceId: String, restaurantId: Long): BillEntity?
+
+    @Query("UPDATE bill_items SET bill_id = :targetBillId WHERE bill_id = :sourceBillId AND restaurant_id = :restaurantId")
+    suspend fun moveBillItemsToBill(sourceBillId: Long, targetBillId: Long, restaurantId: Long): Int
+
+    @Query("UPDATE bill_payments SET bill_id = :targetBillId WHERE bill_id = :sourceBillId AND restaurant_id = :restaurantId")
+    suspend fun moveBillPaymentsToBill(sourceBillId: Long, targetBillId: Long, restaurantId: Long): Int
+
+    @Query("UPDATE OR IGNORE kitchen_print_queue SET bill_id = :targetBillId WHERE bill_id = :sourceBillId AND restaurant_id = :restaurantId")
+    suspend fun moveKitchenPrintQueueToBill(sourceBillId: Long, targetBillId: Long, restaurantId: Long): Int
+
+    @Query("""
+        UPDATE bills
+        SET is_deleted = 1,
+            server_id = NULL,
+            public_token = NULL,
+            is_synced = 1,
+            sync_status = 'synced',
+            sync_failure_reason = NULL,
+            sync_failed_at = NULL
+        WHERE id = :billId AND restaurant_id = :restaurantId
+    """)
+    suspend fun hideDuplicateBill(billId: Long, restaurantId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBill(bill: BillEntity): Long
+
+    @Update
+    suspend fun updateBill(bill: BillEntity)
+
+@Query("""
+        SELECT * FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND is_deleted = 0
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+        ORDER BY updated_at DESC
+    """)
+fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND is_deleted = 0
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
+        ORDER BY updated_at DESC
+    """)
+    fun getActionableDraftBillsWithItemsFlow(
+        restaurantId: Long,
+        terminalId: String
+    ): Flow<List<BillWithItems>>
+
+    @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
+    suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity>
+
+    @Query("UPDATE bill_items SET sent_to_kot = 1 WHERE id IN (:itemIds) AND restaurant_id = :restaurantId")
+    suspend fun markItemsSentToKot(itemIds: List<Long>, restaurantId: Long)
+
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillItems(items: List<BillItemEntity>)
+
+    @Update
+    suspend fun updateBillItem(item: BillItemEntity)
+
+    @Query("DELETE FROM bill_items WHERE id = :id")
+    suspend fun deleteBillItemById(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillPayments(payments: List<BillPaymentEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillPayment(payment: BillPaymentEntity)
+
+    @Update
+    suspend fun updateBillPayments(payments: List<BillPaymentEntity>)
+
+    @Query("""
+        SELECT * FROM bill_payments
+        WHERE bill_id = :billId AND restaurant_id = :restaurantId AND is_deleted = 0
+        ORDER BY id
+    """)
+    suspend fun getActivePaymentsForBill(billId: Long, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("""
+        UPDATE bill_payments
+        SET is_deleted = 1,
+            is_synced = 1,
+            sync_status = 'synced',
+            updated_at = :updatedAt
+        WHERE bill_id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND is_synced = 0
+          AND server_id IS NULL
+          AND verified_by = 'manual'
+          AND gateway_txn_id IS NULL
+    """)
+    suspend fun discardUnverifiedLocalPayments(
+        billId: Long,
+        restaurantId: Long,
+        updatedAt: Long
+    ): Int
+
+    @Query("""
+        SELECT * FROM bill_payments
+        WHERE operation_id IN (:operationIds)
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+    """)
+    suspend fun getPaymentsByOperationIds(operationIds: List<String>, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("""
+        SELECT operation_id, COUNT(*) AS cnt
+        FROM bill_payments
+        WHERE operation_id IS NOT NULL AND operation_id != ''
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+        GROUP BY operation_id
+        HAVING COUNT(*) > 1
+    """)
+    suspend fun getDuplicatePaymentOperationIdCounts(restaurantId: Long): List<com.khanabook.lite.pos.feature.billing.data.OperationIdDuplicate>
+
+    @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
+
+    // Terminal ownership isolation: a bill that THIS terminal may mutate as an operational
+    // record. Returns null for other terminals' bills or deleted records. Ownership is proven
+    // by current_owner_terminal_id or created_terminal_id — NOT by record_origin/record_scope
+    // labels, which the sync pull overwrites to server_imported/restaurant_history, making
+    // local bills read-only. Mutable workflows must load bills through this method so a
+    // history record can never reach a DAO write.
+    @Query("""
+        SELECT * FROM bills
+        WHERE id = :id AND restaurant_id = :restaurantId AND is_deleted = 0
+          AND (current_owner_terminal_id = :terminalId
+               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId))
+        LIMIT 1
+    """)
+    suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+    @Transaction
+    @Query("""
+        SELECT * FROM bills
+        WHERE id = :id
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz')
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
+        LIMIT 1
+    """)
+    suspend fun getRestorablePendingOnlineBillWithItems(
+        id: Long,
+        restaurantId: Long,
+        terminalId: String
+    ): BillWithItems?
+
+    // Runtime reconciliation (post-migration / post-activation). The authoritative terminal is
+    // only known at runtime, so this corrects the migration's conservative backfill: this
+    // terminal's own synced completed bills are re-labelled local_created / terminal_operational,
+    // while everything else (including other terminals' pulled bills) stays server_imported
+    // history. Idempotent — safe to call after every activation/pull.
+    @Query("""
+        UPDATE bills
+        SET record_origin = 'local_created', record_scope = 'terminal_operational'
+        WHERE restaurant_id = :restaurantId AND is_deleted = 0 AND is_synced = 1
+          AND created_terminal_id = :terminalId
+    """)
+    suspend fun reconcileLocalRecordScope(restaurantId: Long, terminalId: String): Int
+
+    // Canonical bill lookup by immutable public_token (see PLAN §4.1).
+    @Query("SELECT * FROM bills WHERE public_token = :publicToken AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun getBillByPublicToken(publicToken: String, restaurantId: Long): BillEntity?
+
+    @Query("""
+        SELECT COUNT(*) FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND daily_order_id = :dailyOrderId
+          AND created_at BETWEEN :startTime AND :endTime
+          AND ((:terminalSeries IS NULL AND terminal_series IS NULL) OR terminal_series = :terminalSeries)
+    """)
+    suspend fun countActiveBillsByDailyIdAndDate(
+        restaurantId: Long,
+        dailyOrderId: Long,
+        startTime: Long,
+        endTime: Long,
+        terminalSeries: String?
+    ): Int
+
+    @Query("SELECT * FROM bills WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
+    suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity>
+
+    @Query("""
+        SELECT * FROM bills
+        WHERE lifetime_order_id = :id
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+        ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
+                 updated_at DESC
+        LIMIT 1
+    """)
+    suspend fun getBillByLifetimeId(id: Long, restaurantId: Long): BillEntity?
+
+    @Query(
+            """
+            SELECT * FROM bills
+            WHERE daily_order_display = :displayId
+              AND restaurant_id = :restaurantId
+              AND is_deleted = 0
+              AND created_terminal_id = :terminalId
+              AND created_at BETWEEN :startTime AND :endTime
+            ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
+                     updated_at DESC
+            LIMIT 1
+            """
+    )
+    suspend fun getBillByDailyIdAndDate(displayId: String, startTime: Long, endTime: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+    @Query(
+            """
+            SELECT * FROM bills
+            WHERE daily_order_id = :dailyId
+              AND restaurant_id = :restaurantId
+              AND is_deleted = 0
+              AND created_terminal_id = :terminalId
+              AND created_at BETWEEN :startTime AND :endTime
+            ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
+                     updated_at DESC
+            LIMIT 1
+            """
+    )
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+@Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+    """)
+fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+
+@Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND restaurant_id = :restaurantId
+          AND owner_user_id = :ownerUserId
+          AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
+          )
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, terminalId: String): BillEntity?
+
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND restaurant_id = :restaurantId
+          AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
+          )
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    suspend fun getLatestPendingOnlineBill(restaurantId: Long, terminalId: String): BillEntity?
+
+@Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
+          AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
+          )
+        ORDER BY created_at DESC
+    """)
+fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+
+    @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
+
+    @Query("UPDATE bills SET payment_mode = :mode WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun updatePaymentMode(id: Long, mode: String, restaurantId: Long)
+
+    @Query("UPDATE bills SET payment_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun updatePaymentStatus(id: Long, status: String, restaurantId: Long)
+
+    @Query("UPDATE bills SET order_status = 'cancelled', cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun cancelBill(id: Long, reason: String, updatedAt: Long, restaurantId: Long)
+
+    @Query("""
+        UPDATE bills SET order_status = 'cancelled', payment_status = 'failed',
+        cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt
+        WHERE order_status = 'draft' AND payment_status = 'pending'
+        AND restaurant_id = :restaurantId
+        AND created_terminal_id = :terminalId
+        AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM bill_items
+            WHERE bill_items.bill_id = bills.id
+              AND bill_items.restaurant_id = :restaurantId
+              AND bill_items.is_deleted = 0
+        )
+    """)
+    suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long, terminalId: String): Int
+
+    @Query(
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC"
+    )
+    fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+
+    @Query(
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC"
+    )
+    fun getShopBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long): Flow<List<BillEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems?
+
+    // Canonical lookup by the GST invoice number (e.g. "26A1-000042"). Used by the
+    // Invoice-No search field. Legacy bills (numeric INV lookup) go through getBillByLifetimeNo.
+    @Transaction
+    @Query("""
+        SELECT * FROM bills
+        WHERE invoice_number = :invoiceNumber
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_terminal_id = :terminalId
+        ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
+                 updated_at DESC
+        LIMIT 1
+    """)
+    suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long, terminalId: String): BillWithItems?
+
+    @Transaction
+    suspend fun insertFullBill(
+            bill: BillEntity,
+            items: List<BillItemEntity>,
+            payments: List<BillPaymentEntity>
+    ): Long {
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
+        val orderDate = java.time.Instant.ofEpochMilli(bill.createdAt).atZone(zoneId).toLocalDate()
+        val startTime = orderDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endTime = orderDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+        if (countActiveBillsByDailyIdAndDate(bill.restaurantId, bill.dailyOrderId, startTime, endTime, bill.terminalSeries) > 0) {
+            throw android.database.sqlite.SQLiteConstraintException(
+                "Duplicate order id #${bill.dailyOrderDisplay}. Please repair counters from Sync Center and try again."
+            )
+        }
+        val billId = insertBill(bill)
+        val itemsWithId = items.map {
+            it.copy(
+                billId = billId,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId
+            )
+        }
+        val paymentsWithId = payments.map {
+            it.copy(
+                billId = billId,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                operationId = it.operationId ?: bill.operationId,
+                syncStatus = if (it.isSynced) "synced" else "pending"
+            )
+        }
+        // Pre-check: verify no existing payments share the same operation_id within this restaurant.
+        val paymentOpIds = paymentsWithId.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+        if (paymentOpIds.isNotEmpty()) {
+            val conflicting = getPaymentsByOperationIds(paymentOpIds, bill.restaurantId)
+            if (conflicting.any { it.billId != billId }) {
+                val details = conflicting.joinToString("; ") {
+                    "payment id=${it.id} billId=${it.billId} opId=${it.operationId}"
+                }
+                throw IllegalStateException(
+                    "Cannot insert payments with operation_id(s) that already exist " +
+                    "on other bills (restaurant ${bill.restaurantId}). Conflicting rows: $details"
+                )
+            }
+        }
+        insertBillItems(itemsWithId)
+        insertBillPayments(paymentsWithId)
+        return billId
+    }
+
+    @Transaction
+    suspend fun settleDraftBill(
+        bill: BillEntity,
+        payments: List<BillPaymentEntity>
+    ) {
+        // Defense-in-depth: reject settlement when active payment rows exist.
+        // The caller should route through finalizeOnlineBillAtomically() for
+        // proper validation, idempotent retry detection, and inventory boundary.
+        val existingActive = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        if (existingActive.isNotEmpty()) {
+            throw IllegalStateException(
+                "Bill ${bill.id} has ${existingActive.size} active payment row(s). " +
+                "Settlement requires zero existing rows. " +
+                "Use finalizeOnlineBillAtomically or contact support."
+            )
+        }
+        val paymentsWithId = payments.map {
+            it.copy(
+                billId = bill.id,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                operationId = it.operationId ?: bill.operationId,
+                syncStatus = if (it.isSynced) "synced" else "pending"
+            )
+        }
+        // Pre-check operation_id uniqueness within the restaurant.
+        val paymentOpIds = paymentsWithId.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+        if (paymentOpIds.isNotEmpty()) {
+            val conflicting = getPaymentsByOperationIds(paymentOpIds, bill.restaurantId)
+            if (conflicting.any { it.billId != bill.id }) {
+                throw IllegalStateException(
+                    "Cannot settle draft with operation_id(s) that already exist " +
+                    "on other bills (restaurant ${bill.restaurantId})."
+                )
+            }
+        }
+        insertBillPayments(paymentsWithId)
+        updateBill(bill)
+    }
+
+    @Transaction
+    suspend fun finalizeOnlineBillAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        requestedPayments: List<BillPaymentEntity>,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        val normalized = requestedPayments.map { payment ->
+            payment.copy(
+                billId = bill.id,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                isSynced = false,
+                syncStatus = "pending",
+                updatedAt = completedAt
+            )
+        }
+        PaymentSetValidator.validate(normalized, bill.totalAmount).getOrThrow()
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+
+        if (bill.orderStatus == "completed" && bill.paymentStatus == "success") {
+            if (!PaymentSetValidator.equivalent(existing, normalized, bill.totalAmount)) {
+                throw IllegalStateException("Bill is completed with a different or incomplete payment set.")
+            }
+            val reloaded = getBillWithItemsById(bill.id, bill.restaurantId)
+                ?: throw IllegalStateException("Completed bill could not be reloaded.")
+            return BillFinalizationResult(
+                reloaded,
+                BillFinalizationOutcome.ALREADY_FINALIZED_IDEMPOTENT
+            )
+        }
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        if (existing.isNotEmpty() &&
+            !PaymentSetValidator.equivalent(existing, normalized, bill.totalAmount)
+        ) {
+            throw IllegalStateException("Bill contains a malformed or conflicting payment set.")
+        }
+        var recoveredFromConstraint = false
+        if (existing.isEmpty()) {
+            // Pre-check operation_id uniqueness within the restaurant before inserting.
+            val normalizedOpIds = normalized.mapNotNull { it.operationId }.filter { it.isNotBlank() }
+            if (normalizedOpIds.isNotEmpty()) {
+                val opIdConflicts = getPaymentsByOperationIds(normalizedOpIds, restaurantId)
+                if (opIdConflicts.any { it.billId != billId }) {
+                    throw IllegalStateException(
+                        "Cannot finalize bill: operation_id(s) already exist on other bills " +
+                        "(restaurant $restaurantId)."
+                    )
+                }
+            }
+            // Attempt the insert. ABORT strategy means a concurrent (same-bill, same-opId)
+            // insert from another thread will throw SQLiteConstraintException rather than
+            // silently overwrite. We catch that and recover by comparing the actually-inserted
+            // set against the requested set.
+            try {
+                insertBillPayments(normalized)
+            } catch (e: android.database.sqlite.SQLiteConstraintException) {
+                // A concurrent writer inserted a payment with the same operation_id on this
+                // same bill between our pre-check and this insert. Load the existing set and
+                // compare semantically.
+                android.util.Log.w("BillDao",
+                    "finalizeOnlineBillAtomically: constraint violation inserting payments for " +
+                    "bill=$billId restaurant=$restaurantId — recovering with semantic comparison")
+                val recoveredExisting = getActivePaymentsForBill(bill.id, bill.restaurantId)
+                if (recoveredExisting.isEmpty()) {
+                    // The constraint was not from our operation_id index — rethrow.
+                    throw e
+                }
+                if (!PaymentSetValidator.equivalent(
+                        recoveredExisting, normalized, bill.totalAmount)) {
+                    throw IllegalStateException(
+                        "Bill ${bill.id} has ${recoveredExisting.size} concurrent payment row(s) " +
+                        "that do not match the requested payment set. " +
+                        "Cannot complete with conflicting payments."
+                    )
+                }
+                // Existing payments are semantically equivalent to the requested set.
+                // The concurrent writer already inserted them — do NOT insert again.
+                // Set flag so the return outcome reflects the recovery.
+                recoveredFromConstraint = true
+            }
+        }
+        val outcome = if (recoveredFromConstraint) {
+            BillFinalizationOutcome.CONSTRAINT_RECOVERED_IDEMPOTENT
+        } else {
+            BillFinalizationOutcome.FINALIZED_NOW
+        }
+        updateBill(
+            bill.copy(
+                paymentMode = when (normalized.map { it.paymentMode }.toSet()) {
+                    setOf("cash", "upi") -> "part_cash_upi"
+                    setOf("cash", "pos") -> "part_cash_pos"
+                    setOf("upi", "pos") -> "part_upi_pos"
+                    else -> normalized.single().paymentMode
+                },
+                paymentStatus = "success",
+                orderStatus = "completed",
+                paymentAttemptStatus = "succeeded",
+                paidAt = completedAt,
+                cancelReason = "",
+                isSynced = false,
+                syncStatus = "pending",
+                syncFailureReason = null,
+                syncFailedAt = null,
+                updatedAt = completedAt
+            )
+        )
+        val reloaded = getBillWithItemsById(bill.id, bill.restaurantId)
+            ?: throw IllegalStateException("Finalized bill could not be reloaded.")
+        return BillFinalizationResult(reloaded, outcome)
+    }
+
+    @Transaction
+    suspend fun recoverPartialPaymentAndFinalizeAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        recoveryPayment: BillPaymentEntity,
+        completedAt: Long
+    ): BillFinalizationResult {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        val assessment = PaymentSetValidator.assessForRecovery(existing, bill.totalAmount)
+        if (assessment !is PaymentRecoveryAssessment.Partial) {
+            throw IllegalStateException("Bill does not contain a recoverable partial payment.")
+        }
+        require(recoveryPayment.paymentMode !in assessment.usedModes) {
+            "Choose a payment mode that has not already been recorded."
+        }
+        require(!recoveryPayment.operationId.isNullOrBlank()) {
+            "Payment identity is required."
+        }
+
+        val normalizedRecovery = recoveryPayment.copy(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            deviceId = bill.deviceId,
+            terminalId = bill.terminalId,
+            billPublicToken = bill.publicToken,
+            amount = assessment.remainingAmount,
+            isSynced = false,
+            syncStatus = "pending",
+            updatedAt = completedAt
+        )
+        val conflicting = getPaymentsByOperationIds(
+            listOf(normalizedRecovery.operationId!!),
+            restaurantId
+        )
+        if (conflicting.isNotEmpty()) {
+            throw IllegalStateException("Recovery payment identity is already in use.")
+        }
+
+        val completedSet = existing + normalizedRecovery
+        PaymentSetValidator.validate(completedSet, bill.totalAmount).getOrThrow()
+        insertBillPayment(normalizedRecovery)
+        return finalizeOnlineBillAtomically(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            terminalId = terminalId,
+            requestedPayments = completedSet,
+            completedAt = completedAt
+        )
+    }
+
+    @Transaction
+    suspend fun resetUnverifiedPaymentRecoveryAtomically(
+        billId: Long,
+        restaurantId: Long,
+        terminalId: String,
+        updatedAt: Long
+    ) {
+        val bill = getOperationalBillById(billId, restaurantId, terminalId)
+            ?: throw IllegalStateException("Bill is not locally editable on this terminal.")
+        if (bill.orderStatus != "draft" || bill.paymentStatus != "pending") {
+            throw IllegalStateException("Bill is not awaiting payment.")
+        }
+
+        val existing = getActivePaymentsForBill(bill.id, bill.restaurantId)
+        require(existing.isNotEmpty()) { "No payment recovery data exists." }
+        val canReset = existing.all {
+            !it.isSynced &&
+                it.serverId == null &&
+                it.verifiedBy == "manual" &&
+                it.gatewayTxnId == null
+        }
+        if (!canReset) {
+            require(existing.any { it.operationId.isNullOrBlank() }) {
+                "Synced or gateway-verified payments cannot be reset on this device."
+            }
+            val identityBase = bill.operationId?.takeIf { it.isNotBlank() }
+                ?: "${bill.restaurantId}:${bill.terminalId}:${bill.publicToken}:finalize"
+            val repaired = existing.map { payment ->
+                if (payment.operationId.isNullOrBlank()) {
+                    payment.copy(
+                        operationId = "$identityBase:payment:${payment.paymentMode}",
+                        isSynced = false,
+                        syncStatus = "pending",
+                        updatedAt = updatedAt
+                    )
+                } else {
+                    payment
+                }
+            }
+            PaymentSetValidator.validate(repaired, bill.totalAmount).getOrThrow()
+            val repairedOperationIds = repaired.mapNotNull { it.operationId }
+            val conflicts = getPaymentsByOperationIds(repairedOperationIds, restaurantId)
+            require(conflicts.none { it.billId != bill.id }) {
+                "A repaired payment identity already belongs to another bill."
+            }
+            updateBillPayments(
+                repaired.filter { repairedPayment ->
+                    existing.first { it.id == repairedPayment.id }.operationId.isNullOrBlank()
+                }
+            )
+            return
+        }
+        val discarded = discardUnverifiedLocalPayments(
+            billId = bill.id,
+            restaurantId = bill.restaurantId,
+            updatedAt = updatedAt
+        )
+        require(discarded == existing.size) {
+            "Payment recovery changed while it was being reset."
+        }
+        updateBill(
+            bill.copy(
+                paymentAttemptStatus = "none",
+                paymentAttemptStartedAt = null,
+                partAmount1 = "0.0",
+                partAmount2 = "0.0",
+                isSynced = false,
+                syncStatus = "pending",
+                syncFailureReason = null,
+                syncFailedAt = null,
+                updatedAt = updatedAt
+            )
+        )
+    }
+
+    // Duplicate detection keys on the GST invoice_number, not the legacy lifetime_order_id.
+    // New bills leave lifetime_order_id NULL (SQLite groups all NULLs together, which would
+    // falsely flag every new bill as a duplicate), so we ignore NULL/blank invoice numbers.
+    @Query("""
+        SELECT invoice_number AS idValue,
+               COUNT(*) AS duplicateCount,
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/' || invoice_number || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND invoice_number IS NOT NULL
+          AND invoice_number != ''
+        GROUP BY invoice_number
+        HAVING COUNT(*) > 1
+        ORDER BY duplicateCount DESC, invoice_number DESC
+    """)
+    suspend fun getDuplicateInvoiceNumberGroups(restaurantId: Long): List<BillIdDuplicateGroup>
+
+    @Query("""
+        SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') || ' #' || daily_order_id
+               || CASE WHEN terminal_series IS NULL OR terminal_series = '' THEN '' ELSE '/' || terminal_series END AS idValue,
+               COUNT(*) AS duplicateCount,
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/' ||
+                   COALESCE(invoice_number, CASE WHEN lifetime_order_id IS NULL THEN 'legacy' ELSE 'INV' || lifetime_order_id END) ||
+                   ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+        GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime'), daily_order_id, COALESCE(terminal_series, '')
+        HAVING COUNT(*) > 1
+        ORDER BY duplicateCount DESC, idValue DESC
+    """)
+    suspend fun getDuplicateDailyOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup>
+
+    @Query("""
+        SELECT id,
+               daily_order_display AS dailyOrderDisplay,
+               lifetime_order_id AS lifetimeOrderId,
+               invoice_number AS invoiceNumber,
+               order_type AS orderType,
+               order_status AS orderStatus,
+               payment_status AS paymentStatus,
+               payment_mode AS paymentMode,
+               total_amount AS totalAmount,
+               created_at AS createdAt
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND (
+            (invoice_number IS NOT NULL AND invoice_number != '' AND invoice_number IN (
+                SELECT invoice_number
+                FROM bills
+                WHERE restaurant_id = :restaurantId AND is_deleted = 0
+                  AND invoice_number IS NOT NULL AND invoice_number != ''
+                GROUP BY invoice_number
+                HAVING COUNT(*) > 1
+            ))
+            OR EXISTS (
+                SELECT 1
+                FROM bills other
+                WHERE other.restaurant_id = bills.restaurant_id
+                  AND other.is_deleted = 0
+                  AND other.daily_order_id = bills.daily_order_id
+                  AND DATE(other.created_at / 1000, 'unixepoch', 'localtime') = DATE(bills.created_at / 1000, 'unixepoch', 'localtime')
+                  AND COALESCE(other.terminal_series, '') = COALESCE(bills.terminal_series, '')
+                GROUP BY DATE(other.created_at / 1000, 'unixepoch', 'localtime'), other.daily_order_id, COALESCE(other.terminal_series, '')
+                HAVING COUNT(*) > 1
+            )
+          )
+        ORDER BY created_at DESC, invoice_number DESC, id DESC
+    """)
+    suspend fun getDuplicateIdConflictBills(restaurantId: Long): List<BillIdConflictBill>
+
+    @Query("SELECT COALESCE(MAX(lifetime_order_id), 0) FROM bills WHERE restaurant_id = :restaurantId AND is_deleted = 0")
+    suspend fun getMaxLifetimeOrderId(restaurantId: Long): Long
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND device_id = :deviceId
+          AND is_deleted = 0
+          AND created_at BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, deviceId: String, startTime: Long, endTime: Long): Long
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_at BETWEEN :startTime AND :endTime
+          AND (created_terminal_id = :terminalId OR terminal_id = :terminalId)
+    """)
+    suspend fun getMaxDailyOrderIdForTerminalToday(restaurantId: Long, terminalId: String, startTime: Long, endTime: Long): Long
+
+    // Highest invoice sequence allocated within a terminal's invoice series.
+    // Filtered by invoice_series (the exact unique-key component, e.g. "25A") rather
+    // than the looser terminal_series + financial_year pair, so a server-pulled bill
+    // under the same series is always counted and local allocation never reuses an
+    // already-allocated sequence (prevents ux_bills_restaurant_invoice_series_active
+    // unique violations / 409 push loops after a pull).
+    @Query("""
+        SELECT COALESCE(MAX(invoice_sequence), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND invoice_series = :invoiceSeries
+          AND is_deleted = 0
+    """)
+    suspend fun getMaxInvoiceSequence(restaurantId: Long, invoiceSeries: String): Long
+
+    // ── Unsynced queries ───────────────────────────────────────────────────────
+
+    @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId AND sync_status != 'failed_permanent'")
+    suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity>
+
+    @Query("SELECT * FROM bills WHERE is_synced = 0 AND owner_user_id = :userId AND restaurant_id = :restaurantId")
+    suspend fun getUnsyncedBillsForUser(userId: Long, restaurantId: Long): List<BillEntity>
+
+    @Query("""
+        SELECT bi.* FROM bill_items bi
+        INNER JOIN bills b ON bi.bill_id = b.id
+        WHERE bi.is_synced = 0 AND b.owner_user_id = :userId AND bi.restaurant_id = :restaurantId AND b.restaurant_id = :restaurantId
+    """)
+    suspend fun getUnsyncedBillItemsForUser(userId: Long, restaurantId: Long): List<BillItemEntity>
+
+    @Query("""
+        SELECT bp.* FROM bill_payments bp
+        INNER JOIN bills b ON bp.bill_id = b.id
+        WHERE bp.is_synced = 0 AND b.owner_user_id = :userId AND bp.restaurant_id = :restaurantId AND b.restaurant_id = :restaurantId
+    """)
+    suspend fun getUnsyncedBillPaymentsForUser(userId: Long, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND owner_user_id = :userId AND restaurant_id = :restaurantId")
+    fun getUnsyncedCountForUser(userId: Long, restaurantId: Long): Flow<Int>
+
+    @Query("""
+        UPDATE bills
+        SET is_synced = 1,
+            sync_status = 'synced',
+            sync_failure_reason = NULL,
+            sync_failed_at = NULL
+        WHERE id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_synced = 0
+          AND updated_at = :pushedUpdatedAt
+          AND order_status = :pushedOrderStatus
+          AND payment_status = :pushedPaymentStatus
+    """)
+    suspend fun markBillAsSyncedIfUnchanged(
+        billId: Long,
+        restaurantId: Long,
+        pushedUpdatedAt: Long,
+        pushedOrderStatus: String,
+        pushedPaymentStatus: String
+    ): Int
+
+    @Query("""
+        UPDATE bills
+        SET sync_status = 'failed_permanent',
+            sync_failure_reason = :reason,
+            sync_failed_at = :failedAt
+        WHERE id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_synced = 0
+    """)
+    suspend fun markBillSyncFailedPermanently(
+        billId: Long,
+        restaurantId: Long,
+        reason: String,
+        failedAt: Long
+    ): Int
+
+    @Query("""
+        UPDATE bills
+        SET sync_status = 'pending',
+            sync_failure_reason = NULL,
+            sync_failed_at = NULL
+        WHERE id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_synced = 0
+    """)
+    suspend fun retryFailedBillSync(billId: Long, restaurantId: Long): Int
+
+    @Query("SELECT * FROM bills WHERE sync_status = 'failed_permanent' AND restaurant_id = :restaurantId ORDER BY sync_failed_at DESC")
+    suspend fun getPermanentlyFailedBills(restaurantId: Long): List<BillEntity>
+
+    @Query("""
+        SELECT COUNT(*)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND id != :billId
+          AND is_deleted = 0
+          AND last_reset_date = :date
+          AND daily_order_id = :dailyOrderId
+          AND COALESCE(terminal_series, '') = COALESCE(:terminalSeries, '')
+    """)
+    suspend fun countDailyOrderIdentityConflicts(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        dailyOrderId: Long,
+        terminalSeries: String?
+    ): Int
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND id != :billId
+          AND is_deleted = 0
+          AND last_reset_date = :date
+          AND COALESCE(terminal_series, '') = COALESCE(:terminalSeries, '')
+    """)
+    suspend fun getMaxDailyOrderIdForIdentity(
+        restaurantId: Long,
+        billId: Long,
+        date: String,
+        terminalSeries: String?
+    ): Long
+
+    @Transaction
+    suspend fun repairFailedDailyOrderIdentity(
+        billId: Long,
+        restaurantId: Long,
+        correctedDate: String,
+        updatedAt: Long
+    ): BillEntity {
+        val bill = getBillById(billId, restaurantId)
+            ?: throw IllegalStateException("Bill not found.")
+        check(!bill.isSynced && bill.serverId == null) {
+            "Only a local unsynced bill can be repaired."
+        }
+        check(bill.recordOrigin == "local_created" && bill.recordScope == "terminal_operational") {
+            "Server history cannot be changed from this terminal."
+        }
+        check(bill.syncFailureReason?.contains("Duplicate order", ignoreCase = true) == true) {
+            "This bill does not have a repairable daily-order conflict."
+        }
+
+        // The server has authoritatively reported a duplicate order (verified by the
+        // check above that syncFailureReason contains "Duplicate order"). A server/other-
+        // terminal duplicate is invisible to the LOCAL-only countDailyOrderIdentityConflicts
+        // query, so relying on it alone would renumber to the same id (a no-op) and the bill
+        // would be quarantined again. Since the failure is a duplicate-order conflict, always
+        // treat it as a conflict and advance to the next available id.
+        val repairedDailyOrderId = getMaxDailyOrderIdForIdentity(
+            restaurantId,
+            billId,
+            correctedDate,
+            bill.terminalSeries
+        ) + 1L
+        val displayCounter = repairedDailyOrderId.toString().padStart(2, '0')
+        val repairedDisplay = bill.terminalSeries
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it-$displayCounter" }
+            ?: displayCounter
+        val repaired = bill.copy(
+            dailyOrderId = repairedDailyOrderId,
+            dailyOrderDisplay = repairedDisplay,
+            lastResetDate = correctedDate,
+            syncStatus = "pending",
+            syncFailureReason = null,
+            syncFailedAt = null,
+            updatedAt = updatedAt
+        )
+        updateBill(repaired)
+        return repaired
+    }
+
+    @Query("UPDATE bills SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
+    @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId AND sync_status != 'failed_permanent' LIMIT :limit")
+    suspend fun getUnsyncedBillsPaged(restaurantId: Long, limit: Int): List<BillEntity>
+
+    @Transaction
+    suspend fun insertSyncedBills(bills: List<BillEntity>) {
+        for (bill in bills) {
+            val localByDeviceId = getBillByLocalId(bill.id, bill.deviceId, bill.restaurantId)
+            val localByServerId = bill.serverId?.let { getBillByServerId(it, bill.restaurantId) }
+            val localBill = localByDeviceId ?: localByServerId
+
+            if (
+                localByDeviceId != null &&
+                localByServerId != null &&
+                localByDeviceId.id != localByServerId.id
+            ) {
+                moveBillItemsToBill(localByServerId.id, localByDeviceId.id, bill.restaurantId)
+                moveBillPaymentsToBill(localByServerId.id, localByDeviceId.id, bill.restaurantId)
+                moveKitchenPrintQueueToBill(localByServerId.id, localByDeviceId.id, bill.restaurantId)
+                hideDuplicateBill(localByServerId.id, bill.restaurantId)
+            }
+
+            if (localBill == null) {
+                // Not present locally at all, insert it
+                insertBill(bill)
+            } else {
+                // Present locally. Check if we should overwrite it.
+                // A synced local row may accept an equal-timestamp server refresh.
+                // Note: record_origin/record_scope intentionally come from the remote here —
+                // getOperationalBillById uses currentOwnerTerminalId (not those labels) to
+                // determine editability, so there is no need to preserve stale local labels.
+                val shouldOverwrite =
+                    bill.updatedAt > localBill.updatedAt ||
+                        (bill.updatedAt == localBill.updatedAt && localBill.isSynced)
+                if (shouldOverwrite) {
+                    updateBill(bill.copy(id = localBill.id))
+                } else {
+                    // Preserve newer local fields, but still merge server identity from the pull.
+                    // Bill items link through serverBillId -> bills.server_id; without this repair
+                    // pulled items can be skipped and existing bills open with no item rows.
+                    val repairedLocalBill = localBill.copy(
+                        serverId = localBill.serverId ?: bill.serverId,
+                        serverUpdatedAt = maxOf(localBill.serverUpdatedAt, bill.serverUpdatedAt),
+                        publicToken = localBill.publicToken ?: bill.publicToken
+                    )
+                    if (repairedLocalBill != localBill) {
+                        updateBill(repairedLocalBill)
+                    }
+                }
+            }
+        }
+    }
+
+    @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId")
+    suspend fun getUnsyncedCountOnce(restaurantId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId")
+    fun getUnsyncedCount(restaurantId: Long): Flow<Int>
+
+    @Query("SELECT * FROM bill_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
+    suspend fun getUnsyncedBillItems(restaurantId: Long): List<BillItemEntity>
+
+    @Query("""
+        SELECT bi.* FROM bill_items bi
+        INNER JOIN bills b ON bi.bill_id = b.id
+        WHERE bi.is_synced = 0
+          AND bi.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+    """)
+    suspend fun getUnsyncedBillItemsWithSyncedParent(restaurantId: Long): List<BillItemEntity>
+
+    @Query("SELECT * FROM bill_items WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun getBillItemsByIds(ids: List<Long>, restaurantId: Long): List<BillItemEntity>
+
+    @Query("UPDATE bill_items SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun markBillItemsAsSynced(ids: List<Long>, restaurantId: Long)
+
+    @Query("UPDATE bill_items SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateBillItemServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
+    @Query("UPDATE bill_items SET server_bill_id = :serverBillId WHERE bill_id = :billLocalId AND restaurant_id = :restaurantId AND server_bill_id IS NULL")
+    suspend fun updateBillItemsServerBillIdByBillLocalId(billLocalId: Long, serverBillId: Long, restaurantId: Long): Int
+
+    @Query("""
+        UPDATE bill_items
+        SET server_bill_id = (
+            SELECT b.server_id
+            FROM bills b
+            WHERE b.id = bill_items.bill_id
+              AND b.restaurant_id = :restaurantId
+        )
+        WHERE restaurant_id = :restaurantId
+          AND server_bill_id IS NULL
+          AND EXISTS (
+              SELECT 1
+              FROM bills b
+              WHERE b.id = bill_items.bill_id
+                AND b.restaurant_id = :restaurantId
+                AND b.server_id IS NOT NULL
+          )
+    """)
+    suspend fun backfillBillItemServerBillIds(restaurantId: Long): Int
+
+    @Query("UPDATE bill_items SET server_menu_item_id = :serverMenuItemId WHERE menu_item_id = :menuItemLocalId AND restaurant_id = :restaurantId AND server_menu_item_id IS NULL")
+    suspend fun updateBillItemsServerMenuItemIdByMenuItemLocalId(menuItemLocalId: Long, serverMenuItemId: Long, restaurantId: Long): Int
+
+    @Query("UPDATE bill_items SET server_variant_id = :serverVariantId WHERE variant_id = :variantLocalId AND restaurant_id = :restaurantId AND server_variant_id IS NULL")
+    suspend fun updateBillItemsServerVariantIdByVariantLocalId(variantLocalId: Long, serverVariantId: Long, restaurantId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSyncedBillItems(items: List<BillItemEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedBillItems(items: List<BillItemEntity>) {
+        for (item in items) {
+            val existing = item.serverId?.let { findBillItemByServerId(it, item.restaurantId) }
+            if (existing != null) {
+                updateBillItem(item)
+            } else {
+                insertBillItem(item)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM bill_items WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findBillItemByServerId(serverId: Long, restaurantId: Long): BillItemEntity?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillItem(item: BillItemEntity): Long
+
+    @Query("SELECT COUNT(*) FROM bill_items WHERE restaurant_id = :restaurantId")
+    suspend fun countBillItems(restaurantId: Long): Int
+
+    @Query("SELECT COUNT(DISTINCT bill_id) FROM bill_items WHERE restaurant_id = :restaurantId")
+    suspend fun countBillsWithItems(restaurantId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM bills WHERE restaurant_id = :restaurantId AND is_deleted = 0")
+    suspend fun countActiveBills(restaurantId: Long): Int
+
+    @Query("DELETE FROM bill_items WHERE is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteAllSyncedBillItems(restaurantId: Long)
+
+    @Query("DELETE FROM bill_items WHERE bill_id IN (:billIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteSyncedBillItemsForBills(billIds: List<Long>, restaurantId: Long)
+
+    @Query("DELETE FROM bill_items WHERE server_id IN (:serverIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteSyncedBillItemsByServerIds(serverIds: List<Long>, restaurantId: Long)
+
+    @Query("SELECT * FROM bill_payments WHERE is_synced = 0 AND restaurant_id = :restaurantId")
+    suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("""
+        SELECT bp.* FROM bill_payments bp
+        INNER JOIN bills b ON bp.bill_id = b.id
+        WHERE bp.is_synced = 0
+          AND bp.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+    """)
+    suspend fun getUnsyncedBillPaymentsWithSyncedParent(restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("SELECT * FROM bill_payments WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun getBillPaymentsByIds(ids: List<Long>, restaurantId: Long): List<BillPaymentEntity>
+
+    @Query("UPDATE bill_payments SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun markBillPaymentsAsSynced(ids: List<Long>, restaurantId: Long)
+
+    @Query("UPDATE bill_payments SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateBillPaymentServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
+    @Query("UPDATE bill_payments SET server_bill_id = :serverBillId WHERE bill_id = :billLocalId AND restaurant_id = :restaurantId AND server_bill_id IS NULL")
+    suspend fun updateBillPaymentsServerBillIdByBillLocalId(billLocalId: Long, serverBillId: Long, restaurantId: Long): Int
+
+    @Query("""
+        UPDATE bill_payments
+        SET server_bill_id = (
+            SELECT b.server_id
+            FROM bills b
+            WHERE b.id = bill_payments.bill_id
+              AND b.restaurant_id = :restaurantId
+        )
+        WHERE restaurant_id = :restaurantId
+          AND server_bill_id IS NULL
+          AND EXISTS (
+              SELECT 1
+              FROM bills b
+              WHERE b.id = bill_payments.bill_id
+                AND b.restaurant_id = :restaurantId
+                AND b.server_id IS NOT NULL
+          )
+    """)
+    suspend fun backfillBillPaymentServerBillIds(restaurantId: Long): Int
+
+    @Query("""
+        SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
+        FROM bill_items
+        INNER JOIN bills ON bill_items.bill_id = bills.id
+        WHERE bills.order_status = 'completed'
+          AND bills.is_deleted = 0
+          AND bills.restaurant_id = :restaurantId
+          AND bills.created_terminal_id = :terminalId
+          AND bills.created_at BETWEEN :startMillis AND :endMillis
+        GROUP BY item_name
+        ORDER BY quantitySold DESC
+        LIMIT :limit
+    """)
+    suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int, restaurantId: Long, terminalId: String): List<com.khanabook.lite.pos.feature.reports.domain.TopSellingItem>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>)
+
+    @Transaction
+    suspend fun upsertSyncedBillPayments(payments: List<BillPaymentEntity>) {
+        for (payment in payments) {
+            val existing = payment.serverId?.let { findBillPaymentByServerId(it, payment.restaurantId) }
+            if (existing != null) {
+                updateBillPayment(payment)
+            } else {
+                insertBillPayment(payment)
+            }
+        }
+    }
+
+    @Query("SELECT * FROM bill_payments WHERE server_id = :serverId AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun findBillPaymentByServerId(serverId: Long, restaurantId: Long): BillPaymentEntity?
+
+    @Update
+    suspend fun updateBillPayment(payment: BillPaymentEntity)
+
+    @Query("SELECT * FROM sync_quarantine_records WHERE restaurant_id = :restaurantId ORDER BY quarantined_at DESC, id DESC")
+    fun getSyncQuarantineRecordsFlow(restaurantId: Long): Flow<List<SyncQuarantineEntity>>
+
+    @Query("SELECT COUNT(*) FROM sync_quarantine_records WHERE restaurant_id = :restaurantId")
+    fun getSyncQuarantineCountFlow(restaurantId: Long): Flow<Int>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSyncQuarantineRecord(record: SyncQuarantineEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSyncQuarantineRecords(records: List<SyncQuarantineEntity>)
+
+    @Query("DELETE FROM bill_payments WHERE is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteAllSyncedBillPayments(restaurantId: Long)
+
+    @Query("DELETE FROM bill_payments WHERE bill_id IN (:billIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteSyncedBillPaymentsForBills(billIds: List<Long>, restaurantId: Long)
+
+    @Query("DELETE FROM bill_payments WHERE server_id IN (:serverIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
+    suspend fun deleteSyncedBillPaymentsByServerIds(serverIds: List<Long>, restaurantId: Long)
+
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_type = 'takeaway' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity>
+
+    @Query("SELECT * FROM bills WHERE customer_name IS NOT NULL AND customer_name != '' AND order_type = 'dine_in' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity>
+
+    @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId AND is_deleted = 0 LIMIT 1")
+    suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+    @Query(
+        """
+        SELECT b.* FROM bills b
+        INNER JOIN kitchen_print_queue kpq ON b.id = kpq.bill_id
+        WHERE kpq.dispatch_status != 'SENT'
+          AND b.restaurant_id = :restaurantId
+          AND b.created_terminal_id = :terminalId
+        ORDER BY b.created_at DESC
+        """
+    )
+    suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity>
+}

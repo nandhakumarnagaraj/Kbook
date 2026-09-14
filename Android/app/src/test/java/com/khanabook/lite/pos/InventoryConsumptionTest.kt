@@ -1,10 +1,10 @@
 package com.khanabook.lite.pos
 
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.StockLogEntity
-import com.khanabook.lite.pos.data.repository.InventoryRepository
-import com.khanabook.lite.pos.data.repository.MenuRepository
-import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.inventory.data.StockLogEntity
+import com.khanabook.lite.pos.feature.inventory.data.InventoryRepository
+import com.khanabook.lite.pos.feature.menu.data.MenuRepository
+import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk

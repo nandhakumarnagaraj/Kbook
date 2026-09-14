@@ -31,6 +31,9 @@
     <!-- Foreground service permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Fallback type for PrintService when BLUETOOTH_CONNECT has not been granted at runtime:
+         connectedDevice requires that grant, and starting without it throws SecurityException. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name="com.khanabook.lite.pos.KhanaBookApplication"
@@ -107,20 +110,20 @@
         </provider>
         <service
             android:name="com.khanabook.lite.pos.domain.manager.PrintService"
-            android:foregroundServiceType="connectedDevice"
+            android:foregroundServiceType="connectedDevice|dataSync"
             android:exported="false" />
         <service
-            android:name="com.khanabook.lite.pos.worker.KhanaBookFirebaseMessagingService"
+            android:name="com.khanabook.lite.pos.feature.notifications.worker.KhanaBookFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
         <receiver
-            android:name="com.khanabook.lite.pos.worker.NotificationActionReceiver"
+            android:name="com.khanabook.lite.pos.feature.notifications.worker.NotificationActionReceiver"
             android:exported="false" />
         <receiver
-            android:name="com.khanabook.lite.pos.worker.BootReceiver"
+            android:name="com.khanabook.lite.pos.feature.sync.worker.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface BottomActionBarItem {
@@ -12,6 +12,7 @@ export interface BottomActionBarItem {
 @Component({
   selector: 'kb-bottom-action-bar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `<ng-content></ng-content>`,
   styleUrl: './bottom-action-bar.component.css'

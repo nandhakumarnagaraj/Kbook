@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, ViewChild, HostListener, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, ViewChild, HostListener, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
@@ -16,6 +16,7 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
 @Component({
   selector: 'app-sidebar-layout',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent],
   template: `
     <div class="layout-shell">
@@ -78,7 +79,7 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
 
         <nav class="nav-links" aria-label="Main">
           <a
-            *ngFor="let link of links()"
+            *ngFor="let link of links(); trackBy: trackByNavLink"
             [routerLink]="link.path"
             routerLinkActive="active-link"
             class="nav-link"
@@ -483,4 +484,6 @@ export class SidebarLayoutComponent implements OnInit {
   onEscape(event: KeyboardEvent): void {
     if (this.menuOpen()) this.closeMenu();
   }
+
+  trackByNavLink = (_: number, link: NavLink) => link.path;
 }

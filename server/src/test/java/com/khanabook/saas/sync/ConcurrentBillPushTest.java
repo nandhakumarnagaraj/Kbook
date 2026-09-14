@@ -300,4 +300,78 @@ class ConcurrentBillPushTest extends BaseIntegrationTest {
         assertThat(bills).hasSize(1);
         assertThat(bills.get(0).getPaymentStatus()).isEqualTo("paid");
     }
+
+    /**
+     * Builds a single push payload containing two snapshots of the SAME publicToken but
+     * DIFFERENT localIds — an older draft followed by a newer completed snapshot. This
+     * reproduces the B3 scenario where same-batch dedup previously dropped the newer
+     * snapshot while acknowledging it as successful.
+     */
+    private String twoSnapshotBatch(long olderLocalId, long newerLocalId, long baseTs,
+                                     String deviceId, String publicToken) {
+        String older = oneBill(olderLocalId, baseTs, deviceId, publicToken, "draft", "pending");
+        String newer = oneBill(newerLocalId, baseTs + 1000L, deviceId, publicToken, "completed", "success");
+        return "[" + older + "," + newer + "]";
+    }
+
+    private String oneBill(long localId, long updatedAt, String deviceId, String publicToken,
+                           String orderStatus, String paymentStatus) {
+        return """
+            {
+              "localId": %d,
+              "deviceId": "%s",
+              "restaurantId": %d,
+              "updatedAt": %d,
+              "createdAt": %d,
+              "isDeleted": false,
+              "publicToken": "%s",
+              "dailyOrderId": %d,
+              "dailyOrderDisplay": "%d",
+              "lifetimeOrderId": %d,
+              "orderType": "dine_in",
+              "subtotal": 100.00,
+              "totalAmount": 100.00,
+              "paymentMode": "cash",
+              "paymentStatus": "%s",
+              "orderStatus": "%s"
+            }
+            """.formatted(localId, deviceId, RESTAURANT, updatedAt, updatedAt,
+                    publicToken, localId, localId, localId, paymentStatus, orderStatus);
+    }
+
+    @Test
+    void sameBatch_duplicatePublicToken_keepsNewerSnapshot_andMapsBothLocalIds() throws Exception {
+        RestaurantTerminal tA = createTerminal("A");
+        String tokenA = terminalToken(tA);
+        String auth = authToken();
+
+        String publicToken = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+
+        // Single push: older draft (localId=1) + newer completed (localId=2), same token.
+        var result = mockMvc.perform(post("/sync/bills/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + auth)
+                .header("X-Terminal-Token", tokenA)
+                .content(twoSnapshotBatch(1L, 2L, now, "DEV_A", publicToken)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // Exactly one bill persisted, and it is the NEWER completed snapshot (B3 regression).
+        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
+        assertThat(bills).hasSize(1);
+        assertThat(bills.get(0).getOrderStatus()).isEqualTo("completed");
+        assertThat(bills.get(0).getPaymentStatus()).isEqualTo("success");
+        Long serverId = bills.get(0).getId();
+
+        // Both localIds are acknowledged and map to the single surviving server id, so the
+        // device does not re-push the snapshot that was intentionally deduplicated.
+        JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(node.has("localToServerIdMap")).isTrue();
+        JsonNode map = node.get("localToServerIdMap");
+        assertThat(map.has("1")).isTrue();
+        assertThat(map.has("2")).isTrue();
+        assertThat(map.get("1").asLong()).isEqualTo(serverId);
+        assertThat(map.get("2").asLong()).isEqualTo(serverId);
+    }
 }

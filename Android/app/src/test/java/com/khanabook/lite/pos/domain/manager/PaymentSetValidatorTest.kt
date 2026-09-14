@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.payments.domain.PaymentRecoveryAssessment
+import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
 
-import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
+import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

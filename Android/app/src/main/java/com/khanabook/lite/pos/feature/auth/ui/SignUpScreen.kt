@@ -1,0 +1,538 @@
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
+package com.khanabook.lite.pos.feature.auth.ui
+import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.theme.*
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.android.awaitFrame
+import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.util.ValidationUtils
+import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+
+@Composable
+fun SignUpScreen(
+        onSignUpSuccess: () -> Unit,
+        onLoginClick: () -> Unit = {},
+        viewModel: AuthViewModel = hiltViewModel()
+) {
+    var shopName by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var otp by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+
+    val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
+    val phoneFocusRequester = remember { FocusRequester() }
+    val otpFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val confirmPasswordFocusRequester = remember { FocusRequester() }
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
+
+
+    val isNameValid = ValidationUtils.isValidName(shopName)
+    val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
+    val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
+    val passwordsMatch = newPassword == confirmPassword && newPassword.isNotEmpty()
+
+    var otpSent by remember { mutableStateOf(false) }
+    var otpTimer by remember { mutableIntStateOf(120) }
+    val signUpStatus by viewModel.signUpStatus.collectAsStateWithLifecycle()
+    val loginStatus by viewModel.loginStatus.collectAsStateWithLifecycle()
+    val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
+    val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
+    val signUpFieldErrors by viewModel.signUpFieldErrors.collectAsStateWithLifecycle()
+
+    val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
+
+    LaunchedEffect(signUpStatus) {
+        when (val status = signUpStatus) {
+            is AuthViewModel.SignUpResult.Loading -> {}
+            is AuthViewModel.SignUpResult.Success -> {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                KhanaToast.show("Account created successfully", ToastKind.Success)
+            }
+            is AuthViewModel.SignUpResult.OtpSent -> {
+                otpSent = true
+                otpTimer = 120
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                KhanaToast.show("OTP Sent to your WhatsApp!", ToastKind.Info)
+            }
+            is AuthViewModel.SignUpResult.Error -> {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                KhanaToast.show(status.message, ToastKind.Error)
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(phoneNumber) {
+        if (phoneNumber.length < 10) {
+            viewModel.clearUserCheck()
+        }
+    }
+
+    LaunchedEffect(loginStatus) {
+        if (loginStatus is AuthViewModel.LoginResult.Success) {
+            onSignUpSuccess()
+            viewModel.resetSignUpStatus()
+        }
+    }
+
+    fun formatTime(seconds: Int): String {
+        val min = seconds / 60
+        val sec = seconds % 60
+        return String.format("%02d:%02d", min, sec)
+    }
+
+    fun fieldError(vararg keys: String): String? = keys.firstNotNullOfOrNull { key ->
+        signUpFieldErrors[key]?.takeIf { it.isNotBlank() }
+    }
+
+    LaunchedEffect(otpSent) {
+        if (otpSent) {
+            awaitFrame()
+            runCatching { otpFocusRequester.requestFocus() }
+            otpTimer = 60
+            while (otpTimer > 0) {
+                delay(1000)
+                otpTimer--
+            }
+        }
+    }
+
+    Scaffold(
+            contentWindowInsets = WindowInsets(0),
+            containerColor = DarkBrown1
+    ) { innerPadding ->
+        Box(
+                modifier =
+                        Modifier.fillMaxSize()
+                                .padding(innerPadding)
+                                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
+                contentAlignment = Alignment.Center
+        ) {
+            AuthFormContainer {
+                KhanaBookLogo(
+                        modifier = Modifier.padding(bottom = layout.authLogoSpacing)
+                )
+
+                Text(
+                        text = "Sign Up",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = PrimaryGold
+                )
+
+                Text(
+                        text =
+                                "Create your account to start managing\nbilling with KhanaBook Lite.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextLight.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = spacing.small, bottom = layout.authHeaderSpacing)
+                )
+
+                
+                Column(verticalArrangement = Arrangement.spacedBy(layout.authFieldSpacing)) {
+                    
+                    OutlinedTextField(
+                            value = shopName,
+                            onValueChange = { shopName = it },
+                            label = { Text("Shop Name") },
+                            placeholder = {
+                                Text("Restaurant name", color = TextGold.copy(alpha = 0.7f))
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Business,
+                                        contentDescription = null,
+                                        tint = PrimaryGold
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = KhanaRadii.xl,
+                            colors = outlinedTextFieldColors(),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { runCatching { phoneFocusRequester.requestFocus() } }
+                            ),
+                            isError = (shopName.isNotEmpty() && !isNameValid) || fieldError("name", "shopName") != null,
+                            supportingText = {
+                                val backendFieldError = fieldError("name", "shopName")
+                                if (backendFieldError != null) {
+                                        Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                } else if (shopName.isNotEmpty() && !isNameValid)
+                                        Text("Shop name too short", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                            }
+                    )
+
+                    
+                    OutlinedTextField(
+                            value = phoneNumber,
+                            onValueChange = {
+                                val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                                phoneNumber = filtered
+                                if (filtered.length == 10) {
+                                    viewModel.checkUserExists(filtered)
+                                }
+                            },
+                            label = { Text("WhatsApp") },
+                            placeholder = {
+                                Text("10-digit number", color = TextGold.copy(alpha = 0.7f))
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = VegGreen
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = if (otpSent) ImeAction.Next else ImeAction.Default
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { if (otpSent) runCatching { otpFocusRequester.requestFocus() } }
+                            ),
+                            modifier = Modifier.fillMaxWidth().focusRequester(phoneFocusRequester),
+                            shape = KhanaRadii.xl,
+                            colors = outlinedTextFieldColors(),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
+                            supportingText = {
+                                val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
+                                if (backendFieldError != null) {
+                                    Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                } else if (userExistsError != null) {
+                                    Text(userExistsError.orEmpty(), color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
+                                    Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                }
+                            },
+                            trailingIcon = {
+                                if (isUserChecking) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PrimaryGold
+                                    )
+                                } else if (!otpSent || otpTimer == 0) {
+                                    Button(
+                                            onClick = {
+                                                if (isPhoneValid && userExistsError == null) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    viewModel.sendOtp(phoneNumber)
+                                                }
+                                            },
+                                            modifier = Modifier.padding(end = 4.dp).height(40.dp),
+                                            colors =
+                                                    ButtonDefaults.buttonColors(
+                                                            containerColor = PrimaryGold
+                                                    ),
+                                            shape = KhanaRadii.xl,
+                                            contentPadding = PaddingValues(horizontal = 12.dp),
+                                            enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
+                                    ) {
+                                        Text(
+                                                "Send OTP",
+                                                color = DarkBrown1,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                }
+                            }
+                    )
+
+                    
+                    if (otpSent) {
+                        OutlinedTextField(
+                                value = otp,
+                                onValueChange = {
+                                    val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                                    otp = filtered
+                                    if (filtered.length == 6) {
+                                        runCatching { passwordFocusRequester.requestFocus() }
+                                    }
+                                },
+                                label = { Text("Enter OTP") },
+                                placeholder = {
+                                    Text("6-digit code", color = TextGold.copy(alpha = 0.7f))
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                            Icons.Default.Dialpad,
+                                            contentDescription = null,
+                                            tint = PrimaryGold
+                                    )
+                                },
+                                keyboardOptions =
+                                        KeyboardOptions(
+                                            keyboardType = KeyboardType.Number,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { runCatching { passwordFocusRequester.requestFocus() } }
+                                ),
+                                modifier = Modifier.fillMaxWidth().focusRequester(otpFocusRequester),
+                                shape = KhanaRadii.xl,
+                                colors = outlinedTextFieldColors(),
+                                singleLine = true,
+                                enabled = !isLoading,
+                                isError = fieldError("otp") != null,
+                                supportingText = {
+                                    fieldError("otp")?.let {
+                                        Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                },
+                                trailingIcon = {
+                                    if (otpTimer > 0) {
+                                        Text(
+                                                text = formatTime(otpTimer),
+                                                color = TextLight,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                modifier = Modifier.padding(end = 16.dp)
+                                        )
+                                    }
+                                }
+                        )
+                    }
+
+                    
+                    OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("Password") },
+                            placeholder = {
+                                Text("Min 8 chars", color = TextGold.copy(alpha = 0.7f))
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = PrimaryGold
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                        imageVector =
+                                                if (showNewPassword) Icons.Default.Visibility
+                                                else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = PrimaryGold,
+                                        modifier =
+                                                Modifier.clickable(enabled = !isLoading) {
+                                                            showNewPassword = !showNewPassword
+                                                        }
+                                                        .padding(end = 8.dp)
+                                )
+                            },
+                            visualTransformation =
+                                    if (showNewPassword) VisualTransformation.None
+                                    else PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
+                            shape = KhanaRadii.xl,
+                            colors = outlinedTextFieldColors(),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }
+                            ),
+                            isError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null,
+                            supportingText = {
+                                val backendFieldError = fieldError("password")
+                                if (backendFieldError != null)
+                                        Text(
+                                                backendFieldError,
+                                                color = ErrorPink,
+                                                style = MaterialTheme.typography.labelSmall
+                                        )
+                                else if (newPassword.isNotEmpty() && !isPasswordValid)
+                                        Text(
+                                                "Min 8 chars, uppercase, digit & special character",
+                                                color = ErrorPink,
+                                                style = MaterialTheme.typography.labelSmall
+                                        )
+                            }
+                    )
+
+                    
+                    OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            label = { Text("Confirm Password") },
+                            placeholder = {
+                                Text("Repeat password", color = TextGold.copy(alpha = 0.7f))
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = PrimaryGold
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                        imageVector =
+                                                if (showConfirmPassword) Icons.Default.Visibility
+                                                else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = PrimaryGold,
+                                        modifier =
+                                                Modifier.clickable(enabled = !isLoading) {
+                                                            showConfirmPassword =
+                                                                    !showConfirmPassword
+                                                        }
+                                                        .padding(end = 8.dp)
+                                )
+                            },
+                            visualTransformation =
+                                    if (showConfirmPassword) VisualTransformation.None
+                                    else PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(confirmPasswordFocusRequester),
+                            shape = KhanaRadii.xl,
+                            colors = outlinedTextFieldColors(),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val isFormValidAction =
+                                        isNameValid && isPhoneValid && isPasswordValid &&
+                                                passwordsMatch && otp.length == 6 && !isLoading && userExistsError == null
+                                    if (isFormValidAction) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.signUp(shopName, phoneNumber, otp, newPassword)
+                                    }
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            isError = confirmPassword.isNotEmpty() && !passwordsMatch,
+                            supportingText = {
+                                if (confirmPassword.isNotEmpty() && !passwordsMatch)
+                                        Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                            }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(layout.authActionSpacing))
+
+                
+                val isFormValid =
+                        isNameValid &&
+                                isPhoneValid &&
+                                isPasswordValid &&
+                                passwordsMatch &&
+                                otp.length == 6 && !isLoading && userExistsError == null
+
+                Button(
+                        onClick = {
+                            if (isFormValid) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.signUp(shopName, phoneNumber, otp, newPassword)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFormValid) PrimaryGold else TextMuted,
+                            contentColor = DarkBrown1
+                        ),
+                        shape = KhanaRadii.pill,
+                        enabled = isFormValid
+                ) {
+                    if (isLoading && signUpStatus is AuthViewModel.SignUpResult.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(iconSize.medium),
+                            color = DarkBrown1,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Text(
+                                "Sign Up",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                    }
+                }
+
+
+                Spacer(modifier = Modifier.height(layout.authFooterSpacing))
+
+                Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Already have an account? ", color = TextLight, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                            text = "Log In",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.clickable(enabled = !isLoading) { onLoginClick() }
+                    )
+                }
+            }
+
+            KhanaBookLoadingOverlay(
+                visible = isLoading,
+                type = LoadingType.SIGNUP,
+                message = if (signUpStatus is AuthViewModel.SignUpResult.Loading) "Creating Account..." else "Logging in..."
+            )
+        }
+    }
+}
+
+

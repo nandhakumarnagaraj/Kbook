@@ -1,0 +1,497 @@
+package com.khanabook.lite.pos.feature.sync.domain
+import com.khanabook.lite.pos.core.network.TerminalActivationResponse
+
+
+import android.util.Log
+import com.khanabook.lite.pos.BuildConfig
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.auth.domain.TerminalIdentity
+import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
+import com.khanabook.lite.pos.core.network.KhanaBookApi
+import com.khanabook.lite.pos.feature.sync.data.MasterSyncResponse
+import com.khanabook.lite.pos.core.util.SyncConflictException
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+
+@Singleton
+class SyncManager @Inject constructor(
+    private val sessionManager: SessionManager,
+    private val api: KhanaBookApi,
+    private val masterSyncProcessor: MasterSyncProcessor,
+    private val permissionManager: PermissionManager
+) {
+    private val syncMutex = Mutex()
+    private val tag = "SyncManager"
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private val stateMutex = Mutex()
+    private var isSyncing = false
+    private var hasPendingSync = false
+
+    private val _clockDriftSeconds = MutableStateFlow<Long?>(null)
+    val clockDriftSeconds: StateFlow<Long?> = _clockDriftSeconds.asStateFlow()
+
+    companion object {
+        const val MAX_ALLOWED_CLOCK_DRIFT_SECONDS = 180L // 3 minutes
+    }
+
+    // ── Sync debounce ───────────────────────────────────────────────────────
+    // Throttles rapid triggerImmediateSync() calls (e.g. during bill creation
+    // where 3-4 sequential syncs fire within seconds). Only the last caller
+    // within the cooldown window triggers a deferred sync.
+    private val debounceMutex = Mutex()
+    private var lastSyncStartTime = 0L
+    private var deferredSyncJob: kotlinx.coroutines.Job? = null
+    private val syncDebounceWindowMs = 5_000L // 5-second cooldown
+
+    fun triggerImmediateSync() {
+        syncScope.launch {
+            val now = System.currentTimeMillis()
+            val shouldSkip = debounceMutex.withLock {
+                if (now - lastSyncStartTime < syncDebounceWindowMs) {
+                    // Too soon — schedule a deferred sync instead
+                    deferredSyncJob?.cancel()
+                    deferredSyncJob = syncScope.launch {
+                        kotlinx.coroutines.delay(syncDebounceWindowMs)
+                        val result = performFullSync()
+                        if (result.isFailure) {
+                            // Deferred sync failed — ensure WorkManager picks it up
+                            logWarn("Deferred sync failed, relying on periodic WorkManager retry")
+                        }
+                    }
+                    true
+                } else {
+                    lastSyncStartTime = now
+                    false
+                }
+            }
+            if (!shouldSkip) {
+                performFullSync()
+            }
+        }
+    }
+
+
+    private fun logWarn(message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) {
+            if (throwable != null) {
+                Log.w(tag, message, throwable)
+            } else {
+                Log.w(tag, message)
+            }
+        } else {
+            Log.w(tag, message)
+        }
+    }
+
+    private fun logError(message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) {
+            if (throwable != null) {
+                Log.e(tag, message, throwable)
+            } else {
+                Log.e(tag, message)
+            }
+        } else {
+            Log.e(tag, message)
+        }
+    }
+
+    private suspend fun ensureTerminalActivated() {
+        if (sessionManager.getRestaurantId() <= 0L) return
+        if (!sessionManager.isTerminalReady()) {
+            try {
+                Log.i(tag, "Activating terminal series for device...")
+                val deviceId = sessionManager.getDeviceId()
+                val deviceModel = android.os.Build.MODEL
+                val rawResponse = api.activateTerminal(
+                    com.khanabook.lite.pos.core.network.TerminalActivationRequest(deviceId, deviceModel)
+                )
+
+                when (rawResponse.code()) {
+                    200, 201 -> {
+                        // Success — parse TerminalActivationResponse
+                        val body = rawResponse.body()?.string()
+                        if (body.isNullOrBlank()) {
+                            throw IllegalStateException("Empty response from terminal activation")
+                        }
+                        val gson = com.google.gson.Gson()
+                        val response = gson.fromJson(body, com.khanabook.lite.pos.core.network.TerminalActivationResponse::class.java)
+                        val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
+                            ?: response.terminalSeries
+                        sessionManager.saveTerminalIdentity(
+                            TerminalIdentity(
+                                restaurantId = sessionManager.getRestaurantId(),
+                                terminalId = terminalId,
+                                deviceId = deviceId,
+                                terminalName = response.terminalName,
+                                terminalSeries = response.terminalSeries,
+                                isActive = response.isActive ?: true,
+                                registeredAt = response.registeredAt,
+                                lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
+                                terminalToken = response.terminalToken
+                            )
+                        )
+                        Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
+                    }
+                    202 -> {
+                        // Pending admin approval
+                        val body = rawResponse.body()?.string()
+                        val gson = com.google.gson.Gson()
+                        val pending = if (!body.isNullOrBlank()) {
+                            gson.fromJson(body, com.khanabook.lite.pos.core.network.TerminalPendingResponse::class.java)
+                        } else null
+                        Log.w(tag, "Terminal activation pending approval: requestId=${pending?.requestId} challengeCode=${pending?.challengeCode}")
+                        throw com.khanabook.lite.pos.feature.sync.domain.TerminalPendingApprovalException(
+                            requestId = pending?.requestId,
+                            rejectionCooldown = false,
+                            challengeCode = pending?.challengeCode,
+                            challengeExpiresAt = pending?.challengeExpiresAt,
+                            message = pending?.message ?: "Device registration is pending admin approval"
+                        )
+                    }
+                    401 -> throw retrofit2.HttpException(rawResponse)
+                    403 -> {
+                        // Terminal has been deactivated
+                        Log.e(tag, "Terminal deactivated by admin")
+                        throw IllegalStateException("Terminal has been deactivated by admin. Contact your shop owner.")
+                    }
+                    429 -> {
+                        // Rejection cooldown — recently rejected, cannot retry yet
+                        val body = rawResponse.body()?.string()
+                        val gson = com.google.gson.Gson()
+                        val pending = if (!body.isNullOrBlank()) {
+                            gson.fromJson(body, com.khanabook.lite.pos.core.network.TerminalPendingResponse::class.java)
+                        } else null
+                        Log.w(tag, "Terminal activation rejected cooldown")
+                        throw com.khanabook.lite.pos.feature.sync.domain.TerminalPendingApprovalException(
+                            requestId = null,
+                            rejectionCooldown = true,
+                            message = pending?.message ?: "Device was recently rejected. Please wait before requesting again."
+                        )
+                    }
+                    else -> {
+                        throw retrofit2.HttpException(rawResponse)
+                    }
+                }
+            } catch (e: com.khanabook.lite.pos.feature.sync.domain.TerminalPendingApprovalException) {
+                throw e // rethrow — caller must handle
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to activate terminal series", e)
+                throw e
+            }
+        }
+    }
+
+    suspend fun performMasterPull(): Result<Unit> {
+        return syncMutex.withLock {
+            try {
+                ensureTerminalActivated()
+                pullAndPersistMasterData(
+                    lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
+                    deviceId = sessionManager.getDeviceId()
+                )
+                return Result.success(Unit)
+            } catch (e: Exception) {
+                logError("Master pull failed", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun performFullSync(): Result<Unit> {
+        stateMutex.withLock {
+            if (isSyncing) {
+                hasPendingSync = true
+                Log.d(tag, "Sync already in progress. Queued a follow-up run.")
+                return Result.success(Unit)
+            }
+            isSyncing = true
+        }
+
+        try {
+            var result: Result<Unit> = Result.success(Unit)
+            do {
+                stateMutex.withLock {
+                    hasPendingSync = false
+                }
+                result = syncMutex.withLock {
+                    runSyncCycle()
+                }
+            } while (stateMutex.withLock { hasPendingSync })
+            return result
+        } finally {
+            stateMutex.withLock {
+                isSyncing = false
+            }
+        }
+    }
+
+    private suspend fun runSyncCycle(): Result<Unit> {
+        // ── NonCancellable Guard ───────────────────────────────────────────────
+        // Wrap the entire push+pull cycle in NonCancellable so that lifecycle
+        // cancellations (screen rotation, app backgrounded, ViewModel cleared)
+        // cannot abort a transaction mid-flight. An interrupted push leaves the
+        // server SyncTransaction uncommitted → next attempt gets HTTP 409.
+        return withContext(NonCancellable) {
+            val deviceId = sessionManager.getDeviceId()
+            val startedAt = System.currentTimeMillis()
+
+            // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
+            // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
+            // is NOT written to persistent storage until the ENTIRE push+pull cycle
+            // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
+            // but the pull fails, the checkpoint stays at the old value and the next
+            // cycle re-pulls the missed window — no records are permanently lost.
+            val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
+
+            try {
+                ensureTerminalActivated()
+                val pushSucceeded = masterSyncProcessor.pushAll()
+                if (!pushSucceeded) {
+                    val error = IllegalStateException("Push phase aborted before completion")
+                    logWarn(error.message ?: "Push phase aborted")
+                    return@withContext Result.failure(error)
+                }
+
+                // Only if pull fully succeeds is the checkpoint committed.
+                pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
+                Log.i(tag, "Full sync completed in ${System.currentTimeMillis() - startedAt}ms")
+                Result.success(Unit)
+            } catch (e: SyncConflictException) {
+                logWarn("Push conflict detected; pulling latest server data before resolving", e)
+                handleRecoveredConflict(deviceId, e)
+            } catch (e: Exception) {
+                if (e is HttpException && e.code() == 409) {
+                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
+                    logError("HTTP 409 Conflict body: $errorBody", e)
+                    return@withContext handleRecoveredConflict(deviceId, SyncConflictException(e).withRecoveryStatus(false))
+                }
+                logError("Full sync failed after ${System.currentTimeMillis() - startedAt}ms", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun pushBillOnly(billLocalId: Long): Result<Unit> {
+        return syncMutex.withLock {
+            // NonCancellable: a single-bill push must complete atomically or not at all.
+            // Partial pushes leave the server SyncTransaction open → 409 on next attempt.
+            withContext(NonCancellable) {
+                try {
+                    masterSyncProcessor.pushSingleBill(billLocalId)
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    logError("pushBillOnly failed for billId=$billLocalId", e)
+                    Result.failure(e)
+                }
+            }
+        }
+    }
+
+    suspend fun pushUnsyncedDataImmediately(): Boolean {
+        return performFullSync().isSuccess
+    }
+
+    suspend fun pushUnsyncedDataWithResult(): Result<Unit> {
+        return performFullSync()
+    }
+
+    /**
+     * Pulls all master data since [lastSyncTimestamp] and persists each page
+     * immediately into Room. This prevents OOM on large recovery syncs by never
+     * holding all pages in memory simultaneously.
+     *
+     * The [sessionManager.saveLastSyncTimestamp] call happens LAST — after ALL
+     * pages have been pulled and persisted — ensuring the checkpoint only advances
+     * when we have a complete, consistent local state.
+     */
+    private suspend fun pullAndPersistMasterData(lastSyncTimestamp: Long, deviceId: String) {
+        val terminalId = sessionManager.getTerminalId() ?: sessionManager.getTerminalSeries()
+        var page = 0
+        var hasMore = true
+        val maxPages = 50
+        var latestServerTimestamp = 0L
+        var totalRecords = 0
+
+        while (hasMore && page < maxPages) {
+            val response = api.pullMasterSync(
+                lastSyncTimestamp = lastSyncTimestamp,
+                deviceId = deviceId,
+                terminalId = terminalId,
+                ignoreDeviceId = false,
+                page = page,
+                size = 500
+            )
+
+            val pageRecords = countPayloadRecords(response)
+            totalRecords += pageRecords
+
+            // Persist this page immediately — never accumulate all pages in memory
+            masterSyncProcessor.insertMasterData(response)
+            latestServerTimestamp = maxOf(latestServerTimestamp, response.serverTimestamp)
+
+            // Update permissions from first page response
+            if (page == 0) {
+                permissionManager.updateFromSync(response.grantedPermissions, response.permissionRevision)
+            }
+
+            hasMore = response.hasMore ?: false
+            page++
+        }
+
+        if (page >= maxPages && hasMore) {
+            Log.w(tag, "Pull sync hit max page cap ($maxPages). Some records deferred to next cycle.")
+        }
+
+        Log.i(tag, "Master pull complete: pages=$page, totalRecords=$totalRecords, serverTimestamp=$latestServerTimestamp")
+
+        // Re-label this terminal's own synced bills AFTER all pages are persisted
+        // so the pull's insertSyncedBills doesn't overwrite the correction.
+        masterSyncProcessor.reconcileLocalBillScope()
+
+        // Commit the new checkpoint ONLY after all pages succeeded
+        if (latestServerTimestamp > 0) {
+            val localTime = System.currentTimeMillis()
+            val driftSec = kotlin.math.abs(localTime - latestServerTimestamp) / 1000L
+            _clockDriftSeconds.value = driftSec
+            if (driftSec > MAX_ALLOWED_CLOCK_DRIFT_SECONDS) {
+                Log.w(tag, "Severe clock drift detected: device is $driftSec seconds off server time. Network automatic time is recommended.")
+            }
+            sessionManager.saveLastSyncTimestamp(latestServerTimestamp)
+        } else {
+            throw IllegalStateException("Master sync response missing server timestamp")
+        }
+    }
+
+    private suspend fun recoverFromSyncConflict(deviceId: String): Boolean {
+        // Use timestamp=0 so already-saved server rows are pulled back even if they
+        // were written before the current local checkpoint. This is what breaks
+        // repeated 409 / failedLocalIds push loops.
+        return runCatching { pullAndPersistMasterData(0L, deviceId) }
+            .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
+            .isSuccess
+    }
+
+    private suspend fun handleRecoveredConflict(
+        deviceId: String,
+        exception: SyncConflictException
+    ): Result<Unit> {
+        if (!recoverFromSyncConflict(deviceId)) {
+            return Result.failure(exception.withRecoveryStatus(false))
+        }
+
+        return runCatching { masterSyncProcessor.pushAllAfterConflictRecovery() }
+            .fold(
+                onSuccess = { pushSucceeded ->
+                    if (pushSucceeded) Result.success(Unit)
+                    else Result.failure(IllegalStateException("Post-recovery push returned false"))
+                },
+                onFailure = { retryError ->
+                    logError("Post-recovery push retry failed", retryError)
+                    if (retryError is SyncConflictException) {
+                        val quarantined = masterSyncProcessor.quarantineFailedSyncRecords(retryError)
+                        Log.w(tag, "Post-recovery quarantine count=$quarantined")
+                        if (quarantined > 0) {
+                            return Result.success(Unit)
+                        }
+                        return Result.failure(retryError.withRecoveryStatus(true))
+                    }
+                    Result.failure(retryError)
+                }
+            )
+    }
+
+    @Deprecated("Replaced by inline streaming in pullAndPersistMasterData", level = DeprecationLevel.HIDDEN)
+    private suspend fun pullMasterSyncPages(
+        lastSyncTimestamp: Long,
+        deviceId: String
+    ): List<MasterSyncResponse> {
+        val terminalId = sessionManager.getTerminalId() ?: sessionManager.getTerminalSeries()
+        val pages = mutableListOf<MasterSyncResponse>()
+        var page = 0
+        var hasMore = true
+        val maxPages = 50 // Safety cap: 50 pages × 500 records = 25,000 max records per sync
+        while (hasMore && page < maxPages) {
+            val response = api.pullMasterSync(
+                lastSyncTimestamp = lastSyncTimestamp,
+                deviceId = deviceId,
+                terminalId = terminalId,
+                ignoreDeviceId = false,
+                page = page,
+                size = 500
+            )
+            pages.add(response)
+            hasMore = response.hasMore ?: false
+            page++
+        }
+        if (page >= maxPages && hasMore) {
+            Log.w(tag, "Pull sync hit max page cap ($maxPages). Some records may be deferred to next sync cycle.")
+        }
+        return pages
+    }
+
+    @Deprecated("Replaced by per-page persistence in pullAndPersistMasterData", level = DeprecationLevel.HIDDEN)
+    private fun mergeMasterSyncPages(pages: List<MasterSyncResponse>): MasterSyncResponse {
+        return pages.fold(MasterSyncResponse()) { acc, page ->
+            MasterSyncResponse(
+                serverTimestamp = maxOf(acc.serverTimestamp, page.serverTimestamp),
+                profiles = acc.profiles + page.profiles,
+                users = acc.users + page.users,
+                categories = acc.categories + page.categories,
+                menuItems = acc.menuItems + page.menuItems,
+                itemVariants = acc.itemVariants + page.itemVariants,
+                stockLogs = acc.stockLogs + page.stockLogs,
+                bills = acc.bills + page.bills,
+                billItems = acc.billItems + page.billItems,
+                billPayments = acc.billPayments + page.billPayments,
+                grantedPermissions = acc.grantedPermissions ?: page.grantedPermissions
+            )
+        }
+    }
+
+    private fun countPayloadRecords(response: MasterSyncResponse): Int =
+        response.profiles.size +
+            response.users.size +
+            response.categories.size +
+            response.menuItems.size +
+            response.itemVariants.size +
+            response.stockLogs.size +
+            response.bills.size +
+            response.billItems.size +
+            response.billPayments.size
+
+    private fun SyncConflictException.withRecoveryStatus(recovered: Boolean): SyncConflictException {
+        return SyncConflictException(
+            this,
+            recoverySucceeded = recovered,
+            failedLocalIds = failedLocalIds,
+            failedReasons = failedReasons,
+            syncEntityLabel = syncEntityLabel
+        )
+    }
+}
+
+enum class SyncStep(val displayName: String) {
+    PushProfiles("Uploading Profiles..."),
+    PushUsers("Uploading Staff Users..."),
+    PushCategories("Uploading Categories..."),
+    PushMenuItems("Uploading Menu Items..."),
+    PushItemVariants("Uploading Item Variants..."),
+    PushStockLogs("Uploading Stock Logs..."),
+    PushBills("Uploading Bills..."),
+    PushBillItems("Uploading Bill Items..."),
+    PushBillPayments("Uploading Payments..."),
+    PullMasterData("Downloading Restaurant Data...")
+}

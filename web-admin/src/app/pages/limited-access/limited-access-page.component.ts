@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-limited-access-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="access-shell">
       <section class="panel access-card" role="main" aria-labelledby="access-title">

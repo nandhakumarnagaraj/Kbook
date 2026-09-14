@@ -1,11 +1,12 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.printing.domain.KitchenTicketFormatter
 
-import com.khanabook.lite.pos.data.local.entity.BillEntity
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
-import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.charset.Charset

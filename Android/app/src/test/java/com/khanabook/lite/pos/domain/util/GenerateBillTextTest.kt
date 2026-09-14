@@ -1,9 +1,10 @@
 package com.khanabook.lite.pos.domain.util
+import com.khanabook.lite.pos.core.util.generateBillText
 
-import com.khanabook.lite.pos.data.local.entity.BillEntity
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

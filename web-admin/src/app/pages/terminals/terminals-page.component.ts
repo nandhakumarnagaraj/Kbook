@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -12,6 +12,7 @@ import { formatDate } from '../../shared/formatters';
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
@@ -51,7 +52,7 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let terminal of terminals()">
+            <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
               <td>
                 <ng-container *ngIf="editingId() === terminal.id; else nameCell">
                   <input
@@ -121,7 +122,7 @@ import { formatDate } from '../../shared/formatters';
         </table>
 
         <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
-          <article class="mobile-data-card" *ngFor="let terminal of terminals()">
+          <article class="mobile-data-card" *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
             <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
             <p>
               {{ terminal.terminalSeries || 'No series' }} ·
@@ -154,7 +155,7 @@ import { formatDate } from '../../shared/formatters';
       <ng-template #loading>
         <div class="panel loading">
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
         </div>
       </ng-template>
@@ -200,7 +201,7 @@ import { formatDate } from '../../shared/formatters';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let req of pendingOrAllRequests()">
+              <tr *ngFor="let req of pendingOrAllRequests(); trackBy: trackByRequestId">
                 <td>
                   <div class="stacked-meta">
                     <strong>{{ req.deviceName || '-' }}</strong>
@@ -235,7 +236,7 @@ import { formatDate } from '../../shared/formatters';
             </tbody>
           </table>
           <div class="mobile-data-list" aria-label="Terminal requests">
-            <article class="mobile-data-card" *ngFor="let req of pendingOrAllRequests()">
+            <article class="mobile-data-card" *ngFor="let req of pendingOrAllRequests(); trackBy: trackByRequestId">
               <div class="mobile-data-card__head"><strong>{{ req.deviceName || 'Unnamed device' }}</strong><span class="chip" [class.success]="req.status.toLowerCase() === 'approved'" [class.danger]="req.status.toLowerCase() === 'rejected'" [class.warn]="req.status.toLowerCase() === 'pending'">{{ req.status }}</span></div>
               <p>
                 {{ req.deviceModel || 'Unknown model' }} ·
@@ -846,6 +847,10 @@ export class TerminalsPageComponent implements OnDestroy {
     const role = this.auth.session()?.role;
     return role === 'OWNER';
   }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByTerminalId = (_: number, terminal: BusinessTerminal) => terminal.id;
+  trackByRequestId = (_: number, req: TerminalRequest) => req.id;
 
   confirmReactivate(terminal: BusinessTerminal): void {
     this.reactivatingTerminal.set(terminal);

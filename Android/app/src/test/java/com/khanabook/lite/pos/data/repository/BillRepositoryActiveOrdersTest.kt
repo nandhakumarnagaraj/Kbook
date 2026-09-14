@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.data.repository
+import com.khanabook.lite.pos.feature.billing.data.terminalScopedFlow
 
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

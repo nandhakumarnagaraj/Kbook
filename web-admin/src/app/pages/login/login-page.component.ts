@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, NgZone, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
@@ -17,6 +17,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 @Component({
   selector: 'app-login-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="auth-shell">

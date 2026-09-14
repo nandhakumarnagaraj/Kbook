@@ -56,6 +56,11 @@ services:
       SERVER_FORWARD_HEADERS_STRATEGY: ${SERVER_FORWARD_HEADERS_STRATEGY:-framework}
       SPRINGDOC_API_DOCS_ENABLED: ${SPRINGDOC_API_DOCS_ENABLED:-false}
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SPRINGDOC_SWAGGER_UI_ENABLED:-false}
+      # Container timezone. Business dates are derived explicitly from the restaurant's
+      # configured zone (BillSyncService.applyServerBusinessDate), so this is a backstop:
+      # any un-zoned LocalDate.now()/LocalDateTime.now() that slips through review still
+      # resolves to IST rather than UTC.
+      TZ: ${TZ:-Asia/Kolkata}
       # Firebase push notifications (leave FIREBASE_CREDENTIALS_PATH empty to disable)
       FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-new-khanabook-li}

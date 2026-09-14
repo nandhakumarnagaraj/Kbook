@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
@@ -14,6 +15,7 @@ import {
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="confirm-dialog__overlay" (click)="cancel()">

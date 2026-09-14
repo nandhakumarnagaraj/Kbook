@@ -1,4 +1,7 @@
 package com.khanabook.lite.pos.domain.util
+import com.khanabook.lite.pos.core.util.SYNC_CONFLICT_MESSAGE
+import com.khanabook.lite.pos.core.util.BackendErrorParser
+import com.khanabook.lite.pos.core.util.SyncConflictException
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

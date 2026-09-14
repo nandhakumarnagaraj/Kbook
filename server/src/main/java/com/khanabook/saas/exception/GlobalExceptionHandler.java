@@ -149,8 +149,9 @@ public class GlobalExceptionHandler {
 			EasebuzzApiException e, HttpServletRequest request) {
 		log.error("Easebuzz API error [{}] endpoint={}: {}",
 				request.getRequestURI(), e.getApiEndpoint(), e.getMessage());
+		// Return sanitized message — never expose internal endpoint names or API details
 		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
-				"error", "Payment gateway error: " + e.getMessage(),
+				"error", "Payment gateway error. Please try again.",
 				"path", request.getRequestURI()
 		));
 	}

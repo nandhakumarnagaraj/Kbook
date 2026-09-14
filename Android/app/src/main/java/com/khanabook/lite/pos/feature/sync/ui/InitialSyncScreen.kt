@@ -1,0 +1,445 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
+package com.khanabook.lite.pos.feature.sync.ui
+import com.khanabook.lite.pos.core.theme.KhanaBookTheme
+import com.khanabook.lite.pos.core.theme.KhanaRadii
+
+import com.khanabook.lite.pos.core.theme.*
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.designsystem.ScrollableCenteredLayout
+import com.khanabook.lite.pos.core.network.TerminalListItem
+import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.feature.sync.viewmodel.InitialSyncState
+import com.khanabook.lite.pos.feature.sync.viewmodel.InitialSyncViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+@Composable
+fun InitialSyncScreen(
+    onSyncCompleteNavigateToMain: () -> Unit,
+    onNavigateToLogin: () -> Unit = {},
+    viewModel: InitialSyncViewModel = hiltViewModel()
+) {
+    val syncState by viewModel.syncState.collectAsStateWithLifecycle()
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+
+    LaunchedEffect(syncState) {
+        when (syncState) {
+            is InitialSyncState.Success -> onSyncCompleteNavigateToMain()
+            is InitialSyncState.SessionExpired -> onNavigateToLogin()
+            is InitialSyncState.PendingApproval -> {} // stay on this screen
+            else -> {}
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+    ) {
+        ScrollableCenteredLayout(
+            modifier = Modifier.systemBarsPadding(),
+            bottomBar = when (val state = syncState) {
+                is InitialSyncState.Error -> {
+                    {
+                        Button(
+                            onClick = { viewModel.startInitialSync() },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Retry",
+                                color = DarkBrown1,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                is InitialSyncState.PendingApproval -> {
+                    {
+                        OutlinedButton(
+                            onClick = { viewModel.pollRequestStatus() },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Check Again",
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                is InitialSyncState.SessionExpired -> {
+                    {
+                        Button(
+                            onClick = { onNavigateToLogin() },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.lg,
+                            modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                        ) {
+                            Text(
+                                "Login Again",
+                                color = DarkBrown1,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+                else -> null
+            }
+        ) {
+            when (val state = syncState) {
+                is InitialSyncState.Syncing, InitialSyncState.Idle -> {
+                    val syncStages = listOf(
+                        "Downloading your menu...",
+                        "Syncing order history...",
+                        "Loading restaurant profile...",
+                        "Almost ready..."
+                    )
+                    var stageIndex by remember { mutableIntStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2200)
+                            stageIndex = (stageIndex + 1) % syncStages.size
+                        }
+                    }
+
+                    val composition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(R.raw.anim_sync)
+                    )
+                    val lottieProgress by animateLottieCompositionAsState(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever
+                    )
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { lottieProgress },
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    Text(
+                        "Setting up your workspace...",
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    AnimatedContent(
+                        targetState = stageIndex,
+                        transitionSpec = {
+                            fadeIn(tween(400)) togetherWith fadeOut(tween(300))
+                        },
+                        label = "sync_stage"
+                    ) { idx ->
+                        Text(
+                            text = syncStages[idx],
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth(0.6f)
+                            .height(4.dp),
+                        color = PrimaryGold,
+                        trackColor = PrimaryGold.copy(alpha = 0.2f),
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+                is InitialSyncState.ChooseTerminal -> {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Device Recovery",
+                        tint = PrimaryGold,
+                        modifier = Modifier.size(iconSize.large)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        text = "Device Setup",
+                        color = TextLight,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        text = "Existing counters found for this shop. Is this device replacing a previous counter?",
+                        color = TextGold.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    var selectedSeries by remember { mutableStateOf(state.terminals.firstOrNull()?.terminalSeries ?: "") }
+
+                    state.terminals.forEach { term ->
+                        val isSelected = selectedSeries == term.terminalSeries
+                        Surface(
+                            onClick = { selectedSeries = term.terminalSeries },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) PrimaryGold.copy(alpha = 0.2f) else DarkBrown2,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.2f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = spacing.extraSmall)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(spacing.medium),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { selectedSeries = term.terminalSeries },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = PrimaryGold,
+                                        unselectedColor = TextGold
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(spacing.small))
+                                Column {
+                                    Text(
+                                        text = term.terminalName ?: "Counter ${term.terminalSeries}",
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "Series ${term.terminalSeries}",
+                                        color = TextGold.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    Button(
+                        onClick = { viewModel.reclaimTerminal(selectedSeries) },
+                        enabled = selectedSeries.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        shape = KhanaRadii.lg,
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge)
+                    ) {
+                        Text(
+                            "Reclaim Selected Counter",
+                            color = DarkBrown1,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    TextButton(
+                        onClick = { viewModel.continueAsNewDevice(state.pendingRequestId) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Register as a New Device Instead",
+                            color = TextGold.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                is InitialSyncState.SessionExpired -> {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Session Expired",
+                        tint = ErrorPink,
+                        modifier = Modifier.size(iconSize.xxlarge)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.large))
+                    Text(
+                        text = "Session expired. Please login again.",
+                        color = ErrorPink,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                is InitialSyncState.PendingApproval -> {
+                    val pendingState = syncState as InitialSyncState.PendingApproval
+                    // Poll request status using requestId (does NOT create new requests)
+                    LaunchedEffect(pendingState.requestId) {
+                        while (true) {
+                            delay(15_000L)
+                            viewModel.pollRequestStatus()
+                        }
+                    }
+
+                    val composition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(R.raw.anim_sync)
+                    )
+                    val lottieProgress by animateLottieCompositionAsState(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever
+                    )
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { lottieProgress },
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    Text(
+                        "Waiting for Approval",
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    Text(
+                        text = "Your device registration is pending approval from the shop owner. " +
+                                "This screen will automatically update once approved.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // ── Challenge code display ──────────────────────────────────
+                    if (pendingState.challengeCode != null) {
+                        Spacer(modifier = Modifier.height(spacing.large))
+
+                        Text(
+                            "Confirm this number on the admin panel:",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        Surface(
+                            color = PrimaryGold.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(horizontal = spacing.extraLarge)
+                        ) {
+                            Text(
+                                text = pendingState.challengeCode,
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.displayMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = spacing.medium)
+                            )
+                        }
+
+                        // Countdown timer
+                        if (pendingState.challengeExpiresAt != null) {
+                            val remainingSeconds = remember(pendingState.challengeExpiresAt) {
+                                ((pendingState.challengeExpiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+                            }
+                            var timeLeft by remember(pendingState.challengeExpiresAt) { mutableStateOf(remainingSeconds) }
+                            LaunchedEffect(pendingState.challengeExpiresAt) {
+                                while (timeLeft > 0) {
+                                    delay(1000L)
+                                    timeLeft = ((pendingState.challengeExpiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+                                }
+                                // Code expired — immediately poll for a fresh code
+                                viewModel.pollRequestStatus()
+                            }
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Text(
+                                text = if (timeLeft > 0) "Expires in ${timeLeft / 60}:${(timeLeft % 60).toString().padStart(2, '0')}"
+                                       else "Refreshing code...",
+                                color = if (timeLeft > 0) TextGold.copy(alpha = 0.5f) else PrimaryGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                is InitialSyncState.Error -> {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Sync Error",
+                        tint = ErrorPink,
+                        modifier = Modifier.size(iconSize.xxlarge)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.large))
+                    Text(
+                        text = state.message,
+                        color = ErrorPink,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                is InitialSyncState.Success -> {
+                    val composition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(R.raw.anim_success)
+                    )
+                    val lottieProgress by animateLottieCompositionAsState(
+                        composition = composition,
+                        iterations = 1
+                    )
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { lottieProgress },
+                        modifier = Modifier.size(KhanaBookTheme.layout.heroImageSize)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    Text(
+                        "Setup Complete!",
+                        color = SuccessGreen,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
+            }
+        }
+    }
+}

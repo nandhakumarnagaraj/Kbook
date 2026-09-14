@@ -1,16 +1,17 @@
 package com.khanabook.lite.pos.ui.viewmodel
+import com.khanabook.lite.pos.feature.reports.viewmodel.HomeViewModel
 
-import com.khanabook.lite.pos.data.local.entity.BillEntity
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.data.repository.BillRepository
-import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
-import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
-import com.khanabook.lite.pos.data.repository.RestaurantRepository
-import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
-import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
-import com.khanabook.lite.pos.domain.manager.SyncManager
-import com.khanabook.lite.pos.domain.util.ConnectionStatus
-import com.khanabook.lite.pos.domain.util.NetworkMonitor
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
+import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
+import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
+import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
+import com.khanabook.lite.pos.feature.sync.domain.SyncManager
+import com.khanabook.lite.pos.feature.sync.domain.ConnectionStatus
+import com.khanabook.lite.pos.feature.sync.domain.NetworkMonitor
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -123,4 +124,3 @@ class HomeViewModelTest {
         org.junit.Assert.assertEquals(HomeViewModel.SummaryScope.SHOP_TOTAL, viewModel.summaryScope.value)
     }
 }
-

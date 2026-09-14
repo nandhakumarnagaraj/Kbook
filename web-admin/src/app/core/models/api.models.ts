@@ -251,7 +251,7 @@ export interface StaffCreatedResponse {
   name: string;
   phone: string;
   role: string;
-  temporaryPassword: string;
+  otpSent: boolean;
 }
 
 export interface UpdateStaffRequest {

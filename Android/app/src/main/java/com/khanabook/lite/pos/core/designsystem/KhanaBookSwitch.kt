@@ -1,0 +1,62 @@
+package com.khanabook.lite.pos.core.designsystem
+
+import com.khanabook.lite.pos.core.theme.KhanaBookTheme
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.core.theme.VegGreen
+
+@Composable
+fun KhanaBookSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    checkedTrackColor: Color = VegGreen,
+    uncheckedTrackColor: Color = Color(0xFF5C5668),
+    checkedThumbColor: Color = Color.Black,
+    uncheckedThumbColor: Color = Color(0xFFD6D1DE),
+    enabled: Boolean = true
+) {
+    val trackColor by animateColorAsState(
+        targetValue = if (checked) checkedTrackColor else uncheckedTrackColor,
+        label = "switchTrackColor"
+    )
+    val thumbColor by animateColorAsState(
+        targetValue = if (checked) checkedThumbColor else uncheckedThumbColor,
+        label = "switchThumbColor"
+    )
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 20.dp else 2.dp,
+        label = "switchThumbOffset"
+    )
+
+    Box(
+        modifier = modifier
+            .size(width = 44.dp, height = 26.dp)
+            .background(if (enabled) trackColor else uncheckedTrackColor.copy(alpha = 0.4f), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = if (enabled) 0.18f else 0.06f), CircleShape)
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(KhanaBookTheme.spacing.hairline),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(start = thumbOffset)
+                .size(16.dp)
+                .background(thumbColor.copy(alpha = if (enabled) 1f else 0.4f), CircleShape)
+        )
+    }
+}

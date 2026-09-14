@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -12,6 +12,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
@@ -85,7 +86,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let business of pagedBusinesses">
+            <tr *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId">
               <td (click)="showDetails(business)" style="cursor: pointer;">
                 <div class="stacked-meta">
                   <strong>{{ business.shopName || '-' }}</strong>
@@ -117,7 +118,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         </table>
 
         <div class="mobile-data-list" aria-label="Businesses">
-          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses" [class.mobile-data-card--danger]="business.isSuspended">
+          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
             <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
               <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
@@ -142,7 +143,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       <ng-template #loading>
         <div class="panel loading" *ngIf="!loaded; else businessesEmpty">
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
         </div>
         <ng-template #businessesEmpty>
@@ -518,4 +519,7 @@ export class BusinessesPageComponent {
 
   formatDateValue(value: number | null): string { return formatDate(value); }
   formatCurrencyValue(value: number): string { return formatCurrency(value); }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByRestaurantId = (_: number, biz: AdminBusinessListItem) => biz.restaurantId;
 }

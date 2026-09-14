@@ -4,10 +4,10 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.khanabook.lite.pos.data.repository.BillRepository
-import com.khanabook.lite.pos.domain.util.AppAssetStore
-import com.khanabook.lite.pos.domain.util.GlobalCrashHandler
-import com.khanabook.lite.pos.worker.MasterSyncWorker
+import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.core.util.AppAssetStore
+import com.khanabook.lite.pos.core.util.GlobalCrashHandler
+import com.khanabook.lite.pos.feature.sync.worker.MasterSyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +21,8 @@ class KhanaBookApplication : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var billRepository: BillRepository
-    @Inject lateinit var sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager
-    @Inject lateinit var databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
+    @Inject lateinit var sessionManager: com.khanabook.lite.pos.feature.auth.domain.SessionManager
+    @Inject lateinit var databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()

@@ -5,5 +5,5 @@ public record StaffCreatedResponse(
         String name,
         String phone,
         String role,
-        String temporaryPassword
+        boolean otpSent
 ) {}

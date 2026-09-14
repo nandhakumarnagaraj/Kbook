@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
@@ -20,6 +20,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-api-state',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div *ngIf="loading" class="api-state-loading" role="status" aria-live="polite" aria-busy="true">

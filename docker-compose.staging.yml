@@ -75,6 +75,8 @@ services:
       SERVER_FORWARD_HEADERS_STRATEGY: ${SERVER_FORWARD_HEADERS_STRATEGY:-framework}
       SPRINGDOC_API_DOCS_ENABLED: ${SPRINGDOC_API_DOCS_ENABLED:-true}
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SPRINGDOC_SWAGGER_UI_ENABLED:-true}
+      # Container timezone — backstop for any un-zoned date call (see production compose).
+      TZ: ${TZ:-Asia/Kolkata}
       # Notifications disabled by default in staging (no prod provider creds).
       FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
       EMAIL_ENABLED: ${EMAIL_ENABLED:-false}

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
@@ -34,6 +34,7 @@ interface DailyClosingData {
 @Component({
   selector: 'app-daily-closing-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, DateRangeSelectorComponent],
   template: `
     <div class="page-shell">
@@ -89,7 +90,7 @@ interface DailyClosingData {
           <p class="muted" style="margin-bottom:1rem;">Compare physical cash with the expected amount. UPI and POS are auto-verified.</p>
 
           <div class="payment-grid">
-            <div class="payment-card payment-card--cash" *ngFor="let split of d.paymentSplits">
+            <div class="payment-card payment-card--cash" *ngFor="let split of d.paymentSplits; trackBy: trackByIndex">
               <div class="payment-card__icon">
                 {{ getIcon(split.mode) }}
               </div>
@@ -208,6 +209,8 @@ export class DailyClosingPageComponent {
   readonly fmt = formatCurrency;
 
   constructor() { this.load(); }
+
+  trackByIndex = (_: number, __: unknown) => _;
 
   setRange(range: { from: string; to: string }): void {
     this.dateFrom = range.from;

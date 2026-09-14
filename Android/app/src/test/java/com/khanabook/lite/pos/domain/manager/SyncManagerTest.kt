@@ -1,8 +1,11 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.feature.sync.domain.MasterSyncProcessor
+import com.khanabook.lite.pos.feature.sync.domain.SyncManager
 
-import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
-import com.khanabook.lite.pos.domain.util.SyncConflictException
+import com.khanabook.lite.pos.core.network.KhanaBookApi
+import com.khanabook.lite.pos.feature.sync.data.MasterSyncResponse
+import com.khanabook.lite.pos.core.util.SyncConflictException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

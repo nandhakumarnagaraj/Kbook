@@ -1,0 +1,102 @@
+package com.khanabook.lite.pos.feature.payments.domain
+
+
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.util.Log
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.MultiFormatWriter
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import com.journeyapps.barcodescanner.BarcodeEncoder
+import java.net.URLEncoder
+import java.util.Locale
+import kotlin.math.min
+
+object QrCodeManager {
+
+    private const val TAG = "QrCodeManager"
+    private const val LOGO_SIZE_FRACTION = 0.22f
+
+    /**
+     * Generates a generic QR code from the given text.
+     */
+    fun generateQr(text: String, size: Int = 512): Bitmap? {
+        if (text.isBlank()) return null
+        return try {
+            val multiFormatWriter = MultiFormatWriter()
+            val hints = mapOf(EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H)
+            val bitMatrix = multiFormatWriter.encode(text, BarcodeFormat.QR_CODE, size, size, hints)
+            val barcodeEncoder = BarcodeEncoder()
+            barcodeEncoder.createBitmap(bitMatrix)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to generate QR code", e)
+            null
+        }
+    }
+
+    /**
+     * Builds the standard NPCI UPI payment URI string.
+     */
+    fun buildUpiUri(vpa: String, name: String = "", amount: Double = 0.0): String {
+        val cleanVpa = vpa.trim()
+        val encodedVpa = URLEncoder.encode(cleanVpa, "UTF-8")
+        val cleanName = name.trim()
+        val encodedName = if (cleanName.isNotEmpty()) URLEncoder.encode(cleanName, "UTF-8") else null
+        val encodedAmount = String.format(Locale.US, "%.2f", amount.coerceAtLeast(0.0))
+
+        val sb = StringBuilder("upi://pay?pa=").append(encodedVpa)
+        if (encodedName != null) {
+            sb.append("&pn=").append(encodedName)
+        }
+        if (amount > 0.0) {
+            sb.append("&am=").append(encodedAmount)
+        }
+        sb.append("&cu=INR")
+        return sb.toString()
+    }
+
+    /**
+     * Generates a UPI QR code from the given VPA, name, and amount.
+     */
+    fun generateUpiQr(vpa: String, name: String, amount: Double, size: Int = 512): Bitmap? {
+        val uri = buildUpiUri(vpa, name, amount)
+        return generateQr(uri, size)
+    }
+
+    /**
+     * Generates a UPI QR code with an optional logo overlay at the center.
+     * The logo is scaled to ~22% of the QR code size.
+     */
+    fun generateUpiQrWithLogo(
+        vpa: String,
+        name: String,
+        amount: Double,
+        logo: Bitmap? = null,
+        size: Int = 512
+    ): Bitmap? {
+        val qr = generateUpiQr(vpa, name, amount, size) ?: return null
+        if (logo == null) return qr
+        return try {
+            val result = qr.copy(Bitmap.Config.ARGB_8888, true)
+            val canvas = Canvas(result)
+            val logoSize = (size * LOGO_SIZE_FRACTION).toInt().coerceIn(32, size / 3)
+            val scaledLogo = Bitmap.createScaledBitmap(logo, logoSize, logoSize, true)
+            val left = (size - logoSize) / 2f
+            val top = (size - logoSize) / 2f
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+            canvas.drawRoundRect(
+                RectF(left - 4f, top - 4f, left + logoSize + 4f, top + logoSize + 4f),
+                8f, 8f, paint.apply { color = android.graphics.Color.WHITE }
+            )
+            canvas.drawBitmap(scaledLogo, left, top, null)
+            scaledLogo.recycle()
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to overlay logo on QR code", e)
+            qr
+        }
+    }
+}

@@ -28,9 +28,12 @@ public class TokenRevocationCache {
 	 */
 	public void revoke(String jti, long expiresAt) {
 		evictExpired();
-		if (cache.size() < MAX_ENTRIES) {
-			cache.put(jti, expiresAt);
-		}
+		// Use compute for atomic size-check + insert under concurrency
+		cache.compute(jti, (key, existing) -> {
+			if (existing != null) return existing; // already revoked
+			if (cache.size() >= MAX_ENTRIES) return null; // over limit, skip
+			return expiresAt;
+		});
 	}
 
 	/**
@@ -52,9 +55,10 @@ public class TokenRevocationCache {
 	 * Populate the cache from a DB hit so subsequent requests skip the DB.
 	 */
 	public void populateFromDb(String jti, long expiresAt) {
-		if (cache.size() < MAX_ENTRIES) {
-			cache.put(jti, expiresAt);
-		}
+		cache.computeIfAbsent(jti, k -> {
+			if (cache.size() >= MAX_ENTRIES) return null;
+			return expiresAt;
+		});
 	}
 
 	private void evictExpired() {

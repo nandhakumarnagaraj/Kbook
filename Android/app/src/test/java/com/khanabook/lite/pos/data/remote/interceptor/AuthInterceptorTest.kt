@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.data.remote.interceptor
+import com.khanabook.lite.pos.core.network.AuthInterceptor
 
-import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot

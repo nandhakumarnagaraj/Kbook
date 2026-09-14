@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
@@ -17,6 +18,7 @@ import { formatCurrency, formatDate } from './formatters';
 @Component({
   selector: 'app-order-detail-modal',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="order-modal__overlay" *ngIf="order" (click)="close()">
@@ -84,7 +86,7 @@ import { formatCurrency, formatDate } from './formatters';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of order.lineItems">
+                <tr *ngFor="let item of order.lineItems; trackBy: trackByIndex">
                   <td>
                     {{ item.itemName }}
                     <span class="order-modal__variant" *ngIf="item.variantName">
@@ -367,6 +369,8 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
       this.previouslyFocused = null;
     }
   }
+
+  trackByIndex = (_: number, __: unknown) => _;
 
   copyInvoiceLink(): void {
     if (!this.order) return;

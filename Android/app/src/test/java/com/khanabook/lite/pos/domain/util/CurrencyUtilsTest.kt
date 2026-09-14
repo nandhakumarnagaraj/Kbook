@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.domain.util
+import com.khanabook.lite.pos.core.util.CurrencyUtils
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

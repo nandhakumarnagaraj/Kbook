@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.payments.domain.QrCodeManager
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

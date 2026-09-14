@@ -1,9 +1,13 @@
 package com.khanabook.lite.pos.ui.viewmodel
+import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingStep
+import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse
+import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewModel
 
-import com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingResponse
-import com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardingStatusResponse
-import com.khanabook.lite.pos.data.repository.EasebuzzOnboardingRepository
-import com.khanabook.lite.pos.data.repository.RestaurantRepository
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingResponse
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRepository
+import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -202,7 +206,7 @@ class EasebuzzOnboardingViewModelTest {
         viewModel.goToStep(OnboardingStep.OtpVerification)
         coEvery { onboardingRepository.verifyOtp("123456") } returns Result.success(mapOf("status" to "success"))
         coEvery { onboardingRepository.generateKycAccessKey() } returns Result.success(
-            com.khanabook.lite.pos.data.remote.dto.EasebuzzKycAccessKeyResponse(status = "success", kycUrl = "https://kyc.easebuzz.in/portal/test")
+            com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse(status = "success", kycUrl = "https://kyc.easebuzz.in/portal/test")
         )
 
         viewModel.verifyOtp("123456")

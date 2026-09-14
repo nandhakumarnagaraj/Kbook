@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -7,6 +7,7 @@ type SecretState = 'stored' | 'replacing' | 'revealed' | 'error';
 @Component({
   selector: 'kb-secret-input',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="kb-secret-input" [class.error]="state() === 'error'">

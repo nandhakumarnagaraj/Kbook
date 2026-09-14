@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -7,10 +7,11 @@ import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 
+// Deterministic sparkline from a value — produces a stable upward-sloping path.
+// Replace with real time-series data when the API supports it.
 function sparkPath(value: number): string {
   const base = Math.max(value, 100);
-  const variance = base * 0.12;
-  const pts = Array.from({length: 7}, (_, i) => base + (Math.random() - 0.3) * variance);
+  const pts = Array.from({length: 7}, (_, i) => base * (0.85 + (i * 0.03)));
   const max = Math.max(...pts), min = Math.min(...pts), range = max - min || 1;
   return pts.map((v, i) => {
     const x = (i / 6) * 72, y = 24 - ((v - min) / range) * 24;
@@ -21,6 +22,7 @@ function sparkPath(value: number): string {
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, EmptyStateComponent],
   template: `
     <div class="page-shell">
@@ -43,8 +45,7 @@ function sparkPath(value: number): string {
             </div>
             <strong class="kpi-value">{{ data.totalRevenueFormatted }}</strong>
             <div class="kpi-delta">
-              <span class="kpi-arrow up">&#9650; 12.8%</span>
-              <span class="kpi-compare">30d</span>
+              <span class="kpi-compare">All-time</span>
             </div>
           </article>
           <article class="kpi-card">
@@ -56,8 +57,7 @@ function sparkPath(value: number): string {
             </div>
             <strong class="kpi-value">{{ data.totalBusinesses }}</strong>
             <div class="kpi-delta">
-              <span class="kpi-arrow up">&#9650; 6.2%</span>
-              <span class="kpi-compare">30d</span>
+              <span class="kpi-compare">All-time</span>
             </div>
           </article>
           <article class="kpi-card">
@@ -132,7 +132,7 @@ function sparkPath(value: number): string {
 
       <ng-template #loading>
         <div *ngIf="!summaryError(); else summaryErrorState" class="kpi-row">
-          <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]"></div>
+          <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
         </div>
         <ng-template #summaryErrorState>
           <div class="panel loading">
@@ -279,4 +279,5 @@ export class PlatformDashboardPageComponent {
 
   refresh(): void { this.refresh$.next(); }
   navigateToBusinesses(): void { this.router.navigate(['/admin/businesses']); }
+  trackByIndex = (_: number, __: unknown) => _;
 }

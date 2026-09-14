@@ -1,7 +1,11 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.billing.domain.BillCreationParams
+import com.khanabook.lite.pos.feature.billing.domain.BillCreationUseCase
+import com.khanabook.lite.pos.feature.billing.domain.BillIntent
+import com.khanabook.lite.pos.feature.billing.domain.CartItemSnapshot
 
-import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.domain.model.TerminalIdentity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.auth.domain.TerminalIdentity
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -99,6 +103,38 @@ class BillCreationUseCaseTest {
         )
         assertEquals("100.00", intent.partAmount1)
         assertEquals("50.00", intent.partAmount2)
+    }
+
+    @Test
+    fun `DraftForPayment carries selected mode and split allocation`() {
+        // B2 regression guard: a pending online draft must remember the operator's
+        // selected payment mode and split amounts so restoration does not fall back
+        // to plain UPI with zero allocation.
+        val intent = BillIntent.DraftForPayment(
+            paymentMode = "part_cash_upi",
+            partAmount1 = "40.00",
+            partAmount2 = "60.00"
+        )
+        assertEquals("part_cash_upi", intent.paymentMode)
+        assertEquals("40.00", intent.partAmount1)
+        assertEquals("60.00", intent.partAmount2)
+    }
+
+    @Test
+    fun `DraftForPayment defaults to UPI with zero split`() {
+        val intent = BillIntent.DraftForPayment()
+        assertEquals("upi", intent.paymentMode)
+        assertEquals("0.0", intent.partAmount1)
+        assertEquals("0.0", intent.partAmount2)
+    }
+
+    @Test
+    fun `Cancelled intent carries the cancellation reason`() {
+        // B1 regression guard: an abandoned new-order payment must be representable
+        // as a cancelled sale (no payments, no stock), never a silent successful Settle.
+        val intent = BillIntent.Cancelled(reason = "Customer left")
+        assertTrue(intent is BillIntent.Cancelled)
+        assertEquals("Customer left", intent.reason)
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

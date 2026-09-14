@@ -1,8 +1,9 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.printing.domain.WifiPrinterTransport
 
-import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
-import com.khanabook.lite.pos.domain.model.PrinterConnectionType
-import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
+import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
+import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import java.net.ServerSocket
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit

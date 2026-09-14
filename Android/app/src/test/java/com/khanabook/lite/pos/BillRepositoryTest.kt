@@ -1,20 +1,21 @@
 package com.khanabook.lite.pos
+import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
 
 import androidx.work.WorkManager
 import androidx.work.Operation
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
-import com.khanabook.lite.pos.data.local.dao.BillDao
-import com.khanabook.lite.pos.data.local.dao.KotEventDao
-import com.khanabook.lite.pos.data.local.entity.BillEntity
-import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
-import com.khanabook.lite.pos.data.local.entity.KotEventEntity
-import com.khanabook.lite.pos.data.local.entity.KotEventType
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
-import com.khanabook.lite.pos.data.repository.BillRepository
-import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
-import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.feature.billing.data.BillDao
+import com.khanabook.lite.pos.feature.printing.data.KotEventDao
+import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
+import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,7 +37,7 @@ import org.junit.Test
 class BillRepositoryTest {
 
     private lateinit var billDao: BillDao
-    private lateinit var restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao
+    private lateinit var restaurantDao: com.khanabook.lite.pos.feature.auth.data.RestaurantDao
     private lateinit var inventoryConsumptionManager: InventoryConsumptionManager
     private lateinit var workManager: WorkManager
     private lateinit var kotEventDao: KotEventDao

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -54,6 +54,7 @@ export function filterBusinessOrders(
 @Component({
   selector: 'app-orders-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
@@ -178,14 +179,14 @@ export function filterBusinessOrders(
             <label for="order-status">Status</label>
             <select id="order-status" class="field-select" [(ngModel)]="orderStatusFilter" (ngModelChange)="resetOrderPage()">
               <option value="ALL">All statuses</option>
-              <option *ngFor="let status of businessOrderStatuses" [value]="status">{{ status }}</option>
+              <option *ngFor="let status of businessOrderStatuses; trackBy: trackByIndex" [value]="status">{{ status }}</option>
             </select>
           </div>
           <div class="filter-group">
             <label for="order-source">Source</label>
             <select id="order-source" class="field-select" [(ngModel)]="orderSourceFilter" (ngModelChange)="resetOrderPage()">
               <option value="ALL">All sources</option>
-              <option *ngFor="let source of businessOrderSources" [value]="source">{{ source }}</option>
+              <option *ngFor="let source of businessOrderSources; trackBy: trackByIndex" [value]="source">{{ source }}</option>
             </select>
           </div>
           <div class="filter-group">
@@ -229,7 +230,7 @@ export function filterBusinessOrders(
             </tr>
           </thead>
           <tbody>
-             <tr *ngFor="let order of pagedOrders" class="clickable-row" tabindex="0" role="button" [attr.aria-label]="'View order ' + order.orderCode" (click)="openOrderDetail(order)" (keydown.enter)="openOrderDetail(order)">
+             <tr *ngFor="let order of pagedOrders; trackBy: trackByOrderId" class="clickable-row" tabindex="0" role="button" [attr.aria-label]="'View order ' + order.orderCode" (click)="openOrderDetail(order)" (keydown.enter)="openOrderDetail(order)">
               <td><span class="chip">{{ order.sourceType }}</span></td>
               <td>{{ order.orderCode }}</td>
               <td>
@@ -290,7 +291,7 @@ export function filterBusinessOrders(
         </table>
 
         <div class="mobile-order-list" aria-label="Orders">
-          <article *ngFor="let order of pagedOrders" class="mobile-order-card" [class.mobile-order-card--refunded]="order.refundAmount && order.refundAmount > 0">
+          <article *ngFor="let order of pagedOrders; trackBy: trackByOrderId" class="mobile-order-card" [class.mobile-order-card--refunded]="order.refundAmount && order.refundAmount > 0">
             <button type="button" class="mobile-order-card__main" (click)="openOrderDetail(order)" [attr.aria-label]="'View order ' + order.orderCode">
               <span class="mobile-order-card__title">{{ order.orderCode }}</span>
               <span class="chip" [class.success]="order.orderStatus.toLowerCase() === 'completed'" [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'" [class.warn]="order.orderStatus.toLowerCase() === 'draft'">{{ order.orderStatus }}</span>
@@ -316,7 +317,7 @@ export function filterBusinessOrders(
       <ng-template #posLoading>
         <div class="panel loading" *ngIf="!ordersLoaded; else ordersEmpty">
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
         </div>
         <ng-template #ordersEmpty>
@@ -667,4 +668,7 @@ export class OrdersPageComponent implements OnDestroy {
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }
   formatDateValue(value: number | null): string { return formatDate(value); }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;
 }

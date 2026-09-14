@@ -23,11 +23,14 @@ public class PermissionController {
 
     private final PermissionService permissionService;
     private final com.khanabook.saas.repository.UserRepository userRepo;
+    private final com.khanabook.saas.service.FeatureFlagService featureFlagService;
 
     public PermissionController(PermissionService permissionService,
-                                com.khanabook.saas.repository.UserRepository userRepo) {
+                                com.khanabook.saas.repository.UserRepository userRepo,
+                                com.khanabook.saas.service.FeatureFlagService featureFlagService) {
         this.permissionService = permissionService;
         this.userRepo = userRepo;
+        this.featureFlagService = featureFlagService;
     }
 
     // ── Available permissions catalog ─────────────────────────────────────────
@@ -119,11 +122,24 @@ public class PermissionController {
     }
 
     // ── Permission Requests (Staff submits, Owner resolves) ──────────────────
+    // NOTE: Operation-level permission requests are a PLANNED (next-version) feature.
+    // Per the shipped product model, staff have a fixed role capability set and do
+    // NOT request per-operation access. The endpoint is retained but gated behind the
+    // "staff_permission_requests" feature flag, which resolves DISABLED unless an
+    // explicit flag row is created and enabled. The device/terminal activation request
+    // flow is a separate system (TerminalManagementController) and is unaffected.
+    private static final String STAFF_PERMISSION_REQUESTS_FLAG = "staff_permission_requests";
 
     @PostMapping("/request")
     public ResponseEntity<Map<String, Object>> submitRequest(
             @Valid @RequestBody RequestPermissionRequest request,
             @AuthenticationPrincipal User currentUser) {
+        if (!featureFlagService.isEnabled(STAFF_PERMISSION_REQUESTS_FLAG, currentUser.getRestaurantId())) {
+            // Feature not enabled: staff use a fixed role set; no operation requests.
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "PERMISSION_REQUESTS_DISABLED",
+                            "message", "Permission requests are not available."));
+        }
         var saved = permissionService.submitRequest(
                 currentUser.getRestaurantId(),
                 currentUser.getId(),

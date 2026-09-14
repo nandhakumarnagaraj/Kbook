@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.data.remote.dto
+import com.khanabook.lite.pos.feature.payments.data.AddressProofType
 
 import org.junit.Assert.*
 import org.junit.Test

@@ -1,4 +1,9 @@
 package com.khanabook.lite.pos
+import com.khanabook.lite.pos.feature.billing.data.BillDao
+import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.feature.billing.ui.BillingBackAction
+import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
 
 import org.junit.Test
 import org.junit.Assert.*
@@ -71,14 +76,14 @@ class BillingLogicTest {
         // "Duplicate payment identity" within validate().
         val opId = "dup:payment:upi"
         val duplicateOperationIds = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "upi", amount = "50.00", operationId = opId
             ),
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "upi", amount = "50.00", operationId = opId
             )
         )
-        val validation = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val validation = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(duplicateOperationIds, "100.00")
         assertTrue("Duplicate operation IDs should be rejected", validation.isFailure)
     }
@@ -88,14 +93,14 @@ class BillingLogicTest {
         // Two active rows with the same mode but different operationIds
         // fail PaymentSetValidator validate() as "Duplicate payment component".
         val rows = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "cash", amount = "50.00", operationId = "cash:1"
             ),
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "cash", amount = "50.00", operationId = "cash:2"
             )
         )
-        val validation = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val validation = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(rows, "100.00")
         assertTrue("Duplicate payment modes should be rejected", validation.isFailure)
     }
@@ -105,11 +110,11 @@ class BillingLogicTest {
         // A single UPI row for 60.00 when the total is 100.00
         // does not satisfy the exact total requirement.
         val partial = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "upi", amount = "60.00", operationId = "partial:upi"
             )
         )
-        val validation = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val validation = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(partial, "100.00")
         assertTrue("Partial payment set should be rejected", validation.isFailure)
     }
@@ -119,12 +124,12 @@ class BillingLogicTest {
         // An identical payment set on an already-completed bill should
         // be accepted as ALREADY_FINALIZED_IDEMPOTENT.
         val rows = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1, paymentMode = "cash", amount = "100.00",
                 operationId = "retry:payment:cash"
             )
         )
-        val valid = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val valid = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(rows, "100.00")
         assertTrue("Exact completed retry should pass validation", valid.isSuccess)
     }
@@ -216,11 +221,11 @@ class BillingLogicTest {
         // payment-recovery draft with a partial UPI row must be rejected (not completed,
         // no inventory deduction).
         val stalePartial = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1L, paymentMode = "upi", amount = "60.00", operationId = "op:upi"
             )
         )
-        val validation = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val validation = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(stalePartial, "100.00")
         assertTrue("Partial existing payment set must block completion", validation.isFailure)
     }
@@ -228,14 +233,14 @@ class BillingLogicTest {
     @Test
     fun `completing a bill with a valid complete payment set is permitted`() {
         val validSet = listOf(
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1L, paymentMode = "cash", amount = "40.00", operationId = "op:cash"
             ),
-            com.khanabook.lite.pos.data.local.entity.BillPaymentEntity(
+            com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity(
                 billId = 1L, paymentMode = "upi", amount = "60.00", operationId = "op:upi"
             )
         )
-        val validation = com.khanabook.lite.pos.domain.manager.PaymentSetValidator
+        val validation = com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
             .validate(validSet, "100.00")
         assertTrue("A valid complete payment set permits completion", validation.isSuccess)
     }
@@ -249,7 +254,7 @@ class BillingLogicTest {
         // This prevents the empty-payment bypass where a draft could become completed
         // without any payment through the Orders/Reports status dropdown.
         val payableAmount = java.math.BigDecimal("500.00")
-        val existingActiveRows = emptyList<com.khanabook.lite.pos.data.local.entity.BillPaymentEntity>()
+        val existingActiveRows = emptyList<com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity>()
         val isBecomingDeducted = true
         val wouldReject = existingActiveRows.isEmpty() && payableAmount > java.math.BigDecimal.ZERO
         assertTrue("Positive-value bill with no payments must be rejected", wouldReject && isBecomingDeducted)
@@ -260,7 +265,7 @@ class BillingLogicTest {
         // A bill with payable amount 0.00 (fully discounted or zero-price) may be
         // completed without payment rows — there is nothing to collect.
         val payableAmount = java.math.BigDecimal("0.00")
-        val existingActiveRows = emptyList<com.khanabook.lite.pos.data.local.entity.BillPaymentEntity>()
+        val existingActiveRows = emptyList<com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity>()
         val isBecomingDeducted = true
         val wouldReject = existingActiveRows.isEmpty() && payableAmount > java.math.BigDecimal.ZERO
         assertFalse("Zero-value bill with no payments should NOT be rejected", wouldReject && isBecomingDeducted)
@@ -286,16 +291,16 @@ class BillingLogicTest {
     @Test
     fun `active order exits at the step where it was opened`() {
         assertEquals(
-            com.khanabook.lite.pos.ui.screens.BillingBackAction.EXIT,
-            com.khanabook.lite.pos.ui.screens.resolveBillingBackAction(
+            com.khanabook.lite.pos.feature.billing.ui.BillingBackAction.EXIT,
+            com.khanabook.lite.pos.feature.billing.ui.resolveBillingBackAction(
                 currentStep = 2,
                 initialStep = 2,
                 editingDraft = true
             )
         )
         assertEquals(
-            com.khanabook.lite.pos.ui.screens.BillingBackAction.EXIT,
-            com.khanabook.lite.pos.ui.screens.resolveBillingBackAction(
+            com.khanabook.lite.pos.feature.billing.ui.BillingBackAction.EXIT,
+            com.khanabook.lite.pos.feature.billing.ui.resolveBillingBackAction(
                 currentStep = 3,
                 initialStep = 3,
                 editingDraft = true
@@ -306,16 +311,16 @@ class BillingLogicTest {
     @Test
     fun `active order can step back only through screens opened in that session`() {
         assertEquals(
-            com.khanabook.lite.pos.ui.screens.BillingBackAction.STEP_TWO,
-            com.khanabook.lite.pos.ui.screens.resolveBillingBackAction(
+            com.khanabook.lite.pos.feature.billing.ui.BillingBackAction.STEP_TWO,
+            com.khanabook.lite.pos.feature.billing.ui.resolveBillingBackAction(
                 currentStep = 3,
                 initialStep = 2,
                 editingDraft = true
             )
         )
         assertEquals(
-            com.khanabook.lite.pos.ui.screens.BillingBackAction.STEP_ONE,
-            com.khanabook.lite.pos.ui.screens.resolveBillingBackAction(
+            com.khanabook.lite.pos.feature.billing.ui.BillingBackAction.STEP_ONE,
+            com.khanabook.lite.pos.feature.billing.ui.resolveBillingBackAction(
                 currentStep = 2,
                 initialStep = 1,
                 editingDraft = false

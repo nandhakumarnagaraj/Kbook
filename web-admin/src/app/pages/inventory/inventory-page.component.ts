@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
@@ -10,6 +10,7 @@ import { ToastService } from '../../core/services/toast.service';
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   styles: [`
     .page-header {
@@ -88,7 +89,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
 
         <div *ngIf="materials.length > 0" class="materials-grid">
-          <div *ngFor="let m of materials"
+          <div *ngFor="let m of materials; trackBy: trackByMaterialId"
                class="material-card"
                [class.low-stock]="isLowStock(m)"
                (click)="openMaterialDetail(m)">
@@ -114,7 +115,7 @@ import { ToastService } from '../../core/services/toast.service';
         <div style="margin-bottom:1rem">
           <select class="field-select" [(ngModel)]="selectedMaterialId" (change)="loadMovements()" style="max-width:300px">
             <option [ngValue]="null">Select a material...</option>
-            <option *ngFor="let m of materials" [ngValue]="m.id">{{ m.name }}</option>
+            <option *ngFor="let m of materials; trackBy: trackByMaterialId" [ngValue]="m.id">{{ m.name }}</option>
           </select>
         </div>
 
@@ -123,7 +124,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
 
         <div *ngIf="movements.length > 0" class="card">
-          <div *ngFor="let mv of movements" class="movement-row">
+          <div *ngFor="let mv of movements; trackBy: trackByIndex" class="movement-row">
             <div>
               <span class="movement-type">{{ formatMovementType(mv.kind) }}</span>
               <span style="margin-left:0.5rem;color:var(--kb-color-muted-foreground);font-size:0.8rem">
@@ -171,7 +172,7 @@ import { ToastService } from '../../core/services/toast.service';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let v of varianceData">
+                <tr *ngFor="let v of varianceData; trackBy: trackByIndex">
                   <td>{{ v.materialName }}</td>
                   <td>{{ v.systemStock }}</td>
                   <td>{{ v.physicalCount }}</td>
@@ -507,4 +508,7 @@ export class InventoryPageComponent implements OnInit {
     this.confirmCallback?.();
     this.confirmCallback = null;
   }
+
+  trackByIndex = (_: number, __: unknown) => _;
+  trackByMaterialId = (_: number, m: any) => m.id;
 }

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -33,12 +33,13 @@ export function getPresetDateRange(
 @Component({
   selector: 'app-date-range-selector',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="date-range">
       <div class="date-range__presets">
         <button
-          *ngFor="let preset of presets"
+          *ngFor="let preset of presets; trackBy: trackByIndex"
           class="date-range__preset-btn"
           [class.date-range__preset-btn--active]="activePreset() === preset.value"
           (click)="selectPreset(preset.value)">
@@ -203,6 +204,8 @@ export class DateRangeSelectorComponent {
     const { from, to } = getPresetDateRange(preset);
     return `${from} → ${to}`;
   });
+
+  trackByIndex = (_: number, __: unknown) => _;
 
   selectPreset(preset: DatePreset): void {
     this.activePreset.set(preset);

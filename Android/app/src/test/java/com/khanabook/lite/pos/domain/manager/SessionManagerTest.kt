@@ -1,8 +1,9 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences
+import com.khanabook.lite.pos.feature.auth.domain.KeystoreBackedPreferences
 import io.mockk.*
 import org.junit.After
 import org.junit.Assert.*
@@ -192,4 +193,3 @@ class SessionManagerTest {
         assertEquals(generatedId, slot.captured)
     }
 }
-

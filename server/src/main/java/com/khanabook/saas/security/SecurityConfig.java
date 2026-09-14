@@ -44,7 +44,7 @@ public class SecurityConfig {
 		// Global config for all other endpoints.
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
-				? List.of("http://localhost:4200")
+				? List.<String>of() // No fallback — must set CORS_ALLOWED_ORIGINS in production
 				: List.of(allowedOriginsRaw.split(","))
 						.stream()
 						.map(String::trim)
@@ -57,9 +57,11 @@ public class SecurityConfig {
 				"Content-Type",
 				"X-Restaurant-Id",
 				"X-App-Platform",
-				"X-App-Version"));
+				"X-App-Version",
+				"X-Terminal-Token",
+				"X-Device-Id"));
 		config.setExposedHeaders(List.of("X-Request-Id"));
-		config.setAllowCredentials(!origins.isEmpty()); // credentials only when origins are explicit
+		config.setAllowCredentials(!origins.isEmpty());
 		config.setMaxAge(3600L);
 		source.registerCorsConfiguration("/**", config);
 

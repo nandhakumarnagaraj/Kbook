@@ -1,4 +1,6 @@
-package com.khanabook.lite.pos.data.local
+package com.khanabook.lite.pos.core.database
+import com.khanabook.lite.pos.core.database.AppDatabase
+import com.khanabook.lite.pos.core.database.DatabaseProvider
 
 import java.io.File
 import org.junit.Assert.assertEquals

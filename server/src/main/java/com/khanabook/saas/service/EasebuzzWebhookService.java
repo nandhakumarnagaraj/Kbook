@@ -264,11 +264,6 @@ public class EasebuzzWebhookService {
             String receivedHash = payload.get("hash");
             if (receivedHash == null || receivedHash.isBlank()) return false;
 
-            if ("skip_for_test".equals(receivedHash) && isDevOrSandboxProfile()) {
-                log.info("Bypassing refund webhook hash verification for test simulation");
-                return true;
-            }
-
             // Refund webhook hash: sha512(key|easepayid|salt)
             // Easebuzz may send the ID as either easepayid or easebuzz_id
             String easepayid = payload.get("easepayid");
@@ -468,11 +463,6 @@ public class EasebuzzWebhookService {
             if (receivedHash == null || receivedHash.isBlank()) {
                 return false;
             }
-            if ("skip_for_test".equals(receivedHash) && isDevOrSandboxProfile()) {
-                log.info("Bypassing payment webhook hash verification for test simulation");
-                return true;
-            }
-
             // Easebuzz Payment Webhook Hash Sequence (Reversed):
             // sha512(salt|status|udf10|udf9|udf8|udf7|udf6|udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
             StringBuilder sb = new StringBuilder();
@@ -550,11 +540,6 @@ public class EasebuzzWebhookService {
 
             String receivedHash = data.get("hash") != null ? data.get("hash").toString() :
                     (payload.get("hash") != null ? payload.get("hash").toString() : null);
-
-            if ("skip_for_test".equals(receivedHash) && isDevOrSandboxProfile()) {
-                log.info("Bypassing sub-merchant webhook hash verification for test simulation");
-                return true;
-            }
 
             String subMerchantId = SubMerchantService.resolveSubMerchantId(data);
 
