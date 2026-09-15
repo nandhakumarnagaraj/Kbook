@@ -135,7 +135,6 @@ public class AdminReadService {
                 .timezone(profile.getTimezone())
                 .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
                 .gstEnabled(Boolean.TRUE.equals(profile.getGstEnabled()))
-                .printerEnabled(Boolean.TRUE.equals(profile.getPrinterEnabled()))
                 .staffCount(users.size())
                 .menuCount(menuCount)
                 .posOrderCount(posOrders)

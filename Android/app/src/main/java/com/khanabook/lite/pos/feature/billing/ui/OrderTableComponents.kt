@@ -90,13 +90,10 @@ fun OrderTableRow(
         isCancelled -> DarkBrown1.copy(alpha = 0.15f)
         else -> DarkBrown1.copy(alpha = 0.35f)
     }
-    val isTodayBill = remember(row.salesDate) {
-        val billDate = java.time.Instant.ofEpochMilli(row.salesDate)
-            .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
-            .toLocalDate()
-        billDate == java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
-    }
-    val canEdit = !isCancelled && isTodayBill
+    // Any non-cancelled bill stays editable regardless of age: status and payment mode
+    // are deliberate corrections, and the server distinguishes them from stale pushes
+    // via statusVersion. Cancelled is the one terminal state — it cannot be un-cancelled.
+    val canEdit = !isCancelled
 
     Column(
         modifier = Modifier

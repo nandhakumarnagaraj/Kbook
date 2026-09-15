@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.feature.staff.data.RoleTemplateDto
 import com.khanabook.lite.pos.core.designsystem.KhanaBookScreenScaffold
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.staff.viewmodel.StaffMemberPermissions
 import com.khanabook.lite.pos.feature.staff.viewmodel.StaffPermissionViewModel
@@ -33,12 +34,20 @@ fun StaffPermissionScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
+    // Non-fatal action feedback (success/failure) is surfaced as a one-shot toast.
+    LaunchedEffect(Unit) {
+        viewModel.message.collect { event ->
+            KhanaToast.show(event.message, event.kind)
+        }
+    }
+
     KhanaBookScreenScaffold(title = "Staff Permissions", onBack = onBack) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PrimaryGold)
             }
         } else if (state.error != null) {
+            // Fatal error is reserved for the initial load only.
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.error ?: "", color = ErrorPink, style = MaterialTheme.typography.bodyLarge)
@@ -57,24 +66,6 @@ fun StaffPermissionScreen(
                 contentPadding = PaddingValues(spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
-                state.infoMessage?.let { info ->
-                    item {
-                        Surface(
-                            shape = RoundedCornerShape(spacing.small),
-                            color = DarkBrown2,
-                            tonalElevation = spacing.extraSmall
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(info, style = MaterialTheme.typography.bodySmall, color = SuccessGreen, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { viewModel.clearError() }) { Text("OK", color = PrimaryGold) }
-                            }
-                        }
-                    }
-                }
-
                 // Role templates section
                 item {
                     Row(
@@ -88,7 +79,10 @@ fun StaffPermissionScreen(
                             color = TextLight,
                             fontWeight = FontWeight.Bold
                         )
-                        IconButton(onClick = { showCreateTemplate = true }) {
+                        IconButton(
+                            onClick = { showCreateTemplate = true },
+                            enabled = !state.actionInFlight
+                        ) {
                             Icon(Icons.Filled.Add, "Create template", tint = PrimaryGold)
                         }
                     }
@@ -105,6 +99,7 @@ fun StaffPermissionScreen(
                 items(state.templates) { template ->
                     RoleTemplateCard(
                         template = template,
+                        actionEnabled = !state.actionInFlight,
                         onApply = { applyTemplate = template }
                     )
                 }
@@ -133,6 +128,7 @@ fun StaffPermissionScreen(
                     StaffPermissionCard(
                         staff = staff,
                         categories = viewModel.permissionCategories,
+                        actionEnabled = !state.actionInFlight,
                         onToggle = { key, granted -> viewModel.togglePermission(staff.userId, key, granted) }
                     )
                 }
@@ -168,6 +164,7 @@ fun StaffPermissionScreen(
 private fun StaffPermissionCard(
     staff: StaffMemberPermissions,
     categories: List<Pair<String, List<Pair<String, String>>>>,
+    actionEnabled: Boolean,
     onToggle: (permissionKey: String, currentlyGranted: Boolean) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -224,7 +221,8 @@ private fun StaffPermissionCard(
                             Text(displayName, style = MaterialTheme.typography.bodySmall, color = TextLight)
                             KhanaBookSwitch(
                                 checked = isGranted,
-                                onCheckedChange = { onToggle(key, isGranted) }
+                                onCheckedChange = { onToggle(key, isGranted) },
+                                enabled = actionEnabled
                             )
                         }
                     }
@@ -237,6 +235,7 @@ private fun StaffPermissionCard(
 @Composable
 private fun RoleTemplateCard(
     template: RoleTemplateDto,
+    actionEnabled: Boolean,
     onApply: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -261,7 +260,11 @@ private fun RoleTemplateCard(
                     color = TextGold
                 )
             }
-            Button(onClick = onApply, colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
+            Button(
+                onClick = onApply,
+                enabled = actionEnabled,
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+            ) {
                 Text("Apply to\u2026", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
             }
         }

@@ -138,29 +138,11 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "own_website_enabled")
 	private Boolean ownWebsiteEnabled;
 
-	@Column(name = "printer_enabled")
-	private Boolean printerEnabled;
-
-	@Column(name = "printer_name")
-	private String printerName;
-
-	@Column(name = "printer_mac")
-	private String printerMac;
-
-	@Column(name = "kitchen_printer_enabled")
-	private Boolean kitchenPrinterEnabled;
-
-	@Column(name = "kitchen_printer_name")
-	private String kitchenPrinterName;
-
-	@Column(name = "kitchen_printer_mac")
-	private String kitchenPrinterMac;
-
-	@Column(name = "kitchen_printer_paper_size")
-	private String kitchenPrinterPaperSize;
-
-	@Column(name = "paper_size")
-	private String paperSize;
+	// Printer configuration is deliberately NOT stored server-side. Printer bindings
+	// (enabled, name, MAC, paper size, per-role) are physical properties of one device,
+	// so they live only in the Android app's local `printer_profiles` table. Syncing them
+	// would push one terminal's hardware onto every other terminal in the restaurant.
+	// KOT events are device-local for the same reason.
 
 	@Column(name = "auto_print_on_success")
 	private Boolean autoPrintOnSuccess;

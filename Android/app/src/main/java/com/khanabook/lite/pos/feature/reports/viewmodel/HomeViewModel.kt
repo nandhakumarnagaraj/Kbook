@@ -145,6 +145,15 @@ class HomeViewModel @Inject constructor(
             initialValue = OrderPaymentFlowMode.PAY_BEFORE_FOOD
         )
 
+    /** True when the restaurant has turned off collecting the customer mobile number (quick billing). */
+    val quickModeEnabled: StateFlow<Boolean> = profileFlow
+        .map { it?.collectCustomerNumber == false }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     /** Time-aware greeting: Good Morning / Afternoon / Evening. */
     val greeting: String
         get() = when (LocalTime.now().hour) {

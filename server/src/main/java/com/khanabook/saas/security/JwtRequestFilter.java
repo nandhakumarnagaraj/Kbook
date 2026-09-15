@@ -125,13 +125,22 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 								return;
 							}
 
-							// Device binding: warn but allow — any JWT valid for the user works across devices
+							// Device binding: a token is bound to the device it was issued for.
+							// Both sides must be present to compare — the Android client always
+							// sends X-Device-Id (AuthInterceptor), while browser clients such as
+							// web admin send none, so the console is unaffected. Enforcing this
+							// is what makes a copied token useless off its own device; without it
+							// a lifted token works anywhere until it expires.
 							String jwtDeviceId = jwtUtility.extractDeviceId(jwt);
 							String headerDeviceId = request.getHeader("X-Device-Id");
 							if (jwtDeviceId != null && !jwtDeviceId.isBlank()
 									&& headerDeviceId != null && !headerDeviceId.isBlank()
 									&& !jwtDeviceId.equals(headerDeviceId)) {
-								logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={} — allowing", jwtDeviceId, headerDeviceId, username);
+								logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={} — rejecting",
+										jwtDeviceId, headerDeviceId, username);
+								response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+										"Token is bound to a different device");
+								return;
 							}
 
 							// Admin IP allowlist — block admin from unauthorized IPs

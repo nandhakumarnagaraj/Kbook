@@ -10,7 +10,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
 object MultipartUtils {
-    private const val MAX_ASSET_BYTES = 2L * 1024L * 1024L
+    /** Maximum bytes accepted from the picker before decoding (matches server multipart cap). */
+    private const val MAX_INPUT_BYTES = 10L * 1024L * 1024L
+    /** Maximum bytes sent over the network and accepted by AssetStorageService. */
+    private const val MAX_UPLOAD_BYTES = 2L * 1024L * 1024L
     private const val MIN_DIMENSION_PX = 64
     private const val MAX_DIMENSION_PX = 4096
     private const val MAX_ASPECT_RATIO = 10f
@@ -38,8 +41,8 @@ object MultipartUtils {
         } ?: throw IllegalArgumentException("Unable to read the selected image.")
 
         if (bytes.isEmpty()) throw IllegalArgumentException("The selected file is empty.")
-        if (bytes.size > MAX_ASSET_BYTES) {
-            throw IllegalArgumentException("Image must be 2 MB or smaller.")
+        if (bytes.size > MAX_INPUT_BYTES) {
+            throw IllegalArgumentException("Image must be 10 MB or smaller.")
         }
 
         requireSupportedFormat(bytes)
@@ -68,10 +71,11 @@ object MultipartUtils {
             ?: throw IllegalArgumentException("This file is not a valid PNG, JPG, or WebP image.")
 
         val scaled = scaleToMaxEdge(decoded, OUTPUT_MAX_EDGE_PX)
-        val compressed = ByteArrayOutputStream().also { out ->
-            scaled.compress(Bitmap.CompressFormat.WEBP, WEBP_QUALITY, out)
-        }.toByteArray()
-        if (scaled !== decoded) decoded.recycle()
+        val compressed = encodeWebpWithinLimit(scaled)
+        if (scaled !== decoded) {
+            decoded.recycle()
+            scaled.recycle()
+        }
 
         val body = compressed.toRequestBody("image/webp".toMediaTypeOrNull())
         return MultipartBody.Part.createFormData(partName, "shop_logo_${System.currentTimeMillis()}.webp", body)
@@ -107,5 +111,24 @@ object MultipartUtils {
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
         return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
+    /**
+     * Encode to WebP while keeping the multipart payload within the server's CDN cap.
+     * Most 1024px food photos fit at quality 90; noisier photos progressively step down
+     * rather than failing after the user already picked a valid image.
+     */
+    private fun encodeWebpWithinLimit(bitmap: Bitmap): ByteArray {
+        val qualities = intArrayOf(WEBP_QUALITY, 82, 74, 66)
+        for (quality in qualities) {
+            val encoded = ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.WEBP, quality, out)
+                out.toByteArray()
+            }
+            if (encoded.size <= MAX_UPLOAD_BYTES) return encoded
+        }
+        throw IllegalArgumentException(
+            "This image could not be compressed below 2 MB. Try a less detailed photo."
+        )
     }
 }

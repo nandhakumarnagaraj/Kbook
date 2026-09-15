@@ -18,8 +18,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    private val billRepository: BillRepository
+    private val billRepository: BillRepository,
+    private val permissionManager: com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 ) : ViewModel() {
+
+    /**
+     * Whether the acting user may see revenue beyond today's summary.
+     *
+     * The server already enforces this on its analytics endpoints
+     * (AnalyticsController requires reports.full), but Android reports are computed
+     * locally from the bills table and never hit those endpoints — so without this
+     * client check the server gate is bypassed entirely. Owners pass by role.
+     */
+    fun canViewFullReports(): Boolean =
+        permissionManager.hasPermission(
+            com.khanabook.lite.pos.feature.staff.domain.PermissionManager.REPORTS_FULL
+        )
+
+    /** Whether the acting user may export/download report data. */
+    fun canExportReports(): Boolean =
+        permissionManager.hasPermission(
+            com.khanabook.lite.pos.feature.staff.domain.PermissionManager.REPORTS_EXPORT
+        )
 
     private val reportGenerator = ReportGenerator(billRepository)
 

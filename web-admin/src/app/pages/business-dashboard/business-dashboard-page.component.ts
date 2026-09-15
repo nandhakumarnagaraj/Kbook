@@ -610,20 +610,6 @@ export class BusinessDashboardPageComponent {
                     : 'Enable own website checkout before expecting direct online orders.'
                 },
                 {
-                  label: 'Customer Printer',
-                  ready: data.printerEnabled,
-                  detail: data.printerEnabled
-                    ? 'Customer receipt printing is configured.'
-                    : 'Configure the customer printer to avoid manual receipt handling.'
-                },
-                {
-                  label: 'Kitchen KDS Printer',
-                  ready: data.kitchenPrinterEnabled,
-                  detail: data.kitchenPrinterEnabled
-                    ? 'Kitchen printing is configured for KDS dispatch.'
-                    : 'Configure the kitchen printer so accepted online orders can print instantly.'
-                },
-                {
                   label: 'Operating Baseline',
                   ready: data.totalStaff > 0 && data.totalMenuItems > 0,
                   detail: data.totalStaff > 0 && data.totalMenuItems > 0

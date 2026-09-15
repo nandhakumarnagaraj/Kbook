@@ -20,7 +20,6 @@ public record AdminBusinessDetailResponse(
         String timezone,
         boolean websiteEnabled,
         boolean gstEnabled,
-        boolean printerEnabled,
         long staffCount,
         long menuCount,
         long posOrderCount,

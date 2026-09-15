@@ -44,6 +44,7 @@ public class BillDTO {
     private java.math.BigDecimal partAmount2;
     private String paymentStatus;
     private String orderStatus;
+    private Integer statusVersion;
     private Long createdBy;
     private Long createdByUserId;
     private Long paidAt;

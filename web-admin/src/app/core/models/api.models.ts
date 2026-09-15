@@ -51,7 +51,6 @@ export interface AdminBusinessDetail extends AdminBusinessListItem {
   timezone: string | null;
   gstEnabled: boolean;
   gstin: string | null;
-  printerEnabled: boolean;
   posOrderCount: number;
   totalRevenue: number;
   createdAt: number | null;
@@ -103,8 +102,6 @@ export interface BusinessDashboard {
   restaurantId: number;
   shopName: string | null;
   websiteEnabled: boolean;
-  printerEnabled: boolean;
-  kitchenPrinterEnabled: boolean;
   totalStaff: number;
   totalMenuItems: number;
   posOrderCount: number;

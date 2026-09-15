@@ -137,6 +137,19 @@ export class BusinessApiService {
     return this.http.post<void>(`${API_BASE_URL}/business/staff/${userId}/activate`, {});
   }
 
+  /** Signs one staff member out of every device without disabling their account. */
+  revokeStaffSessions(userId: number) {
+    return this.http.post<{ revoked: number }>(
+      `${API_BASE_URL}/business/staff/${userId}/revoke-sessions`,
+      {}
+    );
+  }
+
+  /** Signs everyone out of every device, including the current user. */
+  revokeAllSessions() {
+    return this.http.post<{ revoked: number }>(`${API_BASE_URL}/business/sessions/revoke-all`, {});
+  }
+
   // Menu CRUD
   createMenuItem(payload: CreateMenuItemRequest) {
     return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu`, payload);

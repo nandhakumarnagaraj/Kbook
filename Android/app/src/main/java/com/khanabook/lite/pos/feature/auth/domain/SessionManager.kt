@@ -23,7 +23,7 @@ private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
  * accepted for a device that has not yet received the collapsed role via sync,
  * so a waiter/cashier/manager is never locked out mid-migration.
  */
-private val STAFF_ROLES = setOf("SHOP_STAFF", "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS")
+private val STAFF_ROLES = setOf("SHOP_STAFF")
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {

@@ -49,7 +49,7 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 74,
+        version = 76,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1105,6 +1105,24 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP TABLE IF EXISTS `permission_requests`")
                 android.util.Log.i("AppDatabase", "MIGRATION_73_74 complete: dropped unused permission_requests table")
+            }
+        }
+
+        val MIGRATION_74_75 = object : Migration(74, 75) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("bills", "status_version")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `status_version` INTEGER NOT NULL DEFAULT 0")
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_74_75 complete: added status_version to bills")
+            }
+        }
+
+        val MIGRATION_75_76 = object : Migration(75, 76) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("restaurant_profile", "collect_customer_number")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `collect_customer_number` INTEGER NOT NULL DEFAULT 1")
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_75_76 complete: added collect_customer_number to restaurant_profile")
             }
         }
 

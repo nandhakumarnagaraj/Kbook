@@ -99,7 +99,7 @@ public class PermissionService {
         var user = findTenantUser(restaurantId, userId);
         if (user == null) return false;
         if (UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole()) return true;
-        if (UserRole.SHOP_STAFF == user.getRole() && SHOP_STAFF_BILLING_KEYS.contains(permissionKey)) return true;
+        if (UserRole.SHOP_STAFF == user.getRole() && SHOP_STAFF_GRANTED_KEYS.contains(permissionKey)) return true;
 
         return permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .map(StaffPermission::getGranted)
@@ -121,7 +121,7 @@ public class PermissionService {
                         .map(StaffPermission::getPermissionKey)
                         .collect(Collectors.toList()));
         if (UserRole.SHOP_STAFF == user.getRole()) {
-            SHOP_STAFF_BILLING_KEYS.stream()
+            SHOP_STAFF_GRANTED_KEYS.stream()
                     .filter(key -> !granted.contains(key))
                     .forEach(granted::add);
         }
@@ -141,10 +141,10 @@ public class PermissionService {
     // ── Grant / Revoke ────────────────────────────────────────────────────────
 
     /**
-     * The read-only baseline granted to a newly-created non-owner staff member:
-     * pure "view" permissions only, no edit/settle/refund/menu-mutation authority.
-     * A staffer starts able to see the menu and orders and today's summary, and must
-     * request anything beyond that (P2 — default read-only).
+     * Baseline granted to a newly-created non-owner staff member. SHOP_STAFF
+     * already auto-grants the full operational set by role
+     * ({@link #SHOP_STAFF_GRANTED_KEYS}); these rows are a defensive floor in
+     * case the role-bound grant is ever narrowed.
      */
     public static final List<String> DEFAULT_READONLY_KEYS = List.of(
             PermissionKey.MENU_VIEW.getKey(),
@@ -154,17 +154,36 @@ public class PermissionService {
     );
 
     /**
-     * Core POS billing operations auto-granted to SHOP_STAFF by role, no explicit
-     * grant row required. Void and refund stay owner/manager-level — web void is
-     * OWNER-only via @RequireRole, and billing.void/billing.refund still need an
-     * explicit manager grant on the device.
+     * Configuration families that remain owner-only for SHOP_STAFF:
+     * restaurant profile, payment (Easebuzz/bank), tax/GST, and menu edits
+     * (add/delete/reprice/toggle availability). Menu *viewing* stays granted.
+     * Report *export* is owner-only too — staff read reports on the device but
+     * may not download/share the data off it.
      */
-    public static final Set<String> SHOP_STAFF_BILLING_KEYS = Set.of(
-            PermissionKey.BILLING_CREATE.getKey(),
-            PermissionKey.BILLING_EDIT.getKey(),
-            PermissionKey.BILLING_DISCOUNT.getKey(),
-            PermissionKey.BILLING_SETTLE.getKey()
+    public static final Set<String> SHOP_STAFF_CONFIG_KEYS = Set.of(
+            PermissionKey.SETTINGS_SHOP_PROFILE.getKey(),
+            PermissionKey.SETTINGS_PAYMENT.getKey(),
+            PermissionKey.SETTINGS_GST.getKey(),
+            PermissionKey.REPORTS_EXPORT.getKey(),
+            PermissionKey.MENU_TOGGLE_AVAILABILITY.getKey(),
+            PermissionKey.MENU_EDIT_PRICE.getKey(),
+            PermissionKey.MENU_EDIT_FULL.getKey(),
+            PermissionKey.MENU_ADD_ITEM.getKey(),
+            PermissionKey.MENU_DELETE_ITEM.getKey()
     );
+
+    /**
+     * SHOP_STAFF are granted full operational freedom by role: every permission
+     * key EXCEPT the owner-only configuration families
+     * ({@link #SHOP_STAFF_CONFIG_KEYS}). No explicit grant row required.
+     * Computed from the enum so new keys default to granted unless added to the
+     * config-exclusion set above.
+     */
+    public static final Set<String> SHOP_STAFF_GRANTED_KEYS =
+            Arrays.stream(PermissionKey.values())
+                    .map(PermissionKey::getKey)
+                    .filter(key -> !SHOP_STAFF_CONFIG_KEYS.contains(key))
+                    .collect(Collectors.toUnmodifiableSet());
 
     /**
      * Apply the read-only baseline to a user. Idempotent (grantPermission upserts).
@@ -420,9 +439,9 @@ public class PermissionService {
                         .map(StaffPermission::getPermissionKey)
                         .collect(Collectors.toSet()));
         if (UserRole.SHOP_STAFF == user.getRole()) {
-            // Role-bound billing keys are de-facto granted; surface them as granted
+            // Role-bound keys are de-facto granted; surface them as granted
             // in the permission list so web-admin does not show them as revocable.
-            grantedSet.addAll(SHOP_STAFF_BILLING_KEYS);
+            grantedSet.addAll(SHOP_STAFF_GRANTED_KEYS);
         }
         var grantedAtMap = permissionRepo.findByRestaurantIdAndUserId(restaurantId, userId).stream()
                 .collect(Collectors.toMap(StaffPermission::getPermissionKey, StaffPermission::getGrantedAt, (a, b) -> a));

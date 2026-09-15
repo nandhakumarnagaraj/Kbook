@@ -58,10 +58,12 @@ internal enum class BillingBackAction {
 internal fun resolveBillingBackAction(
     currentStep: Int,
     initialStep: Int,
-    editingDraft: Boolean
+    editingDraft: Boolean,
+    quickMode: Boolean = false
 ): BillingBackAction =
     when {
         editingDraft && currentStep <= initialStep -> BillingBackAction.EXIT
+        quickMode && currentStep == 2 -> BillingBackAction.EXIT
         currentStep == 2 -> BillingBackAction.STEP_ONE
         currentStep == 3 -> BillingBackAction.STEP_TWO
         else -> BillingBackAction.EXIT
@@ -79,8 +81,10 @@ fun NewBillScreen(
     draftBillId: Long? = null,
     initialStep: Int = 1
 ) {
-    var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else initialStep) }
+    val quickMode by billingViewModel.quickMode.collectAsStateWithLifecycle()
+    var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else if (quickMode) 2 else initialStep) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
+    val effectiveFirstStep = if (quickMode) 2 else 1
 
     // Auto-unlock payment flow after 60 seconds to prevent user being trapped
     LaunchedEffect(paymentFlowLocked) {
@@ -119,12 +123,38 @@ fun NewBillScreen(
     val menuFeedbackSettings by rememberMenuFeedbackSettings(menuFeedbackPreferences)
     val playMenuItemAddFeedback = rememberMenuItemAddFeedback(menuFeedbackSettings)
     val coroutineScope = rememberCoroutineScope()
+    var showDiscardDraftDialog by remember { mutableStateOf(false) }
+    val hasItemsInCart = cartItems.isNotEmpty()
     val performBack: () -> Unit = {
-        when (resolveBillingBackAction(step, initialStep, draftBillId != null)) {
-            BillingBackAction.EXIT -> onBack()
+        when (resolveBillingBackAction(step, initialStep, draftBillId != null, quickMode)) {
+            BillingBackAction.EXIT -> {
+                if (hasItemsInCart && step == effectiveFirstStep) {
+                    showDiscardDraftDialog = true
+                } else {
+                    onBack()
+                }
+            }
             BillingBackAction.STEP_ONE -> step = 1
             BillingBackAction.STEP_TWO -> step = 2
         }
+    }
+
+    if (showDiscardDraftDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDraftDialog = false },
+            title = { Text("Discard bill?") },
+            text = { Text("This bill has items. Going back will discard them.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardDraftDialog = false
+                    billingViewModel.resetForNewBill()
+                    onBack()
+                }) { Text("Discard") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDraftDialog = false }) { Text("Keep editing") }
+            }
+        )
     }
 
     // Keep users inside the billing flow while an online payment is actively
@@ -139,12 +169,13 @@ fun NewBillScreen(
         performBack()
     }
 
-    LaunchedEffect(draftBillId, resumePendingPayment) {
+    LaunchedEffect(draftBillId, resumePendingPayment, quickMode) {
         if (draftBillId == null && !resumePendingPayment) {
             billingViewModel.resetForNewBill()
+            billingViewModel.applyQuickBillDefaultsIfNeeded()
             billingViewModel.cancelPendingOnlineDrafts()
             PaymentReturnManager.clearLatestEvent()
-            step = 1
+            step = if (quickMode) 2 else 1
         }
         if (resumePendingPayment) {
             step = 3
@@ -213,8 +244,16 @@ fun NewBillScreen(
 
     val returnToNewBillTables: () -> Unit = {
         if (navController != null) {
+            val isFreshBillCreation = draftBillId == null && billingViewModel.editingBillId == null
             val targetDraftId = draftBillId ?: billingViewModel.editingBillId ?: billingViewModel.lastBill.value?.bill?.id
-            if (targetDraftId != null) {
+            if (isFreshBillCreation) {
+                navController.navigate("active_orders") {
+                    popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            } else if (targetDraftId != null) {
                 val prevRoute = navController.previousBackStackEntry?.destination?.route
                 if (prevRoute?.startsWith("active_order_detail") == true) {
                     navController.popBackStack()
@@ -246,7 +285,7 @@ fun NewBillScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            "New Bill",
+                            if (quickMode) "Quick Bill" else "New Bill",
                             color = PrimaryGold,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -265,7 +304,7 @@ fun NewBillScreen(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
                 )
                 
-                BillStepper(currentStep = step)
+                BillStepper(currentStep = step, quickMode = quickMode)
             }
         }
     ) { paddingValues ->
@@ -314,7 +353,12 @@ fun NewBillScreen(
                                     onProceedToPayment = { step = 3 },
                                     onShowMessage = { message ->
                                         coroutineScope.launch {
-                                            KhanaToast.show(message, ToastKind.Warning)
+                                            val kind = if (message == "Table saved" || message == "Table updated") {
+                                                ToastKind.Success
+                                            } else {
+                                                ToastKind.Warning
+                                            }
+                                            KhanaToast.show(message, kind)
                                         }
                                     },
                                     total = summary.total.toDoubleOrNull() ?: 0.0,
@@ -421,7 +465,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 }
 
 @Composable
-fun BillStepper(currentStep: Int) {
+fun BillStepper(currentStep: Int, quickMode: Boolean = false) {
     val spacing = KhanaBookTheme.spacing
     val resultLabel = when (currentStep) {
         4 -> "Success"
@@ -441,21 +485,23 @@ fun BillStepper(currentStep: Int) {
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.Center
     ) {
-        StepItem(
-            icon = Icons.Default.Person,
-            label = "Customer",
-            isActive = currentStep >= 1,
-            isCompleted = currentStep > 1,
-            showEndConnector = true,
-            endConnectorCompleted = currentStep > 1,
-            modifier = Modifier.weight(1f)
-        )
+        if (!quickMode) {
+            StepItem(
+                icon = Icons.Default.Person,
+                label = "Customer",
+                isActive = currentStep >= 1,
+                isCompleted = currentStep > 1,
+                showEndConnector = true,
+                endConnectorCompleted = currentStep > 1,
+                modifier = Modifier.weight(1f)
+            )
+        }
         StepItem(
             icon = Icons.AutoMirrored.Filled.List,
             label = "Menu",
             isActive = currentStep >= 2,
             isCompleted = currentStep > 2,
-            showStartConnector = true,
+            showStartConnector = !quickMode,
             startConnectorCompleted = currentStep > 1,
             showEndConnector = true,
             endConnectorCompleted = currentStep > 2,

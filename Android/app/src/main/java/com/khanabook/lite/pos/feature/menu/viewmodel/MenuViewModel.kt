@@ -21,8 +21,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.*
 import javax.inject.Inject
 
@@ -134,8 +136,15 @@ class MenuViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg))
+                setSuccess("Category added")
             } catch (e: Exception) {
-                android.util.Log.e("MenuViewModel", "Error adding category", e)
+                Log.e("MenuViewModel", "Error adding category", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to add category. Please try again."
+                    )
+                )
             }
         }
     }
@@ -146,7 +155,18 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            categoryRepository.updateCategory(category)
+            try {
+                categoryRepository.updateCategory(category)
+                setSuccess("Category updated")
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error updating category", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update category. Please try again."
+                    )
+                )
+            }
         }
     }
 
@@ -156,7 +176,17 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            categoryRepository.toggleActive(id, enabled)
+            try {
+                categoryRepository.toggleActive(id, enabled)
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error toggling category", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update category. Please try again."
+                    )
+                )
+            }
         }
     }
 
@@ -166,7 +196,18 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            categoryRepository.deleteCategory(category)
+            try {
+                categoryRepository.deleteCategory(category)
+                setSuccess("Category deleted")
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error deleting category", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to delete category. Please try again."
+                    )
+                )
+            }
         }
     }
 
@@ -184,18 +225,31 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            val id = menuRepository.insertItem(
-                MenuItemEntity(
-                    categoryId = categoryId,
-                    name = name,
-                    basePrice = price.toString(),
-                    foodType = foodType,
-                    description = description,
-                    createdAt = System.currentTimeMillis()
+            try {
+                val id = menuRepository.insertItem(
+                    MenuItemEntity(
+                        categoryId = categoryId,
+                        name = name,
+                        basePrice = price.toString(),
+                        foodType = foodType,
+                        description = description,
+                        createdAt = System.currentTimeMillis()
+                    )
                 )
-            )
-            if (photoUri != null && context != null) {
-                uploadItemPhoto(context, id, photoUri)
+                _ocrImportUiState.update {
+                    it.copy(successMessage = "Item added successfully", error = null)
+                }
+                if (photoUri != null && context != null) {
+                    uploadNewItemPhotoWhenReady(context, id, photoUri)
+                }
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to add menu item", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to add item. Please try again."
+                    )
+                )
             }
         }
     }
@@ -214,26 +268,39 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            val itemId = menuRepository.insertItem(
-                MenuItemEntity(
-                    categoryId = categoryId,
-                    name = name,
-                    basePrice = basePrice.toString(),
-                    foodType = foodType,
-                    createdAt = System.currentTimeMillis()
-                )
-            )
-            variants.forEach { (vName, vPrice) ->
-                menuRepository.insertVariant(
-                    ItemVariantEntity(
-                        menuItemId = itemId,
-                        variantName = vName,
-                        price = vPrice.toString()
+            try {
+                val itemId = menuRepository.insertItem(
+                    MenuItemEntity(
+                        categoryId = categoryId,
+                        name = name,
+                        basePrice = basePrice.toString(),
+                        foodType = foodType,
+                        createdAt = System.currentTimeMillis()
                     )
                 )
-            }
-            if (photoUri != null && context != null) {
-                uploadItemPhoto(context, itemId, photoUri)
+                variants.forEach { (vName, vPrice) ->
+                    menuRepository.insertVariant(
+                        ItemVariantEntity(
+                            menuItemId = itemId,
+                            variantName = vName,
+                            price = vPrice.toString()
+                        )
+                    )
+                }
+                _ocrImportUiState.update {
+                    it.copy(successMessage = "Item added successfully", error = null)
+                }
+                if (photoUri != null && context != null) {
+                    uploadNewItemPhotoWhenReady(context, itemId, photoUri)
+                }
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to add menu item with variants", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to add item. Please try again."
+                    )
+                )
             }
         }
     }
@@ -244,7 +311,45 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            menuRepository.updateItem(item)
+            try {
+                menuRepository.updateItem(item)
+                setSuccess("Item updated")
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to update menu item", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update item. Please try again."
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * A new menu item has only a local Room ID. The image endpoint accepts the server
+     * menu-item ID, so uploading immediately can target an unrelated/non-existent row.
+     * Wait briefly for the already-enqueued master sync to assign serverId, then use the
+     * normal upload path. The item itself is saved immediately and independently.
+     */
+    private fun uploadNewItemPhotoWhenReady(context: Context, menuItemId: Long, uri: Uri) {
+        viewModelScope.launch {
+            val serverIdReady = withTimeoutOrNull(20_000L) {
+                while (menuRepository.getItemById(menuItemId)?.serverId == null) {
+                    delay(400L)
+                }
+                true
+            } ?: false
+
+            if (serverIdReady) {
+                uploadItemPhoto(context, menuItemId, uri)
+            } else {
+                Log.w("MenuViewModel", "Photo upload deferred: item $menuItemId has no serverId after sync wait")
+                com.khanabook.lite.pos.core.designsystem.KhanaToast.show(
+                    "Item added. Photo could not upload yet — tap Add Photo to retry.",
+                    com.khanabook.lite.pos.core.designsystem.ToastKind.Warning
+                )
+            }
         }
     }
 
@@ -262,7 +367,8 @@ class MenuViewModel @Inject constructor(
             _isPhotoUploading.value = true
             try {
                 val currentItem = menuRepository.getItemById(menuItemId)
-                val targetId = currentItem?.serverId ?: menuItemId
+                val targetId = currentItem?.serverId
+                    ?: throw IllegalStateException("Item is still syncing. Try again in a moment.")
                 val part = withContext(Dispatchers.IO) {
                     com.khanabook.lite.pos.core.util.MultipartUtils.imageUriToPart(context.applicationContext, uri)
                 }
@@ -271,8 +377,10 @@ class MenuViewModel @Inject constructor(
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show("Dish photo updated", com.khanabook.lite.pos.core.designsystem.ToastKind.Success)
                 onUploaded(response.imageUrl)
             } catch (e: IllegalArgumentException) {
+                Log.e("MenuViewModel", "Invalid menu-item photo for localId=$menuItemId", e)
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(e.message ?: "Invalid photo", com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } catch (e: Exception) {
+                Log.e("MenuViewModel", "Menu-item photo upload failed for localId=$menuItemId", e)
                 val msg = com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again.")
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } finally {
@@ -293,7 +401,8 @@ class MenuViewModel @Inject constructor(
             _isPhotoUploading.value = true
             try {
                 val currentItem = menuRepository.getItemById(menuItemId)
-                val targetId = currentItem?.serverId ?: menuItemId
+                val targetId = currentItem?.serverId
+                    ?: throw IllegalStateException("Item is still syncing. Try again in a moment.")
                 khanaBookApi.deleteMenuItemImage(targetId)
                 val nextVersion = (currentItem?.imageVersion ?: 0) + 1
                 menuRepository.updateItemPhotoMetadata(menuItemId, null, nextVersion)
@@ -314,7 +423,17 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            menuRepository.toggleItemAvailability(id, enabled)
+            try {
+                menuRepository.toggleItemAvailability(id, enabled)
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to toggle item availability", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update availability. Please try again."
+                    )
+                )
+            }
         }
     }
 
@@ -324,7 +443,18 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            menuRepository.deleteItem(item)
+            try {
+                menuRepository.deleteItem(item)
+                setSuccess("Item deleted")
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to delete menu item", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to delete item. Please try again."
+                    )
+                )
+            }
         }
     }
 
@@ -334,8 +464,23 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val items = menuRepository.getItemsByCategoryOnce(categoryId)
-            items.forEach { menuRepository.deleteItem(it) }
+            try {
+                val items = menuRepository.getItemsByCategoryOnce(categoryId)
+                items.forEach { menuRepository.deleteItem(it) }
+                withContext(Dispatchers.Main) {
+                    setSuccess("Cleared ${items.size} items")
+                }
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Failed to clear category items", e)
+                withContext(Dispatchers.Main) {
+                    setError(
+                        com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                            e,
+                            "Failed to clear items. Please try again."
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -420,6 +565,10 @@ class MenuViewModel @Inject constructor(
 
     fun setError(error: String?) {
         _ocrImportUiState.update { it.copy(error = error, isProcessing = false) }
+    }
+
+    private fun setSuccess(message: String) {
+        _ocrImportUiState.update { it.copy(successMessage = message, error = null) }
     }
 
     fun updateDraft(index: Int, updated: DraftMenuItem) {

@@ -44,8 +44,10 @@ class UserRepository(
     private fun normalizeAllowedRole(role: String?): String {
         return when (role?.uppercase()) {
             "OWNER", "KBOOK_ADMIN", "SHOP_STAFF" -> role.uppercase()
-            "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS" -> "SHOP_STAFF"
-            else -> "OWNER"
+            // Fail closed: only the three canonical roles exist. Anything else —
+            // a legacy name, an unknown value, or a missing role — gets the
+            // least privilege, never owner.
+            else -> "SHOP_STAFF"
         }
     }
 

@@ -217,10 +217,6 @@ public class SyncMapper {
                 entity.setUpiMobile(dto.getUpiMobile());
                 entity.setCashEnabled(dto.getCashEnabled());
                 entity.setPosEnabled(dto.getPosEnabled());
-                entity.setPrinterEnabled(dto.getPrinterEnabled());
-                entity.setPrinterName(dto.getPrinterName());
-                entity.setPrinterMac(dto.getPrinterMac());
-                entity.setPaperSize(dto.getPaperSize());
                 entity.setAutoPrintOnSuccess(dto.getAutoPrintOnSuccess());
                 entity.setIncludeLogoInPrint(dto.getIncludeLogoInPrint());
                 entity.setDailyOrderCounter(dto.getDailyOrderCounter());

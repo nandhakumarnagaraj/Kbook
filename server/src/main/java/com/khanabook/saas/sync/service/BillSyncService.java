@@ -291,11 +291,22 @@ public class BillSyncService {
     }
 
     /**
-     * Prevents LWW (Last-Write-Wins) from reverting finalized bill state.
-     * Once a bill reaches a terminal state (paid, completed, cancelled),
-     * a stale device push with a higher timestamp must not undo the transition.
+     * Prevents LWW (Last-Write-Wins) from reverting finalized bill state, while still
+     * allowing a deliberate edit through.
+     *
+     * <p>Bills sync last-write-wins by timestamp, so a stale offline device holding an
+     * old copy can push with a newer clock and undo a transition the server already
+     * recorded — including a payment the gateway confirmed. Timestamps alone cannot tell
+     * that apart from a cashier genuinely cancelling a completed bill.
+     *
+     * <p>{@code statusVersion} carries the intent: the device increments it only on an
+     * explicit user action. A strictly greater incoming version is a deliberate edit and
+     * is applied; anything else is treated as stale and the finalized state is restored.
      */
     public void protectBillState(Bill incomingBill, Bill existingBill) {
+        if (isDeliberateStatusEdit(incomingBill, existingBill)) {
+            return;
+        }
         // paymentStatus: "paid" is terminal. Gateway webhook sets it.
         // A stale device push must not revert paid → pending.
         if ("paid".equalsIgnoreCase(existingBill.getPaymentStatus())
@@ -316,6 +327,21 @@ public class BillSyncService {
                 && !"cancelled".equalsIgnoreCase(incomingBill.getOrderStatus())) {
             incomingBill.setOrderStatus(existingBill.getOrderStatus());
         }
+        // Never let a stale push roll the version backwards.
+        incomingBill.setStatusVersion(versionOf(existingBill));
+    }
+
+    /**
+     * True when the incoming push carries a strictly newer {@code statusVersion} than the
+     * stored bill, i.e. the device deliberately changed status or payment mode rather than
+     * replaying an old copy.
+     */
+    private boolean isDeliberateStatusEdit(Bill incomingBill, Bill existingBill) {
+        return versionOf(incomingBill) > versionOf(existingBill);
+    }
+
+    private int versionOf(Bill bill) {
+        return bill.getStatusVersion() == null ? 0 : bill.getStatusVersion();
     }
 
     /**

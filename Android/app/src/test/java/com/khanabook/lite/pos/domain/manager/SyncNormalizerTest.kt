@@ -54,16 +54,15 @@ class SyncNormalizerTest {
         assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("MANAGER"))
         assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("OPERATIONS"))
     }
-
     @Test
-    fun `kitchen collapses to owner matching server V12`() {
-        assertEquals("OWNER", SyncNormalizer.normalizeUserRole("KITCHEN"))
+    fun `kitchen collapses to SHOP_STAFF`() {
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("KITCHEN"))
     }
 
     @Test
-    fun `unknown or null role collapses to OWNER`() {
-        assertEquals("OWNER", SyncNormalizer.normalizeUserRole(null))
-        assertEquals("OWNER", SyncNormalizer.normalizeUserRole(""))
-        assertEquals("OWNER", SyncNormalizer.normalizeUserRole("staff"))
+    fun `unknown or null role fails closed to SHOP_STAFF`() {
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole(null))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole(""))
+        assertEquals("SHOP_STAFF", SyncNormalizer.normalizeUserRole("staff"))
     }
 }

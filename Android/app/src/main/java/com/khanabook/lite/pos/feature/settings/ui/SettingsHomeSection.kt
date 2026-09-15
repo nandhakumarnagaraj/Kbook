@@ -59,7 +59,6 @@ fun SettingsHomeSection(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val sectionSpacing = layout.sectionSpacing
-    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
 
     // Single-column list for settings items (v1 design decision)
     val settingsColumns = 1

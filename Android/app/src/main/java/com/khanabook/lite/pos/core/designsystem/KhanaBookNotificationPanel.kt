@@ -219,7 +219,8 @@ fun NotificationListPanel(
     onNotificationClick: (NotificationEntity) -> Unit,
     onMarkAllRead: () -> Unit,
     onRefresh: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isRefreshing: Boolean = false
 ) {
     Column(
         modifier = modifier
@@ -284,14 +285,24 @@ fun NotificationListPanel(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                    TextButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                        Text("Refresh")
+                    TextButton(onClick = onRefresh, enabled = !isRefreshing) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = PrimaryGold
+                            )
+                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
+                            Text("Refreshing…")
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
+                            Text("Refresh")
+                        }
                     }
                 }
             }
@@ -309,15 +320,26 @@ fun NotificationListPanel(
                 item {
                     TextButton(
                         onClick = onRefresh,
+                        enabled = !isRefreshing,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                        Text("Refresh")
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = PrimaryGold
+                            )
+                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
+                            Text("Refreshing…")
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
+                            Text("Refresh")
+                        }
                     }
                 }
             }

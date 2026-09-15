@@ -334,6 +334,7 @@ class BillRepository(
         billDao.updateBill(
             current.copy(
                 orderStatus = status,
+                statusVersion = current.statusVersion + 1,
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )
@@ -375,6 +376,7 @@ class BillRepository(
                 paymentMode = mode,
                 partAmount1 = partAmount1,
                 partAmount2 = partAmount2,
+                statusVersion = current.statusVersion + 1,
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )

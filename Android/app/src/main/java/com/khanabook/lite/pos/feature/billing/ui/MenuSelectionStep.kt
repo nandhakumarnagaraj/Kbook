@@ -107,6 +107,7 @@ fun MenuSelectionStep(
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
     val scope = rememberCoroutineScope()
+    val quickMode by billingViewModel.quickMode.collectAsStateWithLifecycle()
     val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
     val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
     val paymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
@@ -128,6 +129,8 @@ fun MenuSelectionStep(
     val derivedItemCount by remember {
         derivedStateOf { cartItems.sumOf { it.quantity } }
     }
+
+    var isSavingTable by remember { mutableStateOf(false) }
 
     val proceedValidationMessage = if (hasNoMenuItems) {
         "Add menu items before creating a bill"
@@ -159,6 +162,29 @@ fun MenuSelectionStep(
                     )
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+
+            if (quickMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrderTypeButton(
+                        text = "Dine-In",
+                        isSelected = currentOrderType == "dine_in",
+                        modifier = Modifier.weight(1f),
+                        onClick = { billingViewModel.setOrderType("dine_in") }
+                    )
+                    OrderTypeButton(
+                        text = "Takeaway",
+                        isSelected = currentOrderType == "takeaway",
+                        modifier = Modifier.weight(1f),
+                        onClick = { billingViewModel.setOrderType("takeaway") }
+                    )
                 }
             }
 
@@ -474,9 +500,14 @@ fun MenuSelectionStep(
                                 if (billingViewModel.editingBillId != null) {
                                     Button(
                                         onClick = {
+                                            if (isSavingTable) return@Button
+                                            isSavingTable = true
                                             scope.launch {
-                                                val billId = billingViewModel.editingBillId ?: return@launch
-                                                if (billingViewModel.appendItemsToDraft(billId)) {
+                                                val billId = billingViewModel.editingBillId ?: run { isSavingTable = false; return@launch }
+                                                val ok = billingViewModel.appendItemsToDraft(billId)
+                                                isSavingTable = false
+                                                if (ok) {
+                                                    onShowMessage("Table updated")
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {
@@ -488,7 +519,7 @@ fun MenuSelectionStep(
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.md,
                                         contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
-                                        enabled = derivedItemCount > 0
+                                        enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text(
                                             "Update Table",
@@ -499,8 +530,13 @@ fun MenuSelectionStep(
                                 } else {
                                     Button(
                                         onClick = {
+                                            if (isSavingTable) return@Button
+                                            isSavingTable = true
                                             scope.launch {
-                                                if (billingViewModel.saveDraftOrder(billingViewModel.customerName.value)) {
+                                                val ok = billingViewModel.saveDraftOrder(billingViewModel.customerName.value)
+                                                isSavingTable = false
+                                                if (ok) {
+                                                    onShowMessage("Table saved")
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {
@@ -512,7 +548,7 @@ fun MenuSelectionStep(
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.md,
                                         contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
-                                        enabled = derivedItemCount > 0
+                                        enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text(
                                             "Save Table",
@@ -634,9 +670,14 @@ fun MenuSelectionStep(
                                 if (billingViewModel.editingBillId != null) {
                                     Button(
                                         onClick = {
+                                            if (isSavingTable) return@Button
+                                            isSavingTable = true
                                             scope.launch {
-                                                val billId = billingViewModel.editingBillId ?: return@launch
-                                                if (billingViewModel.appendItemsToDraft(billId)) {
+                                                val billId = billingViewModel.editingBillId ?: run { isSavingTable = false; return@launch }
+                                                val ok = billingViewModel.appendItemsToDraft(billId)
+                                                isSavingTable = false
+                                                if (ok) {
+                                                    onShowMessage("Table updated")
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {
@@ -648,7 +689,7 @@ fun MenuSelectionStep(
                                         modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.lg,
-                                        enabled = derivedItemCount > 0
+                                        enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text("Update Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
                                     }
@@ -656,8 +697,13 @@ fun MenuSelectionStep(
                                 } else {
                                     Button(
                                         onClick = {
+                                            if (isSavingTable) return@Button
+                                            isSavingTable = true
                                             scope.launch {
-                                                if (billingViewModel.saveDraftOrder(billingViewModel.customerName.value)) {
+                                                val ok = billingViewModel.saveDraftOrder(billingViewModel.customerName.value)
+                                                isSavingTable = false
+                                                if (ok) {
+                                                    onShowMessage("Table saved")
                                                     if (navController != null) {
                                                         onReturnToTableList()
                                                     } else {
@@ -669,7 +715,7 @@ fun MenuSelectionStep(
                                         modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
                                         colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
                                         shape = KhanaRadii.lg,
-                                        enabled = derivedItemCount > 0
+                                        enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text("Save Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
                                     }

@@ -23,8 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Distributed state problems B2/B4: Permission revocation stale cache +
  * offline auth decider wiring.
  *
- * Real use case: Owner revokes SHOP_STAFF's "billing.refund" permission.
- * SHOP_STAFF's device is offline. SHOP_STAFF keeps issuing refunds.
+ * Real use case: Owner revokes SHOP_STAFF's "settings.gst" permission.
+ * SHOP_STAFF's device is offline. SHOP_STAFF keeps editing config.
  * When device reconnects, the operation should be revalidated.
  */
 @AutoConfigureMockMvc
@@ -94,7 +94,7 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
 
     @Test
     void permissionGrantCreatesRevision() {
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
 
         var revision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());
         assertThat(revision).isPresent();
@@ -103,11 +103,11 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
 
     @Test
     void permissionRevokeBumpsRevision() {
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
         long rev1 = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId())
                 .map(StaffPermissionRevision::getRevision).orElse(0L);
 
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "billing.refund");
+        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
         long rev2 = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId())
                 .map(StaffPermissionRevision::getRevision).orElse(0L);
 
@@ -116,10 +116,10 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
 
     @Test
     void grantRevokeGrantRevoke_isMonotonic() {
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "billing.refund");
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "billing.refund");
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
+        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
+        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
 
         var revision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());
         assertThat(revision).isPresent();
@@ -132,8 +132,8 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
         RestaurantTerminal terminal = createTerminal("A");
         String token = terminalToken(terminal);
 
-        // Grant the refund authority (create/settle are now role-bound for SHOP_STAFF)
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
+        // Grant a config (owner-only) permission (create/settle are now role-bound for SHOP_STAFF)
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
 
         // Bill push succeeds while permission is active
         mockMvc.perform(post("/sync/bills/push")
@@ -144,28 +144,28 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         // Revoke permission
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "billing.refund");
+        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
 
         // Verify permission is no longer granted
-        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "billing.refund")).isFalse();
+        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "settings.gst")).isFalse();
     }
 
     @Test
     void offlineAuthDecider_revalidateFlow() {
-        permissionService.grantPermission(RESTAURANT, staff.getId(), "billing.refund", owner.getId());
+        permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
 
         var revision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());
         assertThat(revision).isPresent();
         long createdRevision = revision.get().getRevision();
 
         // Permission is currently granted
-        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "billing.refund")).isTrue();
+        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "settings.gst")).isTrue();
 
         // Revoke permission
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "billing.refund");
+        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
 
         // Verify revocation
-        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "billing.refund")).isFalse();
+        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "settings.gst")).isFalse();
 
         // Check that the revision was bumped
         var newRevision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());

@@ -15,11 +15,14 @@ import java.math.RoundingMode
  */
 object SyncNormalizer {
 
-    /** Roles the server accepts; legacy staff roles collapse to SHOP_STAFF. Anything unknown/null collapses to OWNER. */
+    /**
+     * The only three roles that exist: OWNER, SHOP_STAFF, KBOOK_ADMIN.
+     * Anything else — a legacy staff name, an unknown value, or null — collapses to
+     * SHOP_STAFF (fail closed: never grant owner authority to an unrecognised role).
+     */
     fun normalizeUserRole(role: String?): String = when (role?.uppercase()) {
         "OWNER", "KBOOK_ADMIN", "SHOP_STAFF" -> role.uppercase()
-        "SHOP_ADMIN", "WAITER", "CASHIER", "MANAGER", "OPERATIONS" -> "SHOP_STAFF"
-        else -> "OWNER"
+        else -> "SHOP_STAFF"
     }
 
     /**

@@ -51,6 +51,8 @@ fun ReportsScreen(
     val reportError by viewModel.error.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
+    val canViewFullReports = remember { viewModel.canViewFullReports() }
+    val canExportReports = remember { viewModel.canExportReports() }
 
     LaunchedEffect(reportError) {
         reportError?.let { message ->
@@ -128,7 +130,16 @@ fun ReportsScreen(
                         .padding(horizontal = spacing.medium),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    listOf("Daily", "Weekly", "Monthly", "Custom").forEach { filter ->
+                    // Today's summary is part of every staff member's baseline
+                    // (reports.day_summary). Anything wider is revenue reporting and
+                    // needs reports.full — matching what AnalyticsController enforces
+                    // server-side for the same data.
+                    val availableFilters = if (canViewFullReports) {
+                        listOf("Daily", "Weekly", "Monthly", "Custom")
+                    } else {
+                        listOf("Daily")
+                    }
+                    availableFilters.forEach { filter ->
                         FilterChip(
                             label = filter,
                             isSelected = timeFilter == filter,
@@ -208,6 +219,7 @@ fun ReportsScreen(
                 }
             }
 
+            if (canExportReports) {
             ReportDownloadBottomBar(
                 onDownloadClick = {
                     scope.launch {
@@ -241,6 +253,7 @@ fun ReportsScreen(
                 },
                 isExporting = isExporting
             )
+            }
         }
 
         // KhanaBookLoadingOverlay retained only for bill detail fetch (dialog)

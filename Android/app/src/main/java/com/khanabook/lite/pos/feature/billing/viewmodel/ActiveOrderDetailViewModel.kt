@@ -141,11 +141,6 @@ class ActiveOrderDetailViewModel @Inject constructor(
                 _message.emit(UiMessage("Order not found", ToastKind.Error))
                 return@launch
             }
-            if (current.bill.orderStatus == OrderStatus.COMPLETED.dbValue || 
-                current.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
-                _message.emit(UiMessage("Cannot cancel a completed or paid order", ToastKind.Warning))
-                return@launch
-            }
             if (current.bill.orderStatus == OrderStatus.CANCELLED.dbValue) {
                 _message.emit(UiMessage("Order is already cancelled", ToastKind.Warning))
                 return@launch

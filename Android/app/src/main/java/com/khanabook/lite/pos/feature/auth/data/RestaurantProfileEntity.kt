@@ -111,6 +111,10 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "order_payment_flow_mode", defaultValue = "pay_before_food")
     val orderPaymentFlowMode: String = "pay_before_food",
 
+    @SerializedName("collectCustomerNumber")
+    @ColumnInfo(name = "collect_customer_number", defaultValue = "1")
+    val collectCustomerNumber: Boolean = true,
+
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,

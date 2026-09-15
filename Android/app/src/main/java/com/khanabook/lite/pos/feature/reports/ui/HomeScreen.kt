@@ -55,8 +55,6 @@ fun HomeScreen(
     authViewModel: com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel = hiltViewModel()
 ) {
     val summaryScope by viewModel.summaryScope.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
     val stats by viewModel.todayStats.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
     val unsyncedCount by viewModel.unsyncedCount.collectAsStateWithLifecycle()
@@ -66,6 +64,7 @@ fun HomeScreen(
     val clockDriftWarning by viewModel.clockDriftWarning.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val orderPaymentFlowMode by viewModel.orderPaymentFlowMode.collectAsStateWithLifecycle()
+    val quickModeEnabled by viewModel.quickModeEnabled.collectAsStateWithLifecycle()
     val showActiveOrders = orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
@@ -509,14 +508,16 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = onReprintKds
                             )
-                            HomeActionCard(
-                                text = "Call Customer",
-                                subtitle = "Dial from saved customers",
-                                icon = Icons.Default.Call,
-                                backgroundColor = CardBG,
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = onCallCustomer
-                            )
+                            if (!quickModeEnabled) {
+                                HomeActionCard(
+                                    text = "Call Customer",
+                                    subtitle = "Dial from saved customers",
+                                    icon = Icons.Default.Call,
+                                    backgroundColor = CardBG,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = onCallCustomer
+                                )
+                            }
                         }
                     } // end AnimatedVisibility(actionsVisible)
                 }

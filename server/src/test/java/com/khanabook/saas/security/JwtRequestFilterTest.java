@@ -146,4 +146,112 @@ class JwtRequestFilterTest {
         assertThat(TenantContext.getCurrentTenant()).isNull();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
+
+    // ── Device binding ────────────────────────────────────────────────────────
+
+    @Test
+    void deviceMismatch_rejectsToken() throws Exception {
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        request.addHeader("X-Device-Id", "tablet-B");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        stubValidToken(token, "jti-4", "staff@example.com");
+        when(jwtUtility.extractDeviceId(token)).thenReturn("tablet-A");
+
+        filter.doFilterInternal(request, response, chain);
+
+        // A token lifted off tablet-A must not work from tablet-B.
+        assertThat(response.getStatus()).isEqualTo(401);
+        verifyNoInteractions(chain);
+    }
+
+    @Test
+    void matchingDevice_allowsToken() throws Exception {
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        request.addHeader("X-Device-Id", "tablet-A");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        stubValidToken(token, "jti-5", "staff@example.com");
+        when(jwtUtility.extractDeviceId(token)).thenReturn("tablet-A");
+
+        filter.doFilterInternal(request, response, chain);
+
+        // Assert the chain actually ran — status 200 alone is the mock default and would
+        // also hold if the filter had silently returned without authenticating.
+        verify(chain).doFilter(request, response);
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void noDeviceHeader_allowsToken() throws Exception {
+        // Browser clients (web admin) send no X-Device-Id, so binding must not apply
+        // to them or the console would be locked out.
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        stubValidToken(token, "jti-6", "owner@example.com");
+        when(jwtUtility.extractDeviceId(token)).thenReturn("tablet-A");
+
+        filter.doFilterInternal(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void tokenIssuedBeforeRevocation_isRejected() throws Exception {
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        long revokedAt = 2_000_000L;
+        when(jwtUtility.isTokenExpired(token)).thenReturn(false);
+        when(jwtUtility.extractJti(token)).thenReturn("jti-7");
+        when(tokenRevocationCache.isRevoked("jti-7")).thenReturn(false);
+        when(tokenBlocklistRepository.existsByJti("jti-7")).thenReturn(false);
+        when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
+        when(jwtUtility.extractUsername(token)).thenReturn("staff@example.com");
+        when(jwtUtility.extractIssuedAt(token)).thenReturn(new java.util.Date(revokedAt - 1000L));
+
+        User user = new User();
+        user.setId(9L);
+        user.setRole(UserRole.SHOP_STAFF);
+        user.setIsActive(true);
+        user.setTokenInvalidatedAt(revokedAt);
+        when(userRepository.findByAnyIdentifier("staff@example.com")).thenReturn(java.util.Optional.of(user));
+
+        filter.doFilterInternal(request, response, chain);
+
+        // This is what "sign out all devices" relies on.
+        assertThat(response.getStatus()).isEqualTo(401);
+        verifyNoInteractions(chain);
+    }
+
+    /** Stubs a structurally valid, non-revoked token for an active SHOP_STAFF user. */
+    private void stubValidToken(String token, String jti, String username) {
+        when(jwtUtility.isTokenExpired(token)).thenReturn(false);
+        when(jwtUtility.extractJti(token)).thenReturn(jti);
+        when(tokenRevocationCache.isRevoked(jti)).thenReturn(false);
+        when(tokenBlocklistRepository.existsByJti(jti)).thenReturn(false);
+        when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
+        when(jwtUtility.extractUsername(token)).thenReturn(username);
+
+        User user = new User();
+        user.setId(11L);
+        user.setLoginId(username);
+        user.setRole(UserRole.SHOP_STAFF);
+        user.setIsActive(true);
+        when(userRepository.findByAnyIdentifier(username)).thenReturn(java.util.Optional.of(user));
+    }
 }

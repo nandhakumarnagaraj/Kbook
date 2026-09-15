@@ -124,6 +124,25 @@ public class BusinessAdminController {
         return ResponseEntity.ok().build();
     }
 
+    /** Signs one staff member out of every device, without disabling their account. */
+    @PostMapping("/staff/{userId}/revoke-sessions")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<java.util.Map<String, Integer>> revokeStaffSessions(@PathVariable Long userId) {
+        int revoked = businessWriteService.revokeStaffSessions(requireTenant(), userId);
+        return ResponseEntity.ok(java.util.Map.of("revoked", revoked));
+    }
+
+    /**
+     * Signs everyone in the restaurant out of every device — including the caller,
+     * since the usual trigger is a lost or stolen terminal.
+     */
+    @PostMapping("/sessions/revoke-all")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<java.util.Map<String, Integer>> revokeAllSessions() {
+        int revoked = businessWriteService.revokeAllSessions(requireTenant());
+        return ResponseEntity.ok(java.util.Map.of("revoked", revoked));
+    }
+
     // ─── Menu Write Endpoints ────────────────────────────────────────────────────
 
     @PostMapping("/menu")

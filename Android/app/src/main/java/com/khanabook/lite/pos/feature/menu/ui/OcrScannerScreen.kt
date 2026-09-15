@@ -53,6 +53,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +69,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.feature.menu.ui.CameraPreview
 import com.khanabook.lite.pos.feature.menu.ui.PermissionDeniedContent
 import com.khanabook.lite.pos.feature.menu.ui.ScanControls
@@ -90,6 +92,7 @@ fun OcrScannerScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     // Clear any stale drafts from a previous scan so they don't immediately
     // trigger the back-navigation LaunchedEffect below before a new scan runs.
@@ -274,6 +277,12 @@ fun OcrScannerScreen(
                                         navController?.popBackStack() ?: onBack()
                                     }
                                     .addOnFailureListener {
+                                        scope.launch {
+                                            com.khanabook.lite.pos.core.designsystem.KhanaToast.show(
+                                                "Could not read barcode. Please try again.",
+                                                com.khanabook.lite.pos.core.designsystem.ToastKind.Error
+                                            )
+                                        }
                                         navController?.popBackStack() ?: onBack()
                                     }
                             } else {

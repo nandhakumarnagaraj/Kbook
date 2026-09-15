@@ -619,7 +619,7 @@ fun PaymentStep(
                             }
                         ),
                         shape = KhanaRadii.lg,
-                        enabled = isAmountValid && paymentAttemptReady
+                        enabled = isAmountValid && paymentAttemptReady && !isSubmitting
                     ) {
                         Text(
                             when {
@@ -635,19 +635,22 @@ fun PaymentStep(
                     }
                     TextButton(
                         onClick = {
+                            if (isSubmitting) return@TextButton
+                            isSubmitting = true
                             scope.launch {
                                 if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
+                                    isSubmitting = false
                                     onBackToMenu()
                                     return@launch
                                 }
                                 viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                                 when {
                                     resumedPendingBillId != null -> {
-                                        val id = resumedPendingBillId ?: return@launch
+                                        val id = resumedPendingBillId ?: run { isSubmitting = false; return@launch }
                                         viewModel.finalizeOnlineBill(id, PaymentStatus.FAILED, "Customer left")
                                     }
                                     viewModel.editingBillId != null -> {
-                                        val id = viewModel.editingBillId ?: return@launch
+                                        val id = viewModel.editingBillId ?: run { isSubmitting = false; return@launch }
                                         viewModel.settleDraftOrder(id, selectedMode, PaymentStatus.FAILED)
                                     }
                                     else ->
@@ -660,7 +663,7 @@ fun PaymentStep(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightCompact),
-                        enabled = paymentAttemptReady
+                        enabled = paymentAttemptReady && !isSubmitting
                     ) {
                         Text(
                             if (paymentRecovery !is PaymentRecoveryAssessment.Empty) {
@@ -1054,8 +1057,10 @@ fun PaymentStep(
             }
 
 
-            LaunchedEffect(resumePendingPayment) {
-                if (!resumePendingPayment) return@LaunchedEffect
+            var showResumeRetryDialog by remember { mutableStateOf(false) }
+            var resumeAttempted by remember { mutableStateOf(false) }
+
+            suspend fun attemptResumePendingPayment(): Boolean {
                 val pendingBillId = viewModel.getLatestPendingOnlineBillId()
                 if (pendingBillId == null) {
                     val txnNote = latestPaymentEvent?.txnId
@@ -1068,15 +1073,45 @@ fun PaymentStep(
                     viewModel.reportError(
                         "Payment return received, but no matching pending bill was found.$txnNote$statusNote Check the payment app or contact support before retrying."
                     )
-                    onBackToMenu()
-                    return@LaunchedEffect
+                    return false
                 }
                 if (!viewModel.restorePendingOnlineBill(pendingBillId)) {
                     viewModel.reportError("Unable to restore pending online payment.")
-                    onBackToMenu()
-                    return@LaunchedEffect
+                    return false
                 }
                 resumedPendingBillId = pendingBillId
+                return true
+            }
+
+            LaunchedEffect(resumePendingPayment) {
+                if (!resumePendingPayment) return@LaunchedEffect
+                if (resumeAttempted) return@LaunchedEffect
+                resumeAttempted = true
+                if (!attemptResumePendingPayment()) {
+                    showResumeRetryDialog = true
+                }
+            }
+
+            if (showResumeRetryDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResumeRetryDialog = false; onBackToMenu() },
+                    title = { Text("Payment resume failed") },
+                    text = { Text("We could not restore your pending online payment. You can retry now, or go back and try from the orders list.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showResumeRetryDialog = false
+                            resumeAttempted = false
+                            scope.launch {
+                                if (attemptResumePendingPayment()) {
+                                    KhanaToast.show("Payment restored. Complete the transaction to continue.", ToastKind.Info)
+                                }
+                            }
+                        }) { Text("Retry") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showResumeRetryDialog = false; onBackToMenu() }) { Text("Back") }
+                    }
+                )
             }
         }
     }

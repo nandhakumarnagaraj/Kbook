@@ -128,6 +128,10 @@ fun ShopConfigView(
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
+    var collectCustomerNumber by remember(profile?.collectCustomerNumber) {
+        mutableStateOf(profile?.collectCustomerNumber ?: true)
+    }
+
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
         name != (profile?.shopName ?: "") ||
             address != (profile?.shopAddress ?: "") ||
@@ -456,6 +460,15 @@ fun ShopConfigView(
                         viewModel.updateOrderPaymentFlowMode(mode)
                         pendingPaymentFlowMode = null
                     }
+                }
+            )
+            Spacer(modifier = Modifier.height(spacing.medium))
+            CustomerNumberCollectorSelector(
+                checked = collectCustomerNumber,
+                enabled = !readOnly,
+                onCheckedChange = { enabled ->
+                    collectCustomerNumber = enabled
+                    viewModel.updateCollectCustomerNumber(enabled)
                 }
             )
             Spacer(modifier = Modifier.height(spacing.large))

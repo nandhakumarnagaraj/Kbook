@@ -30,14 +30,34 @@ class NotificationViewModel @Inject constructor(
             initialValue = 0
         )
 
+    /** True while a server refresh is in flight, so the UI can show progress. */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    /** One-shot error message emitted when a refresh fails; null clears it. */
+    private val _refreshError = MutableStateFlow<String?>(null)
+    val refreshError: StateFlow<String?> = _refreshError.asStateFlow()
+
     init {
         refreshFromServer()
     }
 
     fun refreshFromServer() {
+        if (_isRefreshing.value) return
         viewModelScope.launch {
-            notificationRepository.refreshFromServer()
+            _isRefreshing.value = true
+            _refreshError.value = null
+            val result = notificationRepository.refreshFromServer()
+            result.onFailure {
+                _refreshError.value = "Couldn't refresh notifications. Check your connection and try again."
+            }
+            _isRefreshing.value = false
         }
+    }
+
+    /** Clears the refresh error after it has been shown. */
+    fun consumeRefreshError() {
+        _refreshError.value = null
     }
 
     fun markAsRead(id: Long) {

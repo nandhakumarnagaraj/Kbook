@@ -11,9 +11,14 @@ import com.khanabook.lite.pos.feature.staff.data.PermissionRevokeBody
 import com.khanabook.lite.pos.feature.staff.data.RoleTemplateDto
 import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
+import com.khanabook.lite.pos.core.designsystem.ToastKind
+import com.khanabook.lite.pos.core.feedback.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,9 +27,10 @@ data class StaffPermissionUiState(
     val isLoading: Boolean = true,
     val staffList: List<StaffMemberPermissions> = emptyList(),
     val templates: List<RoleTemplateDto> = emptyList(),
+    // Fatal error is reserved for the INITIAL LOAD only. Action failures are
+    // surfaced as one-shot KhanaToast messages, never as a full-screen error.
     val error: String? = null,
-    val actionInFlight: Boolean = false,
-    val infoMessage: String? = null
+    val actionInFlight: Boolean = false
 )
 
 data class StaffMemberPermissions(
@@ -52,6 +58,10 @@ class StaffPermissionViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(StaffPermissionUiState())
     val uiState: StateFlow<StaffPermissionUiState> = _uiState.asStateFlow()
+
+    // One-shot, non-fatal action feedback consumed by the screen as a KhanaToast.
+    private val _message = MutableSharedFlow<UiMessage>()
+    val message: SharedFlow<UiMessage> = _message.asSharedFlow()
 
     // Permission categories for the toggle grid
     val permissionCategories = listOf(
@@ -143,6 +153,8 @@ class StaffPermissionViewModel @Inject constructor(
     }
 
     fun togglePermission(userId: Long, permissionKey: String, currentlyGranted: Boolean) {
+        // Prevent rapid races: ignore new toggles while a mutation is in flight.
+        if (_uiState.value.actionInFlight) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInFlight = true)
             try {
@@ -164,10 +176,9 @@ class StaffPermissionViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e(tag, "Failed to toggle permission", e)
-                _uiState.value = _uiState.value.copy(
-                    actionInFlight = false,
-                    error = "Failed to update permission. Try again."
-                )
+                // Non-fatal: surface as a toast; keep the screen and existing state intact.
+                _uiState.value = _uiState.value.copy(actionInFlight = false)
+                _message.emit(UiMessage("Couldn't update permission. Try again.", ToastKind.Error))
             }
         }
     }
@@ -176,42 +187,42 @@ class StaffPermissionViewModel @Inject constructor(
 
     fun createTemplate(name: String, description: String?, permissions: List<String>) {
         if (name.isBlank() || permissions.isEmpty()) return
+        if (_uiState.value.actionInFlight) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInFlight = true)
             try {
                 api.createRoleTemplate(CreateTemplateBody(name.trim(), description?.trim()?.ifBlank { null }, permissions))
-                _uiState.value = _uiState.value.copy(
-                    actionInFlight = false,
-                    infoMessage = "Template \"$name\" created."
-                )
+                _uiState.value = _uiState.value.copy(actionInFlight = false)
+                _message.emit(UiMessage("Template \"$name\" created.", ToastKind.Success))
                 loadData()
             } catch (e: Exception) {
                 Log.e(tag, "Failed to create template", e)
-                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to create template. Try again.")
+                _uiState.value = _uiState.value.copy(actionInFlight = false)
+                _message.emit(UiMessage("Couldn't create template. Try again.", ToastKind.Error))
             }
         }
     }
 
     fun applyTemplate(userId: Long, templateId: Long) {
+        if (_uiState.value.actionInFlight) return
         val staffName = _uiState.value.staffList.firstOrNull { it.userId == userId }?.name ?: "staff"
         val templateName = _uiState.value.templates.firstOrNull { it.id == templateId }?.name ?: "template"
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInFlight = true)
             try {
                 api.applyRoleTemplate(ApplyTemplateBody(userId, templateId))
-                _uiState.value = _uiState.value.copy(
-                    actionInFlight = false,
-                    infoMessage = "\"$templateName\" applied to $staffName."
-                )
+                _uiState.value = _uiState.value.copy(actionInFlight = false)
+                _message.emit(UiMessage("\"$templateName\" applied to $staffName.", ToastKind.Success))
                 loadData()
             } catch (e: Exception) {
                 Log.e(tag, "Failed to apply template", e)
-                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to apply template. Try again.")
+                _uiState.value = _uiState.value.copy(actionInFlight = false)
+                _message.emit(UiMessage("Couldn't apply template. Try again.", ToastKind.Error))
             }
         }
     }
 
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null, infoMessage = null)
+        _uiState.value = _uiState.value.copy(error = null)
     }
 }

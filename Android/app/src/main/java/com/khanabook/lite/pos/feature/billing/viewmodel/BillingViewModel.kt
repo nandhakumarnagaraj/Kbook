@@ -233,6 +233,10 @@ class BillingViewModel @Inject constructor(
     private val _orderType = MutableStateFlow("dine_in")
     val orderType: StateFlow<String> = _orderType
 
+    val quickMode: StateFlow<Boolean> = _cachedProfile
+        .map { it?.collectCustomerNumber == false }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     fun setOrderType(type: String) {
         _orderType.value = type
     }
@@ -446,14 +450,23 @@ class BillingViewModel @Inject constructor(
     fun resetForNewBill() {
         invalidateRestoration()
         cartManager.clear()
-        _customerName.value = ""
+        val isQuickMode = quickMode.value
+        _customerName.value = if (isQuickMode) "Quick Bill" else ""
         _customerWhatsapp.value = ""
-        _orderType.value = "dine_in"
+        _orderType.value = if (isQuickMode) "takeaway" else "dine_in"
         paymentStateManager.reset()
         _lastBill.value = null
         _error.value = null
         printCoordinator.clearStatus()
         savedStateHandle[PENDING_ONLINE_BILL_ID] = null
+    }
+
+    fun applyQuickBillDefaultsIfNeeded() {
+        if (quickMode.value) {
+            _orderType.value = "takeaway"
+            _customerName.value = "Quick Bill"
+            _customerWhatsapp.value = ""
+        }
     }
 
     fun setPaymentMode(mode: PaymentMode, p1: String = "0.0", p2: String = "0.0") {

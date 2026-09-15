@@ -19,8 +19,9 @@ import javax.inject.Singleton
  *
  * Design principles:
  * - OWNER always has all permissions (no DB lookup needed)
- * - SHOP_STAFF auto-granted the core POS billing set by role (create / edit /
- *   discount / settle); void and refund need an explicit grant
+ * - SHOP_STAFF auto-granted the full operational set by role — every permission
+ *   except the owner-only config families (restaurant profile, menu edits,
+ *   payment, tax/GST)
  * - Permissions are synced from server via sync pull (grantedPermissions array)
  * - Cached in memory for instant UI checks (no DB read per check)
  * - Persisted to Room (permission_cache) so the granted set + authorization
@@ -89,7 +90,7 @@ class PermissionManager @Inject constructor(
      */
     fun hasPermission(permissionKey: String): Boolean {
         if (sessionManager.isOwner()) return true
-        if (sessionManager.isShopStaff() && SHOP_STAFF_BILLING_KEYS.contains(permissionKey)) return true
+        if (sessionManager.isShopStaff() && SHOP_STAFF_GRANTED_KEYS.contains(permissionKey)) return true
         val granted = _grantedPermissions.value
         if (granted.contains(permissionKey)) return true
         if ((permissionKey == MENU_EDIT_PRICE || permissionKey == MENU_TOGGLE_AVAILABILITY)
@@ -219,15 +220,34 @@ class PermissionManager @Inject constructor(
     // ── Permission key constants (mirrors server PermissionKey enum) ──────────
 
     /**
-     * Core POS billing operations auto-granted to SHOP_STAFF by role, no explicit
-     * grant row required. Mirrors server PermissionService.SHOP_STAFF_BILLING_KEYS.
+     * Config families that stay owner-only for SHOP_STAFF: restaurant profile,
+     * payment, tax/GST, and menu edits (add/delete/reprice/toggle availability).
+     * Menu *viewing* stays granted so staff can keep taking orders.
+     *
+     * [REPORTS_EXPORT] is here too: staff may read reports on the device but not
+     * download/share the data off it, so the export action is owner-only.
      */
-    private val SHOP_STAFF_BILLING_KEYS = setOf(
-        BILLING_CREATE,
-        BILLING_EDIT,
-        BILLING_DISCOUNT,
-        BILLING_SETTLE
+    private val SHOP_STAFF_CONFIG_KEYS = setOf(
+        MENU_TOGGLE_AVAILABILITY,
+        MENU_EDIT_PRICE,
+        MENU_EDIT_FULL,
+        MENU_ADD_ITEM,
+        MENU_DELETE_ITEM,
+        REPORTS_EXPORT,
+        SETTINGS_SHOP_PROFILE,
+        SETTINGS_PAYMENT,
+        SETTINGS_GST
     )
+
+    /**
+     * SHOP_STAFF are granted full operational freedom by role: every known
+     * permission key EXCEPT the owner-only configuration families
+     * ([SHOP_STAFF_CONFIG_KEYS]). No explicit grant row required. Mirrors
+     * server PermissionService.SHOP_STAFF_GRANTED_KEYS (computed from the full
+     * key list minus config keys, so new keys default to granted).
+     */
+    private val SHOP_STAFF_GRANTED_KEYS: Set<String> =
+        ALL_PERMISSION_KEYS - SHOP_STAFF_CONFIG_KEYS
 
     companion object {
         // Billing
@@ -269,6 +289,17 @@ class PermissionManager @Inject constructor(
         const val SETTINGS_TERMINAL = "settings.terminal"
         const val SETTINGS_GST = "settings.gst"
 
-
+        /** Every permission key known to the app (mirrors server PermissionKey enum). */
+        val ALL_PERMISSION_KEYS: Set<String> = setOf(
+            BILLING_CREATE, BILLING_EDIT, BILLING_VOID, BILLING_DISCOUNT,
+            BILLING_REFUND, BILLING_SETTLE,
+            MENU_VIEW, MENU_TOGGLE_AVAILABILITY, MENU_EDIT_PRICE, MENU_EDIT_FULL,
+            MENU_ADD_ITEM, MENU_DELETE_ITEM,
+            ORDERS_VIEW,
+            REPORTS_DAY_SUMMARY, REPORTS_FULL, REPORTS_GST, REPORTS_EXPORT,
+            STAFF_VIEW, STAFF_ADD, STAFF_EDIT, STAFF_REMOVE, STAFF_PERMISSIONS,
+            SETTINGS_SHOP_PROFILE, SETTINGS_PAYMENT, SETTINGS_PRINTER,
+            SETTINGS_TERMINAL, SETTINGS_GST
+        )
     }
 }

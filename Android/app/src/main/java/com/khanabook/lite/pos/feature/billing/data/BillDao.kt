@@ -380,16 +380,34 @@ suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, te
     """)
 fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
-    @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
+    /**
+     * Deliberate status change. Bumps status_version so the server's terminal-state
+     * guard treats this as an intentional edit rather than a stale LWW push, and clears
+     * is_synced so the change actually gets pushed.
+     */
+    @Query("""
+        UPDATE bills SET order_status = :status, status_version = status_version + 1,
+        is_synced = 0, updated_at = :updatedAt
+        WHERE id = :id AND restaurant_id = :restaurantId
+    """)
+    suspend fun updateOrderStatus(id: Long, status: String, updatedAt: Long, restaurantId: Long)
 
-    @Query("UPDATE bills SET payment_mode = :mode WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun updatePaymentMode(id: Long, mode: String, restaurantId: Long)
+    /** Deliberate payment-mode change. See [updateOrderStatus] for why the version is bumped. */
+    @Query("""
+        UPDATE bills SET payment_mode = :mode, status_version = status_version + 1,
+        is_synced = 0, updated_at = :updatedAt
+        WHERE id = :id AND restaurant_id = :restaurantId
+    """)
+    suspend fun updatePaymentMode(id: Long, mode: String, updatedAt: Long, restaurantId: Long)
 
     @Query("UPDATE bills SET payment_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updatePaymentStatus(id: Long, status: String, restaurantId: Long)
 
-    @Query("UPDATE bills SET order_status = 'cancelled', cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt WHERE id = :id AND restaurant_id = :restaurantId")
+    @Query("""
+        UPDATE bills SET order_status = 'cancelled', cancel_reason = :reason,
+        status_version = status_version + 1, is_synced = 0, updated_at = :updatedAt
+        WHERE id = :id AND restaurant_id = :restaurantId
+    """)
     suspend fun cancelBill(id: Long, reason: String, updatedAt: Long, restaurantId: Long)
 
     @Query("""

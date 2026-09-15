@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
+import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
@@ -113,6 +115,48 @@ internal fun PaymentFlowToggleSwitch(
             ) {
                 Text(mode.displayLabel, style = MaterialTheme.typography.labelLarge)
             }
+        }
+    }
+}
+
+@Composable
+internal fun CustomerNumberCollectorSelector(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
+            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Collect Customer Number?", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (checked) {
+                        "Billing asks for the customer's mobile number."
+                    } else {
+                        "Billing skips customer details for faster checkout."
+                    },
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            KhanaBookSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled
+            )
         }
     }
 }

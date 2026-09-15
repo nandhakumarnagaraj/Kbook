@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -498,28 +499,47 @@ fun MenuItemRow(
                 }
             }
             if (canWrite) {
-                if (onUploadPhotoClick != null) {
-                    IconButton(
-                        onClick = onUploadPhotoClick,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AddPhotoAlternate,
-                            contentDescription = if (item.imageUrl.isNullOrBlank())
-                                "Upload photo for ${item.name}"
-                            else
-                                "Change photo for ${item.name}",
-                            tint = PrimaryGold.copy(alpha = 0.85f),
-                            modifier = Modifier.size(20.dp)
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
+                ) {
+                    KhanaBookSwitch(
+                        checked = item.isAvailable,
+                        onCheckedChange = { onToggleAvailability(item.id, it) },
+                        checkedTrackColor = PrimaryGold,
+                        checkedThumbColor = BrownSelected
+                    )
+                    if (onUploadPhotoClick != null) {
+                        val hasPhoto = !item.imageUrl.isNullOrBlank()
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .width(KhanaBookTheme.spacing.extraLarge * 2)
+                                .clip(KhanaRadii.sm)
+                                .clickable(onClick = onUploadPhotoClick)
+                                .padding(
+                                    horizontal = KhanaBookTheme.spacing.extraSmall,
+                                    vertical = KhanaBookTheme.spacing.hairline
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AddPhotoAlternate,
+                                contentDescription = if (hasPhoto)
+                                    "Change photo for ${item.name}"
+                                else
+                                    "Upload photo for ${item.name}",
+                                tint = PrimaryGold.copy(alpha = 0.85f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Add Photo",
+                                color = TextGold,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
-                KhanaBookSwitch(
-                    checked = item.isAvailable,
-                    onCheckedChange = { onToggleAvailability(item.id, it) },
-                    checkedTrackColor = PrimaryGold,
-                    checkedThumbColor = BrownSelected
-                )
             } else {
                 Surface(
                     shape = KhanaRadii.pill,

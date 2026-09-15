@@ -29,8 +29,8 @@ class DatabaseMigrationListConsistencyTest {
             .map { it.removeSuffix(",") }
 
     private companion object {
-        val PROVIDER = locateFile("app/src/main/java/com/khanabook/lite/pos/data/local/DatabaseProvider.kt")
-        val MODULE = locateFile("app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt")
+        val PROVIDER = locateFile("app/src/main/java/com/khanabook/lite/pos/core/database/DatabaseProvider.kt")
+        val MODULE = locateFile("app/src/main/java/com/khanabook/lite/pos/core/di/DatabaseModule.kt")
 
         private fun locateFile(relative: String): File {
             var dir = File(System.getProperty("user.dir"))

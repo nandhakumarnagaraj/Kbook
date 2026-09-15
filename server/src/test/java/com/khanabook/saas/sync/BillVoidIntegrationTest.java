@@ -31,17 +31,30 @@ class BillVoidIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void voidCompletedBill_throws() {
+    void voidCompletedBill_succeedsAndBumpsStatusVersion() {
         Bill saved = billRepository.save(createTestBill(1L, "completed", "paid"));
-        assertThrows(IllegalArgumentException.class,
-                () -> businessReadService.voidBill(saved.getRestaurantId(), saved.getId(), "nope"));
+        int versionBefore = saved.getStatusVersion() == null ? 0 : saved.getStatusVersion();
+
+        businessReadService.voidBill(saved.getRestaurantId(), saved.getId(), "Wrong order");
+
+        Bill refreshed = billRepository.findById(saved.getId()).orElseThrow();
+        assertEquals("cancelled", refreshed.getOrderStatus());
+        assertEquals("cancelled", refreshed.getPaymentStatus());
+        assertEquals("Wrong order", refreshed.getCancelReason());
+        // The bump is what lets BillSyncService.protectBillState tell this deliberate
+        // edit apart from a stale device push and stop restoring the finalized state.
+        assertTrue(refreshed.getStatusVersion() > versionBefore,
+                "voiding a finalized bill must bump statusVersion");
     }
 
     @Test
-    void voidPaidBill_throws() {
+    void voidPaidBill_succeeds() {
         Bill saved = billRepository.save(createTestBill(1L, "paid", "paid"));
-        assertThrows(IllegalArgumentException.class,
-                () -> businessReadService.voidBill(saved.getRestaurantId(), saved.getId(), "nope"));
+        businessReadService.voidBill(saved.getRestaurantId(), saved.getId(), "Refunded in cash");
+
+        Bill refreshed = billRepository.findById(saved.getId()).orElseThrow();
+        assertEquals("cancelled", refreshed.getOrderStatus());
+        assertEquals("cancelled", refreshed.getPaymentStatus());
     }
 
     @Test

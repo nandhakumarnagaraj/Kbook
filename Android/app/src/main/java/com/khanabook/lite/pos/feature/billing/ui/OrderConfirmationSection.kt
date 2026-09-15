@@ -70,6 +70,7 @@ fun SuccessStep(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
+    val hasCustomerWhatsapp = !lastBill?.bill?.customerWhatsapp.isNullOrBlank()
     val scope = rememberCoroutineScope()
     var isSharingInvoice by remember { mutableStateOf(false) }
     var isTtsReady by remember { mutableStateOf(false) }
@@ -127,48 +128,50 @@ fun SuccessStep(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                Button(
-                    onClick = {
-                        val currentBill = lastBill ?: return@Button
-                        scope.launch {
-                            isSharingInvoice = true
-                            try {
-                                if (connectionStatus == ConnectionStatus.Unavailable) {
-                                    onShowMessage("Offline. Sharing invoice text by SMS.")
-                                    sendInvoiceViaSms(context, currentBill, profile)
-                                    return@launch
-                                }
+                if (hasCustomerWhatsapp) {
+                    Button(
+                        onClick = {
+                            val currentBill = lastBill ?: return@Button
+                            scope.launch {
+                                isSharingInvoice = true
+                                try {
+                                    if (connectionStatus == ConnectionStatus.Unavailable) {
+                                        onShowMessage("Offline. Sharing invoice text by SMS.")
+                                        sendInvoiceViaSms(context, currentBill, profile)
+                                        return@launch
+                                    }
 
-                                shareInstantInvoiceLink(context, currentBill, profile)
-                            } finally {
-                                isSharingInvoice = false
+                                    shareInstantInvoiceLink(context, currentBill, profile)
+                                } finally {
+                                    isSharingInvoice = false
+                                }
                             }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = WhatsAppGreen,
+                            contentColor = Color.White,
+                            disabledContainerColor = WhatsAppGreen.copy(alpha = 0.35f),
+                            disabledContentColor = Color.White.copy(alpha = 0.65f)
+                        ),
+                        shape = KhanaRadii.lg,
+                        enabled = lastBill != null && !isSharingInvoice
+                    ) {
+                        if (isSharingInvoice) {
+                            KhanaInlineLoader(color = Color.White)
+                            Spacer(modifier = Modifier.width(spacing.small))
+                        } else {
+                            Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                            Spacer(modifier = Modifier.width(spacing.small))
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(KhanaBookTheme.spacing.buttonHeightLarge),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = WhatsAppGreen,
-                        contentColor = Color.White,
-                        disabledContainerColor = WhatsAppGreen.copy(alpha = 0.35f),
-                        disabledContentColor = Color.White.copy(alpha = 0.65f)
-                    ),
-                    shape = KhanaRadii.lg,
-                    enabled = lastBill != null && !isSharingInvoice
-                ) {
-                    if (isSharingInvoice) {
-                        KhanaInlineLoader(color = Color.White)
-                        Spacer(modifier = Modifier.width(spacing.small))
-                    } else {
-                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text(
+                            text = if (isSharingInvoice) "Preparing Link" else "Share Invoice",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
                     }
-                    Text(
-                        text = if (isSharingInvoice) "Preparing Link" else "Share Invoice",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
                 }
 
                 KhanaPrimaryButton(

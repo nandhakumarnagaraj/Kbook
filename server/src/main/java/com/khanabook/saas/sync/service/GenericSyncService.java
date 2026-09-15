@@ -82,6 +82,39 @@ public class GenericSyncService {
 		return BillSyncService.isFinalizedOrderStatus(orderStatus);
 	}
 
+	/**
+	 * Records an audit trail for money-affecting bill edits pushed from a device.
+	 *
+	 * <p>Voiding a bill and switching its payment mode are the two edits that can move
+	 * recorded revenue without changing any line item, so both need an actor trail even
+	 * though the POS allows them freely. Cancellation via the web admin is already
+	 * covered by {@code BILL_VOID} in {@code BusinessReadService}; this covers the
+	 * device-initiated path. Never throws — an audit failure must not fail a sync push.
+	 */
+	private void auditBillEdits(Bill incomingBill, Bill existingBill) {
+		try {
+			String target = incomingBill.getPublicToken() != null
+					? incomingBill.getPublicToken().toString()
+					: "bill:" + existingBill.getId();
+
+			String oldStatus = existingBill.getOrderStatus();
+			String newStatus = incomingBill.getOrderStatus();
+			if (oldStatus != null && !oldStatus.equalsIgnoreCase(newStatus)) {
+				securityAuditService.record("BILL_STATUS_CHANGE", oldStatus + "->" + newStatus,
+						target, existingBill.getCurrentOwnerTerminalId());
+			}
+
+			String oldMode = existingBill.getPaymentMode();
+			String newMode = incomingBill.getPaymentMode();
+			if (oldMode != null && !oldMode.equalsIgnoreCase(newMode)) {
+				securityAuditService.record("BILL_PAYMODE_CHANGE", oldMode + "->" + newMode,
+						target, existingBill.getCurrentOwnerTerminalId());
+			}
+		} catch (Exception e) {
+			log.warn("Bill edit audit failed (non-fatal) localId={}", incomingBill.getLocalId(), e);
+		}
+	}
+
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
 		return userProfileSyncService.findExistingUserByIdentity(tenantId, incomingUser, userRepository);
@@ -614,6 +647,11 @@ public class GenericSyncService {
 							if (incomingRecord instanceof Bill incomingBill
 									&& existingRecord instanceof Bill existingBill) {
 								incomingBill.setRefundAmount(existingBill.getRefundAmount());
+								// Terminal-state guard: a stale device push must not revert a
+								// gateway-confirmed payment or un-cancel a bill. A deliberate edit
+								// carries a higher statusVersion and is allowed through.
+								billSyncService.protectBillState(incomingBill, existingBill);
+								auditBillEdits(incomingBill, existingBill);
 								if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus())
 										&& "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
 									cancelledBills.add(incomingBill);
@@ -1127,17 +1165,9 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 		if (!changed.contains("upiqrversion")) incomingP.setUpiQrVersion(existingP.getUpiQrVersion());
 		if (!changed.contains("cashenabled")) incomingP.setCashEnabled(existingP.getCashEnabled());
 		if (!changed.contains("posenabled")) incomingP.setPosEnabled(existingP.getPosEnabled());
-		// Printer group
-		if (!changed.contains("printerenabled")) incomingP.setPrinterEnabled(existingP.getPrinterEnabled());
-		if (!changed.contains("printername")) incomingP.setPrinterName(existingP.getPrinterName());
-		if (!changed.contains("printermac")) incomingP.setPrinterMac(existingP.getPrinterMac());
-		if (!changed.contains("papersize")) incomingP.setPaperSize(existingP.getPaperSize());
+		// Print preferences (printer bindings themselves are device-local, never synced)
 		if (!changed.contains("autoprintonsuccess")) incomingP.setAutoPrintOnSuccess(existingP.getAutoPrintOnSuccess());
 		if (!changed.contains("includelogoInprint")) incomingP.setIncludeLogoInPrint(existingP.getIncludeLogoInPrint());
-		if (!changed.contains("kitchenprinterenabled")) incomingP.setKitchenPrinterEnabled(existingP.getKitchenPrinterEnabled());
-		if (!changed.contains("kitchenprintername")) incomingP.setKitchenPrinterName(existingP.getKitchenPrinterName());
-		if (!changed.contains("kitchenprintermac")) incomingP.setKitchenPrinterMac(existingP.getKitchenPrinterMac());
-		if (!changed.contains("kitchenprinterpapersize")) incomingP.setKitchenPrinterPaperSize(existingP.getKitchenPrinterPaperSize());
 	}
 
 	private Long maxNullable(Long a, Long b) {

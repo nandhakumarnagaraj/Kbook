@@ -56,7 +56,7 @@ class PermissionManagerTest {
     }
 
     @Test
-    fun `shop staff auto-grants the core billing set by role`() {
+    fun `shop staff auto-grants the full operational set by role except config`() {
         every { session.isOwner() } returns false
         every { session.isShopStaff() } returns true
 
@@ -64,22 +64,32 @@ class PermissionManagerTest {
         assertTrue(manager.hasPermission(PermissionManager.BILLING_EDIT))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_DISCOUNT))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_SETTLE))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_REFUND))
+        assertTrue(manager.hasPermission(PermissionManager.MENU_VIEW))
         assertTrue(manager.hasAllPermissions(PermissionManager.BILLING_CREATE, PermissionManager.BILLING_SETTLE))
+        assertTrue(manager.hasPermission(PermissionManager.REPORTS_FULL))
 
-        assertFalse(manager.hasPermission(PermissionManager.BILLING_VOID))
-        assertFalse(manager.hasPermission(PermissionManager.BILLING_REFUND))
         assertFalse(manager.hasPermission(PermissionManager.MENU_EDIT_FULL))
+        assertFalse(manager.hasPermission(PermissionManager.MENU_ADD_ITEM))
+        assertFalse(manager.hasPermission(PermissionManager.MENU_EDIT_PRICE))
+        assertFalse(manager.hasPermission(PermissionManager.SETTINGS_SHOP_PROFILE))
+        assertFalse(manager.hasPermission(PermissionManager.SETTINGS_PAYMENT))
+        assertFalse(manager.hasPermission(PermissionManager.SETTINGS_GST))
+        // Report export is owner-only: staff read reports on-device but may not
+        // download/share the data off it.
+        assertFalse(manager.hasPermission(PermissionManager.REPORTS_EXPORT))
     }
 
     @Test
-    fun `shop staff explicit grants expand beyond the billing auto-set`() {
+    fun `shop staff explicit grants expand beyond the role auto-set`() {
         every { session.isOwner() } returns false
         every { session.isShopStaff() } returns true
-        manager.updateFromSync(listOf(PermissionManager.BILLING_VOID, PermissionManager.MENU_VIEW))
+        manager.updateFromSync(listOf(PermissionManager.MENU_EDIT_FULL))
 
-        assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
-        assertTrue(manager.hasPermission(PermissionManager.MENU_VIEW))
+        assertTrue(manager.hasPermission(PermissionManager.MENU_EDIT_FULL))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_CREATE))
+        assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
 import jakarta.persistence.UniqueConstraint;
@@ -98,6 +99,14 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "order_status", nullable = false)
 	private String orderStatus;
 
+	/**
+	 * Monotonic counter bumped by the device on a deliberate status / payment-mode
+	 * change. Lets {@code BillSyncService.protectBillState} tell an intentional edit
+	 * apart from a stale last-write-wins push.
+	 */
+	@Column(name = "status_version", nullable = false)
+	private Integer statusVersion = 0;
+
 	@Column(name = "refund_amount", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal refundAmount;
 
@@ -144,6 +153,20 @@ public class Bill extends BaseSyncEntity {
 	void ensurePublicToken() {
 		if (publicToken == null) {
 			publicToken = java.util.UUID.randomUUID();
+		}
+		normalizeStatusVersion();
+	}
+
+	/**
+	 * {@code status_version} is NOT NULL, but sync maps DTO → entity with
+	 * {@code BeanUtils.copyProperties}, which happily copies a null from an older
+	 * client payload over the field default. Normalize on both persist and update so a
+	 * client that doesn't know about the column cannot fail the whole push.
+	 */
+	@PreUpdate
+	void normalizeStatusVersion() {
+		if (statusVersion == null) {
+			statusVersion = 0;
 		}
 	}
 }

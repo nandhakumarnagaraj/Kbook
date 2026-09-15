@@ -60,6 +60,11 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <button class="primary-btn" *ngIf="isOwner" (click)="openCreateModal()">Add Staff</button>
+          <button
+            class="ghost-btn danger-btn"
+            *ngIf="isOwner"
+            (click)="requestRevokeAll()"
+          >Sign out all devices</button>
           <button class="ghost-btn" (click)="loadStaff()">Refresh</button>
         </div>
       </div>
@@ -91,6 +96,30 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         [confirmDanger]="true"
         (confirmed)="confirmDeactivate()"
         (cancelled)="cancelDeactivate()"
+      ></app-confirm-dialog>
+
+      <!-- Revoke sessions for one staff member -->
+      <app-confirm-dialog
+        *ngIf="staffToRevoke"
+        title="Sign out of all devices"
+        [message]="'Sign ' + staffToRevoke.name + ' out of every device? Their account stays active — they can sign in again straight away. Use this if a device was lost.'"
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="confirmRevoke()"
+        (cancelled)="cancelRevoke()"
+      ></app-confirm-dialog>
+
+      <!-- Revoke sessions for everyone, including the current user -->
+      <app-confirm-dialog
+        *ngIf="showRevokeAll"
+        title="Sign out all devices"
+        message="Every account in this restaurant will be signed out of every device, including you. Accounts stay active and everyone can sign in again. Use this if a terminal was lost or stolen."
+        confirmLabel="Sign out everyone"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="confirmRevokeAll()"
+        (cancelled)="cancelRevokeAll()"
       ></app-confirm-dialog>
 
       <section class="panel filter-panel" *ngIf="loaded() && staff().length">
@@ -166,6 +195,12 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                 <div class="action-cell">
                   <button class="action-btn" (click)="openEditModal(item)">Edit</button>
                   <button class="action-btn" (click)="openPermissionsModal(item)" *ngIf="!isSelf(item) && item.role !== 'OWNER'">Permissions</button>
+                  <button
+                    class="action-btn"
+                    *ngIf="item.active"
+                    (click)="requestRevoke(item)"
+                    title="Sign this person out of every device without disabling their account"
+                  >Sign out</button>
                   <button
                     class="action-btn action-btn--success"
                     *ngIf="!item.active && !isSelf(item)"
@@ -258,6 +293,8 @@ export class StaffPageComponent {
   editingSelf = signal(false);
 
   staffToDeactivate: BusinessStaffItem | null = null;
+  staffToRevoke: BusinessStaffItem | null = null;
+  showRevokeAll = false;
 
   showPermissionsModal = signal(false);
   permissionsStaff = signal<BusinessStaffItem | null>(null);
@@ -340,6 +377,58 @@ export class StaffPageComponent {
 
   cancelDeactivate(): void {
     this.staffToDeactivate = null;
+  }
+
+  requestRevoke(item: BusinessStaffItem): void {
+    this.staffToRevoke = item;
+  }
+
+  confirmRevoke(): void {
+    if (!this.staffToRevoke) return;
+
+    const name = this.staffToRevoke.name;
+    const userId = this.staffToRevoke.userId;
+    this.staffToRevoke = null;
+
+    this.api.revokeStaffSessions(userId).subscribe({
+      next: () => {
+        this.toast.show(`${name} has been signed out of all devices`, 'success');
+        this.loadStaff();
+      },
+      error: () => {
+        this.toast.show('Failed to sign the staff member out. Please try again.', 'error');
+      }
+    });
+  }
+
+  cancelRevoke(): void {
+    this.staffToRevoke = null;
+  }
+
+  requestRevokeAll(): void {
+    this.showRevokeAll = true;
+  }
+
+  confirmRevokeAll(): void {
+    this.showRevokeAll = false;
+
+    this.api.revokeAllSessions().subscribe({
+      next: (result) => {
+        // The caller's own session is revoked too, so the next request 401s and the
+        // auth interceptor redirects to login. Show the count while we still can.
+        this.toast.show(
+          `${result.revoked} account(s) signed out of all devices. You will need to sign in again.`,
+          'success'
+        );
+      },
+      error: () => {
+        this.toast.show('Failed to sign all devices out. Please try again.', 'error');
+      }
+    });
+  }
+
+  cancelRevokeAll(): void {
+    this.showRevokeAll = false;
   }
 
   get roleOptions(): string[] {

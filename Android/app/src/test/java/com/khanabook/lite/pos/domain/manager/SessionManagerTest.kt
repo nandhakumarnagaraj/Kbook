@@ -143,11 +143,11 @@ class SessionManagerTest {
 
         assertTrue("OWNER may write printer/settings", allowedFor("OWNER"))
         assertTrue("SHOP_STAFF may write printer/settings", allowedFor("SHOP_STAFF"))
-        assertTrue("SHOP_ADMIN (legacy staff) may write printer/settings", allowedFor("SHOP_ADMIN"))
-        assertTrue("MANAGER (legacy staff) may write printer/settings", allowedFor("MANAGER"))
-        assertTrue("CASHIER (legacy staff) may write printer/settings", allowedFor("CASHIER"))
-        assertTrue("WAITER (legacy staff) may write printer/settings", allowedFor("WAITER"))
-        assertTrue("OPERATIONS (legacy staff) may write printer/settings", allowedFor("OPERATIONS"))
+        assertFalse("SHOP_ADMIN is not a canonical role", allowedFor("SHOP_ADMIN"))
+        assertFalse("MANAGER is not a canonical role", allowedFor("MANAGER"))
+        assertFalse("CASHIER is not a canonical role", allowedFor("CASHIER"))
+        assertFalse("WAITER is not a canonical role", allowedFor("WAITER"))
+        assertFalse("OPERATIONS is not a canonical role", allowedFor("OPERATIONS"))
         assertFalse("KBOOK_ADMIN is not a POS role", allowedFor("KBOOK_ADMIN"))
         assertFalse("unknown role may not write printer/settings", allowedFor(null))
     }
@@ -165,11 +165,11 @@ class SessionManagerTest {
 
         assertTrue("OWNER may use POS", posAllowedFor("OWNER"))
         assertTrue("SHOP_STAFF may use POS", posAllowedFor("SHOP_STAFF"))
-        assertTrue("SHOP_ADMIN (legacy staff) may use POS", posAllowedFor("SHOP_ADMIN"))
-        assertTrue("MANAGER (legacy staff) may use POS", posAllowedFor("MANAGER"))
-        assertTrue("CASHIER (legacy staff) may use POS", posAllowedFor("CASHIER"))
-        assertTrue("WAITER (legacy staff) may use POS", posAllowedFor("WAITER"))
-        assertTrue("OPERATIONS (legacy staff) may use POS", posAllowedFor("OPERATIONS"))
+        assertFalse("SHOP_ADMIN is not a canonical role", posAllowedFor("SHOP_ADMIN"))
+        assertFalse("MANAGER is not a canonical role", posAllowedFor("MANAGER"))
+        assertFalse("CASHIER is not a canonical role", posAllowedFor("CASHIER"))
+        assertFalse("WAITER is not a canonical role", posAllowedFor("WAITER"))
+        assertFalse("OPERATIONS is not a canonical role", posAllowedFor("OPERATIONS"))
         assertFalse("KBOOK_ADMIN may not use POS", posAllowedFor("KBOOK_ADMIN"))
         assertFalse("unknown role may not use POS", posAllowedFor(null))
     }

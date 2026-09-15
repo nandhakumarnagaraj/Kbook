@@ -324,6 +324,7 @@ class SettingsViewModel @Inject constructor(
     fun retryFailedBillSync(billId: Long) {
         viewModelScope.launch {
             _retryingFailedBillIds.value = _retryingFailedBillIds.value + billId
+            _syncCenterMessage.value = null
             try {
                 withContext(Dispatchers.IO) {
                     val restaurantId = sessionManager.getRestaurantId()
@@ -331,10 +332,17 @@ class SettingsViewModel @Inject constructor(
                         billDao.retryFailedBillSync(billId, restaurantId)
                     }
                 }
-                syncManager.pushUnsyncedDataWithResult()
+                val result = syncManager.pushUnsyncedDataWithResult()
+                _syncCenterMessage.value = result.fold(
+                    onSuccess = { "Bill synced again." },
+                    onFailure = { e ->
+                        UserMessageSanitizer.sanitize(e, "Unable to sync this bill. Will retry in background.")
+                    }
+                )
             } finally {
                 _retryingFailedBillIds.value = _retryingFailedBillIds.value - billId
                 refreshFailedBillSyncs()
+                refreshLastSyncTimestamp()
             }
         }
     }
@@ -400,6 +408,7 @@ class SettingsViewModel @Inject constructor(
 
             val billIds = billsToRetry.map { it.id }.toSet()
             _retryingFailedBillIds.value = _retryingFailedBillIds.value + billIds
+            _syncCenterMessage.value = null
             try {
                 withContext(Dispatchers.IO) {
                     val restaurantId = sessionManager.getRestaurantId()
@@ -409,10 +418,20 @@ class SettingsViewModel @Inject constructor(
                         }
                     }
                 }
-                syncManager.pushUnsyncedDataWithResult()
+                val result = syncManager.pushUnsyncedDataWithResult()
+                _syncCenterMessage.value = result.fold(
+                    onSuccess = { "Retried ${billIds.size} bill(s) successfully." },
+                    onFailure = { e ->
+                        UserMessageSanitizer.sanitize(
+                            e,
+                            "Unable to sync some bills. Will retry in background."
+                        )
+                    }
+                )
             } finally {
                 _retryingFailedBillIds.value = _retryingFailedBillIds.value - billIds
                 refreshFailedBillSyncs()
+                refreshLastSyncTimestamp()
             }
         }
     }
@@ -925,6 +944,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val current = restaurantRepository.getProfile()
             current?.copy(orderPaymentFlowMode = mode.dbValue)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
+    fun updateCollectCustomerNumber(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(collectCustomerNumber = enabled)?.let {
                 restaurantRepository.saveProfile(it)
             }
         }

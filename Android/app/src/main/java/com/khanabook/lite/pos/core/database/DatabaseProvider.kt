@@ -197,7 +197,9 @@ class DatabaseProvider @Inject constructor(
                 AppDatabase.MIGRATION_70_71,
                 AppDatabase.MIGRATION_71_72,
                 AppDatabase.MIGRATION_72_73,
-                AppDatabase.MIGRATION_73_74
+                AppDatabase.MIGRATION_73_74,
+                AppDatabase.MIGRATION_74_75,
+                AppDatabase.MIGRATION_75_76
             )
             .build()
     }

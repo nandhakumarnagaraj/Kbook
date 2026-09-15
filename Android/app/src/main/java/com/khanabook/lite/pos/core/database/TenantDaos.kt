@@ -562,12 +562,12 @@ class TenantBillDao @Inject constructor(
     override fun getSyncQuarantineRecordsFlow(restaurantId: Long): Flow<List<SyncQuarantineEntity>> =
         runFlow { it.billDao().getSyncQuarantineRecordsFlow(restaurantId) }
 
-    override suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long) {
-        dao.updateOrderStatus(id, status, restaurantId)
+    override suspend fun updateOrderStatus(id: Long, status: String, updatedAt: Long, restaurantId: Long) {
+        dao.updateOrderStatus(id, status, updatedAt, restaurantId)
     }
 
-    override suspend fun updatePaymentMode(id: Long, mode: String, restaurantId: Long) {
-        dao.updatePaymentMode(id, mode, restaurantId)
+    override suspend fun updatePaymentMode(id: Long, mode: String, updatedAt: Long, restaurantId: Long) {
+        dao.updatePaymentMode(id, mode, updatedAt, restaurantId)
     }
 
     override suspend fun updatePaymentStatus(id: Long, status: String, restaurantId: Long) {

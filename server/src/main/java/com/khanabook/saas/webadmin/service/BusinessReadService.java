@@ -119,8 +119,6 @@ public class BusinessReadService {
                 .restaurantId(restaurantId)
                 .shopName(profile.getShopName())
                 .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
-                .printerEnabled(Boolean.TRUE.equals(profile.getPrinterEnabled()))
-                .kitchenPrinterEnabled(Boolean.TRUE.equals(profile.getKitchenPrinterEnabled()))
                 .totalStaff(staff.size())
                 .totalMenuItems(menuItems.size())
                 .posOrderCount(bills.size())
@@ -280,9 +278,6 @@ public class BusinessReadService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
         String status = bill.getOrderStatus();
-        if ("completed".equalsIgnoreCase(status) || "paid".equalsIgnoreCase(status)) {
-            throw new IllegalArgumentException("Cannot void a finalized bill. Use refund instead.");
-        }
         if ("cancelled".equalsIgnoreCase(status)) {
             throw new IllegalArgumentException("Bill is already cancelled.");
         }
@@ -290,6 +285,10 @@ public class BusinessReadService {
         long now = System.currentTimeMillis();
         bill.setOrderStatus("cancelled");
         bill.setPaymentStatus("cancelled");
+        // Deliberate edit: bump the version so the terminal-state guard in
+        // BillSyncService.protectBillState lets this through instead of treating a
+        // later device push as authoritative and restoring the finalized state.
+        bill.setStatusVersion((bill.getStatusVersion() == null ? 0 : bill.getStatusVersion()) + 1);
         Long userId = null;
         try { userId = TenantContext.getCurrentUserId(); } catch (Exception ignored) {}
         bill.setCancelReason(reason != null ? reason : "Voided by user " + userId);

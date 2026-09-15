@@ -181,6 +181,55 @@ public class BusinessWriteService {
         log.info("Staff activated: userId={}", userId);
     }
 
+    // ─── Session revocation ──────────────────────────────────────────────────────
+
+    /**
+     * Signs one staff member out of every device without disabling their account.
+     *
+     * <p>Stamping {@code tokenInvalidatedAt} makes {@link
+     * com.khanabook.saas.security.JwtRequestFilter} reject any token issued before now,
+     * on the very next request. Use this when a device is lost or a session may be
+     * compromised but the person should keep working — {@link #deactivateStaff} is the
+     * heavier hammer that also locks the account.
+     *
+     * @return the number of sessions invalidated (1, or 0 if nothing changed)
+     */
+    @Transactional
+    public int revokeStaffSessions(Long restaurantId, Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(u -> restaurantId.equals(u.getRestaurantId()) && !Boolean.TRUE.equals(u.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Staff member not found"));
+
+        long now = System.currentTimeMillis();
+        user.setTokenInvalidatedAt(now);
+        touch(user, now);
+        userRepository.save(user);
+        log.info("Sessions revoked: restaurantId={} userId={}", restaurantId, userId);
+        return 1;
+    }
+
+    /**
+     * Signs every member of the restaurant out of every device, including the caller.
+     *
+     * <p>The owner is deliberately included: the usual reason for reaching for this is a
+     * lost or stolen terminal, and excluding the caller would leave the most privileged
+     * session alive on it. Everyone signs in again afterwards.
+     *
+     * @return the number of accounts whose sessions were invalidated
+     */
+    @Transactional
+    public int revokeAllSessions(Long restaurantId) {
+        List<User> users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
+        long now = System.currentTimeMillis();
+        for (User user : users) {
+            user.setTokenInvalidatedAt(now);
+            touch(user, now);
+        }
+        userRepository.saveAll(users);
+        log.warn("All sessions revoked: restaurantId={} accounts={}", restaurantId, users.size());
+        return users.size();
+    }
+
     // ─── Menu CRUD ───────────────────────────────────────────────────────────────
 
     @Transactional

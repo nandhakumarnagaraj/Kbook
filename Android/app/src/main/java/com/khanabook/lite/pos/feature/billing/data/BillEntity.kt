@@ -85,6 +85,13 @@ data class BillEntity(
         @SerializedName("orderStatus")
         @ColumnInfo(name = "order_status")
         val orderStatus: String,
+        /**
+         * Bumped on every deliberate status / payment-mode change so the server can tell
+         * an intentional edit apart from a stale last-write-wins push.
+         * See BillSyncService.protectBillState.
+         */
+        @SerializedName("statusVersion")
+        @ColumnInfo(name = "status_version", defaultValue = "0") val statusVersion: Int = 0,
         @SerializedName("createdBy")
         @ColumnInfo(name = "created_by") val createdBy: Long? = null,
         @SerializedName("createdByUserId")

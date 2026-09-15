@@ -141,51 +141,55 @@ class NotificationRepository @Inject constructor(
             .apply()
     }
 
-    suspend fun refreshFromServer() {
+    suspend fun refreshFromServer(): Result<Unit> {
         // Push any read state that failed to sync while offline before pulling,
         // so the server's copy is not stale in the other direction.
         flushPendingReadState()
-        try {
+        return try {
             val response = api.getNotifications(limit = 50)
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null && body["status"] == "success") {
-                    @Suppress("UNCHECKED_CAST")
-                    val notifs = body["notifications"] as? List<Map<String, Any>> ?: return
+            if (!response.isSuccessful) {
+                return Result.failure(IllegalStateException("Server returned ${response.code()}"))
+            }
+            val body = response.body()
+            if (body != null && body["status"] == "success") {
+                @Suppress("UNCHECKED_CAST")
+                val notifs = body["notifications"] as? List<Map<String, Any>>
+                    ?: return Result.success(Unit)
 
-                    val entities = notifs.map { map ->
-                        val serverId = (map["id"] as? Number)?.toLong() ?: 0L
-                        NotificationEntity(
-                            id = serverId,
-                            serverId = serverId,
-                            notificationType = map["notificationType"] as? String ?: "",
-                            title = map["title"] as? String ?: "",
-                            message = map["message"] as? String,
-                            referenceId = map["referenceId"] as? String,
-                            referenceType = map["referenceType"] as? String,
-                            amount = map["amount"]?.toString(),
-                            isRead = map["isRead"] as? Boolean ?: false,
-                            createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
-                        )
-                    }
+                val entities = notifs.map { map ->
+                    val serverId = (map["id"] as? Number)?.toLong() ?: 0L
+                    NotificationEntity(
+                        id = serverId,
+                        serverId = serverId,
+                        notificationType = map["notificationType"] as? String ?: "",
+                        title = map["title"] as? String ?: "",
+                        message = map["message"] as? String,
+                        referenceId = map["referenceId"] as? String,
+                        referenceType = map["referenceType"] as? String,
+                        amount = map["amount"]?.toString(),
+                        isRead = map["isRead"] as? Boolean ?: false,
+                        createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+                    )
+                }
 
-                    if (entities.isNotEmpty()) {
-                        // A notification read while offline is still marked unread on
-                        // the server. insertAll upserts with REPLACE, which would flip
-                        // it back to unread — so re-apply any local read flags first.
-                        val locallyRead = notificationDao.getReadIds(entities.map { it.id }).toSet()
-                        val merged = if (locallyRead.isEmpty()) {
-                            entities
-                        } else {
-                            entities.map { if (it.id in locallyRead) it.copy(isRead = true) else it }
-                        }
-                        notificationDao.insertAll(merged)
-                        notificationDao.deleteOlderThan(System.currentTimeMillis() - RETENTION_MS)
+                if (entities.isNotEmpty()) {
+                    // A notification read while offline is still marked unread on
+                    // the server. insertAll upserts with REPLACE, which would flip
+                    // it back to unread — so re-apply any local read flags first.
+                    val locallyRead = notificationDao.getReadIds(entities.map { it.id }).toSet()
+                    val merged = if (locallyRead.isEmpty()) {
+                        entities
+                    } else {
+                        entities.map { if (it.id in locallyRead) it.copy(isRead = true) else it }
                     }
+                    notificationDao.insertAll(merged)
+                    notificationDao.deleteOlderThan(System.currentTimeMillis() - RETENTION_MS)
                 }
             }
+            Result.success(Unit)
         } catch (e: Exception) {
             android.util.Log.w("NotifRepo", "refreshFromServer error: ${e.message}")
+            Result.failure(e)
         }
     }
 

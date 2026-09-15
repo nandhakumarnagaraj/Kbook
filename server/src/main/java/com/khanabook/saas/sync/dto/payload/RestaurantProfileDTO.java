@@ -50,10 +50,8 @@ public class RestaurantProfileDTO {
     private String upiMobile;
     private Boolean cashEnabled;
     private Boolean posEnabled;
-    private Boolean printerEnabled;
-    private String printerName;
-    private String printerMac;
-    private String paperSize;
+    // Printer bindings (enabled/name/MAC/paper size, both roles) are intentionally absent:
+    // printer config is device-local only. See RestaurantProfile.
     private Boolean autoPrintOnSuccess;
     private Boolean includeLogoInPrint;
     private Long dailyOrderCounter;
@@ -62,10 +60,6 @@ public class RestaurantProfileDTO {
     private Integer sessionTimeoutMinutes;
     private String orderPaymentFlowMode = "pay_before_food";
     private String reviewUrl;
-    private Boolean kitchenPrinterEnabled;
-    private String kitchenPrinterName;
-    private String kitchenPrinterMac;
-    private String kitchenPrinterPaperSize;
     private String invoiceFooter;
     private Boolean easebuzzEnabled;
     private Boolean showBranding;
