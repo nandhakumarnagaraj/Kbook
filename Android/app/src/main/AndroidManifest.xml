@@ -65,7 +65,7 @@
             android:resource="@drawable/ic_notification_bell" />
         
         <activity
-            android:name="com.khanabook.lite.pos.ui.MainActivity"
+            android:name="com.khanabook.lite.pos.core.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"

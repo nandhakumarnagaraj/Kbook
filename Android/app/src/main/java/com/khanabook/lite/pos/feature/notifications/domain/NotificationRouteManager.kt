@@ -7,11 +7,10 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Turns a tapped notification into an in-app destination.
  *
- * The FCM service stamps every notification intent with `notification_type`
- * (and, for FSSAI renewal, the `ACTION_PAY_FSSAI` action). Without this router
- * those extras were never read, so tapping a notification only opened the app
- * at whatever screen it was last on â€” even though the grouped summary invites
- * the user to "tap to view".
+ * The FCM service stamps every notification intent with `notification_type`.
+ * Without this router those extras were never read, so tapping a notification
+ * only opened the app at whatever screen it was last on â€” even though the
+ * grouped summary invites the user to "tap to view".
  *
  * Mirrors [PaymentReturnManager]: MainActivity feeds intents in from onCreate /
  * onNewIntent, and a LaunchedEffect collects [pendingRoute] once the NavHost
@@ -20,7 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 object NotificationRouteManager {
 
     const val EXTRA_NOTIFICATION_TYPE = "notification_type"
-    const val ACTION_PAY_FSSAI = "ACTION_PAY_FSSAI"
 
     private val _pendingRoute = MutableStateFlow<String?>(null)
 
@@ -33,12 +31,6 @@ object NotificationRouteManager {
      */
     fun handleIntent(intent: Intent?) {
         if (intent == null) return
-
-        // "Pay Now" on an FSSAI renewal notification goes straight to compliance.
-        if (intent.action == ACTION_PAY_FSSAI) {
-            _pendingRoute.value = "compliance_documents"
-            return
-        }
 
         val type = intent.getStringExtra(EXTRA_NOTIFICATION_TYPE) ?: return
         _pendingRoute.value = routeForType(type)
@@ -58,7 +50,6 @@ object NotificationRouteManager {
         "payment_received", "qr_order" -> "active_orders"
         "kyc" -> "easebuzz_onboarding"
         "fssai_expiry" -> "compliance_documents"
-        "permission_request", "permission_approved", "permission_rejected" -> "staff_permissions"
         // refund, settlement, inventory_low, terminal, system and anything new
         else -> "notifications"
     }

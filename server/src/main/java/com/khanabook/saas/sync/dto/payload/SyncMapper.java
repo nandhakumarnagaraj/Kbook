@@ -48,6 +48,7 @@ public class SyncMapper {
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setVariantId(entity.getVariantId());
                 dto.setServerVariantId(entity.getServerVariantId());
+                dto.setSentToKot(entity.getSentToKot() == null ? false : entity.getSentToKot());
             } else if (source instanceof BillPayment entity && target instanceof BillPaymentDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
@@ -166,6 +167,9 @@ public class SyncMapper {
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
                 entity.setVariantId(dto.getVariantId());
                 entity.setServerVariantId(dto.getServerVariantId());
+                // Older clients don't send sentToKot — default false instead of null so the
+                // NOT NULL column is never violated.
+                entity.setSentToKot(dto.getSentToKot() == null ? false : dto.getSentToKot());
             } else if (source instanceof BillPaymentDTO dto) {
                 BillPayment entity = (BillPayment) target;
                 entity.setId(dto.getId());

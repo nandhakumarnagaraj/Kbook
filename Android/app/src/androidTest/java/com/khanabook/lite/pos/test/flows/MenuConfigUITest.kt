@@ -3,7 +3,7 @@ package com.khanabook.lite.pos.test.flows
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.HomeRobot
-import com.khanabook.lite.pos.ui.MainActivity
+import com.khanabook.lite.pos.core.app.MainActivity
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 

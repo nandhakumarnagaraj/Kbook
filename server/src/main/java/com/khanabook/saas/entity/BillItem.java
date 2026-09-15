@@ -62,4 +62,13 @@ public class BillItem extends BaseSyncEntity {
 
 	@Column(name = "special_instruction")
 	private String specialInstruction;
+
+	/**
+	 * Monotonic "sent to kitchen" marker maintained by the originating device.
+	 * Once true it never flips back; pulled devices OR their local value with this.
+	 * Surfaces to other terminals & future KDS terminals via sync.
+	 */
+	@com.fasterxml.jackson.annotation.JsonProperty("sentToKot")
+	@Column(name = "sent_to_kot", nullable = false)
+	private Boolean sentToKot = false;
 }

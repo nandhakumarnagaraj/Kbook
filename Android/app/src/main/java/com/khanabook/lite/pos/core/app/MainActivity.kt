@@ -42,6 +42,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.feature.payments.domain.PaymentReturnManager
+import com.khanabook.lite.pos.feature.notifications.domain.NotificationRouteManager
+import com.khanabook.lite.pos.feature.notifications.ui.InAppNotificationBanner
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.auth.domain.TrustedExternalAppReturn
 import com.khanabook.lite.pos.feature.sync.domain.enqueueMasterSyncOnce
@@ -62,6 +64,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var networkMonitor: com.khanabook.lite.pos.feature.sync.domain.NetworkMonitor
     @Inject lateinit var databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
     @Inject lateinit var menuRepository: com.khanabook.lite.pos.feature.menu.data.MenuRepository
+    @Inject lateinit var notificationRepository: com.khanabook.lite.pos.feature.notifications.data.NotificationRepository
     private var lastBackPressTime: Long = 0
 
     // Native splash is released at the first frame; the branded start frame
@@ -178,6 +181,7 @@ class MainActivity : FragmentActivity() {
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
+        NotificationRouteManager.handleIntent(intent)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         requestNotificationPermissionIfNeeded()
@@ -212,9 +216,18 @@ class MainActivity : FragmentActivity() {
                         Log.i("MainActivity", "Network reconnected. Enqueuing background sync.")
                         androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce()
                         syncManager.triggerImmediateSync()
+                        // Reconcile notifications pushed while offline and flush any
+                        // read state that could not be synced.
+                        notificationRepository.refreshFromServer()
                     }
                 }
             }
+        }
+
+        // Promote newly arrived notifications to the in-app (LinkedIn-style)
+        // banner while the app is running.
+        lifecycleScope.launch {
+            notificationRepository.watchForNoticeBanners()
         }
 
         setContent {
@@ -322,6 +335,8 @@ class MainActivity : FragmentActivity() {
                 // gate, the initial null from MutableStateFlow races against
                 // loadPersistedUser() and pushes authenticated users back to login.
                 val sessionState by sessionManager.sessionState.collectAsStateWithLifecycle()
+                val activeBanner by notificationRepository.activeBanner.collectAsStateWithLifecycle()
+                val bannerScope = rememberCoroutineScope()
 
                 LaunchedEffect(currentUser, sessionState) {
                     if (sessionState == SessionManager.SessionState.INACTIVE) return@LaunchedEffect
@@ -347,6 +362,19 @@ class MainActivity : FragmentActivity() {
                             authenticatedStartDestination = ::authenticatedStartDestination,
                             startDestination = startDestination!!
                         )
+
+                        // Deep-link a tapped notification once the NavHost exists.
+                        // Consumed on apply so rotation cannot repeat it.
+                        LaunchedEffect(Unit) {
+                            NotificationRouteManager.pendingRoute.collect { route ->
+                                if (route != null) {
+                                    NotificationRouteManager.consume()
+                                    if (sessionManager.canUsePos()) {
+                                        navController.navigate(route) { launchSingleTop = true }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Seamless branded splash overlay: stays rock-solid while routing,
@@ -368,6 +396,27 @@ class MainActivity : FragmentActivity() {
                         hostState = KhanaToast.host,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+
+                    // LinkedIn-style in-app banner that slides in under the status
+                    // bar when a notification arrives while the user is inside the
+                    // app (not on login/setup/lock screens).
+                    if (activeBanner != null && currentRoute != "login" && currentRoute != "signup" && currentRoute != "app_lock") {
+                        val banner = activeBanner!!
+                        InAppNotificationBanner(
+                            notification = banner,
+                            onDismiss = { notificationRepository.consumeActiveBanner() },
+                            onOpen = {
+                                notificationRepository.consumeActiveBanner()
+                                bannerScope.launch { notificationRepository.markAsRead(banner.id) }
+                                if (sessionManager.canUsePos()) {
+                                    navController.navigate(
+                                        NotificationRouteManager.routeForType(banner.notificationType)
+                                    ) { launchSingleTop = true }
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.TopCenter),
+                        )
+                    }
                 } // end Box
             }
         }

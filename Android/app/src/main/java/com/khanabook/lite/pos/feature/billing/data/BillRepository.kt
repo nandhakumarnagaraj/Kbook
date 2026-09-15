@@ -558,8 +558,17 @@ class BillRepository(
     ) {
         val publicToken = bill.publicToken?.takeIf { it.isNotBlank() } ?: return
         if (items.isEmpty()) return
-        val localDeviceId = sessionManager.getDeviceId()
-        if (!bill.deviceId.isNullOrBlank() && bill.deviceId != localDeviceId) return
+        // KOT events are keyed on the owning TERMINAL (not the physical deviceId) so a
+        // recovered/replaced device keeps firing KOT for its own in-progress bills.
+        val localTerminalId = sessionManager.getTerminalId()
+        val billOwnerTerminal = bill.currentOwnerTerminalId
+            ?.takeIf { it.isNotBlank() }
+            ?: bill.createdTerminalId?.takeIf { it.isNotBlank() }
+            ?: bill.terminalId?.takeIf { it.isNotBlank() }
+        if (localTerminalId != null &&
+            billOwnerTerminal != null &&
+            billOwnerTerminal != localTerminalId
+        ) return
         if (!isKitchenPrintableStatus(bill.orderStatus)) return
 
         val revision = (kotEventDao.getMaxRevisionForBill(publicToken) + 1L).toString()
@@ -569,11 +578,27 @@ class BillRepository(
                 kotRevision = revision,
                 eventType = eventType,
                 itemSnapshotJson = serializeKotItems(items),
-                originatingDeviceId = localDeviceId,
+                originatingDeviceId = sessionManager.getDeviceId(),
                 isPrinted = false,
                 createdAt = System.currentTimeMillis()
             )
         )
+        // VOID events have no caller-side print dispatch (unlike NEW/ADD which route through
+        // PrintRouter). Enqueue a VOID ticket so the kitchen learns what was scrubbed from the
+        // order. Skip when another ticket for this bill is already pending — the queue is keyed
+        // (billId, printerMac) so a second unassigned job would clobber the first; kot_events
+        // still holds the audit record.
+        if (eventType == KotEventType.VOID) {
+            kitchenPrintQueueRepository
+                ?.takeIf { !it.hasPendingForBill(bill.id) }
+                ?.enqueuePending(
+                    billId = bill.id,
+                    printerMac = KitchenPrintQueueRepository.UNASSIGNED_PRINTER_MAC,
+                    error = "Void KOT",
+                    publicToken = publicToken,
+                    kotRevision = revision
+                )
+        }
     }
 
     private fun isKitchenPrintableStatus(status: String): Boolean =

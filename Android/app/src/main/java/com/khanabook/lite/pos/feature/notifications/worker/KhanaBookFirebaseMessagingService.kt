@@ -96,8 +96,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             "kyc" -> NotificationHelper.CHANNEL_KYC
             "settlement" -> NotificationHelper.CHANNEL_SETTLEMENT
             "inventory_low" -> NotificationHelper.CHANNEL_INVENTORY
-            "permission_request", "permission_approved", "permission_rejected" ->
-                NotificationHelper.CHANNEL_PERMISSIONS
             else -> NotificationHelper.CHANNEL_SYSTEM
         }
 
@@ -159,16 +157,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY)
 
             if (type == "fssai_expiry" && !referenceId.isNullOrBlank()) {
-                val payIntent = Intent(this@KhanaBookFirebaseMessagingService, MainActivity::class.java).apply {
-                    action = "ACTION_PAY_FSSAI"
-                    putExtra("fssai_number", referenceId)
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                }
-                val payPendingIntent = PendingIntent.getActivity(
-                    this@KhanaBookFirebaseMessagingService, id.toInt() + 1000, payIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-
                 val remindIntent = Intent(this@KhanaBookFirebaseMessagingService, NotificationActionReceiver::class.java).apply {
                     action = "ACTION_REMIND_LATER"
                     putExtra("fssai_number", referenceId)
@@ -179,7 +167,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                addAction(R.drawable.ic_notification_bell, "Pay Now", payPendingIntent)
                 addAction(R.drawable.ic_notification_bell, "Remind Me Later", remindPendingIntent)
             }
         }
@@ -212,12 +199,24 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         val count = (groupPushCounts[groupKey] ?: 0) + 1
         groupPushCounts[groupKey] = count
 
+        // The collapsed summary is what the user actually taps; without a content
+        // intent it opened the app but did nothing, despite "tap to view".
+        val summaryIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(com.khanabook.lite.pos.feature.notifications.domain.NotificationRouteManager.EXTRA_NOTIFICATION_TYPE, "system")
+        }
+        val summaryPendingIntent = PendingIntent.getActivity(
+            this, summaryId(groupKey), summaryIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val summary = NotificationCompat.Builder(this, groupKey)
             .setSmallIcon(R.drawable.ic_notification_bell)
             .setContentTitle("KhanaBook")
             .setContentText("$count new ${domainLabel(type)}${if (count > 1) "s" else ""}")
             .setStyle(NotificationCompat.BigTextStyle()
                 .bigText("$count new ${domainLabel(type)}${if (count > 1) "s" else ""} — tap to view"))
+            .setContentIntent(summaryPendingIntent)
             .setGroup(groupKey)
             .setGroupSummary(true)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY)
@@ -233,7 +232,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         "kyc" -> "KYC update"
         "settlement" -> "settlement update"
         "inventory_low" -> "stock alert"
-        "permission_request", "permission_approved", "permission_rejected" -> "permission update"
         "terminal" -> "device update"
         else -> "alert"
     }

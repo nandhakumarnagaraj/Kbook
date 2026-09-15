@@ -130,24 +130,35 @@ class PrintRouter @Inject constructor(
                     return@async Triple(target.role, true, "")
                 }
 
-                // ── KOT Device Ownership Guard ──────────────────────────────────────────
+                // ── KOT Terminal Ownership Guard ─────────────────────────────────────────
                 // Bills pulled from another terminal must NOT print KOT on this device,
                 // whether the KOT is fired automatically (on billing) or reprinted manually
                 // from the order detail screen. Each terminal only fires KOT events for bills
-                // it originated; a pulled bill is read-only history.
+                // it owns; a pulled bill is read-only history.
+                //
+                // Ownership is keyed on the owning TERMINAL (currentOwnerTerminalId), not the
+                // physical deviceId. A recovered/replaced device keeps the same terminal id,
+                // so its own in-progress bills remain KOT-printable after a device migration.
                 if (isKitchenTarget && (mode == PrintDispatchMode.AUTO || mode == PrintDispatchMode.MANUAL_KITCHEN_ONLY)) {
                     val printBill = bill.bill
                     val locallyOwned =
                         printBill.recordScope == "terminal_operational" && printBill.recordOrigin == "local_created"
-                    val localDeviceId = sessionManager.getDeviceId()
-                    // Reject KOT for read-only server history, and for bills that
-                    // originated on a different physical device. A terminal may only fire KOT
-                    // for its own locally-owned operational bills.
-                    if (!locallyOwned || (printBill.deviceId != null && printBill.deviceId != localDeviceId)) {
+                    val localTerminalId = sessionManager.getTerminalId()
+                    val billOwnerTerminal = printBill.currentOwnerTerminalId
+                        ?.takeIf { it.isNotBlank() }
+                        ?: printBill.createdTerminalId?.takeIf { it.isNotBlank() }
+                        ?: printBill.terminalId?.takeIf { it.isNotBlank() }
+                    // Only block when we can positively establish that a DIFFERENT terminal
+                    // owns this bill. Legacy records with no terminal identity stay printable
+                    // (they were created before terminal provisioning existed).
+                    val foreignTerminal = localTerminalId != null &&
+                        billOwnerTerminal != null &&
+                        billOwnerTerminal != localTerminalId
+                    if (!locallyOwned || foreignTerminal) {
                         Log.d(
                             TAG,
                             "Skipping KOT: not locally owned (scope=${printBill.recordScope}, " +
-                                "origin=${printBill.recordOrigin}, device=${printBill.deviceId}, local=$localDeviceId)"
+                                "origin=${printBill.recordOrigin}, ownerTerminal=$billOwnerTerminal, localTerminal=$localTerminalId)"
                         )
                         return@async Triple(target.role, true, "")
                     }

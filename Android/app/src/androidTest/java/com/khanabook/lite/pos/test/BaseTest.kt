@@ -18,7 +18,7 @@ abstract class BaseTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<com.khanabook.lite.pos.ui.MainActivity>()
+    val composeTestRule = createAndroidComposeRule<com.khanabook.lite.pos.core.app.MainActivity>()
 
     protected lateinit var mockApiServer: MockApiServer
     protected lateinit var uiDevice: UiDevice
@@ -77,7 +77,7 @@ abstract class BaseTest {
 
     protected fun restartApp() {
         forceStopApp()
-        val intent = Intent(ApplicationProvider.getApplicationContext(), com.khanabook.lite.pos.ui.MainActivity::class.java).apply {
+        val intent = Intent(ApplicationProvider.getApplicationContext(), com.khanabook.lite.pos.core.app.MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         ApplicationProvider.getApplicationContext<android.app.Application>().startActivity(intent)

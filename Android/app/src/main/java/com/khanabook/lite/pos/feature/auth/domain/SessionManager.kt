@@ -113,6 +113,13 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         editor.apply()
     }
 
+    /** KOT-event ledger cheap push/pull cursor, scoped per restaurant like the master sync cursor. */
+    fun getLastKotEventSyncedAt(): Long = prefs.getLong(scopedKey("kot_event_synced_at"), 0L)
+
+    fun saveLastKotEventSyncedAt(timestamp: Long) {
+        prefs.edit().putLong(scopedKey("kot_event_synced_at"), timestamp).apply()
+    }
+
     fun getRestaurantId(): Long = prefs.getLong("restaurant_id", 0L)
 
     fun saveRestaurantId(restaurantId: Long) {

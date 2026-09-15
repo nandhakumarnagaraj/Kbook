@@ -179,53 +179,11 @@ class PermissionManager @Inject constructor(
         }
     }
 
-    // ── Request Access Flow ──────────────────────────────────────────────────
-
-    private val _requestInFlight = MutableStateFlow(false)
-    val requestInFlight: StateFlow<Boolean> = _requestInFlight.asStateFlow()
-
-    private val _lastRequestResult = MutableStateFlow<RequestResult?>(null)
-    val lastRequestResult: StateFlow<RequestResult?> = _lastRequestResult.asStateFlow()
-
-    /**
-     * Submit a permission request to the server.
-     * Returns success/failure via lastRequestResult StateFlow.
-     */
-    suspend fun requestAccess(api: com.khanabook.lite.pos.core.network.KhanaBookApi, permissionKey: String, reason: String? = null) {
-        _requestInFlight.value = true
-        try {
-            val body = com.khanabook.lite.pos.feature.staff.data.PermissionRequestBody(permissionKey, reason)
-            val response = api.requestPermission(body)
-            val requestId = (response["requestId"] as? Number)?.toLong()
-            _lastRequestResult.value = RequestResult.Success(permissionKey, requestId)
-            Log.i(tag, "Permission request submitted: $permissionKey → requestId=$requestId")
-        } catch (e: Exception) {
-            Log.e(tag, "Permission request failed: $permissionKey", e)
-            val message = when {
-                e.message?.contains("already have") == true -> "You already have this permission"
-                e.message?.contains("already pending") == true -> "A request is already pending"
-                else -> "Request failed. Try again later."
-            }
-            _lastRequestResult.value = RequestResult.Error(permissionKey, message)
-        } finally {
-            _requestInFlight.value = false
-        }
-    }
-
-    fun clearRequestResult() {
-        _lastRequestResult.value = null
-    }
-
     /**
      * Get display name for a permission key (for UI).
      */
     fun getDisplayName(permissionKey: String): String {
         return PERMISSION_DISPLAY_NAMES[permissionKey] ?: permissionKey
-    }
-
-    sealed class RequestResult {
-        data class Success(val permissionKey: String, val requestId: Long?) : RequestResult()
-        data class Error(val permissionKey: String, val message: String) : RequestResult()
     }
 
     private val PERMISSION_DISPLAY_NAMES = mapOf(
@@ -242,9 +200,6 @@ class PermissionManager @Inject constructor(
         MENU_ADD_ITEM to "Add Items",
         MENU_DELETE_ITEM to "Remove Items",
         ORDERS_VIEW to "View Orders",
-        ORDERS_KOT_VIEW to "Kitchen Queue",
-        ORDERS_KOT_READY to "Mark Ready",
-        ORDERS_KOT_VOID to "Void KOT Items",
         REPORTS_DAY_SUMMARY to "Day Summary",
         REPORTS_FULL to "Full Reports",
         REPORTS_GST to "GST Reports",
@@ -293,9 +248,6 @@ class PermissionManager @Inject constructor(
 
         // Orders
         const val ORDERS_VIEW = "orders.view"
-        const val ORDERS_KOT_VIEW = "orders.kot_view"
-        const val ORDERS_KOT_READY = "orders.kot_ready"
-        const val ORDERS_KOT_VOID = "orders.kot_void"
 
         // Reports
         const val REPORTS_DAY_SUMMARY = "reports.day_summary"

@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.components.ManagerPinDialog
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderActionGrid
@@ -68,7 +67,6 @@ fun ActiveOrderDetailScreen(
     val billWithItems by viewModel.bill.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
-    var showManagerPinDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { event ->
@@ -196,11 +194,7 @@ fun ActiveOrderDetailScreen(
                 TextButton(
                     onClick = {
                         showCancelDialog = false
-                        if (viewModel.requiresManagerPinForVoid()) {
-                            showManagerPinDialog = true
-                        } else {
-                            viewModel.cancelOrder(onBack)
-                        }
+                        viewModel.cancelOrder(onBack)
                     }
                 ) {
                     Text("Cancel Order", color = DangerRed, fontWeight = FontWeight.Bold)
@@ -210,19 +204,6 @@ fun ActiveOrderDetailScreen(
                 TextButton(onClick = { showCancelDialog = false }) {
                     Text("Keep Order", color = TextGold)
                 }
-            }
-        )
-    }
-
-    if (showManagerPinDialog) {
-        ManagerPinDialog(
-            title = "Authorize Order Cancellation",
-            subtitle = "Manager or Owner PIN is required to void active kitchen order.",
-            onDismiss = { showManagerPinDialog = false },
-            onVerify = { pin -> viewModel.verifyManagerPin(pin) },
-            onAuthorized = {
-                showManagerPinDialog = false
-                viewModel.cancelOrder(onBack)
             }
         )
     }

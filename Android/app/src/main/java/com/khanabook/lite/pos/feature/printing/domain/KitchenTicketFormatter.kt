@@ -35,15 +35,7 @@ object KitchenTicketFormatter {
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
 
         add(RESET)
-        add(ALIGN_CENTER)
-        add("${restaurantProfile?.shopName ?: "RESTAURANT"}\n")
-        add("$line\n")
-        add(ALIGN_LEFT)
-        add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
-        add(leftPad + "Invoice: ${bill.bill.getInvoiceNumberDisplay()}\n")
-        add(leftPad + "Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
-        bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
-        add("$line\n")
+        addBillHeader(out, leftPad, line, bill, restaurantProfile)
 
         itemsToPrint.forEach { item ->
             add(BOLD_ON)
@@ -57,5 +49,86 @@ object KitchenTicketFormatter {
         add("\n\n\n")
         add(CUT_PAPER)
         return out.toByteArray()
+    }
+
+    /**
+     * Renders a VOID-only kitchen ticket from the item snapshot captured in the KOT event.
+     * A full bill is NOT reprinted — only the voided quantities are flagged for the kitchen
+     * so staff know what was scrubbed from the order.
+     */
+    fun formatVoidTicket(
+        bill: BillWithItems,
+        restaurantProfile: RestaurantProfileEntity?,
+        printerProfile: PrinterProfileEntity,
+        itemSnapshotJson: String
+    ): ByteArray {
+        val is80mm = printerProfile.paperSize == "80mm"
+        val charsPerLine = if (is80mm) 40 else 32
+        val leftPad = if (is80mm) "    " else ""
+        val line = leftPad + "-".repeat(charsPerLine)
+        val out = mutableListOf<Byte>()
+
+        fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
+        fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
+
+        add(RESET)
+        addBillHeader(out, leftPad, line, bill, restaurantProfile)
+        add(ALIGN_CENTER)
+        add(BOLD_ON)
+        add(leftPad + "*** VOIDED ***\n")
+        add(BOLD_OFF)
+        add(ALIGN_LEFT)
+        add("$line\n")
+
+        for (lineText in parseSnapshotItems(itemSnapshotJson)) {
+            add(leftPad + lineText + "\n")
+        }
+
+        add("$line\n")
+        add("\n\n\n")
+        add(CUT_PAPER)
+        return out.toByteArray()
+    }
+
+    private fun addBillHeader(
+        out: MutableList<Byte>,
+        leftPad: String,
+        line: String,
+        bill: BillWithItems,
+        restaurantProfile: RestaurantProfileEntity?
+    ) {
+        fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
+        fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
+
+        add(ALIGN_CENTER)
+        add("${restaurantProfile?.shopName ?: "RESTAURANT"}\n")
+        add("$line\n")
+        add(ALIGN_LEFT)
+        add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
+        add(leftPad + "Invoice: ${bill.bill.getInvoiceNumberDisplay()}\n")
+        add(leftPad + "Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
+        bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
+        add("$line\n")
+    }
+
+    private fun parseSnapshotItems(itemSnapshotJson: String): List<String> {
+        if (itemSnapshotJson.isBlank()) return listOf("(voided items not captured)")
+        return try {
+            val root = org.json.JSONArray(itemSnapshotJson)
+            val lines = mutableListOf<String>()
+            for (i in 0 until root.length()) {
+                val obj = root.optJSONObject(i) ?: continue
+                val qty = obj.optInt("quantity", 1)
+                val name = obj.optString("itemName").ifBlank { "Item" }
+                val variant = obj.optString("variantName").takeIf { it.isNotBlank() }
+                val note = obj.optString("specialInstruction").takeIf { it.isNotBlank() }
+                lines += "$qty x $name"
+                variant?.let { lines += "  Variant: $it" }
+                note?.let { lines += "  Note: $it" }
+            }
+            if (lines.isEmpty()) listOf("(voided items not captured)") else lines
+        } catch (e: Exception) {
+            listOf("(voided items not captured)")
+        }
     }
 }

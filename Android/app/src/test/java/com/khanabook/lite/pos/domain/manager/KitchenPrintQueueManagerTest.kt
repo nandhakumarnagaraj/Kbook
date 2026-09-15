@@ -3,6 +3,7 @@ import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
 import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.printing.data.KotEventDao
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueEntity
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
@@ -90,7 +91,18 @@ class KitchenPrintQueueManagerTest {
                 paymentStatus = "paid",
                 orderStatus = "completed"
             ),
-            items = emptyList(),
+            items = listOf(
+                BillItemEntity(
+                    id = 1L,
+                    billId = 42L,
+                    menuItemId = 20L,
+                    itemName = "Tea",
+                    price = "100.0",
+                    quantity = 1,
+                    itemTotal = "100.0",
+                    sentToKot = false
+                )
+            ),
             payments = emptyList()
         )
 
@@ -137,7 +149,18 @@ class KitchenPrintQueueManagerTest {
                 paymentStatus = "paid",
                 orderStatus = "completed"
             ),
-            items = emptyList(),
+            items = listOf(
+                BillItemEntity(
+                    id = 2L,
+                    billId = 55L,
+                    menuItemId = 21L,
+                    itemName = "Coffee",
+                    price = "200.0",
+                    quantity = 1,
+                    itemTotal = "200.0",
+                    sentToKot = false
+                )
+            ),
             payments = emptyList()
         )
 
@@ -183,7 +206,18 @@ class KitchenPrintQueueManagerTest {
                 paymentStatus = "paid",
                 orderStatus = "completed"
             ),
-            items = emptyList(),
+            items = listOf(
+                BillItemEntity(
+                    id = 3L,
+                    billId = 56L,
+                    menuItemId = 22L,
+                    itemName = "Soup",
+                    price = "150.0",
+                    quantity = 1,
+                    itemTotal = "150.0",
+                    sentToKot = false
+                )
+            ),
             payments = emptyList()
         )
 

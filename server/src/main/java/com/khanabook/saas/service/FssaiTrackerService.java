@@ -107,8 +107,9 @@ public class FssaiTrackerService {
                     log.info("RestaurantId={} FSSAI Tracker Expiry ({}) is in {} days (date: {})",
                         profile.getRestaurantId(), fssaiNo, daysToExpiry, tracker.getExpiryDate());
 
-                    // Alert on specific milestone days (e.g. 30, 15, 7, 3, 1 day before expiry)
-                    if (daysToExpiry == 30 || daysToExpiry == 15 || daysToExpiry == 7 || daysToExpiry == 3 || daysToExpiry == 1) {
+                    // Alert on the renewal milestones: 1 month (30d), 2 weeks (14d),
+                    // 1 week (7d), 2 days, and the last date (0d).
+                    if (daysToExpiry == 30 || daysToExpiry == 14 || daysToExpiry == 7 || daysToExpiry == 2 || daysToExpiry == 0) {
                         sendRenewalNotification(profile, tracker, daysToExpiry);
                         tracker.setLastAlertSentAt(System.currentTimeMillis());
                         fssaiTrackerRepo.save(tracker);
@@ -125,7 +126,9 @@ public class FssaiTrackerService {
     private void sendRenewalNotification(RestaurantProfile profile, FssaiTracker tracker, long daysToExpiry) {
         String shopName = profile.getShopName() != null ? profile.getShopName() : "Your restaurant";
         String severity = (daysToExpiry <= 7) ? "CRITICAL" : "WARNING";
-        String title = (daysToExpiry <= 7) ? "🚨 FSSAI License Expiring Critical!" : "⚠️ FSSAI License Expiring Soon!";
+        String title = (daysToExpiry == 0)
+            ? "🚨 FSSAI License Expires Today!"
+            : (daysToExpiry <= 7) ? "🚨 FSSAI License Expiring Critical!" : "⚠️ FSSAI License Expiring Soon!";
         String customFssai = profile.getCustomFssaiMessage();
         String message;
         if (customFssai != null && !customFssai.isBlank()) {
@@ -134,6 +137,13 @@ public class FssaiTrackerService {
                 .replace("{shopName}", shopName)
                 .replace("{days}", String.valueOf(daysToExpiry))
                 .replace("{expiryDate}", tracker.getExpiryDate().format(DATE_FORMATTER));
+        } else if (daysToExpiry == 0) {
+            message = String.format(
+                "Your FSSAI license (%s) for %s expires today (%s). Renew it immediately to avoid penalties.",
+                profile.getFssaiNumber(),
+                shopName,
+                tracker.getExpiryDate().format(DATE_FORMATTER)
+            );
         } else {
             message = String.format(
                 "Your FSSAI license (%s) for %s will expire in %d days (%s). Please renew it immediately to avoid penalties.",
@@ -146,7 +156,7 @@ public class FssaiTrackerService {
 
         log.info("Sending FSSAI renewal push notification to restaurantId={} severity={}", profile.getRestaurantId(), severity);
 
-        // Dispatch notification of type "fssai_expiry" to attach actions (Pay Now / Remind Later)
+        // Dispatch notification of type "fssai_expiry" (tap-to-view + "Remind Me Later" action)
         pushNotificationService.pushToRestaurant(
             profile.getRestaurantId(),
             title,

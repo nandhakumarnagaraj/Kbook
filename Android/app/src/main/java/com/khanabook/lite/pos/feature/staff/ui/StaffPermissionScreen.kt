@@ -10,8 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -111,28 +109,6 @@ fun StaffPermissionScreen(
                     )
                 }
 
-                // Pending requests section
-                if (state.pendingRequests.isNotEmpty()) {
-                    item {
-                        Text(
-                            "Pending Requests (${state.pendingRequests.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = WarningYellow,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    items(state.pendingRequests) { request ->
-                        PendingRequestCard(
-                            userName = request.userName ?: "Staff #${request.userId}",
-                            permissionName = request.permissionDisplayName ?: request.permissionKey,
-                            reason = request.reason,
-                            onApprove = { viewModel.approveRequest(request.id) },
-                            onReject = { viewModel.rejectRequest(request.id) }
-                        )
-                    }
-                    item { Spacer(Modifier.height(spacing.small)) }
-                }
-
                 // Staff permission toggles
                 item {
                     Text(
@@ -183,44 +159,6 @@ fun StaffPermissionScreen(
                         applyTemplate = null
                     }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PendingRequestCard(
-    userName: String,
-    permissionName: String,
-    reason: String?,
-    onApprove: () -> Unit,
-    onReject: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Surface(
-        shape = RoundedCornerShape(spacing.small),
-        color = DarkBrown2,
-        tonalElevation = spacing.extraSmall
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(userName, style = MaterialTheme.typography.bodyLarge, color = TextLight, fontWeight = FontWeight.SemiBold)
-                Text("Wants: $permissionName", style = MaterialTheme.typography.bodySmall, color = TextGold)
-                if (!reason.isNullOrBlank()) {
-                    Text("Reason: $reason", style = MaterialTheme.typography.bodySmall, color = TextGold)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                IconButton(onClick = onApprove) {
-                    Icon(Icons.Filled.Check, "Approve", tint = SuccessGreen)
-                }
-                IconButton(onClick = onReject) {
-                    Icon(Icons.Filled.Close, "Reject", tint = DangerRed)
-                }
             }
         }
     }

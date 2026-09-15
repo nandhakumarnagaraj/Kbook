@@ -289,9 +289,10 @@ class PrintRouterTest {
     @Test
     fun `AUTO - bill originating from this device prints kitchen ticket`() = runTest {
         whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
-        // Mock bill originating from DEVICE_1 (matching our sessionManager mock)
+        whenever(sessionManager.getTerminalId()).thenReturn("TERM_LOCAL")
+        // Mock bill originating from TERM_LOCAL (matching our sessionManager mock)
         val ownBill = bill.copy(
-            bill = bill.bill.copy(deviceId = "DEVICE_1")
+            bill = bill.bill.copy(deviceId = "DEVICE_1", currentOwnerTerminalId = "TERM_LOCAL")
         )
 
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
@@ -300,23 +301,24 @@ class PrintRouterTest {
 
         val result = router.printBill(ownBill, restaurantProfile, PrintDispatchMode.AUTO)
 
-        // Prints because originatingDeviceId matches this deviceId
+        // Prints because the bill belongs to this TERMINAL
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
     }
 
     @Test
-    fun `AUTO - bill originating from a different device does NOT print kitchen ticket`() = runTest {
+    fun `AUTO - bill owned by a different terminal does NOT print kitchen ticket`() = runTest {
         whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
-        // Mock bill originating from DEVICE_OTHER (different from DEVICE_1)
+        whenever(sessionManager.getTerminalId()).thenReturn("TERM_LOCAL")
+        // Mock bill owned by TERM_OTHER (different terminal from this device's)
         val otherBill = bill.copy(
-            bill = bill.bill.copy(deviceId = "DEVICE_OTHER")
+            bill = bill.bill.copy(deviceId = "DEVICE_OTHER", currentOwnerTerminalId = "TERM_OTHER")
         )
 
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
 
         val result = router.printBill(otherBill, restaurantProfile, PrintDispatchMode.AUTO)
 
-        // Skipped because originatingDeviceId does not match this deviceId
+        // Skipped because the bill is owned by a different TERMINAL
         coVerify(exactly = 0) { printerManager.connect(kitchenMac) }
     }
 }

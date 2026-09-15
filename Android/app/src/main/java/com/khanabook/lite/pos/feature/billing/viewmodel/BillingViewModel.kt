@@ -89,19 +89,8 @@ class BillingViewModel @Inject constructor(
     private val _blockedPermission = MutableStateFlow<BlockedPermission?>(null)
     val blockedPermission: StateFlow<BlockedPermission?> = _blockedPermission.asStateFlow()
 
-    val permissionRequestInFlight = permissionManager.requestInFlight
-    val permissionRequestResult = permissionManager.lastRequestResult
-
     fun dismissBlockedPermission() {
         _blockedPermission.value = null
-        permissionManager.clearRequestResult()
-    }
-
-    fun requestAccessForBlocked() {
-        val blocked = _blockedPermission.value ?: return
-        viewModelScope.launch {
-            permissionManager.requestAccess(khanaBookApi, blocked.key)
-        }
     }
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->

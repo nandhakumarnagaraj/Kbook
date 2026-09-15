@@ -55,6 +55,7 @@ class MasterSyncProcessor @Inject constructor(
     private val menuDao: MenuDao,
     private val inventoryDao: InventoryDao,
     private val printerProfileDao: PrinterProfileDao,
+    private val kotEventDao: com.khanabook.lite.pos.feature.printing.data.KotEventDao,
     private val sessionManager: SessionManager,
     private val permissionManager: PermissionManager
 ) {
@@ -636,9 +637,51 @@ class MasterSyncProcessor @Inject constructor(
             logWarn("Bill payment failures isolated from other acknowledged work", conflict)
         }
 
+        // ── KOT events (append-only cloud ledger for audit + device recovery). ──
+        // Server upsert is idempotent keyed on (publicToken, kotRevision) and only
+        // ever ORs is_printed, so re-pushing rows already seen is harmless — that is
+        // what lets us track progress with a cheap createdAt cursor instead of an
+        // is_synced column. Failures must not poison the master sync.
+        try {
+            val kotCursor = sessionManager.getLastKotEventSyncedAt()
+            val unsyncedKotEvents = kotEventDao.getEventsAfterCursor(kotCursor)
+            if (unsyncedKotEvents.isNotEmpty()) {
+                api.pushKotEvents(unsyncedKotEvents.map { it.toSyncDto(restaurantId) })
+                sessionManager.saveLastKotEventSyncedAt(unsyncedKotEvents.maxOf { it.createdAt })
+            }
+        } catch (t: Exception) {
+            logWarn("KOT event ledger push failed; retrying next sync cycle", t)
+        }
+
         isolatedConflicts.firstOrNull()?.let { throw it }
 
         return true
+    }
+
+    /**
+     * Pulls KOT-event ledger rows newer than the device's per-restaurant cursor and
+     * persists them insert-ignore — a recovered/replaced device rebuilds ticket
+     * history, and pulled events are NEVER auto-printed (enforced model-wide;
+     * printing is owned by the originating terminal). Best-effort: a failure must
+     * not fail the surrounding master sync.
+     */
+    suspend fun pullKotEvents() {
+        val restaurantId = sessionManager.getRestaurantId()
+        if (restaurantId <= 0L) return
+        val cursor = sessionManager.getLastKotEventSyncedAt()
+        try {
+            val events = api.pullKotEvents(
+                lastSyncTimestamp = cursor,
+                deviceId = sessionManager.getDeviceId(),
+                ignoreDeviceId = true
+            )
+            if (events.isEmpty()) return
+            val cutoff = events.maxOf { it.createdAt }
+            kotEventDao.insertAll(events.map { it.toEntity() })
+            sessionManager.saveLastKotEventSyncedAt(cutoff)
+        } catch (t: Exception) {
+            logWarn("KOT event ledger pull/store failed; retrying next sync cycle", t)
+        }
     }
 
     internal suspend fun acknowledgeUnchangedBills(
@@ -1566,6 +1609,11 @@ BillEntity(
         val knownBillIds = billServerIdMap.values.toMutableSet()
 
         if (masterData.billItems.isNotEmpty()) {
+            // sentToKot is monotonic (false → true): a device that already saw an item leave
+            // for the kitchen must never regress via a stale server snapshot. Capture existing
+            // local flags up-front; the delete+reinsert below drops the in-DB rows. The server
+            // DTO is also absent on older-built server rows (pulled before this shipped).
+            val localSentToKotByServerId = billDao.getSyncedItemKotFlags(restaurantId).associate { it.serverId to it.sentToKot }
             val resolvedBillItems = masterData.billItems.mapNotNull { remoteBillItem ->
                     val localBillId = remoteBillItem.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
@@ -1605,7 +1653,8 @@ BillEntity(
                         serverBillId = remoteBillItem.serverBillId,
                         serverMenuItemId = remoteBillItem.serverMenuItemId,
                         serverVariantId = remoteBillItem.serverVariantId,
-                        serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L
+                        serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L,
+                        sentToKot = remoteBillItem.sentToKot || (remoteBillItem.serverId?.let { localSentToKotByServerId[it] } ?: false)
                     )
                     }
                 }

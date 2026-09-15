@@ -69,6 +69,7 @@ class MasterSyncProcessorMenuRejectionTest {
             menuDao = menuDao,
             inventoryDao = mockk<InventoryDao>(relaxed = true),
             printerProfileDao = mockk<PrinterProfileDao>(relaxed = true),
+            kotEventDao = mockk(relaxed = true),
             sessionManager = sessionManager,
             permissionManager = mockk(relaxed = true)
         )

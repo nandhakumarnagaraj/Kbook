@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.isConnectionConfigured
 import com.khanabook.lite.pos.feature.printing.data.KotEventDao
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -53,6 +55,9 @@ class KitchenPrintQueueManager @Inject constructor(
 
     companion object {
         private const val TAG = "KitchenPrintQueue"
+
+        /** Failed kitchen tickets are retried on this cadence until the printer is reachable. */
+        private const val RETRY_INTERVAL_MS = 30_000L
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -76,6 +81,17 @@ class KitchenPrintQueueManager @Inject constructor(
             val kitchen = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
             if (kitchen?.enabled == true && kitchen.isConnectionConfigured()) {
                 flushPendingForPrinter(kitchen.connectionTargetKey())
+            }
+        }
+
+        // Periodic safety net: if a ticket was queued while the kitchen printer
+        // was offline it would otherwise sit until someone manually reconnects.
+        // The retry is guarded by mutex + claim checks so it cannot race with a
+        // concurrent direct print.
+        scope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(RETRY_INTERVAL_MS)
+                flushAllPending()
             }
         }
     }
@@ -175,7 +191,40 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             try {
-                val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
+                // ── Void tickets: print only the voided-item snapshot, never the whole bill ──
+                val voidEvent = job.publicToken?.let { token ->
+                    job.kotRevision?.let { revision -> kotEventDao.getEvent(token, revision) }
+                }
+                if (voidEvent != null && voidEvent.eventType == KotEventType.VOID) {
+                    val bytes = KitchenTicketFormatter.formatVoidTicket(
+                        bill,
+                        restaurantProfile,
+                        printerProfile,
+                        voidEvent.itemSnapshotJson
+                    )
+                    if (printerTransport.print(printerProfile, bytes)) {
+                        queueRepository.markSent(job.id)
+                        kotEventDao.markPrinted(voidEvent.publicToken, voidEvent.kotRevision)
+                    } else {
+                        queueRepository.markPending(job.id, "print failed")
+                        break
+                    }
+                    continue
+                }
+
+                // ── NEW/ADD retries: only re-print items the kitchen has NOT seen yet.
+                // If a direct-print path already delivered them, the retry must not
+                // print a duplicate ticket. ──
+                val unsentItems = bill.items.filter { !it.sentToKot }
+                if (unsentItems.isEmpty()) {
+                    // Already delivered by a concurrent direct print — nothing to retry.
+                    queueRepository.markSent(job.id)
+                    if (job.publicToken != null && job.kotRevision != null) {
+                        kotEventDao.markPrinted(job.publicToken, job.kotRevision)
+                    }
+                    continue
+                }
+                val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile, unsentItems)
                 if (printerTransport.print(printerProfile, bytes)) {
                     queueRepository.markSent(job.id)
                     if (job.publicToken != null && job.kotRevision != null) {

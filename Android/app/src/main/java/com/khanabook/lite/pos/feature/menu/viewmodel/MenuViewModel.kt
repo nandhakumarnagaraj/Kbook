@@ -38,25 +38,13 @@ class MenuViewModel @Inject constructor(
 ) : ViewModel() {
     private val ocrDebugTag = "OCR_DEBUG"
 
-    data class BlockedPermission(val key: String, val displayName: String, val requestable: Boolean = true)
+    data class BlockedPermission(val key: String, val displayName: String)
 
     private val _blockedPermission = MutableStateFlow<BlockedPermission?>(null)
     val blockedPermission: StateFlow<BlockedPermission?> = _blockedPermission.asStateFlow()
 
-    val permissionRequestInFlight = permissionManager.requestInFlight
-    val permissionRequestResult = permissionManager.lastRequestResult
-
     fun dismissBlockedPermission() {
         _blockedPermission.value = null
-        permissionManager.clearRequestResult()
-    }
-
-    fun requestAccessForBlocked() {
-        val blocked = _blockedPermission.value ?: return
-        if (!blocked.requestable) return
-        viewModelScope.launch {
-            permissionManager.requestAccess(khanaBookApi, blocked.key)
-        }
     }
 
     private fun block(permissionKey: String) {
@@ -67,11 +55,10 @@ class MenuViewModel @Inject constructor(
     }
 
     private fun blockMasterDataWrite() {
-        // Master data is role-bound — requesting a menu.* grant cannot unlock it.
+        // Master data is role-bound — only the restaurant owner may change it.
         _blockedPermission.value = BlockedPermission(
             key = "master_data_write",
-            displayName = "Only the restaurant owner may edit the menu.",
-            requestable = false
+            displayName = "Only the restaurant owner may edit the menu."
         )
     }
 

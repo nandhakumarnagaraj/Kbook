@@ -24,14 +24,4 @@ class AuthManager @Inject constructor() {
             false
         }
     }
-
-    suspend fun verifyManagerPin(enteredPin: String, sessionManager: SessionManager): Boolean = withContext(Dispatchers.Default) {
-        val pinHash = sessionManager.getPinHash()
-        if (!pinHash.isNullOrBlank()) {
-            verifyPassword(enteredPin, pinHash)
-        } else {
-            Log.w(TAG, "No manager PIN configured — access denied until PIN is set")
-            false
-        }
-    }
 }

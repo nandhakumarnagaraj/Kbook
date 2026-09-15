@@ -25,7 +25,6 @@ object NotificationHelper {
     const val CHANNEL_SETTLEMENT = "khanabook_settlement_v2"
     const val CHANNEL_SYSTEM = "khanabook_system_v2"
     const val CHANNEL_INVENTORY = "khanabook_inventory_v2"
-    const val CHANNEL_PERMISSIONS = "khanabook_permissions_v2"
 
     private const val GROUP_PAYMENTS = "khanabook_group_payments"
     private const val GROUP_SYSTEM = "khanabook_group_system"
@@ -64,9 +63,6 @@ object NotificationHelper {
         )
         manager.createNotificationChannel(
             inventoryChannel(context)
-        )
-        manager.createNotificationChannel(
-            permissionsChannel(context)
         )
     }
 
@@ -126,19 +122,6 @@ object NotificationHelper {
             description = "Raw materials running below their low-stock threshold"
             enableVibration(true)
             setShowBadge(true)
-            group = GROUP_OPERATIONS
-        }
-        return channel
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun permissionsChannel(context: Context): NotificationChannel {
-        val channel = NotificationChannel(
-            CHANNEL_PERMISSIONS,
-            "Staff Permissions",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Permission requests from staff and approval decisions"
             group = GROUP_OPERATIONS
         }
         return channel

@@ -114,6 +114,16 @@ interface KhanaBookApi {
         @POST("api/v1/sync/stocklog/push")
         suspend fun pushStockLogs(@Body logs: List<StockLogSyncDto>): PushSyncResponse
 
+        @POST("api/v1/sync/kot-events/push")
+        suspend fun pushKotEvents(@Body events: List<KotEventSyncDto>): PushSyncResponse
+
+        @GET("api/v1/sync/kot-events/pull")
+        suspend fun pullKotEvents(
+            @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
+            @Query("deviceId") deviceId: String,
+            @Query("ignoreDeviceId") ignoreDeviceId: Boolean = true,
+        ): List<KotEventSyncDto>
+
         // ── Master pull (primary sync path) ─────────────────────────────────
         @GET("api/v1/sync/master/pull")
         suspend fun pullMasterSync(
@@ -204,18 +214,6 @@ interface KhanaBookApi {
 
         @GET("api/v1/permissions/me")
         suspend fun getMyPermissions(): PermissionSyncResponse
-
-        @POST("api/v1/permissions/request")
-        suspend fun requestPermission(@Body body: PermissionRequestBody): Map<String, Any>
-
-        @GET("api/v1/permissions/requests/pending")
-        suspend fun getPendingPermissionRequests(): List<PermissionRequestDto>
-
-        @POST("api/v1/permissions/requests/{requestId}/resolve")
-        suspend fun resolvePermissionRequest(
-            @Path("requestId") requestId: Long,
-            @Body body: PermissionResolveBody
-        )
 
         @POST("api/v1/permissions/grant")
         suspend fun grantPermission(@Body body: PermissionGrantBody)

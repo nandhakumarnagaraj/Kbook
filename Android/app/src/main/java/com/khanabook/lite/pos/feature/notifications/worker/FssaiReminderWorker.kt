@@ -31,7 +31,10 @@ class FssaiReminderWorker(
 
         val id = REMINDER_NOTIFICATION_ID
         val tapIntent = Intent(context, MainActivity::class.java).apply {
-            action = com.khanabook.lite.pos.feature.notifications.domain.NotificationRouteManager.ACTION_PAY_FSSAI
+            putExtra(
+                com.khanabook.lite.pos.feature.notifications.domain.NotificationRouteManager.EXTRA_NOTIFICATION_TYPE,
+                "fssai_expiry"
+            )
             putExtra("fssai_number", fssaiNumber)
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -55,7 +58,6 @@ class FssaiReminderWorker(
         ).apply {
             setContentIntent(pendingIntent)
             setColor(0xFFF97316.toInt()) // Saffron, matching the original alert
-            addAction(R.drawable.ic_notification_bell, "Pay Now", pendingIntent)
         }.build()
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

@@ -7,8 +7,6 @@ import com.khanabook.lite.pos.feature.staff.data.ApplyTemplateBody
 import com.khanabook.lite.pos.feature.staff.data.CreateTemplateBody
 import com.khanabook.lite.pos.core.network.KhanaBookApi
 import com.khanabook.lite.pos.feature.staff.data.PermissionGrantBody
-import com.khanabook.lite.pos.feature.staff.data.PermissionRequestDto
-import com.khanabook.lite.pos.feature.staff.data.PermissionResolveBody
 import com.khanabook.lite.pos.feature.staff.data.PermissionRevokeBody
 import com.khanabook.lite.pos.feature.staff.data.RoleTemplateDto
 import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
@@ -23,7 +21,6 @@ import javax.inject.Inject
 data class StaffPermissionUiState(
     val isLoading: Boolean = true,
     val staffList: List<StaffMemberPermissions> = emptyList(),
-    val pendingRequests: List<PermissionRequestDto> = emptyList(),
     val templates: List<RoleTemplateDto> = emptyList(),
     val error: String? = null,
     val actionInFlight: Boolean = false,
@@ -74,10 +71,7 @@ class StaffPermissionViewModel @Inject constructor(
             PermissionManager.MENU_DELETE_ITEM to "Delete Items"
         ),
         "ORDERS" to listOf(
-            PermissionManager.ORDERS_VIEW to "View Orders",
-            PermissionManager.ORDERS_KOT_VIEW to "Kitchen Queue",
-            PermissionManager.ORDERS_KOT_READY to "Mark Ready",
-            PermissionManager.ORDERS_KOT_VOID to "Void KOT Items"
+            PermissionManager.ORDERS_VIEW to "View Orders"
         ),
         "REPORTS" to listOf(
             PermissionManager.REPORTS_DAY_SUMMARY to "Day Summary",
@@ -108,7 +102,6 @@ class StaffPermissionViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val pendingRequests = try { api.getPendingPermissionRequests() } catch (e: Exception) { emptyList() }
                 val templates = try { api.getRoleTemplates() } catch (e: Exception) { emptyList() }
 
                 // Load each staff member's permissions
@@ -137,7 +130,6 @@ class StaffPermissionViewModel @Inject constructor(
                 _uiState.value = StaffPermissionUiState(
                     isLoading = false,
                     staffList = staffPermissions,
-                    pendingRequests = pendingRequests,
                     templates = templates
                 )
             } catch (e: Exception) {
@@ -176,39 +168,6 @@ class StaffPermissionViewModel @Inject constructor(
                     actionInFlight = false,
                     error = "Failed to update permission. Try again."
                 )
-            }
-        }
-    }
-
-    fun approveRequest(requestId: Long) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(actionInFlight = true)
-            try {
-                api.resolvePermissionRequest(requestId, PermissionResolveBody("APPROVE"))
-                _uiState.value = _uiState.value.copy(
-                    actionInFlight = false,
-                    pendingRequests = _uiState.value.pendingRequests.filter { it.id != requestId }
-                )
-                loadData() // Refresh to show updated permissions
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to approve request", e)
-                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to approve. Try again.")
-            }
-        }
-    }
-
-    fun rejectRequest(requestId: Long, reason: String? = null) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(actionInFlight = true)
-            try {
-                api.resolvePermissionRequest(requestId, PermissionResolveBody("REJECT", reason))
-                _uiState.value = _uiState.value.copy(
-                    actionInFlight = false,
-                    pendingRequests = _uiState.value.pendingRequests.filter { it.id != requestId }
-                )
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to reject request", e)
-                _uiState.value = _uiState.value.copy(actionInFlight = false, error = "Failed to reject. Try again.")
             }
         }
     }

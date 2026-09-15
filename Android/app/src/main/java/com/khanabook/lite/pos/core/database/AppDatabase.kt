@@ -47,10 +47,9 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         TerminalDailyCounterEntity::class,
                         NotificationEntity::class,
                         StaffPermissionEntity::class,
-                        PermissionRequestEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 73,
+        version = 74,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1099,6 +1098,13 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `image_version` INTEGER NOT NULL DEFAULT 0")
                 }
                 android.util.Log.i("AppDatabase", "MIGRATION_72_73 complete: added image_url and image_version to menu_items")
+            }
+        }
+
+        val MIGRATION_73_74 = object : Migration(73, 74) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `permission_requests`")
+                android.util.Log.i("AppDatabase", "MIGRATION_73_74 complete: dropped unused permission_requests table")
             }
         }
 

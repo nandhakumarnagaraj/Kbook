@@ -833,6 +833,9 @@ class TenantBillDao @Inject constructor(
     override suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity> = dao.getRecentDineInBillsWithCustomers(restaurantId, terminalId)
     override suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long, terminalId: String): BillEntity? = dao.getBillByLifetimeNo(lifetimeNo, restaurantId, terminalId)
     override suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity> = dao.getBillsWithPendingKds(restaurantId, terminalId)
+
+    override suspend fun getSyncedItemKotFlags(restaurantId: Long): List<SyncedItemKotFlags> =
+        dao.getSyncedItemKotFlags(restaurantId)
 }
 
 @Singleton
@@ -886,6 +889,7 @@ class TenantKotEventDao @Inject constructor(
     override suspend fun getLatestUnprintedEvent(publicToken: String): KotEventEntity? = dao.getLatestUnprintedEvent(publicToken)
     override suspend fun markUnprintedEventsPrinted(publicToken: String): Int = dao.markUnprintedEventsPrinted(publicToken)
     override suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity? = dao.getEvent(publicToken, kotRevision)
+    override suspend fun getEventsAfterCursor(createdAt: Long): List<KotEventEntity> = dao.getEventsAfterCursor(createdAt)
 }
 
 @Singleton
@@ -902,6 +906,7 @@ class TenantNotificationDao @Inject constructor(
     override fun getNotifications(limit: Int): Flow<List<NotificationEntity>> = runFlow { it.notificationDao().getNotifications(limit) }
     override fun getUnreadCount(): Flow<Int> = runFlow { it.notificationDao().getUnreadCount() }
     override suspend fun getById(id: Long): NotificationEntity? = dao.getById(id)
+    override suspend fun getReadIds(ids: List<Long>): List<Long> = dao.getReadIds(ids)
     override suspend fun insertAll(notifications: List<NotificationEntity>) = dao.insertAll(notifications)
     override suspend fun insert(notification: NotificationEntity) = dao.insert(notification)
     override suspend fun markAsRead(id: Long) = dao.markAsRead(id)

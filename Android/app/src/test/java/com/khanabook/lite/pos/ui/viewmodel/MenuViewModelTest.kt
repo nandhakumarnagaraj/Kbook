@@ -126,7 +126,6 @@ class MenuViewModelTest {
         val blocked = viewModel.blockedPermission.value
         assertNotNull("Staff master-data write should surface a blocked dialog", blocked)
         assertEquals("master_data_write", blocked!!.key)
-        assertFalse("Role-bound denial must not be requestable", blocked.requestable)
         coVerify(exactly = 0) { categoryRepository.insertCategory(any()) }
     }
 
