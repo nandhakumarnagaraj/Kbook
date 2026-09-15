@@ -77,27 +77,6 @@ data class BillItemSyncDto(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
     @SerializedName("version") val version: Long = 0L,
-    @SerializedName("sentToKot") val sentToKot: Boolean = false,
-)
-
-data class KotEventSyncDto(
-    @SerializedName("restaurantId") val restaurantId: Long,
-    @SerializedName("deviceId") val deviceId: String,
-    @SerializedName("terminalId") val terminalId: String?,
-    @SerializedName("terminalSeries") val terminalSeries: String?,
-    @SerializedName("publicToken") val publicToken: String,
-    @SerializedName("billPublicToken") val billPublicToken: String?,
-    @SerializedName("kotRevision") val kotRevision: String,
-    @SerializedName("eventType") val eventType: String,
-    @SerializedName("itemSnapshotJson") val itemSnapshotJson: String,
-    @SerializedName("originatingDeviceId") val originatingDeviceId: String,
-    @SerializedName("originTerminalId") val originTerminalId: String?,
-    @SerializedName("originDeviceId") val originDeviceId: String?,
-    @SerializedName("eventToken") val eventToken: String?,
-    @SerializedName("eventVersion") val eventVersion: Long,
-    @SerializedName("isPrinted") val isPrinted: Boolean,
-    @SerializedName("createdAt") val createdAt: Long,
-    @SerializedName("updatedAt") val updatedAt: Long,
 )
 
 data class BillPaymentSyncDto(

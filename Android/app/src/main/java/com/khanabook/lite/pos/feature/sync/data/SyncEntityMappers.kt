@@ -100,7 +100,6 @@ fun BillItemEntity.toSyncDto() = BillItemSyncDto(
     isDeleted       = isDeleted,
     serverUpdatedAt = serverUpdatedAt,
     version         = 0L,
-    sentToKot       = sentToKot,
 )
 
 fun BillPaymentEntity.toSyncDto() = BillPaymentSyncDto(
@@ -279,39 +278,3 @@ fun StockLogEntity.toSyncDto() = StockLogSyncDto(
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,
 )
-
-fun com.khanabook.lite.pos.feature.printing.data.KotEventEntity.toSyncDto(restaurantId: Long) =
-    com.khanabook.lite.pos.feature.sync.data.KotEventSyncDto(
-        restaurantId     = restaurantId,
-        deviceId         = originatingDeviceId,
-        terminalId       = originTerminalId,
-        terminalSeries   = null,
-        publicToken      = publicToken,
-        billPublicToken  = billPublicToken,
-        kotRevision      = kotRevision,
-        eventType        = eventType,
-        itemSnapshotJson = itemSnapshotJson,
-        originatingDeviceId = originatingDeviceId,
-        originTerminalId = originTerminalId,
-        originDeviceId   = originDeviceId,
-        eventToken       = eventToken,
-        eventVersion     = eventVersion,
-        isPrinted        = isPrinted,
-        createdAt        = createdAt,
-        updatedAt        = createdAt,
-    )
-
-fun com.khanabook.lite.pos.feature.sync.data.KotEventSyncDto.toEntity() =
-    com.khanabook.lite.pos.feature.printing.data.KotEventEntity(
-        publicToken = publicToken,
-        kotRevision = kotRevision,
-        eventType = eventType,
-        itemSnapshotJson = itemSnapshotJson.orEmpty(),
-        originatingDeviceId = originatingDeviceId,
-        originTerminalId = originTerminalId,
-        originDeviceId = originDeviceId,
-        eventToken = eventToken,
-        eventVersion = eventVersion,
-        isPrinted = isPrinted,
-        createdAt = createdAt,
-    )

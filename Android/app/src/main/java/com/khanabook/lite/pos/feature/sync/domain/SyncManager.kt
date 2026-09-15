@@ -373,10 +373,6 @@ class SyncManager @Inject constructor(
         } else {
             throw IllegalStateException("Master sync response missing server timestamp")
         }
-
-        // Best-effort KOT-event ledger sync (audit + device recovery). Independent of
-        // the master checkpoint; failures are swallowed inside pullKotEvents.
-        masterSyncProcessor.pullKotEvents()
     }
 
     private suspend fun recoverFromSyncConflict(deviceId: String): Boolean {

@@ -49,8 +49,4 @@ interface KotEventDao {
         "SELECT * FROM kot_events WHERE public_token = :publicToken AND kot_revision = :kotRevision LIMIT 1"
     )
     suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity?
-
-    /** Events newer than [createdAt], oldest first — the delta pushed to the cloud ledger. */
-    @Query("SELECT * FROM kot_events WHERE created_at > :createdAt ORDER BY created_at ASC")
-    suspend fun getEventsAfterCursor(createdAt: Long): List<KotEventEntity>
 }

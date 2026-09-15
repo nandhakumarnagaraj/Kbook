@@ -1329,12 +1329,4 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         """
     )
     suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity>
-
-    @Query("SELECT server_id, sent_to_kot FROM bill_items WHERE is_synced = 1 AND restaurant_id = :restaurantId")
-    suspend fun getSyncedItemKotFlags(restaurantId: Long): List<SyncedItemKotFlags>
 }
-
-data class SyncedItemKotFlags(
-    @androidx.room.ColumnInfo(name = "server_id") val serverId: Long,
-    @androidx.room.ColumnInfo(name = "sent_to_kot") val sentToKot: Boolean,
-)

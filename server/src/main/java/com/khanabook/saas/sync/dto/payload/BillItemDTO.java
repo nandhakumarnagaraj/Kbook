@@ -33,7 +33,4 @@ public class BillItemDTO {
     private java.math.BigDecimal price;
     @JsonProperty("itemTotal")
     private java.math.BigDecimal itemTotal;
-
-    @JsonProperty("sentToKot")
-    private Boolean sentToKot;
 }

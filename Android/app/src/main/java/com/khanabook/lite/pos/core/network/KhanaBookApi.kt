@@ -114,16 +114,6 @@ interface KhanaBookApi {
         @POST("api/v1/sync/stocklog/push")
         suspend fun pushStockLogs(@Body logs: List<StockLogSyncDto>): PushSyncResponse
 
-        @POST("api/v1/sync/kot-events/push")
-        suspend fun pushKotEvents(@Body events: List<KotEventSyncDto>): PushSyncResponse
-
-        @GET("api/v1/sync/kot-events/pull")
-        suspend fun pullKotEvents(
-            @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
-            @Query("deviceId") deviceId: String,
-            @Query("ignoreDeviceId") ignoreDeviceId: Boolean = true,
-        ): List<KotEventSyncDto>
-
         // ── Master pull (primary sync path) ─────────────────────────────────
         @GET("api/v1/sync/master/pull")
         suspend fun pullMasterSync(

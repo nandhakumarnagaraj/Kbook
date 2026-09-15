@@ -76,7 +76,6 @@ class MasterSyncProcessorConflictIsolationTest {
             menuDao = menuDao,
             inventoryDao = inventoryDao,
             printerProfileDao = printerProfileDao,
-            kotEventDao = mockk(relaxed = true),
             sessionManager = sessionManager,
             permissionManager = mockk(relaxed = true)
         )
