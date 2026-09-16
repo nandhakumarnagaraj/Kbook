@@ -129,7 +129,17 @@ export class KBNotificationService {
 
   private async registerTokenWithBackend(token: string): Promise<void> {
     try {
-      await this.http.post(`${environment.apiBaseUrl}/sync/register-fcm-token`, { token }).toPromise();
+      // API audit 2026-09-16: /sync/register-fcm-token does not exist on the
+      // server (404) — tokens were never actually registered from web.
+      // The live endpoint is POST /notifications/device-token, which expects
+      // { token, platform, deviceId } (see NotificationController).
+      await this.http
+        .post(`${environment.apiBaseUrl}/notifications/device-token`, {
+          token,
+          platform: 'web-admin',
+          deviceId: 'web-admin'
+        })
+        .toPromise();
       console.log('FCM token registered with backend');
     } catch (error) {
       console.error('Error registering FCM token with backend:', error);

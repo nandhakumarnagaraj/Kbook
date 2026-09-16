@@ -434,14 +434,22 @@ export class SidebarLayoutComponent implements OnInit {
   ngOnInit(): void {
     const role = this.session()?.role;
     if (role === 'OWNER') {
-      this.http.get<any>(`${API}/business/profile`).subscribe({
-        next: (p) => {
-          if (p?.orderPaymentFlowMode) {
-            this.orderPaymentFlowMode.set(p.orderPaymentFlowMode);
+      // API audit 2026-09-16: GET /business/profile does not exist on the server
+      // (404). The profile (incl. orderPaymentFlowMode) is served by the
+      // restaurant-profile sync pull endpoint — the same one the settings page
+      // uses. Response is an array; take the first profile.
+      this.http
+        .get<any[]>(`${API}/sync/restaurantprofile/pull?lastSyncTimestamp=0&deviceId=web-admin&ignoreDeviceId=true`)
+        .subscribe({
+          next: (profiles) => {
+            const mode = profiles?.[0]?.orderPaymentFlowMode;
+            this.orderPaymentFlowMode.set(mode === 'pay_after_food' ? 'pay_after_food' : 'pay_before_food');
+          },
+          error: () => {
+            // Keep the default; KDS tab simply won't show for pay-after-food
+            // until settings load succeeds elsewhere.
           }
-        },
-        error: () => {}
-      });
+        });
     }
   }
 
