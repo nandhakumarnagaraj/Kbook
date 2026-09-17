@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.feature.notifications.domain
 
 import android.content.Intent
+import com.khanabook.lite.pos.core.navigation.Routes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -47,10 +48,10 @@ object NotificationRouteManager {
      * the full message.
      */
     fun routeForType(type: String): String = when (type) {
-        "payment_received", "qr_order" -> "active_orders"
-        "kyc" -> "easebuzz_onboarding"
-        "fssai_expiry" -> "compliance_documents"
+        "payment_received", "qr_order" -> Routes.ACTIVE_ORDERS
+        "kyc" -> Routes.EASEBUZZ_ONBOARDING
+        "fssai_expiry" -> Routes.COMPLIANCE_DOCUMENTS
         // refund, settlement, inventory_low, terminal, system and anything new
-        else -> "notifications"
+        else -> Routes.NOTIFICATIONS
     }
 }

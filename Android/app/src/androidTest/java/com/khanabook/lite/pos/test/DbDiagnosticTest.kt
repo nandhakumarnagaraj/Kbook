@@ -5,8 +5,8 @@ import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.room.Room
-import com.khanabook.lite.pos.data.local.AppDatabase
-import com.khanabook.lite.pos.di.DatabaseModule
+import com.khanabook.lite.pos.core.database.AppDatabase
+import com.khanabook.lite.pos.core.di.DatabaseModule
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import org.junit.Test
 import org.junit.runner.RunWith

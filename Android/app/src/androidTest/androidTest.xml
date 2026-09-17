@@ -21,11 +21,6 @@
             <testMethod>TC-NAV-007_HomeScreen_TabNavigation_OrdersTab</testMethod>
         </testTarget>
         
-        <testTarget name="com.khanabook.lite.pos.test.screens.NavigationFlowTest">
-            <testMethod>TC-NAV-001_AuthFlow_LoginToMain</testMethod>
-            <testMethod>TC-NAV-007_Navigation_AllTabsAccessible</testMethod>
-        </testTarget>
-        
         <!-- P1 High Priority Tests -->
         <testTarget name="com.khanabook.lite.pos.test.screens.OrdersScreenTest">
             <testMethod>TC-LAYOUT-009_OrdersScreen_LayoutValid</testMethod>

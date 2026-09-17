@@ -32,6 +32,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
@@ -40,6 +41,11 @@ import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.feature.menu.ui.OcrScannerScreen
 
+/**
+ * App navigation graph. All destinations are registered against [Routes] constants;
+ * navigate() calls from screens use the same constants so the graph and the callers
+ * can never drift apart.
+ */
 @Composable
 internal fun AppNavGraph(
     navController: NavHostController,
@@ -48,7 +54,7 @@ internal fun AppNavGraph(
     sessionManager: SessionManager,
     context: android.app.Activity,
     authenticatedStartDestination: () -> String,
-    startDestination: String = "login"
+    startDestination: String = Routes.LOGIN
 ) {
     NavHost(
         navController = navController,
@@ -82,102 +88,102 @@ internal fun AppNavGraph(
             )
         }
     ) {
-        composable("app_lock") {
+        composable(Routes.APP_LOCK) {
             AppLockScreen(
                 onUnlock = {
                     if (navController.previousBackStackEntry != null) {
                         navController.popBackStack()
                     } else {
                         navController.navigate(authenticatedStartDestination()) {
-                            popUpTo("app_lock") { inclusive = true }
+                            popUpTo(Routes.APP_LOCK) { inclusive = true }
                         }
                     }
                 },
                 onRecoverAccount = {
                     authViewModel.logout()
-                    navController.navigate("login") {
+                    navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
             )
         }
-        composable("role_access") {
+        composable(Routes.ROLE_ACCESS) {
             RoleAccessScreen(
                 role = sessionManager.getActiveUserRole(),
                 onSignOut = {
                     authViewModel.logout()
-                    navController.navigate("login") {
+                    navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
             )
         }
-        composable("initial_sync") {
+        composable(Routes.INITIAL_SYNC) {
             InitialSyncScreen(
                 onSyncCompleteNavigateToMain = {
                     // If this is a fresh restaurant with no menu, show quick start wizard
                     val destination = if (!sessionManager.isQuickStartCompleted()) {
-                        "quick_start"
+                        Routes.QUICK_START
                     } else {
                         authenticatedStartDestination()
                     }
                     navController.navigate(destination) {
-                        popUpTo("initial_sync") { inclusive = true }
+                        popUpTo(Routes.INITIAL_SYNC) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
-                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                    navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
                 }
             )
         }
-        composable("quick_start") {
+        composable(Routes.QUICK_START) {
             QuickStartScreen(
                 onComplete = {
                     navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("quick_start") { inclusive = true }
+                        popUpTo(Routes.QUICK_START) { inclusive = true }
                     }
                 },
                 onSkip = {
                     sessionManager.setQuickStartCompleted(true)
                     sessionManager.setInitialSyncCompleted(true)
                     navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("quick_start") { inclusive = true }
+                        popUpTo(Routes.QUICK_START) { inclusive = true }
                     }
                 }
             )
         }
-        composable("background_reliability") {
+        composable(Routes.BACKGROUND_RELIABILITY) {
             BackgroundReliabilityScreen(
                 onDone = {
                     sessionManager.setBackgroundReliabilityPromptShown(true)
                     navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("background_reliability") { inclusive = true }
+                        popUpTo(Routes.BACKGROUND_RELIABILITY) { inclusive = true }
                     }
                 }
             )
         }
-        composable("login") {
+        composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
-                onSignUpClick = { navController.navigate("signup") }
+                onSignUpClick = { navController.navigate(Routes.SIGNUP) }
             )
         }
-        composable("signup") {
+        composable(Routes.SIGNUP) {
             SignUpScreen(
                 onSignUpSuccess = {
                     navController.navigate(authenticatedStartDestination()) {
-                        popUpTo("signup") { inclusive = true }
+                        popUpTo(Routes.SIGNUP) { inclusive = true }
                     }
                 },
                 onLoginClick = { navController.popBackStack() }
             )
         }
         composable(
-            route = "main/{tab}?source={source}&highlightBillId={highlightBillId}&section={section}",
+            route = Routes.MAIN_PATTERN,
             arguments = listOf(
                 navArgument("tab") {
                     type = NavType.StringType
@@ -210,27 +216,27 @@ internal fun AppNavGraph(
                 initialHighlightBillId = highlightBillId,
                 initialSettingsSection = section,
                 navController = navController,
-                onNewBill = { navController.navigate("new_bill") },
-                onActiveOrder = { navController.navigate("active_orders") },
+                onNewBill = { navController.navigate(Routes.newBill()) },
+                onActiveOrder = { navController.navigate(Routes.ACTIVE_ORDERS) },
                 onOpenActiveOrder = { draftBillId ->
-                    navController.navigate("active_order_detail/$draftBillId")
+                    navController.navigate(Routes.activeOrderDetail(draftBillId))
                 },
-                onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
-                onOpenSyncCenter = { navController.navigate("main/${NavigationTabs.TAB_PROFILE}?section=sync_center") },
-                onOpenPrinterSettings = { navController.navigate("main/${NavigationTabs.TAB_PROFILE}?section=printer") },
-                onSearchBill = { navController.navigate("search_bill") },
-                onReprintKds = { navController.navigate("reprint_kds") },
-                onCallCustomer = { navController.navigate("call_customer") },
-                onOpenNotifications = { navController.navigate("notifications") },
+                onResumePendingPayment = { navController.navigate(Routes.newBill(resumePayment = true)) },
+                onOpenSyncCenter = { navController.navigate(Routes.main(NavigationTabs.TAB_PROFILE, section = "sync_center")) },
+                onOpenPrinterSettings = { navController.navigate(Routes.main(NavigationTabs.TAB_PROFILE, section = "printer")) },
+                onSearchBill = { navController.navigate(Routes.SEARCH_BILL) },
+                onReprintKds = { navController.navigate(Routes.REPRINT_KDS) },
+                onCallCustomer = { navController.navigate(Routes.CALL_CUSTOMER) },
+                onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 menuViewModel = menuViewModel,
                 onScanClick = { categoryName ->
                     navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", categoryName)
-                    navController.navigate("ocr_scanner/menu_config")
+                    navController.navigate(Routes.ocrScanner(Routes.OCR_SOURCE_MENU))
                 }
             )
         }
         composable(
-            route = "new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}",
+            route = Routes.NEW_BILL_PATTERN,
             arguments = listOf(
                 navArgument("resumePayment") {
                     type = NavType.BoolType
@@ -258,9 +264,9 @@ internal fun AppNavGraph(
                 initialStep = targetStep
             )
         }
-        composable("ocr_scanner/{source}") { backStackEntry ->
-            val source = backStackEntry.arguments?.getString("source") ?: "menu_config"
-            val isBarcodeScan = source == "billing"
+        composable(Routes.OCR_SCANNER_PATTERN) { backStackEntry ->
+            val source = backStackEntry.arguments?.getString("source") ?: Routes.OCR_SOURCE_MENU
+            val isBarcodeScan = source == Routes.OCR_SOURCE_BILLING
             val selectedCategoryName = if (!isBarcodeScan) {
                 navController.previousBackStackEntry?.savedStateHandle?.get<String>("ocr_category_name")
             } else null
@@ -278,88 +284,95 @@ internal fun AppNavGraph(
                 }
             )
         }
-        composable("search_bill") {
+        composable(Routes.SEARCH_BILL) {
             SearchScreen(
                 title = context.getString(R.string.search_bill),
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("active_orders") {
+        composable(
+            route = Routes.ACTIVE_ORDERS,
+            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://active_orders" })
+        ) {
             ActiveOrdersScreen(
                 onBack = { navController.popBackStack() },
                 onOpenActiveOrder = { draftBillId ->
-                    navController.navigate("active_order_detail/$draftBillId")
+                    navController.navigate(Routes.activeOrderDetail(draftBillId))
                 },
                 onCollectPayment = { draftBillId ->
-                    navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=3")
+                    navController.navigate(Routes.newBill(draftBillId = draftBillId, targetStep = 3))
                 }
             )
         }
         composable(
-            route = "active_order_detail/{billId}",
-            arguments = listOf(navArgument("billId") { type = NavType.LongType })
+            route = Routes.ACTIVE_ORDER_DETAIL_PATTERN,
+            arguments = listOf(navArgument("billId") { type = NavType.LongType }),
+            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://bill/{billId}" })
         ) {
             ActiveOrderDetailScreen(
                 onBack = { navController.popBackStack() },
                 onAddItems = { draftBillId ->
-                    navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=2")
+                    navController.navigate(Routes.newBill(draftBillId = draftBillId, targetStep = 2))
                 },
                 onCollectPayment = { draftBillId ->
-                    navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=3")
+                    navController.navigate(Routes.newBill(draftBillId = draftBillId, targetStep = 3))
                 }
             )
         }
-        composable("order_status") {
+        composable(Routes.ORDER_STATUS) {
             SearchScreen(
                 title = context.getString(R.string.check_order_status),
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("call_customer") {
+        composable(Routes.CALL_CUSTOMER) {
             CallCustomerScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("reprint_kds") {
+        composable(Routes.REPRINT_KDS) {
             ReprintKdsScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("notifications") {
+        composable(Routes.NOTIFICATIONS, deepLinks = listOf(navDeepLink { uriPattern = "khanabook://notifications" })) {
             NotificationsScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable("staff_permissions") {
+        composable(Routes.STAFF_PERMISSIONS) {
             StaffPermissionScreen(
                 onBack = { navController.popBackStack() }
             )
         }
 
-        composable("easebuzz_onboarding") {
+        composable(
+            route = Routes.EASEBUZZ_ONBOARDING,
+            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://easebuzz_onboarding" })
+        ) {
             com.khanabook.lite.pos.feature.payments.ui.EasebuzzOnboardingScreen(
                 onBack = { navController.popBackStack() },
-                onOpenComplianceDocs = { navController.navigate("compliance_documents") }
+                onOpenComplianceDocs = { navController.navigate(Routes.COMPLIANCE_DOCUMENTS) }
             )
         }
-        composable("compliance_documents") {
+        composable(Routes.COMPLIANCE_DOCUMENTS) {
             com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
                 onBack = { navController.popBackStack() },
-                onOpenAgreement = { navController.navigate("merchant_agreement") }
+                onOpenAgreement = { navController.navigate(Routes.MERCHANT_AGREEMENT) }
             )
         }
-        composable("merchant_agreement") {
+        composable(Routes.MERCHANT_AGREEMENT) {
             com.khanabook.lite.pos.feature.onboarding.ui.MerchantAgreementScreen(
                 onBack = { navController.popBackStack() }
             )
         }
         composable(
-            route = "payment_link?restaurantId={restaurantId}",
+            route = Routes.PAYMENT_LINK_PATTERN,
             arguments = listOf(
                 navArgument("restaurantId") {
                     type = NavType.LongType

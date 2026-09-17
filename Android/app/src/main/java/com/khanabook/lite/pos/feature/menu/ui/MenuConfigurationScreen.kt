@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.feature.menu.ui.ManualMenuView
 import com.khanabook.lite.pos.feature.menu.ui.ModeSelectionView
 import com.khanabook.lite.pos.feature.menu.ui.ReviewDetectedItemsOverlay
@@ -199,7 +200,7 @@ fun MenuConfigurationScreen(
                         onSmartImportClick = {
                             val catName = categories.find { it.id == selectedCategoryId }?.name
                             navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", catName)
-                            navController.navigate("ocr_scanner/menu_config")
+                            navController.navigate(Routes.ocrScanner(Routes.OCR_SOURCE_MENU))
                         },
                         onGalleryClick = { galleryLauncher.launch("image/*") },
                         onPdfClick = { pdfLauncher.launch("application/pdf") }

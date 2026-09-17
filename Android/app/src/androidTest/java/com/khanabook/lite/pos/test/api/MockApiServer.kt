@@ -2,9 +2,9 @@ package com.khanabook.lite.pos.test.api
 
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.QueueDispatcher
 import okhttp3.mockwebserver.RecordedRequest
 import java.util.concurrent.TimeUnit
 
@@ -12,8 +12,11 @@ class MockApiServer private constructor() {
 
     private val mockWebServer = MockWebServer()
 
-    private val dispatcher = object : Dispatcher() {
+    private val dispatcher = object : QueueDispatcher() {
         override fun dispatch(request: RecordedRequest): MockResponse {
+            if (responseQueue.peek() != null) {
+                return synchronized(this) { super.dispatch(request) }
+            }
             val path = request.path ?: return ResponseFixtures.notFound("Endpoint")
 
             return when {

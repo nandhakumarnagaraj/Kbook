@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.feature.payments.domain.PaymentReturnManager
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.navigation.NavigationTabs
+import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.feature.printing.ui.printFeedbackKind
 import com.khanabook.lite.pos.feature.menu.ui.performMenuItemAdd
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackPreferences
@@ -212,8 +213,8 @@ fun NewBillScreen(
 
     val navigateToHome: () -> Unit = {
         if (navController != null) {
-            navController.navigate("main/0") {
-                popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+            navController.navigate(Routes.main(0)) {
+                popUpTo(Routes.NEW_BILL_PATTERN) {
                     inclusive = true
                 }
                 launchSingleTop = true
@@ -227,15 +228,16 @@ fun NewBillScreen(
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
             val route = if (highlightedBillId != null) {
-                "main/${NavigationTabs.TAB_ORDERS}?source=ALL&highlightBillId=$highlightedBillId"
+                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL", highlightBillId = highlightedBillId)
             } else {
-                "main/${NavigationTabs.TAB_ORDERS}?source=ALL"
+                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL")
             }
             navController.navigate(route) {
-                popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                popUpTo(Routes.NEW_BILL_PATTERN) {
                     inclusive = true
                 }
                 launchSingleTop = true
+                restoreState = true
             }
         } else {
             onBack()
@@ -247,27 +249,27 @@ fun NewBillScreen(
             val isFreshBillCreation = draftBillId == null && billingViewModel.editingBillId == null
             val targetDraftId = draftBillId ?: billingViewModel.editingBillId ?: billingViewModel.lastBill.value?.bill?.id
             if (isFreshBillCreation) {
-                navController.navigate("active_orders") {
-                    popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                navController.navigate(Routes.ACTIVE_ORDERS) {
+                    popUpTo(Routes.NEW_BILL_PATTERN) {
                         inclusive = true
                     }
                     launchSingleTop = true
                 }
             } else if (targetDraftId != null) {
                 val prevRoute = navController.previousBackStackEntry?.destination?.route
-                if (prevRoute?.startsWith("active_order_detail") == true) {
+                if (prevRoute?.startsWith(Routes.ACTIVE_ORDER_DETAIL_PATTERN) == true) {
                     navController.popBackStack()
                 } else {
-                    navController.navigate("active_order_detail/$targetDraftId") {
-                        popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                    navController.navigate(Routes.activeOrderDetail(targetDraftId)) {
+                        popUpTo(Routes.NEW_BILL_PATTERN) {
                             inclusive = true
                         }
                         launchSingleTop = true
                     }
                 }
             } else {
-                navController.navigate("active_orders") {
-                    popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                navController.navigate(Routes.ACTIVE_ORDERS) {
+                    popUpTo(Routes.NEW_BILL_PATTERN) {
                         inclusive = true
                     }
                     launchSingleTop = true
@@ -342,7 +344,7 @@ fun NewBillScreen(
                                     billingViewModel = billingViewModel,
                                     activeDraftBills = activeDraftBills,
                                     onOpenDraftOrder = { billId, targetStep ->
-                                        navController?.navigate("new_bill?draftBillId=$billId&targetStep=$targetStep")
+                                        navController?.navigate(Routes.newBill(draftBillId = billId, targetStep = targetStep))
                                     }
                             )
                     2 ->

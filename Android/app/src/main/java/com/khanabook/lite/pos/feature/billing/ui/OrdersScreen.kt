@@ -8,6 +8,7 @@
 package com.khanabook.lite.pos.feature.billing.ui
 import com.khanabook.lite.pos.feature.billing.ui.*
 import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.core.theme.*
 
 import androidx.compose.foundation.*
@@ -318,7 +319,7 @@ fun OrdersScreen(
                                     isHighlighted = row.billId == highlightedBillId,
                                     onClick = {
                                         if (row.orderStatus == OrderStatus.DRAFT) {
-                                            navController?.navigate("new_bill?draftBillId=${row.billId}&targetStep=2")
+                                            navController?.navigate(Routes.newBill(draftBillId = row.billId, targetStep = 2))
                                         } else {
                                             selectedBillId = row.billId
                                             viewModel.loadBillDetails(row.billId)
@@ -400,7 +401,7 @@ fun OrdersScreen(
                 },
                 onPrintReceipt = { detail -> billingViewModel.printReceipt(detail) },
                 onResumeDraft = { detail ->
-                    navController?.navigate("new_bill?draftBillId=${detail.bill.id}&targetStep=2")
+                    navController?.navigate(Routes.newBill(draftBillId = detail.bill.id, targetStep = 2))
                 },
                 onCancelOrder = { detail -> detailCancelBillId = detail.bill.id }
             )

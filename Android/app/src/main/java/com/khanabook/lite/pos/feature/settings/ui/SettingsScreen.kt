@@ -1,6 +1,7 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 package com.khanabook.lite.pos.feature.settings.ui
 import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.core.theme.*
 
 import androidx.activity.compose.BackHandler
@@ -207,7 +208,7 @@ fun SettingsScreen(
                             pendingSaveSection = "payment"
                             viewModel.saveProfile(it)
                         }, onBack = { section = "menu" },
-                            onNavigateToOnboarding = { navController.navigate("easebuzz_onboarding") },
+                            onNavigateToOnboarding = { navController.navigate(Routes.EASEBUZZ_ONBOARDING) },
                             onSectionSelected = { section = it },
                             readOnly = !isOwner
                         )
@@ -233,7 +234,7 @@ fun SettingsScreen(
                     "security" -> {
                         SettingsListView(onSelectItem = { selectedItem ->
                             if (selectedItem == "notifications") {
-                                navController.navigate("notifications")
+                                navController.navigate(Routes.NOTIFICATIONS)
                             } else {
                                 section = selectedItem
                             }

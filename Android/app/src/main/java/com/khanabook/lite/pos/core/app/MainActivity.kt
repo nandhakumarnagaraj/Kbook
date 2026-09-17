@@ -48,6 +48,7 @@ import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.auth.domain.TrustedExternalAppReturn
 import com.khanabook.lite.pos.feature.sync.domain.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.core.navigation.AppNavGraph
+import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.feature.auth.ui.BrandedStartFrame
 import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
@@ -77,10 +78,10 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun authenticatedStartDestination(): String {
-        if (!sessionManager.canUsePos()) return "role_access"
-        if (!sessionManager.isInitialSyncCompleted()) return "initial_sync"
-        if (!sessionManager.isQuickStartCompleted()) return "quick_start"
-        return "main/0"
+        if (!sessionManager.canUsePos()) return Routes.ROLE_ACCESS
+        if (!sessionManager.isInitialSyncCompleted()) return Routes.INITIAL_SYNC
+        if (!sessionManager.isQuickStartCompleted()) return Routes.QUICK_START
+        return Routes.main(0)
     }
 
     /**
@@ -106,11 +107,11 @@ class MainActivity : FragmentActivity() {
         }
 
         val chosen = when {
-            token == null -> "login"
+            token == null -> Routes.LOGIN
             !isSyncCompleted -> authenticatedStartDestination()
             sessionManager.isPinLockEnabled() && !isTrustedExternalReturn -> {
                 sessionManager.clearBackgroundTime()
-                "app_lock"
+                Routes.APP_LOCK
             }
             else -> {
                 sessionManager.clearBackgroundTime()
@@ -264,9 +265,9 @@ class MainActivity : FragmentActivity() {
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     val currentDest = navController.currentDestination?.route
                     val isInPrivateArea = currentDest != null &&
-                        currentDest != "login" &&
-                        currentDest != "signup" &&
-                        currentDest != "app_lock"
+                        currentDest != Routes.LOGIN &&
+                        currentDest != Routes.SIGNUP &&
+                        currentDest != Routes.APP_LOCK
 
                     if (!isInPrivateArea) return@LifecycleEventEffect
 
@@ -274,7 +275,7 @@ class MainActivity : FragmentActivity() {
                         sessionManager.clearBackgroundTime()
                     } else if (sessionManager.shouldShowAppLock()) {
                         sessionManager.clearBackgroundTime()
-                        navController.navigate("app_lock")
+                        navController.navigate(Routes.APP_LOCK)
                     } else {
                         sessionManager.clearBackgroundTime()
                     }
@@ -292,7 +293,7 @@ class MainActivity : FragmentActivity() {
                             && event != null
                             && currentRoute?.startsWith("new_bill") != true
                         ) {
-                            navController.navigate("new_bill?resumePayment=true")
+                            navController.navigate(Routes.newBill(resumePayment = true))
                         }
                     }
                 }
@@ -321,9 +322,9 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(isSessionExpired) {
                     if (isSessionExpired) {
                         val dest = navController.currentDestination?.route
-                        if (dest != null && dest != "login" && dest != "app_lock" && dest != "signup") {
+                        if (dest != null && dest != Routes.LOGIN && dest != Routes.APP_LOCK && dest != Routes.SIGNUP) {
                             authViewModel.handleSessionExpiry()
-                            navController.navigate("login") {
+                            navController.navigate(Routes.LOGIN) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
@@ -341,8 +342,8 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(currentUser, sessionState) {
                     if (sessionState == SessionManager.SessionState.INACTIVE) return@LaunchedEffect
                     val dest = navController.currentDestination?.route
-                    if (currentUser == null && dest != null && dest != "login" && dest != "app_lock" && dest != "signup") {
-                        navController.navigate("login") { 
+                    if (currentUser == null && dest != null && dest != Routes.LOGIN && dest != Routes.APP_LOCK && dest != Routes.SIGNUP) {
+                        navController.navigate(Routes.LOGIN) { 
                             popUpTo(0) { inclusive = true } 
                         }
                     }
@@ -400,7 +401,7 @@ class MainActivity : FragmentActivity() {
                     // LinkedIn-style in-app banner that slides in under the status
                     // bar when a notification arrives while the user is inside the
                     // app (not on login/setup/lock screens).
-                    if (activeBanner != null && currentRoute != "login" && currentRoute != "signup" && currentRoute != "app_lock") {
+                    if (activeBanner != null && currentRoute != Routes.LOGIN && currentRoute != Routes.SIGNUP && currentRoute != Routes.APP_LOCK) {
                         val banner = activeBanner!!
                         InAppNotificationBanner(
                             notification = banner,

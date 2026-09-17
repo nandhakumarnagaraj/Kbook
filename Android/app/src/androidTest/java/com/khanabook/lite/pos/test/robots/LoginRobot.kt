@@ -75,6 +75,7 @@ class LoginRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
     }
 
     fun submitLogin() {
+        waitForLoginScreen()
         enterCredentials()
         tapLogin()
     }
