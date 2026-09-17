@@ -60,7 +60,8 @@ class PrintRouter @Inject constructor(
         printerProfileRepository,
         PrinterTransportDispatcher(
             BluetoothPrinterTransport(printerManager),
-            WifiPrinterTransport()
+            WifiPrinterTransport(),
+            UsbPrinterTransport(context)
         ),
         kitchenPrintQueueManager,
         billDao,

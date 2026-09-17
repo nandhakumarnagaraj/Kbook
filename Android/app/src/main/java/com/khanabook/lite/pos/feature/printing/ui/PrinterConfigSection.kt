@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,6 +63,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -149,12 +152,29 @@ fun PrinterConfigView(
     val printerHealthMap by viewModel.printerHealth.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var showUsbSheet by remember { mutableStateOf(false) }
+    var usbDevices by remember { mutableStateOf<List<Triple<String, String, Boolean>>>(emptyList()) }
+    val usbScope = rememberCoroutineScope()
     var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             isBtActive = true
+            viewModel.startBluetoothScan(context)
+            showBtSheet = true
+        }
+    }
+
+    // Android 8-11: classic discovery silently returns nothing when the device
+    // Location toggle is OFF. Deep-link to system Location Settings and resume
+    // the scan automatically when the user comes back with it enabled.
+    val locationSettingsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            viewModel.isDeviceLocationEnabled() &&
+            viewModel.isBluetoothEnabled(context)
+        ) {
             viewModel.startBluetoothScan(context)
             showBtSheet = true
         }
@@ -199,6 +219,12 @@ fun PrinterConfigView(
                     "Configure this printer before testing" to ToastKind.Warning
                 PrinterUiEvent.InvalidWifiAddress ->
                     "Enter a valid printer address and port" to ToastKind.Warning
+                PrinterUiEvent.UsbPrinterSaved ->
+                    "USB printer saved" to ToastKind.Success
+                PrinterUiEvent.UsbPermissionDenied ->
+                    "USB permission denied. Allow access to use this printer." to ToastKind.Error
+                PrinterUiEvent.NoUsbPrintersFound ->
+                    "No USB printers found. Connect one via OTG cable." to ToastKind.Warning
             }
             KhanaToast.show(message, kind)
         }
@@ -248,6 +274,9 @@ fun PrinterConfigView(
                             PrinterConnectionType.WIFI -> printer.host
                                 ?.takeIf { it.isNotBlank() }
                                 ?.let { "Wi-Fi · $it:${printer.port}" }
+                            PrinterConnectionType.USB -> printer.macAddress
+                                .takeIf { it.startsWith("usb:") }
+                                ?.let { "USB · ${it.removePrefix("usb:")}" }
                         }
                     },
                     enabled = enabled,
@@ -288,12 +317,31 @@ fun PrinterConfigView(
                             permissionLauncher.launch(perms)
                         } else if (!viewModel.isBluetoothEnabled(context)) {
                             bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !viewModel.isDeviceLocationEnabled()) {
+                            // Pre-12: discovery needs device Location ON — route user
+                            // to system settings instead of scanning into an empty list.
+                            showLocationDialog = true
                         } else {
                             viewModel.startBluetoothScan(context)
                             showBtSheet = true
                         }
                     },
-                    onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) }
+                    onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) },
+                    onSelectUsb = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        val found = viewModel.listUsbPrinters()
+                        if (found.isEmpty()) {
+                            usbScope.launch {
+                                KhanaToast.show(
+                                    "No USB printers found. Connect one via OTG cable.",
+                                    ToastKind.Warning
+                                )
+                            }
+                        } else {
+                            usbDevices = found
+                            showUsbSheet = true
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
                 PrinterTargetCard(
@@ -307,6 +355,9 @@ fun PrinterConfigView(
                             PrinterConnectionType.WIFI -> printer.host
                                 ?.takeIf { it.isNotBlank() }
                                 ?.let { "Wi-Fi · $it:${printer.port}" }
+                            PrinterConnectionType.USB -> printer.macAddress
+                                .takeIf { it.startsWith("usb:") }
+                                ?.let { "USB · ${it.removePrefix("usb:")}" }
                         }
                     },
                     enabled = kitchenEnabled,
@@ -347,12 +398,29 @@ fun PrinterConfigView(
                             permissionLauncher.launch(perms)
                         } else if (!viewModel.isBluetoothEnabled(context)) {
                             bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !viewModel.isDeviceLocationEnabled()) {
+                            showLocationDialog = true
                         } else {
                             viewModel.startBluetoothScan(context)
                             showBtSheet = true
                         }
                     },
-                    onTestPrint = { viewModel.testPrint(PrinterRole.KITCHEN) }
+                    onTestPrint = { viewModel.testPrint(PrinterRole.KITCHEN) },
+                    onSelectUsb = {
+                        pendingRole = PrinterRole.KITCHEN
+                        val found = viewModel.listUsbPrinters()
+                        if (found.isEmpty()) {
+                            usbScope.launch {
+                                KhanaToast.show(
+                                    "No USB printers found. Connect one via OTG cable.",
+                                    ToastKind.Warning
+                                )
+                            }
+                        } else {
+                            usbDevices = found
+                            showUsbSheet = true
+                        }
+                    }
                 )
             }
             ConfigCard {
@@ -443,6 +511,125 @@ fun PrinterConfigView(
                 }
             }
         }
+    }
+
+    if (showUsbSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showUsbSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = DarkBrownSheet
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(spacing.large)
+                    .padding(bottom = spacing.large)
+            ) {
+                Text(
+                    "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} USB Printer",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    "Connect the printer with an OTG cable, then pick it below.",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
+                usbDevices.forEach { (key, label, hasPermission) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (hasPermission) {
+                                    viewModel.saveUsbPrinter(
+                                        role = pendingRole,
+                                        deviceKey = key,
+                                        label = label,
+                                        paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                            if (paper58) "58mm" else "80mm"
+                                        } else {
+                                            if (kitchenPaper58) "58mm" else "80mm"
+                                        }
+                                    )
+                                    showUsbSheet = false
+                                } else {
+                                    usbScope.launch {
+                                        val granted = viewModel.requestUsbPermission(key)
+                                        if (granted) {
+                                            usbDevices = viewModel.listUsbPrinters()
+                                            viewModel.saveUsbPrinter(
+                                                role = pendingRole,
+                                                deviceKey = key,
+                                                label = label,
+                                                paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                                    if (paper58) "58mm" else "80mm"
+                                                } else {
+                                                    if (kitchenPaper58) "58mm" else "80mm"
+                                                }
+                                            )
+                                            showUsbSheet = false
+                                        } else {
+                                            KhanaToast.show(
+                                                "USB permission denied. Allow access to use this printer.",
+                                                ToastKind.Error
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(vertical = spacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Usb,
+                            contentDescription = null,
+                            tint = if (hasPermission) SuccessGreen else TextGold,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(spacing.medium))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(label, color = TextLight, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                key.removePrefix("usb:"),
+                                color = TextGold.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        Text(
+                            if (hasPermission) "Ready" else "Tap to allow",
+                            color = if (hasPermission) SuccessGreen else PrimaryGold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showLocationDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showLocationDialog = false },
+            title = "Turn on Location",
+            message = "On this Android version, Location must be switched on to find nearby Bluetooth printers. KhanaBook never uses your location — this is an Android requirement for device discovery.",
+            actions = {
+                TextButton(onClick = { showLocationDialog = false }) {
+                    Text("Not now", color = TextGold)
+                }
+                TextButton(onClick = {
+                    showLocationDialog = false
+                    runCatching {
+                        locationSettingsLauncher.launch(
+                            Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                        )
+                    }
+                }) {
+                    Text("Open Settings", color = PrimaryGold)
+                }
+            }
+        )
     }
 
     if (showWifiDialog) {

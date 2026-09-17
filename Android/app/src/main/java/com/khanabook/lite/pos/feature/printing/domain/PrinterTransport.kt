@@ -60,11 +60,13 @@ class WifiPrinterTransport @Inject constructor() : PrinterTransport {
 @Singleton
 class PrinterTransportDispatcher @Inject constructor(
     private val bluetooth: BluetoothPrinterTransport,
-    private val wifi: WifiPrinterTransport
+    private val wifi: WifiPrinterTransport,
+    private val usb: UsbPrinterTransport
 ) {
     suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean =
         when (profile.connectionTypeValue()) {
             PrinterConnectionType.BLUETOOTH -> bluetooth.print(profile, bytes)
             PrinterConnectionType.WIFI -> wifi.print(profile, bytes)
+            PrinterConnectionType.USB -> usb.print(profile, bytes)
         }
 }

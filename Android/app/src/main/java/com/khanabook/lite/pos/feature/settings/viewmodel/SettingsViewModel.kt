@@ -76,6 +76,9 @@ sealed interface PrinterUiEvent {
     data object TestPrintFailed : PrinterUiEvent
     data object NotConfigured : PrinterUiEvent
     data object InvalidWifiAddress : PrinterUiEvent
+    data object UsbPrinterSaved : PrinterUiEvent
+    data object UsbPermissionDenied : PrinterUiEvent
+    data object NoUsbPrintersFound : PrinterUiEvent
 }
 
 @HiltViewModel
@@ -88,6 +91,7 @@ class SettingsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val billDao: BillDao,
     private val btManager: BluetoothPrinterManager,
+    private val usbTransport: com.khanabook.lite.pos.feature.printing.domain.UsbPrinterTransport,
     private val printerTransport: PrinterTransportDispatcher,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val sessionManager: SessionManager,
@@ -157,6 +161,9 @@ class SettingsViewModel @Inject constructor(
                         (it.macAddress.isNotBlank() && liveMacs.contains(it.macAddress)) ||
                             btManager.isConnectedTo(it.macAddress)
                     PrinterConnectionType.WIFI ->
+                        it.isConnectionConfigured() &&
+                            health[it.connectionTargetKey()]?.isReachable == true
+                    PrinterConnectionType.USB ->
                         it.isConnectionConfigured() &&
                             health[it.connectionTargetKey()]?.isReachable == true
                 }
@@ -267,6 +274,17 @@ class SettingsViewModel @Inject constructor(
                             } else {
                                 PrinterHealth.UNREACHABLE
                             }
+                        PrinterConnectionType.USB -> {
+                            val device = usbTransport.findDeviceByKey(profile.macAddress)
+                            if (device == null) {
+                                PrinterHealth.UNREACHABLE
+                            } else if (!usbTransport.hasPermission(device)) {
+                                // Attached but the user hasn't granted USB access yet.
+                                PrinterHealth.UNKNOWN
+                            } else {
+                                PrinterHealth.HEALTHY
+                            }
+                        }
                     }
                     _printerHealth.value =
                         _printerHealth.value + (profile.connectionTargetKey() to health)
@@ -618,6 +636,15 @@ class SettingsViewModel @Inject constructor(
         return btManager.isBluetoothEnabled()
     }
 
+    /**
+     * Android 8-11: classic discovery requires the device Location toggle to be ON.
+     * Exposed so the UI can gate scanning with a deep-link to system settings
+     * instead of failing with a silently empty scan list.
+     */
+    fun isDeviceLocationEnabled(): Boolean {
+        return btManager.isLocationEnabled()
+    }
+
     fun hasBluetoothPermissions(context: Context): Boolean {
         return btManager.hasRequiredPermissions()
     }
@@ -628,6 +655,74 @@ class SettingsViewModel @Inject constructor(
 
     fun stopBluetoothScan() {
         btManager.stopScan()
+    }
+
+    // ── USB printer support ───────────────────────────────────────────────
+
+    /** Attached USB devices that look like thermal printers, as (key, label, hasPermission). */
+    fun listUsbPrinters(): List<Triple<String, String, Boolean>> {
+        return usbTransport.listCandidatePrinters().map { (device, label) ->
+            val key = com.khanabook.lite.pos.feature.printing.domain.UsbPrinterTransport.deviceKey(device)
+            Triple(key, label, usbTransport.hasPermission(device))
+        }
+    }
+
+    /** Requests USB permission for the given device key; suspends until answered. */
+    suspend fun requestUsbPermission(key: String): Boolean {
+        val device = usbTransport.findDeviceByKey(key) ?: return false
+        return usbTransport.requestPermission(device)
+    }
+
+    /**
+     * Saves a USB printer profile for the role. USB identity is stored in the
+     * macAddress column as "usb:vid:pid[:serial]" — the same key format used
+     * by the transport and connectionTargetKey().
+     */
+    fun saveUsbPrinter(
+        role: PrinterRole,
+        deviceKey: String,
+        label: String,
+        paperSize: String
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val existing = printerProfileRepository.getByRole(role.name)
+                existing
+                    ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH }
+                    ?.macAddress
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { btManager.disconnect(it) }
+                val defaultName = when (role) {
+                    PrinterRole.CUSTOMER -> "USB Receipt Printer"
+                    PrinterRole.KITCHEN -> "USB Kitchen Printer"
+                }
+                printerProfileRepository.saveProfile(
+                    PrinterProfileEntity(
+                        id = existing?.id ?: 0,
+                        role = role.name,
+                        name = label.ifBlank { defaultName },
+                        macAddress = deviceKey,
+                        connectionType = PrinterConnectionType.USB.name,
+                        host = null,
+                        port = 9100,
+                        enabled = true,
+                        autoPrint = existing?.autoPrint ?: true,
+                        paperSize = paperSize,
+                        includeLogo = existing?.includeLogo ?: true,
+                        copies = existing?.copies ?: 1,
+                        createdAt = existing?.createdAt ?: System.currentTimeMillis()
+                    )
+                )
+                if (role == PrinterRole.KITCHEN) {
+                    kitchenPrintQueueManager.flushPendingForPrinter(deviceKey)
+                }
+                _printerEvents.emit(PrinterUiEvent.UsbPrinterSaved)
+                refreshWifiReachability()
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "USB printer save failed for ${role.name}", e)
+                _printerEvents.emit(PrinterUiEvent.WifiSaveFailed)
+            }
+        }
     }
 
     @Suppress("MissingPermission")

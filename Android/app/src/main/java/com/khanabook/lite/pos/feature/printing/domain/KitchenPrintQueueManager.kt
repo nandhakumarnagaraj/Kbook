@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.feature.printing.domain
 
+import android.content.Context
+
 import android.util.Log
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
@@ -39,7 +41,8 @@ class KitchenPrintQueueManager @Inject constructor(
         restaurantRepository: RestaurantRepository,
         printerProfileRepository: PrinterProfileRepository,
         printerManager: BluetoothPrinterManager,
-        kotEventDao: KotEventDao
+        kotEventDao: KotEventDao,
+        @dagger.hilt.android.qualifiers.ApplicationContext context: Context? = null
     ) : this(
         queueRepository,
         billRepository,
@@ -48,7 +51,8 @@ class KitchenPrintQueueManager @Inject constructor(
         printerManager,
         PrinterTransportDispatcher(
             BluetoothPrinterTransport(printerManager),
-            WifiPrinterTransport()
+            WifiPrinterTransport(),
+            UsbPrinterTransport(context ?: throw IllegalArgumentException("context required"))
         ),
         kotEventDao
     )

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
+import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -68,6 +69,7 @@ fun PrinterTargetCard(
     health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth? = null,
     helperText: String?,
     onConfigureWifi: (() -> Unit)?,
+    onSelectUsb: (() -> Unit)? = null,
     onEnabledChange: (Boolean) -> Unit,
     onAutoPrintChange: (Boolean) -> Unit,
     onPaperSizeChange: (Boolean) -> Unit,
@@ -164,6 +166,14 @@ fun PrinterTargetCard(
                             leadingIcon = Icons.Default.Wifi,
                             modifier = Modifier.weight(1f)
                         )
+                        if (onSelectUsb != null) {
+                            KhanaSecondaryButton(
+                                text = "USB",
+                                onClick = onSelectUsb,
+                                leadingIcon = Icons.Default.Usb,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                     KhanaPrimaryButton(
                         text = "Test Printer",
