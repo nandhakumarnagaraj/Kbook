@@ -35,9 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.khanabook.lite.pos.BuildConfig
 import android.util.Log
 import kotlinx.coroutines.launch
@@ -69,38 +67,51 @@ fun LoginScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
-    val googleSignInClient = remember(context) {
+    // ── Google Sign-In via Credential Manager ────────────────────────────────
+    // Replaces the deprecated GoogleSignIn API. GetGoogleIdOption returns the
+    // same ID token the backend already verifies (audience = GOOGLE_WEB_CLIENT_ID).
+    val coroutineScopeForGoogle = rememberCoroutineScope()
+
+    suspend fun launchGoogleSignIn() {
         val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.default_web_client_id)
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(serverClientId)
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        if (serverClientId.isBlank()) {
+            viewModel.setGoogleLoginError("Google Sign-In is not configured. Please use phone number login.")
+            return
+        }
         try {
-            val account = task.getResult(ApiException::class.java)
-            val idToken = account?.idToken
-            if (!idToken.isNullOrBlank()) {
-                viewModel.loginWithGoogleToken(idToken)
+            val credentialManager = androidx.credentials.CredentialManager.create(context)
+            val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
+                .setServerClientId(serverClientId)
+                // Show the account picker every time (pos devices may be shared);
+                // setFilterByAuthorizedAccounts(true) would silently reuse one account.
+                .setFilterByAuthorizedAccounts(false)
+                .setAutoSelectEnabled(false)
+                .build()
+            val request = androidx.credentials.GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+            val response = credentialManager.getCredential(context, request)
+            val googleIdTokenCredential = response.credential as? GoogleIdTokenCredential
+            val googleIdToken = googleIdTokenCredential?.idToken
+            if (!googleIdToken.isNullOrBlank()) {
+                viewModel.loginWithGoogleToken(googleIdToken)
             } else {
                 viewModel.setGoogleLoginError("Google Sign-In did not return a valid token. Please try again.")
             }
-        } catch (e: ApiException) {
-            Log.e("GOOGLE_SIGN_IN", "statusCode=${e.statusCode}, message=${e.localizedMessage}", e)
-            when (e.statusCode) {
-                com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
-                    viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
-                com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR ->
-                    viewModel.setGoogleLoginError("Network error during Google Sign-In. Please try again.")
-                else ->
-                    viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
+        } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+            Log.i("GOOGLE_SIGN_IN", "User cancelled Credential Manager sign-in")
+            viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
+        } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+            Log.e("GOOGLE_SIGN_IN", "type=${e.type}, message=${e.localizedMessage}", e)
+            if (e is androidx.credentials.exceptions.GetCredentialUnsupportedException) {
+                viewModel.setGoogleLoginError("Google Sign-In is not supported on this device. Please update Google Play services.")
+            } else {
+                viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
             }
+        } catch (e: Exception) {
+            Log.e("GOOGLE_SIGN_IN", "Unexpected failure", e)
+            viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
         }
     }
     val focusManager = LocalFocusManager.current
@@ -351,9 +362,7 @@ fun LoginScreen(
                                         .clickable(enabled = !isLoading) {
                                             isGoogleLogin = true
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            googleSignInClient.signOut().addOnCompleteListener {
-                                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                            }
+                                            coroutineScopeForGoogle.launch { launchGoogleSignIn() }
                                         },
                         shape = CircleShape,
                         color = Color.White,
