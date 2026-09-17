@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
@@ -50,6 +51,7 @@ import com.khanabook.lite.pos.core.theme.PrimaryGold
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.core.theme.WarningYellow
 
 @Composable
 fun PrinterTargetCard(
@@ -63,6 +65,7 @@ fun PrinterTargetCard(
     includeLogo: Boolean,
     showLogoToggle: Boolean,
     isConnected: Boolean,
+    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth? = null,
     helperText: String?,
     onConfigureWifi: (() -> Unit)?,
     onEnabledChange: (Boolean) -> Unit,
@@ -95,19 +98,20 @@ fun PrinterTargetCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(printerName, color = TextLight, style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Box(modifier = Modifier.size(8.dp).background(if (isConnected) SuccessGreen else DangerRed, CircleShape))
+                    Box(modifier = Modifier.size(8.dp).background(dotColor(isConnected, health), CircleShape))
                 }
                 Text("Connection: ${connectionDescription ?: "---"}", color = TextGold, style = MaterialTheme.typography.labelSmall)
                 KhanaStatusBadge(
-                    text = when {
-                        connectionDescription.isNullOrBlank() -> "No printer"
-                        isConnected -> "Connected"
-                        else -> "Ready"
-                    },
+                    text = statusText(connectionDescription, isConnected, health),
                     kind = when {
                         connectionDescription.isNullOrBlank() -> KhanaStatusKind.Neutral
-                        isConnected -> KhanaStatusKind.Success
-                        else -> KhanaStatusKind.Warning
+                        !isConnected -> KhanaStatusKind.Warning
+                        health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_OUT ->
+                            KhanaStatusKind.Danger
+                        health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_LOW ||
+                            health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.ERROR ->
+                            KhanaStatusKind.Warning
+                        else -> KhanaStatusKind.Success
                     },
                     filled = false
                 )
@@ -184,6 +188,42 @@ fun PrinterTargetCard(
                 }
             }
         }
+    }
+}
+
+/** Dot color combining connection state with ESC/POS health (paper/cover/error). */
+private fun dotColor(
+    isConnected: Boolean,
+    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?
+): Color = when {
+    !isConnected -> DangerRed
+    health == null -> SuccessGreen
+    else -> when (health) {
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.HEALTHY -> SuccessGreen
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.UNKNOWN -> SuccessGreen
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_LOW -> WarningYellow
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_OUT -> DangerRed
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.ERROR -> WarningYellow
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.UNREACHABLE -> DangerRed
+    }
+}
+
+/** Badge text combining connection state with ESC/POS health. */
+private fun statusText(
+    connectionDescription: String?,
+    isConnected: Boolean,
+    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?
+): String = when {
+    connectionDescription.isNullOrBlank() -> "No printer"
+    !isConnected -> "Ready"
+    health == null -> "Connected"
+    else -> when (health) {
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.HEALTHY -> "Connected"
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.UNKNOWN -> "Connected"
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_LOW -> "Paper low"
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_OUT -> "Paper out"
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.ERROR -> "Printer error"
+        com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.UNREACHABLE -> "Offline"
     }
 }
 

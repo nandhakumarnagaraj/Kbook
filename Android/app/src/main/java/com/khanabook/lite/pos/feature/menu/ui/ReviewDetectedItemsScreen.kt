@@ -288,7 +288,7 @@ internal fun ReviewDetectedItemsOverlay(
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
-            shape = KhanaRadii.pill,
+            shape = KhanaRadii.xl,
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

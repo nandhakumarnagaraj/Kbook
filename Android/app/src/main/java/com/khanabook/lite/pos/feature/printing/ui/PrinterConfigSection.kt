@@ -78,6 +78,7 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
+import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
 import com.khanabook.lite.pos.core.designsystem.KhanaButtonRow
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
@@ -131,6 +132,9 @@ fun PrinterConfigView(
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
     val context = LocalContext.current
+    // Re-probe Wi-Fi printers every time this screen is shown so the status dot
+    // reflects current reachability rather than a stale result.
+    LaunchedEffect(Unit) { viewModel.refreshWifiReachability() }
     var isBtActive by remember { mutableStateOf(viewModel.isBluetoothEnabled(context)) }
     var pendingRole by remember { mutableStateOf(PrinterRole.CUSTOMER) }
     var showWifiDialog by remember { mutableStateOf(false) }
@@ -142,6 +146,7 @@ fun PrinterConfigView(
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
     val connectedPrinterMac by viewModel.connectedPrinterMac.collectAsStateWithLifecycle()
     val printerStatusRoles by viewModel.printerStatusRoles.collectAsStateWithLifecycle()
+    val printerHealthMap by viewModel.printerHealth.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
@@ -158,8 +163,7 @@ fun PrinterConfigView(
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             perms[Manifest.permission.BLUETOOTH_CONNECT] == true && perms[Manifest.permission.BLUETOOTH_SCAN] == true
-        } else {
-            perms[Manifest.permission.BLUETOOTH] == true && perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        } else {                        perms[Manifest.permission.BLUETOOTH] == true && perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
         }
         if (ok) {
             if (!viewModel.isBluetoothEnabled(context)) {
@@ -178,6 +182,7 @@ fun PrinterConfigView(
             val (message, kind) = when (event) {
                 PrinterUiEvent.Connected -> {
                     showBtSheet = false
+                    viewModel.refreshWifiReachability()
                     context.getString(R.string.toast_printer_connected) to ToastKind.Success
                 }
                 PrinterUiEvent.ConnectionFailed ->
@@ -252,6 +257,7 @@ fun PrinterConfigView(
                     includeLogo = includeLogo,
                     showLogoToggle = true,
                     isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
+                    health = customerPrinter?.let { printerHealthMap[it.connectionTargetKey()] },
                     onEnabledChange = { enabled = it },
                     onAutoPrintChange = { autoPrint = it },
                     onPaperSizeChange = { paper58 = it },
@@ -310,6 +316,7 @@ fun PrinterConfigView(
                     includeLogo = false,
                     showLogoToggle = false,
                     isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
+                    health = kitchenPrinter?.let { printerHealthMap[it.connectionTargetKey()] },
                     onEnabledChange = { kitchenEnabled = it },
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },

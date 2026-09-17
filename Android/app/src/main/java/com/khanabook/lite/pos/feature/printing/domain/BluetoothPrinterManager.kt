@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.OutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -46,6 +47,7 @@ class BluetoothPrinterManager(private val context: Context) {
     companion object {
         private const val TAG = "BluetoothPrinter"
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        private const val STATUS_READ_TIMEOUT_MS = 600L
     }
 
     private val bluetoothManager: BluetoothManager? =
@@ -506,6 +508,53 @@ class BluetoothPrinterManager(private val context: Context) {
 
     /** Returns true if the printer with the given MAC is currently connected. */
     fun isConnectedTo(mac: String): Boolean = activeSockets[mac]?.isConnected == true
+
+    /**
+     * Queries the printer's ESC/POS real-time status (paper / cover / error) over
+     * the live RFCOMM socket and decodes it into a [PrinterHealth].
+     *
+     * Writes the DLE EOT commands, then reads one status byte per command with a
+     * short timeout. Printers that do not implement DLE EOT simply don't answer;
+     * the result then degrades to [PrinterHealth.UNKNOWN] (treated as reachable).
+     */
+    suspend fun queryHealth(mac: String): PrinterHealth {
+        val socket = activeSockets[mac]?.takeIf { it.isConnected } ?: return PrinterHealth.UNREACHABLE
+        return withContext(Dispatchers.IO) {
+            try {
+                val output = socket.outputStream
+                val input = socket.inputStream
+
+                fun query(cmd: ByteArray): Int? {
+                    return try {
+                        output.write(cmd)
+                        output.flush()
+                        // Drain: the printer replies with exactly one status byte.
+                        val deadline = System.currentTimeMillis() + STATUS_READ_TIMEOUT_MS
+                        var read = -1
+                        while (System.currentTimeMillis() < deadline && read == -1) {
+                            val available = input.available()
+                            if (available > 0) {
+                                read = input.read()
+                            } else {
+                                Thread.sleep(20)
+                            }
+                        }
+                        if (read in 0..255) read else null
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                val printerStatus = query(EscPosStatusDecoder.CMD_PRINTER_STATUS)
+                val errorStatus = query(EscPosStatusDecoder.CMD_ERROR_STATUS)
+                val paperStatus = query(EscPosStatusDecoder.CMD_PAPER_STATUS)
+                EscPosStatusDecoder.fromStatusBytes(printerStatus, errorStatus, paperStatus)
+            } catch (e: Exception) {
+                Log.w(TAG, "Status query failed for $mac — treating as unreachable", e)
+                PrinterHealth.UNREACHABLE
+            }
+        }
+    }
 
     @Suppress("MissingPermission")
     fun deviceName(device: BluetoothDevice): String =

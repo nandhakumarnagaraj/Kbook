@@ -28,9 +28,11 @@ import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
 import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.printing.domain.PrinterTransportDispatcher
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
+import com.khanabook.lite.pos.feature.printing.domain.PrinterHealth
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
+import com.khanabook.lite.pos.feature.printing.domain.isConnectionConfigured
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.sync.domain.SyncManager
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
@@ -92,6 +94,10 @@ class SettingsViewModel @Inject constructor(
     private val syncManager: SyncManager
 ) : ViewModel() {
 
+    private companion object {
+        const val WIFI_PROBE_TIMEOUT_MS = 2_000
+    }
+
     val displayScale = sessionManager.getDisplayScale()
 
     private val _displayScale = MutableStateFlow(displayScale)
@@ -135,16 +141,24 @@ class SettingsViewModel @Inject constructor(
     /** All printer MAC addresses currently connected at the Bluetooth ACL level. */
     val connectedPrinterMacs: StateFlow<Set<String>> = btManager.connectedDeviceMacs
 
+    /** Latest health probe results, keyed by connectionTargetKey(). */
+    private val _printerHealth = MutableStateFlow<Map<String, PrinterHealth>>(emptyMap())
+    val printerHealth: StateFlow<Map<String, PrinterHealth>> = _printerHealth.asStateFlow()
+
     val printerStatusRoles: StateFlow<Set<String>> = combine(
         printerProfiles,
-        connectedPrinterMacs
-    ) { profiles, liveMacs ->
+        connectedPrinterMacs,
+        _printerHealth
+    ) { profiles, liveMacs, health ->
         profiles
             .filter {
                 when (it.connectionTypeValue()) {
                     PrinterConnectionType.BLUETOOTH ->
-                        it.macAddress.isNotBlank() && liveMacs.contains(it.macAddress)
-                    PrinterConnectionType.WIFI -> false
+                        (it.macAddress.isNotBlank() && liveMacs.contains(it.macAddress)) ||
+                            btManager.isConnectedTo(it.macAddress)
+                    PrinterConnectionType.WIFI ->
+                        it.isConnectionConfigured() &&
+                            health[it.connectionTargetKey()]?.isReachable == true
                 }
             }
             .map { it.role }
@@ -196,6 +210,7 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
         }
+        refreshWifiReachability()
         refreshFailedBillSyncs()
         refreshDuplicateIdHealth()
         refreshLastSyncTimestamp()
@@ -221,6 +236,54 @@ class SettingsViewModel @Inject constructor(
     fun refreshLastSyncTimestamp() {
         _lastSyncTimestamp.value = sessionManager.getLastSyncTimestamp()
     }
+
+    /**
+     * Probes every configured printer and updates the status dot.
+     *
+     *  - Bluetooth: connects if needed, then queries ESC/POS DLE EOT status
+     *    (paper low / paper out / cover / error). Non-responding printers
+     *    degrade to UNKNOWN (shown as connected-green).
+     *  - Wi-Fi: raw TCP 9100 printing is connectionless and typically
+     *    write-only, so a successful TCP connect = reachable (HEALTHY is
+     *    reported; paper state cannot be queried reliably over 9100).
+     *
+     * Safe to call repeatedly — each probe runs in its own coroutine.
+     */
+    fun refreshWifiReachability() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val profiles = printerProfileRepository.getProfiles()
+                .filter { it.enabled && it.isConnectionConfigured() }
+            profiles.forEach { profile ->
+                launch {
+                    val health = when (profile.connectionTypeValue()) {
+                        PrinterConnectionType.BLUETOOTH -> {
+                            val mac = profile.macAddress
+                            if (!btManager.isConnectedTo(mac)) btManager.connect(mac)
+                            btManager.queryHealth(mac)
+                        }
+                        PrinterConnectionType.WIFI ->
+                            if (probeWifiPrinter(profile.host.orEmpty(), profile.port)) {
+                                PrinterHealth.HEALTHY
+                            } else {
+                                PrinterHealth.UNREACHABLE
+                            }
+                    }
+                    _printerHealth.value =
+                        _printerHealth.value + (profile.connectionTargetKey() to health)
+                }
+            }
+        }
+    }
+
+    private suspend fun probeWifiPrinter(host: String, port: Int): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                java.net.Socket().use { socket ->
+                    socket.connect(java.net.InetSocketAddress(host, port), WIFI_PROBE_TIMEOUT_MS)
+                }
+                true
+            }.getOrDefault(false)
+        }
 
     fun repairOrderIdCounters() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -675,6 +738,7 @@ class SettingsViewModel @Inject constructor(
                     kitchenPrintQueueManager.flushPendingForPrinter(profile.connectionTargetKey())
                 }
                 _printerEvents.emit(PrinterUiEvent.WifiSaved)
+                refreshWifiReachability()
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Wi-Fi printer save failed for ${role.name}", e)
                 _printerEvents.emit(PrinterUiEvent.WifiSaveFailed)
