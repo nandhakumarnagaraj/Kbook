@@ -34,6 +34,11 @@ import com.khanabook.lite.pos.feature.reports.ui.PaymentLevelView
 import com.khanabook.lite.pos.feature.reports.ui.ReportDownloadBottomBar
 import com.khanabook.lite.pos.feature.reports.ui.OrderLevelView
 import com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog
+import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager
+import com.khanabook.lite.pos.feature.billing.ui.CancelOrderDialog
+import com.khanabook.lite.pos.feature.billing.ui.PartAmountDialog
+import com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,9 +83,14 @@ fun ReportsScreen(
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsStateWithLifecycle()
+    val enabledModes = remember(profile) {
+        profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
+    }
+    var cancelBillId by remember { mutableStateOf<Long?>(null) }
+    var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+    var pendingPartBill by remember { mutableStateOf<OrderLevelRow?>(null) }
     
     var showDateRangePicker by remember { mutableStateOf(false) }
-    val dateRangePickerState = rememberDateRangePickerState()
 
     var isExporting by remember { mutableStateOf(false) }
 
@@ -161,7 +171,6 @@ fun ReportsScreen(
             
             if (showDateRangePicker) {
                 CustomDateRangePickerDialog(
-                    state = dateRangePickerState,
                     onDismiss = { showDateRangePicker = false },
                     onConfirm = viewModel::setCustomDateRange
                 )
@@ -211,11 +220,27 @@ fun ReportsScreen(
                 } else {
                     OrderLevelView(
                         rows = orderLevelRows,
-                        profile = profile
-                    ) { billId ->
-                        selectedBillId = billId
-                        viewModel.loadBillDetails(billId)
-                    }
+                        profile = profile,
+                        enabledModes = enabledModes,
+                        onStatusChange = { billId, newStatus ->
+                            viewModel.updateOrderStatus(billId, newStatus)
+                        },
+                        onPayModeChange = { billId, newMode ->
+                            if (PaymentModeManager.isPartPayment(newMode)) {
+                                pendingPartBill = orderLevelRows.find { it.billId == billId }
+                                pendingPartMode = newMode
+                            } else {
+                                viewModel.updatePaymentMode(billId, newMode.dbValue)
+                            }
+                        },
+                        onRequestCancel = { billId ->
+                            cancelBillId = billId
+                        },
+                        onViewDetails = { billId ->
+                            selectedBillId = billId
+                            viewModel.loadBillDetails(billId)
+                        }
+                    )
                 }
             }
 
@@ -259,7 +284,6 @@ fun ReportsScreen(
         // KhanaBookLoadingOverlay retained only for bill detail fetch (dialog)
         // Main list loading is now handled by SkeletonReportScreen above
 
-        
         selectedBillId?.let {
             OrderDetailsDialog(
                 billWithItems = selectedBillDetails,
@@ -267,6 +291,41 @@ fun ReportsScreen(
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
+                },
+                onCancelOrder = { detail ->
+                    cancelBillId = detail.bill.id
+                }
+            )
+        }
+
+        cancelBillId?.let { billId ->
+            CancelOrderDialog(
+                onDismiss = { cancelBillId = null },
+                onConfirm = { reason ->
+                    viewModel.cancelOrder(billId, reason)
+                    cancelBillId = null
+                    if (selectedBillId == billId) {
+                        selectedBillId = null
+                        viewModel.clearBillDetails()
+                    }
+                }
+            )
+        }
+
+        val partBill = pendingPartBill
+        val partMode = pendingPartMode
+        if (partBill != null && partMode != null) {
+            PartAmountDialog(
+                mode = partMode,
+                totalAmount = partBill.totalAmount,
+                onDismiss = {
+                    pendingPartBill = null
+                    pendingPartMode = null
+                },
+                onConfirm = { p1, p2 ->
+                    viewModel.updatePaymentMode(partBill.billId, partMode.dbValue, p1, p2)
+                    pendingPartBill = null
+                    pendingPartMode = null
                 }
             )
         }

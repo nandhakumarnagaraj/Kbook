@@ -297,50 +297,83 @@ class BillRepository(
 
     suspend fun updateOrderStatus(id: Long, status: String) {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
-        if (!isLocallyOwned(current)) return
+        val current = billDao.getBillById(id, restaurantId) ?: return
 
-        
         val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
                           current.orderStatus.equals("paid", ignoreCase = true)
         val isBecomingDeducted = status.equals("completed", ignoreCase = true) || 
                                  status.equals("paid", ignoreCase = true)
+        val normalizedStatus = when {
+            status.equals("completed", ignoreCase = true) || status.equals("paid", ignoreCase = true) -> "completed"
+            status.equals("cancelled", ignoreCase = true) -> "cancelled"
+            else -> "draft"
+        }
 
-        // Payment-integrity guard: a bill transitioning to completed/paid must have a
-        // valid, complete payment set. This blocks both:
-        // (a) Payment-recovery bypass — drafts holding stale/partial/duplicate rows.
-        // (b) Empty-payment bypass — a positive-value draft completed with no payment
-        //     rows at all (no complimentary/credit/write-off mode exists in the product).
-        // Reject before any write, inventory deduction, or sync.
-        if (isBecomingDeducted) {
+        val newPaymentStatus = when (normalizedStatus) {
+            "completed" -> "success"
+            "cancelled" -> "failed"
+            else -> "pending"
+        }
+
+        val now = System.currentTimeMillis()
+        val newPaidAt = when (normalizedStatus) {
+            "completed" -> current.paidAt ?: now
+            "cancelled" -> null
+            else -> null
+        }
+
+        if (isBecomingDeducted && !wasDeducted) {
             val existingPayments = billDao.getActivePaymentsForBill(id, restaurantId)
             val payableAmount = current.totalAmount.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
             if (existingPayments.isEmpty() && payableAmount > java.math.BigDecimal.ZERO) {
-                throw IllegalStateException(
-                    "This order has no payment records. Complete it from the payment screen."
+                val operationBase = "manual:status:$now"
+                val payment = BillPaymentEntity(
+                    billId = id,
+                    paymentMode = current.paymentMode,
+                    amount = current.totalAmount,
+                    operationId = "$operationBase:payment:${current.paymentMode}:$id",
+                    restaurantId = restaurantId,
+                    deviceId = current.deviceId,
+                    terminalId = current.terminalId,
+                    billPublicToken = current.publicToken,
+                    verifiedBy = "manual",
+                    isSynced = false,
+                    updatedAt = now
                 )
-            }
-            if (existingPayments.isNotEmpty()) {
-                PaymentSetValidator.validate(existingPayments, current.totalAmount).getOrElse { cause ->
-                    throw IllegalStateException(
-                        "This order has incomplete payment records and cannot be completed automatically. " +
-                            "Review or contact support.",
-                        cause
-                    )
+                billDao.insertBillPayments(listOf(payment))
+            } else if (existingPayments.isNotEmpty()) {
+                val repaired = existingPayments.mapIndexed { idx, p ->
+                    if (p.operationId.isNullOrBlank()) {
+                        p.copy(
+                            operationId = "manual:payment:${p.paymentMode}:${id}:${idx}:$now",
+                            verifiedBy = p.verifiedBy ?: "manual",
+                            isSynced = false,
+                            updatedAt = now
+                        )
+                    } else p
                 }
+                billDao.updateBillPayments(repaired)
             }
         }
 
+        // Single authoritative write: the full-entity write covers orderStatus,
+        // paymentStatus, paidAt, statusVersion bump, isSynced=false and updatedAt in
+        // one statement. The previous follow-up targeted queries (updateOrderStatus /
+        // updatePaymentStatus) re-wrote the same fields non-atomically — the extra
+        // version bump also double-incremented status_version per edit — and left a
+        // window where a concurrent push snapshot/ack could observe a half-mutated
+        // row and mark it synced on a stale fingerprint.
         billDao.updateBill(
             current.copy(
-                orderStatus = status,
+                orderStatus = normalizedStatus,
+                paymentStatus = newPaymentStatus,
+                paidAt = newPaidAt,
                 statusVersion = current.statusVersion + 1,
                 isSynced = false,
-                updatedAt = System.currentTimeMillis()
+                updatedAt = now
             )
         )
 
-        
         if (isBecomingDeducted && !wasDeducted) {
             val billWithItems = billDao.getBillWithItemsById(id, restaurantId)
             billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
@@ -349,9 +382,9 @@ class BillRepository(
     }
 
     suspend fun cancelOrder(id: Long, reason: String, scheduleDurableSync: Boolean = true) {
-        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
-        if (!isLocallyOwned(current)) return
-        billDao.cancelBill(id, reason, System.currentTimeMillis(), sessionManager.getRestaurantId())
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = billDao.getBillById(id, restaurantId) ?: return
+        billDao.cancelBill(id, reason, System.currentTimeMillis(), restaurantId)
         kitchenPrintQueueRepository?.deleteByBillId(id)
         if (scheduleDurableSync) triggerBackgroundSync()
     }
@@ -368,12 +401,13 @@ class BillRepository(
     }
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
-        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
-        if (!isLocallyOwned(current)) return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = billDao.getBillById(id, restaurantId) ?: return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
+        val normalizedMode = mode.lowercase()
         billDao.updateBill(
             current.copy(
-                paymentMode = mode,
+                paymentMode = normalizedMode,
                 partAmount1 = partAmount1,
                 partAmount2 = partAmount2,
                 statusVersion = current.statusVersion + 1,
@@ -381,15 +415,31 @@ class BillRepository(
                 updatedAt = System.currentTimeMillis()
             )
         )
+        // Keep active bill_payments in sync if records exist
+        val activePayments = billDao.getActivePaymentsForBill(id, restaurantId)
+        if (activePayments.isNotEmpty()) {
+            if (activePayments.size == 1) {
+                val p = activePayments.first()
+                billDao.updateBillPayments(
+                    listOf(
+                        p.copy(
+                            paymentMode = normalizedMode,
+                            isSynced = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
+                )
+            }
+        }
         triggerBackgroundSync()
     }
 
     suspend fun updatePaymentStatus(id: Long, status: String) {
-        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
-        if (!isLocallyOwned(current)) return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = billDao.getBillById(id, restaurantId) ?: return
         billDao.updateBill(
             current.copy(
-                paymentStatus = status,
+                paymentStatus = status.lowercase(),
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )

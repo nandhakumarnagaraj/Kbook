@@ -664,13 +664,15 @@ class TenantBillDao @Inject constructor(
         restaurantId: Long,
         pushedUpdatedAt: Long,
         pushedOrderStatus: String,
-        pushedPaymentStatus: String
+        pushedPaymentStatus: String,
+        pushedStatusVersion: Int
     ): Int = dao.markBillAsSyncedIfUnchanged(
         billId,
         restaurantId,
         pushedUpdatedAt,
         pushedOrderStatus,
-        pushedPaymentStatus
+        pushedPaymentStatus,
+        pushedStatusVersion
     )
 
     override suspend fun markBillSyncFailedPermanently(

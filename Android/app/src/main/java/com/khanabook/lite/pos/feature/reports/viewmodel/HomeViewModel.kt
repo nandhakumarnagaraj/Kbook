@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.feature.reports.viewmodel
 
 import com.khanabook.lite.pos.core.util.AppConstants
 
+import android.bluetooth.BluetoothAdapter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
@@ -332,13 +333,19 @@ class HomeViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                if (legacyPrinter == null) {
+                if (configuredPrinters.any { it.connectionTypeValue() == PrinterConnectionType.USB }) {
+                    if (showMessage) {
+                        _message.emit(UiMessage("USB printer configured.", ToastKind.Success))
+                    }
+                    return@launch
+                }
+                val legacyMac = legacyPrinter?.printerMac?.takeIf { BluetoothAdapter.checkBluetoothAddress(it) }
+                if (legacyMac == null) {
                     if (showMessage) _message.emit(UiMessage("No printer configured.", ToastKind.Warning))
                     return@launch
                 }
-                val mac = legacyPrinter.printerMac ?: return@launch
-                val connected = printerManager.isConnectedTo(mac) ||
-                    printerManager.connect(mac)
+                val connected = printerManager.isConnectedTo(legacyMac) ||
+                    printerManager.connect(legacyMac)
                 if (showMessage) {
                     _message.emit(
                         if (connected) {

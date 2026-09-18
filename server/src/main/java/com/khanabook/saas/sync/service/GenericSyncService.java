@@ -639,30 +639,57 @@ public class GenericSyncService {
 								incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
 								applyProfileChangedFieldsMerge(incomingRecord, existingRecord);
 								mergeCounterState(incomingProfile, existingProfile);
-							}
-
-							// Refund preservation: refundAmount is server-owned (set by admin via
-							// markManualRefund). Android never sends it, so ALWAYS restore the
-							// server value on updates to prevent a push from zeroing a refund.
-							if (incomingRecord instanceof Bill incomingBill
-									&& existingRecord instanceof Bill existingBill) {
-								incomingBill.setRefundAmount(existingBill.getRefundAmount());
-								// Terminal-state guard: a stale device push must not revert a
-								// gateway-confirmed payment or un-cancel a bill. A deliberate edit
-								// carries a higher statusVersion and is allowed through.
-								billSyncService.protectBillState(incomingBill, existingBill);
-								auditBillEdits(incomingBill, existingBill);
-								if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus())
-										&& "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
-									cancelledBills.add(incomingBill);
+							}								// Refund preservation: refundAmount is server-owned (set by admin via
+								// markManualRefund). Android never sends it, so ALWAYS restore the
+								// server value on updates to prevent a push from zeroing a refund.
+								if (incomingRecord instanceof Bill incomingBill
+										&& existingRecord instanceof Bill existingBill) {
+									// Capture pre-guard statuses so a silent protectBillState override
+									// (stale status push restored by the terminal-state guard) can be
+									// reported to the device via failedLocalIds instead of being saved
+									// as if it had succeeded. The client quarantines failed records and
+									// surfaces the reason in Sync Center, so the cashier learns the
+									// cancel/status edit was refused rather than silently dropped.
+									String preGuardOrderStatus = incomingBill.getOrderStatus();
+									String preGuardPaymentStatus = incomingBill.getPaymentStatus();
+									incomingBill.setRefundAmount(existingBill.getRefundAmount());
+									// Terminal-state guard: a stale device push must not revert a
+									// gateway-confirmed payment or un-cancel a bill. A deliberate edit
+									// carries a higher statusVersion and is allowed through.
+									billSyncService.protectBillState(incomingBill, existingBill);
+								auditBillEdits(incomingBill, existingBill);									if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus())
+											&& "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
+										cancelledBills.add(incomingBill);
+									}
+									if (isFinalizedOrderStatus(incomingBill.getOrderStatus())
+											&& !isFinalizedOrderStatus(existingBill.getOrderStatus())) {
+										finalizedBills.add(incomingBill);
+									}
+									// Loud rejection: when the guard overrode a status the device tried
+									// to change, do NOT save the restored record as success. Fail the
+									// record so the device quarantines it and shows the reason. Equal
+									// statuses mean the push carried no status transition (pure field
+									// edit) and is unaffected — only overridden transitions fail.
+									boolean orderStatusOverridden = preGuardOrderStatus != null
+											&& !preGuardOrderStatus.equalsIgnoreCase(incomingBill.getOrderStatus());
+									boolean paymentStatusOverridden = preGuardPaymentStatus != null
+											&& !preGuardPaymentStatus.equalsIgnoreCase(incomingBill.getPaymentStatus());
+									if (orderStatusOverridden || paymentStatusOverridden) {
+										failedLocalIds.add(incomingRecord.getLocalId());
+										failedReasons.put(incomingRecord.getLocalId(),
+												"STALE_STATUS_PUSH: status edit was rejected because a newer state is already recorded "
+														+ "(device statusVersion " + incomingBill.getStatusVersion()
+														+ " vs server " + existingBill.getStatusVersion()
+														+ "). Pull latest data; repeat the edit from the current state if still needed.");
+										securityAuditService.record("SYNC_PUSH", "STALE_STATUS_PUSH",
+												String.valueOf(incomingRecord.getLocalId()),
+												"orderStatus=" + preGuardOrderStatus + " rejected, server statusVersion="
+														+ existingBill.getStatusVersion());
+										continue;
+									}
 								}
-								if (isFinalizedOrderStatus(incomingBill.getOrderStatus())
-										&& !isFinalizedOrderStatus(existingBill.getOrderStatus())) {
-									finalizedBills.add(incomingBill);
-								}
-							}
 
-							incomingRecord.setId(existingRecord.getId());
+								incomingRecord.setId(existingRecord.getId());
 							// Preserve the current row version so sync updates don't trip optimistic locking
 							// when the client payload carries a stale/default version value.
 							incomingRecord.setVersion(existingRecord.getVersion());

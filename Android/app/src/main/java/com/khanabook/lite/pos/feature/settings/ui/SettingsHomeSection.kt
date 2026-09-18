@@ -102,7 +102,7 @@ fun SettingsHomeSection(
                     SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration", modifier = itemMod) {
                         onSectionSelected("tax")
                     }
-                    SettingsItem(icon = Icons.Filled.Tune, text = "Settings", modifier = itemMod) {
+                    SettingsItem(icon = Icons.Filled.Tune, text = "App Settings", modifier = itemMod) {
                         onSectionSelected("security")
                     }
                     // TODO: re-enable for next version

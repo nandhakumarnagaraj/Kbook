@@ -425,7 +425,17 @@ class BluetoothPrinterManager(private val context: Context) {
         return null
     }
 
-    suspend fun connect(address: String): Boolean {        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
+    suspend fun connect(address: String): Boolean {
+        if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+            Log.w(TAG, "Invalid Bluetooth address: $address")
+            return false
+        }
+        val device = try {
+            bluetoothAdapter?.getRemoteDevice(address) ?: return false
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not get remote Bluetooth device for $address", e)
+            return false
+        }
         return connect(device)
     }
 

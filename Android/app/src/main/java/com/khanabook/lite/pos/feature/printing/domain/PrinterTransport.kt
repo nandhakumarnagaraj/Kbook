@@ -1,13 +1,18 @@
 package com.khanabook.lite.pos.feature.printing.domain
 
+import android.util.Log
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 interface PrinterTransport {
@@ -30,30 +35,85 @@ class BluetoothPrinterTransport @Inject constructor(
     }
 }
 
+/**
+ * Wi-Fi (TCP port 9100 raw ESC/POS) transport.
+ *
+ * Failure model (why this is chunked + watchdog-guarded):
+ * Thermal printers have small input buffers. A single unbounded write() of a
+ * full receipt (logo bitmap + item table, 5-25 KB) can flood the printer and
+ * block forever on a slow/stalled Wi-Fi link — and Java blocking OutputStream
+ * writes have NO timeout (soTimeout bounds reads only). Test prints survived
+ * because the 45-byte strip never fills the buffer; live KOTs/receipts stalled.
+ *
+ * - Payload is written in 4 KB chunks with a flush per chunk so the printer's
+ *   buffer is never flooded in one burst (same model as UsbPrinterTransport).
+ * - A watchdog force-closes the socket after WRITE_DEADLINE_MS, which is the
+ *   only reliable way to unblock a stuck write (cancellation cannot interrupt it).
+ * - Failures are logged with endpoint + exception type instead of being swallowed.
+ * - One retry on a fresh socket: Wi-Fi printer modules frequently recover right
+ *   after a dropped connection. Mirrors the kitchen queue's reprint semantics.
+ */
 @Singleton
 class WifiPrinterTransport @Inject constructor() : PrinterTransport {
     override val connectionType = PrinterConnectionType.WIFI
 
-    override suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean =
-        withContext(Dispatchers.IO) {
-            val host = profile.host?.trim().orEmpty()
-            if (host.isBlank() || profile.port !in 1..65535) return@withContext false
-            runCatching {
-                Socket().use { socket ->
-                    socket.connect(InetSocketAddress(host, profile.port), CONNECT_TIMEOUT_MS)
-                    socket.soTimeout = WRITE_TIMEOUT_MS
-                    socket.getOutputStream().use { output ->
-                        output.write(bytes)
-                        output.flush()
-                    }
+    override suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean {
+        val host = profile.host?.trim().orEmpty()
+        if (host.isBlank() || profile.port !in 1..65535) return false
+
+        if (withContext(Dispatchers.IO) { deliver(host, profile.port, bytes) }) return true
+
+        // One bounded retry on a fresh socket — never reuse a half-open connection.
+        delay(RETRY_DELAY_MS)
+        return withContext(Dispatchers.IO) { deliver(host, profile.port, bytes) }
+    }
+
+    private fun deliver(host: String, port: Int, bytes: ByteArray): Boolean {
+        val socket = Socket()
+        val watchdog: ScheduledFuture<*> = writeWatchdog.schedule(
+            {
+                // Force-closes a stuck write: Socket.close() from another thread makes
+                // the blocked OutputStream.write() throw SocketException immediately.
+                runCatching { socket.close() }
+            },
+            WRITE_DEADLINE_MS,
+            TimeUnit.MILLISECONDS
+        )
+        return try {
+            socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+            socket.getOutputStream().use { output ->
+                var offset = 0
+                while (offset < bytes.size) {
+                    val end = minOf(offset + CHUNK_SIZE, bytes.size)
+                    output.write(bytes, offset, end - offset)
+                    output.flush()
+                    offset = end
                 }
-                true
-            }.getOrDefault(false)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(
+                TAG,
+                "Wi-Fi print to $host:$port failed (${e.javaClass.simpleName}: ${e.message})"
+            )
+            false
+        } finally {
+            watchdog.cancel(false)
+            runCatching { socket.close() }
         }
+    }
 
     private companion object {
-        const val CONNECT_TIMEOUT_MS = 5_000
-        const val WRITE_TIMEOUT_MS = 8_000
+        private const val TAG = "WifiPrinterTransport"
+        private const val CONNECT_TIMEOUT_MS = 5_000
+        private const val WRITE_DEADLINE_MS = 10_000L
+        private const val CHUNK_SIZE = 4_096
+        private const val RETRY_DELAY_MS = 300L
+
+        /** Shared daemon watchdog pool — one thread serves all Wi-Fi print attempts. */
+        private val writeWatchdog = Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "WifiPrinterWatchdog").apply { isDaemon = true }
+        }
     }
 }
 

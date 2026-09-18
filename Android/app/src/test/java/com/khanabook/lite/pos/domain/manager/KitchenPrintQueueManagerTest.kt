@@ -22,6 +22,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
+import com.khanabook.lite.pos.feature.printing.domain.PrinterTransportDispatcher
+import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterTransport
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,6 +37,11 @@ class KitchenPrintQueueManagerTest {
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
     private val printerProfileRepository: PrinterProfileRepository = mockk(relaxed = true)
     private val printerManager: BluetoothPrinterManager = mockk(relaxed = true)
+    private val printerTransport = PrinterTransportDispatcher(
+        BluetoothPrinterTransport(printerManager),
+        mockk(relaxed = true),
+        mockk(relaxed = true)
+    )
     private val kotEventDao: KotEventDao = mockk(relaxed = true)
     private val connectedEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
@@ -48,12 +55,14 @@ class KitchenPrintQueueManagerTest {
         every { android.util.Log.w(any(), any<String>(), any()) } returns 0
         every { printerManager.connectedDeviceEvents } returns connectedEvents
         every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
+        every { printerManager.isConnectedTo(any()) } returns false
         manager = KitchenPrintQueueManager(
             queueRepository = queueRepository,
             billRepository = billRepository,
             restaurantRepository = restaurantRepository,
             printerProfileRepository = printerProfileRepository,
             printerManager = printerManager,
+            printerTransport = printerTransport,
             kotEventDao = kotEventDao
         )
     }

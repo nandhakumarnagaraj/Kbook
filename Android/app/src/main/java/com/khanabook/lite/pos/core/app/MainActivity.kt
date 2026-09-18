@@ -196,17 +196,9 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
 
-        // Startup routing decision — the branded start frame stays visible until
-        // this completes. Minimum 1.5s ensures brand exposure (like Paytm).
+        // Startup routing decision — immediate dispatch for instant POS launch
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
-            val startTime = System.currentTimeMillis()
-            val destination = computeStartupDestination()
-            val elapsed = System.currentTimeMillis() - startTime
-            val minDisplayMs = 1800L
-            if (elapsed < minDisplayMs) {
-                kotlinx.coroutines.delay(minDisplayMs - elapsed)
-            }
-            startupDestination.value = destination
+            startupDestination.value = computeStartupDestination()
         }
 
         lifecycleScope.launch {

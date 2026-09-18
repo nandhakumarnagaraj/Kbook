@@ -952,13 +952,15 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
           AND updated_at = :pushedUpdatedAt
           AND order_status = :pushedOrderStatus
           AND payment_status = :pushedPaymentStatus
+          AND status_version = :pushedStatusVersion
     """)
     suspend fun markBillAsSyncedIfUnchanged(
         billId: Long,
         restaurantId: Long,
         pushedUpdatedAt: Long,
         pushedOrderStatus: String,
-        pushedPaymentStatus: String
+        pushedPaymentStatus: String,
+        pushedStatusVersion: Int
     ): Int
 
     @Query("""
@@ -1107,11 +1109,26 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
                 // Note: record_origin/record_scope intentionally come from the remote here —
                 // getOperationalBillById uses currentOwnerTerminalId (not those labels) to
                 // determine editability, so there is no need to preserve stale local labels.
+                //
+                // Deliberate-edit guard: a locally bumped status_version is an intentional
+                // status change (cancel / payment-mode edit) that the server's
+                // protectBillState compares against on the next push. A pulled copy must
+                // never overwrite a row whose local version is strictly ahead, and an
+                // overwrite must never decrease the stored version — dropping the signal
+                // let pulled bills silently revert cancelled rows back to their old status.
+                val localStatusVersionAhead = localBill.statusVersion > bill.statusVersion
                 val shouldOverwrite =
-                    bill.updatedAt > localBill.updatedAt ||
-                        (bill.updatedAt == localBill.updatedAt && localBill.isSynced)
+                    !localStatusVersionAhead && (
+                        bill.updatedAt > localBill.updatedAt ||
+                            (bill.updatedAt == localBill.updatedAt && localBill.isSynced)
+                        )
                 if (shouldOverwrite) {
-                    updateBill(bill.copy(id = localBill.id))
+                    updateBill(
+                        bill.copy(
+                            id = localBill.id,
+                            statusVersion = maxOf(bill.statusVersion, localBill.statusVersion)
+                        )
+                    )
                 } else {
                     // Preserve newer local fields, but still merge server identity from the pull.
                     // Bill items link through serverBillId -> bills.server_id; without this repair

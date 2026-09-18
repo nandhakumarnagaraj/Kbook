@@ -26,7 +26,7 @@ private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
 private val STAFF_ROLES = setOf("SHOP_STAFF")
 
 @Singleton
-class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
+open class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
     private val appLockGracePeriodMs = 30_000L
 
@@ -79,16 +79,18 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         _isSessionExpired.value = false
     }
 
-    fun getDeviceId(): String {
-        synchronized(this) {
-            var deviceId = securePrefs.getString("device_id", null)
-            if (deviceId == null) {
-                val rawHex = java.util.UUID.randomUUID().toString().replace("-", "")
-                deviceId = "dev_" + rawHex.substring(0, 8)
-                saveDeviceId(deviceId)
+    open fun getDeviceId(): String {
+        return runCatching {
+            synchronized(this) {
+                var deviceId = securePrefs.getString("device_id", null)
+                if (deviceId == null) {
+                    val rawHex = java.util.UUID.randomUUID().toString().replace("-", "")
+                    deviceId = "dev_" + rawHex.substring(0, 8)
+                    saveDeviceId(deviceId)
+                }
+                deviceId
             }
-            return deviceId
-        }
+        }.getOrDefault("dev_default")
     }
 
     fun saveDeviceId(deviceId: String) {
@@ -113,7 +115,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         editor.apply()
     }
 
-    fun getRestaurantId(): Long = prefs.getLong("restaurant_id", 0L)
+    open fun getRestaurantId(): Long = runCatching { prefs.getLong("restaurant_id", 0L) }.getOrDefault(0L)
 
     fun saveRestaurantId(restaurantId: Long) {
         prefs.edit().putLong("restaurant_id", restaurantId).apply()

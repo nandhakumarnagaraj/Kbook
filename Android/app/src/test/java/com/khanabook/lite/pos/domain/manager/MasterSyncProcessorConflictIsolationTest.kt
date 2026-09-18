@@ -170,7 +170,8 @@ class MasterSyncProcessorConflictIsolationTest {
                 restaurantId = RESTAURANT_ID,
                 pushedUpdatedAt = 1_000,
                 pushedOrderStatus = "draft",
-                pushedPaymentStatus = "pending"
+                pushedPaymentStatus = "pending",
+                pushedStatusVersion = any()
             )
         } returns 0
 
@@ -186,7 +187,8 @@ class MasterSyncProcessorConflictIsolationTest {
                 restaurantId = RESTAURANT_ID,
                 pushedUpdatedAt = 1_000,
                 pushedOrderStatus = "draft",
-                pushedPaymentStatus = "pending"
+                pushedPaymentStatus = "pending",
+                pushedStatusVersion = any()
             )
         }
     }
@@ -241,6 +243,7 @@ class MasterSyncProcessorConflictIsolationTest {
                 any(),
                 any(),
                 any(),
+                any(),
                 any()
             )
         } answers {
@@ -291,7 +294,8 @@ class MasterSyncProcessorConflictIsolationTest {
                 restaurantId = RESTAURANT_ID,
                 pushedUpdatedAt = 1_000,
                 pushedOrderStatus = "draft",
-                pushedPaymentStatus = "pending"
+                pushedPaymentStatus = "pending",
+                pushedStatusVersion = any()
             )
         }
         coVerify(exactly = 1) {
@@ -300,7 +304,8 @@ class MasterSyncProcessorConflictIsolationTest {
                 restaurantId = RESTAURANT_ID,
                 pushedUpdatedAt = 2_000,
                 pushedOrderStatus = "completed",
-                pushedPaymentStatus = "success"
+                pushedPaymentStatus = "success",
+                pushedStatusVersion = any()
             )
         }
     }

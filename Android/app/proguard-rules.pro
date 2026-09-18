@@ -1,4 +1,4 @@
-﻿# â”€â”€ KhanaBookLite ProGuard Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ KhanaBookLite ProGuard Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 # Keep line numbers in stack traces for debuggability (hidden source file name)
 -keepattributes SourceFile,LineNumberTable
@@ -52,14 +52,17 @@
 -keep class androidx.credentials.** { *; }
 -dontwarn androidx.credentials.**
 
-# Google Play Services - required for Credential Manager on all Android versions
--keep class com.google.android.gms.** { *; }
+# Google Play Services Auth / Credential Manager (scoped instead of broad wildcards)
+-keep class com.google.android.gms.auth.api.identity.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }
 -dontwarn com.google.android.gms.**
 -keep class com.google.api.client.** { *; }
 -dontwarn com.google.api.client.**
 -keep class com.google.auth.** { *; }
 -dontwarn com.google.auth.**
 
-# Easebuzz Payment SDK - keep all classes
+# Easebuzz Payment SDK - keep all classes (both in.easebuzz and legacy com.easebuzz)
+-keep class in.easebuzz.** { *; }
+-dontwarn in.easebuzz.**
 -keep class com.easebuzz.** { *; }
 -dontwarn com.easebuzz.**

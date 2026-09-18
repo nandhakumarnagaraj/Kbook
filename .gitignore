@@ -13,6 +13,8 @@
 
 # Java class files (just in case another directory sneaks them in)
 *.class
+*.exe
+*.dll
 
 # Android local/generated files
 /Android/*.log
@@ -59,6 +61,9 @@ Android/app/*.aab
 .claude/
 .agents/
 .agnes/
+.codex/
+.opencode/
+.kiro/skills/
 
 # Skill lock files
 skills-lock.json
@@ -135,6 +140,7 @@ test.html
 # Generated analysis and scratch output
 /graphify-out/
 /scratch/
+/brag-output/
 
 # Duplicate static export folder; active web assets live in web-admin/public/
 /website/

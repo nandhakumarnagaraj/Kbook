@@ -3,6 +3,8 @@ import com.khanabook.lite.pos.feature.sync.domain.MasterSyncProcessor
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.room.withTransaction
 import com.khanabook.lite.pos.core.database.AppDatabase
@@ -72,13 +74,19 @@ class MasterSyncProcessorImageMergeTest {
         categoryDao = mockk(relaxed = true)
         restaurantDao = mockk(relaxed = true)
         userDao = mockk(relaxed = true)
-        sessionManager = mockk(relaxed = true)
+        val context = mockk<Context>(relaxed = true)
+        val prefs = mockk<SharedPreferences>(relaxed = true)
+        val editor = mockk<SharedPreferences.Editor>(relaxed = true)
+        every { context.getSharedPreferences(any(), any()) } returns prefs
+        every { prefs.edit() } returns editor
+        every { prefs.getLong("restaurant_id", any()) } returns RESTAURANT
+        every { prefs.getString(any(), any()) } returns null
+        sessionManager = SessionManager(context)
+
         databaseProvider = mockk(relaxed = true)
         db = mockk(relaxed = true)
 
         every { databaseProvider.getDatabase() } returns db
-        coEvery { sessionManager.getRestaurantId() } returns RESTAURANT
-        every { sessionManager.getDeviceId() } returns "other-device"
 
         // Seed a category so the menu item is not rejected for an unknown category.
         coEvery { categoryDao.getAllCategoryServerIds(RESTAURANT) } returns

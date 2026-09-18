@@ -186,27 +186,12 @@ class ReportsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 billRepository.cancelOrder(billId, reason)
-                // Update in-place — avoids full reload flicker
-                _orderDetailsTable.update { rows ->
-                    rows.map { row ->
-                        if (row.billId == billId)
-                            row.copy(
-                                orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED,
-                                currentStatus = "cancelled",
-                                cancelReason = reason
-                            )
-                        else row
-                    }
-                }
-                _orderLevelRows.update { rows ->
-                    rows.map { row ->
-                        if (row.billId == billId)
-                            row.copy(
-                                orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED,
-                                cancelReason = reason
-                            )
-                        else row
-                    }
+                // Re-read from Room so every table (order details, order level, payment
+                // breakdown) reflects the persisted truth. In-memory row patching used to
+                // leave paymentStatus stale and diverged from what a screen re-entry would
+                // load — the "status flips back after navigation" symptom.
+                if (currentFrom != 0L && currentTo != 0L) {
+                    loadReports(currentFrom, currentTo)
                 }
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
@@ -221,6 +206,8 @@ class ReportsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 billRepository.updateOrderStatus(billId, newStatus)
+                // Persist first, then re-read from Room — the tables must always be a
+                // projection of the database, never an independently patched copy.
                 if (currentFrom != 0L && currentTo != 0L) {
                     loadReports(currentFrom, currentTo)
                 }
@@ -236,6 +223,24 @@ class ReportsViewModel @Inject constructor(
     fun updatePaymentMode(billId: Long, newMode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         viewModelScope.launch {
             try {
+                val modeEnum = com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue(newMode)
+                _orderDetailsTable.update { rows ->
+                    rows.map { row ->
+                        if (row.billId == billId)
+                            row.copy(
+                                payMode = modeEnum,
+                                currentStatus = "Order ${row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }} [${modeEnum.displayLabel}]"
+                            )
+                        else row
+                    }
+                }
+                _orderLevelRows.update { rows ->
+                    rows.map { row ->
+                        if (row.billId == billId)
+                            row.copy(paymentMode = modeEnum)
+                        else row
+                    }
+                }
                 billRepository.updatePaymentMode(billId, newMode, partAmount1, partAmount2)
                 if (currentFrom != 0L && currentTo != 0L) {
                     loadReports(currentFrom, currentTo)

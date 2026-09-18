@@ -14,7 +14,8 @@ data class OrderLevelRow(
     val orderType: String = "",
     val orderStatus: OrderStatus,
     val date: String,
-    val cancelReason: String = ""
+    val cancelReason: String = "",
+    val totalAmount: String = "0.0"
 )
 
 data class OrderDetailRow(

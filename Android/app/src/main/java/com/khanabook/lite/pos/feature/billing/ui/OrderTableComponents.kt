@@ -167,6 +167,7 @@ fun OrderTableRow(
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
+                    OrderStatus.DRAFT -> PrimaryGold
                     else -> TextMuted
                 }
                 Surface(
@@ -179,10 +180,11 @@ fun OrderTableRow(
                         text = when (row.orderStatus) {
                             OrderStatus.COMPLETED -> "Completed"
                             OrderStatus.CANCELLED -> "Cancelled"
-                            else -> "Draft"
+                            OrderStatus.DRAFT -> "Pending"
+                            else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
                         },
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall)
                     )
@@ -193,10 +195,18 @@ fun OrderTableRow(
                         onDismissRequest = { statusExpanded = false },
                         modifier = Modifier.background(DarkBrown2)
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
-                            onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
-                        )
+                        if (row.orderStatus != OrderStatus.COMPLETED) {
+                            DropdownMenuItem(
+                                text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                                onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
+                            )
+                        }
+                        if (row.orderStatus != OrderStatus.DRAFT) {
+                            DropdownMenuItem(
+                                text = { Text("Pending", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                                onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)) },
                             onClick = { statusExpanded = false; onRequestCancel() }

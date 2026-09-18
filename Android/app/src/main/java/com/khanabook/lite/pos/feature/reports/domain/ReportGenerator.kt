@@ -75,7 +75,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
                 orderType = bill.orderType,
                 orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
                 date = DateUtils.formatDisplay(bill.createdAt),
-                cancelReason = bill.cancelReason
+                cancelReason = bill.cancelReason,
+                totalAmount = bill.totalAmount.toString()
             )
         }
     }

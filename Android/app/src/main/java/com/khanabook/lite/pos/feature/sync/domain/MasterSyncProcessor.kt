@@ -650,12 +650,17 @@ class MasterSyncProcessor @Inject constructor(
         bills.asSequence()
             .filter { it.id in successfulIdSet }
             .forEach { pushedBill ->
+                // status_version in the snapshot guard: a row edited between the push
+                // snapshot and this ack (e.g. a concurrent cancel) must stay unsynced so
+                // the newer state is pushed next cycle instead of being marked synced
+                // on a stale fingerprint.
                 val acknowledged = billDao.markBillAsSyncedIfUnchanged(
                     billId = pushedBill.id,
                     restaurantId = restaurantId,
                     pushedUpdatedAt = pushedBill.updatedAt,
                     pushedOrderStatus = pushedBill.orderStatus,
-                    pushedPaymentStatus = pushedBill.paymentStatus
+                    pushedPaymentStatus = pushedBill.paymentStatus,
+                    pushedStatusVersion = pushedBill.statusVersion
                 )
                 if (acknowledged == 0) {
                     changedBillIds += pushedBill.id
@@ -686,7 +691,8 @@ class MasterSyncProcessor @Inject constructor(
                     restaurantId = restaurantId,
                     pushedUpdatedAt = pulledBill.updatedAt,
                     pushedOrderStatus = pulledBill.orderStatus,
-                    pushedPaymentStatus = pulledBill.paymentStatus
+                    pushedPaymentStatus = pulledBill.paymentStatus,
+                    pushedStatusVersion = pulledBill.statusVersion
                 )
             }
         }
@@ -1492,7 +1498,12 @@ BillEntity(
                             ?.takeUnless { it.isBlank() }
                             ?: createdTerminalId,
                         version = remoteBill.version ?: 0L,
-                        lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
+                        // Carry the server's statusVersion through the pull. The device bumps
+                        // status_version on deliberate edits (cancel / payment-mode change) and
+                        // BillSyncService.protectBillState compares it on the next push — a
+                        // pull-overwrite that dropped this field would reset it to the entity
+                        // default 0 and strip the deliberate-edit signal from the row.
+                        statusVersion = remoteBill.statusVersion ?: 0,
                         operationId = remoteBill.operationId,
                         // Terminal ownership isolation: pulled bills are server-imported history,
                         // EXCEPT a still-open draft that belongs to THIS terminal — keep it

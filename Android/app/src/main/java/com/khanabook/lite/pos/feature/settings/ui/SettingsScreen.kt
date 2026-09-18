@@ -164,14 +164,14 @@ fun SettingsScreen(
                 "tax" -> "Tax Configuration"
                 "ui_scale" -> "Display"
                 "interaction_feedback" -> "Interaction Feedback"
-                "security" -> "Settings"
+                "security" -> "App Settings"
                 "app_lock" -> "App Lock"
                 "change_password" -> "Change Password"
                 "help_support" -> "Help & Support"
                 "sync_center" -> "Sync Center"
                 "about_app" -> "About App"
-                "menu" -> "Profile"
-                else -> "Profile"
+                "menu" -> "Settings"
+                else -> "Settings"
             },
             onBack = {
                 when {

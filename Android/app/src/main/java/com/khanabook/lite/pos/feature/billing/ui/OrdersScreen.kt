@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.feature.billing.ui.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.core.components.CustomDateRangePickerDialog
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -36,7 +37,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.core.util.sendInvoiceViaSms
 import com.khanabook.lite.pos.core.util.shareInvoiceViaWhatsAppLink
 import com.khanabook.lite.pos.core.theme.*
-import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.feature.reports.domain.OrderDetailRow
 import com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel
@@ -78,11 +79,10 @@ fun OrdersScreen(
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     var detailCancelBillId by remember { mutableStateOf<Long?>(null) }
-    val visibleRows = remember(allRows) {
-        allRows.filter { row ->
-            row.orderStatus != OrderStatus.DRAFT
-        }
-    }
+    var cancelBillId by remember { mutableStateOf<Long?>(null) }
+    var pendingPartRow by remember { mutableStateOf<OrderDetailRow?>(null) }
+    var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+    val visibleRows = allRows
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
@@ -112,7 +112,6 @@ fun OrdersScreen(
     val orderListState = rememberLazyListState()
     
     var showDateRangePicker by remember { mutableStateOf(false) }
-    val dateRangePickerState = rememberDateRangePickerState()
 
     LaunchedEffect(Unit) {
         viewModel.setTimeFilter("Daily")
@@ -139,79 +138,10 @@ fun OrdersScreen(
     }
 
     if (showDateRangePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDateRangePicker = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val start = dateRangePickerState.selectedStartDateMillis
-                        val end = dateRangePickerState.selectedEndDateMillis
-                        if (start != null && end != null) {
-                            viewModel.setCustomDateRange(start, end)
-                        }
-                        showDateRangePicker = false
-                    },
-                    enabled = dateRangePickerState.selectedStartDateMillis != null &&
-                        dateRangePickerState.selectedEndDateMillis != null
-                ) {
-                    Text("OK", color = PrimaryGold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDateRangePicker = false }) {
-                    Text("Cancel", color = PrimaryGold)
-                }
-            },
-            colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.98f)
-                    .widthIn(max = 900.dp)
-            ) {
-                DateRangePicker(
-                    state = dateRangePickerState,
-                    modifier = Modifier.fillMaxWidth(),
-                    showModeToggle = false,
-                    title = {
-                        Text(
-                            text = "Select Custom Range",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = spacing.medium, bottom = spacing.small),
-                            textAlign = TextAlign.Center,
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    },
-                    headline = {
-                        Text(
-                            text = formatDateRangeHeadline(
-                                dateRangePickerState.selectedStartDateMillis,
-                                dateRangePickerState.selectedEndDateMillis
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = spacing.medium),
-                            textAlign = TextAlign.Center,
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    },
-                colors = DatePickerDefaults.colors(
-                    containerColor = DarkBrown2,
-                    titleContentColor = PrimaryGold,
-                    headlineContentColor = PrimaryGold,
-                    weekdayContentColor = TextGold,
-                    dayContentColor = TextLight,
-                    selectedDayContainerColor = PrimaryGold,
-                    selectedDayContentColor = DarkBrown1,
-                    todayContentColor = PrimaryGold
-                )
-                )
-            }
-        }
+        CustomDateRangePickerDialog(
+            onDismiss = { showDateRangePicker = false },
+            onConfirm = viewModel::setCustomDateRange
+        )
     }
 
     Box(
@@ -310,20 +240,13 @@ fun OrdersScreen(
                             contentPadding = PaddingValues(top = spacing.hairline, bottom = spacing.medium)
                         ) {
                             items(visibleRows) { row ->
-                                var showCancelDialog by remember { mutableStateOf(false) }
-                                var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
-
                                 OrderTableRow(
                                     row = row,
                                     enabledModes = enabledModes,
                                     isHighlighted = row.billId == highlightedBillId,
                                     onClick = {
-                                        if (row.orderStatus == OrderStatus.DRAFT) {
-                                            navController?.navigate(Routes.newBill(draftBillId = row.billId, targetStep = 2))
-                                        } else {
-                                            selectedBillId = row.billId
-                                            viewModel.loadBillDetails(row.billId)
-                                        }
+                                        selectedBillId = row.billId
+                                        viewModel.loadBillDetails(row.billId)
                                     },
                                     onShare = {
                                         scope.launch {
@@ -343,45 +266,52 @@ fun OrdersScreen(
                                             }
                                         }
                                     },
-                                    onRequestCancel = { showCancelDialog = true },
+                                    onRequestCancel = { cancelBillId = row.billId },
                                     onStatusChange = { newStatus ->
                                         onStatusChange(row.billId, newStatus)
                                     },
                                     onPayModeChange = { newMode ->
                                         if (PaymentModeManager.isPartPayment(newMode)) {
+                                            pendingPartRow = row
                                             pendingPartMode = newMode
                                         } else {
                                             viewModel.updatePaymentMode(row.billId, newMode.dbValue)
                                         }
                                     }
                                 )
-
-                                if (showCancelDialog) {
-                                    CancelOrderDialog(
-                                        onDismiss = { showCancelDialog = false },
-                                        onConfirm = { reason ->
-                                            viewModel.cancelOrder(row.billId, reason)
-                                            showCancelDialog = false
-                                        }
-                                    )
-                                }
-
-                                pendingPartMode?.let { mode ->
-                                    PartAmountDialog(
-                                        mode = mode,
-                                        totalAmount = row.salesAmount,
-                                        onDismiss = { pendingPartMode = null },
-                                        onConfirm = { p1, p2 ->
-                                            viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
-                                            pendingPartMode = null
-                                        }
-                                    )
-                                }
                             }
                         }
                     }
                 }
             }
+        }
+
+        cancelBillId?.let { billId ->
+            CancelOrderDialog(
+                onDismiss = { cancelBillId = null },
+                onConfirm = { reason ->
+                    viewModel.cancelOrder(billId, reason)
+                    cancelBillId = null
+                }
+            )
+        }
+
+        val partRow = pendingPartRow
+        val partMode = pendingPartMode
+        if (partRow != null && partMode != null) {
+            PartAmountDialog(
+                mode = partMode,
+                totalAmount = partRow.salesAmount,
+                onDismiss = {
+                    pendingPartRow = null
+                    pendingPartMode = null
+                },
+                onConfirm = { p1, p2 ->
+                    viewModel.updatePaymentMode(partRow.billId, partMode.dbValue, p1, p2)
+                    pendingPartRow = null
+                    pendingPartMode = null
+                }
+            )
         }
 
         selectedBillId?.let {

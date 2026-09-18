@@ -327,4 +327,27 @@ class BillingLogicTest {
             )
         )
     }
+
+    @Test
+    fun `OrderStatus fromDbValue is case-insensitive and handles enum names`() {
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.COMPLETED, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("completed"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.COMPLETED, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("COMPLETED"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.COMPLETED, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("Completed"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("cancelled"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("CANCELLED"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.DRAFT, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("draft"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.DRAFT, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue("DRAFT"))
+        assertEquals(com.khanabook.lite.pos.domain.model.OrderStatus.DRAFT, com.khanabook.lite.pos.domain.model.OrderStatus.fromDbValue(null))
+    }
+
+    @Test
+    fun `PaymentMode fromDbValue is case-insensitive and handles enum names`() {
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.CASH, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("cash"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.CASH, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("CASH"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.UPI, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("upi"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.UPI, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("UPI"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.POS, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("pos"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.POS, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue("POS"))
+        assertEquals(com.khanabook.lite.pos.domain.model.PaymentMode.CASH, com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue(null))
+    }
 }

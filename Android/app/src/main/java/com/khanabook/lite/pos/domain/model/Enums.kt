@@ -12,8 +12,10 @@ enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     PART_UPI_POS("part_upi_pos", "UPI + POS");
 
     companion object {
-        fun fromDbValue(value: String): PaymentMode =
-            values().find { it.dbValue == value } ?: CASH
+        fun fromDbValue(value: String?): PaymentMode =
+            if (value == null) CASH else values().find { 
+                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) 
+            } ?: CASH
     }
 }
 
@@ -23,8 +25,10 @@ enum class OrderStatus(val dbValue: String) {
     CANCELLED("cancelled");
 
     companion object {
-        fun fromDbValue(value: String): OrderStatus = 
-            values().find { it.dbValue == value } ?: DRAFT
+        fun fromDbValue(value: String?): OrderStatus = 
+            if (value == null) DRAFT else values().find { 
+                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) 
+            } ?: DRAFT
     }
 }
 
@@ -34,8 +38,10 @@ enum class PaymentStatus(val dbValue: String) {
     FAILED("failed");
 
     companion object {
-        fun fromDbValue(value: String): PaymentStatus = 
-            values().find { it.dbValue == value } ?: FAILED
+        fun fromDbValue(value: String?): PaymentStatus = 
+            if (value == null) FAILED else values().find { 
+                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) 
+            } ?: FAILED
     }
 }
 

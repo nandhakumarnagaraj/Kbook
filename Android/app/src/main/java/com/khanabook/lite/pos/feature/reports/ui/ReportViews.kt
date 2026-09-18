@@ -260,12 +260,11 @@ fun PartPaymentCard(
     }
 }
 
-private val COL_ORDER   = 1.2f
-private val COL_STATUS  = 1.8f
-private val COL_ACTION  = 1.2f
-private val COL_DATE    = 1.8f
-
-
+private val COL_ORDER   = 0.8f
+private val COL_INVOICE = 1.3f
+private val COL_MODE    = 1.1f
+private val COL_STATUS  = 1.2f
+private val COL_ACTION  = 0.8f
 
 internal fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
@@ -277,7 +276,15 @@ internal fun getPayModeColor(mode: PaymentMode): Color {
 }
 
 @Composable
-fun OrderLevelView(rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>, profile: RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
+fun OrderLevelView(
+    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    onStatusChange: (Long, String) -> Unit = { _, _ -> },
+    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
+    onRequestCancel: (Long) -> Unit = {},
+    onViewDetails: (Long) -> Unit
+) {
     val spacing = KhanaBookTheme.spacing
     val invoiceHeader = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
@@ -291,9 +298,10 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.feature.reports.domain.Orde
             verticalAlignment = Alignment.CenterVertically
         ) {
             HeaderCell("Order No", COL_ORDER)
+            HeaderCell(invoiceHeader, COL_INVOICE)
+            HeaderCell("Mode", COL_MODE)
             HeaderCell("Status", COL_STATUS)
             HeaderCell("Action", COL_ACTION)
-            HeaderCell("Date", COL_DATE)
         }
 
         if (rows.isEmpty()) {
@@ -319,7 +327,15 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.feature.reports.domain.Orde
                 contentPadding = PaddingValues(bottom = spacing.small)
             ) {
                 items(rows) { row ->
-                    OrderRowItem(row, profile, onViewDetails)
+                    OrderRowItem(
+                        row = row,
+                        profile = profile,
+                        enabledModes = enabledModes,
+                        onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
+                        onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
+                        onRequestCancel = { onRequestCancel(row.billId) },
+                        onViewDetails = onViewDetails
+                    )
                 }
             }
         }
@@ -327,8 +343,21 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.feature.reports.domain.Orde
 }
 
 @Composable
-fun OrderRowItem(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow, profile: RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
+fun OrderRowItem(
+    row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    onStatusChange: (String) -> Unit = {},
+    onPayModeChange: (PaymentMode) -> Unit = {},
+    onRequestCancel: () -> Unit = {},
+    onViewDetails: (Long) -> Unit
+) {
+    var statusExpanded by remember { mutableStateOf(false) }
+    var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
+    val isCancelled = row.orderStatus == OrderStatus.CANCELLED
+    val canEdit = !isCancelled
+
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onViewDetails(row.billId) },
@@ -342,35 +371,99 @@ fun OrderRowItem(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRo
             verticalAlignment = Alignment.CenterVertically
         ) {
             TableCell(row.dailyId, COL_ORDER)
-            
-            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
-                val statusValue = row.orderStatus
-                val statusText = when (statusValue) {
-                    OrderStatus.DRAFT -> "Pending"
-                    else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    KhanaStatusBadge(
-                        text = statusText,
-                        kind = when (statusValue) {
-                            OrderStatus.COMPLETED -> KhanaStatusKind.Success
-                            OrderStatus.CANCELLED -> KhanaStatusKind.Danger
-                            else -> KhanaStatusKind.Warning
-                        }
+
+            TableCell(
+                row.invoiceDisplay,
+                COL_INVOICE,
+                fontWeight = FontWeight.Bold,
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+            )
+
+            // Mode dropdown
+            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
+                val modeColor = if (!canEdit) Color.Gray else getPayModeColor(row.paymentMode)
+                Surface(
+                    onClick = { if (canEdit) payModeExpanded = true },
+                    color = modeColor,
+                    shape = KhanaRadii.sm,
+                    modifier = Modifier.padding(horizontal = spacing.hairline)
+                ) {
+                    Text(
+                        text = row.paymentMode.displayLabel,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+                        maxLines = 1
                     )
-                    if (statusValue == OrderStatus.CANCELLED && row.cancelReason.isNotEmpty()) {
-                        Text(
-                            row.cancelReason,
-                            color = DangerRed.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                }
+                DropdownMenu(
+                    expanded = payModeExpanded,
+                    onDismissRequest = { payModeExpanded = false },
+                    modifier = Modifier.background(DarkBrown2)
+                ) {
+                    enabledModes.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            onClick = { onPayModeChange(mode); payModeExpanded = false }
                         )
                     }
                 }
             }
 
+            // Status dropdown
+            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
+                val statusColor = when (row.orderStatus) {
+                    OrderStatus.COMPLETED -> SuccessGreen
+                    OrderStatus.CANCELLED -> DangerRed
+                    OrderStatus.DRAFT -> PrimaryGold
+                    else -> TextMuted
+                }
+                Surface(
+                    onClick = { if (canEdit) statusExpanded = true },
+                    color = statusColor,
+                    shape = KhanaRadii.sm,
+                    modifier = Modifier.padding(horizontal = spacing.extraSmall)
+                ) {
+                    Text(
+                        text = when (row.orderStatus) {
+                            OrderStatus.COMPLETED -> "Completed"
+                            OrderStatus.CANCELLED -> "Cancelled"
+                            OrderStatus.DRAFT -> "Pending"
+                            else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
+                        },
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+                        maxLines = 1
+                    )
+                }
+                DropdownMenu(
+                    expanded = statusExpanded,
+                    onDismissRequest = { statusExpanded = false },
+                    modifier = Modifier.background(DarkBrown2)
+                ) {
+                    if (row.orderStatus != OrderStatus.COMPLETED) {
+                        DropdownMenuItem(
+                            text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
+                        )
+                    }
+                    if (row.orderStatus != OrderStatus.DRAFT) {
+                        DropdownMenuItem(
+                            text = { Text("Pending", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)) },
+                        onClick = { onRequestCancel(); statusExpanded = false }
+                    )
+                }
+            }
+
+            // Action (View)
             Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = { onViewDetails(row.billId) },
@@ -386,13 +479,6 @@ fun OrderRowItem(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRo
                     )
                 }
             }
-
-            TableCell(
-                DateUtils.formatTableDate(row.date),
-                COL_DATE,
-                fontSize = 11.sp,
-                maxLines = 2
-            )
         }
     }
 }

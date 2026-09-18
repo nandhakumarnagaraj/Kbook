@@ -139,7 +139,7 @@ fun MainScreen(
                     initialSource = initialSource ?: "ALL",
                     highlightedBillId = initialHighlightBillId
                 )
-                "Profile" -> SettingsScreen(
+                "Settings", "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     initialSection = initialSettingsSection ?: "menu",

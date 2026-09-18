@@ -70,7 +70,7 @@
             android:name="com.khanabook.lite.pos.core.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
+            android:screenOrientation="unspecified"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.KhanaBookLite.Launch">
             <intent-filter>

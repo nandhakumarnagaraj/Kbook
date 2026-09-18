@@ -4,7 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class TabItem(
@@ -20,6 +20,7 @@ object NavigationTabs {
     const val TAB_HOME = 0
     const val TAB_REPORTS = 1
     const val TAB_ORDERS = 2
+    const val TAB_SETTINGS = 3
     const val TAB_PROFILE = 3
 }
 
@@ -28,7 +29,7 @@ object NavigationUtils {
         TabItem("Home", Icons.Default.Home, NavigationTabs.TAB_HOME),
         TabItem("Reports", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
         TabItem("Orders", Icons.AutoMirrored.Filled.List, NavigationTabs.TAB_ORDERS),
-        TabItem("Profile", Icons.Default.AccountCircle, NavigationTabs.TAB_PROFILE)
+        TabItem("Settings", Icons.Default.Settings, NavigationTabs.TAB_SETTINGS)
     )
 
     fun getVisibleTabs(): List<TabItem> {
