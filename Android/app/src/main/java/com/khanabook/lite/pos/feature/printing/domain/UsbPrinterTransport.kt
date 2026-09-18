@@ -105,6 +105,32 @@ class UsbPrinterTransport @Inject constructor(
 
     private var receiverRegistered = false
 
+    /**
+     * Detach watchdog: when the printer is unplugged, Android kills the underlying
+     * UsbDeviceConnection but our cached session stays in the map. Without this
+     * receiver the FIRST print after unplug→replug silently fails (dead session
+     * returned from cache, bulkTransfer on a closed fd) and only self-heals on the
+     * second attempt. Closing the session on detach removes that lost receipt.
+     */
+    private val detachReceiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
+            if (intent?.action != UsbManager.ACTION_USB_DEVICE_DETACHED) return
+            val device: UsbDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+            }
+            if (device != null) {
+                val key = deviceKey(device)
+                if (sessions.containsKey(key)) {
+                    Log.i(TAG, "USB printer detached ($key) — closing cached session")
+                    closeSession(key)
+                }
+            }
+        }
+    }
+
     private fun ensureReceiverRegistered() {
         if (receiverRegistered) return
         val filter = IntentFilter(ACTION_USB_PERMISSION)
@@ -113,6 +139,13 @@ class UsbPrinterTransport @Inject constructor(
         } else {
             @Suppress("DEPRECATION")
             context.registerReceiver(permissionReceiver, filter)
+        }
+        val detachFilter = IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(detachReceiver, detachFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(detachReceiver, detachFilter)
         }
         receiverRegistered = true
     }
@@ -194,6 +227,16 @@ class UsbPrinterTransport @Inject constructor(
             val manager = usbManager ?: return@withContext false
             val key = profile.macAddress
             if (!key.startsWith("usb:")) return@withContext false
+            // Register the detach watchdog lazily: permission grants persist across
+            // replugs, so requestPermission() may never have run on this install.
+            ensureReceiverRegistered()
+
+            // Belt-and-braces vs the detach receiver: evict any cached session whose
+            // device is no longer attached (receiver missed, app restarted after unplug).
+            if (sessions.containsKey(key) && findDeviceByKey(key) == null) {
+                Log.w(TAG, "Cached USB session for $key has no attached device — dropping")
+                closeSession(key)
+            }
 
             val session = sessions[key] ?: run {
                 val device = findDeviceByKey(key) ?: return@withContext false

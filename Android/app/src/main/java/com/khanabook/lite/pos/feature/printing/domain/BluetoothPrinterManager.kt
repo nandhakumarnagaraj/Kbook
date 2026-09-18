@@ -57,6 +57,12 @@ class BluetoothPrinterManager(private val context: Context) {
     // Guards map reads/writes only — never held during blocking I/O.
     private val printerMutex = Mutex()
 
+    /**
+     * Manager-lifetime scope for broadcast-receiver-driven cleanup (ACL disconnects).
+     * Receivers cannot suspend, so mutex-guarded map mutations are launched here.
+     */
+    private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     // Per-MAC mutex serialises connect/disconnect for the same device without
     // blocking operations on a different device.
     private val socketMutexes = ConcurrentHashMap<String, Mutex>()
@@ -114,19 +120,36 @@ class BluetoothPrinterManager(private val context: Context) {
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                     _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
                     if (activeSockets.containsKey(deviceAddress)) {
-                        activeSockets.remove(deviceAddress)
-                        outputStreams.remove(deviceAddress)
-                        if (_connectedDeviceMac.value == deviceAddress) {
-                            _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
-                        }
-                        if (lastConnectedMac == deviceAddress) {
-                            lastConnectedMac = activeSockets.keys.firstOrNull()
-                        }
-                        _isConnected.value = activeSockets.isNotEmpty()
+                        // Cleanup runs on a coroutine because printerMutex.withLock is a
+                        // suspend call. Scope is manager-lifetime (SupervisorJob), which
+                        // is exactly right: the ACL event outlives any caller.
+                        cleanupScope.launch { cleanupDisconnectedSocket(deviceAddress) }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Removes a disconnected printer's socket/stream entries under printerMutex —
+     * the same lock the connect path holds while registering, so a concurrent
+     * connect can never have its fresh socket dropped by a late ACL event.
+     * Socket close() happens outside the mutex (it can block).
+     */
+    private suspend fun cleanupDisconnectedSocket(mac: String) {
+        val deadSocket = printerMutex.withLock {
+            val s = activeSockets.remove(mac)
+            outputStreams.remove(mac)
+            if (_connectedDeviceMac.value == mac) {
+                _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
+            }
+            if (lastConnectedMac == mac) {
+                lastConnectedMac = activeSockets.keys.firstOrNull()
+            }
+            _isConnected.value = activeSockets.isNotEmpty()
+            s
+        }
+        try { deadSocket?.close() } catch (_: Exception) {}
     }
 
     private fun ensureConnectionReceiverRegistered() {
@@ -307,14 +330,17 @@ class BluetoothPrinterManager(private val context: Context) {
             val currentSocket = printerMutex.withLock { activeSockets[mac] }
             val currentStream = printerMutex.withLock { outputStreams[mac] }
             if (currentSocket?.isConnected == true && currentStream != null) {
+                // Liveness probe — READ-SIDE ONLY. Never write here: a probe byte would
+                // be injected into the printer's data stream (some boards print garbage
+                // or fault on a stray 0x00). On a healthy RFCOMM socket, local write
+                // state tells us the transport is up without touching the wire.
                 var isAlive = false
                 try {
-                    // Try to write a zero-byte to verify if the socket is still open
-                    currentStream.write(byteArrayOf(0))
-                    currentStream.flush()
-                    isAlive = true
+                    // `isConnected` reflects the RFCOMM transport state; there is no
+                    // isClosed on BluetoothSocket, and the map only holds non-null streams.
+                    isAlive = currentSocket.isConnected
                 } catch (e: Exception) {
-                    Log.d(TAG, "Durable socket for $mac found dead on dummy write. Disconnecting...")
+                    Log.d(TAG, "Durable socket for $mac found dead on liveness check. Disconnecting...")
                 }
                 if (isAlive) {
                     printerMutex.withLock { lastConnectedMac = mac }
