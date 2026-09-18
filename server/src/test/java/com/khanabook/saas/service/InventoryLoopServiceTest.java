@@ -1,18 +1,19 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.inventory.service.InventoryService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.BillItem;
-import com.khanabook.saas.entity.ItemRecipe;
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.RawMaterial;
-import com.khanabook.saas.entity.StockMovement;
-import com.khanabook.saas.repository.BillItemRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.ItemRecipeRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.RawMaterialRepository;
-import com.khanabook.saas.repository.StockMovementRepository;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.menu.data.ItemRecipe;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.inventory.data.RawMaterial;
+import com.khanabook.saas.feature.inventory.data.StockMovement;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.ItemRecipeRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.inventory.data.RawMaterialRepository;
+import com.khanabook.saas.feature.inventory.data.StockMovementRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -36,7 +37,7 @@ class InventoryLoopServiceTest extends BaseIntegrationTest {
     @Autowired private MenuItemRepository menuItemRepository;
     @Autowired private BillItemRepository billItemRepository;
     @Autowired private BillRepository billRepository;
-    @Autowired private com.khanabook.saas.repository.CategoryRepository categoryRepository;
+    @Autowired private com.khanabook.saas.feature.menu.data.CategoryRepository categoryRepository;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -49,7 +50,7 @@ class InventoryLoopServiceTest extends BaseIntegrationTest {
 
     private long seq = 1;
 
-    private void fillSync(com.khanabook.saas.sync.entity.BaseSyncEntity e) {
+    private void fillSync(com.khanabook.saas.feature.sync.data.BaseSyncEntity e) {
         long t = System.currentTimeMillis();
         e.setLocalId(seq++);
         e.setDeviceId("SEED");
@@ -73,7 +74,7 @@ class InventoryLoopServiceTest extends BaseIntegrationTest {
     }
 
     private MenuItem seedMenuItem(boolean available) {
-        var cat = new com.khanabook.saas.entity.Category();
+        var cat = new com.khanabook.saas.feature.menu.data.Category();
         fillSync(cat);
         cat.setName("Cat" + seq);
         cat.setIsVeg(true);

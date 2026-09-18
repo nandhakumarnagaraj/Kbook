@@ -1,8 +1,9 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.staff.service.PermissionService;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.StaffPermissionRepository;
+import com.khanabook.saas.feature.staff.data.StaffPermissionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

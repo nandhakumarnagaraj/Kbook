@@ -2,11 +2,11 @@ package com.khanabook.saas;
 
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.OtpRequest;
-import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.springframework.beans.factory.annotation.Autowired;

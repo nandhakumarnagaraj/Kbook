@@ -1,7 +1,9 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
+
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.MerchantAgreement;
+import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

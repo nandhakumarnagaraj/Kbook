@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  *
  * <p>Replaces the in-memory bucket4j implementations ({@link OtpRateLimiter},
  * {@link LoginRateLimiter}, {@link
- * com.khanabook.saas.security.RateLimitingInterceptor}) for scenarios that
+ * com.khanabook.saas.core.security.RateLimitingInterceptor}) for scenarios that
  * require the rate-limit state to survive a server restart or to be shared
  * across multiple server instances.
  *

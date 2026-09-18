@@ -1,11 +1,13 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
+
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.DeviceRegistrationRequest;
-import com.khanabook.saas.entity.RestaurantTerminal;
+import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequest;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequestRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,12 +1,12 @@
 package com.khanabook.saas;
 
 import com.khanabook.saas.core.config.FeatureConfigGuard;
-import com.khanabook.saas.entity.FeatureFlag;
-import com.khanabook.saas.entity.FeatureFlagAudit;
-import com.khanabook.saas.repository.FeatureFlagAuditRepository;
-import com.khanabook.saas.repository.FeatureFlagOverrideRepository;
-import com.khanabook.saas.repository.FeatureFlagRepository;
-import com.khanabook.saas.service.FeatureFlagService;
+import com.khanabook.saas.feature.platform.data.FeatureFlag;
+import com.khanabook.saas.feature.platform.data.FeatureFlagAudit;
+import com.khanabook.saas.feature.platform.data.FeatureFlagAuditRepository;
+import com.khanabook.saas.feature.platform.data.FeatureFlagOverrideRepository;
+import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
+import com.khanabook.saas.feature.platform.service.FeatureFlagService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  * The table has indexes for efficient lookup and TTL-based cleanup.
  * Survives server restarts and works across multiple instances.
  *
- * @see com.khanabook.saas.service.DbRateLimiter
+ * @see com.khanabook.saas.feature.auth.service.DbRateLimiter
  */
 @Entity
 @Table(name = "rate_limit_attempts", indexes = {

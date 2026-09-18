@@ -1,0 +1,218 @@
+package com.khanabook.saas.feature.restaurants.data;
+
+import com.khanabook.saas.core.utility.AppConstants;
+
+import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity
+@Table(name = "restaurantprofiles", uniqueConstraints = {
+		@UniqueConstraint(name = "restaurantprofiles_restaurant_id_device_id_local_id_key", columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
+				@Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
+				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id"),
+				@Index(name = "idx_restaurantprofiles_whatsapp_number", columnList = "whatsapp_number") })
+@Getter
+@Setter
+public class RestaurantProfile extends BaseSyncEntity {
+
+	@Column(name = "shop_name")
+	private String shopName;
+
+	@Column(name = "shop_address")
+	private String shopAddress;
+
+	@Column(name = "whatsapp_number")
+	private String whatsappNumber;
+
+	@Column(name = "email")
+	private String email;
+
+	@Column(name = "logo_path")
+	private String logoPath;
+
+	@Column(name = "logo_url")
+	private String logoUrl;
+
+	@Column(name = "logo_version")
+	private Integer logoVersion;
+
+	@Column(name = "fssai_number")
+	private String fssaiNumber;
+
+	@Column(name = "fssai_expiry_date")
+	private java.time.LocalDate fssaiExpiryDate;
+
+	@Column(name = "custom_welcome_message")
+	private String customWelcomeMessage;
+
+	@Column(name = "custom_fssai_message")
+	private String customFssaiMessage;
+
+	@Column(name = "email_invoice_consent")
+	private Boolean emailInvoiceConsent;
+
+	@Column(name = "country")
+	private String country;
+
+	@Column(name = "gst_enabled")
+	private Boolean gstEnabled;
+
+	@Column(name = "gstin")
+	private String gstin;
+
+	@Column(name = "is_tax_inclusive")
+	private Boolean isTaxInclusive;
+
+	@Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal gstPercentage;
+
+	@Column(name = "custom_tax_name")
+	private String customTaxName;
+
+	@Column(name = "custom_tax_number")
+	private String customTaxNumber;
+
+	@Column(name = "custom_tax_percentage", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal customTaxPercentage;
+
+	@Column(name = "currency")
+	private String currency;
+
+	@Column(name = "upi_enabled")
+	private Boolean upiEnabled;
+
+	@Column(name = "upi_qr_path")
+	private String upiQrPath;
+
+	@Column(name = "upi_qr_url")
+	private String upiQrUrl;
+
+	@Column(name = "upi_qr_version")
+	private Integer upiQrVersion;
+
+	@Column(name = "upi_handle")
+	private String upiHandle;
+
+	@Column(name = "upi_mobile")
+	private String upiMobile;
+
+	@Column(name = "cash_enabled")
+	private Boolean cashEnabled;
+
+	@Column(name = "pos_enabled")
+	private Boolean posEnabled;
+
+	@Column(name = "zomato_enabled")
+	private Boolean zomatoEnabled;
+
+	@Column(name = "swiggy_enabled")
+	private Boolean swiggyEnabled;
+
+	@Column(name = "zomato_outlet_id")
+	private String zomatoOutletId;
+
+	@Column(name = "swiggy_store_id")
+	private String swiggyStoreId;
+
+	@Column(name = "zomato_api_key")
+	private String zomatoApiKey;
+
+	@Column(name = "zomato_webhook_secret")
+	private String zomatoWebhookSecret;
+
+	@Column(name = "swiggy_api_key")
+	private String swiggyApiKey;
+
+	@Column(name = "swiggy_webhook_secret")
+	private String swiggyWebhookSecret;
+
+	@Column(name = "marketplace_notes", columnDefinition = "TEXT")
+	private String marketplaceNotes;
+
+	@Column(name = "own_website_enabled")
+	private Boolean ownWebsiteEnabled;
+
+	// Printer configuration is deliberately NOT stored server-side. Printer bindings
+	// (enabled, name, MAC, paper size, per-role) are physical properties of one device,
+	// so they live only in the Android app's local `printer_profiles` table. Syncing them
+	// would push one terminal's hardware onto every other terminal in the restaurant.
+	// KOT events are device-local for the same reason.
+
+	@Column(name = "auto_print_on_success")
+	private Boolean autoPrintOnSuccess;
+
+	@Column(name = "include_logo_in_print")
+	private Boolean includeLogoInPrint;
+
+	@Column(name = "print_customer_whatsapp")
+	private Boolean printCustomerWhatsapp;
+
+	@Column(name = "daily_order_counter")
+	private Long dailyOrderCounter;
+
+	@Column(name = "lifetime_order_counter")
+	private Long lifetimeOrderCounter;
+
+	@Column(name = "last_reset_date")
+	private String lastResetDate;
+
+	@Column(name = "session_timeout_minutes")
+	private Integer sessionTimeoutMinutes;
+
+	@Column(name = "order_payment_flow_mode")
+	private String orderPaymentFlowMode = "pay_before_food";
+
+	@Column(name = "timezone")
+	private String timezone = AppConstants.DEFAULT_TIMEZONE;
+
+	@Column(name = "review_url")
+	private String reviewUrl;
+
+	@Column(name = "invoice_footer", columnDefinition = "TEXT")
+	private String invoiceFooter;
+
+	@Column(name = "show_branding")
+	private Boolean showBranding = true;
+
+	@Column(name = "mask_customer_phone")
+	private Boolean maskCustomerPhone = true;
+
+	@Column(name = "is_suspended")
+	private Boolean isSuspended = false;
+
+	@Column(name = "last_reset_date_proper")
+	private java.time.LocalDate lastResetDateProper;
+
+	@jakarta.persistence.Transient
+	private String changedFields;
+
+	// --- Easebuzz + compliance fields (v2 port) ---
+	@Column(name = "easebuzz_enabled")
+	private Boolean easebuzzEnabled;
+
+	@Column(name = "gst_expiry_date")
+	private java.time.LocalDate gstExpiryDate;
+	@jakarta.persistence.PrePersist
+	@jakarta.persistence.PreUpdate
+	public void syncDates() {
+		if (lastResetDate != null && !lastResetDate.isEmpty()) {
+			try {
+				lastResetDateProper = java.time.LocalDate.parse(lastResetDate);
+			} catch (Exception e) {
+				// ignore parsing errors
+			}
+		}
+		if (upiHandle != null) {
+			upiHandle = upiHandle.trim().toLowerCase();
+			if (upiHandle.isEmpty()) {
+				upiHandle = null;
+			}
+		}
+	}
+}

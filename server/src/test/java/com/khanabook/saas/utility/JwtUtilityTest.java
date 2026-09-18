@@ -1,5 +1,7 @@
 package com.khanabook.saas.utility;
 
+import com.khanabook.saas.core.utility.JwtUtility;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;

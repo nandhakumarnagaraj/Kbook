@@ -1,9 +1,11 @@
 package com.khanabook.saas.sync.service;
 
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
+
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

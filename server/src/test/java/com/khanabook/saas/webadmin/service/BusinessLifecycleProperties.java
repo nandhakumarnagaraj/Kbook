@@ -1,13 +1,15 @@
 package com.khanabook.saas.webadmin.service;
 
+import com.khanabook.saas.feature.platform.service.AdminWriteService;
+
 import com.khanabook.saas.feature.auth.controller.AuthController.LoginRequest;
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
-import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.exception.BusinessSuspendedException;
 import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.service.AuthServiceImpl;
 import com.khanabook.saas.core.utility.JwtUtility;
@@ -33,7 +35,7 @@ class BusinessLifecycleProperties {
     private UserRepository userRepository;
     private JwtUtility jwtUtility;
     private PasswordEncoder passwordEncoder;
-    private com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
+    private com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
     private RefreshTokenRepository refreshTokenRepository;
     private AuthServiceImpl authService;
 
@@ -47,7 +49,7 @@ class BusinessLifecycleProperties {
         profileRepository = mock(RestaurantProfileRepository.class);
         jwtUtility = mock(JwtUtility.class);
         passwordEncoder = mock(PasswordEncoder.class);
-        passwordResetOtpService = mock(com.khanabook.saas.service.PasswordResetOtpService.class);
+        passwordResetOtpService = mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class);
         refreshTokenRepository = mock(RefreshTokenRepository.class);
         authService = new AuthServiceImpl(userRepository, profileRepository, refreshTokenRepository, jwtUtility, passwordEncoder, passwordResetOtpService);
     }

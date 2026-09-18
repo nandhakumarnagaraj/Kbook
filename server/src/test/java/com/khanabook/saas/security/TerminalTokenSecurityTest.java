@@ -1,12 +1,14 @@
 package com.khanabook.saas.security;
 
+import com.khanabook.saas.core.security.TenantContext;
+
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.RestaurantTerminal;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
-import com.khanabook.saas.service.TerminalManagementService;
+import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

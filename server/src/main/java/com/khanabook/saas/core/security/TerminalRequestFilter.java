@@ -37,7 +37,7 @@ public class TerminalRequestFilter extends OncePerRequestFilter {
 	private JwtUtility jwtUtility;
 
 	@Autowired
-	private com.khanabook.saas.repository.RestaurantTerminalRepository terminalRepository;
+	private com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository terminalRepository;
 
 	@Override
 	protected void doFilterInternal(@NonNull HttpServletRequest request,

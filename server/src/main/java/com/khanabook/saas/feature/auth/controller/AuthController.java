@@ -10,9 +10,9 @@ import com.khanabook.saas.feature.auth.service.OtpRateLimiter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import com.khanabook.saas.feature.auth.service.WebAdminPasswordResetService;
 import com.khanabook.saas.core.utility.JwtUtility;
-import com.khanabook.saas.webadmin.dto.RequestOtpRequest;
-import com.khanabook.saas.webadmin.dto.VerifyOtpRequest;
-import com.khanabook.saas.webadmin.dto.VerifyOtpResponse;
+import com.khanabook.saas.feature.payments.data.RequestOtpRequest;
+import com.khanabook.saas.feature.payments.data.VerifyOtpRequest;
+import com.khanabook.saas.feature.payments.data.VerifyOtpResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
@@ -258,7 +258,7 @@ public class AuthController {
 
 	@PostMapping("/forgot-password/reset-password")
 	public ResponseEntity<?> forgotPasswordResetPassword(
-			@Valid @RequestBody com.khanabook.saas.webadmin.dto.ResetPasswordRequest request) {
+			@Valid @RequestBody com.khanabook.saas.feature.auth.data.ResetPasswordRequest request) {
 		try {
 			webAdminPasswordResetService.resetPassword(request.tempToken(), request.newPassword());
 			return ResponseEntity.ok().build();

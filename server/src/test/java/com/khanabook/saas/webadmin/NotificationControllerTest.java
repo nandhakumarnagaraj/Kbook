@@ -1,9 +1,9 @@
 package com.khanabook.saas.webadmin;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.NotificationEvent;
+import com.khanabook.saas.feature.notifications.data.NotificationEvent;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.service.PushNotificationService;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,13 +32,13 @@ class NotificationControllerTest extends BaseIntegrationTest {
     private com.khanabook.saas.feature.auth.repository.UserRepository userRepository;
 
     @Autowired
-    private com.khanabook.saas.repository.RestaurantProfileRepository restaurantProfileRepository;
+    private com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository restaurantProfileRepository;
 
     @MockBean
     private PushNotificationService pushNotificationService;
 
     @MockBean
-    private com.khanabook.saas.service.FssaiTrackerService fssaiTrackerService;
+    private com.khanabook.saas.feature.compliance.service.FssaiTrackerService fssaiTrackerService;
 
     @org.junit.jupiter.api.BeforeEach
     void cleanDb() {

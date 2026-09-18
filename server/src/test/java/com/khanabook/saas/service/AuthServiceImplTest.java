@@ -1,12 +1,12 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.feature.auth.controller.AuthController.*;
-import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.auth.entity.RefreshToken;
 import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.service.PasswordResetOtpService;
 import com.khanabook.saas.feature.auth.service.AuthServiceImpl;

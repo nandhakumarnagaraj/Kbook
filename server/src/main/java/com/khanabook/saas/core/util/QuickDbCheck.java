@@ -1,4 +1,4 @@
-package com.khanabook.saas;
+package com.khanabook.saas.core.util;
 
 import java.sql.*;
 

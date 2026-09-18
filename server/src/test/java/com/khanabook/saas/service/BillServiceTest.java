@@ -1,20 +1,21 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.repository.BillPaymentRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.ItemVariantRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.staff.service.PermissionService;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.impl.BillServiceImpl;
+import com.khanabook.saas.feature.billing.service.BillServiceImpl;
 import com.khanabook.saas.feature.auth.service.SecurityAuditService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.service.GenericSyncService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +64,7 @@ class BillServiceTest {
     private PermissionService permissionService;
 
     @Mock
-    private com.khanabook.saas.repository.StaffPermissionRevisionRepository revisionRepo;
+    private com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository revisionRepo;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -84,15 +85,15 @@ class BillServiceTest {
             categoryRepository,
             terminalRepository,
             securityAuditService,
-            new com.khanabook.saas.sync.service.SyncFallbackSaver(),
+            new com.khanabook.saas.feature.sync.service.SyncFallbackSaver(),
             permissionService,
             revisionRepo,
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.RelationalIdResolver.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.TerminalOwnershipService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillSyncService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.SyncNotificationService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.UserProfileSyncService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class)
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.RelationalIdResolver.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.TerminalOwnershipService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.SyncNotificationService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.auth.service.UserProfileSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillPaymentSyncService.class)
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
 

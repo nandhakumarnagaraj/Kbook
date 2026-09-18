@@ -1,0 +1,42 @@
+package com.khanabook.saas.feature.billing.data;
+
+import com.khanabook.saas.feature.billing.data.BillPayment;
+import com.khanabook.saas.feature.sync.data.SyncRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
+import java.util.List;
+
+@Repository
+public interface BillPaymentRepository extends SyncRepository<BillPayment, Long> {
+    boolean existsByRestaurantIdAndGatewayTxnId(Long restaurantId, String gatewayTxnId);
+
+    java.util.Optional<BillPayment> findByRestaurantIdAndGatewayTxnId(Long restaurantId, String gatewayTxnId);
+
+    boolean existsByRestaurantIdAndOperationId(Long restaurantId, String operationId);
+
+    java.util.Optional<BillPayment> findByRestaurantIdAndOperationId(Long restaurantId, String operationId);
+
+    List<BillPayment> findByRestaurantIdAndServerBillIdIn(Long restaurantId, List<Long> serverBillIds);
+
+    List<BillPayment> findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(Long restaurantId, List<Long> serverBillIds, Long serverUpdatedAt);
+
+    @Query("""
+            SELECT p FROM BillPayment p
+            JOIN Bill b ON p.serverBillId = b.id
+            WHERE p.restaurantId = :restaurantId
+              AND p.serverUpdatedAt > :lastSyncTimestamp
+              AND (
+                    b.createdTerminalId = :terminalId
+                    OR b.currentOwnerTerminalId = :terminalId
+                  )
+            """)
+    List<BillPayment> findUpdatedForTerminal(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastSyncTimestamp") Long lastSyncTimestamp,
+            @Param("terminalId") String terminalId);
+
+    @Query("SELECT SUM(p.amount) FROM BillPayment p WHERE p.serverBillId = :billId AND (p.isDeleted IS NULL OR p.isDeleted = false)")
+    BigDecimal sumAmountByServerBillId(@Param("billId") Long billId);
+}

@@ -2,7 +2,7 @@ package com.khanabook.saas.core.security;
 
 import com.khanabook.saas.core.utility.JwtUtility;
 import com.khanabook.saas.feature.auth.entity.User;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
 import jakarta.servlet.FilterChain;

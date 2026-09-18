@@ -1,6 +1,6 @@
 package com.khanabook.saas.feature.auth.entity;
 
-import com.khanabook.saas.sync.entity.BaseSyncEntity;
+import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

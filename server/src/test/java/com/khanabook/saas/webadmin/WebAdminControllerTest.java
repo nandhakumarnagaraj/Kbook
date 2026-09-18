@@ -1,19 +1,19 @@
 package com.khanabook.saas.webadmin;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.entity.FeatureFlag;
-import com.khanabook.saas.entity.ItemVariant;
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.platform.data.FeatureFlag;
+import com.khanabook.saas.feature.menu.data.ItemVariant;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.FeatureFlagRepository;
-import com.khanabook.saas.repository.ItemVariantRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,7 +111,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         variant.setServerUpdatedAt(now);
         itemVariantRepository.save(variant);
 
-        com.khanabook.saas.entity.Bill bill = new com.khanabook.saas.entity.Bill();
+        com.khanabook.saas.feature.billing.data.Bill bill = new com.khanabook.saas.feature.billing.data.Bill();
         bill.setRestaurantId(RESTAURANT_ID);
         bill.setLocalId(1L);
         bill.setDeviceId("ADMIN_TEST");
@@ -132,7 +132,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         bill.setServerUpdatedAt(now);
         billRepository.save(bill);
 
-        com.khanabook.saas.entity.Bill pendingPosBill = new com.khanabook.saas.entity.Bill();
+        com.khanabook.saas.feature.billing.data.Bill pendingPosBill = new com.khanabook.saas.feature.billing.data.Bill();
         pendingPosBill.setRestaurantId(RESTAURANT_ID);
         pendingPosBill.setLocalId(2L);
         pendingPosBill.setDeviceId("ADMIN_TEST");
@@ -158,7 +158,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         admin.setName("Platform Admin");
         admin.setLoginId("platform@test.com");
         admin.setEmail("platform@test.com");
-        admin.setAuthProvider(com.khanabook.saas.entity.AuthProvider.GOOGLE);
+        admin.setAuthProvider(com.khanabook.saas.feature.auth.entity.AuthProvider.GOOGLE);
         admin.setPasswordHash(passwordEncoder.encode("pass123"));
         admin.setRestaurantId(0L);
         admin.setDeviceId("ADMIN_TEST");

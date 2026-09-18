@@ -1,0 +1,23 @@
+package com.khanabook.saas.feature.business.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+public record CreateStaffRequest(
+        @NotBlank(message = "Name is required")
+        String name,
+
+        @NotBlank(message = "Phone is required")
+        @Pattern(regexp = "^\\d{10}$", message = "Phone must be exactly 10 digits")
+        String phone,
+
+        @NotNull(message = "Role is required")
+        String role,
+
+        String email,
+
+        List<String> permissions
+) {}

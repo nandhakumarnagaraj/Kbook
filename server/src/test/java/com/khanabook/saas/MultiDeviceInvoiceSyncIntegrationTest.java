@@ -1,14 +1,14 @@
 package com.khanabook.saas;
 
-import com.khanabook.saas.controller.TerminalController;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.restaurants.controller.TerminalController;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.BillService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.feature.billing.service.BillService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,9 +77,9 @@ class MultiDeviceInvoiceSyncIntegrationTest {
     @Autowired private RestaurantTerminalRepository terminalRepository;
     @Autowired private RestaurantProfileRepository restaurantProfileRepository;
     @Autowired private TerminalController terminalController;
-    @Autowired private com.khanabook.saas.service.TerminalManagementService terminalManagementService;
-    @Autowired private com.khanabook.saas.service.BillItemService billItemService;
-    @Autowired private com.khanabook.saas.service.BillPaymentService billPaymentService;
+    @Autowired private com.khanabook.saas.feature.restaurants.service.TerminalManagementService terminalManagementService;
+    @Autowired private com.khanabook.saas.feature.billing.service.BillItemService billItemService;
+    @Autowired private com.khanabook.saas.feature.billing.service.BillPaymentService billPaymentService;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
@@ -253,7 +253,7 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         Bill persisted = billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT).get(0);
         long billId = persisted.getLocalId();
 
-        com.khanabook.saas.entity.BillItem item = new com.khanabook.saas.entity.BillItem();
+        com.khanabook.saas.feature.billing.data.BillItem item = new com.khanabook.saas.feature.billing.data.BillItem();
         item.setRestaurantId(TENANT);
         item.setDeviceId(DEVICE_A);
         item.setLocalId(100L);
@@ -266,7 +266,7 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         item.setUpdatedAt(System.currentTimeMillis());
         billItemService.pushData(TENANT, List.of(item));
 
-        com.khanabook.saas.entity.BillPayment payment = new com.khanabook.saas.entity.BillPayment();
+        com.khanabook.saas.feature.billing.data.BillPayment payment = new com.khanabook.saas.feature.billing.data.BillPayment();
         payment.setRestaurantId(TENANT);
         payment.setDeviceId(DEVICE_A);
         payment.setLocalId(200L);
@@ -278,9 +278,9 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         billPaymentService.pushData(TENANT, List.of(payment));
 
         // Terminal B does a cross-device pull — should see items and payments from A
-        List<com.khanabook.saas.entity.BillItem> pulledItems =
+        List<com.khanabook.saas.feature.billing.data.BillItem> pulledItems =
                 billItemService.pullData(TENANT, 0L, DEVICE_B, true);
-        List<com.khanabook.saas.entity.BillPayment> pulledPayments =
+        List<com.khanabook.saas.feature.billing.data.BillPayment> pulledPayments =
                 billPaymentService.pullData(TENANT, 0L, DEVICE_B, true);
 
         assertThat(pulledItems).hasSize(1);

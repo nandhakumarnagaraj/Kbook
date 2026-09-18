@@ -1,21 +1,21 @@
 package com.khanabook.saas.sync;
 
-import com.khanabook.saas.controller.MasterSyncController;
-import com.khanabook.saas.controller.TerminalController;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.BillItem;
-import com.khanabook.saas.entity.BillPayment;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.BillItemRepository;
-import com.khanabook.saas.repository.BillPaymentRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.sync.controller.MasterSyncController;
+import com.khanabook.saas.feature.restaurants.controller.TerminalController;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.billing.data.BillPayment;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.BillItemService;
-import com.khanabook.saas.service.BillPaymentService;
-import com.khanabook.saas.service.BillService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.dto.payload.MasterSyncResponseDTO;
+import com.khanabook.saas.feature.billing.service.BillItemService;
+import com.khanabook.saas.feature.billing.service.BillPaymentService;
+import com.khanabook.saas.feature.billing.service.BillService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.data.MasterSyncResponseDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -270,7 +270,7 @@ class BillLifecycleSyncPostgresIntegrationTest {
         return List.of(payment);
     }
 
-    private void applySyncIdentity(com.khanabook.saas.sync.entity.BaseSyncEntity entity, long localId) {
+    private void applySyncIdentity(com.khanabook.saas.feature.sync.data.BaseSyncEntity entity, long localId) {
         entity.setLocalId(localId);
         entity.setDeviceId(DEVICE_ID);
         entity.setTerminalId(terminalId);

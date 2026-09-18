@@ -1,0 +1,322 @@
+package com.khanabook.saas.feature.sync.controller;
+import com.khanabook.saas.feature.sync.data.SyncMapper;
+import com.khanabook.saas.feature.sync.data.MasterSyncResponseDTO;
+
+import com.khanabook.saas.feature.platform.service.FeatureFlagService;
+import com.khanabook.saas.feature.auth.data.UserDTO;
+import com.khanabook.saas.feature.billing.data.BillDTO;
+import com.khanabook.saas.feature.billing.data.BillItemDTO;
+import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
+import com.khanabook.saas.feature.menu.data.MenuItemDTO;
+import com.khanabook.saas.feature.menu.data.CategoryDTO;
+import com.khanabook.saas.feature.menu.data.ItemVariantDTO;
+import com.khanabook.saas.feature.inventory.data.StockLogDTO;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
+import com.khanabook.saas.feature.billing.data.BillDTO;
+import com.khanabook.saas.feature.billing.data.BillItemDTO;
+import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.billing.data.BillPayment;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.ItemVariant;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.inventory.data.StockLog;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.data.UserDTO;
+import com.khanabook.saas.feature.auth.service.UserService;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
+import com.khanabook.saas.feature.billing.service.BillService;
+import com.khanabook.saas.feature.billing.service.BillItemService;
+import com.khanabook.saas.feature.billing.service.BillPaymentService;
+import com.khanabook.saas.feature.billing.service.PostSplitService;
+import com.khanabook.saas.feature.billing.service.BillSyncService;
+import com.khanabook.saas.feature.billing.service.BillPaymentSyncService;
+import com.khanabook.saas.feature.menu.service.MenuItemService;
+import com.khanabook.saas.feature.menu.service.CategoryService;
+import com.khanabook.saas.feature.menu.service.ItemVariantService;
+import com.khanabook.saas.feature.menu.service.AiMenuExtractionService;
+import com.khanabook.saas.feature.menu.service.MenuExtractionWorker;
+import com.khanabook.saas.feature.menu.service.AssetStorageService;
+import com.khanabook.saas.feature.inventory.service.InventoryService;
+import com.khanabook.saas.feature.inventory.service.StockLogService;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
+import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
+import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
+import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
+import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
+import com.khanabook.saas.feature.payments.service.RefundService;
+import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.payments.service.WebhookRetryService;
+import com.khanabook.saas.feature.payments.service.PaymentRoutingService;
+import com.khanabook.saas.feature.payments.service.InstantSettlementService;
+import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
+import com.khanabook.saas.feature.restaurants.service.RestaurantProfileService;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/sync/master")
+@RequiredArgsConstructor
+public class MasterSyncController {
+
+	private static final Logger log = LoggerFactory.getLogger(MasterSyncController.class);
+
+	private final RestaurantProfileService restaurantProfileService;
+	private final UserService userService;
+	private final CategoryService categoryService;
+	private final MenuItemService menuItemService;
+	private final ItemVariantService itemVariantService;
+	private final StockLogService stockLogService;
+	private final BillService billService;
+	private final BillItemService billItemService;
+	private final BillPaymentService billPaymentService;
+	private final BillItemRepository billItemRepository;
+	private final BillPaymentRepository billPaymentRepository;
+	private final FeatureFlagService featureFlagService;
+	private final com.khanabook.saas.feature.restaurants.service.TerminalManagementService terminalManagementService;
+	private final com.khanabook.saas.feature.staff.service.PermissionService permissionService;
+
+	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
+	// strict=true: a missing terminal token rejects terminal-operational pulls.
+	// compatibility=false: the legacy client-supplied terminal id is no longer trusted;
+	// a missing token is rejected even outside strict mode.
+	@Value("${terminal.sync.strict:false}")
+	private boolean terminalSyncStrict;
+
+	@Value("${terminal.sync.compatibility:true}")
+	private boolean terminalCompatibility;
+	private final EasebuzzSubMerchantRepository subMerchantRepo;
+	private final RestaurantProfileRepository profileRepo;
+	private final SubMerchantService subMerchantService;
+
+	@org.springframework.transaction.annotation.Transactional(readOnly = true, timeout = 30)
+	@GetMapping("/pull")
+	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
+			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
+			@RequestParam(required = false) String terminalId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "500") int size,
+			HttpServletRequest request) {
+
+		Long tenantId = TenantContext.getCurrentTenant();
+		String role = TenantContext.getCurrentRole();
+
+		// Clamp page size to prevent OOM on oversized requests
+		int effectiveSize = Math.min(Math.max(size, 1), 500);
+
+		if ("KBOOK_ADMIN".equals(role) && restaurantId != null) {
+			String adminUsername = org.springframework.security.core.context.SecurityContextHolder
+					.getContext().getAuthentication().getName();
+			log.warn("ADMIN_TENANT_OVERRIDE admin={} impersonating tenantId={} ip={}",
+					adminUsername, restaurantId, request.getRemoteAddr());
+			tenantId = restaurantId;
+		}
+
+		long currentServerTime = System.currentTimeMillis();
+		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
+
+		// Idempotent auto-enable: ensures Easebuzz sub-merchant flag is turned on
+		// whenever credentials are configured but the flag is still off.
+		autoEnableEasebuzzForExistingSubMerchants(tenantId);
+
+		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
+		boolean transactionalCrossDevice = ignoreDeviceId;
+
+		org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+				page, effectiveSize, org.springframework.data.domain.Sort.by("id").ascending());
+
+		// Terminal identity is always taken from the authenticated X-Terminal-Token, never
+		// from the client query parameter. A supplied query terminal id is only honoured as a
+		// legacy fallback while compatibility mode is enabled; any mismatch with the token is
+		// rejected so Terminal B cannot request Terminal A's operational records.
+		String authenticatedTerminalId = TenantContext.getCurrentTenant() != null
+				? TenantContext.getCurrentTerminalId() : null;
+		// Heartbeat: record that this terminal is alive (throttled to 1/60s in SQL).
+		if (authenticatedTerminalId != null && !authenticatedTerminalId.isBlank()) {
+			try {
+				terminalManagementService.touchLastSeen(TenantContext.getCurrentTenant(),
+						Long.valueOf(authenticatedTerminalId));
+			} catch (NumberFormatException ignored) { }
+		}
+		boolean isAdmin = "KBOOK_ADMIN".equals(role);
+		String effectiveTerminalId;
+		if (authenticatedTerminalId != null && !authenticatedTerminalId.isBlank()) {
+			effectiveTerminalId = authenticatedTerminalId;
+			if (terminalId != null && !terminalId.isBlank() && !terminalId.equals(authenticatedTerminalId)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+						"Requested terminal does not match authenticated terminal");
+			}
+		} else if (terminalId != null && !terminalId.isBlank()) {
+			if (!terminalCompatibility) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+						"Terminal identity required; compatibility mode is disabled");
+			}
+			effectiveTerminalId = terminalId; // legacy fallback only while compatibility mode is enabled
+		} else {
+			effectiveTerminalId = null;
+		}
+
+		// Terminal-operational pulls (bills/items/payments) require a terminal identity once
+		// strict mode is enabled or compatibility mode is turned off. Admins remain exempt.
+		boolean terminalIdentityRequired = !isAdmin
+				&& (terminalSyncStrict || !terminalCompatibility)
+				&& (effectiveTerminalId == null || effectiveTerminalId.isBlank());
+		if (terminalIdentityRequired) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Terminal identity required for bill pull: activate a terminal and send X-Terminal-Token");
+		}
+
+		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
+		response.setServerTimestamp(currentServerTime);
+
+		// Effective feature-flag state for this restaurant (Req 30.23). Additive:
+		// sent on page 0 once, omitted from follow-up pages.
+		if (page == 0) {
+			response.setEnabledFeatures(featureFlagService.resolveAllForRestaurant(tenantId));
+			Long currentUserId = com.khanabook.saas.core.security.TenantContext.getCurrentUserId();
+			if (currentUserId != null) {
+				response.setGrantedPermissions(permissionService.getGrantedPermissions(tenantId, currentUserId));
+				response.setPermissionRevision(permissionService.getPermissionRevision(tenantId, currentUserId));
+			}
+		}
+
+		if (page == 0) {
+			response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));
+			response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), UserDTO.class));
+			response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
+			response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
+			response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
+		} else {
+			response.setProfiles(java.util.Collections.emptyList());
+			response.setUsers(java.util.Collections.emptyList());
+			response.setCategories(java.util.Collections.emptyList());
+			response.setMenuItems(java.util.Collections.emptyList());
+			response.setItemVariants(java.util.Collections.emptyList());
+		}
+
+		org.springframework.data.domain.Page<com.khanabook.saas.feature.inventory.data.StockLog> stockLogsPage =
+				stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+		org.springframework.data.domain.Page<com.khanabook.saas.feature.billing.data.Bill> billsPage =
+				billService.pullData(tenantId, lastSyncTimestamp, deviceId, effectiveTerminalId, transactionalCrossDevice, pageable);
+		java.util.List<Long> pulledBillIds = billsPage.getContent().stream()
+				.map(com.khanabook.saas.feature.billing.data.Bill::getId)
+				.filter(java.util.Objects::nonNull)
+				.toList();
+		java.util.List<com.khanabook.saas.feature.billing.data.BillItem> terminalUpdatedBillItems =
+				effectiveTerminalId == null || effectiveTerminalId.isBlank()
+						? java.util.Collections.emptyList()
+						: billItemRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
+		java.util.List<com.khanabook.saas.feature.billing.data.BillPayment> terminalUpdatedBillPayments =
+				effectiveTerminalId == null || effectiveTerminalId.isBlank()
+						? java.util.Collections.emptyList()
+						: billPaymentRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
+		java.util.List<com.khanabook.saas.feature.billing.data.BillItem> pulledBillItems = pulledBillIds.isEmpty()
+				? java.util.Collections.emptyList()
+				: billItemRepository.findByRestaurantIdAndServerBillIdIn(tenantId, pulledBillIds);
+		java.util.List<com.khanabook.saas.feature.billing.data.BillPayment> pulledBillPayments = pulledBillIds.isEmpty()
+				? java.util.Collections.emptyList()
+				: billPaymentRepository.findByRestaurantIdAndServerBillIdIn(tenantId, pulledBillIds);
+		java.util.List<com.khanabook.saas.feature.billing.data.BillItem> billItems = mergeById(
+				terminalUpdatedBillItems, pulledBillItems);
+		java.util.List<com.khanabook.saas.feature.billing.data.BillPayment> billPayments = mergeById(
+				terminalUpdatedBillPayments, pulledBillPayments);
+
+		response.setStockLogs(SyncMapper.mapList(stockLogsPage.getContent(), StockLogDTO.class));
+		response.setBills(SyncMapper.mapList(billsPage.getContent(), BillDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItems, BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPayments, BillPaymentDTO.class));
+
+		boolean hasMore = stockLogsPage.hasNext() || billsPage.hasNext();
+		response.setHasMore(hasMore);
+		if (hasMore) {
+			response.setNextPage(page + 1);
+		}
+
+		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
+		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
+		int categoriesCount = response.getCategories() == null ? 0 : response.getCategories().size();
+		int menuItemsCount = response.getMenuItems() == null ? 0 : response.getMenuItems().size();
+		int itemVariantsCount = response.getItemVariants() == null ? 0 : response.getItemVariants().size();
+		int stockLogsCount = response.getStockLogs() == null ? 0 : response.getStockLogs().size();
+		int billsCount = response.getBills() == null ? 0 : response.getBills().size();
+		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
+		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
+
+		log.info("Master sync pull tenantId={} deviceId={} page={} size={} hasMore={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
+				"menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={}",
+				tenantId, deviceId, page, size, hasMore, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
+				profilesCount, usersCount, categoriesCount,
+				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
+
+		return ResponseEntity.ok(response);
+	}
+
+	private static <T> java.util.List<T> mergeById(java.util.List<T> first, java.util.List<T> second) {
+		java.util.LinkedHashMap<Object, T> merged = new java.util.LinkedHashMap<>();
+		for (T item : first) {
+			merged.put(entityId(item), item);
+		}
+		for (T item : second) {
+			merged.putIfAbsent(entityId(item), item);
+		}
+		return new java.util.ArrayList<>(merged.values());
+	}
+
+	private static Object entityId(Object entity) {
+		if (entity instanceof com.khanabook.saas.feature.billing.data.BillItem item && item.getId() != null) {
+			return item.getId();
+		}
+		if (entity instanceof com.khanabook.saas.feature.billing.data.BillPayment payment && payment.getId() != null) {
+			return payment.getId();
+		}
+		return System.identityHashCode(entity);
+	}
+	/**
+	 * Returns a new mutable list containing at most {@code limit} elements from the source.
+	 * Prevents unbounded response sizes for tenants with large datasets.
+	 */
+	private static <T> List<T> truncate(List<T> source, int limit) {
+		if (source == null || source.isEmpty()) return new java.util.ArrayList<>();
+		return new java.util.ArrayList<>(source.size() <= limit ? source : source.subList(0, limit));
+	}
+
+	/**
+	 * Retroactively enables easebuzzEnabled for restaurants that have a sub-merchant
+	 * with a non-blank Easebuzz ID but whose profile still has easebuzzEnabled = false/null.
+	 * Uses REQUIRES_NEW to write outside the read-only pull transaction.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	private void autoEnableEasebuzzForExistingSubMerchants(Long restaurantId) {
+		var smOpt = subMerchantRepo.findByRestaurantId(restaurantId);
+		boolean hasValidSubMerchant = smOpt.isPresent()
+				&& smOpt.get().getSubMerchantId() != null
+				&& !smOpt.get().getSubMerchantId().isBlank();
+		if (hasValidSubMerchant) {
+			subMerchantService.ensureEasebuzzEnabled(restaurantId);
+			log.info("Auto-enabled easebuzz for restaurant {} (has existing sub-merchant with ID)", restaurantId);
+		}
+	}
+
+}

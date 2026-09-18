@@ -1,9 +1,11 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.menu.service.AssetStorageService;
+
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

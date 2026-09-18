@@ -1,5 +1,6 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.feature.billing.service.BillSyncService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.UUID;
@@ -7,7 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.feature.billing.data.Bill;
 
 /**
  * Unit tests for {@link BillSyncService#protectBillState}: the guard that keeps a stale

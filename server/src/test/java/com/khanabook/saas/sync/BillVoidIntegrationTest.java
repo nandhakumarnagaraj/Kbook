@@ -1,9 +1,10 @@
 package com.khanabook.saas.sync;
 
+import com.khanabook.saas.feature.billing.service.BillSyncService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.webadmin.service.BusinessReadService;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.business.service.BusinessReadService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;

@@ -1,7 +1,7 @@
 package com.khanabook.saas.core.security.authz;
 
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

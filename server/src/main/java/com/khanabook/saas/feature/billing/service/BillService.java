@@ -1,0 +1,16 @@
+package com.khanabook.saas.feature.billing.service;
+
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import java.util.List;
+
+public interface BillService {
+
+	PushSyncResponse pushData(Long tenantId, List<Bill> payload);
+
+	List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
+
+	org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable);
+
+	org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, String terminalId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable);
+}

@@ -1,13 +1,15 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.entity.DeviceRegistrationRequest;
-import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.restaurants.controller.TerminalController;
+
+import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequest;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequestRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.auth.service.SecurityAuditService;
-import com.khanabook.saas.service.TerminalManagementService;
+import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +85,7 @@ class TerminalControllerTest {
         when(terminalRepository.findByRestaurantIdOrderByIdAsc(42L))
                 .thenReturn(List.of()); // No terminals exist
         when(terminalManagementService.lockRestaurantForTerminalOp(42L))
-                .thenReturn(Optional.of(new com.khanabook.saas.entity.RestaurantProfile()));
+                .thenReturn(Optional.of(new com.khanabook.saas.feature.restaurants.data.RestaurantProfile()));
         when(terminalRepository.save(any(RestaurantTerminal.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtUtility.generateTerminalToken(anyString(), any(), anyString(), anyString(), anyString(), any(), any()))

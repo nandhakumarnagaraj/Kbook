@@ -1,14 +1,14 @@
 package com.khanabook.saas;
 
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.BillItem;
-import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.repository.BillItemRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.ItemVariantRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

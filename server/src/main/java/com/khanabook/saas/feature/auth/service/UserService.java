@@ -1,7 +1,7 @@
 package com.khanabook.saas.feature.auth.service;
 
 import com.khanabook.saas.feature.auth.entity.User;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
 import java.util.List;
 
 public interface UserService {

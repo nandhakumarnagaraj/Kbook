@@ -1,0 +1,90 @@
+package com.khanabook.saas.feature.restaurants.data;
+
+import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * Server-owned terminal registration for a restaurant.
+ *
+ * Each billing device is assigned a permanent, restaurant-unique
+ * {@code terminalSeries} on first online activation (PLAN §5). Invoice-number
+ * allocation is gated on the existence of the terminal's series so that a
+ * device cannot mint invoice numbers before it has been provisioned.
+ *
+ * This is not a synced client entity; it is allocation/registration state that
+ * only the server writes.
+ */
+@Entity
+@Table(name = "restaurant_terminal", uniqueConstraints = {
+		@UniqueConstraint(name = "ux_restaurant_terminal_series", columnNames = { "restaurant_id", "terminal_series" })
+}, indexes = {
+		@Index(name = "idx_restaurant_terminal_restaurant", columnList = "restaurant_id"),
+		@Index(name = "idx_restaurant_terminal_status", columnList = "restaurant_id, status")
+})
+@Getter
+@Setter
+public class RestaurantTerminal {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	@Column(name = "restaurant_id", nullable = false)
+	private Long restaurantId;
+
+	@Column(name = "terminal_series", nullable = false)
+	private String terminalSeries;
+
+	@Column(name = "terminal_name")
+	private String terminalName;
+
+	@Column(name = "device_id")
+	private String deviceId;
+
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive = true;
+
+	/** Lifecycle status: ACTIVE, INACTIVE, REVOKED, RECOVERY_REQUIRED, REPLACED */
+	@Column(name = "status", nullable = false)
+	private String status = "ACTIVE";
+
+	/**
+	 * Functional role of this terminal in the restaurant.
+	 * BILLING = standard POS terminal (max 1 per restaurant enforced at registration time).
+	 * KOT     = kitchen order terminal / display-only.
+	 * ADMIN   = back-office / reporting access.
+	 * Default is BILLING for backward compatibility.
+	 */
+	@Column(name = "terminal_type", nullable = false, length = 20)
+	private String terminalType = "BILLING";
+
+	/**
+	 * Designated primary terminal for the restaurant. Invariant: exactly one
+	 * ACTIVE primary per restaurant; maintained by TerminalManagementService
+	 * under the restaurant-profile lock and backed by a partial unique index.
+	 */
+	@Column(name = "is_primary", nullable = false)
+	private Boolean isPrimary = false;
+
+	/** Incremented on recovery/deactivation to revoke all previously-issued terminal tokens. */
+	@Column(name = "credential_version", nullable = false)
+	private Long credentialVersion = 1L;
+
+	@Column(name = "created_at")
+	private Long createdAt;
+
+	@Column(name = "updated_at")
+	private Long updatedAt;
+
+	@Column(name = "last_seen_at")
+	private Long lastSeenAt;
+}

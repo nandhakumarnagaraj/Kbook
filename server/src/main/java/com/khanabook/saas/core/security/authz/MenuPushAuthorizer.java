@@ -1,6 +1,6 @@
 package com.khanabook.saas.core.security.authz;
 
-import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.feature.menu.data.MenuItem;
 
 import java.math.BigDecimal;
 import java.util.function.Predicate;

@@ -1,14 +1,16 @@
 package com.khanabook.saas.webadmin.service;
 
+import com.khanabook.saas.feature.business.service.BusinessWriteService;
+
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
-import com.khanabook.saas.webadmin.dto.CreateStaffRequest;
-import com.khanabook.saas.webadmin.dto.StaffCreatedResponse;
+import com.khanabook.saas.feature.business.dto.CreateStaffRequest;
+import com.khanabook.saas.feature.business.dto.StaffCreatedResponse;
 import net.jqwik.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +26,7 @@ import static org.mockito.Mockito.*;
 class StaffCreationProperties {
 
     private UserRepository userRepository;
-    private com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
+    private com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
     private BusinessWriteService service;
 
     private void setupService() {
@@ -32,9 +34,9 @@ class StaffCreationProperties {
         MenuItemRepository menuItemRepository = mock(MenuItemRepository.class);
         RestaurantTerminalRepository terminalRepository = mock(RestaurantTerminalRepository.class);
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
-        passwordResetOtpService = mock(com.khanabook.saas.service.PasswordResetOtpService.class);
+        passwordResetOtpService = mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
-                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class),
+                terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
                 passwordResetOtpService);
         // Tombstone-aware staff create: only a LIVE account blocks the phone, and any
         // soft-deleted rows holding it are released first. Default to "available".

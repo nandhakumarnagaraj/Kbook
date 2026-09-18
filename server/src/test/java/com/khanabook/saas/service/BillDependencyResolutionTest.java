@@ -1,6 +1,42 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.entity.*;
+import com.khanabook.saas.feature.billing.service.BillSyncService;
+import com.khanabook.saas.feature.staff.service.PermissionService;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.billing.data.BillPayment;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.ItemVariant;
+import com.khanabook.saas.feature.menu.data.ItemRecipe;
+import com.khanabook.saas.feature.menu.data.MenuExtractionJob;
+import com.khanabook.saas.feature.inventory.data.RawMaterial;
+import com.khanabook.saas.feature.inventory.data.PurchaseOrder;
+import com.khanabook.saas.feature.inventory.data.PurchaseOrderItem;
+import com.khanabook.saas.feature.inventory.data.StockMovement;
+import com.khanabook.saas.feature.inventory.data.StockLog;
+import com.khanabook.saas.feature.inventory.data.Vendor;
+import com.khanabook.saas.feature.inventory.data.CustomerProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
+import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
+import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
+import com.khanabook.saas.feature.payments.data.Chargeback;
+import com.khanabook.saas.feature.notifications.data.NotificationEvent;
+import com.khanabook.saas.feature.notifications.data.DeviceToken;
+import com.khanabook.saas.feature.compliance.data.FssaiTracker;
+import com.khanabook.saas.feature.compliance.data.FssaiRenewal;
+import com.khanabook.saas.feature.staff.data.StaffPermission;
+import com.khanabook.saas.feature.staff.data.StaffPermissionRevision;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
+import com.khanabook.saas.feature.staff.data.PermissionRequest;
+import com.khanabook.saas.feature.staff.data.RoleTemplate;
+import com.khanabook.saas.feature.platform.data.FeatureFlag;
+import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
@@ -9,18 +45,50 @@ import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
 import com.khanabook.saas.feature.auth.entity.OtpRequest;
 import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
 import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
-import com.khanabook.saas.repository.*;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.ItemRecipeRepository;
+import com.khanabook.saas.feature.menu.data.MenuExtractionJobRepository;
+import com.khanabook.saas.feature.inventory.data.RawMaterialRepository;
+import com.khanabook.saas.feature.inventory.data.PurchaseOrderRepository;
+import com.khanabook.saas.feature.inventory.data.StockMovementRepository;
+import com.khanabook.saas.feature.inventory.data.StockLogRepository;
+import com.khanabook.saas.feature.inventory.data.VendorRepository;
+import com.khanabook.saas.feature.inventory.data.CustomerProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
+import com.khanabook.saas.feature.payments.data.ChargebackRepository;
+import com.khanabook.saas.feature.payments.data.WebhookRetryJobRepository;
+import com.khanabook.saas.feature.notifications.data.NotificationEventRepository;
+import com.khanabook.saas.feature.notifications.data.DeviceTokenRepository;
+import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
+import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
+import com.khanabook.saas.feature.staff.data.StaffPermissionRepository;
+import com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository;
+import com.khanabook.saas.feature.staff.data.PermissionRequestRepository;
+import com.khanabook.saas.feature.staff.data.RoleTemplateRepository;
+import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
 import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
 import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
 import com.khanabook.saas.feature.auth.repository.RateLimitAttemptRepository;
 import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
-import com.khanabook.saas.service.impl.BillItemServiceImpl;
-import com.khanabook.saas.service.impl.BillPaymentServiceImpl;
+import com.khanabook.saas.feature.billing.service.BillItemServiceImpl;
+import com.khanabook.saas.feature.billing.service.BillPaymentServiceImpl;
 import com.khanabook.saas.feature.auth.service.SecurityAuditService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.service.GenericSyncService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,10 +127,10 @@ class BillDependencyResolutionTest {
 
     @BeforeEach
     void setUp() {
-        var billPaymentSyncServiceMock = org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class);
+        var billPaymentSyncServiceMock = org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillPaymentSyncService.class);
         org.mockito.Mockito.lenient().when(billPaymentSyncServiceMock.checkIdempotency(
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .thenReturn(com.khanabook.saas.sync.service.BillPaymentSyncService.IdempotencyResult.notFound());
+                .thenReturn(com.khanabook.saas.feature.billing.service.BillPaymentSyncService.IdempotencyResult.notFound());
         GenericSyncService gs = new GenericSyncService(
                 billRepo,
                 billPaymentRepo,
@@ -71,14 +139,14 @@ class BillDependencyResolutionTest {
                 categoryRepo,
                 terminalRepo,
                 securityAuditService,
-                new com.khanabook.saas.sync.service.SyncFallbackSaver(),
+                new com.khanabook.saas.feature.sync.service.SyncFallbackSaver(),
                 permissionService,
                 revisionRepo,
-                new com.khanabook.saas.sync.service.RelationalIdResolver(billRepo, menuItemRepo, itemVariantRepo, categoryRepo),
-                org.mockito.Mockito.mock(com.khanabook.saas.sync.service.TerminalOwnershipService.class),
-                org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillSyncService.class),
-                org.mockito.Mockito.mock(com.khanabook.saas.sync.service.SyncNotificationService.class),
-                org.mockito.Mockito.mock(com.khanabook.saas.sync.service.UserProfileSyncService.class),
+                new com.khanabook.saas.feature.sync.service.RelationalIdResolver(billRepo, menuItemRepo, itemVariantRepo, categoryRepo),
+                org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.TerminalOwnershipService.class),
+                org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillSyncService.class),
+                org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.SyncNotificationService.class),
+                org.mockito.Mockito.mock(com.khanabook.saas.feature.auth.service.UserProfileSyncService.class),
                 billPaymentSyncServiceMock
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);

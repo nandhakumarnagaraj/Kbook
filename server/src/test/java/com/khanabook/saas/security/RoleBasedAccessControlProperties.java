@@ -1,5 +1,11 @@
 package com.khanabook.saas.security;
 
+import com.khanabook.saas.core.security.TenantContext;
+
+import com.khanabook.saas.core.security.RequireRole;
+
+import com.khanabook.saas.core.security.RequireRoleAspect;
+
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.NotEmpty;

@@ -1,15 +1,17 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.inventory.service.InventoryService;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.BillItem;
-import com.khanabook.saas.entity.ItemRecipe;
-import com.khanabook.saas.entity.RawMaterial;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.menu.data.ItemRecipe;
+import com.khanabook.saas.feature.inventory.data.RawMaterial;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.BillItemRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.ItemRecipeRepository;
-import com.khanabook.saas.repository.RawMaterialRepository;
+import com.khanabook.saas.feature.billing.data.BillItemRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.ItemRecipeRepository;
+import com.khanabook.saas.feature.inventory.data.RawMaterialRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -54,7 +56,7 @@ class InventoryServiceIntegrationTest extends BaseIntegrationTest {
 
     private long seq = 1;
 
-    private void fillSync(com.khanabook.saas.sync.entity.BaseSyncEntity e) {
+    private void fillSync(com.khanabook.saas.feature.sync.data.BaseSyncEntity e) {
         long t = System.currentTimeMillis();
         e.setLocalId(seq++);
         e.setDeviceId("SEED");

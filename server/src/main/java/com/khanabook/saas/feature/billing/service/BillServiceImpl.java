@@ -1,0 +1,191 @@
+package com.khanabook.saas.feature.billing.service;
+
+import com.khanabook.saas.core.utility.AppConstants;
+
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
+import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.feature.billing.service.BillService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
+@Service
+@RequiredArgsConstructor
+public class BillServiceImpl implements BillService {
+	private final BillRepository repository;
+	private final GenericSyncService genericSyncService;
+	private final RestaurantProfileRepository restaurantProfileRepository;
+	private final RestaurantTerminalRepository terminalRepository;
+
+	// Phase C strict mode: when true, an OWNER pull without an X-Terminal-Token is
+	// rejected (400). Kept false during rollout so legacy Android clients (no token)
+	// keep working until they are updated. Flip to true only after all tablets ship
+	// the terminal-token build.
+	@Value("${terminal.sync.strict:false}")
+	private boolean terminalSyncStrict;
+
+	@Override
+	@Transactional
+	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
+		ZoneId zoneId = restaurantProfileRepository.findByRestaurantId(tenantId)
+				.map(profile -> resolveZoneId(profile.getTimezone()))
+				.orElse(ZoneId.of(AppConstants.DEFAULT_TIMEZONE));
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
+
+		for (Bill bill : payload) {
+			// Overwrite untrusted client terminal fields from the authenticated terminal
+			// context so invoice numbering (below) and downstream sync use the trusted series.
+			String trustedTerminalId = TenantContext.getCurrentTerminalId();
+			String trustedTerminalSeries = TenantContext.getCurrentTerminalSeries();
+			String trustedDeviceId = TenantContext.getCurrentTerminalDevice();
+			if (trustedTerminalId != null || trustedTerminalSeries != null) {
+				if (trustedTerminalSeries != null) {
+					bill.setTerminalSeries(trustedTerminalSeries);
+				}
+				if (trustedTerminalId != null) {
+					bill.setTerminalId(trustedTerminalId);
+				}
+				if (trustedDeviceId != null) {
+					bill.setCreatedDeviceId(trustedDeviceId);
+					bill.setDeviceId(trustedDeviceId);
+				}
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(trustedTerminalId);
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(trustedTerminalId);
+				}
+			} else {
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(bill.getTerminalId());
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
+				}
+				if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
+					bill.setCreatedDeviceId(bill.getDeviceId());
+				}
+			}
+			if (bill.getLastResetDate() == null) {
+
+				Long created = bill.getCreatedAt() != null
+						? bill.getCreatedAt()
+						: bill.getUpdatedAt() != null ? bill.getUpdatedAt() : System.currentTimeMillis();
+				bill.setLastResetDate(formatter.format(Instant.ofEpochMilli(created)));
+			}
+		}
+		allocateMissingInvoiceNumbers(tenantId, payload, zoneId);
+		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
+
+	private void allocateMissingInvoiceNumbers(Long tenantId, List<Bill> payload, ZoneId zoneId) {
+		Map<String, Long> nextBySeries = new HashMap<>();
+		for (Bill bill : payload) {
+			if (bill.getInvoiceNumber() != null && !bill.getInvoiceNumber().isBlank()) {
+				continue;
+			}
+			String terminalSeries = bill.getTerminalSeries();
+			if (terminalSeries == null || terminalSeries.isBlank()) {
+				continue;
+			}
+			if (terminalRepository.findAndLockByRestaurantIdAndTerminalSeries(tenantId, terminalSeries).isEmpty()) {
+				continue;
+			}
+
+			long createdAt = bill.getCreatedAt() != null ? bill.getCreatedAt() : System.currentTimeMillis();
+			LocalDate issueDate = Instant.ofEpochMilli(createdAt).atZone(zoneId).toLocalDate();
+			int financialYearStart = issueDate.getMonthValue() >= 4 ? issueDate.getYear() : issueDate.getYear() - 1;
+			String financialYear = String.format("%02d", financialYearStart % 100);
+			String key = terminalSeries + "|" + financialYear;
+			long sequence = nextBySeries.computeIfAbsent(key, ignored ->
+					repository.findMaxInvoiceSequence(tenantId, terminalSeries, financialYear) + 1L);
+			String invoiceSeries = financialYear + terminalSeries;
+			bill.setFinancialYear(financialYear);
+			bill.setInvoiceSeries(invoiceSeries);
+			bill.setInvoiceSequence(sequence);
+			bill.setInvoiceNumber(buildInvoiceNumber(terminalSeries, sequence));
+			nextBySeries.put(key, sequence + 1L);
+		}
+	}
+
+	private static final int GST_INVOICE_NUMBER_MAX_LENGTH = 16;
+
+	private String displayInvoiceSeries(String terminalSeries) {
+		if (terminalSeries == null || terminalSeries.isBlank()) {
+			return "";
+		}
+		return terminalSeries.trim().substring(0, 1).toUpperCase();
+	}
+
+	private String buildInvoiceNumber(String terminalSeries, long sequence) {
+		String candidate = displayInvoiceSeries(terminalSeries) + String.format("%06d", sequence);
+		if (candidate.length() > GST_INVOICE_NUMBER_MAX_LENGTH) {
+			return candidate.substring(0, GST_INVOICE_NUMBER_MAX_LENGTH);
+		}
+		return candidate;
+	}
+
+	private ZoneId resolveZoneId(String timezone) {
+		if (timezone == null || timezone.isBlank()) {
+			return ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
+		}
+		try {
+			return ZoneId.of(timezone);
+		} catch (RuntimeException ignored) {
+			return ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
+		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
+		}
+		// Exclude own-device bills to avoid re-downloading what the device already created,
+		// BUT include own-device deleted bills so server-side soft-deletes propagate back.
+		return repository.findUpdatedForRestaurantWide(tenantId, lastSyncTimestamp, deviceId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp, pageable);
+		}
+		return repository.findUpdatedForRestaurantWide(tenantId, lastSyncTimestamp, deviceId, pageable);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, String terminalId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable) {
+		boolean isAdmin = "KBOOK_ADMIN".equals(TenantContext.getCurrentRole());
+		// terminalId is supplied by the controller from TenantContext (X-Terminal-Token),
+		// never from a client query parameter, so it is already server-authoritative.
+		boolean missingTerminal = terminalId == null || terminalId.isBlank();
+		if (missingTerminal && !isAdmin && terminalSyncStrict) {
+			throw new ResponseStatusException(BAD_REQUEST,
+					"Terminal identity required for bill pull: activate a terminal and send X-Terminal-Token");
+		}
+		if (!missingTerminal) {
+			return repository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId, pageable);
+		}
+		return pullData(tenantId, lastSyncTimestamp, deviceId, ignoreDeviceId, pageable);
+	}
+}

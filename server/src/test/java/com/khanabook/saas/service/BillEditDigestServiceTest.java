@@ -1,5 +1,7 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.billing.service.BillEditDigestService;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -19,11 +21,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 

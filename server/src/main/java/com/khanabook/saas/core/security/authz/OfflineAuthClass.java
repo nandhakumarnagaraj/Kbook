@@ -1,6 +1,6 @@
 package com.khanabook.saas.core.security.authz;
 
-import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
 
 import java.util.Map;
 

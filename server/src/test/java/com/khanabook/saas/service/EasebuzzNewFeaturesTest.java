@@ -1,10 +1,13 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
+import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
+import com.khanabook.saas.feature.payments.service.SubMerchantService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.config.EasebuzzProperties;
-import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.feature.payments.service.EasebuzzProperties;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

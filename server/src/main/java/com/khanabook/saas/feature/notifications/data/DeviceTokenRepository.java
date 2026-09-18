@@ -1,0 +1,26 @@
+package com.khanabook.saas.feature.notifications.data;
+
+import com.khanabook.saas.feature.notifications.data.DeviceToken;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> {
+
+    List<DeviceToken> findByRestaurantIdAndActiveTrue(Long restaurantId);
+
+    List<DeviceToken> findByRestaurantIdAndUserIdAndActiveTrue(Long restaurantId, Long userId);
+
+    List<DeviceToken> findByRestaurantIdAndUserIdInAndActiveTrue(Long restaurantId, List<Long> userIds);
+
+    Optional<DeviceToken> findByToken(String token);
+
+    Optional<DeviceToken> findByRestaurantIdAndToken(Long restaurantId, String token);
+
+    Optional<DeviceToken> findByRestaurantIdAndDeviceId(Long restaurantId, String deviceId);
+
+    long countByRestaurantIdAndActiveTrue(Long restaurantId);
+}

@@ -1,9 +1,11 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.compliance.service.FssaiTrackerService;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.FssaiTracker;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.FssaiTrackerRepository;
+import com.khanabook.saas.feature.compliance.data.FssaiTracker;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;

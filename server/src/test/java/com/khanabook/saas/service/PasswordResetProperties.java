@@ -1,5 +1,9 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.auth.service.WebAdminPasswordResetService;
+
+import com.khanabook.saas.feature.auth.service.PasswordResetOtpService;
+
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
@@ -22,14 +26,14 @@ class PasswordResetProperties {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private PasswordResetOtpService passwordResetOtpService;
-    private com.khanabook.saas.repository.RefreshTokenRepository refreshTokenRepository;
+    private com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository;
     private WebAdminPasswordResetService resetService;
 
     private void setup() {
         userRepository = mock(UserRepository.class);
         passwordEncoder = mock(PasswordEncoder.class);
         passwordResetOtpService = mock(PasswordResetOtpService.class);
-        refreshTokenRepository = mock(com.khanabook.saas.repository.RefreshTokenRepository.class);
+        refreshTokenRepository = mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class);
         resetService = new WebAdminPasswordResetService(
                 passwordResetOtpService, userRepository, refreshTokenRepository, passwordEncoder,
                 "test-signing-secret-at-least-32-bytes-long!!");
@@ -109,7 +113,7 @@ class PasswordResetProperties {
             @ForAll("shortPasswords") String shortPassword
     ) {
         // Validate that the DTO @Size annotation would reject short passwords
-        var dto = new com.khanabook.saas.webadmin.dto.ResetPasswordRequest("some-token", shortPassword);
+        var dto = new com.khanabook.saas.feature.auth.data.ResetPasswordRequest("some-token", shortPassword);
 
         jakarta.validation.Validator validator = jakarta.validation.Validation
                 .buildDefaultValidatorFactory()

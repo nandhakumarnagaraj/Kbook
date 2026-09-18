@@ -1,9 +1,9 @@
 package com.khanabook.saas.sync;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;

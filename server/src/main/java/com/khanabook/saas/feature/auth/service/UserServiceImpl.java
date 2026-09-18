@@ -2,12 +2,12 @@ package com.khanabook.saas.feature.auth.service;
 
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.User;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.service.PasswordResetOtpService;
 import com.khanabook.saas.feature.auth.service.UserService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.service.GenericSyncService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,0 +1,53 @@
+package com.khanabook.saas.feature.restaurants.data;
+
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.List;
+
+@Repository
+public interface RestaurantTerminalRepository extends JpaRepository<RestaurantTerminal, Long> {
+
+	@Modifying
+	@Query("UPDATE RestaurantTerminal t SET t.lastSeenAt = :now " +
+			"WHERE t.id = :terminalId AND t.restaurantId = :restaurantId " +
+			"AND (t.lastSeenAt IS NULL OR t.lastSeenAt < :cutoff)")
+	int touchLastSeen(@Param("terminalId") Long terminalId, @Param("restaurantId") Long restaurantId,
+					  @Param("now") Long now, @Param("cutoff") Long cutoff);
+
+	/**
+	 * Look up a terminal registration and take a pessimistic write lock so that
+	 * concurrent invoice-sequence allocation for the same (restaurant, series)
+	 * serializes on this row (PLAN §5, §4.2).
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("""
+			SELECT t FROM RestaurantTerminal t
+			WHERE t.restaurantId = :restaurantId
+			  AND t.terminalSeries = :terminalSeries
+			""")
+	Optional<RestaurantTerminal> findAndLockByRestaurantIdAndTerminalSeries(
+			@Param("restaurantId") Long restaurantId,
+			@Param("terminalSeries") String terminalSeries);
+
+	Optional<RestaurantTerminal> findByRestaurantIdAndTerminalSeries(Long restaurantId, String terminalSeries);
+
+	Optional<RestaurantTerminal> findByRestaurantIdAndDeviceId(Long restaurantId, String deviceId);
+
+	List<RestaurantTerminal> findByRestaurantIdOrderByIdAsc(Long restaurantId);
+
+	long countByRestaurantIdAndStatus(Long restaurantId, String status);
+
+	List<RestaurantTerminal> findByRestaurantIdAndStatus(Long restaurantId, String status);
+
+	Optional<RestaurantTerminal> findByRestaurantIdAndIsPrimaryTrue(Long restaurantId);
+
+	List<RestaurantTerminal> findByRestaurantIdAndStatusOrderByIdAsc(Long restaurantId, String status);
+}

@@ -1,15 +1,17 @@
 package com.khanabook.saas.webadmin.service;
 
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.business.service.BusinessWriteService;
+
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
-import com.khanabook.saas.webadmin.dto.CreateMenuItemRequest;
+import com.khanabook.saas.feature.business.dto.CreateMenuItemRequest;
 import net.jqwik.api.*;
 
 import java.math.BigDecimal;
@@ -52,8 +54,8 @@ class MenuTerminalProperties {
         RestaurantProfile profile = new RestaurantProfile();
         when(profileRepository.findAndLockByRestaurantId(anyLong())).thenReturn(Optional.of(profile));
         service = new BusinessWriteService(userRepository, categoryRepository, menuItemRepository,
-                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class),
-                mock(com.khanabook.saas.service.PasswordResetOtpService.class));
+                terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
+                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class));
     }
 
     // ─── Property 11: Terminal Reactivation State Transition ─────────────────────

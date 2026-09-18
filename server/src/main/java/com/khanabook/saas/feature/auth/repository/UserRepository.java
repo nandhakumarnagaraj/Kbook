@@ -2,7 +2,7 @@ package com.khanabook.saas.feature.auth.repository;
 
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.sync.repository.SyncRepository;
+import com.khanabook.saas.feature.sync.data.SyncRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;

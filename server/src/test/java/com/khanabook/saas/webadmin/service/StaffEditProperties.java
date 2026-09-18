@@ -1,14 +1,16 @@
 package com.khanabook.saas.webadmin.service;
 
+import com.khanabook.saas.feature.business.service.BusinessWriteService;
+
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
-import com.khanabook.saas.webadmin.dto.UpdateStaffRequest;
+import com.khanabook.saas.feature.business.dto.UpdateStaffRequest;
 import net.jqwik.api.*;
 
 import java.util.Optional;
@@ -33,8 +35,8 @@ class StaffEditProperties {
         RestaurantTerminalRepository terminalRepository = mock(RestaurantTerminalRepository.class);
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
-                terminalRepository, profileRepository, mock(com.khanabook.saas.service.PermissionService.class),
-                mock(com.khanabook.saas.service.PasswordResetOtpService.class));
+                terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
+                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class));
     }
 
     // ─── Property 5: Staff Edit Preserves Integrity ──────────────────────────────

@@ -1,11 +1,11 @@
-package com.khanabook.saas.sync.service;
+package com.khanabook.saas.feature.auth.service;
 
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
-import com.khanabook.saas.sync.entity.BaseSyncEntity;
+import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

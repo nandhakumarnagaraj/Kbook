@@ -1,8 +1,10 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
+
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;

@@ -1,11 +1,15 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.billing.service.PostSplitService;
+import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
+import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
+import com.khanabook.saas.feature.payments.service.SubMerchantService;
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,8 +196,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
         // Missing business proofs → submission blocked for proprietorship.
-        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
-            com.khanabook.saas.exception.BusinessRuleException.class,
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
             () -> subMerchantService.submitToEasebuzz(sm.getId())
         );
         assertEquals("BUSINESS_PROOFS_REQUIRED", ex.getRule());
@@ -239,8 +243,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
         // Blank legal entity name → submission blocked (no silent trade-name fallback).
-        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
-            com.khanabook.saas.exception.BusinessRuleException.class,
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
             () -> subMerchantService.submitToEasebuzz(sm.getId())
         );
         assertEquals("LEGAL_ENTITY_NAME_REQUIRED", ex.getRule());
@@ -263,8 +267,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
         // Missing mandatory fields → submission blocked, gaps listed in the message.
-        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
-            com.khanabook.saas.exception.BusinessRuleException.class,
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
             () -> subMerchantService.submitToEasebuzz(sm.getId())
         );
         assertEquals("MANDATORY_FIELDS_MISSING", ex.getRule());
@@ -292,8 +296,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("businessProof2Url", "https://docs.kbook.test/proof2.pdf");
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
-        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
-            com.khanabook.saas.exception.BusinessRuleException.class,
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
             () -> subMerchantService.submitToEasebuzz(sm.getId())
         );
         assertEquals("BUSINESS_PROOF_TYPES_NOT_DISTINCT", ex.getRule());

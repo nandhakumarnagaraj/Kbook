@@ -1,11 +1,14 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.feature.menu.service.AiMenuExtractionService;
+
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.ItemVariantRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

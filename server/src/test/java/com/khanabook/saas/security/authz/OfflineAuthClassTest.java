@@ -1,6 +1,6 @@
 package com.khanabook.saas.core.security.authz;
 
-import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

@@ -13,8 +13,8 @@ import java.sql.SQLException;
  * Provides database-backed rate limiter beans for various action types.
  *
  * <p>These replace the in-memory bucket4j implementations
- * ({@link com.khanabook.saas.service.OtpRateLimiter},
- * {@link com.khanabook.saas.service.LoginRateLimiter}) with durable,
+ * ({@link com.khanabook.saas.feature.auth.service.OtpRateLimiter},
+ * {@link com.khanabook.saas.feature.auth.service.LoginRateLimiter}) with durable,
  * restart-safe alternatives.
  *
  * <p>Existing in-memory beans are retained for backward compatibility and

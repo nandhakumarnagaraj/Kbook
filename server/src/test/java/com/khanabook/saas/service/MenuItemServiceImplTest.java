@@ -1,18 +1,18 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.repository.BillPaymentRepository;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.CategoryRepository;
-import com.khanabook.saas.repository.ItemVariantRepository;
-import com.khanabook.saas.repository.MenuItemRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.menu.data.CategoryRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.impl.MenuItemServiceImpl;
+import com.khanabook.saas.feature.menu.service.MenuItemServiceImpl;
 import com.khanabook.saas.feature.auth.service.SecurityAuditService;
-import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.service.GenericSyncService;
+import com.khanabook.saas.feature.sync.data.PushSyncResponse;
+import com.khanabook.saas.feature.sync.service.GenericSyncService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class MenuItemServiceImplTest {
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
     @Mock private SecurityAuditService securityAuditService;
-    @Mock private com.khanabook.saas.repository.StaffPermissionRevisionRepository revisionRepo;
+    @Mock private com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository revisionRepo;
 
     private GenericSyncService genericSyncService;
     private MenuItemServiceImpl service;
@@ -63,19 +63,19 @@ class MenuItemServiceImplTest {
             categoryRepo,
             terminalRepository,
             securityAuditService,
-            new com.khanabook.saas.sync.service.SyncFallbackSaver(),
-            org.mockito.Mockito.mock(com.khanabook.saas.service.PermissionService.class),
+            new com.khanabook.saas.feature.sync.service.SyncFallbackSaver(),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
             revisionRepo,
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.RelationalIdResolver.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.TerminalOwnershipService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillSyncService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.SyncNotificationService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.UserProfileSyncService.class),
-            org.mockito.Mockito.mock(com.khanabook.saas.sync.service.BillPaymentSyncService.class)
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.RelationalIdResolver.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.TerminalOwnershipService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.sync.service.SyncNotificationService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.auth.service.UserProfileSyncService.class),
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.billing.service.BillPaymentSyncService.class)
         );
         service = new MenuItemServiceImpl(
             menuItemRepo, categoryRepo, genericSyncService,
-            org.mockito.Mockito.mock(com.khanabook.saas.service.PushNotificationService.class));
+            org.mockito.Mockito.mock(com.khanabook.saas.feature.notifications.service.PushNotificationService.class));
     }
 
     @AfterEach
@@ -187,7 +187,7 @@ class MenuItemServiceImplTest {
         MenuItem existing = serverRow(504L, new BigDecimal("250"), true);
         MenuItem incoming = withServerId(menuItem(5L, 10L), 504L, new BigDecimal("300"), false);
 
-        assertThat(com.khanabook.saas.sync.validation.SyncPushGuard.isMasterDataWriter("KBOOK_ADMIN")).isTrue();
+        assertThat(com.khanabook.saas.feature.sync.validation.SyncPushGuard.isMasterDataWriter("KBOOK_ADMIN")).isTrue();
 
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());

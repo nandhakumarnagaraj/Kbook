@@ -1,0 +1,323 @@
+package com.khanabook.saas.feature.sync.data;
+
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
+import com.khanabook.saas.feature.auth.data.UserDTO;
+import com.khanabook.saas.feature.billing.data.BillDTO;
+import com.khanabook.saas.feature.billing.data.BillItemDTO;
+import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
+import com.khanabook.saas.feature.menu.data.CategoryDTO;
+import com.khanabook.saas.feature.menu.data.ItemVariantDTO;
+import com.khanabook.saas.feature.menu.data.MenuItemDTO;
+import com.khanabook.saas.feature.inventory.data.StockLogDTO;
+import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.billing.data.BillItem;
+import com.khanabook.saas.feature.billing.data.BillPayment;
+import com.khanabook.saas.feature.menu.data.MenuItem;
+import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.feature.menu.data.ItemVariant;
+import com.khanabook.saas.feature.menu.data.ItemRecipe;
+import com.khanabook.saas.feature.menu.data.MenuExtractionJob;
+import com.khanabook.saas.feature.inventory.data.RawMaterial;
+import com.khanabook.saas.feature.inventory.data.PurchaseOrder;
+import com.khanabook.saas.feature.inventory.data.PurchaseOrderItem;
+import com.khanabook.saas.feature.inventory.data.StockMovement;
+import com.khanabook.saas.feature.inventory.data.StockLog;
+import com.khanabook.saas.feature.inventory.data.Vendor;
+import com.khanabook.saas.feature.inventory.data.CustomerProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
+import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
+import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
+import com.khanabook.saas.feature.payments.data.Chargeback;
+import com.khanabook.saas.feature.notifications.data.NotificationEvent;
+import com.khanabook.saas.feature.notifications.data.DeviceToken;
+import com.khanabook.saas.feature.compliance.data.FssaiTracker;
+import com.khanabook.saas.feature.compliance.data.FssaiRenewal;
+import com.khanabook.saas.feature.staff.data.StaffPermission;
+import com.khanabook.saas.feature.staff.data.StaffPermissionRevision;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
+import com.khanabook.saas.feature.staff.data.PermissionRequest;
+import com.khanabook.saas.feature.staff.data.RoleTemplate;
+import com.khanabook.saas.feature.platform.data.FeatureFlag;
+import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
+import com.khanabook.saas.feature.auth.data.UserDTO;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
+import org.springframework.beans.BeanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+public class SyncMapper {
+    private static final Logger log = LoggerFactory.getLogger(SyncMapper.class);
+
+    public static <S extends BaseSyncEntity, T> T map(S source, Class<T> targetClass) {
+        if (source == null) return null;
+        try {
+            T target = targetClass.getDeclaredConstructor().newInstance();
+            BeanUtils.copyProperties(source, target);
+            
+            if (source instanceof Category entity && target instanceof CategoryDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            } else if (source instanceof MenuItem entity && target instanceof MenuItemDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                dto.setCategoryId(entity.getCategoryId());
+                dto.setServerCategoryId(entity.getServerCategoryId());
+            } else if (source instanceof ItemVariant entity && target instanceof ItemVariantDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                dto.setMenuItemId(entity.getMenuItemId());
+                dto.setServerMenuItemId(entity.getServerMenuItemId());
+            } else if (source instanceof Bill entity && target instanceof BillDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            } else if (source instanceof BillItem entity && target instanceof BillItemDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                dto.setBillId(entity.getBillId());
+                dto.setServerBillId(entity.getServerBillId());
+                dto.setMenuItemId(entity.getMenuItemId());
+                dto.setServerMenuItemId(entity.getServerMenuItemId());
+                dto.setVariantId(entity.getVariantId());
+                dto.setServerVariantId(entity.getServerVariantId());
+            } else if (source instanceof BillPayment entity && target instanceof BillPaymentDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                dto.setBillId(entity.getBillId());
+                dto.setServerBillId(entity.getServerBillId());
+            } else if (source instanceof RestaurantProfile entity && target instanceof RestaurantProfileDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                if (entity.getFssaiExpiryDate() != null) {
+                    dto.setFssaiExpiryDate(entity.getFssaiExpiryDate().toString());
+                }
+                // gstExpiryDate is LocalDate on the entity and String on the DTO, so
+                // BeanUtils cannot copy it - convert explicitly (mirrors fssaiExpiryDate).
+                if (entity.getGstExpiryDate() != null) {
+                    dto.setGstExpiryDate(entity.getGstExpiryDate().toString());
+                }
+                if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
+                    dto.setOrderPaymentFlowMode("pay_before_food");
+                }
+            } else if (source instanceof StockLog entity && target instanceof StockLogDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                dto.setMenuItemId(entity.getMenuItemId());
+                dto.setVariantId(entity.getVariantId());
+                dto.setServerMenuItemId(entity.getServerMenuItemId());
+                dto.setServerVariantId(entity.getServerVariantId());
+            } else if (source instanceof User entity && target instanceof UserDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            }
+
+            return target;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to map Entity to DTO", e);
+        }
+    }
+
+    public static <S extends BaseSyncEntity, T> List<T> mapList(List<S> sourceList, Class<T> targetClass) {
+        if (sourceList == null) return new ArrayList<>();
+        List<T> result = new ArrayList<>();
+        for (S source : sourceList) {
+            T mapped = map(source, targetClass);
+            if (mapped != null) result.add(mapped);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <S, T extends BaseSyncEntity> T mapToEntity(S source, Class<T> targetClass) {
+        if (source == null) return null;
+        try {
+            T target;
+            if (targetClass.equals(Category.class)) target = (T) new Category();
+            else if (targetClass.equals(MenuItem.class)) target = (T) new MenuItem();
+            else if (targetClass.equals(ItemVariant.class)) target = (T) new ItemVariant();
+            else if (targetClass.equals(Bill.class)) target = (T) new Bill();
+            else if (targetClass.equals(BillItem.class)) target = (T) new BillItem();
+            else if (targetClass.equals(BillPayment.class)) target = (T) new BillPayment();
+            else if (targetClass.equals(StockLog.class)) target = (T) new StockLog();
+            else if (targetClass.equals(RestaurantProfile.class)) target = (T) new RestaurantProfile();
+            else if (targetClass.equals(User.class)) target = (T) new User();
+            else target = targetClass.getDeclaredConstructor().newInstance();
+
+            BeanUtils.copyProperties(source, target);
+
+            if (source instanceof CategoryDTO dto) {
+                Category entity = (Category) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                if (dto.getIsActive() == null) {
+                    entity.setIsActive(true);
+                }
+            } else if (source instanceof MenuItemDTO dto) {
+                MenuItem entity = (MenuItem) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setCategoryId(dto.getCategoryId());
+                entity.setServerCategoryId(dto.getServerCategoryId());
+                entity.setOverwriteExisting(dto.getOverwriteExisting());
+                entity.setChangedFields(dto.getChangedFields());
+                if (dto.getIsAvailable() == null) {
+                    entity.setIsAvailable(true);
+                }
+                if (dto.getImageVersion() == null) {
+                    entity.setImageVersion(0);
+                }
+            } else if (source instanceof ItemVariantDTO dto) {
+                ItemVariant entity = (ItemVariant) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setMenuItemId(dto.getMenuItemId());
+                entity.setServerMenuItemId(dto.getServerMenuItemId());
+                if (dto.getIsAvailable() == null) {
+                    entity.setIsAvailable(true);
+                }
+            } else if (source instanceof BillDTO dto) {
+                Bill entity = (Bill) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+            } else if (source instanceof BillItemDTO dto) {
+                BillItem entity = (BillItem) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setBillId(dto.getBillId());
+                entity.setServerBillId(dto.getServerBillId());
+                entity.setMenuItemId(dto.getMenuItemId());
+                entity.setServerMenuItemId(dto.getServerMenuItemId());
+                entity.setVariantId(dto.getVariantId());
+                entity.setServerVariantId(dto.getServerVariantId());
+            } else if (source instanceof BillPaymentDTO dto) {
+                BillPayment entity = (BillPayment) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setBillId(dto.getBillId());
+                entity.setServerBillId(dto.getServerBillId());
+            } else if (source instanceof RestaurantProfileDTO dto) {
+                RestaurantProfile entity = (RestaurantProfile) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setShopName(dto.getShopName());
+                entity.setShopAddress(dto.getShopAddress());
+                entity.setWhatsappNumber(dto.getWhatsappNumber());
+                entity.setEmail(dto.getEmail());
+                entity.setFssaiNumber(dto.getFssaiNumber());
+                entity.setChangedFields(dto.getChangedFields());
+                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isEmpty()) {
+                    entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
+                } else {
+                    entity.setFssaiExpiryDate(null);
+                }
+                if (dto.getGstExpiryDate() != null && !dto.getGstExpiryDate().isEmpty()) {
+                    entity.setGstExpiryDate(java.time.LocalDate.parse(dto.getGstExpiryDate()));
+                } else {
+                    entity.setGstExpiryDate(null);
+                }
+                entity.setLogoPath(dto.getLogoPath());
+                entity.setLogoUrl(dto.getLogoUrl());
+                entity.setLogoVersion(dto.getLogoVersion());
+                entity.setCountry(dto.getCountry());
+                entity.setCustomWelcomeMessage(dto.getCustomWelcomeMessage());
+                entity.setCustomFssaiMessage(dto.getCustomFssaiMessage());
+                entity.setCurrency(dto.getCurrency());
+                entity.setTimezone(dto.getTimezone());
+                entity.setGstEnabled(dto.getGstEnabled());
+                entity.setGstin(dto.getGstin());
+                entity.setIsTaxInclusive(dto.getIsTaxInclusive());
+                entity.setGstPercentage(dto.getGstPercentage());
+                entity.setCustomTaxName(dto.getCustomTaxName());
+                entity.setCustomTaxNumber(dto.getCustomTaxNumber());
+                entity.setCustomTaxPercentage(dto.getCustomTaxPercentage());
+                entity.setUpiEnabled(dto.getUpiEnabled());
+                entity.setUpiQrPath(dto.getUpiQrPath());
+                entity.setUpiQrUrl(dto.getUpiQrUrl());
+                entity.setUpiQrVersion(dto.getUpiQrVersion());
+                entity.setUpiHandle(dto.getUpiHandle());
+                entity.setUpiMobile(dto.getUpiMobile());
+                entity.setCashEnabled(dto.getCashEnabled());
+                entity.setPosEnabled(dto.getPosEnabled());
+                entity.setAutoPrintOnSuccess(dto.getAutoPrintOnSuccess());
+                entity.setIncludeLogoInPrint(dto.getIncludeLogoInPrint());
+                entity.setDailyOrderCounter(dto.getDailyOrderCounter());
+                entity.setLifetimeOrderCounter(dto.getLifetimeOrderCounter());
+                entity.setLastResetDate(dto.getLastResetDate());
+                if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
+                    entity.setOrderPaymentFlowMode("pay_before_food");
+                }
+                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isBlank()) {
+                    try {
+                        entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
+                    } catch (Exception e) {
+                        log.warn("Failed to parse fssaiExpiryDate from sync payload: {}", dto.getFssaiExpiryDate());
+                    }
+                }
+                // Copy all other fields via BeanUtils is already handled above
+            } else if (source instanceof StockLogDTO dto) {
+                StockLog entity = (StockLog) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                entity.setMenuItemId(dto.getMenuItemId());
+                entity.setVariantId(dto.getVariantId());
+                entity.setServerMenuItemId(dto.getServerMenuItemId());
+                entity.setServerVariantId(dto.getServerVariantId());
+            } else if (source instanceof UserDTO dto) {
+                User entity = (User) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                if (dto.getIsActive() == null) {
+                    entity.setIsActive(true);
+                }
+            }
+
+            return target;
+        } catch (Exception e) {
+            log.error("Failed to map DTO to Entity: {} - Class: {}", e.getMessage(), source.getClass().getName());
+            throw new RuntimeException("Failed to map DTO to Entity", e);
+        }
+    }
+
+    public static <S, T extends BaseSyncEntity> List<T> mapToEntityList(List<S> sourceList, Class<T> targetClass) {
+        if (sourceList == null) return new ArrayList<>();
+        List<T> result = new ArrayList<>();
+        for (S source : sourceList) {
+            T mapped = mapToEntity(source, targetClass);
+            if (mapped != null) result.add(mapped);
+        }
+        return result;
+    }
+}

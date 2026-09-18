@@ -1,9 +1,10 @@
 package com.khanabook.saas.sync.service;
 
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.billing.service.BillSyncService;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

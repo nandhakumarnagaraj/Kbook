@@ -1,11 +1,11 @@
 package com.khanabook.saas.core.security.authz;
 
-import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.feature.staff.data.PermissionKey;
 
 import java.util.List;
 
 /**
- * Classifies what a pushed {@link com.khanabook.saas.entity.MenuItem} actually
+ * Classifies what a pushed {@link com.khanabook.saas.feature.menu.data.MenuItem} actually
  * changes relative to the existing server row, and maps that to the fine-grained
  * permission(s) the acting user must hold.
  *

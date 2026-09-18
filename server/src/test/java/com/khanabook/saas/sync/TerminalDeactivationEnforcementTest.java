@@ -1,12 +1,12 @@
 package com.khanabook.saas.sync;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.RestaurantTerminal;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.core.utility.JwtUtility;
 import com.fasterxml.jackson.databind.ObjectMapper;

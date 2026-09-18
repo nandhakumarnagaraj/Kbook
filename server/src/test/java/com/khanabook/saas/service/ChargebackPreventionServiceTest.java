@@ -1,11 +1,13 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.Chargeback;
+import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
+import com.khanabook.saas.feature.payments.service.ChargebackPreventionService;
+import com.khanabook.saas.feature.billing.data.Bill;
+import com.khanabook.saas.feature.payments.data.Chargeback;
 import com.khanabook.saas.core.exception.BusinessRuleException;
-import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.ChargebackRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.payments.data.ChargebackRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

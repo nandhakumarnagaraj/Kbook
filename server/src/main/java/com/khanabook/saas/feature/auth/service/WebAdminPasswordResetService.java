@@ -19,7 +19,7 @@ import java.util.Base64;
 
 /**
  * Web-admin "forgot password" flow. Kept behaviourally identical to the Android
- * reset flow in {@link com.khanabook.saas.service.impl.AuthServiceImpl}:
+ * reset flow in {@link com.khanabook.saas.feature.auth.service.AuthServiceImpl}:
  * OTP possession proves ownership, resetting the password rejects reuse of the
  * old password, invalidates all outstanding access tokens (via
  * {@code tokenInvalidatedAt}) and revokes every refresh token for the user.
