@@ -3,7 +3,7 @@ package com.khanabook.saas.sync;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

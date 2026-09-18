@@ -24,7 +24,7 @@ import com.khanabook.saas.entity.StockLog;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.service.*;
@@ -154,7 +154,7 @@ public class MasterSyncController {
 		// sent on page 0 once, omitted from follow-up pages.
 		if (page == 0) {
 			response.setEnabledFeatures(featureFlagService.resolveAllForRestaurant(tenantId));
-			Long currentUserId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
+			Long currentUserId = com.khanabook.saas.core.security.TenantContext.getCurrentUserId();
 			if (currentUserId != null) {
 				response.setGrantedPermissions(permissionService.getGrantedPermissions(tenantId, currentUserId));
 				response.setPermissionRevision(permissionService.getPermissionRevision(tenantId, currentUserId));

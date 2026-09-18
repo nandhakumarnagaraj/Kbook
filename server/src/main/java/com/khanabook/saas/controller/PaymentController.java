@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
 import com.khanabook.saas.service.PermissionService;

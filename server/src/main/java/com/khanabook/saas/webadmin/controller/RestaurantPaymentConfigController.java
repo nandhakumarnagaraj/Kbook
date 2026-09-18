@@ -3,7 +3,7 @@ package com.khanabook.saas.webadmin.controller;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.SubMerchantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

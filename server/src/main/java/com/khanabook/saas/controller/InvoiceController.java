@@ -1,6 +1,6 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.utility.AppConstants;
+import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillItem;

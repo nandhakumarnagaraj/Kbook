@@ -5,7 +5,7 @@ import com.khanabook.saas.entity.PermissionKey;
 import com.khanabook.saas.entity.PermissionRequest;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.security.RequireRole;
+import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.service.PermissionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

@@ -13,14 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.khanabook.saas.config.FeatureConfigGuard;
+import com.khanabook.saas.core.config.FeatureConfigGuard;
 import com.khanabook.saas.entity.FeatureFlag;
 import com.khanabook.saas.entity.FeatureFlagAudit;
 import com.khanabook.saas.entity.FeatureFlagOverride;
 import com.khanabook.saas.repository.FeatureFlagAuditRepository;
 import com.khanabook.saas.repository.FeatureFlagOverrideRepository;
 import com.khanabook.saas.repository.FeatureFlagRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.FeatureFlagService;
 
 /**

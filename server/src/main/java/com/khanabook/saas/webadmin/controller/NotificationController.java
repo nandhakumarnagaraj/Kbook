@@ -1,7 +1,7 @@
 package com.khanabook.saas.webadmin.controller;
 
 import com.khanabook.saas.entity.NotificationEvent;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.PushNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

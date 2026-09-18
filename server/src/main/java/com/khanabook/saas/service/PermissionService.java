@@ -310,7 +310,7 @@ public class PermissionService {
         var request = requestRepo.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
 
-        Long callerRestaurant = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        Long callerRestaurant = com.khanabook.saas.core.security.TenantContext.getCurrentTenant();
         if (callerRestaurant != null && !callerRestaurant.equals(request.getRestaurantId())) {
             throw new IllegalArgumentException("Request not found");
         }
@@ -337,7 +337,7 @@ public class PermissionService {
         var request = requestRepo.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
 
-        Long callerRestaurant = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        Long callerRestaurant = com.khanabook.saas.core.security.TenantContext.getCurrentTenant();
         if (callerRestaurant != null && !callerRestaurant.equals(request.getRestaurantId())) {
             throw new IllegalArgumentException("Request not found");
         }

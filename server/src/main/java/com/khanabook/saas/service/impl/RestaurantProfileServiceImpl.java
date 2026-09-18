@@ -1,6 +1,6 @@
 package com.khanabook.saas.service.impl;
 
-import com.khanabook.saas.utility.AppConstants;
+import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.RestaurantProfileRepository;

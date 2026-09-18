@@ -19,7 +19,7 @@ import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.SecurityAuditLogRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.utility.AppConstants;
+import com.khanabook.saas.core.utility.AppConstants;
 
 /**
  * Sends the restaurant owner a once-a-day summary of bill edits that moved recorded

@@ -2,7 +2,7 @@ package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

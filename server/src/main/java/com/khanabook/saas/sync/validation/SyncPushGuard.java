@@ -1,6 +1,6 @@
 package com.khanabook.saas.sync.validation;
 
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.PermissionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;

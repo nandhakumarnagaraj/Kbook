@@ -10,7 +10,7 @@ import com.khanabook.saas.sync.dto.payload.BillDTO;
 import com.khanabook.saas.sync.dto.payload.BillItemDTO;
 import com.khanabook.saas.sync.dto.payload.BillPaymentDTO;
 import com.khanabook.saas.sync.dto.payload.MasterSyncResponseDTO;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

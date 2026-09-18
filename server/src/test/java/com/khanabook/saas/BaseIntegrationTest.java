@@ -8,7 +8,7 @@ import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.OtpRequestRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;

@@ -6,7 +6,7 @@ import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import org.junit.jupiter.api.AfterEach;

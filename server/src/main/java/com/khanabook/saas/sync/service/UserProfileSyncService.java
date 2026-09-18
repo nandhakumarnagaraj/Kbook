@@ -3,7 +3,7 @@ package com.khanabook.saas.sync.service;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import lombok.RequiredArgsConstructor;

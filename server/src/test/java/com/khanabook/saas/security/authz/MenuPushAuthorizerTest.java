@@ -1,4 +1,4 @@
-package com.khanabook.saas.security.authz;
+package com.khanabook.saas.core.security.authz;
 
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.PermissionKey;

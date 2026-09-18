@@ -7,7 +7,7 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.ItemVariantService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
-import com.khanabook.saas.utility.PricingConstants;
+import com.khanabook.saas.core.utility.PricingConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

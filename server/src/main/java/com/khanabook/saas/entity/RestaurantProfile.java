@@ -1,6 +1,6 @@
 package com.khanabook.saas.entity;
 
-import com.khanabook.saas.utility.AppConstants;
+import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;

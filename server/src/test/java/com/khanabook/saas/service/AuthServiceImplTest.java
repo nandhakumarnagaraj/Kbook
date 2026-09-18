@@ -10,7 +10,7 @@ import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.PasswordResetOtpService;
 import com.khanabook.saas.service.impl.AuthServiceImpl;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

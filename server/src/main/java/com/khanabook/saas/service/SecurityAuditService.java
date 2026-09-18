@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.khanabook.saas.entity.SecurityAuditEvent;
 import com.khanabook.saas.repository.SecurityAuditLogRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 
 /**
  * Records security-relevant sync events to the audit log and application logs.

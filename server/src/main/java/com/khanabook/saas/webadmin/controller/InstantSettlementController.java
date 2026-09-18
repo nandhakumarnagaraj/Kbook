@@ -1,6 +1,6 @@
 package com.khanabook.saas.webadmin.controller;
 
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.InstantSettlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -4,7 +4,7 @@ import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.service.PermissionService;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

@@ -4,7 +4,7 @@ import com.khanabook.saas.entity.DeviceRegistrationRequest;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.TerminalManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -17,7 +17,7 @@ import com.khanabook.saas.entity.FeatureFlagAudit;
 import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.FeatureFlagAuditRepository;
 import com.khanabook.saas.repository.FeatureFlagRepository;
-import com.khanabook.saas.security.RequireRole;
+import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.service.FeatureFlagService;
 import com.khanabook.saas.webadmin.dto.FeatureFlagAdminResponse;
 

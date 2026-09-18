@@ -3,7 +3,7 @@ package com.khanabook.saas;
 import com.khanabook.saas.controller.AuthController.*;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

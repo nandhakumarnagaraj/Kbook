@@ -1,18 +1,18 @@
 package com.khanabook.saas.sync.service;
 
-import com.khanabook.saas.utility.AppConstants;
+import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.SecurityAuditService;
-import com.khanabook.saas.util.BillTerminalUtil;
+import com.khanabook.saas.core.util.BillTerminalUtil;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
-import com.khanabook.saas.security.authz.OfflineAuthDecider;
+import com.khanabook.saas.core.security.authz.OfflineAuthDecider;
 import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.entity.StaffPermissionRevision;
 import com.khanabook.saas.repository.StaffPermissionRevisionRepository;
@@ -132,7 +132,7 @@ public class GenericSyncService {
 			throw new IllegalArgumentException("Push payload exceeds maximum size of 500 items");
 		}
 
-		String role = com.khanabook.saas.security.TenantContext.getCurrentRole();
+		String role = com.khanabook.saas.core.security.TenantContext.getCurrentRole();
 		boolean isKbookAdmin = "KBOOK_ADMIN".equals(role);
 
 		if (tenantId == null && !isKbookAdmin) {

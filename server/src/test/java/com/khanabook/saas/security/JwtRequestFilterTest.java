@@ -5,7 +5,7 @@ import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,13 +27,13 @@ class JwtRequestFilterTest {
         // SecurityContextHolder is thread-local static state; production no longer clears
         // it in the filter (see JwtRequestFilter finally block), so tests must isolate it.
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        com.khanabook.saas.security.TenantContext.clear();
+        com.khanabook.saas.core.security.TenantContext.clear();
     }
 
     @org.junit.jupiter.api.AfterEach
     void cleanupContexts() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        com.khanabook.saas.security.TenantContext.clear();
+        com.khanabook.saas.core.security.TenantContext.clear();
     }
 
     @Mock private JwtUtility jwtUtility;

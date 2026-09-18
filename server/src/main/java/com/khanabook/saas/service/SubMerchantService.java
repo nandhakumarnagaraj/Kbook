@@ -3,8 +3,8 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.EasebuzzSubMerchantWebhookEvent;
 import com.khanabook.saas.entity.EasebuzzPayout;
-import com.khanabook.saas.exception.BusinessRuleException;
-import com.khanabook.saas.exception.EntityNotFoundException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
@@ -689,7 +689,7 @@ public class SubMerchantService {
         payout.setCreatedAt(System.currentTimeMillis());
         payout.setUpdatedAt(System.currentTimeMillis());
         
-        Long restaurantId = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        Long restaurantId = com.khanabook.saas.core.security.TenantContext.getCurrentTenant();
         payout.setRestaurantId(restaurantId != null ? restaurantId : 0L);
         payoutRepo.save(payout);
 

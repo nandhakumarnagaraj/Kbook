@@ -1,6 +1,6 @@
 package com.khanabook.saas;
 
-import com.khanabook.saas.config.FeatureConfigGuard;
+import com.khanabook.saas.core.config.FeatureConfigGuard;
 import com.khanabook.saas.entity.FeatureFlag;
 import com.khanabook.saas.entity.FeatureFlagAudit;
 import com.khanabook.saas.repository.FeatureFlagAuditRepository;

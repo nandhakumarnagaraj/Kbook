@@ -1,8 +1,8 @@
 package com.khanabook.saas.webadmin.controller;
 
 import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.security.RequireRole;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.RequireRole;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.webadmin.dto.*;
 import com.khanabook.saas.webadmin.service.BusinessReadService;
 import com.khanabook.saas.webadmin.service.BusinessWriteService;

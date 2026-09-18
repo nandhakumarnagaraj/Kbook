@@ -1,6 +1,6 @@
 package com.khanabook.saas;
 
-import com.khanabook.saas.debug.DebugNDJSONLogger;
+import com.khanabook.saas.core.debug.DebugNDJSONLogger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;

@@ -1,8 +1,8 @@
-package com.khanabook.saas.security.authz;
+package com.khanabook.saas.core.security.authz;
 
 import org.junit.jupiter.api.Test;
 
-import static com.khanabook.saas.security.authz.OfflineAuthDecider.Decision.*;
+import static com.khanabook.saas.core.security.authz.OfflineAuthDecider.Decision.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

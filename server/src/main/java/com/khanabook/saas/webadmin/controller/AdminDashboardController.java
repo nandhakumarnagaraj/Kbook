@@ -1,7 +1,7 @@
 package com.khanabook.saas.webadmin.controller;
 
 import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.security.RequireRole;
+import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.webadmin.dto.AdminBusinessDetailResponse;
 import com.khanabook.saas.webadmin.dto.AdminBusinessListItemResponse;
 import com.khanabook.saas.webadmin.dto.AdminDashboardSummaryResponse;

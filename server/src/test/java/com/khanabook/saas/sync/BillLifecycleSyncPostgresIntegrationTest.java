@@ -10,7 +10,7 @@ import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.BillItemService;
 import com.khanabook.saas.service.BillPaymentService;
 import com.khanabook.saas.service.BillService;

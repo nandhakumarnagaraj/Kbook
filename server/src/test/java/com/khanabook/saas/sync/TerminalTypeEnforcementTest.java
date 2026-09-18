@@ -3,7 +3,7 @@ package com.khanabook.saas.sync;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 

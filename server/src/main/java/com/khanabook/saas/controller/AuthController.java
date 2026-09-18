@@ -2,14 +2,14 @@ package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.TokenBlocklist;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
-import com.khanabook.saas.security.TokenRevocationCache;
+import com.khanabook.saas.core.security.TokenRevocationCache;
 import com.khanabook.saas.service.AuthService;
 import com.khanabook.saas.service.DbRateLimiter;
 import com.khanabook.saas.service.LoginRateLimiter;
 import com.khanabook.saas.service.OtpRateLimiter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import com.khanabook.saas.service.WebAdminPasswordResetService;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.core.utility.JwtUtility;
 import com.khanabook.saas.webadmin.dto.RequestOtpRequest;
 import com.khanabook.saas.webadmin.dto.VerifyOtpRequest;
 import com.khanabook.saas.webadmin.dto.VerifyOtpResponse;

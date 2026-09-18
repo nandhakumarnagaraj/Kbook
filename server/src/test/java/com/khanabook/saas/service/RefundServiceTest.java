@@ -1,7 +1,7 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.repository.BillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

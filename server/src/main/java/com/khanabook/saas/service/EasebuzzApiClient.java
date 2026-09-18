@@ -1,7 +1,7 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.config.EasebuzzProperties;
-import com.khanabook.saas.exception.EasebuzzApiException;
+import com.khanabook.saas.core.exception.EasebuzzApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;

@@ -4,7 +4,7 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillPayment;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.BillPaymentService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;

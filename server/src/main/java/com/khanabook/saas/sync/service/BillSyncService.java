@@ -44,7 +44,7 @@ public class BillSyncService {
         }
         java.time.ZoneId zone = restaurantProfileRepository.findByRestaurantId(tenantId)
                 .map(profile -> resolveZoneId(profile.getTimezone()))
-                .orElseGet(() -> java.time.ZoneId.of(com.khanabook.saas.utility.AppConstants.DEFAULT_TIMEZONE));
+                .orElseGet(() -> java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE));
         String businessDate = java.time.Instant.ofEpochMilli(bill.getCreatedAt())
                 .atZone(zone)
                 .toLocalDate()
@@ -59,12 +59,12 @@ public class BillSyncService {
     /** Falls back to the default timezone when the profile value is absent or invalid. */
     private java.time.ZoneId resolveZoneId(String timezone) {
         if (timezone == null || timezone.isBlank()) {
-            return java.time.ZoneId.of(com.khanabook.saas.utility.AppConstants.DEFAULT_TIMEZONE);
+            return java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE);
         }
         try {
             return java.time.ZoneId.of(timezone);
         } catch (RuntimeException ignored) {
-            return java.time.ZoneId.of(com.khanabook.saas.utility.AppConstants.DEFAULT_TIMEZONE);
+            return java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE);
         }
     }
 

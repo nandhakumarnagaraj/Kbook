@@ -3,7 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.Chargeback;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.ChargebackRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;

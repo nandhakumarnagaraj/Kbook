@@ -1,8 +1,8 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.exception.BusinessRuleException;
-import com.khanabook.saas.exception.EntityNotFoundException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.BillRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

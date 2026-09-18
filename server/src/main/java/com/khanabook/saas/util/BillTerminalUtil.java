@@ -1,4 +1,4 @@
-package com.khanabook.saas.util;
+package com.khanabook.saas.core.util;
 
 import com.khanabook.saas.entity.Bill;
 import java.math.BigDecimal;

@@ -1,7 +1,7 @@
 package com.khanabook.saas.webadmin.controller;
 
 import com.khanabook.saas.entity.Chargeback;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.ChargebackPreventionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

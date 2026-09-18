@@ -1,6 +1,6 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.AssetStorageService;
 import com.khanabook.saas.service.AssetStorageService.AssetUploadResult;
 import com.khanabook.saas.service.SubMerchantService;

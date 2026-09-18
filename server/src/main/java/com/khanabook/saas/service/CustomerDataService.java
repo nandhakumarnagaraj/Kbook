@@ -2,7 +2,7 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.CustomerProfile;
-import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CustomerProfileRepository;
 import lombok.RequiredArgsConstructor;

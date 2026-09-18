@@ -60,7 +60,7 @@ public class MenuItem extends BaseSyncEntity {
 	/**
 	 * Permission revision the acting user held on-device when this row was
 	 * created/edited (P1). Nullable: older clients that do not stamp it fall back
-	 * to the grant-only gate in {@link com.khanabook.saas.security.authz.MenuPushAuthorizer}.
+	 * to the grant-only gate in {@link com.khanabook.saas.core.security.authz.MenuPushAuthorizer}.
 	 */
 	@Column(name = "permission_revision_at_creation")
 	private Long permissionRevisionAtCreation;

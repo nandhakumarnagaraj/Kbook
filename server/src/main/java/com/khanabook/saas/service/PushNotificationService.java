@@ -81,7 +81,7 @@ public class PushNotificationService {
         dt.setToken(token);
         dt.setPlatform(platform != null ? platform : "android");
         dt.setDeviceId(deviceId);
-        Long currentUserId = com.khanabook.saas.security.TenantContext.getCurrentUserId();
+        Long currentUserId = com.khanabook.saas.core.security.TenantContext.getCurrentUserId();
         if (currentUserId != null) {
             dt.setUserId(currentUserId);
         }

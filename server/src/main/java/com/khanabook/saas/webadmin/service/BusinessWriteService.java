@@ -1,13 +1,13 @@
 package com.khanabook.saas.webadmin.service;
 
 import com.khanabook.saas.entity.*;
-import com.khanabook.saas.exception.DuplicateStaffPhoneException;
+import com.khanabook.saas.core.exception.DuplicateStaffPhoneException;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.webadmin.dto.*;
 import org.slf4j.Logger;

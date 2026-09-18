@@ -6,7 +6,7 @@ import com.khanabook.saas.entity.FssaiRenewal;
 import com.khanabook.saas.repository.FssaiRenewalRepository;
 import com.khanabook.saas.repository.FssaiTrackerRepository;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
-import com.khanabook.saas.exception.EntityNotFoundException;
+import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import lombok.RequiredArgsConstructor;
