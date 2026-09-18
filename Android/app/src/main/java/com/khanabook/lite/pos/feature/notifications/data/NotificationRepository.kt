@@ -9,9 +9,9 @@ import com.khanabook.lite.pos.feature.notifications.data.NotificationEntity
 import com.khanabook.lite.pos.core.network.KhanaBookApi
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.DelicateCoroutinesApi
+import com.khanabook.lite.pos.core.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,13 +27,13 @@ data class NotificationCounts(
     val unreadCount: Int = 0
 )
 
-@OptIn(DelicateCoroutinesApi::class)
 @Singleton
 class NotificationRepository @Inject constructor(
     private val notificationDao: NotificationDao,
     private val api: KhanaBookApi,
     private val sessionManager: SessionManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
 
@@ -249,7 +249,7 @@ class NotificationRepository @Inject constructor(
     }
 
     private fun scheduleTokenRegistrationRetry(token: String) {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             delay(5000)
             try {
                 api.registerDeviceToken(
@@ -302,7 +302,7 @@ class NotificationRepository @Inject constructor(
     }
 
     fun registerCurrentDeviceTokenInBackground() {
-        GlobalScope.launch(Dispatchers.IO) {
+        appScope.launch(Dispatchers.IO) {
             registerCurrentDeviceToken()
         }
     }

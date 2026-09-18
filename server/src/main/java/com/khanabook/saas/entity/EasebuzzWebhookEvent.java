@@ -7,13 +7,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "easebuzz_webhook_events", indexes = {
+@Table(name = "easebuzz_webhook_events", uniqueConstraints = {
+    @UniqueConstraint(name = "ux_easebuzz_webhook_txn_status", columnNames = {"txn_id", "status"})
+}, indexes = {
     @Index(name = "idx_easebuzz_webhook_txn", columnList = "txn_id"),
     @Index(name = "idx_easebuzz_webhook_restaurant", columnList = "restaurant_id")
 })

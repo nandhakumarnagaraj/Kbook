@@ -13,6 +13,17 @@
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
+        <!--
+             PIN ROLLOVER RUNBOOK (do not delete):
+             1. These 3 pins bind the app to kbook.iadv.cloud's current key(s).
+             2. After 2028-06-04 Android STOPS ENFORCING them (fails open to normal CA validation).
+             3. BEFORE renewing/rotating the server certificate: generate a NEW key, get it
+                certified, compute SPKI SHA-256 (openssl x509 -pubkey | openssl pkey -pubin -outform DER |
+                openssl dgst -sha256 -binary | base64), and ship an app update adding that pin FIRST.
+             4. If the server cert ever changes without a matching pin here, ALL production
+                apps hard-fail TLS until they update. Keep at least one offline BACKUP key
+                pin in this set.
+        -->
         <pin-set expiration="2028-06-04">
             <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
             <pin digest="SHA-256">brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=</pin>

@@ -24,9 +24,17 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     private static final Bandwidth SYNC_LIMIT =
             Bandwidth.classic(30, Refill.greedy(30, Duration.ofMinutes(1)));
 
+    // Public unauthenticated endpoints (/public/**, /payments/easebuzz/*webhook*, /cdn/**):
+    // 60 requests/minute per IP. Tokens on /public/invoice are unguessable UUIDs, so this
+    // is an availability guard (cheap DB misses) — not a secrecy measure. Webhooks get
+    // headroom above human traffic; legitimate gateways retry well below this rate.
+    private static final Bandwidth PUBLIC_LIMIT =
+            Bandwidth.classic(60, Refill.greedy(60, Duration.ofMinutes(1)));
+
     // Separate LRU caches per bucket type to keep eviction isolated
     private final Map<String, Bucket> authBuckets  = createLRUMap();
     private final Map<String, Bucket> syncBuckets  = createLRUMap();
+    private final Map<String, Bucket> publicBuckets = createLRUMap();
 
     private static Map<String, Bucket> createLRUMap() {
         return new java.util.LinkedHashMap<>(1001, 0.75f, true) {
@@ -43,13 +51,23 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
                              @org.springframework.lang.NonNull Object handler) throws Exception {
 
         String ip = resolveClientIp(request);
-        boolean isSyncPath = request.getRequestURI().contains("/sync/");
+        String uri = request.getRequestURI();
+        boolean isSyncPath = uri.contains("/sync/");
+        boolean isPublicPath = uri.startsWith("/public/")
+                || uri.startsWith("/cdn/")
+                || (uri.startsWith("/payments/easebuzz/") && uri.endsWith("/webhook"))
+                || uri.equals("/payments/easebuzz/webhook");
 
         Bucket bucket;
         if (isSyncPath) {
             synchronized (syncBuckets) {
                 bucket = syncBuckets.computeIfAbsent(ip,
                         k -> Bucket.builder().addLimit(SYNC_LIMIT).build());
+            }
+        } else if (isPublicPath) {
+            synchronized (publicBuckets) {
+                bucket = publicBuckets.computeIfAbsent(ip,
+                        k -> Bucket.builder().addLimit(PUBLIC_LIMIT).build());
             }
         } else {
             synchronized (authBuckets) {

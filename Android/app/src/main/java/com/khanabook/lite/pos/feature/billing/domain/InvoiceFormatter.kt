@@ -17,6 +17,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
@@ -57,22 +58,26 @@ object InvoiceFormatter {
         }
 
         // Fallback only when no local logo exists yet (e.g. first run before the
-        // sync-time download completed). This is a best-effort online path.
+        // sync-time download completed). This is a best-effort online path, strictly
+        // time-boxed to 2s so a slow network can never stall a receipt print —
+        // printing proceeds without the logo rather than blocking the print path.
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (context != null && logoUrl != null) {
             return runBlocking(Dispatchers.IO) {
                 try {
-                    val request = ImageRequest.Builder(context)
-                        .data(logoUrl)
-                        .allowHardware(false)
-                        .size(maxWidth, maxWidth)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .build()
-                    val result = context.imageLoader.execute(request)
-                    (result as? SuccessResult)?.drawable?.toBitmap()
+                    withTimeout(2_000) {
+                        val request = ImageRequest.Builder(context)
+                            .data(logoUrl)
+                            .allowHardware(false)
+                            .size(maxWidth, maxWidth)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .build()
+                        val result = context.imageLoader.execute(request)
+                        (result as? SuccessResult)?.drawable?.toBitmap()
+                    }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error loading CDN logo", e)
+                    Log.w(TAG, "CDN logo fallback skipped (${e.javaClass.simpleName}) — printing without logo")
                     null
                 }
             }

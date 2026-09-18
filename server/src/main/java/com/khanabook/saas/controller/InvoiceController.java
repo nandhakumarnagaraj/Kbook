@@ -67,7 +67,11 @@ public class InvoiceController {
         List<BillItem> items = billItemRepository.findByServerBillIdAndIsDeletedFalseOrderById(bill.getId());
 
         String html = renderInvoice(profile, bill, items);
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
+        // Invoice HTML carries customer PII — never cached by browsers/proxies.
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(html);
     }
 
     @GetMapping("/{restaurantId}/{billId}/{token}")
@@ -96,7 +100,11 @@ public class InvoiceController {
         List<BillItem> items = billItemRepository.findByServerBillIdAndIsDeletedFalseOrderById(billId);
 
         String html = renderInvoice(profile, bill, items);
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
+        // Invoice HTML carries customer PII — never cached by browsers/proxies.
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(html);
     }
 
     private String renderInvoice(RestaurantProfile profile, Bill bill, List<BillItem> items) {

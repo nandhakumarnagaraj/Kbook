@@ -36,7 +36,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 		List<String> activeProfiles = Arrays.asList(env.getActiveProfiles());
 		if (!activeProfiles.contains("test") && !activeProfiles.contains("sandbox")) {
 			registry.addInterceptor(rateLimitingInterceptor)
-					.addPathPatterns("/auth/**", "/sync/**");
+					.addPathPatterns("/auth/**", "/sync/**", "/public/**", "/cdn/**",
+							"/payments/easebuzz/webhook", "/payments/easebuzz/*/webhook");
 		}
 	}
 }

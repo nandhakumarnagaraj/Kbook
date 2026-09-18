@@ -94,6 +94,15 @@ public class EasebuzzWebhookService {
                         saveGatewayEvent(bill, txnid, easebuzzId, status, amountStr, payload);
                         log.info("Bill {} marked paid via webhook txnid={}", billId, txnid);
 
+                        // Race note: if a concurrent twin delivery wins the unique-index
+                        // race on (txn_id, status) at saveGatewayEvent, the loser's insert
+                        // throws DataIntegrityViolationException, which marks this whole
+                        // transaction rollback-only — every side effect above (bill save,
+                        // push, post-split) rolls back atomically. Easebuzz retries the
+                        // delivery; the retry then hits the existsByTxnIdAndStatus guard
+                        // above and no-ops. Net effect: duplicate deliveries can never
+                        // double-process side effects.
+
                         // Send push notification for payment received
                         String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId;
                         String amountDisplay = amountStr != null ? "₹" + amountStr : "";
@@ -574,7 +583,10 @@ public class EasebuzzWebhookService {
                 }
                 if (exists) {
                     if (isDevOrSandboxProfile()) {
-                        log.info("Processing unhashed MERCHANT_KYC_APPROVAL event in dev/sandbox (subMerchantId={}, email={})", subMerchantId, email);
+                        // SECURITY_AUDIT: unhashed KYC acceptance is a trust-on-secondary-
+                        // evidence decision. In prod this line should never fire (the WIRE
+                        // API check above is the sanctioned path) — alert on it.
+                        log.warn("SECURITY_AUDIT: unhashed MERCHANT_KYC_APPROVAL accepted via dev/sandbox bypass (subMerchantId={}, email={})", subMerchantId, email);
                         return true;
                     }
                     if (wireApiClient != null) {
