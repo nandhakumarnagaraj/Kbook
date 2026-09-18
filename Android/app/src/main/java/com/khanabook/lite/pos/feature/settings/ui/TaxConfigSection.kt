@@ -42,7 +42,13 @@ import com.khanabook.lite.pos.core.theme.WarningYellow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit, readOnly: Boolean = false) {
+fun TaxConfigView(
+    profile: RestaurantProfileEntity?,
+    onSave: (RestaurantProfileEntity) -> Unit,
+    onBack: () -> Unit,
+    readOnly: Boolean = false,
+    isSaving: Boolean = false
+) {
     val spacing = KhanaBookTheme.spacing
     val fssaiRegex = remember { Regex("^\\d{14}$") }
     var country by remember { mutableStateOf("India") }
@@ -180,7 +186,12 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                         )?.let { onSave(it) }
                 },
                 onBack = onBack,
-                saveEnabled = isSaveEnabled && !readOnly
+                // isSaving disables the button while a save is in flight (spinner + label)
+                // so a fast double-tap cannot re-enter the ViewModel and reset the success
+                // flag; profile != null prevents the silent no-op save when the profile
+                // hasn't loaded yet.
+                isSaving = isSaving,
+                saveEnabled = isSaveEnabled && !readOnly && profile != null
             )
         }
     }

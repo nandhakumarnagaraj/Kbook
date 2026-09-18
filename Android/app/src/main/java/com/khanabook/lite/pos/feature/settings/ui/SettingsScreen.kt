@@ -200,7 +200,15 @@ fun SettingsScreen(
                         )
                     }
                     "shop" -> {
-                        ShopConfigView(profile, viewModel, authViewModel, onBack = { section = "menu" }, readOnly = !isOwner)
+                        ShopConfigView(profile, viewModel, authViewModel, onBack = { section = "menu" }, readOnly = !isOwner, onSaved = {
+                            // Route the shop save through the same success flow as the other
+                            // sections (toast + return to menu) instead of a private effect
+                            // inside ShopConfigView, which could be disposed mid-save by the
+                            // recomposition triggered when the save itself updates the profile
+                            // (orderPaymentFlowMode re-keys remembered state).
+                            authViewModel.clearOtpStatus()
+                            pendingSaveSection = "shop"
+                        })
                     }
                     "payment" -> {
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
@@ -214,16 +222,18 @@ fun SettingsScreen(
                         )
                     }
                     "printer" -> {
+                        val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
                         PrinterConfigView(profile, onSave = {
                             pendingSaveSection = "printer"
                             viewModel.savePrinterSettingsLocally(it)
-                        }, onBack = { section = "menu" }, viewModel = viewModel)
+                        }, onBack = { section = "menu" }, viewModel = viewModel, isSaving = saveProfileLoading)
                     }
                     "tax" -> {
+                        val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
                         TaxConfigView(profile, onSave = {
                             pendingSaveSection = "tax"
                             viewModel.saveProfile(it)
-                        }, onBack = { section = "menu" }, readOnly = !isOwner)
+                        }, onBack = { section = "menu" }, readOnly = !isOwner, isSaving = saveProfileLoading)
                     }
                     "ui_scale" -> {
                         DisplayScaleView(viewModel = viewModel)

@@ -88,7 +88,8 @@ fun ShopConfigView(
     authViewModel: AuthViewModel,
     appLockViewModel: com.khanabook.lite.pos.feature.auth.viewmodel.AppLockViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    onSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
@@ -111,7 +112,8 @@ fun ShopConfigView(
 
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
-    val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
+    // saveProfileSuccess is consumed by SettingsScreen's shared effect via the onSaved
+    // callback — collecting it here would leave a stale-copy hazard if re-added.
     val logoUploadLoading by viewModel.logoUploadLoading.collectAsStateWithLifecycle()
     val logoUploadError by viewModel.logoUploadError.collectAsStateWithLifecycle()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
@@ -183,14 +185,11 @@ fun ShopConfigView(
         }
     }
 
-    LaunchedEffect(saveProfileSuccess) {
-        if (saveProfileSuccess) {
-            toastScope.launch { KhanaToast.show(context.getString(R.string.toast_profile_saved), ToastKind.Success) }
-            viewModel.clearSaveProfileState()
-            authViewModel.clearOtpStatus()
-            onBack()
-        }
-    }
+    // Success handling moved to SettingsScreen's shared success effect (onSaved callback
+    // sets pendingSaveSection = "shop" there). A private LaunchedEffect here could be
+    // disposed mid-save by the recomposition triggered when the save itself updates the
+    // profile (orderPaymentFlowMode re-keys remembered state), swallowing the first
+    // tap's toast + navigation — the reported "Save needs two clicks" on this screen.
 
     LaunchedEffect(enteredPin, showModePinDialog) {
         if (showModePinDialog && enteredPin.length == 4) {

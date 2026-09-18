@@ -114,7 +114,8 @@ fun PrinterConfigView(
     profile: RestaurantProfileEntity?,
     onSave: (RestaurantProfileEntity) -> Unit,
     onBack: () -> Unit,
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
+    isSaving: Boolean = false
 ) {
     val spacing = KhanaBookTheme.spacing
     val customerPrinter by viewModel.customerPrinter.collectAsStateWithLifecycle()
@@ -428,6 +429,12 @@ fun PrinterConfigView(
                 PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
                 Spacer(modifier = Modifier.height(spacing.extraLarge))
                 ConfigActionButtons(
+                    // isSaving disables the button while the settings save is in flight;
+                    // profile != null prevents the silent no-op save (profile?.copy below)
+                    // when the restaurant profile hasn't loaded yet — that no-op was the
+                    // "first tap does nothing" on this screen.
+                    isSaving = isSaving,
+                    saveEnabled = profile != null,
                     onSave = {
                         profile?.copy(
                             printerEnabled = enabled,

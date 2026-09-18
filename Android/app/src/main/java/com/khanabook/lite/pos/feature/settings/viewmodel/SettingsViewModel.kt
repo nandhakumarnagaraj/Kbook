@@ -960,6 +960,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun saveProfile(profile: RestaurantProfileEntity) {
+        // Single-flight: a second tap while a save is in flight must not re-enter and
+        // reset _saveProfileSuccess to false — that erased the first save's success
+        // transition before the UI consumed it, which surfaced as "Save needs two
+        // clicks" on every config screen.
+        if (_saveProfileLoading.value) return
         viewModelScope.launch {
             _saveProfileLoading.value = true
             _saveProfileError.value = null
@@ -986,6 +991,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun savePrinterSettingsLocally(profile: RestaurantProfileEntity) {
+        // Single-flight: same rationale as saveProfile — a double tap re-entering this
+        // function resets the success flag mid-flight and swallows the navigation.
+        if (_saveProfileLoading.value) return
         viewModelScope.launch {
             _saveProfileLoading.value = true
             _saveProfileError.value = null
