@@ -1,7 +1,21 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.*;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.repository.*;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
+import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
+import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
+import com.khanabook.saas.feature.auth.repository.RateLimitAttemptRepository;
+import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

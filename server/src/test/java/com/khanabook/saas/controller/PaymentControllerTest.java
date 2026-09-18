@@ -1,7 +1,7 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

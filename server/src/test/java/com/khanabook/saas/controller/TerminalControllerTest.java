@@ -6,7 +6,7 @@ import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.service.TerminalManagementService;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.AfterEach;

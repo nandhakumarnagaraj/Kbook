@@ -1,6 +1,14 @@
 package com.khanabook.saas.sync.validation;
 
 import com.khanabook.saas.entity.*;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.sync.validation.SyncPayloadValidator.ValidationResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

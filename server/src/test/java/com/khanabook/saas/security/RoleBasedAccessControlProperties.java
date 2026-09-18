@@ -1,6 +1,6 @@
 package com.khanabook.saas.security;
 
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.NotEmpty;
 import org.aspectj.lang.ProceedingJoinPoint;

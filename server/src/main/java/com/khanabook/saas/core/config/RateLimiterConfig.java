@@ -1,7 +1,7 @@
 package com.khanabook.saas.core.config;
 
-import com.khanabook.saas.repository.RateLimitAttemptRepository;
-import com.khanabook.saas.service.DbRateLimiter;
+import com.khanabook.saas.feature.auth.repository.RateLimitAttemptRepository;
+import com.khanabook.saas.feature.auth.service.DbRateLimiter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

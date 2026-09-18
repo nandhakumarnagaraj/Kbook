@@ -3,11 +3,25 @@ package com.khanabook.saas.sync.service;
 import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.entity.*;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.repository.*;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
+import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
+import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
+import com.khanabook.saas.feature.auth.repository.RateLimitAttemptRepository;
+import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
+import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.core.util.BillTerminalUtil;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
@@ -116,7 +130,7 @@ public class GenericSyncService {
 	}
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
-			com.khanabook.saas.repository.UserRepository userRepository) {
+			com.khanabook.saas.feature.auth.repository.UserRepository userRepository) {
 		return userProfileSyncService.findExistingUserByIdentity(tenantId, incomingUser, userRepository);
 	}
 
@@ -455,7 +469,7 @@ public class GenericSyncService {
 
 				if (existingRecord == null
 						&& incomingRecord instanceof User incomingUser
-						&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
+						&& repository instanceof com.khanabook.saas.feature.auth.repository.UserRepository userRepository) {
 					existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
 				}
 
@@ -584,8 +598,8 @@ public class GenericSyncService {
 									userProfileSyncService.mergeUserFields(user, existingUser);
 
 									// Prevent duplicate email/phone numbers from crashing the batch sync
-									if (repository instanceof com.khanabook.saas.repository.UserRepository) {
-										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
+									if (repository instanceof com.khanabook.saas.feature.auth.repository.UserRepository) {
+										com.khanabook.saas.feature.auth.repository.UserRepository userRepo = (com.khanabook.saas.feature.auth.repository.UserRepository) repository;
 										userProfileSyncService.validateIdentityUniqueness(user, existingUser, userRepo);
 									}
 								}

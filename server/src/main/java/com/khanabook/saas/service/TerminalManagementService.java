@@ -47,8 +47,8 @@ public class TerminalManagementService {
     private final RestaurantProfileRepository restaurantProfileRepository;
     private final DeviceRegistrationRequestRepository requestRepository;
     private final JwtUtility jwtUtility;
-    private final SecurityAuditService securityAuditService;
-    private final com.khanabook.saas.repository.UserRepository userRepository;
+    private final com.khanabook.saas.feature.auth.service.SecurityAuditService securityAuditService;
+    private final com.khanabook.saas.feature.auth.repository.UserRepository userRepository;
 
     // Optional: push notifications are disabled when Firebase isn't configured.
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -611,9 +611,9 @@ public class TerminalManagementService {
         if (pushNotificationService == null) return;
         try {
             var owners = userRepository.findByRestaurantIdAndRoleAndIsDeletedFalse(
-                    restaurantId, com.khanabook.saas.entity.UserRole.OWNER);
+                    restaurantId, com.khanabook.saas.feature.auth.entity.UserRole.OWNER);
             java.util.List<Long> ownerIds = owners.stream()
-                    .map(com.khanabook.saas.entity.User::getId).toList();
+                    .map(com.khanabook.saas.feature.auth.entity.User::getId).toList();
             pushNotificationService.pushToUsers(restaurantId, ownerIds,
                     title, message, "terminal", referenceId, "terminal", null);
         } catch (Exception e) {

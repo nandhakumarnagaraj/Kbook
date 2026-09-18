@@ -1,6 +1,6 @@
 package com.khanabook.saas.core.security;
 
-import com.khanabook.saas.repository.TokenBlocklistRepository;
+import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

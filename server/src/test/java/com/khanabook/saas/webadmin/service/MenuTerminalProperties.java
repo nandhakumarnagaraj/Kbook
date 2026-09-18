@@ -8,7 +8,7 @@ import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.webadmin.dto.CreateMenuItemRequest;
 import net.jqwik.api.*;
 

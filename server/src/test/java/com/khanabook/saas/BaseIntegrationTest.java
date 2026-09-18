@@ -1,13 +1,13 @@
 package com.khanabook.saas;
 
-import com.khanabook.saas.entity.AuthProvider;
-import com.khanabook.saas.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.repository.OtpRequestRepository;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

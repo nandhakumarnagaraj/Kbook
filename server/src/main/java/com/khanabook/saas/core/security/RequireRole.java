@@ -1,6 +1,6 @@
 package com.khanabook.saas.core.security;
 
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,15 +1,15 @@
 package com.khanabook.saas.webadmin.service;
 
-import com.khanabook.saas.controller.AuthController.LoginRequest;
-import com.khanabook.saas.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.controller.AuthController.LoginRequest;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.exception.BusinessSuspendedException;
-import com.khanabook.saas.repository.RefreshTokenRepository;
+import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.service.impl.AuthServiceImpl;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.auth.service.AuthServiceImpl;
 import com.khanabook.saas.core.utility.JwtUtility;
 import net.jqwik.api.*;
 import org.springframework.security.crypto.password.PasswordEncoder;

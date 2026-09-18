@@ -5,7 +5,7 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.ItemRecipe;
 import com.khanabook.saas.entity.RawMaterial;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.ItemRecipeRepository;

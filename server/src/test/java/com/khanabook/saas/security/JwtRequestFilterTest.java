@@ -1,10 +1,10 @@
 package com.khanabook.saas.security;
 
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.repository.TokenBlocklistRepository;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

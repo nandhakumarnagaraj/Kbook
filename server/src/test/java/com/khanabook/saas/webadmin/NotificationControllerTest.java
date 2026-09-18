@@ -2,7 +2,7 @@ package com.khanabook.saas.webadmin;
 
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.NotificationEvent;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.service.PushNotificationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +29,7 @@ class NotificationControllerTest extends BaseIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private com.khanabook.saas.repository.UserRepository userRepository;
+    private com.khanabook.saas.feature.auth.repository.UserRepository userRepository;
 
     @Autowired
     private com.khanabook.saas.repository.RestaurantProfileRepository restaurantProfileRepository;

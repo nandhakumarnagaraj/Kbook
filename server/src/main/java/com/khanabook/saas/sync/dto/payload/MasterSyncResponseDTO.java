@@ -1,5 +1,6 @@
 package com.khanabook.saas.sync.dto.payload;
 
+import com.khanabook.saas.feature.auth.data.UserDTO;
 import lombok.Data;
 import java.util.List;
 import java.util.Map;

@@ -1,12 +1,15 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.service.DbRateLimiter;
-import com.khanabook.saas.service.OtpRateLimiter;
-import com.khanabook.saas.service.UserService;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.service.DbRateLimiter;
+import com.khanabook.saas.feature.auth.service.OtpRateLimiter;
+import com.khanabook.saas.feature.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
+import com.khanabook.saas.feature.auth.data.UserDTO;
+import com.khanabook.saas.feature.auth.controller.UpdateMobileRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateMobileOtpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

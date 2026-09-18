@@ -20,12 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.SecurityAuditEvent;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.SecurityAuditLogRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.SecurityAuditLogRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 
 /**
  * Unit tests for {@link BillEditDigestService} — the owner's once-a-day summary of bill

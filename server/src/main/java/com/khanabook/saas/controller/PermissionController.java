@@ -1,10 +1,10 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.dto.PermissionDtos.*;
+import com.khanabook.saas.feature.auth.data.PermissionDtos.*;
 import com.khanabook.saas.entity.PermissionKey;
 import com.khanabook.saas.entity.PermissionRequest;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.service.PermissionService;
 import jakarta.validation.Valid;
@@ -22,11 +22,11 @@ import java.util.stream.Collectors;
 public class PermissionController {
 
     private final PermissionService permissionService;
-    private final com.khanabook.saas.repository.UserRepository userRepo;
+    private final com.khanabook.saas.feature.auth.repository.UserRepository userRepo;
     private final com.khanabook.saas.service.FeatureFlagService featureFlagService;
 
     public PermissionController(PermissionService permissionService,
-                                com.khanabook.saas.repository.UserRepository userRepo,
+                                com.khanabook.saas.feature.auth.repository.UserRepository userRepo,
                                 com.khanabook.saas.service.FeatureFlagService featureFlagService) {
         this.permissionService = permissionService;
         this.userRepo = userRepo;

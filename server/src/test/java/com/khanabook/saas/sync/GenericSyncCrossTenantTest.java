@@ -4,7 +4,7 @@ import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

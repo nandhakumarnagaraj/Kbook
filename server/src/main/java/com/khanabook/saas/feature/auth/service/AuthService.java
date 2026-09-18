@@ -1,0 +1,35 @@
+package com.khanabook.saas.feature.auth.service;
+
+import com.khanabook.saas.feature.auth.controller.AuthController.AuthResponse;
+import com.khanabook.saas.feature.auth.controller.AuthController.LoginRequest;
+import com.khanabook.saas.feature.auth.controller.AuthController.SignupRequest;
+import java.util.Map;
+
+public interface AuthService {
+
+	AuthResponse login(LoginRequest request);
+
+	AuthResponse signup(SignupRequest request);
+
+	AuthResponse devSignup(SignupRequest request);
+
+	AuthResponse devAdminSignup(Map<String, String> body);
+
+	AuthResponse googleLogin(com.khanabook.saas.feature.auth.controller.AuthController.GoogleLoginRequest request);
+
+	AuthResponse refreshAccessToken(String refreshToken, String clientIp);
+
+	void revokeRefreshToken(String refreshToken);
+
+	void requestSignupOtp(String phoneNumber);
+
+	void requestPasswordResetOtp(String phoneNumber);
+
+	void resetPassword(String phoneNumber, String otp, String newPassword);
+
+	void changePassword(String username, String currentPassword, String newPassword);
+
+	boolean checkUserExists(String phoneNumber);
+
+	void devReset();
+}

@@ -1,0 +1,42 @@
+package com.khanabook.saas.feature.auth.service;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Configuration
+public class GoogleAuthConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleAuthConfig.class);
+
+    @Value("${google.client.id:}")
+    private String googleClientId;
+
+    @Bean
+    GoogleIdTokenVerifier googleIdTokenVerifier() {
+        if (googleClientId == null || googleClientId.isBlank() || googleClientId.contains("${")) {
+            log.warn("GOOGLE_CLIENT_ID is not configured. Google login will be unavailable.");
+            return null;
+        }
+        List<String> audiences = Arrays.stream(googleClientId.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        log.info("Google Authentication initialized with {} client ID(s): {}",
+                audiences.size(),
+                audiences.stream().map(id -> "..." + id.substring(Math.max(0, id.length() - 12)))
+                        .collect(Collectors.joining(", ")));
+        return new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(audiences)
+                .build();
+    }
+}

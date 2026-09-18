@@ -1,14 +1,14 @@
 package com.khanabook.saas.webadmin.service;
 
-import com.khanabook.saas.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.webadmin.dto.AdminBusinessDetailResponse;
 import com.khanabook.saas.webadmin.dto.AdminCreateBusinessRequest;
 import org.slf4j.Logger;

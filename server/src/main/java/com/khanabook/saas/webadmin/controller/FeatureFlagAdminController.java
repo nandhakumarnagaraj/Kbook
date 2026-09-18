@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.khanabook.saas.entity.FeatureFlag;
 import com.khanabook.saas.entity.FeatureFlagAudit;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.FeatureFlagAuditRepository;
 import com.khanabook.saas.repository.FeatureFlagRepository;
 import com.khanabook.saas.core.security.RequireRole;

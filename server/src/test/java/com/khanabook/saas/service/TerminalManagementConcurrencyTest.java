@@ -3,7 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.DeviceRegistrationRequest;
 import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;

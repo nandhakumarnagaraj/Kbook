@@ -10,7 +10,7 @@ import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.impl.MenuItemServiceImpl;
-import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import org.junit.jupiter.api.AfterEach;

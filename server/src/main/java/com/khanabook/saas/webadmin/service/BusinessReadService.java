@@ -7,7 +7,7 @@ import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.MenuItem;
-import com.khanabook.saas.entity.User;
+import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
@@ -16,7 +16,7 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
 import com.khanabook.saas.webadmin.dto.BusinessCategoryResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
@@ -50,7 +50,7 @@ public class BusinessReadService {
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
     private final BillItemRepository billItemRepository;
-    private final com.khanabook.saas.service.SecurityAuditService securityAuditService;
+    private final com.khanabook.saas.feature.auth.service.SecurityAuditService securityAuditService;
     private final EasebuzzSubMerchantRepository subMerchantRepository;
 
     @Transactional(readOnly = true)

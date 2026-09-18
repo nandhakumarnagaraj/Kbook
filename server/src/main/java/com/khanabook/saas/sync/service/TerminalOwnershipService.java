@@ -5,7 +5,7 @@ import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.core.util.BillTerminalUtil;
 import org.slf4j.Logger;

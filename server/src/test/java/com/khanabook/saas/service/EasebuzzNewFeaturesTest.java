@@ -3,7 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

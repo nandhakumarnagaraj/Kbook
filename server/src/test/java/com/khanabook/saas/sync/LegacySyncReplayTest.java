@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.sync.dto.payload.BillDTO;
 import com.khanabook.saas.sync.dto.payload.BillItemDTO;

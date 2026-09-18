@@ -1,8 +1,8 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.repository.RefreshTokenRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

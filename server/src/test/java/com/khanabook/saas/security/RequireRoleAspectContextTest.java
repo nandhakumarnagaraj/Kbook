@@ -2,7 +2,7 @@ package com.khanabook.saas.security;
 
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.webadmin.controller.AdminDashboardController;
 import org.aspectj.lang.annotation.Aspect;
 import org.junit.jupiter.api.AfterEach;

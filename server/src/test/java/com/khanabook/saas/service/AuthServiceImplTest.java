@@ -1,15 +1,15 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.controller.AuthController.*;
+import com.khanabook.saas.feature.auth.controller.AuthController.*;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.entity.RefreshToken;
-import com.khanabook.saas.repository.RefreshTokenRepository;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
-import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.service.PasswordResetOtpService;
-import com.khanabook.saas.service.impl.AuthServiceImpl;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.auth.service.PasswordResetOtpService;
+import com.khanabook.saas.feature.auth.service.AuthServiceImpl;
 import com.khanabook.saas.core.utility.JwtUtility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

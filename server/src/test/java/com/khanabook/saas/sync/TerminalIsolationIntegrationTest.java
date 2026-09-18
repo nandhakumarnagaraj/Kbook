@@ -3,7 +3,7 @@ package com.khanabook.saas.sync;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantTerminal;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.BillRepository;

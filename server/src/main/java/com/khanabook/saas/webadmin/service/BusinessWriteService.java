@@ -1,12 +1,20 @@
 package com.khanabook.saas.webadmin.service;
 
 import com.khanabook.saas.entity.*;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.entity.RefreshToken;
+import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
+import com.khanabook.saas.feature.auth.entity.OtpRequest;
+import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
+import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.core.exception.DuplicateStaffPhoneException;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
-import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.service.PermissionService;
 import com.khanabook.saas.webadmin.dto.*;
@@ -33,7 +41,7 @@ public class BusinessWriteService {
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository profileRepository;
     private final PermissionService permissionService;
-    private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
+    private final com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
 
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
@@ -41,7 +49,7 @@ public class BusinessWriteService {
                                 RestaurantTerminalRepository terminalRepository,
                                 RestaurantProfileRepository profileRepository,
                                 PermissionService permissionService,
-                                com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService) {
+                                com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;

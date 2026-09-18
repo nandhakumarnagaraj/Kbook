@@ -1,8 +1,8 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.entity.User;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

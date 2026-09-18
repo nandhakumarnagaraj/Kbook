@@ -2,7 +2,7 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.MerchantAgreement;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;

@@ -3,7 +3,7 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.ItemRecipe;
 import com.khanabook.saas.entity.RawMaterial;
 import com.khanabook.saas.entity.StockMovement;
-import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.repository.ItemRecipeRepository;
 import com.khanabook.saas.repository.RawMaterialRepository;
 import com.khanabook.saas.repository.StockMovementRepository;

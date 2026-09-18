@@ -1,8 +1,20 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.dto.PermissionDtos.*;
-import com.khanabook.saas.entity.*;
-import com.khanabook.saas.repository.*;
+import com.khanabook.saas.feature.auth.data.PermissionDtos.*;
+import com.khanabook.saas.entity.PermissionKey;
+import com.khanabook.saas.entity.PermissionRequest;
+import com.khanabook.saas.entity.RoleTemplate;
+import com.khanabook.saas.entity.StaffPermission;
+import com.khanabook.saas.entity.StaffPermissionRevision;
+import com.khanabook.saas.feature.auth.entity.User;
+import com.khanabook.saas.feature.auth.service.DbRateLimiter;
+import com.khanabook.saas.feature.auth.service.SecurityAuditService;
+import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.repository.PermissionRequestRepository;
+import com.khanabook.saas.repository.RoleTemplateRepository;
+import com.khanabook.saas.repository.StaffPermissionRepository;
+import com.khanabook.saas.repository.StaffPermissionRevisionRepository;
+import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
