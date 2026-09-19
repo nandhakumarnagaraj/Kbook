@@ -21,7 +21,11 @@ import {
   StaffCreatedResponse,
   TerminalRequest,
   UpdateMenuItemRequest,
-  UpdateStaffRequest
+  UpdateStaffRequest,
+  HourlySalesRow,
+  ItemSalesRow,
+  SyncTerminalItem,
+  NotificationItem
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 import { Observable, of } from 'rxjs';
@@ -316,6 +320,39 @@ export class BusinessApiService {
   // ── Bill Void ─────────────────────────────────────────────────────────────
   voidBill(billId: number, reason?: string): Observable<any> {
     return this.http.post(`${API_BASE_URL}/business/bills/${billId}/void`, reason ? { reason } : {});
+  }
+
+  // ── Analytics ────────────────────────────────────────────────────────────
+  getHourlySales(date: string): Observable<HourlySalesRow[]> {
+    return this.http.get<HourlySalesRow[]>(`${API_BASE_URL}/analytics/hourly-sales`, { params: { date } });
+  }
+
+  getItemSales(from: string, to: string): Observable<ItemSalesRow[]> {
+    return this.http.get<ItemSalesRow[]>(`${API_BASE_URL}/analytics/item-sales`, { params: { from, to } });
+  }
+
+  // ── Terminal Fleet List ───────────────────────────────────────────────────
+  getSyncTerminalList(): Observable<SyncTerminalItem[]> {
+    return this.http.get<SyncTerminalItem[]>(`${API_BASE_URL}/sync/terminal/list`);
+  }
+
+  // ── Notifications ────────────────────────────────────────────────────────
+  getNotifications(limit: number = 50): Observable<{ status: string; notifications: NotificationItem[]; unreadCount: number }> {
+    return this.http.get<{ status: string; notifications: NotificationItem[]; unreadCount: number }>(`${API_BASE_URL}/notifications`, {
+      params: { limit: limit.toString() }
+    });
+  }
+
+  getUnreadNotificationCount(): Observable<{ status: string; unreadCount: number }> {
+    return this.http.get<{ status: string; unreadCount: number }>(`${API_BASE_URL}/notifications/unread-count`);
+  }
+
+  markNotificationRead(id: number): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/notifications/${id}/read`, {});
+  }
+
+  markAllNotificationsRead(): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/notifications/mark-all-read`, {});
   }
 }
 

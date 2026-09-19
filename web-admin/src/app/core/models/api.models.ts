@@ -396,3 +396,34 @@ export interface UpdateBusinessProfileRequest {
   currency?: string;
   [key: string]: any;
 }
+
+export interface HourlySalesRow {
+  hour: number;
+  itemsSold: number;
+}
+
+export interface ItemSalesRow {
+  menuItemId: number;
+  name: string;
+  quantitySold: number;
+  revenue: number;
+}
+
+export interface SyncTerminalItem {
+  terminalId: string;
+  terminalName: string | null;
+  terminalSeries: string;
+  isActive: boolean | null;
+  lastActiveAt: number | null;
+}
+
+export interface NotificationItem {
+  id: number;
+  restaurantId: number;
+  title: string;
+  message: string;
+  eventType: string;
+  isRead: boolean;
+  createdAt: number;
+}
+

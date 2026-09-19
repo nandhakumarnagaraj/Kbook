@@ -127,6 +127,26 @@
   --kb-sidebar-width: 240px; --kb-topbar-height: 56px;
   --kb-content-max-width: 1400px;
   --kb-touch-min: 40px; --kb-touch-primary: 44px;
+
+  /* POS Command Center Theme Tokens */
+  --pos-sidebar-bg:         #181B34;
+  --pos-sidebar-hover:      #22274A;
+  --pos-sidebar-text:       #8E95A9;
+  --pos-purple:             #5D45FD;
+  --pos-purple-hover:       #4E37EB;
+  --pos-purple-soft:        rgba(93, 69, 253, 0.12);
+  --pos-purple-gradient:    linear-gradient(135deg, #4F35F5 0%, #6842F7 100%);
+  --pos-bg-body:            #F6F8FD;
+  --pos-card-bg:            #FFFFFF;
+  --pos-card-border:        #EEF0F7;
+  --pos-status-prep-bg:     #FEE2E2;
+  --pos-status-prep-text:   #EF4444;
+  --pos-status-cook-bg:     #FEF3C7;
+  --pos-status-cook-text:   #D97706;
+  --pos-status-serv-bg:     #EDE9FE;
+  --pos-status-serv-text:   #7C3AED;
+  --pos-status-comp-bg:     #D1FAE5;
+  --pos-status-comp-text:   #10B981;
 }
 
 * { box-sizing: border-box; }

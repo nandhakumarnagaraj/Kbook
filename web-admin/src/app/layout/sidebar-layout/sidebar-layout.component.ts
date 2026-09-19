@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
 
-type NavLink = { label: string; path: string; icon: string };
+type NavLink = { label: string; path: string; icon: string; iconKey: string; badge?: string };
 
 type BottomActionBarItem = { label: string; icon: string; route: string; badge?: string };
 
@@ -35,8 +35,8 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
           <span class="hamburger__bar"></span>
         </button>
         <div class="topbar__brand">
-          <div class="brand-logo brand-logo--sm" aria-hidden="true">
-            <span class="brand-logo__mark">K</span>
+          <div class="brand-logo-circle brand-logo-circle--sm" aria-hidden="true">
+            <img src="/khanabook_logo.png" alt="KhanaBook" class="brand-logo-img" />
           </div>
           <span class="topbar__title">KhanaBook</span>
         </div>
@@ -60,21 +60,13 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       >
         <div class="brand-block">
           <div class="brand-row">
-            <div class="brand-logo" aria-hidden="true">
-              <span class="brand-logo__mark">K</span>
+            <div class="brand-logo-circle" aria-hidden="true">
+              <img src="/khanabook_logo.png" alt="KhanaBook" class="brand-logo-img" />
             </div>
             <div class="brand-copy">
-              <span class="eyebrow">KhanaBook</span>
-              <h1>{{ contextTitle() }}</h1>
-              <span class="tenant-chip" *ngIf="session()?.restaurantId as restaurantId">Restaurant #{{ restaurantId }}</span>
+              <span class="brand-title">KhanaBook</span>
             </div>
           </div>
-
-          <button *ngIf="session()?.role === 'OWNER'" type="button" class="sidebar-search" (click)="openOrders()" aria-label="Search orders">
-            <span class="sidebar-search__icon" aria-hidden="true">⌕</span>
-            <span class="sidebar-search__label">Search orders</span>
-            <kbd class="sidebar-search__kbd">Ctrl K</kbd>
-          </button>
         </div>
 
         <nav class="nav-links" aria-label="Main">
@@ -84,8 +76,50 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
             routerLinkActive="active-link"
             class="nav-link"
             (click)="closeMenu()">
-            <span class="nav-link__icon" aria-hidden="true">{{ link.icon }}</span>
+            <span class="nav-link__icon" aria-hidden="true" [ngSwitch]="link.iconKey">
+              <!-- Dashboard -->
+              <svg *ngSwitchCase="'dashboard'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+              <!-- Orders -->
+              <svg *ngSwitchCase="'orders'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <!-- Menu -->
+              <svg *ngSwitchCase="'menu'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/><path d="M15 2v19"/><path d="M5 2c1.5 2 1.5 5 0 7v12"/>
+              </svg>
+              <!-- Staff -->
+              <svg *ngSwitchCase="'staff'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <!-- Inventory -->
+              <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+              <!-- Terminals -->
+              <svg *ngSwitchCase="'terminals'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+              </svg>
+              <!-- Payments -->
+              <svg *ngSwitchCase="'payments'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              <!-- Reports -->
+              <svg *ngSwitchCase="'reports'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <!-- Settings -->
+              <svg *ngSwitchCase="'settings'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <span *ngSwitchDefault>{{ link.icon }}</span>
+            </span>
             <span class="nav-link__label">{{ link.label }}</span>
+            <span *ngIf="link.badge" class="nav-link__badge">{{ link.badge }}</span>
           </a>
         </nav>
 
@@ -128,10 +162,10 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
     .layout-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 240px 1fr;
       align-items: start;
     }
-    .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
+    .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--pos-bg-body, #F6F8FD); }
     .skip-link {
       position: fixed; left: 1rem; top: 0; z-index: 100;
       padding: 0.65rem 1rem; color: var(--kb-color-foreground); background: var(--kb-color-primary);
@@ -139,9 +173,9 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
     }
     .skip-link:focus { transform: translateY(0); }
 
-    /* ── Sidebar (minimalism dark) ── */
+    /* ── Sidebar (POS Command Center Navy) ── */
     .sidebar {
-      padding: var(--kb-space-4);
+      padding: 1.5rem 1rem;
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-3);
@@ -149,103 +183,88 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       top: 0;
       height: 100vh;
       overflow-y: auto;
-      background: var(--kb-color-foreground);
-      border-right: 1px solid var(--kb-color-border);
-      color: var(--kb-color-foreground-contrast);
+      background: var(--pos-sidebar-bg, #181B34);
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--pos-sidebar-text, #8E95A9);
     }
 
-    .brand-block { display: grid; gap: var(--kb-space-3); padding: 0 var(--kb-space-1); }
-    .brand-row { display: flex; align-items: center; gap: var(--kb-space-3); }
-    .brand-copy { display: grid; min-width: 0; }
-    .brand-copy h1 { margin: 0; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: 700; letter-spacing: -0.02em; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tenant-chip { display: inline-block; font-size: 0.7rem; font-weight: 600; color: var(--kb-color-primary); letter-spacing: 0.02em; }
-
-    .brand-logo {
+    .brand-block { padding: 0 0.5rem 0.5rem; }
+    .brand-row { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #FFFFFF;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: var(--kb-radius-md);
-      background: var(--kb-gradient-hero);
-      box-shadow: var(--kb-shadow-sm);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       flex-shrink: 0;
+      overflow: hidden;
+      padding: 3px;
     }
-    .brand-logo--sm { width: 32px; height: 32px; border-radius: var(--kb-radius-sm); }
-    .brand-logo__mark { color: var(--kb-color-primary-foreground); font-weight: 800; font-size: 1.2rem; line-height: 1; letter-spacing: -0.02em; }
-    .brand-logo--sm .brand-logo__mark { font-size: 0.95rem; }
-
-    .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; color: var(--kb-color-muted); font-size: 0.65rem; font-weight: 700; }
-
-    /* Integrated Search */
-    .sidebar-search {
+    .brand-logo-circle--sm {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .brand-logo-img {
       width: 100%;
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--kb-radius-md);
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.8rem;
-      cursor: pointer;
-      text-align: left;
-      transition: background-color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
+      height: 100%;
+      object-fit: contain;
     }
-    .sidebar-search:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--kb-color-primary);
-      color: var(--kb-color-foreground-contrast);
-    }
-    .sidebar-search:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
-    .sidebar-search:active { transform: scale(0.98); }
-    .sidebar-search__icon { font-size: 1rem; color: var(--kb-color-muted-foreground); }
-    .sidebar-search__label { flex: 1; }
-    .sidebar-search__kbd {
-      padding: 2px 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: var(--kb-radius-sm);
-      font-size: 0.65rem;
-      font-family: inherit;
-      color: var(--kb-color-foreground-contrast);
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
     }
 
     /* Navigation */
-    .nav-links { display: flex; flex-direction: column; gap: var(--kb-space-2); }
+    .nav-links { display: flex; flex-direction: column; gap: 6px; }
     .nav-link {
       position: relative;
       display: flex;
       align-items: center;
-      gap: var(--kb-space-3);
-      padding: var(--kb-space-3) var(--kb-space-4);
-      border-radius: var(--kb-radius-card);
-      color: var(--kb-color-muted-foreground);
+      gap: 0.85rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      color: var(--pos-sidebar-text, #8E95A9);
       text-decoration: none;
       font-weight: 500;
-      font-size: 0.88rem;
-      transition: background-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
+      font-size: 0.92rem;
+      transition: all 150ms var(--ease-out, ease-out);
     }
-    .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 20px; }
-    .nav-link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
+    .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 22px; color: inherit; }
+    .nav-link:hover { background: var(--pos-sidebar-hover, #22274A); color: #FFFFFF; }
     .nav-link:active { transform: scale(0.98); }
     .nav-link.active-link {
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground);
-      font-weight: 700;
-      border: 1px solid var(--kb-color-primary);
+      background: var(--pos-purple, #5D45FD);
+      color: #FFFFFF;
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 4px 14px rgba(93, 69, 253, 0.35);
     }
-    .nav-link.active-link::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0.35rem;
-      bottom: 0.35rem;
-      width: 4px;
-      border-radius: 0 4px 4px 0;
-      background: var(--kb-color-primary-foreground);
-      box-shadow: 0 0 8px var(--kb-color-primary);
+    .nav-link.active-link .nav-link__icon {
+      color: #FFFFFF;
+    }
+    .nav-link__badge {
+      margin-left: auto;
+      padding: 0.15rem 0.45rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .nav-link.active-link .nav-link__badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     /* Sidebar Footer */
@@ -387,9 +406,9 @@ export class SidebarLayoutComponent implements OnInit {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
       return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '🏢' },
-        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑' }
+        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉', iconKey: 'dashboard' },
+        { label: 'Businesses', path: '/admin/businesses', icon: '🏢', iconKey: 'tables' },
+        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑', iconKey: 'settings' }
       ];
     }
     if (role !== 'OWNER') {
@@ -397,21 +416,16 @@ export class SidebarLayoutComponent implements OnInit {
       return [];
     }
     const items: NavLink[] = [
-      { label: 'Business Dashboard', path: '/business/dashboard', icon: '◉' },
+      { label: 'Dashboard', path: '/business/dashboard', icon: '◉', iconKey: 'dashboard' },
+      { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
+      { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
+      { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
+      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Soon' },
+      { label: 'Terminals', path: '/business/terminals', icon: '📱', iconKey: 'terminals' },
+      { label: 'Payments', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
+      { label: 'Reports', path: '/business/reports', icon: '◔', iconKey: 'reports' },
+      { label: 'Settings', path: '/business/settings', icon: '⚙', iconKey: 'settings' }
     ];
-    if (this.orderPaymentFlowMode() === 'pay_after_food') {
-      items.push({ label: 'Active Orders', path: '/business/active-orders', icon: '🔴' });
-    }
-    items.push(
-      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰' },
-      { label: 'Reports', path: '/business/reports', icon: '◔' },
-      { label: 'Orders', path: '/business/orders', icon: '▤' },
-      { label: 'Menu', path: '/business/menu', icon: '◈' },
-      { label: 'Inventory', path: '/business/inventory', icon: '📦' },
-      { label: 'Staff', path: '/business/staff', icon: '◍' },
-      { label: 'Settings', path: '/business/settings', icon: '⚙' },
-      { label: 'Devices', path: '/business/terminals', icon: '▣' }
-    );
     return items;
   });
 

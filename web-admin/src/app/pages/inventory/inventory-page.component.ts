@@ -57,6 +57,20 @@ import { ToastService } from '../../core/services/toast.service';
     table.styled th { text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; border-bottom: 2px solid var(--kb-color-border); white-space: nowrap; }
     table.styled td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--kb-color-border); }
     table.styled tr:hover td { background: rgba(0,0,0,0.02); }
+    .preview-notice-banner {
+      display: flex; align-items: flex-start; gap: 0.85rem; padding: 0.85rem 1.15rem; border-radius: 10px;
+      background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); margin-bottom: 1.25rem;
+    }
+    .banner-icon-wrap { color: #f59e0b; display: flex; align-items: center; margin-top: 2px; }
+    .banner-content { flex: 1; }
+    .banner-title-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem; }
+    .banner-title-row strong { font-size: 0.92rem; color: var(--kb-color-foreground); }
+    .preview-pill {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(245, 158, 11, 0.2);
+      color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .banner-desc { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
   `],
   template: `
     <div style="padding:0">
@@ -65,6 +79,26 @@ import { ToastService } from '../../core/services/toast.service';
         <div style="display:flex;gap:0.5rem">
           <button class="ghost-btn" (click)="loadMaterials()" [disabled]="loading">Refresh</button>
           <button class="primary-btn" (click)="openAddMaterial()">+ Add Material</button>
+        </div>
+      </div>
+
+      <!-- Feature Preview Banner -->
+      <div class="preview-notice-banner">
+        <div class="banner-icon-wrap">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="banner-content">
+          <div class="banner-title-row">
+            <strong>Inventory Management (Feature Preview)</strong>
+            <span class="preview-pill">Coming Soon</span>
+          </div>
+          <p class="banner-desc">
+            Raw material tracking and physical reconciliation are active in preview mode. Automated Recipe BOM depletion and Vendor Purchase Orders will be fully enabled soon.
+          </p>
         </div>
       </div>
 

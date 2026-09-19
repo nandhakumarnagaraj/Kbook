@@ -24,7 +24,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       <aside class="auth-brand" style="background-image: var(--gradient-hero);">
         <div class="brand-top">
           <div class="brand-mark">
-            <div class="brand-logo">K</div>
+            <div class="brand-logo">
+              <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
+            </div>
             <span class="brand-title">KhanaBook</span>
           </div>
         </div>
@@ -55,7 +57,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       <main class="auth-main">
         <div class="auth-card">
           <div class="mobile-brand">
-            <div class="brand-logo brand-logo--sm">K</div>
+            <div class="brand-logo brand-logo--sm">
+              <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
+            </div>
             <span class="brand-title">KhanaBook</span>
           </div>
 
@@ -209,13 +213,14 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); }
     .brand-logo {
       width: 44px; height: 44px; border-radius: var(--kb-radius-md);
-      background: var(--kb-color-primary-soft); backdrop-filter: blur(8px);
+      background: #FFFFFF;
       display: grid; place-items: center;
-      font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: var(--kb-color-primary);
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
     .brand-logo--sm {
       width: 38px; height: 38px; border-radius: var(--kb-radius-sm);
-      background: var(--kb-color-primary); font-size: 1rem;
+      padding: 3px;
     }
     .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--kb-color-primary-foreground); }
     .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); }

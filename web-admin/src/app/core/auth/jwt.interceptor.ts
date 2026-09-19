@@ -47,7 +47,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
             void router.navigate(['/login']);
             break;
           case 403:
-            if (err.error?.error !== 'BUSINESS_SUSPENDED') {
+            if (err.error?.error === 'BUSINESS_SUSPENDED') {
               void router.navigate(['/limited-access']);
             } else {
               toastService.show(
