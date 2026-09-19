@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
@@ -92,6 +93,7 @@ fun ShopConfigView(
     onSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val toastScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -493,7 +495,11 @@ fun ShopConfigView(
                                 isSynced = false,
                                 updatedAt = System.currentTimeMillis()
                             )
-                            updatedProfile?.let { viewModel.saveProfile(it) }
+                            updatedProfile?.let {
+                                focusManager.clearFocus()
+                                onSaved()
+                                viewModel.saveProfile(it)
+                            }
                         }
                 },
                 onBack = onBack,

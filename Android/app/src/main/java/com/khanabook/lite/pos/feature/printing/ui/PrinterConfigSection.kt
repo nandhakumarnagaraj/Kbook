@@ -6,6 +6,9 @@ import com.khanabook.lite.pos.feature.settings.ui.ConfigCard
 import com.khanabook.lite.pos.feature.printing.ui.*
 
 import com.khanabook.lite.pos.core.theme.KhanaRadii
+import com.khanabook.lite.pos.core.theme.BorderGold
+import com.khanabook.lite.pos.core.theme.CardBG
+import com.khanabook.lite.pos.core.util.formatSaveDuration
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -42,9 +45,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
@@ -56,8 +61,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -73,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -136,6 +144,7 @@ fun PrinterConfigView(
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     // Re-probe Wi-Fi printers every time this screen is shown so the status dot
     // reflects current reachability rather than a stale result.
     LaunchedEffect(Unit) { viewModel.refreshWifiReachability() }
@@ -145,6 +154,17 @@ fun PrinterConfigView(
     var wifiPrinterName by remember { mutableStateOf("Customer Receipt Wi-Fi Printer") }
     var wifiHost by remember { mutableStateOf("") }
     var wifiPort by remember { mutableStateOf("9100") }
+
+    val isScanningWifi by viewModel.isScanningWifiPrinters.collectAsStateWithLifecycle()
+    val discoveredWifiPrinters by viewModel.discoveredWifiPrinters.collectAsStateWithLifecycle()
+    val isSavingWifi by viewModel.isSavingWifiPrinter.collectAsStateWithLifecycle()
+    val wifiSubnetPrefix by viewModel.wifiSubnetPrefix.collectAsStateWithLifecycle()
+    // Auto subnet mask: prefill the IP field with the device's own subnet prefix
+    // the first time the dialog opens, so the user only types the last octet.
+    LaunchedEffect(wifiSubnetPrefix, showWifiDialog) {
+        val prefix = wifiSubnetPrefix ?: return@LaunchedEffect
+        if (showWifiDialog && wifiHost.isBlank()) wifiHost = prefix
+    }
 
     val btDevices by viewModel.btDevices.collectAsStateWithLifecycle()
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
@@ -208,8 +228,12 @@ fun PrinterConfigView(
                 }
                 PrinterUiEvent.ConnectionFailed ->
                     context.getString(R.string.toast_printer_connect_failed) to ToastKind.Error
-                PrinterUiEvent.WifiSaved ->
-                    "Wi-Fi printer saved" to ToastKind.Success
+                is PrinterUiEvent.WifiSaved -> {
+                    // One-tap save: dialog closes itself the moment the local DB
+                    // write lands, confirmed by a green toast with the time taken.
+                    showWifiDialog = false
+                    "Saved in ${formatSaveDuration(event.elapsedMs)} ✓" to ToastKind.Success
+                }
                 PrinterUiEvent.WifiSaveFailed ->
                     "Couldn't save Wi-Fi printer. Please try again." to ToastKind.Error
                 PrinterUiEvent.TestPrintSent ->
@@ -436,6 +460,7 @@ fun PrinterConfigView(
                     isSaving = isSaving,
                     saveEnabled = profile != null,
                     onSave = {
+                        focusManager.clearFocus()
                         profile?.copy(
                             printerEnabled = enabled,
                             paperSize = if (paper58) "58mm" else "80mm",
@@ -654,6 +679,98 @@ fun PrinterConfigView(
                     label = "Printer name",
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                OutlinedButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        viewModel.scanForWifiPrinters()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.small),
+                    enabled = !isScanningWifi,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold)
+                ) {
+                    if (isScanningWifi) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = PrimaryGold,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text("Scanning local network...", color = PrimaryGold)
+                    } else {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text("Auto-Find Wi-Fi Printers", color = PrimaryGold)
+                    }
+                }
+
+                if (discoveredWifiPrinters.isNotEmpty()) {
+                    Text(
+                        "Found ${discoveredWifiPrinters.size} Printer(s) (Tap to select):",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGold,
+                        modifier = Modifier.padding(bottom = spacing.extraSmall)
+                    )
+                    discoveredWifiPrinters.forEach { printer ->
+                        val isSelected = wifiHost == printer.ip && (wifiPort == printer.port.toString() || wifiPort.isEmpty())
+                        Surface(
+                            shape = KhanaRadii.md,
+                            color = if (isSelected) PrimaryGold.copy(alpha = 0.2f) else CardBG,
+                            border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    focusManager.clearFocus()
+                                    wifiHost = printer.ip
+                                    wifiPort = printer.port.toString()
+                                    wifiPrinterName = printer.name
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Print,
+                                    contentDescription = null,
+                                    tint = if (isSelected) PrimaryGold else TextGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(spacing.small))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        printer.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isSelected) PrimaryGold else Color.White
+                                    )
+                                    Text(
+                                        "${printer.ip}:${printer.port}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextGold.copy(alpha = 0.7f)
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = PrimaryGold,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(spacing.small))
+                }
+
                 KhanaBookInputField(
                     value = wifiHost,
                     onValueChange = { wifiHost = it.trim().take(253) },
@@ -671,12 +788,16 @@ fun PrinterConfigView(
                 )
             },
             actions = {
-                TextButton(onClick = { showWifiDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showWifiDialog = false
+                }) {
                     Text("Cancel", color = TextGold)
                 }
                 TextButton(
-                    enabled = isValid,
+                    enabled = isValid && !isSavingWifi,
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.saveWifiPrinter(
                             role = pendingRole,
                             name = wifiPrinterName,
@@ -693,7 +814,17 @@ fun PrinterConfigView(
                         showWifiDialog = false
                     }
                 ) {
-                    Text("Save", color = PrimaryGold)
+                    if (isSavingWifi) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            color = PrimaryGold,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                        Text("Saving...", color = PrimaryGold)
+                    } else {
+                        Text("Save", color = PrimaryGold)
+                    }
                 }
             }
         )

@@ -11,6 +11,7 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -70,7 +71,7 @@ data class DuplicateIdHealth(
 sealed interface PrinterUiEvent {
     data object Connected : PrinterUiEvent
     data object ConnectionFailed : PrinterUiEvent
-    data object WifiSaved : PrinterUiEvent
+    data class WifiSaved(val elapsedMs: Long) : PrinterUiEvent
     data object WifiSaveFailed : PrinterUiEvent
     data object TestPrintSent : PrinterUiEvent
     data object TestPrintFailed : PrinterUiEvent
@@ -95,7 +96,8 @@ class SettingsViewModel @Inject constructor(
     private val printerTransport: PrinterTransportDispatcher,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val sessionManager: SessionManager,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val networkPrinterScanner: com.khanabook.lite.pos.feature.printing.domain.NetworkPrinterScanner
 ) : ViewModel() {
 
     private companion object {
@@ -138,6 +140,39 @@ class SettingsViewModel @Inject constructor(
 
     private val _printerEvents = MutableSharedFlow<PrinterUiEvent>(extraBufferCapacity = 4)
     val printerEvents: SharedFlow<PrinterUiEvent> = _printerEvents.asSharedFlow()
+
+    private val _isScanningWifiPrinters = MutableStateFlow(false)
+    val isScanningWifiPrinters: StateFlow<Boolean> = _isScanningWifiPrinters.asStateFlow()
+
+    private val _discoveredWifiPrinters = MutableStateFlow<List<com.khanabook.lite.pos.feature.printing.domain.DiscoveredPrinter>>(emptyList())
+    val discoveredWifiPrinters: StateFlow<List<com.khanabook.lite.pos.feature.printing.domain.DiscoveredPrinter>> = _discoveredWifiPrinters.asStateFlow()
+
+    // One-tap save: surfaced so the dialog Save button can show a spinner and
+    // stay disabled until the local DB write completes.
+    private val _isSavingWifiPrinter = MutableStateFlow(false)
+    val isSavingWifiPrinter: StateFlow<Boolean> = _isSavingWifiPrinter.asStateFlow()
+
+    /** Auto-detected local subnet prefix (e.g. "192.168.1.") for one-tap IP entry, or null when offline. */
+    private val _wifiSubnetPrefix = MutableStateFlow<String?>(null)
+    val wifiSubnetPrefix: StateFlow<String?> = _wifiSubnetPrefix.asStateFlow()
+
+    fun scanForWifiPrinters() {
+        if (_isScanningWifiPrinters.value) return
+        viewModelScope.launch {
+            _isScanningWifiPrinters.value = true
+            _discoveredWifiPrinters.value = emptyList()
+            try {
+                val found = networkPrinterScanner.scanSubnet { printer ->
+                    _discoveredWifiPrinters.value = (_discoveredWifiPrinters.value + printer).distinctBy { it.ip }
+                }
+                _discoveredWifiPrinters.value = found
+            } catch (e: Exception) {
+                Log.w("SettingsViewModel", "Wi-Fi printer subnet scan failed", e)
+            } finally {
+                _isScanningWifiPrinters.value = false
+            }
+        }
+    }
 
     /** MAC address of the currently connected Bluetooth printer, or null if disconnected. */
     val connectedPrinterMac: StateFlow<String?> = btManager.connectedDeviceMac
@@ -221,6 +256,9 @@ class SettingsViewModel @Inject constructor(
         refreshFailedBillSyncs()
         refreshDuplicateIdHealth()
         refreshLastSyncTimestamp()
+        viewModelScope.launch(Dispatchers.IO) {
+            _wifiSubnetPrefix.value = networkPrinterScanner.getLocalSubnetPrefix()
+        }
     }
 
     fun refreshFailedBillSyncs() {
@@ -790,8 +828,13 @@ class SettingsViewModel @Inject constructor(
             _printerEvents.tryEmit(PrinterUiEvent.InvalidWifiAddress)
             return
         }
+        // Single-flight: a repeat tap while the save is in flight must not start
+        // a second write that re-emits WifiSaved after the dialog already closed.
+        if (_isSavingWifiPrinter.value) return
         _btConnectResult.value = null
+        _isSavingWifiPrinter.value = true
         viewModelScope.launch(Dispatchers.IO) {
+            val startedAt = SystemClock.elapsedRealtime()
             try {
                 val existing = printerProfileRepository.getByRole(role.name)
                 existing
@@ -829,14 +872,19 @@ class SettingsViewModel @Inject constructor(
                         includeLogoInPrint = includeLogo
                     )?.let { restaurantRepository.saveProfileLocally(it) }
                 }
+                // Confirm immediately after the local DB write so the dialog closes
+                // on a real persisted state; the pending-print flush and reachability
+                // re-probe below continue in the background.
+                _printerEvents.emit(PrinterUiEvent.WifiSaved(SystemClock.elapsedRealtime() - startedAt))
                 if (role == PrinterRole.KITCHEN) {
                     kitchenPrintQueueManager.flushPendingForPrinter(profile.connectionTargetKey())
                 }
-                _printerEvents.emit(PrinterUiEvent.WifiSaved)
                 refreshWifiReachability()
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Wi-Fi printer save failed for ${role.name}", e)
                 _printerEvents.emit(PrinterUiEvent.WifiSaveFailed)
+            } finally {
+                _isSavingWifiPrinter.value = false
             }
         }
     }
@@ -926,6 +974,10 @@ class SettingsViewModel @Inject constructor(
     private val _saveProfileSuccess = MutableStateFlow(false)
     val saveProfileSuccess: StateFlow<Boolean> = _saveProfileSuccess.asStateFlow()
 
+    /** Measured duration of the last successful profile DB write, for the save confirmation toast. */
+    private val _lastSaveDurationMs = MutableStateFlow<Long?>(null)
+    val lastSaveDurationMs: StateFlow<Long?> = _lastSaveDurationMs.asStateFlow()
+
     private val _logoUploadLoading = MutableStateFlow(false)
     val logoUploadLoading: StateFlow<Boolean> = _logoUploadLoading.asStateFlow()
 
@@ -970,6 +1022,7 @@ class SettingsViewModel @Inject constructor(
             _saveProfileError.value = null
             _saveProfileSuccess.value = false
 
+            val startedAt = SystemClock.elapsedRealtime()
             try {
                 val newNumber = profile.whatsappNumber ?: ""
                 restaurantRepository.saveProfile(profile)
@@ -977,6 +1030,7 @@ class SettingsViewModel @Inject constructor(
                     userRepository.updateWhatsappNumber(current.id, newNumber)
                     userRepository.setCurrentUser(current.copy(whatsappNumber = newNumber))
                 }
+                _lastSaveDurationMs.value = SystemClock.elapsedRealtime() - startedAt
                 _saveProfileSuccess.value = true
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Profile save failed", e)
