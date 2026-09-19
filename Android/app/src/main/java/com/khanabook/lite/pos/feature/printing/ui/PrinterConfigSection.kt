@@ -177,6 +177,7 @@ fun PrinterConfigView(
     var showUsbSheet by remember { mutableStateOf(false) }
     var usbDevices by remember { mutableStateOf<List<Triple<String, String, Boolean>>>(emptyList()) }
     val usbScope = rememberCoroutineScope()
+    val toastScope = rememberCoroutineScope()
     var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -251,20 +252,25 @@ fun PrinterConfigView(
                 PrinterUiEvent.NoUsbPrintersFound ->
                     "No USB printers found. Connect one via OTG cable." to ToastKind.Warning
             }
-            KhanaToast.show(message, kind)
+            // Fire-and-forget: showing must not suspend the events collector,
+            // or a follow-up event (e.g. Test print) is delayed/dropped for the
+            // snackbar's whole 4s lifecycle while this one is on screen.
+            toastScope.launch { KhanaToast.show(message, kind) }
         }
     }
 
     LaunchedEffect(snackbarMessageRes) {
         snackbarMessageRes?.let {
-            KhanaToast.show(
-                message = context.getString(it),
-                kind = when (it) {
-                    R.string.toast_printer_connected -> ToastKind.Success
-                    R.string.toast_printer_connect_failed -> ToastKind.Error
-                    else -> ToastKind.Warning
-                }
-            )
+            toastScope.launch {
+                KhanaToast.show(
+                    message = context.getString(it),
+                    kind = when (it) {
+                        R.string.toast_printer_connected -> ToastKind.Success
+                        R.string.toast_printer_connect_failed -> ToastKind.Error
+                        else -> ToastKind.Warning
+                    }
+                )
+            }
             snackbarMessageRes = null
         }
     }
@@ -666,7 +672,10 @@ fun PrinterConfigView(
 
     if (showWifiDialog) {
         val parsedPort = wifiPort.toIntOrNull()
-        val isValid = wifiHost.isNotBlank() && parsedPort != null && parsedPort in 1..65535
+        // A subnet-prefix prefill ("192.168.1.") or partial IP must not enable Save —
+        // only a complete, well-formed IPv4 address does.
+        val isValidHost = isValidIpv4(wifiHost.trim())
+        val isValid = isValidHost && parsedPort != null && parsedPort in 1..65535
         val roleLabel = if (pendingRole == PrinterRole.CUSTOMER) "Customer Receipt" else "Kitchen Ticket"
         KhanaBookDialog(
             onDismissRequest = { showWifiDialog = false },
@@ -776,6 +785,13 @@ fun PrinterConfigView(
                     onValueChange = { wifiHost = it.trim().take(253) },
                     label = "IP address or host",
                     placeholder = "192.168.1.50",
+                    isError = wifiHost.isNotBlank() && !isValidHost,
+                    supportingText = if (wifiHost.isNotBlank() && !isValidHost) {
+                        { Text("Complete the address — type the last number after the dot", color = TextGold.copy(alpha = 0.7f)) }
+                    } else {
+                        null
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     modifier = Modifier.fillMaxWidth()
                 )
                 KhanaBookInputField(
@@ -828,5 +844,17 @@ fun PrinterConfigView(
                 }
             }
         )
+    }
+}
+
+/** Accepts only a complete dotted-quad IPv4 (each octet 0-255). A bare subnet
+ *  prefix like "192.168.1." from the auto-prefill does NOT pass — the user must
+ *  type the final octet before saving. */
+private fun isValidIpv4(host: String): Boolean {
+    if (host.isEmpty() || host.endsWith(".")) return false
+    val octets = host.split(".")
+    if (octets.size != 4) return false
+    return octets.all { octet ->
+        octet.isNotEmpty() && octet.length <= 3 && octet.all(Char::isDigit) && octet.toInt() in 0..255
     }
 }

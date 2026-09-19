@@ -124,6 +124,12 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
         </nav>
 
         <div class="sidebar-footer">
+          <div class="system-heartbeat-pill">
+            <span class="heartbeat-pulse" aria-hidden="true"></span>
+            <span class="heartbeat-label">Cloud Sync Active</span>
+            <span class="heartbeat-ver">v1.0.12</span>
+          </div>
+
           <div class="user-card">
             <div class="user-avatar" aria-hidden="true">
               {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
@@ -238,7 +244,7 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
     }
     .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 22px; color: inherit; }
     .nav-link:hover { background: var(--pos-sidebar-hover, #22274A); color: #FFFFFF; }
-    .nav-link:active { transform: scale(0.98); }
+    .nav-link:active { transform: scale(0.97); }
     .nav-link.active-link {
       background: var(--pos-purple, #5D45FD);
       color: #FFFFFF;
@@ -267,14 +273,42 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       border-color: rgba(255, 255, 255, 0.4);
     }
 
-    /* Sidebar Footer */
+    /* Sidebar Footer (footer.design standard) */
     .sidebar-footer {
       margin-top: auto;
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-2);
+      gap: 0.65rem;
       padding-top: var(--kb-space-3);
       border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .system-heartbeat-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 10px;
+      font-size: 0.72rem;
+      color: #34D399;
+      font-weight: 600;
+    }
+    .heartbeat-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+    }
+    .heartbeat-label {
+      flex: 1;
+    }
+    .heartbeat-ver {
+      color: rgba(255, 255, 255, 0.4);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.68rem;
     }
 
     /* User card */

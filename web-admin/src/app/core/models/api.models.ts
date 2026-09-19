@@ -71,6 +71,7 @@ export interface BusinessOrder {
   orderCode: string;
   customerName: string | null;
   customerContact: string | null;
+  tableNumber?: string | number | null;
   orderStatus: string;
   paymentStatus: string;
   paymentMethod: string;

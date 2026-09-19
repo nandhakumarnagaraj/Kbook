@@ -64,6 +64,7 @@ Android/app/*.aab
 .codex/
 .opencode/
 .kiro/skills/
+.freebuff/
 
 # Skill lock files
 skills-lock.json

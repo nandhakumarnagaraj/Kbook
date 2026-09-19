@@ -25,19 +25,26 @@ class NetworkPrinterScanner @Inject constructor() {
     fun getLocalSubnetPrefix(): String? {
         return try {
             val interfaces = NetworkInterface.getNetworkInterfaces() ?: return null
+            var siteLocalFallback: String? = null
             for (intf in interfaces) {
                 if (intf.isLoopback || !intf.isUp) continue
+                // Wi-Fi/Ethernet interfaces first. Taking the first non-loopback
+                // address used to grab cellular (rmnet) or VPN (tun) prefixes on
+                // dual-active devices — useless for reaching a LAN printer.
+                val isLanInterface = intf.name.lowercase().let { it.startsWith("wlan") || it.startsWith("eth") || it.startsWith("ap") }
                 val addresses = intf.inetAddresses
                 for (addr in addresses) {
-                    if (!addr.isLoopbackAddress && addr is Inet4Address) {
-                        val host = addr.hostAddress ?: continue
-                        if (!host.startsWith("127.")) {
-                            return host.substringBeforeLast(".") + "."
-                        }
+                    if (addr.isLoopbackAddress || addr !is Inet4Address) continue
+                    val host = addr.hostAddress ?: continue
+                    if (host.startsWith("127.")) continue
+                    val prefix = host.substringBeforeLast(".") + "."
+                    if (isLanInterface) return prefix
+                    if (addr.isSiteLocalAddress && siteLocalFallback == null) {
+                        siteLocalFallback = prefix
                     }
                 }
             }
-            null
+            siteLocalFallback
         } catch (e: Exception) {
             Log.w(TAG, "Error resolving local network subnet", e)
             null

@@ -93,6 +93,7 @@ fun SettingsScreen(
     }
     val ctx = LocalContext.current
     val lastSaveDurationMs by viewModel.lastSaveDurationMs.collectAsStateWithLifecycle()
+    val toastScope = rememberCoroutineScope()
     LaunchedEffect(saveProfileSuccess, pendingSaveSection) {
         val savedSection = pendingSaveSection
         if (saveProfileSuccess && savedSection != null) {
@@ -106,7 +107,11 @@ fun SettingsScreen(
                 "tax" -> ctx.getString(R.string.toast_tax_settings_saved)
                 else -> ctx.getString(R.string.toast_profile_saved)
             }
-            KhanaToast.show(message, ToastKind.Success)
+            // Fire-and-forget (competitor pattern): the toast must not gate the
+            // navigation below. KhanaToast.show suspends for the snackbar's whole
+            // 4s lifecycle, so awaiting it here delayed the return to menu until
+            // after the toast disappeared.
+            toastScope.launch { KhanaToast.show(message, ToastKind.Success) }
             viewModel.clearSaveProfileState()
             pendingSaveSection = null
             section = "menu"
@@ -115,7 +120,7 @@ fun SettingsScreen(
     LaunchedEffect(saveProfileError, pendingSaveSection) {
         val error = saveProfileError
         if (error != null && pendingSaveSection != null) {
-            KhanaToast.show(error, ToastKind.Error)
+            toastScope.launch { KhanaToast.show(error, ToastKind.Error) }
             viewModel.clearSaveProfileState()
             pendingSaveSection = null
         }

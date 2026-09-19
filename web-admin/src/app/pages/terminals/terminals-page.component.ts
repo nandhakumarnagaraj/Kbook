@@ -16,141 +16,232 @@ import { formatDate } from '../../shared/formatters';
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Devices &amp; Terminals</h2>
-        <p class="muted">Manage POS devices, approve new device requests, and recover terminals.</p>
-        <div class="hero-meta">
-          <span class="chip">{{ terminals().length }} Registered</span>
-          <span class="chip warn">{{ pendingRequests().length }} Pending</span>
+      <!-- Operational Header (navbar.gallery standard) -->
+      <header class="operational-terminals-header">
+        <div class="header-left">
+          <div class="header-title-row">
+            <h2>POS Devices &amp; Terminals</h2>
+            <span class="active-badge" *ngIf="!terminalsLoading()">
+              <span class="pulse-dot"></span>
+              {{ activeTerminalsCount }} Online
+            </span>
+          </div>
+          <p class="header-sub">Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens.</p>
         </div>
+        <div class="header-right">
+          <button type="button" class="ghost-btn-tactile" (click)="reload()" [disabled]="terminalsLoading() || requestsLoading()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            Refresh Devices
+          </button>
+        </div>
+      </header>
+
+      <!-- Bento Terminal Stat Summary (bentogrids.com standard) -->
+      <section class="terminals-bento-grid" aria-label="Terminal fleet overview">
+        <article class="bento-tile bento-tile--fleet">
+          <div class="tile-icon-wrap">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <div class="tile-body">
+            <span class="tile-label">Registered Fleet</span>
+            <span class="tile-metric tabular-num">{{ terminals().length }} <small>/ 5 Active Max</small></span>
+          </div>
+        </article>
+
+        <article class="bento-tile bento-tile--active">
+          <div class="tile-icon-wrap tile-icon-wrap--green">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+          <div class="tile-body">
+            <span class="tile-label">Active Counter Terminals</span>
+            <span class="tile-metric tile-metric--green tabular-num">{{ activeTerminalsCount }}</span>
+          </div>
+        </article>
+
+        <article class="bento-tile bento-tile--pending" [class.bento-tile--alert]="pendingRequests().length > 0">
+          <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="pendingRequests().length > 0">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </div>
+          <div class="tile-body">
+            <span class="tile-label">Pairing Requests</span>
+            <span class="tile-metric tabular-num" [class.tile-metric--amber]="pendingRequests().length > 0">
+              {{ pendingRequests().length }} {{ pendingRequests().length === 1 ? 'Pending' : 'Pending' }}
+            </span>
+          </div>
+        </article>
       </section>
 
-      <div class="toolbar">
-        <div>
-          <h3>Registered Terminals</h3>
-          <p class="muted">Active and deactivated POS devices for this shop.</p>
+      <!-- Registered Terminals Section -->
+      <section class="panel terminals-panel">
+        <div class="section-topbar">
+          <div class="topbar-heading">
+            <h3>Assigned Register Hardware</h3>
+            <p class="muted">Active and deactivated Android POS billing &amp; KOT stations.</p>
+          </div>
         </div>
-        <button class="ghost-btn" (click)="reload()">Refresh</button>
-      </div>
 
-      <div class="panel table-wrap" *ngIf="!terminalsLoading(); else loading">
-        <div class="alert error load-error" role="alert" *ngIf="terminalsError()">
-          <span>{{ terminalsError() }}</span>
-          <button type="button" class="ghost-btn" (click)="loadTerminals()">Try again</button>
-        </div>
-        <table class="data-table" *ngIf="!terminalsError() && terminals().length; else noTerminals">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Series</th>
-              <th>Type</th>
-              <th>Device</th>
-              <th>Status</th>
-              <th>Active</th>
-              <th>Updated</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
-              <td>
-                <ng-container *ngIf="editingId() === terminal.id; else nameCell">
-                  <input
-                    class="field-control"
-                    [(ngModel)]="editName"
-                    (keyup.enter)="saveRename(terminal)"
-                    placeholder="Terminal name"
-                  />
-                  <div class="row-actions">
-                    <button class="ghost-btn" [disabled]="saving()" (click)="saveRename(terminal)">Save</button>
-                    <button class="ghost-btn" (click)="cancelEdit()">Cancel</button>
+        <div class="panel table-wrap" *ngIf="!terminalsLoading(); else loading">
+          <div class="alert error load-error" role="alert" *ngIf="terminalsError()">
+            <span>{{ terminalsError() }}</span>
+            <button type="button" class="ghost-btn-tactile" (click)="loadTerminals()">Try again</button>
+          </div>
+
+          <table class="data-table" *ngIf="!terminalsError() && terminals().length; else noTerminals">
+            <thead>
+              <tr>
+                <th>Hardware / Terminal</th>
+                <th>Series</th>
+                <th>Role</th>
+                <th>Hardware ID</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
+                <td>
+                  <ng-container *ngIf="editingId() === terminal.id; else nameCell">
+                    <input
+                      class="field-control"
+                      [(ngModel)]="editName"
+                      (keyup.enter)="saveRename(terminal)"
+                      placeholder="Terminal name"
+                    />
+                    <div class="row-actions">
+                      <button class="primary-btn-tactile small-btn" [disabled]="saving()" (click)="saveRename(terminal)">Save</button>
+                      <button class="ghost-btn-tactile small-btn" (click)="cancelEdit()">Cancel</button>
+                    </div>
+                  </ng-container>
+                  <ng-template #nameCell>
+                    <div class="terminal-name-cell">
+                      <div class="terminal-icon" [class.terminal-icon--active]="terminal.isActive">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                          <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <strong>{{ terminal.terminalName || 'Unnamed Register' }}</strong>
+                        <span class="primary-badge" *ngIf="terminal.isPrimary">Primary</span>
+                      </div>
+                    </div>
+                  </ng-template>
+                </td>
+                <td class="tabular-num">{{ terminal.terminalSeries || '-' }}</td>
+                <td>
+                  <span class="role-pill" [class.role-pill--billing]="terminal.terminalType === 'BILLING'" [class.role-pill--kot]="terminal.terminalType === 'KOT'">
+                    {{ terminal.terminalType || 'BILLING' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="device-pill" *ngIf="terminal.deviceId; else noDevice" [title]="terminal.deviceId">
+                    <code>{{ formatDeviceId(terminal.deviceId) }}</code>
+                    <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
+                  </span>
+                  <ng-template #noDevice><span class="muted">-</span></ng-template>
+                </td>
+                <td>
+                  <span
+                    class="status-indicator-pill"
+                    [class.status-indicator-pill--active]="terminal.status.toLowerCase() === 'active'"
+                    [class.status-indicator-pill--inactive]="terminal.status.toLowerCase() === 'inactive'"
+                  >
+                    <span class="indicator-dot"></span>
+                    {{ terminal.status }}
+                  </span>
+                </td>
+                <td class="tabular-num muted">{{ formatDateValue(terminal.updatedAt) }}</td>
+                <td>
+                  <div class="action-stack-row">
+                    <button class="ghost-btn-tactile small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+                    <button class="ghost-btn-tactile small-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
+                    <button
+                      *ngIf="terminal.status.toLowerCase() !== 'inactive'"
+                      class="ghost-btn-tactile danger-btn small-btn"
+                      [disabled]="saving()"
+                      (click)="requestDeactivate(terminal)"
+                    >
+                      Deactivate
+                    </button>
+                    <button
+                      *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()"
+                      class="ghost-btn-tactile success-btn small-btn"
+                      [disabled]="saving()"
+                      (click)="confirmReactivate(terminal)"
+                    >
+                      Reactivate
+                    </button>
                   </div>
-                </ng-container>
-                <ng-template #nameCell>
-                  <strong>{{ terminal.terminalName || 'Unnamed' }}</strong>
-                </ng-template>
-              </td>
-              <td>{{ terminal.terminalSeries || '-' }}</td>
-              <td>
-                <span class="chip-pill" [class.chip-pill--ok]="terminal.terminalType === 'BILLING'" [class.chip-pill--pending]="terminal.terminalType === 'KOT'">
-                  {{ terminal.terminalType || 'BILLING' }}
-                </span>
-              </td>
-              <td>
-                <span class="device-pill" *ngIf="terminal.deviceId; else noDevice" [title]="terminal.deviceId">
-                  {{ formatDeviceId(terminal.deviceId) }}
-                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
-                </span>
-                <ng-template #noDevice><span class="muted">-</span></ng-template>
-              </td>
-              <td>
-                <span
-                  class="chip-pill"
-                  [class.chip-pill--ok]="terminal.status.toLowerCase() === 'active'"
-                  [class.chip-pill--pending]="terminal.status.toLowerCase() === 'inactive'"
-                >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
+            <article class="mobile-data-card" *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
+              <div class="mobile-data-card__head">
+                <div class="terminal-name-cell">
+                  <div class="terminal-icon" [class.terminal-icon--active]="terminal.isActive">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                      <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                  </div>
+                  <strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong>
+                </div>
+                <span class="status-indicator-pill" [class.status-indicator-pill--active]="terminal.status.toLowerCase() === 'active'" [class.status-indicator-pill--inactive]="terminal.status.toLowerCase() === 'inactive'">
+                  <span class="indicator-dot"></span>
                   {{ terminal.status }}
                 </span>
-              </td>
-              <td>{{ terminal.isActive ? 'Yes' : 'No' }}</td>
-              <td>{{ formatDateValue(terminal.updatedAt) }}</td>
-              <td>
-                <div class="action-stack">
-                  <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                  <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
-                  <button
-                    *ngIf="terminal.status.toLowerCase() !== 'inactive'"
-                    class="ghost-btn danger-btn"
-                    [disabled]="saving()"
-                    (click)="requestDeactivate(terminal)"
-                  >
-                    Deactivate
-                  </button>
-                  <button
-                    *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()"
-                    class="ghost-btn success-btn"
-                    [disabled]="saving()"
-                    (click)="confirmReactivate(terminal)"
-                  >
-                    Reactivate
-                  </button>
-                  <span *ngIf="terminal.status.toLowerCase() === 'inactive' && !canManageTerminals()" class="muted">Deactivated</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+              <p>
+                {{ terminal.terminalSeries || 'No series' }} ·
+                <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
+                  <code>{{ formatDeviceId(terminal.deviceId) }}</code>
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
+                </span>
+                <ng-template #noCardDev>No device assigned</ng-template>
+              </p>
+              <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
+              <div class="mobile-data-card__actions">
+                <button class="ghost-btn-tactile small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
+                <button class="ghost-btn-tactile small-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
+                <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn-tactile danger-btn small-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
+                <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn-tactile success-btn small-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
+              </div>
+            </article>
+          </div>
 
-        <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
-          <article class="mobile-data-card" *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
-            <div class="mobile-data-card__head"><strong>{{ terminal.terminalName || 'Unnamed terminal' }}</strong><span class="chip" [class.success]="terminal.status.toLowerCase() === 'active'" [class.warn]="terminal.status.toLowerCase() === 'inactive'">{{ terminal.status }}</span></div>
-            <p>
-              {{ terminal.terminalSeries || 'No series' }} ·
-              <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
-                {{ formatDeviceId(terminal.deviceId) }}
-                <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
-              </span>
-              <ng-template #noCardDev>No device assigned</ng-template>
-            </p>
-            <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd>{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
-            <div class="mobile-data-card__actions">
-              <button class="ghost-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-              <button class="ghost-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
-              <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
-              <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
-            </div>
-          </article>
+          <ng-template #noTerminals>
+            <app-empty-state
+              *ngIf="!terminalsError()"
+              icon="📟"
+              title="No terminals registered yet"
+              text="New devices will appear here once they request access to this shop."
+            ></app-empty-state>
+          </ng-template>
         </div>
-
-        <ng-template #noTerminals>
-          <app-empty-state
-            *ngIf="!terminalsError()"
-            icon="📟"
-            title="No terminals registered yet"
-            text="New devices will appear here once they request access to this shop."
-          ></app-empty-state>
-        </ng-template>
-      </div>
+      </section>
 
       <ng-template #loading>
         <div class="panel loading">
@@ -160,75 +251,92 @@ import { formatDate } from '../../shared/formatters';
         </div>
       </ng-template>
 
-      <section class="panel filter-panel">
-        <div class="toolbar">
-          <div>
-            <h3>Device Requests</h3>
-            <p class="muted">New devices requesting access to this shop.</p>
+      <!-- Device Pairing Requests Section -->
+      <section class="panel requests-panel">
+        <div class="section-topbar">
+          <div class="topbar-heading">
+            <div class="heading-row">
+              <h3>Device Pairing Requests</h3>
+              <span class="counter-badge" *ngIf="pendingRequests().length">{{ pendingRequests().length }} Pending</span>
+            </div>
+            <p class="muted">Authorize new Android tablets and thermal billing registers seeking shop access.</p>
           </div>
-          <button
-            class="ghost-btn"
-            [class.active]="requestFilter() === 'PENDING'"
-            (click)="setRequestFilter('PENDING')"
-          >
-            Pending
-          </button>
-          <button
-            class="ghost-btn"
-            [class.active]="requestFilter() === 'ALL'"
-            (click)="setRequestFilter('ALL')"
-          >
-            All
-          </button>
+          <div class="filter-pills-row">
+            <button
+              class="filter-pill-tactile"
+              [class.filter-pill-tactile--active]="requestFilter() === 'PENDING'"
+              (click)="setRequestFilter('PENDING')"
+            >
+              Pending ({{ pendingRequests().length }})
+            </button>
+            <button
+              class="filter-pill-tactile"
+              [class.filter-pill-tactile--active]="requestFilter() === 'ALL'"
+              (click)="setRequestFilter('ALL')"
+            >
+              All ({{ requests().length }})
+            </button>
+          </div>
         </div>
 
         <div class="loading compact-loading" role="status" *ngIf="requestsLoading()">Loading device requests...</div>
         <div class="alert error load-error" role="alert" *ngIf="requestsError()">
           <span>{{ requestsError() }}</span>
-          <button type="button" class="ghost-btn" (click)="loadRequests()">Try again</button>
+          <button type="button" class="ghost-btn-tactile" (click)="loadRequests()">Try again</button>
         </div>
 
-        <div class="panel table-wrap" *ngIf="!requestsLoading() && !requestsError() && pendingOrAllRequests().length">
+        <div class="table-wrap" *ngIf="!requestsLoading() && !requestsError() && pendingOrAllRequests().length">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Device</th>
-                <th>Model</th>
+                <th>Device Model / Hardware</th>
                 <th>Type</th>
                 <th>Status</th>
                 <th>Requested</th>
-                <th>Action</th>
+                <th>Authorization</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let req of pendingOrAllRequests(); trackBy: trackByRequestId">
                 <td>
-                  <div class="stacked-meta">
-                    <strong>{{ req.deviceName || '-' }}</strong>
+                  <div class="device-meta-cell">
+                    <strong>{{ req.deviceName || req.deviceModel || 'Android Device' }}</strong>
                     <span class="device-pill" *ngIf="req.deviceId; else noReqDev" [title]="req.deviceId">
-                      {{ formatDeviceId(req.deviceId) }}
-                      <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">📋</button>
+                      <code>{{ formatDeviceId(req.deviceId) }}</code>
+                      <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                      </button>
                     </span>
                     <ng-template #noReqDev><span class="muted">No device id</span></ng-template>
                   </div>
                 </td>
-                <td>{{ req.deviceModel || '-' }}</td>
-                <td>{{ req.requestType || '-' }}</td>
+                <td>
+                  <span class="role-pill role-pill--req">{{ req.requestType || 'PAIRING' }}</span>
+                </td>
                 <td>
                   <span
-                    class="chip"
-                    [class.success]="req.status.toLowerCase() === 'approved'"
-                    [class.danger]="req.status.toLowerCase() === 'rejected'"
-                    [class.warn]="req.status.toLowerCase() === 'pending'"
+                    class="status-indicator-pill"
+                    [class.status-indicator-pill--active]="req.status.toLowerCase() === 'approved'"
+                    [class.status-indicator-pill--inactive]="req.status.toLowerCase() === 'rejected'"
+                    [class.status-indicator-pill--pending]="req.status.toLowerCase() === 'pending'"
                   >
+                    <span class="indicator-dot"></span>
                     {{ req.status }}
                   </span>
                 </td>
-                <td>{{ formatDateValue(req.requestedAt) }}</td>
+                <td class="tabular-num muted">{{ formatDateValue(req.requestedAt) }}</td>
                 <td>
-                  <div class="action-stack" *ngIf="req.status.toLowerCase() === 'pending'; else reqDone">
-                  <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
-                  <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
+                  <div class="action-stack-row" *ngIf="req.status.toLowerCase() === 'pending'; else reqDone">
+                    <button class="primary-btn-tactile small-btn" [disabled]="saving()" (click)="approve(req)">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Approve
+                    </button>
+                    <button class="ghost-btn-tactile danger-btn small-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
                   </div>
                   <ng-template #reqDone><span class="muted">{{ req.rejectionReason || '-' }}</span></ng-template>
                 </td>
@@ -237,19 +345,25 @@ import { formatDate } from '../../shared/formatters';
           </table>
           <div class="mobile-data-list" aria-label="Terminal requests">
             <article class="mobile-data-card" *ngFor="let req of pendingOrAllRequests(); trackBy: trackByRequestId">
-              <div class="mobile-data-card__head"><strong>{{ req.deviceName || 'Unnamed device' }}</strong><span class="chip" [class.success]="req.status.toLowerCase() === 'approved'" [class.danger]="req.status.toLowerCase() === 'rejected'" [class.warn]="req.status.toLowerCase() === 'pending'">{{ req.status }}</span></div>
+              <div class="mobile-data-card__head">
+                <strong>{{ req.deviceName || 'Unnamed device' }}</strong>
+                <span class="status-indicator-pill" [class.status-indicator-pill--active]="req.status.toLowerCase() === 'approved'" [class.status-indicator-pill--inactive]="req.status.toLowerCase() === 'rejected'" [class.status-indicator-pill--pending]="req.status.toLowerCase() === 'pending'">
+                  <span class="indicator-dot"></span>
+                  {{ req.status }}
+                </span>
+              </div>
               <p>
                 {{ req.deviceModel || 'Unknown model' }} ·
                 <span class="device-pill" *ngIf="req.deviceId; else noReqCardDev" [title]="req.deviceId">
-                  {{ formatDeviceId(req.deviceId) }}
+                  <code>{{ formatDeviceId(req.deviceId) }}</code>
                   <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">📋</button>
                 </span>
                 <ng-template #noReqCardDev>No device ID</ng-template>
               </p>
-              <dl><div><dt>Type</dt><dd>{{ req.requestType || '-' }}</dd></div><div><dt>Requested</dt><dd>{{ formatDateValue(req.requestedAt) }}</dd></div></dl>
+              <dl><div><dt>Type</dt><dd>{{ req.requestType || '-' }}</dd></div><div><dt>Requested</dt><dd class="tabular-num">{{ formatDateValue(req.requestedAt) }}</dd></div></dl>
               <div class="mobile-data-card__actions" *ngIf="req.status.toLowerCase() === 'pending'">
-                <button class="ghost-btn success-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
-                <button class="ghost-btn danger-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
+                <button class="primary-btn-tactile small-btn" [disabled]="saving()" (click)="approve(req)">Approve</button>
+                <button class="ghost-btn-tactile danger-btn small-btn" [disabled]="saving()" (click)="requestReject(req)">Reject</button>
               </div>
             </article>
           </div>
@@ -279,8 +393,8 @@ import { formatDate } from '../../shared/formatters';
             </div>
             <p class="recovery-warning">Copy this token now and enter it on the Android device. It will not be shown again after closing.</p>
             <div class="modal-actions">
-              <button type="button" class="ghost-btn" (click)="copyRecoveryToken()">Copy token</button>
-              <button type="button" class="primary-btn" (click)="closeRecovery()">Done</button>
+              <button type="button" class="ghost-btn-tactile" (click)="copyRecoveryToken()">Copy token</button>
+              <button type="button" class="primary-btn-tactile" (click)="closeRecovery()">Done</button>
             </div>
           </ng-container>
 
@@ -300,10 +414,10 @@ import { formatDate } from '../../shared/formatters';
             </div>
             <p class="error-text" role="alert" *ngIf="recoveryError()">{{ recoveryError() }}</p>
             <div class="modal-actions">
-              <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeRecovery()">Cancel</button>
+              <button type="button" class="ghost-btn-tactile" [disabled]="saving()" (click)="closeRecovery()">Cancel</button>
               <button
                 type="button"
-                class="primary-btn"
+                class="primary-btn-tactile"
                 [disabled]="saving() || !recoveryDeviceId.trim()"
                 (click)="recoverTerminal()"
               >
@@ -343,10 +457,10 @@ import { formatDate } from '../../shared/formatters';
           <p class="muted" *ngIf="challengeSecondsLeft() as _left">Expires in {{ challengeCountdown() }}</p>
           <p class="error-text" role="alert" *ngIf="challengeError()">{{ challengeError() }}</p>
           <div class="modal-actions">
-            <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeApprove()">Cancel</button>
+            <button type="button" class="ghost-btn-tactile" [disabled]="saving()" (click)="closeApprove()">Cancel</button>
             <button
               type="button"
-              class="primary-btn"
+              class="primary-btn-tactile"
               [disabled]="saving() || !challengeCode.trim()"
               (click)="submitApprove()"
             >
@@ -391,27 +505,337 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .ghost-btn.active { background: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
+    .operational-terminals-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+      padding-bottom: var(--kb-space-3);
+      border-bottom: 1px solid var(--kb-color-border);
+      flex-wrap: wrap;
+    }
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .header-title-row h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .active-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--kb-radius-full);
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #16a34a;
+      font-variant-numeric: tabular-nums;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #16a34a;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .header-sub {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--kb-color-muted-foreground);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+    }
+    .primary-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground, #ffffff);
+      border: none;
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .primary-btn-tactile:active { transform: scale(0.97); }
+    .ghost-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, background-color 150ms ease;
+    }
+    .ghost-btn-tactile:active { transform: scale(0.97); }
+    .small-btn {
+      padding: 4px 10px;
+      font-size: 0.76rem;
+    }
+    .danger-btn {
+      color: #dc2626;
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+    .danger-btn:hover {
+      background: rgba(239, 68, 68, 0.06);
+    }
+    .success-btn {
+      color: #16a34a;
+      border-color: rgba(34, 197, 94, 0.25);
+    }
+    .success-btn:hover {
+      background: rgba(34, 197, 94, 0.06);
+    }
+    /* Bento Fleet Grid */
+    .terminals-bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+    }
+    @media (max-width: 768px) {
+      .terminals-bento-grid { grid-template-columns: 1fr; }
+    }
+    .bento-tile {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+    }
+    .bento-tile--alert {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.03);
+    }
+    .tile-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--kb-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      flex-shrink: 0;
+    }
+    .tile-icon-wrap--green {
+      background: rgba(34, 197, 94, 0.1);
+      color: #16a34a;
+    }
+    .tile-icon-wrap--amber {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+    }
+    .tile-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tile-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--kb-color-muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tile-metric {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--kb-color-foreground);
+    }
+    .tile-metric small {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--kb-color-muted-foreground);
+    }
+    .tile-metric--green { color: #16a34a; }
+    .tile-metric--amber { color: #d97706; }
+    .tabular-num { font-variant-numeric: tabular-nums; }
+
+    /* Section Topbars */
+    .section-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--kb-space-3);
+      padding-bottom: var(--kb-space-3);
+      margin-bottom: var(--kb-space-3);
+      border-bottom: 1px solid var(--kb-color-border);
+      flex-wrap: wrap;
+    }
+    .topbar-heading h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .heading-row {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+    }
+    .counter-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--kb-radius-full);
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .filter-pills-row {
+      display: flex;
+      gap: 6px;
+    }
+    .filter-pill-tactile {
+      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface);
+      border-radius: var(--kb-radius-full);
+      padding: 4px 12px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--kb-color-muted-foreground);
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .filter-pill-tactile:active { transform: scale(0.97); }
+    .filter-pill-tactile--active {
+      background: var(--kb-color-surface-2);
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-primary);
+      font-weight: 600;
+    }
+
+    /* Terminal Row Elements */
+    .terminal-name-cell {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+    }
+    .terminal-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--kb-radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      flex-shrink: 0;
+    }
+    .terminal-icon--active {
+      color: var(--kb-color-primary);
+      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.08);
+    }
+    .role-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--kb-radius-sm);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .role-pill--billing {
+      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.08);
+      color: var(--kb-color-primary);
+      border: 1px solid rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.2);
+    }
+    .role-pill--kot {
+      background: rgba(147, 51, 234, 0.08);
+      color: #9333ea;
+      border: 1px solid rgba(147, 51, 234, 0.2);
+    }
+    .role-pill--req {
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-foreground);
+      border: 1px solid var(--kb-color-border);
+    }
+    .status-indicator-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: var(--kb-radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-indicator-pill--active {
+      color: #16a34a;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .status-indicator-pill--inactive {
+      color: var(--kb-color-muted-foreground);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+    }
+    .status-indicator-pill--pending {
+      color: #d97706;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .action-stack-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .device-meta-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
     .primary-badge {
       display: inline-block;
-      margin-left: 0.45rem;
-      padding: 0.1rem 0.5rem;
-      background: var(--kb-color-primary-soft);
+      margin-left: 0.35rem;
+      padding: 0.08rem 0.4rem;
+      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.1);
       color: var(--kb-color-primary);
-      border: 1px solid var(--kb-color-primary);
+      border: 1px solid rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.3);
       border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 800;
-      white-space: nowrap;
-      vertical-align: middle;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
     }
-    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: var(--kb-space-2); }
     .row-actions { display: flex; flex-wrap: wrap; gap: var(--kb-space-2); margin-top: var(--kb-space-2); }
-    .stacked-meta { display: flex; flex-direction: column; gap: var(--kb-space-1); }
     .recovery-dialog { width: min(100%, 520px); }
     .credential-box {
       display: grid;
-      gap: var(--kb-space-3);
+      gap: var(--kb-space-2);
       margin: var(--kb-space-4) 0;
       padding: var(--kb-space-4);
       background: var(--kb-color-surface);
@@ -422,13 +846,15 @@ import { formatDate } from '../../shared/formatters';
       display: block;
       overflow-wrap: anywhere;
       color: var(--kb-color-foreground);
-      font-size: 0.88rem;
+      font-size: 0.95rem;
       line-height: 1.55;
+      font-family: monospace;
       user-select: all;
+      font-variant-numeric: tabular-nums;
     }
     .credential-label {
       color: var(--kb-color-primary);
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -441,9 +867,10 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
       line-height: 1.5;
+      font-size: 0.85rem;
     }
-    .error-text { margin: 0.75rem 0 0; color: var(--kb-color-error); font-weight: 600; }
-    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--kb-space-3); margin-top: var(--kb-space-4); }
+    .error-text { margin: 0.75rem 0 0; color: var(--kb-color-error); font-weight: 600; font-size: 0.85rem; }
+    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--kb-space-2); margin-top: var(--kb-space-4); }
     .device-pill {
       display: inline-flex;
       align-items: center;
@@ -460,14 +887,16 @@ import { formatDate } from '../../shared/formatters';
       border: none;
       cursor: pointer;
       padding: 0;
-      font-size: 0.75rem;
-      opacity: 0.6;
-      line-height: 1;
+      color: var(--kb-color-muted-foreground);
       display: inline-flex;
       align-items: center;
-      transition: opacity 0.15s ease;
+      transition: color 0.15s ease, transform 0.12s ease;
     }
-    .device-copy-btn:hover { opacity: 1; }
+    .device-copy-btn:hover { color: var(--kb-color-foreground); }
+    .device-copy-btn:active { transform: scale(0.9); }
+    .terminals-panel, .requests-panel {
+      margin-bottom: var(--kb-space-4);
+    }
     @media (max-width: 480px) {
       .modal-actions button { width: 100%; }
       .credential-box { padding: 0.85rem; }
@@ -504,6 +933,10 @@ export class TerminalsPageComponent implements OnDestroy {
   readonly editingId = signal<number | null>(null);
   editName = '';
   recoveryDeviceId = '';
+
+  get activeTerminalsCount(): number {
+    return this.terminals().filter((t) => t.isActive && t.status?.toLowerCase() === 'active').length;
+  }
 
   readonly pendingRequests = computed(() =>
     this.requests().filter((r) => r.status?.toLowerCase() === 'pending')

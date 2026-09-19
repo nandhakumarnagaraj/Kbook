@@ -6,12 +6,13 @@ import { combineLatest, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
   OrderDetailResponse,
   HourlySalesRow,
   ItemSalesRow,
-  SyncTerminalItem,
+  BusinessTerminal,
   NotificationItem
 } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -21,7 +22,7 @@ export interface PosActiveOrder {
   orderId: number;
   orderCode: string;
   status: 'Preparing' | 'Cooking' | 'Served' | 'Completed';
-  dishType: 'pizza' | 'pasta' | 'burger' | 'curry' | 'default';
+  sourceType: string;
   dishImg?: string;
   itemsSummary: string;
   tableAndChannel: string;
@@ -53,73 +54,6 @@ function getTodayIsoDate(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-
-const DEFAULT_MOCK_ACTIVE_ORDERS: PosActiveOrder[] = [
-  {
-    orderId: 1025,
-    orderCode: '1025',
-    status: 'Preparing',
-    dishType: 'pizza',
-    dishImg: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=140&h=140&q=80',
-    itemsSummary: 'Margherita Pizza, Garlic Bread',
-    tableAndChannel: 'Table 3 – Dine In',
-    totalAmount: 620
-  },
-  {
-    orderId: 1026,
-    orderCode: '1026',
-    status: 'Cooking',
-    dishType: 'pasta',
-    dishImg: 'https://images.unsplash.com/photo-1621996346565-e3d5d6281292?auto=format&fit=crop&w=140&h=140&q=80',
-    itemsSummary: 'Pasta Alfredo, Cold Coffee',
-    tableAndChannel: 'Table 2 – Dine In',
-    totalAmount: 350
-  },
-  {
-    orderId: 1027,
-    orderCode: '1027',
-    status: 'Served',
-    dishType: 'burger',
-    dishImg: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=140&h=140&q=80',
-    itemsSummary: 'Veg Burger, French Fries',
-    tableAndChannel: 'Table 7 – Dine In',
-    totalAmount: 280
-  },
-  {
-    orderId: 1028,
-    orderCode: '1028',
-    status: 'Completed',
-    dishType: 'curry',
-    dishImg: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=140&h=140&q=80',
-    itemsSummary: 'Paneer Butter Masala, Naan',
-    tableAndChannel: 'Table 5 – Dine In',
-    totalAmount: 520
-  }
-];
-
-const DEFAULT_HOURLY_SALES: HourlySalesRow[] = [
-  { hour: 10, itemsSold: 4 },
-  { hour: 11, itemsSold: 7 },
-  { hour: 12, itemsSold: 16 },
-  { hour: 13, itemsSold: 28 }, // Lunch peak
-  { hour: 14, itemsSold: 22 },
-  { hour: 15, itemsSold: 8 },
-  { hour: 16, itemsSold: 6 },
-  { hour: 17, itemsSold: 9 },
-  { hour: 18, itemsSold: 14 },
-  { hour: 19, itemsSold: 26 },
-  { hour: 20, itemsSold: 34 }, // Dinner peak
-  { hour: 21, itemsSold: 30 },
-  { hour: 22, itemsSold: 12 }
-];
-
-const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
-  { menuItemId: 1, name: 'Margherita Pizza', quantitySold: 24, revenue: 14880 },
-  { menuItemId: 2, name: 'Pasta Alfredo', quantitySold: 18, revenue: 6300 },
-  { menuItemId: 3, name: 'Veg Cheese Burger', quantitySold: 15, revenue: 4200 },
-  { menuItemId: 4, name: 'Paneer Butter Masala', quantitySold: 12, revenue: 6240 },
-  { menuItemId: 5, name: 'Garlic Bread & Dip', quantitySold: 10, revenue: 1800 }
-];
 
 @Component({
   selector: 'app-business-dashboard-page',
@@ -167,10 +101,10 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
 
         <!-- Right: Status Indicators & Actions -->
         <div class="topbar-actions">
-          <!-- Hardware Fleet Pulse Pill (5 Terminal Limit) -->
-          <div class="terminal-pulse-pill" (click)="toggleTerminalsModal()" title="View active POS terminals (5 Terminal Plan Limit)">
-            <span class="pulse-dot pulse-dot--online"></span>
-            <span class="pulse-text"><strong>{{ onlineTerminalsCount() }}/5</strong> Terminals Active</span>
+          <!-- Hardware Fleet Pulse Pill -->
+          <div class="terminal-pulse-pill" (click)="toggleTerminalsModal()" title="View active POS terminals">
+            <span class="pulse-dot" [class.pulse-dot--online]="onlineTerminalsCount() > 0"></span>
+            <span class="pulse-text"><strong>{{ onlineTerminalsCount() }}/{{ totalTerminalsCount() }}</strong> Terminals Active</span>
           </div>
 
           <!-- Low Stock Warning Pill (if any materials low) -->
@@ -202,7 +136,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             <div class="notification-flyout" *ngIf="notificationsOpen()">
               <div class="flyout-header">
                 <h4>System Notifications</h4>
-                <button type="button" class="link-btn" (click)="markAllNotificationsRead()">Mark all read</button>
+                <button type="button" class="link-btn" (click)="markAllNotificationsRead()" *ngIf="notifications().length > 0">Mark all read</button>
               </div>
               <div class="flyout-body" *ngIf="notifications().length > 0; else noNotifs">
                 <div
@@ -228,12 +162,12 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
 
           <!-- User Avatar matching purple circle in reference image -->
           <div class="user-avatar-circle" [title]="data.shopName || 'KhanaBook Operator'" aria-label="Operator Profile">
-            {{ (data.shopName || 'N').charAt(0).toUpperCase() }}
+            {{ (data.shopName || 'K').charAt(0).toUpperCase() }}
           </div>
         </div>
       </header>
 
-      <!-- ── 2-Column POS Dashboard Grid (Matching Reference Image) ── -->
+      <!-- ── 2-Column POS Dashboard Grid ── -->
       <div class="pos-dashboard-grid">
         <!-- ── Left Column: Active Orders ── -->
         <section class="active-orders-section" aria-label="Active Orders Stream">
@@ -254,47 +188,24 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
               (click)="openOrderDetail(order.orderId)"
               (keydown.enter)="openOrderDetail(order.orderId)">
               
-              <!-- Dish circular thumbnail with realistic fallback -->
-              <div class="order-dish-thumb">
-                <img
-                  *ngIf="order.dishImg && !imageErrors()[order.orderCode]"
-                  [src]="order.dishImg"
-                  [alt]="order.itemsSummary"
-                  (error)="handleImageError(order.orderCode)"
-                />
-                <div class="dish-fallback-svg" *ngIf="!order.dishImg || imageErrors()[order.orderCode]">
-                  <!-- Pizza -->
-                  <svg *ngIf="order.dishType === 'pizza'" viewBox="0 0 48 48" width="46" height="46">
-                    <circle cx="24" cy="24" r="23" fill="#FFF"/>
-                    <circle cx="24" cy="24" r="20" fill="#E89B38"/>
-                    <circle cx="24" cy="24" r="17" fill="#F4D06F"/>
-                    <circle cx="17" cy="18" r="3.2" fill="#D62828"/>
-                    <circle cx="29" cy="21" r="2.8" fill="#D62828"/>
-                    <circle cx="22" cy="30" r="3.1" fill="#D62828"/>
-                  </svg>
-                  <!-- Pasta -->
-                  <svg *ngIf="order.dishType === 'pasta'" viewBox="0 0 48 48" width="46" height="46">
-                    <circle cx="24" cy="24" r="23" fill="#FFF"/>
-                    <circle cx="24" cy="24" r="19" fill="#FDE68A"/>
-                    <path d="M14 26 Q24 16 34 26 Q24 36 14 26" fill="#F59E0B" opacity="0.8"/>
-                    <circle cx="24" cy="24" r="3" fill="#10B981"/>
-                  </svg>
-                  <!-- Burger -->
-                  <svg *ngIf="order.dishType === 'burger'" viewBox="0 0 48 48" width="46" height="46">
-                    <circle cx="24" cy="24" r="23" fill="#FFF"/>
-                    <path d="M14 22 Q24 13 34 22 Z" fill="#E89B38"/>
-                    <rect x="13" y="24" width="22" height="4" rx="2" fill="#10B981"/>
-                    <rect x="12" y="29" width="24" height="4" rx="2" fill="#8B4513"/>
-                    <path d="M14 34 Q24 37 34 34 Z" fill="#E89B38"/>
-                  </svg>
-                  <!-- Curry / Default -->
-                  <svg *ngIf="order.dishType === 'curry' || order.dishType === 'default'" viewBox="0 0 48 48" width="46" height="46">
-                    <circle cx="24" cy="24" r="23" fill="#FFF"/>
-                    <circle cx="24" cy="24" r="19" fill="#F97316"/>
-                    <circle cx="24" cy="24" r="15" fill="#EA580C"/>
-                    <circle cx="24" cy="24" r="6" fill="#FEF08A"/>
-                  </svg>
-                </div>
+              <!-- Order Type Status Avatar -->
+              <div class="order-avatar" [ngClass]="'order-avatar--' + order.status.toLowerCase()">
+                <svg *ngIf="order.sourceType === 'TAKEAWAY'" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+                  <path d="M3 6h18"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                <svg *ngIf="order.sourceType === 'DELIVERY'" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="3" width="15" height="13"/>
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/>
+                  <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                <svg *ngIf="order.sourceType !== 'TAKEAWAY' && order.sourceType !== 'DELIVERY'" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
+                  <path d="M15 2v19"/>
+                  <path d="M5 2c1.5 2 1.5 5 0 7v12"/>
+                </svg>
               </div>
 
               <!-- Center Info -->
@@ -308,23 +219,46 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
                 <p class="order-items-snippet" [title]="order.itemsSummary">
                   {{ order.itemsSummary }}
                 </p>
+                <div class="order-quick-actions" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-micro" (click)="copyInvoice(order)" title="Copy public invoice preview link">
+                    📄 Invoice
+                  </button>
+                  <button type="button" class="btn-micro" (click)="openOrderDetail(order.orderId)">
+                    View
+                  </button>
+                </div>
               </div>
 
               <!-- Right Meta: Table & Amount -->
               <div class="order-meta-col">
                 <span class="order-table-type">{{ order.tableAndChannel }}</span>
                 <strong class="order-amount-large">{{ formatCurrencyValue(order.totalAmount) }}</strong>
+                <span class="order-time-stamp" *ngIf="order.createdAt">{{ formatDateValue(order.createdAt) }}</span>
               </div>
             </article>
 
+            <!-- Zero State / Empty State (Anti-Slop Craft) -->
             <div class="empty-orders-card" *ngIf="filteredActiveOrders().length === 0">
-              <p>No active orders matching your filter.</p>
-              <button type="button" class="ghost-btn" (click)="resetFilters()">Clear Filters</button>
+              <div class="empty-orders-visual" aria-hidden="true">
+                <div class="empty-icon-halo">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                    <rect x="9" y="3" width="6" height="4" rx="1"/>
+                    <path d="m9 14 2 2 4-4"/>
+                  </svg>
+                </div>
+              </div>
+              <h4 class="empty-orders-title">Kitchen Counter All Clear</h4>
+              <p class="empty-orders-sub">No active tickets waiting in the queue. New orders from POS terminals will stream here in real time.</p>
+              <div class="empty-orders-actions">
+                <button type="button" class="primary-btn-compact" (click)="navigateToOrders()">View All Orders</button>
+                <button type="button" class="ghost-btn-compact" (click)="resetFilters()" *ngIf="selectedChannel() !== 'all' || searchQuery">Clear Filters</button>
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- ── Right Column: Metrics & Quick Actions (Matching Reference Image) ── -->
+        <!-- ── Right Column: Metrics & Quick Actions ── -->
         <aside class="metrics-col" aria-label="Analytics and Actions">
           <!-- 1. Hero Card: Today's Sales with Gradient and Delta Pill -->
           <article class="hero-sales-card">
@@ -336,13 +270,16 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
                     <path d="M16 10a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2H2"/>
                   </svg>
                 </div>
-                <span class="sales-title">Today's Sales</span>
+                <span class="sales-title">Today's Revenue</span>
               </div>
-              <span class="sales-delta-pill">
-                ↑ {{ data.deltaToday >= 0 ? data.deltaToday : 12 }}%
+              <span class="sales-delta-pill" *ngIf="data.deltaToday !== 0" [class.sales-delta-pill--down]="data.deltaToday < 0">
+                {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ Math.abs(data.deltaToday) }}% vs yest.
+              </span>
+              <span class="sales-delta-pill sales-delta-pill--neutral" *ngIf="data.deltaToday === 0">
+                Live Sales
               </span>
             </div>
-            <h3 class="sales-value-hero">{{ data.todayRevenueFormatted || '₹ 12,450' }}</h3>
+            <h3 class="sales-value-hero">{{ data.todayRevenueFormatted }}</h3>
 
             <!-- Cash vs Online Split Reconciliation Strip -->
             <div class="sales-split-strip">
@@ -354,7 +291,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
               <div class="split-divider">|</div>
               <div class="split-item">
                 <span class="split-dot split-dot--upi"></span>
-                <span class="split-label">UPI:</span>
+                <span class="split-label">Online / UPI:</span>
                 <strong class="split-val">{{ onlineRevenueFormatted() }}</strong>
               </div>
             </div>
@@ -365,9 +302,9 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             <!-- Total Orders -->
             <article class="kpi-mini-card">
               <span class="kpi-mini-label">Total Orders</span>
-              <h3 class="kpi-mini-value">{{ data.posOrderCount || 18 }}</h3>
-              <span class="delta-indicator delta-green">
-                ↑ 8%
+              <h3 class="kpi-mini-value">{{ data.posOrderCount }}</h3>
+              <span class="delta-indicator delta-neutral">
+                Today's Volume
               </span>
             </article>
 
@@ -375,8 +312,8 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             <article class="kpi-mini-card">
               <span class="kpi-mini-label">Pending KOT</span>
               <h3 class="kpi-mini-value">{{ pendingKotCount() }}</h3>
-              <span class="delta-indicator delta-red">
-                ↑ 2%
+              <span class="delta-indicator" [class.delta-red]="pendingKotCount() > 0" [class.delta-green]="pendingKotCount() === 0">
+                {{ pendingKotCount() > 0 ? 'Action Required' : 'Cleared' }}
               </span>
             </article>
           </div>
@@ -387,7 +324,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
               <span class="kpi-mini-label">Completed</span>
               <h3 class="kpi-mini-value">{{ completedCount() }}</h3>
               <span class="delta-indicator delta-green">
-                ↑ 89%
+                {{ completedRate() }}% Settled
               </span>
             </div>
             <div class="completed-chart-wrap" aria-hidden="true">
@@ -413,7 +350,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             </div>
           </article>
 
-          <!-- 4. Quick Action Buttons (3 Cards Row matching reference image) -->
+          <!-- 4. Quick Action Buttons -->
           <div class="quick-actions-trio" role="group" aria-label="Quick Actions">
             <!-- New Order -->
             <button type="button" class="quick-act-card" (click)="navigateToOrders()">
@@ -466,7 +403,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             <span class="rush-summary-pill" *ngIf="peakHourText()">{{ peakHourText() }}</span>
           </div>
 
-          <div class="hourly-bars-container">
+          <div class="hourly-bars-container" *ngIf="hasHourlySales(); else emptyHourly">
             <div
               class="hourly-bar-col"
               *ngFor="let bar of displayHourlyBars()"
@@ -482,6 +419,17 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
               <span class="bar-label">{{ bar.hourLabel }}</span>
             </div>
           </div>
+          <ng-template #emptyHourly>
+            <div class="empty-chart-box">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-subtle-icon">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <p>No sales activity recorded yet today.</p>
+              <span>Hourly order velocity will chart here as bills are closed.</span>
+            </div>
+          </ng-template>
         </article>
 
         <!-- Top Selling Dishes Today -->
@@ -494,7 +442,7 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
             <button type="button" class="link-btn-subtle" (click)="navigateToMenu()">View Menu</button>
           </div>
 
-          <div class="top-dishes-list">
+          <div class="top-dishes-list" *ngIf="displayTopDishes().length > 0; else emptyDishes">
             <div class="top-dish-row" *ngFor="let dish of displayTopDishes(); let idx = index">
               <div class="dish-rank-badge">{{ idx + 1 }}</div>
               <div class="dish-details">
@@ -509,6 +457,17 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
               <strong class="dish-revenue">{{ dish.revenueFormatted }}</strong>
             </div>
           </div>
+          <ng-template #emptyDishes>
+            <div class="empty-dishes-box">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-subtle-icon">
+                <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
+                <path d="M15 2v19"/>
+                <path d="M5 2c1.5 2 1.5 5 0 7v12"/>
+              </svg>
+              <p>No dish sales recorded yet today.</p>
+              <span>Top selling items by volume and revenue will populate as tickets close.</span>
+            </div>
+          </ng-template>
         </article>
       </section>
     </div>
@@ -523,18 +482,21 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
         <div class="modal-body">
           <div class="terminal-row-item" *ngFor="let t of terminals()">
             <div class="terminal-main-info">
-              <span class="pulse-dot" [class.pulse-dot--online]="t.isActive"></span>
+              <span class="pulse-dot" [class.pulse-dot--online]="t.isActive || t.status === 'active' || t.status === 'ACTIVE'"></span>
               <div>
-                <strong>{{ t.terminalName || 'Counter Terminal' }}</strong>
-                <span class="terminal-series-tag">Series: {{ t.terminalSeries }}</span>
+                <strong>{{ t.terminalName || 'Terminal ' + (t.terminalSeries || t.id) }}</strong>
+                <span class="terminal-series-tag">Series: {{ t.terminalSeries || 'POS' }}</span>
               </div>
             </div>
             <div class="terminal-status-meta">
-              <span class="chip-status" [class.chip-status--active]="t.isActive">
-                {{ t.isActive ? 'Active' : 'Offline' }}
+              <span class="chip-status" [class.chip-status--active]="t.isActive || t.status === 'active' || t.status === 'ACTIVE'">
+                {{ (t.isActive || t.status === 'active' || t.status === 'ACTIVE') ? 'Active' : 'Offline' }}
               </span>
-              <span class="last-seen-text">Last active: {{ formatDateValue(t.lastActiveAt) }}</span>
+              <span class="last-seen-text">Updated: {{ formatDateValue(t.updatedAt) }}</span>
             </div>
+          </div>
+          <div class="empty-terminals-note" *ngIf="terminals().length === 0">
+            <p>No POS terminals registered yet.</p>
           </div>
         </div>
         <div class="modal-foot">
@@ -971,36 +933,42 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
       transition: all 160ms ease;
       cursor: pointer;
     }
-    .pos-order-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(93, 69, 253, 0.08);
-      border-color: #DDD6FE;
+    .pos-order-card:active {
+      transform: scale(0.985);
     }
 
-    .order-dish-thumb {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      overflow: hidden;
+    .order-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
-      background: #F3F4F6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
-      border: 2px solid #FFFFFF;
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #E2E8F0;
+      transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .order-dish-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .order-avatar--preparing {
+      background: #FEF2F2;
+      color: #DC2626;
+      border-color: #FECACA;
     }
-    .dish-fallback-svg {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .order-avatar--cooking {
+      background: #FFFBEB;
+      color: #D97706;
+      border-color: #FDE68A;
+    }
+    .order-avatar--served {
+      background: #F5F3FF;
+      color: #7C3AED;
+      border-color: #DDD6FE;
+    }
+    .order-avatar--completed {
+      background: #ECFDF5;
+      color: #059669;
+      border-color: #A7F3D0;
     }
 
     .order-info-center {
@@ -1094,13 +1062,78 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
       font-variant-numeric: tabular-nums;
     }
 
+    .order-time-stamp {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #94A3B8;
+      font-variant-numeric: tabular-nums;
+    }
+
     .empty-orders-card {
       background: #FFFFFF;
-      border: 2px dashed #E5E7EB;
-      border-radius: 16px;
-      padding: 2.5rem;
+      border: 1.5px dashed #E2E8F0;
+      border-radius: 20px;
+      padding: 3rem 1.75rem;
       text-align: center;
-      color: #6B7280;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .empty-orders-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.25rem;
+    }
+    .empty-icon-halo {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+    .empty-orders-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1E293B;
+    }
+    .empty-orders-sub {
+      margin: 0;
+      font-size: 0.86rem;
+      color: #64748B;
+      max-width: 340px;
+      line-height: 1.45;
+    }
+    .ghost-btn-compact {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 10px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ghost-btn-compact:hover {
+      background: #F1F5F9;
+      color: #1E293B;
+      border-color: #CBD5E1;
+    }
+    .ghost-btn-compact:active {
+      transform: scale(0.97);
     }
 
     /* ── Right Column: Analytics & Command Center ── */
@@ -1352,6 +1385,33 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
       color: #9CA3AF;
     }
 
+    .empty-chart-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.75rem 1rem;
+      text-align: center;
+      gap: 0.65rem;
+    }
+    .empty-chart-box p {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #94A3B8;
+    }
+    .empty-subtle-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #F8FAFC;
+      border: 1px solid #F1F5F9;
+      color: #CBD5E1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     /* 5. Top Dishes Card */
     .top-dishes-card {
       background: #FFFFFF;
@@ -1433,6 +1493,18 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
       color: #111827;
       font-variant-numeric: tabular-nums;
       flex-shrink: 0;
+    }
+
+    .empty-dishes-box {
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+    .empty-dishes-box p {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #94A3B8;
+      line-height: 1.45;
     }
 
     /* 6. Quick Action Trio */
@@ -1652,10 +1724,31 @@ const DEFAULT_TOP_DISHES: ItemSalesRow[] = [
     .font-bold {
       font-weight: 700;
     }
+
+    .empty-terminals-note {
+      font-size: 0.84rem;
+      color: #94A3B8;
+      font-style: italic;
+      padding: 1.25rem 0;
+      text-align: center;
+    }
+
+    /* Tactile Micro-Interactions (Emil Kowalski Craft) */
+    .channel-selector-btn:active,
+    .terminal-pulse-pill:active,
+    .low-stock-pill:active,
+    .quick-act-card:active,
+    .primary-btn-compact:active {
+      transform: scale(0.97);
+    }
+    .btn-micro:active {
+      transform: scale(0.94);
+    }
   `]
 })
 export class BusinessDashboardPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -1668,23 +1761,25 @@ export class BusinessDashboardPageComponent implements OnInit {
   readonly channelDropdownOpen = signal(false);
   searchQuery = '';
 
-  readonly activeOrders = signal<PosActiveOrder[]>(DEFAULT_MOCK_ACTIVE_ORDERS);
+  readonly activeOrders = signal<PosActiveOrder[]>([]);
   readonly imageErrors = signal<Record<string, boolean>>({});
   readonly selectedOrderDetail = signal<OrderDetailResponse | null>(null);
 
-  // New Live Data Signals from Swagger
-  readonly hourlySalesData = signal<HourlySalesRow[]>(DEFAULT_HOURLY_SALES);
-  readonly topDishesData = signal<ItemSalesRow[]>(DEFAULT_TOP_DISHES);
+  // Live Data Signals from Swagger
+  readonly hourlySalesData = signal<HourlySalesRow[]>([]);
+  readonly topDishesData = signal<ItemSalesRow[]>([]);
   readonly lowStockMaterials = signal<any[]>([]);
-  readonly terminals = signal<SyncTerminalItem[]>([]);
+  readonly terminals = signal<BusinessTerminal[]>([]);
   readonly dailyClosingData = signal<any>(null);
   readonly notifications = signal<NotificationItem[]>([]);
-  readonly unreadNotifsCount = signal<number>(2);
+  readonly unreadNotifsCount = signal<number>(0);
 
   // Modal / Flyout Toggles
   readonly notificationsOpen = signal(false);
   readonly terminalsModalOpen = signal(false);
   readonly lowStockModalOpen = signal(false);
+
+  readonly Math = Math;
 
   ngOnInit(): void {
     this.loadSupplementaryData();
@@ -1710,11 +1805,11 @@ export class BusinessDashboardPageComponent implements OnInit {
             const trends = trendsData as any;
             const orders = ordersData as any;
 
-            // Map live orders if available
-            if (orders && Array.isArray(orders.content) && orders.content.length > 0) {
+            // Map live orders
+            if (orders && Array.isArray(orders.content)) {
               const liveActive: PosActiveOrder[] = orders.content
-                .filter((o: any) => o.orderStatus !== 'CANCELLED' && o.orderStatus !== 'REFUNDED')
-                .slice(0, 8)
+                .filter((o: any) => o.orderStatus !== 'CANCELLED' && o.orderStatus !== 'REFUNDED' && o.orderStatus !== 'VOIDED')
+                .slice(0, 12)
                 .map((o: any) => {
                   let status: PosActiveOrder['status'] = 'Preparing';
                   const st = (o.orderStatus || '').toUpperCase();
@@ -1726,7 +1821,7 @@ export class BusinessDashboardPageComponent implements OnInit {
                     orderId: o.orderId,
                     orderCode: o.orderCode || String(o.orderId),
                     status,
-                    dishType: 'default',
+                    sourceType: o.sourceType || 'DINE_IN',
                     dishImg: undefined,
                     itemsSummary: o.customerName ? `Diner: ${o.customerName}` : 'Dine In Order',
                     tableAndChannel: `${o.sourceType || 'Dine In'} · ${o.paymentMethod || 'Cash'}`,
@@ -1735,27 +1830,25 @@ export class BusinessDashboardPageComponent implements OnInit {
                   };
                 });
 
-              if (liveActive.length > 0) {
-                this.activeOrders.set(liveActive);
-              } else {
-                this.activeOrders.set(DEFAULT_MOCK_ACTIVE_ORDERS);
-              }
+              this.activeOrders.set(liveActive);
             } else {
-              this.activeOrders.set(DEFAULT_MOCK_ACTIVE_ORDERS);
+              this.activeOrders.set([]);
             }
 
-            const deltaToday = trends.yesterdayRevenue > 0
-              ? Math.round(((trends.todayRevenue - trends.yesterdayRevenue) / trends.yesterdayRevenue) * 100)
-              : 14;
+            const todayRev = Number(trends.todayRevenue) || Number(data.todayRevenue) || 0;
+            const yestRev = Number(trends.yesterdayRevenue) || 0;
+            const deltaToday = yestRev > 0
+              ? Math.round(((todayRev - yestRev) / yestRev) * 100)
+              : 0;
 
             return {
               ...data,
-              shopName: data.shopName || 'KhanaBook',
-              todayRevenueFormatted: formatCurrency(data.todayRevenue || 12450),
-              totalRevenueFormatted: formatCurrency(data.totalRevenue || 45200),
-              deltaToday: deltaToday !== 0 ? deltaToday : 14,
-              posOrderCount: data.posOrderCount || 48,
-              pendingPosPayments: data.pendingPosPayments || 3
+              shopName: data.shopName || this.auth.session()?.userName || 'KhanaBook',
+              todayRevenueFormatted: formatCurrency(todayRev),
+              totalRevenueFormatted: formatCurrency(Number(data.totalRevenue) || 0),
+              deltaToday,
+              posOrderCount: Number(data.posOrderCount) || 0,
+              pendingPosPayments: Number(data.pendingPosPayments) || 0
             };
           }),
           catchError((error: unknown) => {
@@ -1771,25 +1864,21 @@ export class BusinessDashboardPageComponent implements OnInit {
     )
   );
 
-  // Load supplementary widgets from Swagger endpoints
+  // Load supplementary widgets from backend endpoints
   private loadSupplementaryData(): void {
     const today = getTodayIsoDate();
 
     // 1. Hourly Sales Curve (GET /analytics/hourly-sales)
     this.api.getHourlySales(today).pipe(catchError(() => of([]))).subscribe(data => {
-      if (Array.isArray(data) && data.some(d => d.itemsSold > 0)) {
-        this.hourlySalesData.set(data);
-      } else {
-        this.hourlySalesData.set(DEFAULT_HOURLY_SALES);
-      }
+      this.hourlySalesData.set(Array.isArray(data) ? data : []);
     });
 
     // 2. Top Selling Dishes (GET /analytics/item-sales)
     this.api.getItemSales(today, today).pipe(catchError(() => of([]))).subscribe(data => {
       if (Array.isArray(data) && data.length > 0) {
-        this.topDishesData.set(data.sort((a, b) => b.quantitySold - a.quantitySold).slice(0, 5));
+        this.topDishesData.set(data.sort((a, b) => (b.quantitySold || 0) - (a.quantitySold || 0)).slice(0, 5));
       } else {
-        this.topDishesData.set(DEFAULT_TOP_DISHES);
+        this.topDishesData.set([]);
       }
     });
 
@@ -1805,17 +1894,9 @@ export class BusinessDashboardPageComponent implements OnInit {
       }
     });
 
-    // 4. POS Terminal Fleet Health (GET /sync/terminal/list)
-    this.api.getSyncTerminalList().pipe(catchError(() => of([]))).subscribe(terms => {
-      if (Array.isArray(terms) && terms.length > 0) {
-        this.terminals.set(terms);
-      } else {
-        // Mock fallback fleet for preview
-        this.terminals.set([
-          { terminalId: 'term-1', terminalName: 'Counter POS 1', terminalSeries: 'POS1', isActive: true, lastActiveAt: Date.now() - 60000 },
-          { terminalId: 'term-2', terminalName: 'Waiter Tab 1', terminalSeries: 'TAB1', isActive: true, lastActiveAt: Date.now() - 180000 }
-        ]);
-      }
+    // 4. POS Terminal Fleet Health (GET /business/terminals)
+    this.api.getTerminals().pipe(catchError(() => of([]))).subscribe(terms => {
+      this.terminals.set(Array.isArray(terms) ? terms : []);
     });
 
     // 5. Daily Closing Split (GET /analytics/daily-closing)
@@ -1827,15 +1908,12 @@ export class BusinessDashboardPageComponent implements OnInit {
 
     // 6. Notifications (GET /notifications)
     this.api.getNotifications(10).pipe(catchError(() => of({ status: 'ok', notifications: [], unreadCount: 0 }))).subscribe(res => {
-      if (res && Array.isArray(res.notifications) && res.notifications.length > 0) {
+      if (res && Array.isArray(res.notifications)) {
         this.notifications.set(res.notifications);
         this.unreadNotifsCount.set(res.unreadCount || 0);
       } else {
-        this.notifications.set([
-          { id: 1, restaurantId: 1, title: 'KOT Sent to Kitchen', message: 'Table 3 order sent to kitchen printer', eventType: 'ORDER', isRead: false, createdAt: Date.now() - 300000 },
-          { id: 2, restaurantId: 1, title: 'Terminal POS-1 Synced', message: 'Offline sync completed successfully', eventType: 'SYNC', isRead: false, createdAt: Date.now() - 1200000 }
-        ]);
-        this.unreadNotifsCount.set(2);
+        this.notifications.set([]);
+        this.unreadNotifsCount.set(0);
       }
     });
   }
@@ -1858,37 +1936,37 @@ export class BusinessDashboardPageComponent implements OnInit {
 
     return orders.filter(order => {
       if (channel !== 'all') {
-        const chanText = order.tableAndChannel.toLowerCase();
+        const chanText = (order.tableAndChannel || '').toLowerCase();
         if (channel === 'dine_in' && !chanText.includes('dine in')) return false;
         if (channel === 'takeaway' && !chanText.includes('takeaway')) return false;
         if (channel === 'delivery' && !chanText.includes('delivery')) return false;
       }
 
       if (!query) return true;
-      return order.orderCode.toLowerCase().includes(query)
-        || order.itemsSummary.toLowerCase().includes(query)
-        || order.tableAndChannel.toLowerCase().includes(query)
-        || order.status.toLowerCase().includes(query);
+      return (order.orderCode || '').toLowerCase().includes(query)
+        || (order.itemsSummary || '').toLowerCase().includes(query)
+        || (order.tableAndChannel || '').toLowerCase().includes(query)
+        || (order.status || '').toLowerCase().includes(query);
     });
   });
 
   // Computed: Terminal Counts
   readonly onlineTerminalsCount = computed(() => {
     const list = this.terminals();
-    return list.filter(t => t.isActive).length;
+    return list.filter(t => t.isActive || (t as any).status === 'active' || (t as any).status === 'ACTIVE').length;
   });
 
   readonly totalTerminalsCount = computed(() => {
-    return this.terminals().length || 2;
+    return this.terminals().length;
   });
 
   // Computed: Cash vs UPI Breakdown
   readonly cashDrawerFormatted = computed(() => {
     const c = this.dailyClosingData();
     if (c && c.expectedCash != null) {
-      return formatCurrency(c.expectedCash);
+      return formatCurrency(Number(c.expectedCash) || 0);
     }
-    return '₹ 7,200';
+    return formatCurrency(0);
   });
 
   readonly onlineRevenueFormatted = computed(() => {
@@ -1897,7 +1975,11 @@ export class BusinessDashboardPageComponent implements OnInit {
       const online = Math.max(0, Number(c.netRevenue) - Number(c.expectedCash));
       return formatCurrency(online);
     }
-    return '₹ 5,250';
+    return formatCurrency(0);
+  });
+
+  readonly hasHourlySales = computed(() => {
+    return this.hourlySalesData().some(r => (r.itemsSold || 0) > 0);
   });
 
   // Computed: Hourly Bar Displays
@@ -1906,12 +1988,13 @@ export class BusinessDashboardPageComponent implements OnInit {
     const operatingHours = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
     const currentHour = new Date().getHours();
 
-    const maxItems = Math.max(...raw.map(r => r.itemsSold), 1);
+    const maxItems = Math.max(...raw.map(r => r.itemsSold || 0), 1);
+    const hasSales = this.hasHourlySales();
 
     return operatingHours.map(h => {
       const match = raw.find(r => r.hour === h);
       const items = match ? match.itemsSold : 0;
-      const heightPct = Math.max(12, Math.round((items / maxItems) * 100));
+      const heightPct = hasSales ? Math.max(8, Math.round((items / maxItems) * 100)) : 8;
 
       const hourLabel = h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`;
 
@@ -1920,13 +2003,14 @@ export class BusinessDashboardPageComponent implements OnInit {
         rawHour: h,
         itemsSold: items,
         heightPct,
-        isPeak: items >= maxItems * 0.85,
+        isPeak: hasSales && items >= maxItems * 0.85 && items > 0,
         isCurrent: h === currentHour
       };
     });
   });
 
   readonly peakHourText = computed(() => {
+    if (!this.hasHourlySales()) return '';
     const bars = this.displayHourlyBars();
     const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
     if (peak && peak.itemsSold > 0) {
@@ -1938,25 +2022,43 @@ export class BusinessDashboardPageComponent implements OnInit {
   // Computed: Top Dishes Leaderboard
   readonly displayTopDishes = computed<TopDishDisplay[]>(() => {
     const list = this.topDishesData();
-    const maxQty = Math.max(...list.map(d => d.quantitySold), 1);
+    if (!list || list.length === 0) return [];
+    const maxQty = Math.max(...list.map(d => d.quantitySold || 0), 1);
 
     return list.slice(0, 5).map(d => ({
       name: d.name,
-      quantitySold: d.quantitySold,
-      revenue: d.revenue,
-      revenueFormatted: formatCurrency(d.revenue),
-      volumePct: Math.max(15, Math.round((d.quantitySold / maxQty) * 100))
+      quantitySold: d.quantitySold || 0,
+      revenue: d.revenue || 0,
+      revenueFormatted: formatCurrency(d.revenue || 0),
+      volumePct: Math.max(12, Math.round(((d.quantitySold || 0) / maxQty) * 100))
     }));
   });
 
   // Computed KPIs
   readonly pendingKotCount = computed(() => {
     const data = this.dashboard();
-    return data?.pendingPosPayments || 3;
+    return Number(data?.pendingPosPayments) || 0;
   });
 
   readonly completedCount = computed(() => {
-    return 16;
+    const c = this.dailyClosingData();
+    if (c && c.completedOrders != null) {
+      return Number(c.completedOrders) || 0;
+    }
+    const data = this.dashboard();
+    if (data && data.posOrderCount != null) {
+      const total = Number(data.posOrderCount) || 0;
+      const pending = Number(data.pendingPosPayments) || 0;
+      return Math.max(0, total - pending);
+    }
+    return 0;
+  });
+
+  readonly completedRate = computed(() => {
+    const total = Number(this.dashboard()?.posOrderCount) || 0;
+    const completed = this.completedCount();
+    if (total === 0) return 100;
+    return Math.min(100, Math.round((completed / total) * 100));
   });
 
   // Dropdowns & Toggles
@@ -2044,7 +2146,9 @@ export class BusinessDashboardPageComponent implements OnInit {
   }
 
   copyInvoice(order: PosActiveOrder): void {
-    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/1/${order.orderId}/preview`;
+    const session = this.auth.session();
+    const restaurantId = session?.restaurantId || 1;
+    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/preview`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(link).then(() => {
         this.toast.show(`Invoice link copied for Order #${order.orderCode}`, 'success');
@@ -2086,48 +2190,7 @@ export class BusinessDashboardPageComponent implements OnInit {
     this.api.getOrderDetail(orderId).subscribe({
       next: (detail) => this.selectedOrderDetail.set(detail),
       error: () => {
-        const found = this.activeOrders().find(o => o.orderId === orderId);
-        if (found) {
-          this.selectedOrderDetail.set({
-            order: {
-              orderId: found.orderId,
-              orderCode: found.orderCode,
-              sourceType: 'DINE_IN',
-              customerName: 'Guest',
-              customerContact: null,
-              orderStatus: found.status.toUpperCase(),
-              paymentStatus: found.status === 'Completed' ? 'PAID' : 'PENDING',
-              paymentMethod: 'CASH',
-              totalAmount: found.totalAmount,
-              gatewayPaidAmount: null,
-              refundAmount: null,
-              refundStatus: 'NONE',
-              refundMode: null,
-              cancelReason: null,
-              manualRefundAllowed: false,
-              gatewayRefundAllowed: false,
-              createdAt: Date.now()
-            },
-            lineItems: [
-              {
-                id: 1,
-                itemName: found.itemsSummary.split(',')[0]?.trim() || 'Special Dish',
-                quantity: 1,
-                price: Math.round(found.totalAmount * 0.7),
-                itemTotal: Math.round(found.totalAmount * 0.7)
-              },
-              {
-                id: 2,
-                itemName: found.itemsSummary.split(',')[1]?.trim() || 'Side Order',
-                quantity: 1,
-                price: Math.round(found.totalAmount * 0.3),
-                itemTotal: Math.round(found.totalAmount * 0.3)
-              }
-            ]
-          });
-        } else {
-          this.toast.show('Unable to load order details.', 'error');
-        }
+        this.toast.show('Unable to load order details.', 'error');
       }
     });
   }

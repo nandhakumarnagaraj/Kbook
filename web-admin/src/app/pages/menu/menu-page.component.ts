@@ -20,26 +20,66 @@ import { environment } from '../../../environments/environment';
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Menu</h2>
-        <p class="muted">Current business menu with cleaner alignment for descriptions, pricing, and availability status.</p>
-        <div class="hero-meta">
-          <span class="chip">Catalog Review</span>
-          <span class="chip success">Stock Visibility</span>
-          <span class="chip">OCR Import</span>
+      <!-- Operational Menu Header (navbar.gallery standard) -->
+      <header class="operational-menu-header">
+        <div class="header-left">
+          <div class="header-title-row">
+            <h2>Menu &amp; Dishes Catalog</h2>
+            <span class="catalog-badge" *ngIf="loaded">{{ items.length }} Items Active</span>
+          </div>
+          <p class="header-sub">Manage dish descriptions, variant pricing, and real-time counter stock availability.</p>
         </div>
-      </section>
+        <div class="header-right">
+          <button type="button" class="primary-btn-tactile" *ngIf="isOwner" (click)="openAddModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add New Dish
+          </button>
+          <button type="button" class="ghost-btn-tactile" (click)="loadMenu()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </header>
 
-      <div class="toolbar">
-        <div>
-          <h3>Menu Snapshot</h3>
-          <p class="muted">Use this list to spot missing descriptions, low stock, and stale updates.</p>
-        </div>
-        <div class="toolbar-actions">
-          <button class="primary-btn" *ngIf="isOwner" (click)="openAddModal()">+ Add Item</button>
-          <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
-        </div>
-      </div>
+      <!-- Stock Quick Filter Strip (bentogrids.com standard) -->
+      <nav class="stock-status-strip" *ngIf="loaded && items.length" aria-label="Stock status quick filters">
+        <button
+          type="button"
+          class="stock-tab-pill"
+          [class.stock-tab-pill--active]="stockFilter === 'ALL'"
+          (click)="setStockFilter('ALL')">
+          All Dishes ({{ items.length }})
+        </button>
+        <button
+          type="button"
+          class="stock-tab-pill stock-tab-pill--green"
+          [class.stock-tab-pill--active]="stockFilter === 'IN_STOCK'"
+          (click)="setStockFilter('IN_STOCK')">
+          ● In Stock ({{ inStockCount }})
+        </button>
+        <button
+          type="button"
+          class="stock-tab-pill stock-tab-pill--amber"
+          [class.stock-tab-pill--active]="stockFilter === 'RUNNING_LOW'"
+          (click)="setStockFilter('RUNNING_LOW')">
+          ● Running Low ({{ runningLowCount }})
+        </button>
+        <button
+          type="button"
+          class="stock-tab-pill stock-tab-pill--red"
+          [class.stock-tab-pill--active]="stockFilter === 'OUT_OF_STOCK'"
+          (click)="setStockFilter('OUT_OF_STOCK')">
+          ● Out of Stock ({{ outOfStockCount }})
+        </button>
+      </nav>
 
       <app-api-state
         *ngIf="loadError"
@@ -347,6 +387,137 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .operational-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+      padding-bottom: var(--kb-space-3);
+      border-bottom: 1px solid var(--kb-color-border);
+      flex-wrap: wrap;
+    }
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .header-title-row h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .catalog-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+    .header-sub {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--kb-color-muted-foreground);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      flex-wrap: wrap;
+    }
+    .primary-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground, #ffffff);
+      border: none;
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .primary-btn-tactile:active {
+      transform: scale(0.97);
+    }
+    .ghost-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, background-color 150ms ease;
+    }
+    .ghost-btn-tactile:active {
+      transform: scale(0.97);
+    }
+    .stock-status-strip {
+      display: flex;
+      gap: var(--kb-space-2);
+      margin-bottom: var(--kb-space-4);
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .stock-tab-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--kb-radius-full);
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-muted-foreground);
+      cursor: pointer;
+      font-variant-numeric: tabular-nums;
+      transition: transform 120ms ease, border-color 150ms ease, color 150ms ease;
+      white-space: nowrap;
+    }
+    .stock-tab-pill:active {
+      transform: scale(0.97);
+    }
+    .stock-tab-pill:hover {
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-foreground);
+    }
+    .stock-tab-pill--active {
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-primary);
+      font-weight: 600;
+    }
+    .stock-tab-pill--green.stock-tab-pill--active {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.08);
+      color: #16a34a;
+    }
+    .stock-tab-pill--amber.stock-tab-pill--active {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.08);
+      color: #d97706;
+    }
+    .stock-tab-pill--red.stock-tab-pill--active {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.08);
+      color: #dc2626;
+    }
+    .data-table td {
+      font-variant-numeric: tabular-nums;
+    }
     .ocr-panel { margin-top: var(--kb-space-3); }
     .ocr-state {
       display: flex; align-items: flex-start; gap: var(--kb-space-2);
@@ -464,6 +635,23 @@ export class MenuPageComponent implements OnDestroy {
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
+  }
+
+  get inStockCount(): number {
+    return this.items.filter(i => i.available && i.stockStatus === 'IN_STOCK').length;
+  }
+
+  get runningLowCount(): number {
+    return this.items.filter(i => i.stockStatus === 'RUNNING_LOW').length;
+  }
+
+  get outOfStockCount(): number {
+    return this.items.filter(i => !i.available || i.stockStatus === 'OUT_OF_STOCK').length;
+  }
+
+  setStockFilter(status: string): void {
+    this.stockFilter = status;
+    this.resetPage();
   }
 
   constructor() {

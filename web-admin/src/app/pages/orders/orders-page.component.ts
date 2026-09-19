@@ -58,14 +58,39 @@ export function filterBusinessOrders(
   imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Orders</h2>
-        <p class="muted">POS order management with refund actions and status visibility.</p>
-        <div class="hero-meta">
-          <span class="chip">Refund Tools</span>
-          <span class="chip success">Unified Order View</span>
+      <header class="operational-orders-header">
+        <div class="header-left">
+          <div class="header-title-row">
+            <h2>Order History &amp; Settlements</h2>
+            <span class="record-counter-pill" *ngIf="ordersLoaded">{{ filteredOrders.length }} Records</span>
+          </div>
+          <p class="header-sub">POS transactions, refund reconciliation, and customer invoice tracking.</p>
         </div>
-      </section>
+        <div class="header-right">
+          <button
+            type="button"
+            class="ghost-btn-tactile"
+            [disabled]="filteredOrders.length === 0"
+            (click)="exportCsv()"
+            title="Export filtered orders as CSV">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export CSV
+          </button>
+          <button type="button" class="primary-btn-tactile" (click)="loadOrders()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </header>
 
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
         <section
@@ -140,21 +165,33 @@ export function filterBusinessOrders(
         Loading order details...
       </div>
 
-      <div class="toolbar">
-        <div>
-          <h3>POS and Business Orders</h3>
-          <p class="muted">POS order list.</p>
-        </div>
-        <div class="toolbar-actions">
-          <button
-            class="ghost-btn"
-            [disabled]="filteredOrders.length === 0"
-            [title]="filteredOrders.length === 0 ? 'No data to export' : 'Export filtered orders as CSV'"
-            (click)="exportCsv()"
-          >Export CSV</button>
-          <button class="ghost-btn" (click)="loadOrders()">Refresh</button>
-        </div>
-      </div>
+      <!-- Bento KPI Strip (bentogrids.com standard) -->
+      <section class="orders-bento-grid" *ngIf="ordersLoaded && filteredOrders.length" aria-label="Orders Analytics Overview">
+        <article class="bento-tile bento-tile--hero">
+          <div class="bento-tile__head">
+            <span class="bento-tile__label">Filtered Gross Revenue</span>
+            <span class="bento-pulse-tag">● Live</span>
+          </div>
+          <strong class="bento-tile__value">{{ formatCurrencyValue(filteredTotalRevenue) }}</strong>
+          <div class="bento-split-bar">
+            <span class="split-sub">Cash: {{ formatCurrencyValue(cashVolume) }}</span>
+            <span class="split-dot">&bull;</span>
+            <span class="split-sub">Digital / UPI: {{ formatCurrencyValue(digitalVolume) }}</span>
+          </div>
+        </article>
+
+        <article class="bento-tile">
+          <span class="bento-tile__label">Settlement Rate</span>
+          <strong class="bento-tile__value">{{ settlementRate }}%</strong>
+          <span class="bento-tile__sub">{{ filteredCompletedCount }} of {{ filteredOrders.length }} orders completed</span>
+        </article>
+
+        <article class="bento-tile" [class.bento-tile--alert]="filteredRefundedTotal > 0">
+          <span class="bento-tile__label">Manual Refunds</span>
+          <strong class="bento-tile__value">{{ formatCurrencyValue(filteredRefundedTotal) }}</strong>
+          <span class="bento-tile__sub">{{ refundedOrdersCount }} orders refunded</span>
+        </article>
+      </section>
 
       <app-api-state
         *ngIf="ordersError"
@@ -321,12 +358,19 @@ export function filterBusinessOrders(
           </div>
         </div>
         <ng-template #ordersEmpty>
-          <app-empty-state
-            *ngIf="!ordersError"
-            icon="🧾"
-            title="No orders match the current filters"
-            text="Try adjusting the search, status, source, or date range to see more results."
-          ></app-empty-state>
+          <div class="receipt-empty-state" *ngIf="!ordersError">
+            <div class="receipt-empty-halo">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <h3 class="receipt-empty-title">No Orders Match Current Filters</h3>
+            <p class="receipt-empty-sub">Adjust your search query, status selector, or date window to inspect more records.</p>
+            <button type="button" class="ghost-btn-tactile" (click)="clearOrderFilters()">Reset Filters</button>
+          </div>
         </ng-template>
       </ng-template>
     </div>
@@ -382,6 +426,230 @@ export function filterBusinessOrders(
       .mobile-order-card__amount { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
       .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted-foreground); font-size: 0.75rem; }
       .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: var(--kb-space-2); padding: var(--kb-space-2) var(--kb-space-3); border-top: 1px solid var(--kb-color-border); background: var(--kb-color-surface-2); }
+    }
+
+    /* Operational Orders Header (navbar.gallery style) */
+    .operational-orders-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid #EEF0F7;
+    }
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .header-title-row h2 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+    }
+    .record-counter-pill {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #E2E8F0;
+      font-variant-numeric: tabular-nums;
+    }
+    .header-sub {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #64748B;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Bento KPI Grid (bentogrids.com standard) */
+    .orders-bento-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .orders-bento-grid { grid-template-columns: 1fr; }
+    }
+    .bento-tile {
+      background: #FFFFFF;
+      border: 1px solid #EEF0F7;
+      border-radius: 18px;
+      padding: 1.25rem 1.4rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+    .bento-tile:hover {
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    }
+    .bento-tile--hero {
+      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+      color: #FFFFFF;
+      border: none;
+      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
+    }
+    .bento-tile--hero .bento-tile__label {
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .bento-tile--hero .bento-tile__value {
+      color: #FFFFFF;
+    }
+    .bento-tile__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bento-tile__label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #8F95B2;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .bento-pulse-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+    }
+    .bento-tile__value {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .bento-split-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.75);
+      font-variant-numeric: tabular-nums;
+    }
+    .split-dot {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .bento-tile__sub {
+      font-size: 0.78rem;
+      color: #64748B;
+      font-weight: 500;
+    }
+    .bento-tile--alert {
+      border-color: #FECACA;
+      background: #FFFBFB;
+    }
+    .bento-tile--alert .bento-tile__value {
+      color: #DC2626;
+    }
+
+    /* Tactile CTA Buttons (cta.gallery & 60fps.design) */
+    .primary-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1rem;
+      background: #5D45FD;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.22);
+      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .primary-btn-tactile:hover {
+      background: #4D37E6;
+      box-shadow: 0 4px 12px rgba(93, 69, 253, 0.3);
+    }
+    .primary-btn-tactile:active {
+      transform: scale(0.97);
+    }
+
+    .ghost-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1rem;
+      background: #FFFFFF;
+      color: #334155;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ghost-btn-tactile:hover:not(:disabled) {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+      color: #0F172A;
+    }
+    .ghost-btn-tactile:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .ghost-btn-tactile:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    /* Thermal Receipt Empty State (404s.design) */
+    .receipt-empty-state {
+      background: #FFFFFF;
+      border: 1.5px dashed #CBD5E1;
+      border-radius: 20px;
+      padding: 3.5rem 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      margin: 1.5rem 0;
+    }
+    .receipt-empty-halo {
+      width: 60px;
+      height: 60px;
+      border-radius: 18px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+    .receipt-empty-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .receipt-empty-sub {
+      margin: 0;
+      font-size: 0.86rem;
+      color: #64748B;
+      max-width: 380px;
+      line-height: 1.45;
     }
   `]
 })
@@ -444,6 +712,39 @@ export class OrdersPageComponent implements OnDestroy {
 
   get pagedOrders(): BusinessOrder[] {
     return this.filteredOrders;
+  }
+
+  get filteredTotalRevenue(): number {
+    return this.filteredOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+  }
+
+  get filteredCompletedCount(): number {
+    return this.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'completed').length;
+  }
+
+  get filteredRefundedTotal(): number {
+    return this.filteredOrders.reduce((acc, o) => acc + (o.refundAmount || 0), 0);
+  }
+
+  get refundedOrdersCount(): number {
+    return this.filteredOrders.filter(o => o.refundAmount && o.refundAmount > 0).length;
+  }
+
+  get cashVolume(): number {
+    return this.filteredOrders
+      .filter(o => (o.paymentMethod || '').toLowerCase().includes('cash'))
+      .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+  }
+
+  get digitalVolume(): number {
+    return this.filteredOrders
+      .filter(o => !(o.paymentMethod || '').toLowerCase().includes('cash'))
+      .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+  }
+
+  get settlementRate(): number {
+    if (!this.filteredOrders.length) return 0;
+    return Math.round((this.filteredCompletedCount / this.filteredOrders.length) * 100);
   }
 
   get orderTotalPages(): number {

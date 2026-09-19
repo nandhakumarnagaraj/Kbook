@@ -40,43 +40,85 @@ interface RestaurantProfile {
   imports: [CommonModule, FormsModule, TaxSettingsSectionComponent, PaymentMethodsSectionComponent, PasswordChangeSectionComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Business Settings</h2>
-        <p class="muted">Manage your restaurant profile, tax configuration, payment methods, and account security.</p>
-      </section>
+      <!-- Operational Header (navbar.gallery standard) -->
+      <header class="operational-settings-header">
+        <div class="header-left">
+          <div class="header-title-row">
+            <h2>Business &amp; Restaurant Configuration</h2>
+            <span class="sync-state-badge" *ngIf="!loading()">
+              <span class="status-pulse-dot"></span>
+              Live Sync Ready
+            </span>
+          </div>
+          <p class="header-sub">Configure restaurant identity, automated GST compliance, payment settlement channels, and merchant agreements.</p>
+        </div>
+        <div class="header-right">
+          <button type="button" class="primary-btn-tactile" [disabled]="saving() || loading()" (click)="saveProfile()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+          </button>
+          <button type="button" class="ghost-btn-tactile" (click)="load(); loadAgreement()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </header>
 
       <div class="panel loading" *ngIf="loading()">Loading settings...</div>
-      <div class="panel loading" *ngIf="!loading() && loadError() && !profile()">{{ loadError() }} <button class="ghost-btn" (click)="load()">Retry</button></div>
+      <div class="panel loading" *ngIf="!loading() && loadError() && !profile()">
+        {{ loadError() }} <button class="ghost-btn-tactile" (click)="load()">Retry</button>
+      </div>
 
       <ng-container *ngIf="profile() as p">
 
-        <!-- Shop Profile -->
+        <!-- Shop Profile (unsection.com tonal layout) -->
         <section class="panel settings-section">
-          <h3>Shop Profile</h3>
+          <div class="section-title-wrap">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Restaurant Identity &amp; Invoicing</h3>
+              <p class="muted">Information printed on thermal receipts, customer invoices, and online menus.</p>
+            </div>
+          </div>
+
           <div class="form-grid">
             <div class="field">
               <label>Shop Name *</label>
               <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" />
             </div>
             <div class="field">
-              <label>Address</label>
+              <label>Shop Address</label>
               <input class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" />
             </div>
             <div class="field">
-              <label>WhatsApp Number</label>
-              <input class="field-control" [(ngModel)]="p.whatsappNumber" placeholder="10-digit number" maxlength="10" />
+              <label>WhatsApp Contact Number</label>
+              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" />
             </div>
             <div class="field">
-              <label>Email</label>
+              <label>Official Email</label>
               <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" />
             </div>
             <div class="field">
-              <label>Invoice Footer</label>
-              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on invoices" />
+              <label>Thermal Receipt Footer Note</label>
+              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" />
             </div>
             <div class="field">
-              <label>Review URL</label>
-              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="Google Maps review link" />
+              <label>Google Maps Review URL</label>
+              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" />
             </div>
           </div>
         </section>
@@ -93,10 +135,16 @@ interface RestaurantProfile {
           (settingsChange)="applyPaymentSettings($event)"
         />
 
-        <div class="save-bar">
-          <button class="primary-btn" [disabled]="saving()" (click)="saveProfile()">
-            {{ saving() ? 'Saving...' : 'Save All Changes' }}
-          </button>
+        <div class="sticky-save-dock">
+          <div class="save-dock-inner">
+            <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
+            <button class="primary-btn-tactile" [disabled]="saving()" (click)="saveProfile()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+            </button>
+          </div>
         </div>
 
       </ng-container>
@@ -106,34 +154,60 @@ interface RestaurantProfile {
 
       <!-- Merchant Agreement -->
       <section class="panel settings-section">
-        <h3>Merchant Agreement</h3>
-        <p class="muted">Upload the signed KhanaBook service agreement (PDF). Stored securely; only you and KhanaBook admins can access it.</p>
+        <div class="section-title-wrap">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Merchant Service Agreement</h3>
+            <p class="muted">Upload and review the signed KhanaBook service contract (PDF). Encrypted at rest; accessible only to shop owners.</p>
+          </div>
+        </div>
 
         <div class="panel loading" *ngIf="agreementLoading()">Loading agreement status...</div>
 
         <ng-container *ngIf="!agreementLoading()">
-          <div class="agreement-status" *ngIf="agreement()?.hasAgreement">
-            <span class="chip success">Signed agreement on file</span>
-            <span class="muted" *ngIf="agreement()?.signedAt as ts"> · {{ ts | date:'medium' }}</span>
+          <div class="agreement-status-card" *ngIf="agreement()?.hasAgreement">
+            <div class="status-card-left">
+              <span class="signed-badge">
+                <span class="status-pulse-dot"></span>
+                Signed Contract on File
+              </span>
+              <span class="muted tabular-num" *ngIf="agreement()?.signedAt as ts">
+                Signed on {{ ts | date:'medium' }}
+              </span>
+            </div>
             <div class="agreement-actions">
-              <button class="ghost-btn" [disabled]="agreementBusy()" (click)="downloadAgreement()">
-                {{ agreementBusy() ? 'Working...' : 'Download' }}
+              <button class="ghost-btn-tactile" [disabled]="agreementBusy()" (click)="downloadAgreement()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {{ agreementBusy() ? 'Downloading...' : 'Download PDF' }}
               </button>
             </div>
           </div>
-          <p class="muted" *ngIf="!agreement()?.hasAgreement">No agreement uploaded yet.</p>
 
-          <div class="form-grid" style="max-width:500px; margin-top:1rem;">
+          <p class="muted" *ngIf="!agreement()?.hasAgreement" style="margin: var(--kb-space-3) 0;">No active service agreement has been uploaded yet.</p>
+
+          <div class="agreement-upload-box">
             <div class="field">
-              <label>Signer Name</label>
+              <label>Signatory Full Name</label>
               <input class="field-control" [(ngModel)]="agreementSigner" placeholder="Name of the person who signed" />
             </div>
             <div class="field">
-              <label>Agreement PDF *</label>
+              <label>Signed Contract PDF *</label>
               <input class="field-control" type="file" accept="application/pdf" (change)="onAgreementFileSelected($event)" />
             </div>
-            <div class="field">
-              <button class="primary-btn" [disabled]="!agreementFile || agreementBusy()" (click)="uploadAgreement()">
+            <div class="field-btn">
+              <button class="primary-btn-tactile" [disabled]="!agreementFile || agreementBusy()" (click)="uploadAgreement()">
                 {{ agreementBusy() ? 'Uploading...' : (agreement()?.hasAgreement ? 'Replace Agreement' : 'Upload Agreement') }}
               </button>
             </div>
@@ -143,23 +217,192 @@ interface RestaurantProfile {
     </div>
   `,
   styles: [`
-    .settings-section { margin-bottom: var(--kb-space-3); }
-    .settings-section h3 { margin: 0 0 var(--kb-space-2); color: var(--kb-color-foreground); }
+    .operational-settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+      padding-bottom: var(--kb-space-3);
+      border-bottom: 1px solid var(--kb-color-border);
+      flex-wrap: wrap;
+    }
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .header-title-row h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .sync-state-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--kb-radius-full);
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #16a34a;
+    }
+    .status-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #16a34a;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    .header-sub {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--kb-color-muted-foreground);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      flex-wrap: wrap;
+    }
+    .primary-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground, #ffffff);
+      border: none;
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .primary-btn-tactile:active { transform: scale(0.97); }
+    .primary-btn-tactile:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ghost-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, background-color 150ms ease;
+    }
+    .ghost-btn-tactile:active { transform: scale(0.97); }
+    .section-title-wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+      padding-bottom: var(--kb-space-3);
+      border-bottom: 1px solid var(--kb-color-border);
+    }
+    .section-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--kb-radius-md);
+      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.08);
+      color: var(--kb-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title-wrap h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .section-title-wrap p {
+      margin: 2px 0 0 0;
+      font-size: 0.82rem;
+    }
+    .settings-section { margin-bottom: var(--kb-space-4); }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
       gap: var(--kb-space-3);
     }
-    .field label { display: block; font-size: 0.85rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
-    .toggle-label {
-      display: flex; align-items: center; gap: var(--kb-space-2); cursor: pointer;
-      font-size: 0.88rem; color: var(--kb-color-foreground); font-weight: 500;
+    .field label { display: block; font-size: 0.82rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
+    .tabular-num { font-variant-numeric: tabular-nums; }
+    .sticky-save-dock {
+      margin: var(--kb-space-4) 0;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     }
-    .toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--kb-color-primary); }
-    .save-bar { padding: var(--kb-space-3) 0; display: flex; justify-content: flex-end; }
-    .success-text { color: var(--kb-color-success); font-size: 0.85rem; }
-    .error-text { color: var(--kb-color-error); font-size: 0.85rem; }
-    .agreement-actions { margin-top: var(--kb-space-2); }
+    .save-dock-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .dock-hint {
+      font-size: 0.82rem;
+      color: var(--kb-color-muted-foreground);
+    }
+    .agreement-status-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      margin-bottom: var(--kb-space-4);
+      flex-wrap: wrap;
+      gap: var(--kb-space-3);
+    }
+    .status-card-left {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .signed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: var(--kb-radius-full);
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: rgba(34, 197, 94, 0.1);
+      color: #16a34a;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .agreement-upload-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+      gap: var(--kb-space-3);
+      align-items: flex-end;
+      max-width: 700px;
+    }
+    .field-btn {
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 1px;
+    }
   `]
 })
 export class BusinessSettingsPageComponent {

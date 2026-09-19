@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,10 +35,25 @@ import kotlinx.coroutines.withContext
 
 enum class ToastKind { Success, Error, Warning, Info }
 
+// Competitor-benchmarked timing (Arow/Khide/Billkaro): success 2s, errors 3.5s.
+// Material3 only offers 4s/10s duration buckets, so the exact per-kind timing is
+// enforced by the KhanaBookSnackbar composable below, which dismisses the
+// snackbar itself when its kind-specific window elapses.
+internal const val TOAST_SUCCESS_MS = 2_000L
+internal const val TOAST_ERROR_MS = 3_500L
+internal const val TOAST_WARNING_MS = 3_500L
+internal const val TOAST_INFO_MS = 2_000L
+
+internal fun toastDurationMs(kind: ToastKind): Long = when (kind) {
+    ToastKind.Error -> TOAST_ERROR_MS
+    ToastKind.Warning -> TOAST_WARNING_MS
+    ToastKind.Info -> TOAST_INFO_MS
+    ToastKind.Success -> TOAST_SUCCESS_MS
+}
+
 private fun defaultDuration(kind: ToastKind, actionLabel: String?): SnackbarDuration = when {
     actionLabel != null -> SnackbarDuration.Indefinite
-    kind == ToastKind.Error || kind == ToastKind.Warning -> SnackbarDuration.Long
-    else -> SnackbarDuration.Short
+    else -> SnackbarDuration.Short // placeholder; real timing enforced in KhanaBookSnackbar
 }
 
 class KhanaSnackbarVisuals(
@@ -142,6 +158,17 @@ fun KhanaBookSnackbar(data: SnackbarData) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val shape = KhanaRadii.card
+
+    // Competitor-style fixed display window: dismiss exactly when the kind's
+    // duration elapses, regardless of the snackbar's own Material3 timing.
+    // Action toasts stay Indefinite and are exempt.
+    val hasAction = data.visuals.actionLabel != null
+    LaunchedEffect(data, kind) {
+        if (!hasAction) {
+            kotlinx.coroutines.delay(toastDurationMs(kind))
+            data.dismiss()
+        }
+    }
 
     Surface(
         modifier = Modifier
