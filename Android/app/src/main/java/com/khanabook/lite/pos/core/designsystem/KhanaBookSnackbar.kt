@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.theme.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -66,11 +68,10 @@ class KhanaSnackbarVisuals(
 
 object KhanaToast {
     private const val DUPLICATE_WINDOW_MS = 2_000L
-    private const val MAX_ACTIVE_REQUESTS = 2
 
     val host: SnackbarHostState = SnackbarHostState()
     private val requestMutex = Mutex()
-    private var activeRequests = 0
+    private var activeShowJob: Job? = null
     private var lastMessage: String? = null
     private var lastKind: ToastKind? = null
     private var lastAcceptedAt = 0L
@@ -93,17 +94,10 @@ object KhanaToast {
                 lastMessage == normalizedMessage &&
                     lastKind == kind &&
                     now - lastAcceptedAt < DUPLICATE_WINDOW_MS
-            val requestLimit = if (kind == ToastKind.Error) {
-                MAX_ACTIVE_REQUESTS + 1
-            } else {
-                MAX_ACTIVE_REQUESTS
-            }
-            val queueHasRoom = activeRequests < requestLimit
 
-            if (isVisibleDuplicate || isRecentDuplicate || !queueHasRoom) {
+            if (isVisibleDuplicate || isRecentDuplicate) {
                 false
             } else {
-                activeRequests += 1
                 lastMessage = normalizedMessage
                 lastKind = kind
                 lastAcceptedAt = now
@@ -113,12 +107,17 @@ object KhanaToast {
 
         if (!accepted) return@withContext SnackbarResult.Dismissed
 
-        if (kind == ToastKind.Error) {
-            val currentKind = (host.currentSnackbarData?.visuals as? KhanaSnackbarVisuals)?.kind
-            if (currentKind == ToastKind.Info || currentKind == ToastKind.Success) {
-                host.currentSnackbarData?.dismiss()
-            }
+        // Keep one foreground message visible at a time. Cancel the previous
+        // caller as well as dismissing the host item so SnackbarHostState does
+        // not retain a queued message that could appear after this one.
+        val currentJob = currentCoroutineContext()[Job]
+        val previousJob = requestMutex.withLock {
+            val previous = activeShowJob
+            activeShowJob = currentJob
+            previous
         }
+        if (previousJob != null && previousJob !== currentJob) previousJob.cancel()
+        host.currentSnackbarData?.dismiss()
 
         try {
             host.showSnackbar(
@@ -131,7 +130,7 @@ object KhanaToast {
             )
         } finally {
             requestMutex.withLock {
-                activeRequests = (activeRequests - 1).coerceAtLeast(0)
+                if (activeShowJob === currentJob) activeShowJob = null
             }
         }
     }
