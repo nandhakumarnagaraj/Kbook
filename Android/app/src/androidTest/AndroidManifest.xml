@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- FCM is exercised through unit/repository tests; it must not start before
+         HiltAndroidRule creates the test component during instrumentation. -->
+    <application>
+        <service
+            android:name="com.khanabook.lite.pos.feature.notifications.worker.KhanaBookFirebaseMessagingService"
+            android:enabled="false"
+            tools:node="replace" />
+    </application>
+</manifest>
