@@ -386,6 +386,18 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void paymentLinkRejectsInvalidAmountBeforeGatewayCall() {
+        createActiveSubMerchant();
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "0.001"));
+
+        assertEquals("INVALID_PAYMENT_AMOUNT", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+    }
+
+    @Test
     void ownerDisabledEasebuzzBlocksNewBillPaymentLink() {
         createActiveSubMerchant();
         when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);

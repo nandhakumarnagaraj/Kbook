@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -361,7 +362,18 @@ public class EasebuzzPaymentService {
             return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
                     "error", "Restaurant owner must sign the current payment agreement");
         }
-        String amount = request.get("amount").toString();
+        BigDecimal parsedAmount;
+        try {
+            Object rawAmount = request.get("amount");
+            parsedAmount = rawAmount == null ? null : new BigDecimal(rawAmount.toString().trim());
+        } catch (NumberFormatException e) {
+            parsedAmount = null;
+        }
+        if (parsedAmount == null || parsedAmount.signum() <= 0 || parsedAmount.scale() > 2) {
+            return Map.of("status", "failure", "code", "INVALID_PAYMENT_AMOUNT",
+                    "error", "Payment amount must be greater than zero with at most two decimal places");
+        }
+        String amount = parsedAmount.setScale(2, RoundingMode.UNNECESSARY).toPlainString();
         String customerName = (String) request.get("customerName");
         String customerEmail = (String) request.get("customerEmail");
         String customerPhone = (String) request.get("customerPhone");
