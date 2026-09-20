@@ -8,6 +8,7 @@ Source area: core/app, core/di
 Docs: https://developer.android.com/develop/ui/views/launch/splash-screen
 Docs: https://developer.android.com/guide/components/activities/activity-lifecycle
 Docs: https://developer.android.com/training/permissions/requesting
+Audit status (2026-09-20): Reviewed. MainActivity installs the AndroidX splash before super.onCreate, uses lifecycle-aware Compose effects, requests POST_NOTIFICATIONS only on Android 13+, and routes startup from persisted session state. No documentation mismatch found.
 
 Feature: Jetpack Compose UI and Material 3 design system
 Source area: core/designsystem, core/theme, feature/*/ui
