@@ -5,6 +5,7 @@ import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.onboarding.data.MerchantAgreementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ public class RestaurantPaymentConfigController {
 
     private final RestaurantProfileRepository profileRepo;
     private final SubMerchantService subMerchantService;
+    private final MerchantAgreementRepository merchantAgreementRepository;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
@@ -54,7 +56,14 @@ public class RestaurantPaymentConfigController {
         RestaurantProfile profile = profileRepo.findByRestaurantId(restaurantId)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
         if (data.containsKey("easebuzzEnabled")) {
-            profile.setEasebuzzEnabled((Boolean) data.get("easebuzzEnabled"));
+            boolean enabled = Boolean.TRUE.equals(data.get("easebuzzEnabled"));
+            if (enabled && !merchantAgreementRepository.existsByRestaurantId(restaurantId)) {
+                return ResponseEntity.status(409).body(Map.of(
+                        "status", "failure",
+                        "error", "Restaurant owner agreement is required before enabling Easebuzz payments",
+                        "agreementRequired", true));
+            }
+            profile.setEasebuzzEnabled(enabled);
         }
         profileRepo.save(profile);
         return getConfig();

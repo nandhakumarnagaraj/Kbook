@@ -9,7 +9,7 @@ import java.util.Optional;
 @Repository
 public interface MerchantAgreementRepository extends JpaRepository<MerchantAgreement, Long> {
 
-    Optional<MerchantAgreement> findByRestaurantId(Long restaurantId);
+    Optional<MerchantAgreement> findTopByRestaurantIdOrderBySignedAtDescIdDesc(Long restaurantId);
 
     boolean existsByRestaurantId(Long restaurantId);
 }

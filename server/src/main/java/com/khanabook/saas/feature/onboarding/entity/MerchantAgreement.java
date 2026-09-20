@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * KhanaBook &lt;-&gt; restaurant owner e-agreement (Sejda-signed PDF).
+ * KhanaBook &lt;-&gt; restaurant owner signed PDF.
  *
  * <p>A KhanaBook-side legal record — deliberately NOT part of the Easebuzz
  * onboarding payload and NOT synced to Android devices. The signed PDF lives on
@@ -57,6 +57,18 @@ public class MerchantAgreement {
 
     @Column(name = "agreement_version")
     private String agreementVersion;
+
+    @Column(name = "document_sha256", length = 64)
+    private String documentSha256;
+
+    @Column(name = "signer_user_id")
+    private Long signerUserId;
+
+    @Column(name = "signature_method", length = 50)
+    private String signatureMethod;
+
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "SIGNED";
 
     @Column(name = "created_at", nullable = false)
     private Long createdAt;

@@ -4,6 +4,7 @@ import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
+import com.khanabook.saas.feature.onboarding.data.MerchantAgreementRepository;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MerchantAgreementServiceTest extends BaseIntegrationTest {
 
     @Autowired private MerchantAgreementService service;
+    @Autowired private MerchantAgreementRepository agreementRepository;
 
     @DynamicPropertySource
     static void privateDocsPath(DynamicPropertyRegistry registry) {
@@ -66,7 +68,7 @@ class MerchantAgreementServiceTest extends BaseIntegrationTest {
 
     @Transactional
     @Test
-    void secondUploadReplacesFirst() throws Exception {
+    void secondUploadCreatesImmutableRevision() throws Exception {
         Long restaurantId = 850L + System.currentTimeMillis() % 100;
         persistUser("agreerepl" + System.currentTimeMillis() + "@kbook.com", restaurantId, UserRole.OWNER);
 
@@ -77,8 +79,11 @@ class MerchantAgreementServiceTest extends BaseIntegrationTest {
                 new MockMultipartFile("file", "v2.pdf", "application/pdf", "%PDF-2".getBytes(StandardCharsets.UTF_8)),
                 "Owner", "v2");
 
-        // Still exactly one agreement row for the restaurant (unique constraint), now pointing at v2.
+        // Revisions are retained for audit; the status endpoint returns the newest revision.
         assertEquals("v2.pdf", second.getOriginalFilename());
         assertEquals("v2", service.get(restaurantId).orElseThrow().getAgreementVersion());
+        assertEquals(2, agreementRepository.findAll().stream()
+                .filter(a -> restaurantId.equals(a.getRestaurantId())).count());
+        assertNotNull(second.getDocumentSha256());
     }
 }

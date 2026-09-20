@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Stores and serves the KhanaBook &lt;-&gt; restaurant signed agreement (Sejda PDF).
+ * Stores and serves the KhanaBook &lt;-&gt; restaurant signed agreement PDF.
  *
  * <p>Documents are written to a PRIVATE filesystem path (not under the public
  * {@code /cdn/**} handler) and are only reachable via authenticated,
@@ -40,7 +42,14 @@ public class MerchantAgreementService {
     private long maxUploadBytes;
 
     @Transactional
-    public MerchantAgreement upload(Long restaurantId, MultipartFile file, String signerName, String agreementVersion) {
+    public MerchantAgreement upload(Long restaurantId, MultipartFile file, String signerName,
+                                    String agreementVersion) {
+        return upload(restaurantId, file, signerName, agreementVersion, null, "DRAWN_SIGNATURE_UPLOAD");
+    }
+
+    @Transactional
+    public MerchantAgreement upload(Long restaurantId, MultipartFile file, String signerName,
+                                    String agreementVersion, Long signerUserId, String signatureMethod) {
         validate(file);
 
         Path tmp = null;
@@ -57,16 +66,9 @@ public class MerchantAgreementService {
             tmp = null;
 
             long now = System.currentTimeMillis();
-            MerchantAgreement agreement = repository.findByRestaurantId(restaurantId)
-                    .orElseGet(() -> {
-                        MerchantAgreement a = new MerchantAgreement();
-                        a.setRestaurantId(restaurantId);
-                        a.setCreatedAt(now);
-                        return a;
-                    });
-
-            // Remove any previous file for this restaurant to avoid orphaned PII.
-            String previousKey = agreement.getStorageKey();
+            MerchantAgreement agreement = new MerchantAgreement();
+            agreement.setRestaurantId(restaurantId);
+            agreement.setCreatedAt(now);
 
             agreement.setStorageKey(relativeKey);
             agreement.setOriginalFilename(file.getOriginalFilename());
@@ -75,12 +77,13 @@ public class MerchantAgreementService {
             agreement.setSignedAt(now);
             agreement.setSignerName(signerName);
             agreement.setAgreementVersion(agreementVersion);
+            agreement.setSignerUserId(signerUserId);
+            agreement.setSignatureMethod(signatureMethod == null || signatureMethod.isBlank()
+                    ? "DRAWN_SIGNATURE_UPLOAD" : signatureMethod);
+            agreement.setDocumentSha256(sha256(target));
+            agreement.setStatus("SIGNED");
             agreement.setUpdatedAt(now);
             MerchantAgreement saved = repository.save(agreement);
-
-            if (previousKey != null && !previousKey.equals(relativeKey)) {
-                deleteQuietly(previousKey);
-            }
 
             log.info("Stored merchant agreement for restaurant {} key={}", restaurantId, relativeKey);
             return saved;
@@ -94,7 +97,7 @@ public class MerchantAgreementService {
     }
 
     public Optional<MerchantAgreement> get(Long restaurantId) {
-        return repository.findByRestaurantId(restaurantId);
+        return repository.findTopByRestaurantIdOrderBySignedAtDescIdDesc(restaurantId);
     }
 
     /** Opens the stored PDF for streaming. Caller is responsible for closing the stream. */
@@ -148,6 +151,22 @@ public class MerchantAgreementService {
             Files.deleteIfExists(resolveWithinBase(relativeKey));
         } catch (Exception e) {
             log.warn("Failed to delete previous agreement file {}", relativeKey, e);
+        }
+    }
+
+    private String sha256(Path path) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream in = Files.newInputStream(path)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) != -1) digest.update(buffer, 0, read);
+            }
+            StringBuilder hex = new StringBuilder(64);
+            for (byte b : digest.digest()) hex.append(String.format("%02x", b));
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 }

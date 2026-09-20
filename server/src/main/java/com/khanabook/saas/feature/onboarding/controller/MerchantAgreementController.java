@@ -41,11 +41,14 @@ public class MerchantAgreementController {
             @RequestParam(value = "signerName", required = false) String signerName,
             @RequestParam(value = "agreementVersion", required = false) String agreementVersion) {
         Long restaurantId = TenantContext.getCurrentTenant();
-        MerchantAgreement saved = service.upload(restaurantId, file, signerName, agreementVersion);
+        MerchantAgreement saved = service.upload(restaurantId, file, signerName, agreementVersion,
+                TenantContext.getCurrentUserId(), "DRAWN_SIGNATURE_UPLOAD");
         Map<String, Object> body = new HashMap<>();
         body.put("uploaded", true);
         body.put("signedAt", saved.getSignedAt());
         body.put("originalFilename", saved.getOriginalFilename());
+        body.put("documentSha256", saved.getDocumentSha256());
+        body.put("status", saved.getStatus());
         return ResponseEntity.ok(body);
     }
 
@@ -87,6 +90,8 @@ public class MerchantAgreementController {
         body.put("signerName", a.getSignerName());
         body.put("agreementVersion", a.getAgreementVersion());
         body.put("originalFilename", a.getOriginalFilename());
+        body.put("documentSha256", a.getDocumentSha256());
+        body.put("status", a.getStatus());
         return body;
     }
 
