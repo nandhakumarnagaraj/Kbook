@@ -159,8 +159,9 @@ public class EasebuzzPaymentService {
         // Look up easebuzz_id from the original payment webhook event
         String easebuzzId = resolveEasebuzzId(bill);
         if (easebuzzId.isBlank()) {
-            log.warn("Could not resolve easebuzz_id for billId={} txnid={}, proceeding with txnid as fallback", billId, txnid);
-            easebuzzId = txnid;
+            log.warn("Cannot initiate refund without a verified easebuzz_id billId={} txnid={}", billId, txnid);
+            return Map.of("status", "failure", "code", "PAYMENT_ID_UNAVAILABLE",
+                    "error", "Original Easebuzz payment ID is unavailable; reconcile the payment before refunding");
         }
 
         // Deterministic merchant_refund_id PER REFUND ATTEMPT: Easebuzz treats a
@@ -249,19 +250,24 @@ public class EasebuzzPaymentService {
         }
         try {
             Map<String, Object> raw = easebuzzApi.getTransactionStatus(txnid);
-            if (raw != null) {
-                String topLevel = str(raw.getOrDefault("easebuzz_id", raw.get("easepayid")));
-                if (!topLevel.isBlank()) return topLevel;
+            if (raw == null || !toBool(raw.get("status"))) return "";
+            Object msgObj = raw.get("msg");
+            Object first = msgObj instanceof List<?> list && !list.isEmpty() ? list.get(0) : msgObj;
+            if (!(first instanceof Map<?, ?> transaction)) return "";
+            Object amountValue = transaction.get("amount");
+            BigDecimal amount = amountValue == null ? null : new BigDecimal(amountValue.toString());
+            if (!txnid.equals(str(transaction.get("txnid")))
+                    || !"success".equalsIgnoreCase(str(transaction.get("status")))
+                    || amount == null || amount.signum() <= 0 || bill.getTotalAmount() == null
+                    || amount.compareTo(bill.getTotalAmount()) != 0) {
+                log.warn("Refund payment-ID lookup did not match billId={} txnid={}", bill.getId(), txnid);
+                return "";
             }
-            Object msgObj = raw != null ? raw.get("msg") : null;
-            if (msgObj instanceof Map) {
-                return str(((Map<String, Object>) msgObj).getOrDefault("easebuzz_id", ""));
-            } else if (msgObj instanceof List && !((List<?>) msgObj).isEmpty()) {
-                Object first = ((List<?>) msgObj).get(0);
-                if (first instanceof Map) {
-                    return str(((Map<String, Object>) first).getOrDefault("easebuzz_id", ""));
-                }
-            }
+            String paymentId = str(transaction.get("easebuzz_id"));
+            if (paymentId.isBlank()) paymentId = str(transaction.get("easepayid"));
+            if (paymentId.isBlank()) paymentId = str(raw.get("easebuzz_id"));
+            if (paymentId.isBlank()) paymentId = str(raw.get("easepayid"));
+            return paymentId;
         } catch (Exception e) {
             log.warn("Failed to retrieve easebuzz_id via status API for billId={}: {}", bill.getId(), e.getMessage());
         }

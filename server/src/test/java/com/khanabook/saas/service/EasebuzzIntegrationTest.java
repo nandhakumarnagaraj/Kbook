@@ -535,7 +535,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Mock transaction status check (needed for resolveEasebuzzId)
         when(easebuzzApi.getTransactionStatus(any()))
-            .thenReturn(Map.of("status", "success", "easebuzz_id", "E250TEST123"));
+            .thenReturn(Map.of("status", true, "msg", Map.of("status", "success",
+                    "txnid", "KBTEST123", "amount", "500.00", "easebuzz_id", "E250TEST123")));
 
         // Mock refund
         when(easebuzzApi.initiateRefund(any(), any(), any()))
@@ -563,6 +564,25 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         Map<String, Object> statusResult = paymentService.getRefundStatus(bill.getId());
         assertEquals("success", statusResult.get("status"));
+    }
+
+    @Test
+    void refundDoesNotCallGatewayWithoutMatchedOriginalPaymentId() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
+        bill.setGatewayTxnId("KBTEST123");
+        bill.setPaymentStatus("paid");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("KBTEST123"))
+                .thenReturn(Map.of("status", true, "msg", Map.of("status", "success",
+                        "txnid", "OTHER_TRANSACTION", "amount", "500.00",
+                        "easebuzz_id", "E_OTHER_PAYMENT")));
+
+        Map<String, Object> result = paymentService.initiateRefund(
+                bill.getId(), new BigDecimal("250.00"), "Customer request");
+
+        assertEquals("PAYMENT_ID_UNAVAILABLE", result.get("code"));
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getRefundId());
+        verify(easebuzzApi, never()).initiateRefund(any(), any(), any());
     }
 
     @Test
