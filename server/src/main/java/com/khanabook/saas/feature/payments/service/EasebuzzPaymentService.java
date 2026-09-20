@@ -115,6 +115,22 @@ public class EasebuzzPaymentService {
         String easebuzzId = str(txnData.getOrDefault("easebuzz_id", txnData.getOrDefault("easepayid", "")));
 
         if ("success".equalsIgnoreCase(easebuzzStatus)) {
+            String returnedTxnId = str(txnData.get("txnid"));
+            BigDecimal returnedAmount;
+            try {
+                Object rawAmount = txnData.get("amount");
+                returnedAmount = rawAmount == null ? null : new BigDecimal(rawAmount.toString());
+            } catch (NumberFormatException e) {
+                returnedAmount = null;
+            }
+            if (!bill.getGatewayTxnId().equals(returnedTxnId) || returnedAmount == null
+                    || returnedAmount.signum() <= 0 || bill.getTotalAmount() == null
+                    || returnedAmount.compareTo(bill.getTotalAmount()) != 0) {
+                log.warn("Rejected Easebuzz verification mismatch billId={} requestedTxn={} returnedTxn={} returnedAmount={}",
+                        billId, bill.getGatewayTxnId(), returnedTxnId, returnedAmount);
+                return Map.of("status", "failure", "code", "PAYMENT_VERIFICATION_MISMATCH",
+                        "error", "Gateway transaction details do not match this bill");
+            }
             bill.setGatewayStatus("success");
             bill.setPaymentStatus("paid");
             bill.setPaidAt(System.currentTimeMillis());

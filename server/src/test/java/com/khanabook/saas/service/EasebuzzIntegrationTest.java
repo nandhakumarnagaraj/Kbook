@@ -477,6 +477,54 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void transactionVerificationDoesNotPayBillWithMismatchedAmount() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_MATCH_TEST",
+                        "amount", "1.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("PAYMENT_VERIFICATION_MISMATCH", result.get("code"));
+        assertEquals("pending", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
+    void transactionVerificationDoesNotPayBillWithMismatchedTransactionId() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_OTHER_BILL",
+                        "amount", "100.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("PAYMENT_VERIFICATION_MISMATCH", result.get("code"));
+        assertEquals("pending", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
+    void transactionVerificationPaysBillWithMatchingTransactionAndAmount() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_MATCH_TEST",
+                        "amount", "100.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("success", result.get("status"));
+        assertEquals("paid", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
     void testRefundFlow() {
         // Setup paid bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
