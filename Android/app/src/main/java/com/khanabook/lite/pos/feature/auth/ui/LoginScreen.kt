@@ -70,8 +70,9 @@ fun LoginScreen(
     val haptic = LocalHapticFeedback.current
 
     // ── Google Sign-In via Credential Manager ────────────────────────────────
-    // Replaces the deprecated GoogleSignIn API. GetGoogleIdOption returns the
-    // same ID token the backend already verifies (audience = GOOGLE_WEB_CLIENT_ID).
+    // Replaces the deprecated GoogleSignIn API. The explicit Sign in with Google
+    // option is used for this button so Play Services can offer an account even
+    // when there is no previously authorized Credential Manager entry.
     val coroutineScopeForGoogle = rememberCoroutineScope()
 
     suspend fun launchGoogleSignIn() {
@@ -84,12 +85,7 @@ fun LoginScreen(
         }
         try {
             val credentialManager = androidx.credentials.CredentialManager.create(context)
-            val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
-                .setServerClientId(serverClientId)
-                // Show the account picker every time (pos devices may be shared);
-                // setFilterByAuthorizedAccounts(true) would silently reuse one account.
-                .setFilterByAuthorizedAccounts(false)
-                .setAutoSelectEnabled(false)
+            val googleIdOption = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(serverClientId)
                 .build()
             val request = androidx.credentials.GetCredentialRequest.Builder()
                 .addCredentialOption(googleIdOption)
