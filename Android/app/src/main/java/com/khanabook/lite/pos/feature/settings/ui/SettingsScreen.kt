@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.util.formatSaveDuration
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.theme.*
@@ -92,16 +91,13 @@ fun SettingsScreen(
         screenVisible = true
     }
     val ctx = LocalContext.current
-    val lastSaveDurationMs by viewModel.lastSaveDurationMs.collectAsStateWithLifecycle()
     val toastScope = rememberCoroutineScope()
     LaunchedEffect(saveProfileSuccess, pendingSaveSection) {
         val savedSection = pendingSaveSection
         if (saveProfileSuccess && savedSection != null) {
-            // One-tap save confirmation: green toast includes the measured local
-            // DB write duration (falls back to the plain message if unavailable).
-            val message = lastSaveDurationMs?.let { duration ->
-                ctx.getString(R.string.toast_profile_saved_timed, formatSaveDuration(duration))
-            } ?: when (savedSection) {
+            // One-tap save confirmation. Keep the toast focused on the result;
+            // internal write timing is not user-facing text.
+            val message = when (savedSection) {
                 "payment" -> ctx.getString(R.string.toast_payment_settings_saved)
                 "printer" -> ctx.getString(R.string.toast_printer_settings_saved)
                 "tax" -> ctx.getString(R.string.toast_tax_settings_saved)
