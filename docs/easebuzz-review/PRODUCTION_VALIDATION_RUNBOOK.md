@@ -119,3 +119,19 @@ STOP immediately if any of:
 | Executed by | ______ |
 | Date | ______ |
 | Result | PASS / FAIL |
+
+## 10. KhanaBook deployment evidence (2026-09-20)
+
+The following checks were completed against `https://kbook.iadv.cloud` after deployment:
+
+| Check | Evidence | Result |
+|---|---|---|
+| Deployed revision | `a165d697` | PASS |
+| Application readiness | `GET /api/v1/actuator/health` returned `200` / `UP` | PASS |
+| Invalid refund signature | Refund webhook returned `401` | PASS |
+| Exposed env file | `/helper/easebuzz.env` returned `404` | PASS |
+| Production config fail-closed | Compose rejected an empty `EASEBUZZ_PAYMENT_BASE_URL` | PASS |
+| Gateway live transaction/refund | Requires an Easebuzz dashboard test transaction | PENDING |
+| Credential rotation | Revoke and replace credentials previously exposed in the old env file | REQUIRED |
+
+The live payment/refund checkbox must not be marked complete until the merchant key, salt, and Wire API key have been rotated in Easebuzz and a signed ₹1 payment/refund cycle has been captured.
