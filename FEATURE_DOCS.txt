@@ -1,0 +1,132 @@
+KhanaBook feature documentation map
+====================================
+
+This file maps the feature areas currently present in Android/app/src/main/java/com/khanabook/lite/pos to their primary implementation documentation. Each area should be reviewed against the linked guidance before changing its design or behavior.
+
+Feature: App shell, lifecycle, splash, permissions
+Source area: core/app, core/di
+Docs: https://developer.android.com/develop/ui/views/launch/splash-screen
+Docs: https://developer.android.com/guide/components/activities/activity-lifecycle
+Docs: https://developer.android.com/training/permissions/requesting
+
+Feature: Jetpack Compose UI and Material 3 design system
+Source area: core/designsystem, core/theme, feature/*/ui
+Docs: https://developer.android.com/develop/ui/compose
+Docs: https://developer.android.com/develop/ui/compose/designsystems/material3
+
+Feature: Adaptive layouts and window-size navigation
+Source area: core/navigation, core/theme
+Docs: https://developer.android.com/develop/ui/compose/layouts/adaptive
+Docs: https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
+
+Feature: Navigation and screen routing
+Source area: core/navigation
+Docs: https://developer.android.com/develop/ui/compose/navigation
+
+Feature: Authentication, phone/OTP login, Google login, session state
+Source area: feature/auth
+Docs: https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
+Docs: https://developers.google.com/identity/android-credential-manager/android/reference/com/google/android/libraries/identity/googleid/GetSignInWithGoogleOption
+Docs: https://firebase.google.com/docs/auth/android/start
+
+Feature: Secure token and credential storage
+Source area: feature/auth, core/database, security preferences
+Docs: https://developer.android.com/privacy-and-security/keystore
+Docs: https://developer.android.com/reference/androidx/security/crypto/package-summary
+
+Feature: Local Room database, migrations, tenant database switching
+Source area: core/database, feature/*/data
+Docs: https://developer.android.com/training/data-storage/room
+Docs: https://developer.android.com/training/data-storage/room/migrating-db-versions
+
+Feature: SQLCipher encrypted database
+Source area: core/database, core/di
+Docs: https://www.zetetic.net/sqlcipher/sqlcipher-for-android/
+
+Feature: Billing, orders, bill items, payments, invoice numbering
+Source area: feature/billing
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/training/data-storage/room
+
+Feature: Menu, categories, variants, stock and inventory
+Source area: feature/menu, feature/inventory
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/training/data-storage/room
+
+Feature: Reports and completed-order status management
+Source area: feature/reports
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/develop/ui/compose/state
+
+Feature: Staff, roles and access control
+Source area: feature/staff, feature/auth
+Docs: https://developer.android.com/topic/architecture
+Docs: https://firebase.google.com/docs/auth/android/start
+
+Feature: Offline-first sync, terminal activation, conflict recovery
+Source area: feature/sync
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/observe
+Docs: https://developer.android.com/topic/architecture/data-layer
+
+Feature: Background jobs and retry scheduling
+Source area: feature/sync/worker, feature/sync/domain
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
+Docs: https://developer.android.com/reference/androidx/work/WorkManager
+
+Feature: REST API and network error handling
+Source area: core/network, feature/*/data
+Docs: https://square.github.io/retrofit/
+Docs: https://square.github.io/okhttp/
+
+Feature: Printer configuration and receipt/KOT output
+Source area: feature/printing, feature/settings
+Docs: https://developer.android.com/develop/connectivity/bluetooth
+Docs: https://developer.android.com/develop/connectivity/usb/host
+Docs: https://developer.android.com/training/printing
+
+Feature: Wi-Fi printer transport
+Source area: feature/printing
+Docs: https://developer.android.com/reference/java/net/Socket
+Docs: https://developer.android.com/develop/connectivity/network-ops/connecting
+
+Feature: Camera scanning and barcode/QR capture
+Source area: feature/billing, feature/*/ui where scanner is used
+Docs: https://developer.android.com/training/camerax
+Docs: https://developers.google.com/ml-kit/vision/barcode-scanning/android
+Docs: https://github.com/zxing/zxing
+
+Feature: OCR and text recognition
+Source area: feature/billing, scanner integrations
+Docs: https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+
+Feature: Easebuzz payments
+Source area: feature/payments
+Docs: https://docs.easebuzz.in/
+
+Feature: Push notifications and device token registration
+Source area: feature/notifications
+Docs: https://firebase.google.com/docs/cloud-messaging/android/client
+
+Feature: Crash reporting and app sessions
+Source area: Firebase configuration and application startup
+Docs: https://firebase.google.com/docs/crashlytics/get-started?platform=android
+Docs: https://firebase.google.com/docs/perf-mon/get-started-android
+
+Feature: Onboarding and first-run setup
+Source area: feature/onboarding
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/develop/ui/compose/state
+
+Feature: Settings, printer settings, app lock and preferences
+Source area: feature/settings
+Docs: https://developer.android.com/develop/ui/compose/state
+Docs: https://developer.android.com/guide/topics/security/biometric-auth
+
+Feature: Feedback and support
+Source area: core/feedback, feature/auth/help and support screens
+Docs: https://developer.android.com/topic/architecture
+
+Cross-check record
+-------------------
+The source directories above were checked against the current Android feature and core packages. This is a documentation/design index; it does not claim that every behavior already satisfies the linked guidance. Review each feature's source, UI states, persistence, error handling, and tests against its links before implementation changes.
