@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.test.screens
 
+import dagger.hilt.android.testing.HiltAndroidTest
+
 import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.LoginRobot
 import okhttp3.OkHttpClient
@@ -8,6 +10,7 @@ import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 
+@HiltAndroidTest
 class SecurityTest : BaseTest() {
 
     private lateinit var loginRobot: LoginRobot

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.test.screens
 
+import dagger.hilt.android.testing.HiltAndroidTest
+
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import com.khanabook.lite.pos.test.BaseTest
@@ -12,6 +14,7 @@ import com.khanabook.lite.pos.test.util.TestData
 import org.junit.Before
 import org.junit.Test
 
+@HiltAndroidTest
 class OrdersScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot

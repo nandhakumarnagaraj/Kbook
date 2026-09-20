@@ -5,10 +5,12 @@ import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.HomeRobot
 import com.khanabook.lite.pos.test.robots.LoginRobot
 import com.khanabook.lite.pos.test.util.TestData
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+@HiltAndroidTest
 class LoginScreenTest : BaseTest() {
 
     private lateinit var loginRobot: LoginRobot

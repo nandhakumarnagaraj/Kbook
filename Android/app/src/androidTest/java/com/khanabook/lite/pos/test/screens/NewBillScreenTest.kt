@@ -7,10 +7,12 @@ import com.khanabook.lite.pos.test.robots.HomeRobot
 import com.khanabook.lite.pos.test.robots.LoginRobot
 import com.khanabook.lite.pos.test.robots.NewBillRobot
 import com.khanabook.lite.pos.test.util.TestData
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
+@HiltAndroidTest
 class NewBillScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot
