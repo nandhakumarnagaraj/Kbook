@@ -92,8 +92,20 @@ fun LoginScreen(
                 .addCredentialOption(googleIdOption)
                 .build()
             val response = credentialManager.getCredential(context, request)
-            val googleIdTokenCredential = response.credential as? GoogleIdTokenCredential
-            val googleIdToken = googleIdTokenCredential?.idToken
+            // Credential Manager returns Google ID credentials as a CustomCredential
+            // in some Play Services versions. A direct cast to GoogleIdTokenCredential
+            // therefore fails even though the chooser returned a valid credential.
+            val credential = response.credential
+            val googleIdToken = if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                runCatching {
+                    GoogleIdTokenCredential.createFrom(credential.data).idToken
+                }.onFailure {
+                    Log.e("GOOGLE_SIGN_IN", "Unable to decode Google ID credential", it)
+                }.getOrNull()
+            } else {
+                Log.w("GOOGLE_SIGN_IN", "Unexpected credential type: ${credential.type}")
+                null
+            }
             if (!googleIdToken.isNullOrBlank()) {
                 viewModel.loginWithGoogleToken(googleIdToken)
             } else {
