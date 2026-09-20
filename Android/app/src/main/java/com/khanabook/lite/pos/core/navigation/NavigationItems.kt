@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.core.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -19,7 +18,6 @@ data class TabItem(
 object NavigationTabs {
     const val TAB_HOME = 0
     const val TAB_REPORTS = 1
-    const val TAB_ORDERS = 2
     const val TAB_SETTINGS = 3
     const val TAB_PROFILE = 3
 }
@@ -28,7 +26,6 @@ object NavigationUtils {
     private val allTabs = listOf(
         TabItem("Home", Icons.Default.Home, NavigationTabs.TAB_HOME),
         TabItem("Reports", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
-        TabItem("Orders", Icons.AutoMirrored.Filled.List, NavigationTabs.TAB_ORDERS),
         TabItem("Settings", Icons.Default.Settings, NavigationTabs.TAB_SETTINGS)
     )
 
