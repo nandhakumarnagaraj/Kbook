@@ -220,3 +220,5 @@ Database migrations/integrity — https://documentation.red-gate.com/flyway
 Cross-check execution record (2026-09-20)
 -----------------------------------------
 The Android feature packages, core packages, server feature modules, manifest permissions, and build dependencies were checked against this index. The requested hardware/OCR/notification/payment/offline-sync/LWW implementations are present in source and their focused documentation entries include findings. Android unit tests passed with `:app:testDebugUnitTest` (BUILD SUCCESSFUL). Remaining work is device and gateway verification for hardware printers, OCR model availability, FCM delivery, and live Easebuzz webhooks; those cannot be proven by source inspection alone.
+
+Live validation update (2026-09-20): Android device validation could not run because `adb devices -l` returned no connected devices. No source regression was introduced; the connected-device test remains pending until a device is available.
