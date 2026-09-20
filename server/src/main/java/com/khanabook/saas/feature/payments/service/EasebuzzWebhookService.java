@@ -81,6 +81,10 @@ public class EasebuzzWebhookService {
                 try {
                     resolveBillFromPayload(payload).ifPresent(bill -> {
                         Long billId = bill.getId();
+                        if (!paymentAmountMatchesBill(bill, amountStr)) {
+                            log.warn("Payment webhook amount mismatch billId={} txnid={} amount={}", billId, txnid, amountStr);
+                            return;
+                        }
                         // Idempotency guard: skip if already marked paid
                         if ("paid".equals(bill.getPaymentStatus())) {
                             log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
@@ -180,20 +184,42 @@ public class EasebuzzWebhookService {
     private Optional<Bill> resolveBillFromPayload(Map<String, String> payload) {
         String txnid = payload.get("txnid");
         String udf1 = payload.get("udf1");
-        
+        if (txnid == null || txnid.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<Bill> matched = billRepo.findByGatewayTxnId(txnid);
+        if (matched.isEmpty()) {
+            log.warn("Payment webhook has no bill-issued transaction txnid={}", txnid);
+            return Optional.empty();
+        }
+        Bill bill = matched.get();
         if (udf1 != null && !udf1.isBlank()) {
             try {
-                return billRepo.findById(Long.parseLong(udf1));
+                if (!bill.getId().equals(Long.parseLong(udf1))) {
+                    log.warn("Payment webhook bill ID mismatch txnid={} udf1={}", txnid, udf1);
+                    return Optional.empty();
+                }
             } catch (NumberFormatException e) {
                 log.warn("Invalid billId in udf1: {}", udf1);
+                return Optional.empty();
             }
         }
-        
-        if (txnid != null && !txnid.isBlank()) {
-            return billRepo.findByGatewayTxnId(txnid);
+        String udf2 = payload.get("udf2");
+        if (udf2 != null && !udf2.isBlank() && !bill.getRestaurantId().toString().equals(udf2)) {
+            log.warn("Payment webhook restaurant mismatch txnid={} udf2={}", txnid, udf2);
+            return Optional.empty();
         }
-        
-        return Optional.empty();
+        return matched;
+    }
+
+    private boolean paymentAmountMatchesBill(Bill bill, String amountStr) {
+        if (amountStr == null || bill.getTotalAmount() == null) return false;
+        try {
+            BigDecimal paidAmount = new BigDecimal(amountStr);
+            return paidAmount.signum() > 0 && paidAmount.compareTo(bill.getTotalAmount()) == 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private void handleFssaiRenewalSuccess(Map<String, String> payload) {

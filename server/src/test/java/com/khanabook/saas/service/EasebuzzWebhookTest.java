@@ -85,7 +85,9 @@ class EasebuzzWebhookTest {
         Bill mockBill = new Bill();
         mockBill.setId(500L);
         mockBill.setRestaurantId(1L);
-        when(billRepo.findById(500L)).thenReturn(Optional.of(mockBill));
+        mockBill.setGatewayTxnId("KB12345");
+        mockBill.setTotalAmount(new BigDecimal("100.00"));
+        when(billRepo.findByGatewayTxnId("KB12345")).thenReturn(Optional.of(mockBill));
 
         // 3. Execute
         Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
@@ -119,6 +121,7 @@ class EasebuzzWebhookTest {
         mockBill.setId(777L);
         mockBill.setRestaurantId(1L);
         mockBill.setGatewayTxnId("PL12345678");
+        mockBill.setTotalAmount(new BigDecimal("250.00"));
         when(billRepo.findByGatewayTxnId("PL12345678")).thenReturn(Optional.of(mockBill));
 
         Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
@@ -139,6 +142,51 @@ class EasebuzzWebhookTest {
 
         assertEquals("hash_mismatch", response.get("status"));
         verifyNoInteractions(billRepo);
+    }
+
+    @Test
+    void signedWebhookCannotPayBillUsingUnissuedTransaction() throws Exception {
+        Map<String, String> payload = signedPaymentPayload("OTHER_TXN", "500", "100.00", "1");
+        when(billRepo.findByGatewayTxnId("OTHER_TXN")).thenReturn(Optional.empty());
+
+        webhookService.handlePaymentWebhook(payload);
+
+        verify(billRepo, never()).save(any());
+        verifyNoInteractions(postSplitService);
+    }
+
+    @Test
+    void signedWebhookCannotPayDifferentBillOrAmount() throws Exception {
+        Bill bill = new Bill();
+        bill.setId(500L);
+        bill.setRestaurantId(1L);
+        bill.setGatewayTxnId("PL_500");
+        bill.setPaymentStatus("link_sent");
+        bill.setTotalAmount(new BigDecimal("100.00"));
+        when(billRepo.findByGatewayTxnId("PL_500")).thenReturn(Optional.of(bill));
+
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "501", "100.00", "1"));
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "500", "1.00", "1"));
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "500", "100.00", "2"));
+
+        assertEquals("link_sent", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+        verifyNoInteractions(postSplitService);
+    }
+
+    private Map<String, String> signedPaymentPayload(String txnid, String billId, String amount, String restaurantId) throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", txnid);
+        payload.put("status", "success");
+        payload.put("amount", amount);
+        payload.put("udf1", billId);
+        payload.put("udf2", restaurantId);
+        payload.put("easepayid", "E_VALID_TEST");
+        payload.put("firstname", "Customer");
+        payload.put("email", "customer@example.com");
+        payload.put("productinfo", "Order");
+        payload.put("hash", generateReverseHash(payload));
+        return payload;
     }
 
     @Test
