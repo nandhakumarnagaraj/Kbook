@@ -158,7 +158,7 @@ if ($hasEasebuzzId) {
     Write-Host ""
     Write-Host "[SKIP] KYC/Split/OTP/Update/WIRE tests (Easebuzz submission failed)" -ForegroundColor Yellow
     Write-Host "  Sub-merchant module may not be enabled on this Easebuzz sandbox account." -ForegroundColor Yellow
-    Write-Host "  The Easebuzz sandbox test credentials (ADNX3KYX5) may not support sub-merchant APIs." -ForegroundColor Yellow
+    Write-Host "  The Easebuzz sandbox test credentials (CHANGE_ME_SANDBOX_KEY) may not support sub-merchant APIs." -ForegroundColor Yellow
     $skipCount += 4
 }
 

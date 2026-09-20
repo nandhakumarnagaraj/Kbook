@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-19
 **Channel:** ERA (Easebuzz Rapid Assist) AI chatbot
-**Merchant Key:** ADNX3KYX5 (India Advocacy / KhanaBook)
+**Merchant Key:** CHANGE_ME_SANDBOX_KEY (India Advocacy / KhanaBook)
 
 ---
 

@@ -4,7 +4,7 @@ Subject: KhanaBook — ERA Technical Follow-Up: 12 Questions for Production Go-L
 
 Dear Easebuzz ERA Team,
 
-This is a follow-up to our previous integration review request for KhanaBook (Parent Merchant: India Advocacy, Key: ADNX3KYX5).
+This is a follow-up to our previous integration review request for KhanaBook (Parent Merchant: India Advocacy, Key: CHANGE_ME_SANDBOX_KEY).
 
 We have completed implementation of all 22 Easebuzz APIs (sub-merchant, payment, refund, split, settlement, payout, and WIRE). Before going live, we need clarification on 12 technical/contract questions that are not covered in the public documentation.
 

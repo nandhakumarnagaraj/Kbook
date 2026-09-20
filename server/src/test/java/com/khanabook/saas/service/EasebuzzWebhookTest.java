@@ -53,8 +53,8 @@ class EasebuzzWebhookTest {
     @InjectMocks
     private EasebuzzWebhookService webhookService;
 
-    private final String TEST_KEY = "ADNX3KYX5";
-    private final String TEST_SALT = "Z4UFP4939";
+    private final String TEST_KEY = "CHANGE_ME_SANDBOX_KEY";
+    private final String TEST_SALT = "CHANGE_ME_SANDBOX_SALT";
 
     @BeforeEach
     void setup() {

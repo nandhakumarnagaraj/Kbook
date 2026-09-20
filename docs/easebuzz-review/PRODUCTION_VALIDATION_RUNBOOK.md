@@ -20,7 +20,7 @@
 | 6 | Reconciliation enabled for the test window | `EASEBUZZ_RECONCILIATION_ENABLED=true` (cron 06:00 IST) |
 | 7 | Test bill exists | Create a bill from the Android POS for ₹1.00 |
 
-**Security note:** `application-dev.properties` currently hardcodes sandbox key/salt (`ADNX3KYX5`/`Z4UFP4939`). See `docs/SECURITY_ROTATION_REQUIRED.md` — rotate before launch; sandbox creds must not be reused in prod.
+**Security note:** `application-dev.properties` requires sandbox credentials through environment variables; no merchant key or salt is stored in the repository. Sandbox credentials must never be reused in production. Any production credential that was previously exposed must be revoked and replaced before the live test.
 
 ---
 
