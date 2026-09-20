@@ -129,6 +129,8 @@ The following checks were completed against `https://kbook.iadv.cloud` after dep
 | Deployed revision | `a165d697` | PASS |
 | Application readiness | `GET /api/v1/actuator/health` returned `200` / `UP` | PASS |
 | Invalid refund signature | Refund webhook returned `401` | PASS |
+| Valid refund signature (synthetic, unknown transaction) | Refund webhook returned `200 {"status":"received"}` with no bill match | PASS |
+| Production status API (read-only synthetic transaction) | Easebuzz returned HTTP `200` / `Transaction not found` | PASS |
 | Exposed env file | `/helper/easebuzz.env` returned `404` | PASS |
 | Production config fail-closed | Compose rejected an empty `EASEBUZZ_PAYMENT_BASE_URL` | PASS |
 | Gateway live transaction/refund | Requires an Easebuzz dashboard test transaction | PENDING |
