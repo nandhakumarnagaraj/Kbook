@@ -2,6 +2,10 @@
 
 **Verdict: the code-level slices 1–14 are implemented, but the Easebuzz flow is not yet ready for unattended production money movement.** This review covers the repository and mocked gateway tests. It does not certify an Easebuzz account, live webhook delivery, settlement, or a real ₹1 payment/refund. No production server or merchant account was changed during this review.
 
+## Read-only production configuration check
+
+On 2026-09-21, SSH access to `kbook.iadv.cloud` succeeded. The VPS checkout was at `a165d697`, older than the local slice 8–14 commits. The root deployment `.env` contains non-empty `EASEBUZZ_MERCHANT_KEY` and `EASEBUZZ_SALT` entries; its payment and dashboard base URLs point to `pay.easebuzz.in` and `dashboard.easebuzz.in`. The public application health endpoint returned `UP`, and the server and PostgreSQL containers reported healthy. This confirms configuration presence and service health, **not** that the gateway credentials are accepted, the account has every required API enabled, or the running image contains the local fixes. Secret values were not read into the review. Separate sandbox credential placement and validity were not verified in this check. Do not deploy the current changes or run a live payment solely on this evidence.
+
 ## Implemented and checked
 
 - Slices 1–3: zero Khanabook commission in post-split, tenant readiness reporting, and an owner-controlled Easebuzz switch enforced before new links.
