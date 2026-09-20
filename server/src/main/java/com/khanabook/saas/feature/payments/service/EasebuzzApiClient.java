@@ -563,8 +563,8 @@ return result;
 			log.debug("Easebuzz API {} success: {}", url, response.getStatusCode());
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
-			log.error("Easebuzz API {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
-			return Map.of("status", "failure", "error", e.getResponseBodyAsString());
+			log.error("Easebuzz API {} error {}", url, e.getStatusCode());
+			return Map.of("status", "failure", "error", "Easebuzz gateway request failed");
 		} catch (Exception e) {
 			log.error("Easebuzz API {} failed: {}", url, e.getMessage());
 			return Map.of("status", "failure", "error", e.getMessage());
@@ -580,8 +580,8 @@ return result;
 					new ParameterizedTypeReference<Map<String, Object>>() {});
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
-			log.error("Easebuzz JSON API {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
-			return Map.of("status", false, "error", e.getResponseBodyAsString());
+			log.error("Easebuzz JSON API {} error {}", url, e.getStatusCode());
+			return Map.of("status", false, "error", "Easebuzz gateway request failed");
 		} catch (Exception e) {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());
@@ -628,8 +628,8 @@ return result;
 			);
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
-			log.error("Easebuzz KYC document upload {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
-			return Map.of("status", false, "error", e.getResponseBodyAsString());
+			log.error("Easebuzz KYC document upload {} error {}", url, e.getStatusCode());
+			return Map.of("status", false, "error", "Easebuzz gateway request failed");
 		} catch (Exception e) {
 			log.error("Easebuzz KYC document upload {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());

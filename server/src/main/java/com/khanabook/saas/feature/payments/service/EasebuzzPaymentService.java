@@ -171,7 +171,6 @@ public class EasebuzzPaymentService {
                 }
             }
             bill.setRefundId(ebRefundId.isBlank() ? merchantRefundId : ebRefundId);
-            bill.setRefundAmount(amount);
             bill.setGatewayStatus("refund_initiated");
             billRepo.save(bill);
 

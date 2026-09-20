@@ -93,7 +93,10 @@ public class RefundService {
             result.put("totalRefunded", newTotalRefund);
             result.put("remainingRefundable", bill.getTotalAmount().subtract(newTotalRefund));
 
-            if (bill.getCustomerWhatsapp() != null && !bill.getCustomerWhatsapp().isBlank()) {
+            // customerWhatsapp is a phone number, not an email address. Do
+            // not pass it to the mailer; a customer email field should be
+            // added to the bill model before enabling email notifications.
+            if (bill.getCustomerWhatsapp() != null && bill.getCustomerWhatsapp().contains("@")) {
                 try {
                     String orderCode = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
                     emailNotificationService.sendRefundConfirmation(

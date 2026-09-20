@@ -310,8 +310,12 @@ public class EasebuzzWebhookService {
         if (refundId != null && !refundId.isBlank()) {
             bill.setRefundId(refundId);
         }
-        if (refundAmount != null && !refundAmount.isBlank()) {
+        if (refundAmount != null && !refundAmount.isBlank()
+                && (bill.getRefundAmount() == null || bill.getRefundAmount().compareTo(java.math.BigDecimal.ZERO) == 0)) {
             try {
+                // The refund initiation path records the cumulative amount
+                // before this asynchronous webhook arrives. Preserve it so a
+                // partial-refund webhook cannot overwrite the running total.
                 bill.setRefundAmount(new BigDecimal(refundAmount));
             } catch (Exception e) {
                 log.warn("Invalid refund_amount in webhook: {}", refundAmount);
