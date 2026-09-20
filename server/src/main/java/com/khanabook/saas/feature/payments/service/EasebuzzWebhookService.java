@@ -280,9 +280,23 @@ public class EasebuzzWebhookService {
             return Map.of("status", "received");
         }
 
-        // Find bill by gateway txnId and update refund status
+        // The refund hash authenticates easepayid, but does not cover txnid.
+        // Correlate both identifiers before letting this callback change a bill.
         try {
             billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
+                String claimedEasepayid = payload.get("easepayid");
+                if (claimedEasepayid == null || claimedEasepayid.isBlank()) {
+                    claimedEasepayid = payload.get("easebuzz_id");
+                }
+                String paymentEasepayid = webhookEventRepo
+                        .findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId())
+                        .map(EasebuzzWebhookEvent::getEasebuzzId)
+                        .orElse(null);
+                if (claimedEasepayid == null || paymentEasepayid == null
+                        || !paymentEasepayid.equals(claimedEasepayid.trim())) {
+                    log.warn("Refund webhook payment ID mismatch billId={} txnid={}", bill.getId(), txnid);
+                    return;
+                }
                 updateBillRefund(bill, status, refundId, refundAmount, payload);
             });
         } catch (Exception e) {

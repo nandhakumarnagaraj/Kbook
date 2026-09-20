@@ -12,6 +12,7 @@ import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
@@ -194,6 +195,7 @@ class EasebuzzWebhookTest {
         Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
         Map<String, String> payload = refundPayload("30.00");
         when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
 
         assertEquals("received", webhookService.handleRefundWebhook(payload).get("status"));
 
@@ -207,6 +209,7 @@ class EasebuzzWebhookTest {
     void completedFullRefundMarksBillRefunded() throws Exception {
         Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("100.00"));
         when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
 
         webhookService.handleRefundWebhook(refundPayload("100.00"));
 
@@ -218,12 +221,44 @@ class EasebuzzWebhookTest {
     void completedRefundWithoutUsableAmountNeedsReview() throws Exception {
         Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
         when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
 
         webhookService.handleRefundWebhook(refundPayload("not-an-amount"));
 
         assertEquals("paid", bill.getPaymentStatus());
         assertEquals("refund_review_required", bill.getGatewayStatus());
         verifyNoInteractions(pushNotificationService);
+    }
+
+    @Test
+    void refundWebhookCannotUseValidHashForDifferentPayment() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_DIFFERENT_PAYMENT");
+
+        assertEquals("received", webhookService.handleRefundWebhook(refundPayload("30.00")).get("status"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+        verifyNoInteractions(pushNotificationService);
+    }
+
+    @Test
+    void refundWebhookWithoutOriginalPaymentIdNeedsReconciliation() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+
+        webhookService.handleRefundWebhook(refundPayload("30.00"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+    }
+
+    private void stubOriginalPaymentEvent(Bill bill, String easebuzzId) {
+        EasebuzzWebhookEvent event = new EasebuzzWebhookEvent();
+        event.setEasebuzzId(easebuzzId);
+        when(webhookEventRepo.findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId()))
+                .thenReturn(Optional.of(event));
     }
 
     private Bill refundBill(BigDecimal total, BigDecimal refunded) {
