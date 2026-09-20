@@ -216,3 +216,7 @@ Tenant isolation/authorization — https://owasp.org/www-project-api-security/
 Server audit logging — https://owasp.org/www-project-logging/
 Server rate limiting — https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks
 Database migrations/integrity — https://documentation.red-gate.com/flyway
+
+Cross-check execution record (2026-09-20)
+-----------------------------------------
+The Android feature packages, core packages, server feature modules, manifest permissions, and build dependencies were checked against this index. The requested hardware/OCR/notification/payment/offline-sync/LWW implementations are present in source and their focused documentation entries include findings. Android unit tests passed with `:app:testDebugUnitTest` (BUILD SUCCESSFUL). Remaining work is device and gateway verification for hardware printers, OCR model availability, FCM delivery, and live Easebuzz webhooks; those cannot be proven by source inspection alone.
