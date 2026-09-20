@@ -117,4 +117,16 @@ class RefundServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("must be positive");
     }
+
+    @Test
+    void initiatePartialRefund_overPreciseAmount_doesNotCallGateway() {
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
+
+        assertThatThrownBy(() -> refundService.initiatePartialRefund(1L, 100L, new BigDecimal("10.001"), "test"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("at most two decimal places");
+
+        verifyNoInteractions(easebuzzPaymentService);
+        verify(billRepository, never()).save(any());
+    }
 }

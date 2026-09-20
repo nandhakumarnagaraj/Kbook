@@ -69,6 +69,9 @@ public class RefundService {
         if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleException("Refund amount must be positive");
         }
+        if (refundAmount.scale() > 2) {
+            throw new BusinessRuleException("Refund amount must have at most two decimal places");
+        }
         BigDecimal remainingRefundable = bill.getTotalAmount().subtract(existingRefund);
         if (refundAmount.compareTo(remainingRefundable) > 0) {
             throw new BusinessRuleException("Refund amount (₹" + refundAmount + ") exceeds remaining refundable amount (₹" + remainingRefundable + ")");
