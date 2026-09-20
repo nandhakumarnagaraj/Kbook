@@ -16,7 +16,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,10 +46,10 @@ class RestaurantPaymentReadinessTest {
 
         Map<String, Object> response = controller.getConfig().getBody();
 
-        assertEquals(true, response.get("paymentLinkReady"));
+        assertEquals(false, response.get("paymentLinkReady"));
+        assertEquals(true, response.get("subMerchantActive"));
         assertEquals(false, response.get("easebuzzEnabled"));
-        verify(subMerchants, never()).ensureEasebuzzEnabled(42L);
-        verify(profiles, never()).save(profile);
+        verify(profiles, org.mockito.Mockito.never()).save(profile);
     }
 
     @Test

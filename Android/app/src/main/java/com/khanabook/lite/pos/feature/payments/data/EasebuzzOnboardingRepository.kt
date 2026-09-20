@@ -22,6 +22,7 @@ data class EasebuzzPaymentReadiness(
     val paymentLinkReady: Boolean,
     val easebuzzEnabled: Boolean,
     val agreementRequired: Boolean,
+    val subMerchantActive: Boolean,
     val subMerchantStatus: String
 )
 
@@ -36,11 +37,14 @@ class EasebuzzOnboardingRepository @Inject constructor(
         val agreementRequired = config["agreementRequired"] == true
         val subMerchantStatus = config["subMerchantStatus"] as? String ?: "NOT_STARTED"
         val subMerchantId = config["subMerchantId"] as? String
+        val subMerchantActive = (config["subMerchantActive"] as? Boolean)
+            ?: (subMerchantStatus == "ACTIVE" && !subMerchantId.isNullOrBlank())
         EasebuzzPaymentReadiness(
             paymentLinkReady = (config["paymentLinkReady"] as? Boolean)
-                ?: (!agreementRequired && subMerchantStatus == "ACTIVE" && !subMerchantId.isNullOrBlank()),
+                ?: (!agreementRequired && subMerchantActive && config["easebuzzEnabled"] == true),
             easebuzzEnabled = config["easebuzzEnabled"] == true,
             agreementRequired = agreementRequired,
+            subMerchantActive = subMerchantActive,
             subMerchantStatus = subMerchantStatus
         )
     }

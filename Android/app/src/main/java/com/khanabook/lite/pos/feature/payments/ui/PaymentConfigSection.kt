@@ -208,15 +208,19 @@ fun PaymentConfigView(
                 PaymentReadinessUiState.Unavailable -> "Cannot verify online payment setup. Reconnect and open this screen again."
                 is PaymentReadinessUiState.Ready -> when {
                     state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
-                    !state.readiness.paymentLinkReady -> "Easebuzz onboarding and KYC must be active before payment links can be created."
-                    !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save and sync this setting; the server has not confirmed Easebuzz Online is on yet."
-                    !state.readiness.easebuzzEnabled -> "Payment link setup is ready. Turn on Easebuzz Online to offer it in the POS."
+                    !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
+                    state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
+                    !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
+                    !state.readiness.easebuzzEnabled -> "Easebuzz Online is off. New payment links are blocked until the owner turns it on."
+                    !state.readiness.paymentLinkReady -> "The server has not confirmed payment-link readiness."
                     else -> "Payment link setup is ready. Khanabook commission: 0%; Easebuzz processing fees may apply."
                 }
             }
             Text(
                 text = readinessMessage,
-                color = if ((paymentReadiness as? PaymentReadinessUiState.Ready)?.readiness?.paymentLinkReady == true)
+                color = if ((paymentReadiness as? PaymentReadinessUiState.Ready)?.readiness?.let {
+                        it.paymentLinkReady && it.easebuzzEnabled == easebuzzEnabled
+                    } == true)
                     SuccessGreen else TextGold,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = spacing.extraSmall)

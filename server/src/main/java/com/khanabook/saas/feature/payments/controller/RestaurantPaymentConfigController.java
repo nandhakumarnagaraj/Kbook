@@ -41,9 +41,10 @@ public class RestaurantPaymentConfigController {
         boolean subMerchantActive = sm != null && sm.getSubMerchantId() != null
                 && !sm.getSubMerchantId().isBlank() && "ACTIVE".equals(sm.getStatus());
         boolean hasCurrentAgreement = merchantAgreementService.hasCurrentSignedAgreement(restaurantId);
-        config.put("paymentLinkReady", hasCurrentAgreement && subMerchantActive);
-        config.put("easebuzzEnabled", Boolean.TRUE.equals(profile.getEasebuzzEnabled())
-                && hasCurrentAgreement && subMerchantActive);
+        boolean enabled = Boolean.TRUE.equals(profile.getEasebuzzEnabled());
+        config.put("subMerchantActive", subMerchantActive);
+        config.put("paymentLinkReady", enabled && hasCurrentAgreement && subMerchantActive);
+        config.put("easebuzzEnabled", enabled);
         config.put("agreementRequired", !hasCurrentAgreement);
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
         config.put("subMerchantId", sm != null ? sm.getSubMerchantId() : null);
@@ -63,6 +64,9 @@ public class RestaurantPaymentConfigController {
         RestaurantProfile profile = profileRepo.findByRestaurantId(restaurantId)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
         if (data.containsKey("easebuzzEnabled")) {
+            if (!(data.get("easebuzzEnabled") instanceof Boolean)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "easebuzzEnabled must be true or false");
+            }
             boolean enabled = Boolean.TRUE.equals(data.get("easebuzzEnabled"));
             if (enabled && !merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
                 return ResponseEntity.status(409).body(Map.of(
@@ -85,6 +89,10 @@ public class RestaurantPaymentConfigController {
                 }
             }
             profile.setEasebuzzEnabled(enabled);
+            long now = System.currentTimeMillis();
+            profile.setUpdatedAt(now);
+            profile.setServerUpdatedAt(now);
+            profile.setDeviceId("server");
         }
         profileRepo.save(profile);
         return getConfig();

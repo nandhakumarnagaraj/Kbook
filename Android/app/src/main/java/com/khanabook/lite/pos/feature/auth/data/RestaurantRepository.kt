@@ -20,6 +20,18 @@ class RestaurantRepository(
         private val workManager: WorkManager,
         private val api: com.khanabook.lite.pos.core.network.KhanaBookApi
 ) {
+    /** Payment activation is online and owner-only; confirm it before saving the local switch. */
+    suspend fun savePaymentProfile(profile: RestaurantProfileEntity) {
+        val current = getProfile()
+        if (profile.easebuzzEnabled != (current?.easebuzzEnabled ?: false)) {
+            val response = api.updateEasebuzzConfig(mapOf("easebuzzEnabled" to profile.easebuzzEnabled))
+            if ((response["easebuzzEnabled"] == true) != profile.easebuzzEnabled) {
+                throw IllegalStateException("The server did not confirm the Easebuzz Online setting")
+            }
+        }
+        saveProfile(profile)
+    }
+
     suspend fun saveProfile(profile: RestaurantProfileEntity) {
         val restaurantId = sessionManager.getRestaurantId()
         val current = restaurantDao.getProfile(restaurantId) ?: restaurantDao.getProfile()

@@ -6,4 +6,6 @@ This slice adds a read-only `paymentLinkReady` result to the restaurant payment-
 
 `paymentLinkReady` describes the prerequisites checked before payment-link creation; it does not assert that an Easebuzz sandbox or live transaction has settled. The locally saved switch still controls whether the POS offers Easebuzz as a payment option. When the switch has been changed but not synced, the screen says the server has not confirmed it yet.
 
+Slice 3 extends `paymentLinkReady` to require the owner-enabled server flag and makes that flag authoritative for new payment links.
+
 Verification: server readiness test checks that reading an active account reports the prerequisites without changing a disabled profile; Android debug compilation checks the settings integration. This slice does not deploy or perform a live gateway transaction.

@@ -10,6 +10,7 @@ import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
 import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ public class EasebuzzPaymentService {
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
     private final MerchantAgreementService merchantAgreementService;
+    private final RestaurantProfileRepository restaurantProfileRepository;
 
     @Transactional
     public Map<String, Object> getPaymentStatus(Long billId, boolean refresh) {
@@ -390,6 +392,12 @@ public class EasebuzzPaymentService {
             log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
             return Map.of("status", "failure", "code", "SUBMERCHANT_LOOKUP_FAILED",
                     "error", "Unable to verify Easebuzz sub-merchant status");
+        }
+
+        if (!restaurantProfileRepository.findByRestaurantId(restaurantId)
+                .map(profile -> Boolean.TRUE.equals(profile.getEasebuzzEnabled())).orElse(false)) {
+            return Map.of("status", "failure", "code", "PAYMENT_METHOD_DISABLED",
+                    "error", "Easebuzz Online is off for this restaurant. The owner can enable it in payment settings.");
         }
 
         String email = customerEmail != null && !customerEmail.isBlank() ? customerEmail : subMerchantEmail;

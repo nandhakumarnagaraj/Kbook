@@ -1011,7 +1011,7 @@ class SettingsViewModel @Inject constructor(
         _logoUploadError.value = null
     }
 
-    fun saveProfile(profile: RestaurantProfileEntity) {
+    fun saveProfile(profile: RestaurantProfileEntity, confirmEasebuzzToggle: Boolean = false) {
         // Single-flight: a second tap while a save is in flight must not re-enter and
         // reset _saveProfileSuccess to false — that erased the first save's success
         // transition before the UI consumed it, which surfaced as "Save needs two
@@ -1025,7 +1025,11 @@ class SettingsViewModel @Inject constructor(
             val startedAt = SystemClock.elapsedRealtime()
             try {
                 val newNumber = profile.whatsappNumber ?: ""
-                restaurantRepository.saveProfile(profile)
+                if (confirmEasebuzzToggle) {
+                    restaurantRepository.savePaymentProfile(profile)
+                } else {
+                    restaurantRepository.saveProfile(profile)
+                }
                 userRepository.currentUser.value?.let { current ->
                     userRepository.updateWhatsappNumber(current.id, newNumber)
                     userRepository.setCurrentUser(current.copy(whatsappNumber = newNumber))

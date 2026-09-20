@@ -4,6 +4,8 @@ import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
 import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.payments.controller.RestaurantPaymentConfigController;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.billing.data.Bill;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.*;
 class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
     @Autowired private SubMerchantService subMerchantService;
+    @Autowired private RestaurantPaymentConfigController paymentConfigController;
     @Autowired private EasebuzzPaymentService paymentService;
     @Autowired private PostSplitService postSplitService;
     @Autowired private BillRepository billRepository;
@@ -383,6 +386,29 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void ownerDisabledEasebuzzBlocksNewBillPaymentLink() {
+        createActiveSubMerchant();
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        TenantContext.setCurrentTenant(testRestaurantId);
+        TenantContext.setCurrentRole("OWNER");
+        try {
+            Map<String, Object> config = paymentConfigController
+                    .updateConfig(Map.of("easebuzzEnabled", false)).getBody();
+            assertEquals(false, config.get("easebuzzEnabled"));
+            assertEquals(false, config.get("paymentLinkReady"));
+        } finally {
+            TenantContext.clear();
+        }
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
+
+        assertEquals("PAYMENT_METHOD_DISABLED", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getGatewayTxnId());
+    }
+
+    @Test
     void testPaymentLinkAndWebhook() {
         // Setup active sub-merchant
         EasebuzzSubMerchant sm = createActiveSubMerchant();
@@ -565,6 +591,9 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         sm.setContactPhone("9999999999");
         sm.setCreatedAt(System.currentTimeMillis());
         sm.setUpdatedAt(System.currentTimeMillis());
+        var profile = restaurantProfileRepository.findByRestaurantId(testRestaurantId).orElseThrow();
+        profile.setEasebuzzEnabled(true);
+        restaurantProfileRepository.save(profile);
         return subMerchantRepo.save(sm);
     }
 

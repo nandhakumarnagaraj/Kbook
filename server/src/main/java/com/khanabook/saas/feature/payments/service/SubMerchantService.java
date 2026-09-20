@@ -1,7 +1,6 @@
 package com.khanabook.saas.feature.payments.service;
 
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
-import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEvent;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
@@ -10,7 +9,6 @@ import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +31,7 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
-    private final RestaurantProfileRepository restaurantProfileRepo;
     private final PushNotificationService pushNotificationService;
-    private final MerchantAgreementService merchantAgreementService;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -124,7 +120,6 @@ public class SubMerchantService {
         sm.setStatus("PENDING_KYC");
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        ensureEasebuzzEnabled(sm.getRestaurantId());
         log.info("Sub-merchant {} assigned Easebuzz ID: {} for restaurant {}; KYC activation remains pending", id, subMerchantId, sm.getRestaurantId());
         
         try {
@@ -732,30 +727,6 @@ public class SubMerchantService {
     }
 
     @Transactional
-    public void ensureEasebuzzEnabled(Long restaurantId) {
-        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
-            log.info("Easebuzz remains disabled for restaurant {} until the current owner agreement is signed", restaurantId);
-            return;
-        }
-        EasebuzzSubMerchant subMerchant = subMerchantRepo.findByRestaurantId(restaurantId).orElse(null);
-        if (subMerchant == null || subMerchant.getSubMerchantId() == null
-                || subMerchant.getSubMerchantId().isBlank() || !"ACTIVE".equals(subMerchant.getStatus())) {
-            log.info("Easebuzz remains disabled for restaurant {} until its sub-merchant is active", restaurantId);
-            return;
-        }
-        restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
-            if (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled()) {
-                profile.setEasebuzzEnabled(true);
-                long now = System.currentTimeMillis();
-                profile.setUpdatedAt(now);
-                profile.setServerUpdatedAt(now);
-                profile.setDeviceId("server");
-                restaurantProfileRepo.save(profile);
-            }
-        });
-    }
-
-    @Transactional
     public void hardDeleteSubMerchant(Long id) {
         subMerchantRepo.findById(id).ifPresentOrElse(sm -> {
             // Clean up webhook events associated with this sub-merchant's Easebuzz ID
@@ -904,7 +875,6 @@ public class SubMerchantService {
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());
-            ensureEasebuzzEnabled(sm.getRestaurantId());
         } else {
             sm.setStatus("FAILED");
             Object errorObj = result != null ? result.get("error") : null;
