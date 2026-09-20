@@ -486,7 +486,12 @@ public class EasebuzzPaymentService {
                     "message", "Payment link already sent for this bill.");
         }
 
-        String amount = String.format("%.2f", bill.getTotalAmount());
+        if (bill.getTotalAmount() == null || bill.getTotalAmount().signum() <= 0
+                || bill.getTotalAmount().scale() > 2) {
+            return Map.of("status", "failure", "code", "INVALID_PAYMENT_AMOUNT",
+                    "error", "Bill total must be greater than zero with at most two decimal places");
+        }
+        String amount = bill.getTotalAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString();
         String customerName = bill.getCustomerName() != null
                 ? bill.getCustomerName().replaceAll("[^a-zA-Z0-9 ]", "").trim()
                 : "Customer";
@@ -506,7 +511,7 @@ public class EasebuzzPaymentService {
 
         // Generate unique merchant_txn (max 20 chars for Easebuzz)
         String txnSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
-        String billTail = String.format("%05d", billId % 100000);
+        String billTail = String.format(java.util.Locale.ROOT, "%05d", billId % 100000);
         String merchantTxn = "PL" + billTail + txnSuffix; // 15 chars total
 
         // Build request map — reuse existing createPaymentLink infrastructure

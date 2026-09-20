@@ -458,6 +458,25 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void billPaymentLinkUsesDotDecimalRegardlessOfServerLocale() {
+        createActiveSubMerchant();
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        when(easebuzzApi.createPaymentLink(any()))
+                .thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
+
+        java.util.Locale original = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY);
+            assertEquals("success", paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId).get("status"));
+        } finally {
+            java.util.Locale.setDefault(original);
+        }
+
+        verify(easebuzzApi).createPaymentLink(argThat(data -> "1000.00".equals(data.get("amount"))));
+    }
+
+    @Test
     void testRefundFlow() {
         // Setup paid bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
