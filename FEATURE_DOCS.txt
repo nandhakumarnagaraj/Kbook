@@ -70,6 +70,8 @@ Source area: feature/sync
 Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
 Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/observe
 Docs: https://developer.android.com/topic/architecture/data-layer
+Docs: https://developer.android.com/topic/architecture/data-layer/offline-first
+Audit status (2026-09-20): Reviewed. Local Room/SQLCipher state is used as the working source, WorkManager drains queued changes, network reconnect and boot paths trigger sync, and the server returns per-record success/failure for recovery. The implementation also has quarantine and terminal-approval paths.
 
 Feature: Background jobs and retry scheduling
 Source area: feature/sync/worker, feature/sync/domain
@@ -86,11 +88,24 @@ Source area: feature/printing, feature/settings
 Docs: https://developer.android.com/develop/connectivity/bluetooth
 Docs: https://developer.android.com/develop/connectivity/usb/host
 Docs: https://developer.android.com/training/printing
+Audit status (2026-09-20): Reviewed. Printer routing supports Bluetooth, USB host, and TCP network transports with queued KOT/invoice output and reconnect handling.
+
+Feature: Bluetooth printer transport
+Source area: feature/printing/domain/BluetoothPrinterManager.kt
+Docs: https://developer.android.com/develop/connectivity/bluetooth
+Docs: https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+Audit status (2026-09-20): Reviewed. Android 12+ SCAN/CONNECT and Android 11-and-below legacy/location permissions are declared and requested at runtime; paired-device discovery and RFCOMM/SPP transport are implemented. The feature remains optional and is checked at runtime.
+
+Feature: USB thermal-printer transport
+Source area: feature/printing/domain/UsbPrinterTransport.kt
+Docs: https://developer.android.com/develop/connectivity/usb
+Audit status (2026-09-20): Reviewed. USB host enumeration, per-device permission PendingIntent, bulk-OUT endpoint selection, detach cleanup, and ESC/POS writes are implemented. This follows the Android USB host model; physical printer testing is still required per device model.
 
 Feature: Wi-Fi printer transport
 Source area: feature/printing
 Docs: https://developer.android.com/reference/java/net/Socket
 Docs: https://developer.android.com/develop/connectivity/network-ops/connecting
+Audit status (2026-09-20): Reviewed. The scanner selects an active LAN interface, probes TCP port 9100 with bounded parallelism, and sends raw ESC/POS over sockets. INTERNET/ACCESS_NETWORK_STATE are present; NEARBY_WIFI_DEVICES is not required because the app does not call nearby-device or Wi-Fi scan APIs.
 
 Feature: Camera scanning and barcode/QR capture
 Source area: feature/billing, feature/*/ui where scanner is used
@@ -101,14 +116,23 @@ Docs: https://github.com/zxing/zxing
 Feature: OCR and text recognition
 Source area: feature/billing, scanner integrations
 Docs: https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+Audit status (2026-09-20): Reviewed. The app uses ML Kit Text Recognition v2, InputImage, the Latin recognizer, camera/file input, bounding-box-aware parsing, and an explicit close path. The manifest requests the OCR model through ML Kit Play Services metadata.
 
 Feature: Easebuzz payments
 Source area: feature/payments
 Docs: https://docs.easebuzz.in/
+Audit status (2026-09-20): Reviewed. Mobile payment-link/onboarding repositories call the server; server-side code verifies payment, refund, sub-merchant, payout, and settlement webhook hashes and retries failed webhook processing. Gateway credentials are guarded by server configuration and are not stored in the APK.
 
 Feature: Push notifications and device token registration
 Source area: feature/notifications
 Docs: https://firebase.google.com/docs/cloud-messaging/android/client
+Audit status (2026-09-20): Reviewed. FCM token refresh, server registration, notification channels, data payload handling, local persistence, deep-link routing, actions, grouping, and Android 13 notification permission are implemented.
+
+Feature: Last-write-wins and conflict protection
+Source area: feature/sync, server/src/main/java/com/khanabook/saas/feature/sync
+Docs: https://developer.android.com/topic/architecture/data-layer/offline-first
+Docs: https://developer.android.com/reference/androidx/work/WorkManager
+Audit status (2026-09-20): Reviewed. Server merge logic applies timestamp/changed-field LWW rules while preserving server-owned and finalized payment state, rejects excessive clock skew, quarantines stale pushes, and handles idempotent transactional retries. HTTP 409 conflicts are pulled and surfaced for recovery instead of silently overwriting newer data.
 
 Feature: Crash reporting and app sessions
 Source area: Firebase configuration and application startup
