@@ -358,9 +358,25 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void paymentLinkRejectsCommissionWithoutSeparateFeeConsent() {
+        EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setCommissionRate(new BigDecimal("3.00"));
+        subMerchantRepo.save(sm);
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "100.00"));
+
+        assertEquals("PLATFORM_FEE_CONSENT_REQUIRED", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+    }
+
+    @Test
     void testPaymentLinkAndWebhook() {
         // Setup active sub-merchant
         EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setCommissionRate(BigDecimal.ZERO);
+        subMerchantRepo.save(sm);
         when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         // Create a bill

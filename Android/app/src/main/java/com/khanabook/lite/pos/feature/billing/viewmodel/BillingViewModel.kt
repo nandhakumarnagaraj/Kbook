@@ -285,7 +285,12 @@ class BillingViewModel @Inject constructor(
                     }
                 },
                 onFailure = { e ->
-                    _paymentLinkState.value = PaymentLinkForBillState.Error(e.message ?: "Network error")
+                    val serverMessage = (e as? retrofit2.HttpException)?.let {
+                        com.khanabook.lite.pos.core.util.BackendErrorParser.fromHttpException(it).message
+                    }
+                    _paymentLinkState.value = PaymentLinkForBillState.Error(
+                        serverMessage ?: e.message ?: "Network error"
+                    )
                     false
                 }
             )
