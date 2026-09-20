@@ -140,7 +140,11 @@ public class RefundService {
 
         if (delayMinutes <= 0) {
             Map<String, Object> refundResult = initiatePartialRefund(billId, restaurantId, bill.getTotalAmount(), "ORDER_CANCELLED");
-            return Map.of("status", "cancelled", "billId", billId, "refundApplied", true, "refund", refundResult);
+            boolean refundInitiated = "success".equals(refundResult.get("status"));
+            return Map.of("status", "cancelled", "billId", billId,
+                    "refundApplied", refundInitiated,
+                    "refundStatus", refundInitiated ? "initiated" : "failed",
+                    "refund", refundResult);
         }
 
         BigDecimal finalRefundAmount = bill.getTotalAmount();

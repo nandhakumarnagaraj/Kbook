@@ -145,4 +145,21 @@ class RefundServiceTest {
         assertThat(testBill.getPaymentStatus()).isEqualTo("paid");
         verify(billRepository, never()).save(any());
     }
+
+    @Test
+    void cancelAndAutoRefund_reportsGatewayRejectionWithoutClaimingRefundApplied() {
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(easebuzzPaymentService.initiateRefund(eq(1L), eq(new BigDecimal("1000")), eq("ORDER_CANCELLED")))
+                .thenReturn(java.util.Map.of("status", "failure", "error", "Refund rejected"));
+
+        var result = refundService.cancelAndAutoRefund(1L, 100L, "ORDER_CANCELLED", 0);
+
+        assertThat(result).containsEntry("status", "cancelled")
+                .containsEntry("refundApplied", false)
+                .containsEntry("refundStatus", "failed");
+        assertThat(testBill.getRefundAmount()).isEqualTo(BigDecimal.ZERO);
+        assertThat(testBill.getPaymentStatus()).isEqualTo("paid");
+        verify(easebuzzPaymentService, times(1)).initiateRefund(1L, new BigDecimal("1000"), "ORDER_CANCELLED");
+    }
 }
