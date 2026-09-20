@@ -73,18 +73,12 @@ public class PostSplitService {
         String idSuffix = easebuzzId.length() >= 8 ? easebuzzId.substring(0, 8) : easebuzzId;
         String merchantRequestId = "KB" + billId + "_" + idSuffix;
 
-        BigDecimal commissionRate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
         BigDecimal totalAmount = bill.getTotalAmount();
-        BigDecimal commissionAmount = totalAmount.multiply(commissionRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal restaurantAmount = totalAmount.subtract(commissionAmount);
-
-        if (restaurantAmount.compareTo(BigDecimal.ZERO) < 0) {
-            restaurantAmount = BigDecimal.ZERO;
-            commissionAmount = totalAmount;
-        }
+        BigDecimal commissionAmount = BigDecimal.ZERO;
+        BigDecimal restaurantAmount = totalAmount;
 
         List<Map<String, String>> configuration = new ArrayList<>();
-        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", String.format("%.2f", restaurantAmount)));
+        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", restaurantAmount.setScale(2, RoundingMode.HALF_UP).toPlainString()));
 
         String description = "Split for order #" + bill.getDailyOrderDisplay();
 
@@ -94,7 +88,7 @@ public class PostSplitService {
             try {
                 log.info("Post-split attempt {}/{} billId={} merchantRequestId={}", attempts, MAX_SPLIT_ATTEMPTS, billId, merchantRequestId);
                 Map<String, Object> result = easebuzzApi.updateTransactionSplit(
-                    merchantRequestId, easebuzzId, String.format("%.2f", totalAmount), description, configuration
+                    merchantRequestId, easebuzzId, totalAmount.setScale(2, RoundingMode.HALF_UP).toPlainString(), description, configuration
                 );
 
                 if ("success".equals(result.get("status"))) {

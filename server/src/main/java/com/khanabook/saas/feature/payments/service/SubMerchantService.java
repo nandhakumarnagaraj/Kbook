@@ -84,9 +84,7 @@ public class SubMerchantService {
             sm.setBusinessProof2Url(str(data.get("businessProof2Url")));
             sm.setContactEmail(str(data.get("contactEmail")));
             sm.setContactPhone(str(data.get("contactPhone")));
-            Object commissionVal = data.get("commissionRate");
-            sm.setCommissionRate(commissionVal != null
-                    ? new java.math.BigDecimal(commissionVal.toString()) : java.math.BigDecimal.ZERO);
+            sm.setCommissionRate(requireZeroCommission(data.get("commissionRate")));
             if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
                 sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit").toString()));
             if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
@@ -202,8 +200,7 @@ public class SubMerchantService {
         if (data.containsKey("bankProofUrl")) sm.setBankProofUrl(data.get("bankProofUrl"));
         if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
         if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
-        if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
-            sm.setCommissionRate(new java.math.BigDecimal(data.get("commissionRate")));
+        sm.setCommissionRate(requireZeroCommission(data.get("commissionRate")));
         if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
             sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit")));
         if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
@@ -979,5 +976,12 @@ public class SubMerchantService {
         return wireApi.configurePayoutWebhook(
                 merchantKey, eventType, url,
                 intervalUnit, intervalValue, maxAttempts);
+    }
+
+    private static java.math.BigDecimal requireZeroCommission(Object value) {
+        if (value != null && new java.math.BigDecimal(value.toString()).compareTo(java.math.BigDecimal.ZERO) != 0) {
+            throw new IllegalArgumentException("KhanaBook does not charge transaction commission");
+        }
+        return java.math.BigDecimal.ZERO;
     }
 }

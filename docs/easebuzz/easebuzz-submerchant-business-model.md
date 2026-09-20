@@ -1,5 +1,7 @@
 # KhanaBook Easebuzz Sub-Merchant Business Model — v2
 
+> **Historical proposal (superseded 2026-09-20):** The commission examples below describe an earlier business model. Khanabook's current policy is zero transaction commission; new payment splits allocate the full bill gross amount to the restaurant label. Easebuzz processing fees remain separate. See [slice 1](../planning/SAAS_SLICE_1_NO_COMMISSION.md).
+
 > **Scope**: End-to-end documentation of how KhanaBook (platform) uses Easebuzz sub-merchant APIs to onboard restaurant partners, collect payments, split funds, and manage commissions.
 
 > **Official Easebuzz Docs**: https://docs.easebuzz.in/

@@ -7,7 +7,7 @@ import java.util.HexFormat;
 
 /** The exact payment terms accepted by the restaurant owner. */
 public final class MerchantAgreementTerms {
-    public static final String VERSION = "2.0";
+    public static final String VERSION = "2.1";
     public static final String TEXT = """
             KHANABOOK RESTAURANT PAYMENT AND SETTLEMENT ADDENDUM
 
@@ -18,7 +18,7 @@ public final class MerchantAgreementTerms {
 
             These are proposed Easebuzz commercials for an initial 3 to 6 months, subject to Easebuzz's formal approval and the merchant's final approved pricing. Khanabook will show the final approved rate schedule before live payment activation. Later rate changes require prior notice and the Restaurant Owner's acceptance.
 
-            Easebuzz stated T+1 single settlement, subject to its approved terms, banking days, holds, refunds, chargebacks and risk checks. The Restaurant Owner authorizes the applicable approved processing charges and GST to be deducted from gross collections. Any separate Khanabook platform fee must be disclosed and accepted separately; none is created by this addendum.
+            Easebuzz stated T+1 single settlement, subject to its approved terms, banking days, holds, refunds, chargebacks and risk checks. The Restaurant Owner authorizes the applicable approved Easebuzz processing charges and GST to be deducted from gross collections. Khanabook charges no transaction commission on customer payments and does not deduct a platform share from the restaurant's payment split.
 
             The Restaurant Owner is responsible for order fulfilment, food quality, customer invoices, cancellations and refund decisions. Khanabook provides transaction records and may initiate approved refunds through Easebuzz. Refunds and chargebacks may affect future settlements. Processing fees are not automatically refunded.
 

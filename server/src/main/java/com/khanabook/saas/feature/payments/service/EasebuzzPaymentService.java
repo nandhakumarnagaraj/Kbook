@@ -381,11 +381,6 @@ public class EasebuzzPaymentService {
                 return Map.of("status", "failure", "code", "SUBMERCHANT_NOT_ACTIVE",
                         "error", "Easebuzz sub-merchant onboarding and activation are required");
             }
-            if (sm.getCommissionRate() != null
-                    && sm.getCommissionRate().compareTo(BigDecimal.ZERO) > 0) {
-                return Map.of("status", "failure", "code", "PLATFORM_FEE_CONSENT_REQUIRED",
-                        "error", "KhanaBook platform commission requires a separately accepted fee agreement; contact support");
-            }
             if (sm.getContactEmail() != null) subMerchantEmail = sm.getContactEmail();
             if (sm.getContactPhone() != null) subMerchantPhone = sm.getContactPhone();
         } catch (EntityNotFoundException e) {

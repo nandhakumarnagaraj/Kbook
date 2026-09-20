@@ -86,7 +86,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("fssaiNumber", "12345678901234");
         data.put("contactEmail", "test@example.com");
         data.put("contactPhone", "9999999999");
-        data.put("commissionRate", "3.0");
+        data.put("commissionRate", "0.0");
 
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
         assertNotNull(sm.getId());
@@ -330,8 +330,18 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("fssaiNumber", "12345678901234");
         data.put("contactEmail", "test@example.com");
         data.put("contactPhone", "9999999999");
-        data.put("commissionRate", "3.0");
+        data.put("commissionRate", "0.0");
         return data;
+    }
+
+    @Test
+    void rejectsNonZeroCommissionOnSubMerchantCreation() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.put("commissionRate", "3.00");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> subMerchantService.create(data, testRestaurantId));
+        assertTrue(subMerchantRepo.findByRestaurantId(testRestaurantId).isEmpty());
     }
 
     @Test
@@ -358,17 +368,18 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void paymentLinkRejectsCommissionWithoutSeparateFeeConsent() {
+    void paymentLinkIgnoresLegacyCommissionSetting() {
         EasebuzzSubMerchant sm = createActiveSubMerchant();
         sm.setCommissionRate(new BigDecimal("3.00"));
         subMerchantRepo.save(sm);
         when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        when(easebuzzApi.createPaymentLink(any())).thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
 
         Map<String, Object> result = paymentService.createPaymentLink(Map.of(
                 "restaurantId", testRestaurantId, "amount", "100.00"));
 
-        assertEquals("PLATFORM_FEE_CONSENT_REQUIRED", result.get("code"));
-        verify(easebuzzApi, never()).createPaymentLink(any());
+        assertEquals("success", result.get("status"));
+        verify(easebuzzApi).createPaymentLink(any());
     }
 
     @Test
