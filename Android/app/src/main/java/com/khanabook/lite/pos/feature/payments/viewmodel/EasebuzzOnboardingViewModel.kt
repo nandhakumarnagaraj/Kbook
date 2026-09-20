@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRequest
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRepository
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentReadiness
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,12 @@ sealed class OnboardingEvent {
     data class OpenFile(val file: File) : OnboardingEvent()
 }
 
+sealed class PaymentReadinessUiState {
+    data object Loading : PaymentReadinessUiState()
+    data class Ready(val readiness: EasebuzzPaymentReadiness) : PaymentReadinessUiState()
+    data object Unavailable : PaymentReadinessUiState()
+}
+
 @HiltViewModel
 class EasebuzzOnboardingViewModel @Inject constructor(
     private val repository: EasebuzzOnboardingRepository,
@@ -48,6 +55,18 @@ class EasebuzzOnboardingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<OnboardingUiState>(OnboardingUiState.Loading)
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
+
+    private val _paymentReadiness = MutableStateFlow<PaymentReadinessUiState>(PaymentReadinessUiState.Loading)
+    val paymentReadiness: StateFlow<PaymentReadinessUiState> = _paymentReadiness.asStateFlow()
+
+    fun loadPaymentReadiness() {
+        viewModelScope.launch {
+            _paymentReadiness.value = PaymentReadinessUiState.Loading
+            repository.getPaymentReadiness()
+                .onSuccess { _paymentReadiness.value = PaymentReadinessUiState.Ready(it) }
+                .onFailure { _paymentReadiness.value = PaymentReadinessUiState.Unavailable }
+        }
+    }
 
     private val _events = MutableSharedFlow<OnboardingEvent>()
     val events = _events.asSharedFlow()
@@ -184,9 +203,8 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                         }
                     }
                 }
-                .onFailure { e ->
-                    _currentStep.value = OnboardingStep.BusinessDetails
-                    _uiState.value = OnboardingUiState.InProgress(OnboardingStep.BusinessDetails)
+                .onFailure {
+                    _uiState.value = OnboardingUiState.Error("Unable to verify Easebuzz account status. Please reconnect and retry.")
                 }
         }
     }

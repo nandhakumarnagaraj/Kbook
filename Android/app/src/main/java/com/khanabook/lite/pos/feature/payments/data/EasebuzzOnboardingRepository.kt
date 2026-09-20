@@ -18,11 +18,32 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class EasebuzzPaymentReadiness(
+    val paymentLinkReady: Boolean,
+    val easebuzzEnabled: Boolean,
+    val agreementRequired: Boolean,
+    val subMerchantStatus: String
+)
+
 @Singleton
 class EasebuzzOnboardingRepository @Inject constructor(
     private val api: KhanaBookApi,
     @ApplicationContext private val context: Context
 ) {
+
+    suspend fun getPaymentReadiness(): Result<EasebuzzPaymentReadiness> = runApi {
+        val config = api.getEasebuzzConfig()
+        val agreementRequired = config["agreementRequired"] == true
+        val subMerchantStatus = config["subMerchantStatus"] as? String ?: "NOT_STARTED"
+        val subMerchantId = config["subMerchantId"] as? String
+        EasebuzzPaymentReadiness(
+            paymentLinkReady = (config["paymentLinkReady"] as? Boolean)
+                ?: (!agreementRequired && subMerchantStatus == "ACTIVE" && !subMerchantId.isNullOrBlank()),
+            easebuzzEnabled = config["easebuzzEnabled"] == true,
+            agreementRequired = agreementRequired,
+            subMerchantStatus = subMerchantStatus
+        )
+    }
 
     suspend fun getOnboardingStatus(): Result<EasebuzzOnboardingStatusResponse> =
         runApi { api.getEasebuzzOnboardingStatus() }

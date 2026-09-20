@@ -34,17 +34,14 @@ public class RestaurantPaymentConfigController {
         EasebuzzSubMerchant sm = null;
         try {
             sm = subMerchantService.getByRestaurantId(restaurantId);
-        } catch (Exception e) {
+        } catch (EntityNotFoundException e) {
             // no sub-merchant configured yet
         }
         Map<String, Object> config = new HashMap<>();
         boolean subMerchantActive = sm != null && sm.getSubMerchantId() != null
                 && !sm.getSubMerchantId().isBlank() && "ACTIVE".equals(sm.getStatus());
-        if (subMerchantActive) {
-            subMerchantService.ensureEasebuzzEnabled(restaurantId);
-            profile = profileRepo.findByRestaurantId(restaurantId).orElse(profile);
-        }
         boolean hasCurrentAgreement = merchantAgreementService.hasCurrentSignedAgreement(restaurantId);
+        config.put("paymentLinkReady", hasCurrentAgreement && subMerchantActive);
         config.put("easebuzzEnabled", Boolean.TRUE.equals(profile.getEasebuzzEnabled())
                 && hasCurrentAgreement && subMerchantActive);
         config.put("agreementRequired", !hasCurrentAgreement);
@@ -125,7 +122,7 @@ public class RestaurantPaymentConfigController {
             putKycDoc(result, "businessProof1", sm.getBusinessProof1Key(), sm.getBusinessProof1Url(), "business_proof_1");
             putKycDoc(result, "businessProof2", sm.getBusinessProof2Key(), sm.getBusinessProof2Url(), "business_proof_2");
             return ResponseEntity.ok(result);
-        } catch (Exception e) {
+        } catch (EntityNotFoundException e) {
             Map<String, Object> fallback = new HashMap<>();
             fallback.put("status",             "NOT_REGISTERED");
             fallback.put("subMerchantId",      "");

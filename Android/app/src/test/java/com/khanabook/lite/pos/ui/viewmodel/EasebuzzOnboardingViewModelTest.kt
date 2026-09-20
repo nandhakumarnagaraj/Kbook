@@ -128,15 +128,13 @@ class EasebuzzOnboardingViewModelTest {
     }
 
     @Test
-    fun `loadStatus routes to onboarding form when status lookup fails`() = runTest(testScheduler) {
+    fun `loadStatus does not claim onboarding is needed when status lookup fails`() = runTest(testScheduler) {
         coEvery { onboardingRepository.getOnboardingStatus() } returns Result.failure(RuntimeException("Network error"))
 
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        // On failure the user is dropped at the first onboarding step so they
-        // can start/retry the flow, rather than a dead "Not started" state.
-        assertEquals(OnboardingUiState.InProgress(OnboardingStep.BusinessDetails), viewModel.uiState.value)
+        assertTrue(viewModel.uiState.value is OnboardingUiState.Error)
     }
 
     @Test

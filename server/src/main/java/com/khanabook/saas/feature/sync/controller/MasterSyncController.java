@@ -18,7 +18,6 @@ import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,8 +37,6 @@ import com.khanabook.saas.feature.inventory.data.StockLog;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.data.UserDTO;
 import com.khanabook.saas.feature.auth.service.UserService;
-import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.billing.data.BillItemRepository;
 import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
@@ -63,7 +60,6 @@ import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
 import com.khanabook.saas.feature.payments.service.RefundService;
-import com.khanabook.saas.feature.payments.service.SubMerchantService;
 import com.khanabook.saas.feature.payments.service.WebhookRetryService;
 import com.khanabook.saas.feature.payments.service.PaymentRoutingService;
 import com.khanabook.saas.feature.payments.service.InstantSettlementService;
@@ -106,9 +102,6 @@ public class MasterSyncController {
 
 	@Value("${terminal.sync.compatibility:true}")
 	private boolean terminalCompatibility;
-	private final EasebuzzSubMerchantRepository subMerchantRepo;
-	private final RestaurantProfileRepository profileRepo;
-	private final SubMerchantService subMerchantService;
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true, timeout = 30)
 	@GetMapping("/pull")
@@ -136,10 +129,6 @@ public class MasterSyncController {
 
 		long currentServerTime = System.currentTimeMillis();
 		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
-
-		// Idempotent auto-enable: ensures Easebuzz sub-merchant flag is turned on
-		// whenever credentials are configured but the flag is still off.
-		autoEnableEasebuzzForExistingSubMerchants(tenantId);
 
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId;
@@ -300,23 +289,6 @@ public class MasterSyncController {
 	private static <T> List<T> truncate(List<T> source, int limit) {
 		if (source == null || source.isEmpty()) return new java.util.ArrayList<>();
 		return new java.util.ArrayList<>(source.size() <= limit ? source : source.subList(0, limit));
-	}
-
-	/**
-	 * Retroactively enables easebuzzEnabled for restaurants that have a sub-merchant
-	 * with a non-blank Easebuzz ID but whose profile still has easebuzzEnabled = false/null.
-	 * Uses REQUIRES_NEW to write outside the read-only pull transaction.
-	 */
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	private void autoEnableEasebuzzForExistingSubMerchants(Long restaurantId) {
-		var smOpt = subMerchantRepo.findByRestaurantId(restaurantId);
-		boolean hasValidSubMerchant = smOpt.isPresent()
-				&& smOpt.get().getSubMerchantId() != null
-				&& !smOpt.get().getSubMerchantId().isBlank();
-		if (hasValidSubMerchant) {
-			subMerchantService.ensureEasebuzzEnabled(restaurantId);
-			log.info("Auto-enabled easebuzz for restaurant {} (has existing sub-merchant with ID)", restaurantId);
-		}
 	}
 
 }
