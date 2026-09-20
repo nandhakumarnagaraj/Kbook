@@ -1,6 +1,7 @@
 package com.khanabook.saas.feature.payments.service;
 
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEvent;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
@@ -34,6 +35,7 @@ public class SubMerchantService {
     private final EasebuzzPayoutRepository payoutRepo;
     private final RestaurantProfileRepository restaurantProfileRepo;
     private final PushNotificationService pushNotificationService;
+    private final MerchantAgreementService merchantAgreementService;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -125,7 +127,7 @@ public class SubMerchantService {
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
         ensureEasebuzzEnabled(sm.getRestaurantId());
-        log.info("Sub-merchant {} assigned Easebuzz ID: {}, easebuzzEnabled set to true for restaurant {}", id, subMerchantId, sm.getRestaurantId());
+        log.info("Sub-merchant {} assigned Easebuzz ID: {} for restaurant {}; KYC activation remains pending", id, subMerchantId, sm.getRestaurantId());
         
         try {
             pushNotificationService.pushToRestaurant(
@@ -734,6 +736,16 @@ public class SubMerchantService {
 
     @Transactional
     public void ensureEasebuzzEnabled(Long restaurantId) {
+        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
+            log.info("Easebuzz remains disabled for restaurant {} until the current owner agreement is signed", restaurantId);
+            return;
+        }
+        EasebuzzSubMerchant subMerchant = subMerchantRepo.findByRestaurantId(restaurantId).orElse(null);
+        if (subMerchant == null || subMerchant.getSubMerchantId() == null
+                || subMerchant.getSubMerchantId().isBlank() || !"ACTIVE".equals(subMerchant.getStatus())) {
+            log.info("Easebuzz remains disabled for restaurant {} until its sub-merchant is active", restaurantId);
+            return;
+        }
         restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
             if (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled()) {
                 profile.setEasebuzzEnabled(true);

@@ -9,6 +9,7 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class EasebuzzPaymentService {
     private final ChargebackPreventionService chargebackService;
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
+    private final MerchantAgreementService merchantAgreementService;
 
     @Transactional
     public Map<String, Object> getPaymentStatus(Long billId, boolean refresh) {
@@ -353,6 +355,10 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> createPaymentLink(Map<String, Object> request) {
         Long restaurantId = ((Number) request.get("restaurantId")).longValue();
+        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
+            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
+                    "error", "Restaurant owner must sign the current payment agreement");
+        }
         String amount = request.get("amount").toString();
         String customerName = (String) request.get("customerName");
         String customerEmail = (String) request.get("customerEmail");
@@ -363,23 +369,27 @@ public class EasebuzzPaymentService {
             merchantTxn = "PL" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
         }
 
-        // Look up sub-merchant
-        String subMerchantId = null;
+        // Restaurant collections must be attributed to an onboarded sub-merchant.
+        String subMerchantId;
         String subMerchantEmail = null;
         String subMerchantPhone = null;
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
-            String subMerchantIdFromSm = sm.getSubMerchantId();
-            if (subMerchantIdFromSm != null && !subMerchantIdFromSm.isBlank()
-                    && ("ACTIVE".equals(sm.getStatus()) || "test".equalsIgnoreCase(props.getPayMode()))) {
-                subMerchantId = subMerchantIdFromSm;
+            subMerchantId = sm.getSubMerchantId();
+            if (subMerchantId == null || subMerchantId.isBlank()
+                    || (!"ACTIVE".equals(sm.getStatus()) && !"test".equalsIgnoreCase(props.getPayMode()))) {
+                return Map.of("status", "failure", "code", "SUBMERCHANT_NOT_ACTIVE",
+                        "error", "Easebuzz sub-merchant onboarding and activation are required");
             }
             if (sm.getContactEmail() != null) subMerchantEmail = sm.getContactEmail();
             if (sm.getContactPhone() != null) subMerchantPhone = sm.getContactPhone();
         } catch (EntityNotFoundException e) {
-            log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
+            return Map.of("status", "failure", "code", "SUBMERCHANT_NOT_ACTIVE",
+                    "error", "Easebuzz sub-merchant onboarding and activation are required");
         } catch (Exception e) {
             log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
+            return Map.of("status", "failure", "code", "SUBMERCHANT_LOOKUP_FAILED",
+                    "error", "Unable to verify Easebuzz sub-merchant status");
         }
 
         String email = customerEmail != null && !customerEmail.isBlank() ? customerEmail : subMerchantEmail;
@@ -401,9 +411,7 @@ public class EasebuzzPaymentService {
         data.put("udf3", request.getOrDefault("udf3", "").toString());
         data.put("udf4", request.getOrDefault("udf4", "").toString());
         data.put("udf5", request.getOrDefault("udf5", "").toString());
-        if (subMerchantId != null) {
-            data.put("sub_merchant_id", subMerchantId);
-        }
+        data.put("sub_merchant_id", subMerchantId);
 
         // Optional: restrict payment modes
         String showPaymentMode = (String) request.get("show_payment_mode");
@@ -435,6 +443,10 @@ public class EasebuzzPaymentService {
                     billId, restaurantId, bill.getRestaurantId());
             return Map.of("status", "failure", "code", "ACCESS_DENIED",
                     "error", "Bill does not belong to this restaurant");
+        }
+        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
+            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
+                    "error", "Restaurant owner must sign the current payment agreement");
         }
 
         // Block if already paid

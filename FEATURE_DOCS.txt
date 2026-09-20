@@ -127,6 +127,12 @@ Docs: https://docs.easebuzz.in/docs/payment-gateway/bwc1ej4g1d490-payout-webhook
 Operations covered: merchant/sub-merchant onboarding; onboarding status and resubmission; KYC access keys, document upload/download, OTP request/resend/verification, FSSAI lookup; Easy Collect payment-link creation for customers and bills; payment return redirect, status refresh, transaction verification, success/failure/auto-refund webhooks; full/partial refunds, refund status, refund webhooks, cancel-and-refund; transaction splits and post-payment splits; on-demand settlement, settlement retrieval and reconciliation; payout creation/status and payout webhooks; duplicate-event detection, hash verification, tenant/permission checks, idempotency, and webhook retries.
 Audit status (2026-09-20): Reviewed. Mobile payment-link/onboarding repositories call the server; server-side code verifies payment, refund, sub-merchant, payout, and settlement webhook hashes and retries failed webhook processing. Gateway credentials are guarded by server configuration and are not stored in the APK. Focused Android tests passed. Real sandbox payment, refund, settlement, payout, and callback delivery remain pending live verification.
 
+Feature: Restaurant owner payment agreement
+Source area: Android feature/onboarding; server feature/onboarding and feature/payments
+Docs: https://www.meity.gov.in/writereaddata/files/The%20Information%20Technology%20Act%2C%202000%283%29.pdf
+Docs: https://easebuzz.in/terms/
+Audit status (2026-09-20): The owner reviews the server-provided payment terms, affirms consent, draws a signature, and uploads a PDF. The server stores the exact accepted text, terms and PDF SHA-256 hashes, signer user ID, timestamp, and private document path. Payment links require the current agreement and an active Easebuzz sub-merchant. The in-app drawn signature has not been verified as a prescribed electronic-signature method; legal review and Easebuzz's final approved commercial schedule are required before live rollout. The rate schedule in the current draft comes from the merchant-specific proposal shared by the user, not Easebuzz's public pricing page.
+
 Feature: Push notifications and device token registration
 Source area: feature/notifications
 Docs: https://firebase.google.com/docs/cloud-messaging/android/client

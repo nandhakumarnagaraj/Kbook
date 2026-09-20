@@ -6,6 +6,8 @@ ALTER TABLE merchant_agreement
     ADD COLUMN IF NOT EXISTS document_sha256 VARCHAR(64),
     ADD COLUMN IF NOT EXISTS signer_user_id BIGINT,
     ADD COLUMN IF NOT EXISTS signature_method VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS terms_sha256 VARCHAR(64),
+    ADD COLUMN IF NOT EXISTS terms_text TEXT,
     ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'SIGNED';
 
 CREATE INDEX IF NOT EXISTS idx_merchant_agreement_latest

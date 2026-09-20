@@ -2,7 +2,6 @@ package com.khanabook.lite.pos.feature.onboarding.domain
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.graphics.Rect
@@ -14,42 +13,20 @@ import java.util.Date
 import java.util.Locale
 
 object AgreementPdfGenerator {
-    const val AGREEMENT_VERSION = "1.0"
-
-    val TERMS: String = """
-        KHANABOOK MERCHANT SERVICES AGREEMENT
-
-        This Merchant Services Agreement ("Agreement") is entered into between KhanaBook (the "Platform") and the restaurant owner identified below ("Merchant").
-
-        1. SERVICES. The Platform provides the Merchant with point-of-sale, billing, inventory, payments, and related business management services through the KhanaBook application and associated web dashboard.
-
-        2. FEES AND SETTLEMENTS. The Merchant agrees to the applicable platform and payment-processing fees disclosed at the time of onboarding. Settlements are made to the Merchant's verified bank account in accordance with the payout schedule.
-
-        3. DATA AND PRIVACY. The Merchant consents to the collection and processing of business and transaction data as required to operate the services, in line with the Platform's privacy policy.
-
-        4. COMPLIANCE. The Merchant shall operate lawfully, maintain valid FSSAI and tax registrations where applicable, and shall not use the Platform for any fraudulent or unlawful activity.
-
-        5. TERM AND TERMINATION. Either party may terminate this Agreement with notice. Upon termination, the Merchant remains responsible for settled and pending obligations.
-
-        6. LIABILITY. The Platform is provided on an "as is" basis. The Platform's liability is limited to the extent permitted by applicable law.
-
-        By signing below, the Merchant acknowledges that they have read, understood, and agree to be bound by the terms of this Agreement.
-    """.trimIndent()
-
-    fun generate(context: Context, signerName: String, signature: Bitmap?): File {
+    fun generate(context: Context, signerName: String, signature: Bitmap?, terms: String, version: String): File {
         val pdf = PdfDocument()
         val pageWidth = 595
         val pageHeight = 842
         val margin = 48f
         val contentWidth = pageWidth - margin * 2
 
-        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
-        val page = pdf.startPage(pageInfo)
-        val canvas = page.canvas
+        var pageNumber = 1
+        var page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+        var canvas = page.canvas
 
         val bodyPaint = Paint().apply {
             color = AndroidColor.BLACK
-            textSize = 11f
+            textSize = 9.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
         val titlePaint = Paint().apply {
@@ -66,15 +43,46 @@ object AgreementPdfGenerator {
         val dateStr = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.ENGLISH).format(Date())
 
         var y = margin
-        canvas.drawText("KHANABOOK MERCHANT SERVICES AGREEMENT", margin, y, titlePaint)
+        fun nextPage() {
+            pdf.finishPage(page)
+            pageNumber++
+            page = pdf.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+            canvas = page.canvas
+            y = margin
+        }
+        fun drawBodyLine(line: String) {
+            if (y > pageHeight - margin) nextPage()
+            canvas.drawText(line, margin, y, bodyPaint)
+            y += bodyPaint.textSize * 1.45f
+        }
+        canvas.drawText("KHANABOOK RESTAURANT PAYMENT ADDENDUM", margin, y, titlePaint)
         y += 26f
-        canvas.drawText("Agreement Version: $AGREEMENT_VERSION", margin, y, bodyPaint)
+        canvas.drawText("Agreement Version: $version", margin, y, bodyPaint)
         y += 16f
         canvas.drawText("Date: $dateStr", margin, y, bodyPaint)
         y += 22f
 
-        y = drawWrappedText(canvas, TERMS, margin, y, contentWidth, bodyPaint)
+        for (paragraph in terms.split("\n")) {
+            if (paragraph.isBlank()) {
+                y += bodyPaint.textSize * 1.45f
+                continue
+            }
+            var line = ""
+            for (word in paragraph.split(" ")) {
+                val candidate = if (line.isEmpty()) word else "$line $word"
+                if (bodyPaint.measureText(candidate) > contentWidth && line.isNotEmpty()) {
+                    drawBodyLine(line)
+                    line = word
+                } else {
+                    line = candidate
+                }
+            }
+            if (line.isNotEmpty()) drawBodyLine(line)
+        }
         y += 24f
+
+        // Keep the signer's identity and drawn signature together on the last page.
+        if (y + 170f > pageHeight - margin) nextPage()
 
         canvas.drawText("Signed by: ${signerName.ifBlank { "________________" }}", margin, y, labelPaint)
         y += 18f
@@ -107,38 +115,4 @@ object AgreementPdfGenerator {
         return file
     }
 
-    private fun drawWrappedText(
-        canvas: AndroidCanvas,
-        text: String,
-        x: Float,
-        startY: Float,
-        maxWidth: Float,
-        paint: Paint
-    ): Float {
-        var y = startY
-        val lineHeight = paint.textSize * 1.45f
-        for (paragraph in text.split("\n")) {
-            if (paragraph.isBlank()) {
-                y += lineHeight
-                continue
-            }
-            val words = paragraph.split(" ")
-            var line = ""
-            for (word in words) {
-                val test = if (line.isEmpty()) word else "$line $word"
-                if (paint.measureText(test) > maxWidth && line.isNotEmpty()) {
-                    canvas.drawText(line, x, y, paint)
-                    y += lineHeight
-                    line = word
-                } else {
-                    line = test
-                }
-            }
-            if (line.isNotEmpty()) {
-                canvas.drawText(line, x, y, paint)
-                y += lineHeight
-            }
-        }
-        return y
-    }
 }

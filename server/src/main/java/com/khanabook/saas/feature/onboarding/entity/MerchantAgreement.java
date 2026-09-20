@@ -7,7 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,7 +21,6 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "merchant_agreement",
-    uniqueConstraints = @UniqueConstraint(name = "ux_merchant_agreement_restaurant", columnNames = "restaurant_id"),
     indexes = @Index(name = "idx_merchant_agreement_restaurant", columnList = "restaurant_id"))
 @Getter
 @Setter
@@ -60,6 +58,12 @@ public class MerchantAgreement {
 
     @Column(name = "document_sha256", length = 64)
     private String documentSha256;
+
+    @Column(name = "terms_sha256", length = 64)
+    private String termsSha256;
+
+    @Column(name = "terms_text", columnDefinition = "TEXT")
+    private String termsText;
 
     @Column(name = "signer_user_id")
     private Long signerUserId;

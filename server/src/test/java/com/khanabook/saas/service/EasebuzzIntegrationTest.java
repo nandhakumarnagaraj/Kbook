@@ -4,6 +4,7 @@ import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
 import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
@@ -43,6 +44,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
+    @MockBean private MerchantAgreementService merchantAgreementService;
 
     private static final java.util.concurrent.atomic.AtomicLong TEST_SEQ =
             new java.util.concurrent.atomic.AtomicLong();
@@ -333,9 +335,33 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void paymentLinkRequiresCurrentOwnerAgreement() {
+        createActiveSubMerchant();
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
+
+        assertEquals("AGREEMENT_REQUIRED", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getGatewayTxnId());
+    }
+
+    @Test
+    void paymentLinkRequiresOnboardedSubMerchant() {
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "100.00"));
+
+        assertEquals("SUBMERCHANT_NOT_ACTIVE", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+    }
+
+    @Test
     void testPaymentLinkAndWebhook() {
         // Setup active sub-merchant
         EasebuzzSubMerchant sm = createActiveSubMerchant();
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         // Create a bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));

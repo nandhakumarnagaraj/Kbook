@@ -12,4 +12,7 @@ public interface MerchantAgreementRepository extends JpaRepository<MerchantAgree
     Optional<MerchantAgreement> findTopByRestaurantIdOrderBySignedAtDescIdDesc(Long restaurantId);
 
     boolean existsByRestaurantId(Long restaurantId);
+
+    boolean existsByRestaurantIdAndAgreementVersionAndTermsSha256AndStatus(
+            Long restaurantId, String agreementVersion, String termsSha256, String status);
 }

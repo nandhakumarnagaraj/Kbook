@@ -4,11 +4,14 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
-import com.khanabook.saas.feature.onboarding.data.MerchantAgreementRepository;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +24,7 @@ public class RestaurantPaymentConfigController {
 
     private final RestaurantProfileRepository profileRepo;
     private final SubMerchantService subMerchantService;
-    private final MerchantAgreementRepository merchantAgreementRepository;
+    private final MerchantAgreementService merchantAgreementService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
@@ -35,12 +38,16 @@ public class RestaurantPaymentConfigController {
             // no sub-merchant configured yet
         }
         Map<String, Object> config = new HashMap<>();
-        // Auto-enable if a sub-merchant ID is assigned, otherwise use the stored flag
-        boolean hasSubMerchantId = sm != null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank();
-        if (hasSubMerchantId) {
+        boolean subMerchantActive = sm != null && sm.getSubMerchantId() != null
+                && !sm.getSubMerchantId().isBlank() && "ACTIVE".equals(sm.getStatus());
+        if (subMerchantActive) {
             subMerchantService.ensureEasebuzzEnabled(restaurantId);
+            profile = profileRepo.findByRestaurantId(restaurantId).orElse(profile);
         }
-        config.put("easebuzzEnabled", profile.getEasebuzzEnabled() != null && profile.getEasebuzzEnabled());
+        boolean hasCurrentAgreement = merchantAgreementService.hasCurrentSignedAgreement(restaurantId);
+        config.put("easebuzzEnabled", Boolean.TRUE.equals(profile.getEasebuzzEnabled())
+                && hasCurrentAgreement && subMerchantActive);
+        config.put("agreementRequired", !hasCurrentAgreement);
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
         config.put("subMerchantId", sm != null ? sm.getSubMerchantId() : null);
         config.put("kycStatus", sm != null ? sm.getKycStatus() : null);
@@ -52,16 +59,33 @@ public class RestaurantPaymentConfigController {
 
     @PutMapping
     public ResponseEntity<Map<String, Object>> updateConfig(@RequestBody Map<String, Object> data) {
+        if (!"OWNER".equals(TenantContext.getCurrentRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
+        }
         Long restaurantId = TenantContext.getCurrentTenant();
         RestaurantProfile profile = profileRepo.findByRestaurantId(restaurantId)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
         if (data.containsKey("easebuzzEnabled")) {
             boolean enabled = Boolean.TRUE.equals(data.get("easebuzzEnabled"));
-            if (enabled && !merchantAgreementRepository.existsByRestaurantId(restaurantId)) {
+            if (enabled && !merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
                 return ResponseEntity.status(409).body(Map.of(
                         "status", "failure",
                         "error", "Restaurant owner agreement is required before enabling Easebuzz payments",
                         "agreementRequired", true));
+            }
+            if (enabled) {
+                EasebuzzSubMerchant sm;
+                try {
+                    sm = subMerchantService.getByRestaurantId(restaurantId);
+                } catch (EntityNotFoundException e) {
+                    return ResponseEntity.status(409).body(Map.of(
+                            "status", "failure", "error", "Easebuzz sub-merchant must be active before enabling payments"));
+                }
+                if (sm.getSubMerchantId() == null || sm.getSubMerchantId().isBlank()
+                        || !"ACTIVE".equals(sm.getStatus())) {
+                    return ResponseEntity.status(409).body(Map.of(
+                            "status", "failure", "error", "Easebuzz sub-merchant must be active before enabling payments"));
+                }
             }
             profile.setEasebuzzEnabled(enabled);
         }

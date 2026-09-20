@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -113,6 +114,7 @@ fun MerchantAgreementScreen(
     var signerName by remember { mutableStateOf("") }
     var signatureBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var clearTrigger by remember { mutableStateOf(0) }
+    var consentGiven by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -205,14 +207,14 @@ fun MerchantAgreementScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    if (status.hasAgreement) Icons.Filled.CheckCircle else Icons.Filled.Description,
+                                    if (status.hasCurrentAgreement) Icons.Filled.CheckCircle else Icons.Filled.Description,
                                     contentDescription = null,
-                                    tint = if (status.hasAgreement) SuccessGreen else PrimaryGold,
+                                    tint = if (status.hasCurrentAgreement) SuccessGreen else PrimaryGold,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(spacing.small))
                                 Text(
-                                    if (status.hasAgreement) "Agreement Signed" else "Agreement Not Signed",
+                                    if (status.hasCurrentAgreement) "Payment Agreement Signed" else "Current Payment Agreement Required",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = TextLight
@@ -251,7 +253,7 @@ fun MerchantAgreementScreen(
                         }
                     }
 
-                    if (canSign && !status.hasAgreement) {
+                    if (canSign && !status.hasCurrentAgreement) {
                         Text(
                             "Sign the agreement",
                             style = MaterialTheme.typography.titleMedium,
@@ -263,6 +265,20 @@ fun MerchantAgreementScreen(
                             shape = KhanaRadii.lg
                         ) {
                             Column(modifier = Modifier.padding(spacing.medium)) {
+                                Text(
+                                    status.currentTerms ?: "Loading agreement terms...",
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.height(spacing.medium))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(checked = consentGiven, onCheckedChange = { consentGiven = it })
+                                    Text(
+                                        "I am authorized to sign for this restaurant and accept the terms shown above.",
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                                 androidx.compose.material3.OutlinedTextField(
                                     value = signerName,
                                     onValueChange = { signerName = it },
@@ -292,7 +308,7 @@ fun MerchantAgreementScreen(
                                     ) { Text("Clear", color = PrimaryGold) }
                                     Button(
                                         onClick = { viewModel.signAndUpload(signerName, signatureBitmap) },
-                                        enabled = !isSubmitting,
+                                        enabled = !isSubmitting && consentGiven && !status.currentTerms.isNullOrBlank(),
                                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                         shape = KhanaRadii.xl
                                     ) {

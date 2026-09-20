@@ -355,7 +355,9 @@ interface KhanaBookApi {
         suspend fun uploadMerchantAgreement(
             @Part file: MultipartBody.Part,
             @Part signerName: MultipartBody.Part,
-            @Part agreementVersion: MultipartBody.Part
+            @Part agreementVersion: MultipartBody.Part,
+            @Part termsSha256: MultipartBody.Part,
+            @Part accepted: MultipartBody.Part
         ): Map<String, Any?>
 
         @GET("api/v1/business/merchant-agreement/download")

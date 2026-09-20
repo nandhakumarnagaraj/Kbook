@@ -3,6 +3,7 @@ package com.khanabook.saas.feature.onboarding.controller;
 import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementTerms;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -39,10 +40,15 @@ public class MerchantAgreementController {
     public ResponseEntity<Map<String, Object>> upload(
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "signerName", required = false) String signerName,
-            @RequestParam(value = "agreementVersion", required = false) String agreementVersion) {
+            @RequestParam(value = "agreementVersion", required = false) String agreementVersion,
+            @RequestParam(value = "termsSha256", required = false) String termsSha256,
+            @RequestParam(value = "accepted", defaultValue = "false") boolean accepted) {
+        if (!accepted) {
+            throw new IllegalArgumentException("Agreement consent is required");
+        }
         Long restaurantId = TenantContext.getCurrentTenant();
         MerchantAgreement saved = service.upload(restaurantId, file, signerName, agreementVersion,
-                TenantContext.getCurrentUserId(), "DRAWN_SIGNATURE_UPLOAD");
+                TenantContext.getCurrentUserId(), "DRAWN_SIGNATURE_UPLOAD", termsSha256);
         Map<String, Object> body = new HashMap<>();
         body.put("uploaded", true);
         body.put("signedAt", saved.getSignedAt());
@@ -55,7 +61,12 @@ public class MerchantAgreementController {
     @GetMapping("/business/merchant-agreement")
     public ResponseEntity<Map<String, Object>> status() {
         Long restaurantId = TenantContext.getCurrentTenant();
-        return ResponseEntity.ok(statusBody(service.get(restaurantId)));
+        Map<String, Object> body = statusBody(service.get(restaurantId));
+        body.put("currentVersion", MerchantAgreementTerms.VERSION);
+        body.put("currentTerms", MerchantAgreementTerms.TEXT);
+        body.put("currentTermsSha256", MerchantAgreementTerms.SHA256);
+        body.put("hasCurrentAgreement", service.hasCurrentSignedAgreement(restaurantId));
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping("/business/merchant-agreement/download")
@@ -91,6 +102,7 @@ public class MerchantAgreementController {
         body.put("agreementVersion", a.getAgreementVersion());
         body.put("originalFilename", a.getOriginalFilename());
         body.put("documentSha256", a.getDocumentSha256());
+        body.put("termsSha256", a.getTermsSha256());
         body.put("status", a.getStatus());
         return body;
     }

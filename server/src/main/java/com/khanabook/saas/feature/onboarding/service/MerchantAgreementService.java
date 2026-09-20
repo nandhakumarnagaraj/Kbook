@@ -33,6 +33,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MerchantAgreementService {
 
+    public static final String CURRENT_VERSION = MerchantAgreementTerms.VERSION;
+
     private final MerchantAgreementRepository repository;
 
     @Value("${kbook.private-docs.base-path}")
@@ -44,13 +46,24 @@ public class MerchantAgreementService {
     @Transactional
     public MerchantAgreement upload(Long restaurantId, MultipartFile file, String signerName,
                                     String agreementVersion) {
-        return upload(restaurantId, file, signerName, agreementVersion, null, "DRAWN_SIGNATURE_UPLOAD");
+        return upload(restaurantId, file, signerName, agreementVersion, null,
+                "DRAWN_SIGNATURE_UPLOAD", MerchantAgreementTerms.SHA256);
     }
 
     @Transactional
     public MerchantAgreement upload(Long restaurantId, MultipartFile file, String signerName,
-                                    String agreementVersion, Long signerUserId, String signatureMethod) {
+                                    String agreementVersion, Long signerUserId, String signatureMethod,
+                                    String termsSha256) {
         validate(file);
+        if (signerName == null || signerName.isBlank()) {
+            throw new IllegalArgumentException("Signer name is required");
+        }
+        if (!CURRENT_VERSION.equals(agreementVersion)) {
+            throw new IllegalArgumentException("Current agreement version is required");
+        }
+        if (!MerchantAgreementTerms.SHA256.equals(termsSha256)) {
+            throw new IllegalArgumentException("Agreement terms have changed; review the current terms");
+        }
 
         Path tmp = null;
         try {
@@ -81,6 +94,8 @@ public class MerchantAgreementService {
             agreement.setSignatureMethod(signatureMethod == null || signatureMethod.isBlank()
                     ? "DRAWN_SIGNATURE_UPLOAD" : signatureMethod);
             agreement.setDocumentSha256(sha256(target));
+            agreement.setTermsSha256(termsSha256);
+            agreement.setTermsText(MerchantAgreementTerms.TEXT);
             agreement.setStatus("SIGNED");
             agreement.setUpdatedAt(now);
             MerchantAgreement saved = repository.save(agreement);
@@ -98,6 +113,11 @@ public class MerchantAgreementService {
 
     public Optional<MerchantAgreement> get(Long restaurantId) {
         return repository.findTopByRestaurantIdOrderBySignedAtDescIdDesc(restaurantId);
+    }
+
+    public boolean hasCurrentSignedAgreement(Long restaurantId) {
+        return repository.existsByRestaurantIdAndAgreementVersionAndTermsSha256AndStatus(
+                restaurantId, CURRENT_VERSION, MerchantAgreementTerms.SHA256, "SIGNED");
     }
 
     /** Opens the stored PDF for streaming. Caller is responsible for closing the stream. */
@@ -119,6 +139,13 @@ public class MerchantAgreementService {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
             throw new IllegalArgumentException("Only PDF uploads are allowed for the merchant agreement");
+        }
+        try (InputStream in = file.getInputStream()) {
+            if (!java.util.Arrays.equals(in.readNBytes(5), "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII))) {
+                throw new IllegalArgumentException("Invalid PDF file");
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to read PDF file", e);
         }
     }
 

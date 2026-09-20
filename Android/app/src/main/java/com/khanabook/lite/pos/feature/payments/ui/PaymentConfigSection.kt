@@ -551,8 +551,8 @@ fun EasebuzzOnboardingHub(
 
                 TextButton(onClick = onOpenAgreement) {
                     Text(
-                        text = if (agreementStatus?.hasAgreement == true) "✓ Agreement Signed" else "Merchant Agreement ↗",
-                        color = if (agreementStatus?.hasAgreement == true) SuccessGreen else TextGold,
+                        text = if (agreementStatus?.hasCurrentAgreement == true) "✓ Agreement Signed" else "Payment Agreement ↗",
+                        color = if (agreementStatus?.hasCurrentAgreement == true) SuccessGreen else TextGold,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
