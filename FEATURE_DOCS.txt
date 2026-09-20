@@ -28,6 +28,7 @@ Source area: feature/auth
 Docs: https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
 Docs: https://developers.google.com/identity/android-credential-manager/android/reference/com/google/android/libraries/identity/googleid/GetSignInWithGoogleOption
 Docs: https://firebase.google.com/docs/auth/android/start
+Audit status (2026-09-20): Reviewed. Google login uses Credential Manager with the explicit Sign in with Google option, decodes GoogleIdTokenCredential from the returned CustomCredential, sends the ID token to the server, and handles cancellation/no-credential/device-unsupported results. Server verifies the token signature and configured web-client audience before creating the app session. Device logs show the remaining BAD_AUTHENTICATION/NoCredential entries are Google Play services account/consent state; successful runs reach SessionState READY and sync, so they are not server failures.
 
 Feature: Secure token and credential storage
 Source area: feature/auth, core/database, security preferences
