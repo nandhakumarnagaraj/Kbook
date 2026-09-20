@@ -119,9 +119,13 @@ Docs: https://developers.google.com/ml-kit/vision/text-recognition/v2/android
 Audit status (2026-09-20): Reviewed. The app uses ML Kit Text Recognition v2, InputImage, the Latin recognizer, camera/file input, bounding-box-aware parsing, and an explicit close path. The manifest requests the OCR model through ML Kit Play Services metadata.
 
 Feature: Easebuzz payments
-Source area: feature/payments
-Docs: https://docs.easebuzz.in/
-Audit status (2026-09-20): Reviewed. Mobile payment-link/onboarding repositories call the server; server-side code verifies payment, refund, sub-merchant, payout, and settlement webhook hashes and retries failed webhook processing. Gateway credentials are guarded by server configuration and are not stored in the APK.
+Source area: Android feature/payments; server feature/payments and billing/payment modules
+Docs: https://docs.easebuzz.in/docs/payment-gateway/i849ghebwytej-payment-gateway
+Docs: https://docs.easebuzz.in/docs/payment-gateway/05be3a890b572-easy-collect-api-create-link
+Docs: https://docs.easebuzz.in/docs/payment-gateway/ydk17g4xurhhp-submerchant-kyc-approval-webhook
+Docs: https://docs.easebuzz.in/docs/payment-gateway/bwc1ej4g1d490-payout-webhook
+Operations covered: merchant/sub-merchant onboarding; onboarding status and resubmission; KYC access keys, document upload/download, OTP request/resend/verification, FSSAI lookup; Easy Collect payment-link creation for customers and bills; payment return redirect, status refresh, transaction verification, success/failure/auto-refund webhooks; full/partial refunds, refund status, refund webhooks, cancel-and-refund; transaction splits and post-payment splits; on-demand settlement, settlement retrieval and reconciliation; payout creation/status and payout webhooks; duplicate-event detection, hash verification, tenant/permission checks, idempotency, and webhook retries.
+Audit status (2026-09-20): Reviewed. Mobile payment-link/onboarding repositories call the server; server-side code verifies payment, refund, sub-merchant, payout, and settlement webhook hashes and retries failed webhook processing. Gateway credentials are guarded by server configuration and are not stored in the APK. Focused Android tests passed. Real sandbox payment, refund, settlement, payout, and callback delivery remain pending live verification.
 
 Feature: Push notifications and device token registration
 Source area: feature/notifications
