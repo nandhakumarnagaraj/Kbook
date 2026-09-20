@@ -129,4 +129,20 @@ class RefundServiceTest {
         verifyNoInteractions(easebuzzPaymentService);
         verify(billRepository, never()).save(any());
     }
+
+    @Test
+    void initiatePartialRefund_gatewayFailureKeepsAccountingState() {
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
+        when(easebuzzPaymentService.initiateRefund(eq(1L), eq(new BigDecimal("300")), anyString()))
+                .thenReturn(java.util.Map.of("status", "failure", "error", "Refund rejected"));
+
+        var result = refundService.initiatePartialRefund(1L, 100L, new BigDecimal("300"), "QUALITY_ISSUE");
+
+        assertThat(result.get("refundStatus")).isEqualTo("failed");
+        assertThat(result.get("totalRefunded")).isEqualTo(BigDecimal.ZERO);
+        assertThat(result.get("remainingRefundable")).isEqualTo(new BigDecimal("1000"));
+        assertThat(testBill.getRefundAmount()).isEqualTo(BigDecimal.ZERO);
+        assertThat(testBill.getPaymentStatus()).isEqualTo("paid");
+        verify(billRepository, never()).save(any());
+    }
 }

@@ -78,7 +78,10 @@ public class RefundService {
         }
 
         log.info("Initiating refund billId={} amount={} reason={}", billId, refundAmount, reason);
-        Map<String, Object> result = easebuzzPaymentService.initiateRefund(billId, refundAmount, reason);
+        Map<String, Object> gatewayResult = easebuzzPaymentService.initiateRefund(billId, refundAmount, reason);
+        Map<String, Object> result = gatewayResult == null
+                ? new LinkedHashMap<>(Map.of("status", "failure", "error", "Refund gateway returned no response"))
+                : new LinkedHashMap<>(gatewayResult);
 
         if ("success".equals(result.get("status"))) {
             BigDecimal newTotalRefund = existingRefund.add(refundAmount);
@@ -109,6 +112,10 @@ public class RefundService {
                     log.warn("Refund confirmed but notification failed for billId={}: {}", billId, e.getMessage(), e);
                 }
             }
+        } else {
+            result.put("refundStatus", "failed");
+            result.put("totalRefunded", existingRefund);
+            result.put("remainingRefundable", bill.getTotalAmount().subtract(existingRefund));
         }
         result.put("billId", billId);
         return result;
