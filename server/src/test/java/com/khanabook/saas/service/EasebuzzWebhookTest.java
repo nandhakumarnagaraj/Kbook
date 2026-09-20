@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
@@ -138,6 +139,65 @@ class EasebuzzWebhookTest {
 
         assertEquals("hash_mismatch", response.get("status"));
         verifyNoInteractions(billRepo);
+    }
+
+    @Test
+    void completedPartialRefundKeepsBillPartiallyRefunded() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
+        Map<String, String> payload = refundPayload("30.00");
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+
+        assertEquals("received", webhookService.handleRefundWebhook(payload).get("status"));
+
+        assertEquals("partially_refunded", bill.getPaymentStatus());
+        assertEquals("partially_refunded", bill.getGatewayStatus());
+        assertEquals(new BigDecimal("30.00"), bill.getRefundAmount());
+        verify(billRepo).save(bill);
+    }
+
+    @Test
+    void completedFullRefundMarksBillRefunded() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("100.00"));
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+
+        webhookService.handleRefundWebhook(refundPayload("100.00"));
+
+        assertEquals("refunded", bill.getPaymentStatus());
+        assertEquals("refunded", bill.getGatewayStatus());
+    }
+
+    @Test
+    void completedRefundWithoutUsableAmountNeedsReview() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+
+        webhookService.handleRefundWebhook(refundPayload("not-an-amount"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        assertEquals("refund_review_required", bill.getGatewayStatus());
+        verifyNoInteractions(pushNotificationService);
+    }
+
+    private Bill refundBill(BigDecimal total, BigDecimal refunded) {
+        Bill bill = new Bill();
+        bill.setId(500L);
+        bill.setRestaurantId(1L);
+        bill.setGatewayTxnId("PL_REFUND_TEST");
+        bill.setPaymentStatus("paid");
+        bill.setTotalAmount(total);
+        bill.setRefundAmount(refunded);
+        return bill;
+    }
+
+    private Map<String, String> refundPayload(String amount) throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", "PL_REFUND_TEST");
+        payload.put("status", "refunded");
+        payload.put("easepayid", "E_REFUND_TEST");
+        payload.put("refund_id", "REF_TEST");
+        payload.put("refund_amount", amount);
+        payload.put("hash", sha512(TEST_KEY + "|E_REFUND_TEST|" + TEST_SALT));
+        return payload;
     }
 
     @Test

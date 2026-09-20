@@ -310,34 +310,45 @@ public class EasebuzzWebhookService {
         if (refundId != null && !refundId.isBlank()) {
             bill.setRefundId(refundId);
         }
-        if (refundAmount != null && !refundAmount.isBlank()
-                && (bill.getRefundAmount() == null || bill.getRefundAmount().compareTo(java.math.BigDecimal.ZERO) == 0)) {
+        BigDecimal webhookRefundAmount = null;
+        if (refundAmount != null && !refundAmount.isBlank()) {
             try {
-                // The refund initiation path records the cumulative amount
-                // before this asynchronous webhook arrives. Preserve it so a
-                // partial-refund webhook cannot overwrite the running total.
-                bill.setRefundAmount(new BigDecimal(refundAmount));
+                webhookRefundAmount = new BigDecimal(refundAmount);
             } catch (Exception e) {
                 log.warn("Invalid refund_amount in webhook: {}", refundAmount);
             }
         }
+        if (webhookRefundAmount != null && webhookRefundAmount.signum() > 0
+                && bill.getTotalAmount() != null && webhookRefundAmount.compareTo(bill.getTotalAmount()) <= 0
+                && (bill.getRefundAmount() == null || bill.getRefundAmount().signum() == 0)) {
+            // An initiated refund already records the cumulative amount. A webhook
+            // amount describes one attempt and must not replace that total.
+            bill.setRefundAmount(webhookRefundAmount);
+        }
 
         if ("refunded".equalsIgnoreCase(status)) {
-            bill.setPaymentStatus("refunded");
-            bill.setGatewayStatus("refunded");
+            BigDecimal cumulative = bill.getRefundAmount();
+            if (cumulative == null || cumulative.signum() <= 0 || bill.getTotalAmount() == null
+                    || cumulative.compareTo(bill.getTotalAmount()) > 0) {
+                bill.setGatewayStatus("refund_review_required");
+                log.warn("Refund completion needs amount review for billId={} refundId={}", bill.getId(), refundId);
+            } else {
+                boolean fullyRefunded = cumulative.compareTo(bill.getTotalAmount()) == 0;
+                bill.setPaymentStatus(fullyRefunded ? "refunded" : "partially_refunded");
+                bill.setGatewayStatus(fullyRefunded ? "refunded" : "partially_refunded");
 
-            // Push refund-completed notification to restaurant
-            String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
-            String amountDisplay = refundAmount != null ? "₹" + refundAmount : "";
-            pushNotificationService.pushToRestaurant(
-                bill.getRestaurantId(),
-                "Refund Completed",
-                "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
-                "refund",
-                String.valueOf(bill.getId()),
-                "bill",
-                refundAmount != null ? new java.math.BigDecimal(refundAmount) : null
-            );
+                String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
+                String amountDisplay = webhookRefundAmount != null ? "₹" + webhookRefundAmount : "";
+                pushNotificationService.pushToRestaurant(
+                    bill.getRestaurantId(),
+                    "Refund Completed",
+                    "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
+                    "refund",
+                    String.valueOf(bill.getId()),
+                    "bill",
+                    webhookRefundAmount
+                );
+            }
         } else if ("queued".equalsIgnoreCase(status) || "accepted".equalsIgnoreCase(status)) {
             bill.setGatewayStatus("refund_" + status.toLowerCase());
         } else {
@@ -360,8 +371,8 @@ public class EasebuzzWebhookService {
         event.setRestaurantId(bill.getRestaurantId());
         event.setTxnId(bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : "");
         event.setStatus("refund_" + (status != null ? status : "unknown"));
-        if (refundAmount != null) {
-            try { event.setAmount(new BigDecimal(refundAmount)); } catch (Exception ignored) {}
+        if (webhookRefundAmount != null) {
+            event.setAmount(webhookRefundAmount);
         }
         event.setRawPayload(payload.toString());
         event.setReceivedAt(now);
