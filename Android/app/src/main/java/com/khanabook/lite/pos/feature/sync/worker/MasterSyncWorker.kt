@@ -95,6 +95,11 @@ constructor(
   }
 
   override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+    if (!sessionManager.isSessionReady()) {
+      logInfo("Aborting sync: session is not ready.")
+      return@withContext Result.success()
+    }
+
     val token = sessionManager.getAuthToken()
 
     if (token.isNullOrBlank()) {

@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.khanabook.lite.pos.BuildConfig
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.util.ValidationUtils
@@ -114,6 +115,12 @@ fun LoginScreen(
         } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
             Log.i("GOOGLE_SIGN_IN", "User cancelled Credential Manager sign-in")
             viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
+        } catch (e: CancellationException) {
+            // The composable scope can be cancelled when the login screen is left
+            // while the credential chooser is open. Cancellation is expected and
+            // must not be shown as a Google authentication failure.
+            Log.i("GOOGLE_SIGN_IN", "Credential Manager request cancelled with screen lifecycle")
+            throw e
         } catch (e: androidx.credentials.exceptions.GetCredentialException) {
             Log.e("GOOGLE_SIGN_IN", "type=${e.type}, message=${e.localizedMessage}", e)
             if (e is androidx.credentials.exceptions.GetCredentialUnsupportedException) {
