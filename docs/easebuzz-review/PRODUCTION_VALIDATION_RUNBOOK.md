@@ -131,6 +131,7 @@ The following checks were completed against `https://kbook.iadv.cloud` after dep
 | Invalid refund signature | Refund webhook returned `401` | PASS |
 | Valid refund signature (synthetic, unknown transaction) | Refund webhook returned `200 {"status":"received"}` with no bill match | PASS |
 | Production status API (read-only synthetic transaction) | Easebuzz returned HTTP `200` / `Transaction not found` | PASS |
+| Existing production transaction for reconciliation | No non-null `gateway_txn_id` exists in `bills` or `bill_payments` | PENDING |
 | Exposed env file | `/helper/easebuzz.env` returned `404` | PASS |
 | Production config fail-closed | Compose rejected an empty `EASEBUZZ_PAYMENT_BASE_URL` | PASS |
 | Gateway live transaction/refund | Requires an Easebuzz dashboard test transaction | PENDING |
