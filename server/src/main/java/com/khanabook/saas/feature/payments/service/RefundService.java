@@ -1,5 +1,7 @@
 package com.khanabook.saas.feature.payments.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
@@ -15,13 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.scheduling.TaskScheduler;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +30,8 @@ public class RefundService {
     private final EasebuzzPaymentService easebuzzPaymentService;
     private final BillRepository billRepository;
     private final RefundAttemptRepository refundAttemptRepository;
-    private final TaskScheduler taskScheduler;
+    private final WebhookRetryService webhookRetryService;
+    private final ObjectMapper objectMapper;
 
     public static final List<Map<String, String>> REASON_TAXONOMY = List.of(
         Map.of("code", "CUSTOMER_REQUEST", "label", "Customer Request"),
@@ -152,18 +152,22 @@ public class RefundService {
                     "refund", refundResult);
         }
 
-        BigDecimal finalRefundAmount = bill.getTotalAmount();
-        taskScheduler.schedule(() -> {
-            try {
-                log.info("Executing delayed refund for billId={} after {} minutes", billId, delayMinutes);
-                initiatePartialRefund(billId, restaurantId, finalRefundAmount, "ORDER_CANCELLED");
-                log.info("Delayed refund completed for billId={}", billId);
-            } catch (Exception e) {
-                log.error("Scheduled refund failed: {}", e.getMessage(), e);
-            }
-        }, Instant.now().plus(Duration.ofMinutes(delayMinutes)));
-
-        return Map.of("status", "cancelled", "billId", billId, "refundScheduled", true, "refundDelayMinutes", delayMinutes, "refundAmount", bill.getTotalAmount());
+        long scheduledAt = System.currentTimeMillis() + Duration.ofMinutes(delayMinutes).toMillis();
+        String jobKey = "DELAYED_REFUND:" + restaurantId + ":" + billId;
+        Map<String, Object> payload = Map.of(
+                "billId", billId,
+                "restaurantId", restaurantId,
+                "amount", bill.getTotalAmount().toPlainString(),
+                "reason", "ORDER_CANCELLED");
+        try {
+            var job = webhookRetryService.enqueueAt(
+                    "DELAYED_REFUND", objectMapper.writeValueAsString(payload), scheduledAt, jobKey);
+            return Map.of("status", "cancelled", "billId", billId,
+                    "refundScheduled", true, "refundJobId", job.getId(),
+                    "refundDelayMinutes", delayMinutes, "refundAmount", bill.getTotalAmount());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Could not persist delayed refund job", e);
+        }
     }
 
     public Map<String, Object> getRefundSummary(Long restaurantId) {

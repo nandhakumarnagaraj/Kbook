@@ -1,12 +1,14 @@
 package com.khanabook.saas.service;
 
-import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.RefundService;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
+import com.khanabook.saas.feature.payments.data.WebhookRetryJob;
+import com.khanabook.saas.feature.payments.service.WebhookRetryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +29,8 @@ class RefundServiceTest {
     @Mock private EasebuzzPaymentService easebuzzPaymentService;
     @Mock private BillRepository billRepository;
     @Mock private RefundAttemptRepository refundAttemptRepository;
-    @Mock private EmailNotificationService emailNotificationService;
+    @Mock private WebhookRetryService webhookRetryService;
+    @Mock private ObjectMapper objectMapper;
 
     @InjectMocks
     private RefundService refundService;
@@ -226,5 +229,25 @@ class RefundServiceTest {
         assertThat(testBill.getRefundAmount()).isEqualTo(BigDecimal.ZERO);
         assertThat(testBill.getPaymentStatus()).isEqualTo("paid");
         verify(easebuzzPaymentService, times(1)).initiateRefund(1L, new BigDecimal("1000"), "ORDER_CANCELLED");
+    }
+
+    @Test
+    void cancelAndAutoRefund_persistsDelayedRefundInsteadOfUsingMemoryTimer() throws Exception {
+        when(billRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testBill));
+        when(billRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"billId\":1}");
+        WebhookRetryJob job = new WebhookRetryJob();
+        job.setId(77L);
+        when(webhookRetryService.enqueueAt(eq("DELAYED_REFUND"), eq("{\"billId\":1}"),
+                anyLong(), eq("DELAYED_REFUND:100:1"))).thenReturn(job);
+
+        var result = refundService.cancelAndAutoRefund(1L, 100L, "ORDER_CANCELLED", 15);
+
+        assertThat(result).containsEntry("refundScheduled", true)
+                .containsEntry("refundJobId", 77L)
+                .containsEntry("refundDelayMinutes", 15);
+        verify(webhookRetryService).enqueueAt(eq("DELAYED_REFUND"), anyString(),
+                longThat(time -> time > System.currentTimeMillis()), eq("DELAYED_REFUND:100:1"));
+        verifyNoInteractions(easebuzzPaymentService);
     }
 }
