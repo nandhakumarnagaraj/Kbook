@@ -10,6 +10,8 @@ import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.payments.data.RefundAttempt;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
@@ -36,6 +38,7 @@ public class EasebuzzWebhookService {
     private final SubMerchantService subMerchantService;
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzWebhookEventRepository webhookEventRepo;
+    private final RefundAttemptRepository refundAttemptRepo;
     private final EasebuzzProperties props;
     private final PostSplitService postSplitService;
     private final EasebuzzPayoutRepository payoutRepo;
@@ -340,16 +343,28 @@ public class EasebuzzWebhookService {
 
     private void updateBillRefund(Bill bill, String status, String refundId, String refundAmount, Map<String, String> payload) {
         long now = System.currentTimeMillis();
-
-        // Idempotency: skip if already marked refunded
-        if ("refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
-            log.info("Bill {} already refunded, skipping duplicate refund webhook", bill.getId());
+        if (refundId == null || refundId.isBlank()) {
+            log.warn("Refund webhook missing refund ID for billId={}", bill.getId());
+            return;
+        }
+        Optional<RefundAttempt> matched = refundAttemptRepo.findByBillIdAndGatewayRefundId(bill.getId(), refundId);
+        if (matched.isEmpty()) {
+            log.warn("Refund webhook has no recorded attempt billId={} refundId={}", bill.getId(), refundId);
+            return;
+        }
+        RefundAttempt attempt = matched.get();
+        String paymentId = payload.get("easepayid");
+        if (paymentId == null || paymentId.isBlank()) paymentId = payload.get("easebuzz_id");
+        if (paymentId == null || !attempt.getEasebuzzPaymentId().equals(paymentId.trim())
+                || !bill.getGatewayTxnId().equals(attempt.getGatewayTxnId())) {
+            log.warn("Refund webhook attempt/payment mismatch billId={} refundId={}", bill.getId(), refundId);
+            return;
+        }
+        if ("COMPLETED".equals(attempt.getStatus())) {
+            log.info("Duplicate refund completion ignored billId={} refundId={}", bill.getId(), refundId);
             return;
         }
 
-        if (refundId != null && !refundId.isBlank()) {
-            bill.setRefundId(refundId);
-        }
         BigDecimal webhookRefundAmount = null;
         if (refundAmount != null && !refundAmount.isBlank()) {
             try {
@@ -358,24 +373,29 @@ public class EasebuzzWebhookService {
                 log.warn("Invalid refund_amount in webhook: {}", refundAmount);
             }
         }
-        if (webhookRefundAmount != null && webhookRefundAmount.signum() > 0
-                && bill.getTotalAmount() != null && webhookRefundAmount.compareTo(bill.getTotalAmount()) <= 0
-                && (bill.getRefundAmount() == null || bill.getRefundAmount().signum() == 0)) {
-            // An initiated refund already records the cumulative amount. A webhook
-            // amount describes one attempt and must not replace that total.
-            bill.setRefundAmount(webhookRefundAmount);
+        if (webhookRefundAmount == null || webhookRefundAmount.compareTo(attempt.getAmount()) != 0) {
+            bill.setGatewayStatus("refund_review_required");
+            billRepo.save(bill);
+            log.warn("Refund webhook amount mismatch billId={} refundId={}", bill.getId(), refundId);
+            return;
         }
 
         if ("refunded".equalsIgnoreCase(status)) {
-            BigDecimal cumulative = bill.getRefundAmount();
-            if (cumulative == null || cumulative.signum() <= 0 || bill.getTotalAmount() == null
-                    || cumulative.compareTo(bill.getTotalAmount()) > 0) {
+            BigDecimal completed = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+            BigDecimal cumulative = completed.add(attempt.getAmount());
+            if (bill.getTotalAmount() == null || cumulative.compareTo(bill.getTotalAmount()) > 0) {
                 bill.setGatewayStatus("refund_review_required");
                 log.warn("Refund completion needs amount review for billId={} refundId={}", bill.getId(), refundId);
             } else {
+                attempt.setStatus("COMPLETED");
+                attempt.setUpdatedAt(now);
+                refundAttemptRepo.save(attempt);
+                bill.setRefundAmount(cumulative);
+                bill.setRefundId(refundId);
                 boolean fullyRefunded = cumulative.compareTo(bill.getTotalAmount()) == 0;
                 bill.setPaymentStatus(fullyRefunded ? "refunded" : "partially_refunded");
                 bill.setGatewayStatus(fullyRefunded ? "refunded" : "partially_refunded");
+                if (fullyRefunded) bill.setOrderStatus("cancelled");
 
                 String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
                 String amountDisplay = webhookRefundAmount != null ? "₹" + webhookRefundAmount : "";
@@ -391,6 +411,11 @@ public class EasebuzzWebhookService {
             }
         } else if ("queued".equalsIgnoreCase(status) || "accepted".equalsIgnoreCase(status)) {
             bill.setGatewayStatus("refund_" + status.toLowerCase());
+        } else if ("failed".equalsIgnoreCase(status) || "rejected".equalsIgnoreCase(status)) {
+            // The documented refund hash covers the payment ID, not the
+            // callback status. Keep the reservation until the gateway status
+            // API confirms failure; otherwise a replay could release it.
+            bill.setGatewayStatus("refund_review_required");
         } else {
             bill.setGatewayStatus("refund_" + (status != null ? status.toLowerCase() : "unknown"));
         }

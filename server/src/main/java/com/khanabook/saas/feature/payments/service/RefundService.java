@@ -1,10 +1,11 @@
 package com.khanabook.saas.feature.payments.service;
 
-import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.payments.data.RefundAttempt;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class RefundService {
     private static final Logger log = LoggerFactory.getLogger(RefundService.class);
     private final EasebuzzPaymentService easebuzzPaymentService;
     private final BillRepository billRepository;
-    private final EmailNotificationService emailNotificationService;
+    private final RefundAttemptRepository refundAttemptRepository;
     private final TaskScheduler taskScheduler;
 
     public static final List<Map<String, String>> REASON_TAXONOMY = List.of(
@@ -62,9 +63,12 @@ public class RefundService {
         if (bill.getGatewayTxnId() == null || !"paid".equalsIgnoreCase(bill.getPaymentStatus()) && !"success".equalsIgnoreCase(bill.getPaymentStatus()) && !"partially_refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
             throw new BusinessRuleException("Bill is not eligible for refund");
         }
-        BigDecimal existingRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
-        if (existingRefund.compareTo(bill.getTotalAmount()) >= 0) {
-            throw new BusinessRuleException("Bill is already fully refunded (₹" + existingRefund + " of ₹" + bill.getTotalAmount() + ")");
+        BigDecimal completedRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+        BigDecimal pendingRefund = refundAttemptRepository.sumAmountByBillIdAndStatus(billId, "INITIATED");
+        if (pendingRefund == null) pendingRefund = BigDecimal.ZERO;
+        BigDecimal reservedRefund = completedRefund.add(pendingRefund);
+        if (reservedRefund.compareTo(bill.getTotalAmount()) >= 0) {
+            throw new BusinessRuleException("Bill is already fully refunded or reserved for refund (₹" + reservedRefund + " of ₹" + bill.getTotalAmount() + ")");
         }
         if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleException("Refund amount must be positive");
@@ -72,7 +76,7 @@ public class RefundService {
         if (refundAmount.scale() > 2) {
             throw new BusinessRuleException("Refund amount must have at most two decimal places");
         }
-        BigDecimal remainingRefundable = bill.getTotalAmount().subtract(existingRefund);
+        BigDecimal remainingRefundable = bill.getTotalAmount().subtract(reservedRefund);
         if (refundAmount.compareTo(remainingRefundable) > 0) {
             throw new BusinessRuleException("Refund amount (₹" + refundAmount + ") exceeds remaining refundable amount (₹" + remainingRefundable + ")");
         }
@@ -84,38 +88,39 @@ public class RefundService {
                 : new LinkedHashMap<>(gatewayResult);
 
         if ("success".equals(result.get("status"))) {
-            BigDecimal newTotalRefund = existingRefund.add(refundAmount);
-            bill.setRefundAmount(newTotalRefund);
-
-            if (newTotalRefund.compareTo(bill.getTotalAmount()) >= 0) {
-                bill.setPaymentStatus("refunded");
-                bill.setOrderStatus("cancelled");
-            } else {
-                bill.setPaymentStatus("partially_refunded");
+            String merchantRefundId = String.valueOf(result.getOrDefault("merchant_refund_id", ""));
+            String gatewayRefundId = String.valueOf(result.getOrDefault("easebuzz_refund_id", ""));
+            String easebuzzPaymentId = String.valueOf(result.getOrDefault("easebuzz_payment_id", ""));
+            if (merchantRefundId.isBlank() || gatewayRefundId.isBlank() || easebuzzPaymentId.isBlank()) {
+                throw new IllegalStateException("Easebuzz accepted refund without required attempt identifiers");
             }
+            RefundAttempt attempt = new RefundAttempt();
+            attempt.setBillId(billId);
+            attempt.setRestaurantId(restaurantId);
+            attempt.setGatewayTxnId(bill.getGatewayTxnId());
+            attempt.setEasebuzzPaymentId(easebuzzPaymentId);
+            attempt.setMerchantRefundId(merchantRefundId);
+            attempt.setGatewayRefundId(gatewayRefundId);
+            attempt.setAmount(refundAmount);
+            attempt.setStatus("INITIATED");
+            attempt.setReason(reason);
+            attempt.setCreatedAt(System.currentTimeMillis());
+            attempt.setUpdatedAt(attempt.getCreatedAt());
+            refundAttemptRepository.save(attempt);
             bill.setCancelReason(reason);
             billRepository.save(bill);
             result.put("refundStatus", "initiated");
-            result.put("totalRefunded", newTotalRefund);
-            result.put("remainingRefundable", bill.getTotalAmount().subtract(newTotalRefund));
+            result.put("totalRefunded", completedRefund);
+            result.put("pendingRefund", pendingRefund.add(refundAmount));
+            result.put("remainingRefundable", remainingRefundable.subtract(refundAmount));
 
-            // customerWhatsapp is a phone number, not an email address. Do
-            // not pass it to the mailer; a customer email field should be
-            // added to the bill model before enabling email notifications.
-            if (bill.getCustomerWhatsapp() != null && bill.getCustomerWhatsapp().contains("@")) {
-                try {
-                    String orderCode = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
-                    emailNotificationService.sendRefundConfirmation(
-                        bill.getCustomerWhatsapp(), bill.getCustomerName(), orderCode, refundAmount, reason);
-                } catch (Exception e) {
-                    // Never roll back a gateway-confirmed refund because a notification failed.
-                    log.warn("Refund confirmed but notification failed for billId={}: {}", billId, e.getMessage(), e);
-                }
-            }
+            // Gateway acceptance only initiates a refund. Customer-facing
+            // completion notices must wait for a matched completion callback.
         } else {
             result.put("refundStatus", "failed");
-            result.put("totalRefunded", existingRefund);
-            result.put("remainingRefundable", bill.getTotalAmount().subtract(existingRefund));
+            result.put("totalRefunded", completedRefund);
+            result.put("pendingRefund", pendingRefund);
+            result.put("remainingRefundable", remainingRefundable);
         }
         result.put("billId", billId);
         return result;

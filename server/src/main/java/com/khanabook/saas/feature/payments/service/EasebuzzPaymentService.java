@@ -2,6 +2,7 @@ package com.khanabook.saas.feature.payments.service;
 
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewal;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
@@ -32,6 +33,7 @@ public class EasebuzzPaymentService {
     private final EasebuzzApiClient easebuzzApi;
     private final BillRepository billRepo;
     private final EasebuzzWebhookEventRepository webhookEventRepo;
+    private final RefundAttemptRepository refundAttemptRepo;
     private final SubMerchantService subMerchantService;
     private final com.khanabook.saas.feature.payments.service.EasebuzzProperties props;
     private final ChargebackPreventionService chargebackService;
@@ -164,15 +166,12 @@ public class EasebuzzPaymentService {
                     "error", "Original Easebuzz payment ID is unavailable; reconcile the payment before refunding");
         }
 
-        // Deterministic merchant_refund_id PER REFUND ATTEMPT: Easebuzz treats a
-        // duplicate merchant_refund_id as idempotent (returns the existing refund,
-        // never moves money twice). The ID includes the amount already refunded
-        // BEFORE this attempt (bill.refundAmount is advanced only AFTER a successful
-        // initiation by RefundService), so:
-        //  - retry of the same attempt -> same baseline -> same ID (gateway dedups)
-        //  - next partial refund       -> new baseline -> new ID (money can move)
-        //  - two concurrent partials   -> same baseline -> one wins (over-refund guard)
+        // The baseline includes completed refunds and initiated attempts. A
+        // repeat before an attempt is recorded reuses the same gateway key;
+        // the next distinct partial attempt gets a new key.
         BigDecimal refundedSoFar = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+        BigDecimal initiated = refundAttemptRepo.sumAmountByBillIdAndStatus(billId, "INITIATED");
+        if (initiated != null) refundedSoFar = refundedSoFar.add(initiated);
         String merchantRefundId = "REF_" + billId + "_"
                 + refundedSoFar.stripTrailingZeros().toPlainString();
 
@@ -199,6 +198,7 @@ public class EasebuzzPaymentService {
             return Map.of(
                 "status", "success",
                 "easebuzz_refund_id", bill.getRefundId(),
+                "easebuzz_payment_id", easebuzzId,
                 "merchant_refund_id", merchantRefundId,
                 "txnid", txnid
             );
