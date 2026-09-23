@@ -1,8 +1,8 @@
 # Refund status transport correction
 
-The client now posts JSON to the configured dashboard base URL plus `/refund/v1/retrieve`, using `key`, `easebuzz_id`, `hash`, and the existing optional `refund_id` filter. Hash input is `key|easebuzz_id|salt`; the obsolete `easepayid` alias is removed. Blank payment IDs are rejected before network access.
+The client posts JSON to the configured dashboard base URL plus `/refund/v1/retrieve`, using `key`, `easebuzz_id`, `hash`, and the optional `merchant_refund_id` filter. Hash input is `key|easebuzz_id|salt`; the obsolete `easepayid` alias is removed. Blank payment IDs are rejected before network access.
 
-Evidence: user-supplied ERA clarification and JSON cURL example on 2026-09-23. The official PHP SDK agrees on endpoint and hash but uses form encoding. JSON acceptance is therefore an ERA-supplied contract, not independently verified production behavior.
+Evidence: user-supplied ERA clarification and JSON cURL example on 2026-09-23, plus ERA + official Java kit (`paywitheasebuzz-java-lib`, `web/refund_status_response.jsp` + `web/config.jsp`) follow-up confirmation on 2026-09-24: the optional lookup parameter is `merchant_refund_id` (the gateway may also accept `refund_id`, but `merchant_refund_id` is the documented field); both JSON and form-urlencoded bodies are accepted (form-urlencoded is the documented primary; success flag is `true`/`false`; refunds items expose `refund_id` + `refund_status`). The official PHP/Java SDKs agree on endpoint and hash but use form encoding, so JSON acceptance is an ERA-confirmed contract — final production acceptance still pending.
 
 References:
 - https://docs.easebuzz.in/docs/payment-gateway/oudxtp83258l9

@@ -175,11 +175,12 @@ public class EasebuzzApiClient {
 	}
 
 	/**
-	 * Refund status contract supplied by ERA (2026-09-23): JSON request,
-	 * easebuzz_id lookup, key|easebuzz_id|salt hash. Production acceptance
-	 * remains to be verified; the published PHP SDK uses form encoding.
+	 * Refund status contract confirmed by ERA (2026-09-23 + follow-up) and the
+	 * official Java kit (web/refund_status_response.jsp): easebuzz_id lookup,
+	 * optional merchant_refund_id, key|easebuzz_id|salt hash. JSON body is
+	 * accepted by the gateway; form-urlencoded is the documented primary.
 	 */
-	public Map<String, Object> getRefundStatus(String easebuzzId, String refundId) {
+	public Map<String, Object> getRefundStatus(String easebuzzId, String merchantRefundId) {
 		if (easebuzzId == null || easebuzzId.isBlank()) {
 			throw new IllegalArgumentException("Easebuzz payment ID is required for refund status");
 		}
@@ -189,8 +190,8 @@ public class EasebuzzApiClient {
 		Map<String, Object> params = new HashMap<>();
 		params.put("key", props.getMerchantKey());
 		params.put("easebuzz_id", easebuzzId);
-		if (refundId != null && !refundId.isBlank()) {
-			params.put("refund_id", refundId);
+		if (merchantRefundId != null && !merchantRefundId.isBlank()) {
+			params.put("merchant_refund_id", merchantRefundId);
 		}
 		params.put("hash", hash);
 

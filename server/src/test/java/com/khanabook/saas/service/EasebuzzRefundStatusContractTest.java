@@ -30,7 +30,7 @@ class EasebuzzRefundStatusContractTest {
         server.expect(requestTo("https://dashboard.easebuzz.in/refund/v1/retrieve"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().json("{\"key\":\"test-key\",\"easebuzz_id\":\"E_TEST\",\"refund_id\":\"R_TEST\",\"hash\":\"" + hash + "\"}", true))
+                .andExpect(content().json("{\"key\":\"test-key\",\"easebuzz_id\":\"E_TEST\",\"merchant_refund_id\":\"R_TEST\",\"hash\":\"" + hash + "\"}", true))
                 .andRespond(withSuccess("{\"status\":true,\"easebuzz_id\":\"E_TEST\",\"refunds\":[{\"refund_id\":\"R_TEST\",\"refund_status\":\"queued\"}]}", MediaType.APPLICATION_JSON));
         var result = client.getRefundStatus("E_TEST", "R_TEST");
         assertEquals(Boolean.TRUE, result.get("status"));
