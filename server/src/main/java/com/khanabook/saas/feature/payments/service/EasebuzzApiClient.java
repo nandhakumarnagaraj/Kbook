@@ -175,28 +175,26 @@ public class EasebuzzApiClient {
 	}
 
 	/**
-	 * Refund Status API — ERA-confirmed (2026-09-09):
-	 *   - txnid is NOT accepted; the lookup key is the payment's easepayid (easebuzz_id).
-	 *   - Hash sequence: key|easepayid|salt (optionally filterable by merchant_refund_id).
-	 * Send both easebuzz_id and easepayid field names with the same value so the request
-	 * works regardless of which field name the current SDK version expects.
+	 * Refund status contract supplied by ERA (2026-09-23): JSON request,
+	 * easebuzz_id lookup, key|easebuzz_id|salt hash. Production acceptance
+	 * remains to be verified; the published PHP SDK uses form encoding.
 	 */
 	public Map<String, Object> getRefundStatus(String easebuzzId, String refundId) {
+		if (easebuzzId == null || easebuzzId.isBlank()) {
+			throw new IllegalArgumentException("Easebuzz payment ID is required for refund status");
+		}
 		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), easebuzzId == null ? "" : easebuzzId);
+		String hash = generateHash(props.getMerchantKey(), easebuzzId);
 
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		params.add("key", props.getMerchantKey());
-		if (easebuzzId != null && !easebuzzId.isBlank()) {
-			params.add("easebuzz_id", easebuzzId);
-			params.add("easepayid", easebuzzId);
-		}
+		Map<String, Object> params = new HashMap<>();
+		params.put("key", props.getMerchantKey());
+		params.put("easebuzz_id", easebuzzId);
 		if (refundId != null && !refundId.isBlank()) {
-			params.add("refund_id", refundId);
+			params.put("refund_id", refundId);
 		}
-		params.add("hash", hash);
+		params.put("hash", hash);
 
-		return post(props.getDashboardBaseUrl() + "/transaction/v2/refund_status", params);
+		return postJson(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params);
 	}
 
 	public Map<String, Object> verifyOtp(String subMerchantId, String otp) {
