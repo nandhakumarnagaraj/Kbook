@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class PostSplitNoCommissionTest {
@@ -44,12 +45,32 @@ class PostSplitNoCommissionTest {
         when(api.updateTransactionSplit(any(), any(), any(), any(), any()))
                 .thenReturn(Map.of("status", "success"));
 
-        service.createPostSplitAsync(10L, "EASEBUZZ123", "KB123");
+        assertEquals(true, service.createPostSplit(10L, "EASEBUZZ123", "KB123"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Map<String, String>>> splits = ArgumentCaptor.forClass(List.class);
         verify(api).updateTransactionSplit(any(), any(), any(), any(), splits.capture());
         assertEquals("100.00", splits.getValue().get(0).get("amount"));
         assertEquals(0, bill.getCommissionAmount().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void replayAfterCompletedSplitDoesNotCallGatewayAgain() {
+        EasebuzzApiClient api = mock(EasebuzzApiClient.class);
+        BillRepository bills = mock(BillRepository.class);
+        SubMerchantService subMerchants = mock(SubMerchantService.class);
+        PostSplitService service = new PostSplitService(api, bills, subMerchants);
+
+        Bill bill = new Bill();
+        bill.setId(10L);
+        bill.setRestaurantId(20L);
+        bill.setSettledAt(100L);
+        bill.setCommissionAmount(BigDecimal.ZERO);
+        when(bills.findById(10L)).thenReturn(Optional.of(bill));
+
+        assertEquals(true, service.createPostSplit(10L, "EASEBUZZ123", "KB123"));
+
+        verifyNoInteractions(api);
+        verifyNoInteractions(subMerchants);
     }
 }

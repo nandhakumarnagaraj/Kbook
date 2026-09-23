@@ -1,8 +1,8 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.feature.payments.service.EasebuzzWireApiClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
@@ -45,7 +46,8 @@ class EasebuzzWebhookTest {
     @Mock private EasebuzzWebhookEventRepository webhookEventRepo;
     @Mock private RefundAttemptRepository refundAttemptRepo;
     @Mock private EasebuzzProperties props;
-    @Mock private PostSplitService postSplitService;
+    @Mock private com.khanabook.saas.feature.payments.service.WebhookRetryService webhookRetryService;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
     @Mock private SubMerchantService subMerchantService;
     @Mock private EasebuzzPayoutRepository payoutRepo;
     @Mock private PushNotificationService pushNotificationService;
@@ -102,8 +104,8 @@ class EasebuzzWebhookTest {
         assertEquals("success", mockBill.getGatewayStatus());
         assertEquals("KB12345", mockBill.getGatewayTxnId());
         
-        // Verify post-split was triggered
-        verify(postSplitService, times(1)).createPostSplitAsync(eq(500L), eq("E250TEST"), eq("KB12345"));
+        verify(webhookRetryService).enqueueAt(eq("POST_SPLIT"), contains("\"billId\":500"),
+                anyLong(), eq("POST_SPLIT:500:E250TEST"));
     }
 
     @Test
@@ -133,7 +135,8 @@ class EasebuzzWebhookTest {
         assertEquals("received", response.get("status"));
         assertEquals("paid", mockBill.getPaymentStatus());
         assertEquals("success", mockBill.getGatewayStatus());
-        verify(postSplitService, times(1)).createPostSplitAsync(eq(777L), eq("E250TEST2"), eq("PL12345678"));
+        verify(webhookRetryService).enqueueAt(eq("POST_SPLIT"), contains("\"billId\":777"),
+                anyLong(), eq("POST_SPLIT:777:E250TEST2"));
     }
 
     @Test
@@ -156,7 +159,7 @@ class EasebuzzWebhookTest {
         webhookService.handlePaymentWebhook(payload);
 
         verify(billRepo, never()).save(any());
-        verifyNoInteractions(postSplitService);
+        verify(webhookRetryService, never()).enqueueAt(eq("POST_SPLIT"), anyString(), anyLong(), anyString());
     }
 
     @Test
@@ -175,7 +178,7 @@ class EasebuzzWebhookTest {
 
         assertEquals("link_sent", bill.getPaymentStatus());
         verify(billRepo, never()).save(any());
-        verifyNoInteractions(postSplitService);
+        verify(webhookRetryService, never()).enqueueAt(eq("POST_SPLIT"), anyString(), anyLong(), anyString());
     }
 
     private Map<String, String> signedPaymentPayload(String txnid, String billId, String amount, String restaurantId) throws Exception {

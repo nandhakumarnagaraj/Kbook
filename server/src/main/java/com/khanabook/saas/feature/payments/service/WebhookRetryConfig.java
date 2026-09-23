@@ -1,6 +1,7 @@
 package com.khanabook.saas.feature.payments.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
 import com.khanabook.saas.feature.payments.service.WebhookRetryService;
 import com.khanabook.saas.core.exception.BusinessRuleException;
@@ -19,6 +20,7 @@ public class WebhookRetryConfig {
     private final WebhookRetryService webhookRetryService;
     private final EasebuzzWebhookService webhookService;
     private final RefundService refundService;
+    private final PostSplitService postSplitService;
     private final ObjectMapper objectMapper;
 
     @PostConstruct
@@ -97,6 +99,20 @@ public class WebhookRetryConfig {
             }
         });
 
-        log.info("Registered 5 durable executors: PAYMENT, SUB_MERCHANT, PAYOUT, REFUND, DELAYED_REFUND");
+        webhookRetryService.registerWebhookExecutor("POST_SPLIT", payload -> {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = objectMapper.readValue(payload, Map.class);
+                return postSplitService.createPostSplit(
+                        Long.valueOf(data.get("billId").toString()),
+                        data.get("easebuzzId").toString(),
+                        data.get("txnid").toString());
+            } catch (Exception e) {
+                log.error("Failed to execute post-split work", e);
+                return false;
+            }
+        });
+
+        log.info("Registered 6 durable executors: PAYMENT, SUB_MERCHANT, PAYOUT, REFUND, DELAYED_REFUND, POST_SPLIT");
     }
 }

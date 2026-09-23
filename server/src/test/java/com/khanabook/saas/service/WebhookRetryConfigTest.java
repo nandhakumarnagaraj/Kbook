@@ -1,6 +1,7 @@
 package com.khanabook.saas.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
 import com.khanabook.saas.feature.payments.service.RefundService;
 import com.khanabook.saas.feature.payments.service.WebhookRetryConfig;
@@ -24,11 +25,12 @@ class WebhookRetryConfigTest {
     @Mock private WebhookRetryService retryService;
     @Mock private EasebuzzWebhookService webhookService;
     @Mock private RefundService refundService;
+    @Mock private PostSplitService postSplitService;
 
     @Test
     void delayedRefundExecutorInitiatesRecordedRefund() {
         WebhookRetryConfig config = new WebhookRetryConfig(
-                retryService, webhookService, refundService, new ObjectMapper());
+                retryService, webhookService, refundService, postSplitService, new ObjectMapper());
         config.registerExecutors();
         @SuppressWarnings({"rawtypes", "unchecked"})
         ArgumentCaptor<Function<String, Boolean>> captor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
@@ -43,5 +45,22 @@ class WebhookRetryConfigTest {
         assertThat(success).isTrue();
         verify(refundService).initiatePartialRefund(20L, 10L,
                 new java.math.BigDecimal("100.00"), "ORDER_CANCELLED");
+    }
+
+    @Test
+    void postSplitExecutorUsesDurablePayload() {
+        WebhookRetryConfig config = new WebhookRetryConfig(
+                retryService, webhookService, refundService, postSplitService, new ObjectMapper());
+        config.registerExecutors();
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        ArgumentCaptor<Function<String, Boolean>> captor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
+        verify(retryService).registerWebhookExecutor(eq("POST_SPLIT"), captor.capture());
+        when(postSplitService.createPostSplit(20L, "EASE123", "KB123")).thenReturn(true);
+
+        boolean success = captor.getValue().apply(
+                "{\"billId\":20,\"easebuzzId\":\"EASE123\",\"txnid\":\"KB123\"}");
+
+        assertThat(success).isTrue();
+        verify(postSplitService).createPostSplit(20L, "EASE123", "KB123");
     }
 }

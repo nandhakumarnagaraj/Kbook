@@ -616,7 +616,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Should exhaust retries without throwing
         assertDoesNotThrow(() -> 
-            postSplitService.createPostSplitAsync(bill.getId(), "E250TEST", "KBTEST")
+            postSplitService.createPostSplit(bill.getId(), "E250TEST", "KBTEST")
         );
 
         // Verify bill NOT settled

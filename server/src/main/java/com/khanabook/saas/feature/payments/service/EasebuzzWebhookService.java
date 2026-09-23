@@ -1,6 +1,5 @@
 package com.khanabook.saas.feature.payments.service;
 
-import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.compliance.data.FssaiTracker;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.service.EasebuzzProperties;
@@ -40,7 +39,6 @@ public class EasebuzzWebhookService {
     private final EasebuzzWebhookEventRepository webhookEventRepo;
     private final RefundAttemptRepository refundAttemptRepo;
     private final EasebuzzProperties props;
-    private final PostSplitService postSplitService;
     private final EasebuzzPayoutRepository payoutRepo;
     private final org.springframework.core.env.Environment env;
     private final PushNotificationService pushNotificationService;
@@ -126,9 +124,20 @@ public class EasebuzzWebhookService {
                             amountStr != null ? new BigDecimal(amountStr) : null
                         );
 
-                        // Trigger post-transaction split
+                        // Persist split work atomically with the payment event. The
+                        // scheduled worker can only see this row after commit.
                         if (easebuzzId != null && !easebuzzId.isBlank()) {
-                            postSplitService.createPostSplitAsync(billId, easebuzzId, txnid);
+                            try {
+                                String splitPayload = objectMapper.writeValueAsString(Map.of(
+                                        "billId", billId,
+                                        "easebuzzId", easebuzzId,
+                                        "txnid", txnid));
+                                webhookRetryService.enqueueAt("POST_SPLIT", splitPayload,
+                                        System.currentTimeMillis(),
+                                        "POST_SPLIT:" + billId + ":" + easebuzzId);
+                            } catch (Exception e) {
+                                throw new IllegalStateException("Could not persist post-split work", e);
+                            }
                         } else {
                             log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
                         }
