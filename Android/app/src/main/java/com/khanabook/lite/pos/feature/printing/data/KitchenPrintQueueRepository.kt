@@ -92,6 +92,11 @@ class KitchenPrintQueueRepository(
         kitchenPrintQueueDao.markSent(billId, printerMac, System.currentTimeMillis())
     }
 
+    /** Marks every non-sent queue job for a bill as sent, regardless of printer target. */
+    suspend fun ackAllPendingForBill(billId: Long) {
+        kitchenPrintQueueDao.markSentByBillId(billId, System.currentTimeMillis())
+    }
+
     suspend fun deleteById(id: Long) {
         kitchenPrintQueueDao.deleteById(id)
     }

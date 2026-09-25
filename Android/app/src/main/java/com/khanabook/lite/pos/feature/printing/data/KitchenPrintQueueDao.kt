@@ -116,6 +116,23 @@ interface KitchenPrintQueueDao {
     @Query("DELETE FROM kitchen_print_queue WHERE bill_id = :billId AND printer_mac = :printerMac")
     suspend fun deleteByBillAndPrinter(billId: Long, printerMac: String)
 
+    /**
+     * Acknowledges ALL pending jobs for a bill regardless of printer target.
+     * Used when a direct combined print covered a pending UNASSIGNED fallback
+     * job (printer_mac = '') that markSent(billId, printerMac) cannot match.
+     */
+    @Query(
+        """
+        UPDATE kitchen_print_queue
+        SET dispatch_status = '${KitchenPrintDispatchStatus.SENT}',
+            last_error = NULL,
+            updated_at = :updatedAt
+        WHERE bill_id = :billId
+          AND dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
+        """
+    )
+    suspend fun markSentByBillId(billId: Long, updatedAt: Long): Int
+
     @Query("DELETE FROM kitchen_print_queue WHERE id = :id")
     suspend fun deleteById(id: Long)
 

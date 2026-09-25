@@ -17,6 +17,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
+import android.net.ConnectivityManager
+import android.content.Context
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -98,4 +100,9 @@ object NetworkModule {
     fun provideNetworkMonitor(@ApplicationContext context: android.content.Context): NetworkMonitor {
         return NetworkMonitor(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectivityManager(@ApplicationContext context: Context): ConnectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 }

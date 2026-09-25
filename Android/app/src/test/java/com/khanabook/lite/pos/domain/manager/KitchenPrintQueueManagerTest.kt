@@ -5,6 +5,8 @@ import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.printing.data.KotEventDao
+import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueEntity
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
@@ -291,5 +293,131 @@ class KitchenPrintQueueManagerTest {
         coVerify(exactly = 0) { printerManager.connect(any<String>()) }
         coVerify(exactly = 0) { printerManager.printBytesTo(any(), any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
+    }
+
+    // -------------------------------------------------------------------------
+    // Stale job: the events it points at were already printed by a direct
+    // dispatch — flush must ACK the job, never re-print the ticket.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `flush acks stale job whose events already printed - no re-print`() = runTest {
+        val kitchenMac = "AA:BB:CC:DD:EE:02"
+        val queuedJob = KitchenPrintQueueEntity(
+            id = 30L,
+            billId = 70L,
+            printerMac = "",
+            publicToken = "pt-70",
+            kotRevision = "4"
+        )
+        val kitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = kitchenMac,
+            enabled = true
+        )
+        val bill = BillWithItems(
+            bill = BillEntity(
+                id = 70L,
+                dailyOrderId = 7,
+                dailyOrderDisplay = "2026-09-25-70",
+                lifetimeOrderId = null,
+                subtotal = "100.0",
+                totalAmount = "100.0",
+                paymentMode = "cash",
+                paymentStatus = "pending",
+                orderStatus = "draft",
+                publicToken = "pt-70"
+            ),
+            items = emptyList(),
+            payments = emptyList()
+        )
+        val printedEvent = KotEventEntity(
+            publicToken = "pt-70",
+            kotRevision = "4",
+            eventType = KotEventType.VOID,
+            itemSnapshotJson = "[{\"id\":1,\"quantity\":1,\"itemName\":\"Tea\"}]",
+            originatingDeviceId = "D1",
+            isPrinted = true
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { queueRepository.getPendingForPrinter(kitchenMac) } returns listOf(queuedJob)
+        coEvery { queueRepository.claimPendingForRetry(queuedJob.id) } returns true
+        coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
+        coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
+        coEvery { kotEventDao.getEvent("pt-70", "4") } returns printedEvent
+        coEvery { kotEventDao.getUnprintedEventsForBill("pt-70") } returns emptyList()
+
+        manager.flushPendingForPrinter(kitchenMac)
+
+        coVerify(exactly = 0) { printerManager.printBytesTo(any(), any()) }
+        coVerify(exactly = 1) { queueRepository.markSent(queuedJob.id) }
+        coVerify(exactly = 0) { queueRepository.markPending(any(), any()) }
+    }
+
+    // -------------------------------------------------------------------------
+    // CANCEL notice: bill status is already 'cancelled' when the job flushes —
+    // the status gate must NOT drop it, the slip must reach paper.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `flush prints CANCEL notice even though bill status is cancelled`() = runTest {
+        val kitchenMac = "AA:BB:CC:DD:EE:02"
+        val queuedJob = KitchenPrintQueueEntity(
+            id = 31L,
+            billId = 71L,
+            printerMac = kitchenMac,
+            publicToken = "pt-71",
+            kotRevision = "6"
+        )
+        val kitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = kitchenMac,
+            enabled = true
+        )
+        val cancelledBill = BillWithItems(
+            bill = BillEntity(
+                id = 71L,
+                dailyOrderId = 8,
+                dailyOrderDisplay = "2026-09-25-71",
+                lifetimeOrderId = null,
+                subtotal = "150.0",
+                totalAmount = "150.0",
+                paymentMode = "cash",
+                paymentStatus = "pending",
+                orderStatus = "cancelled",
+                cancelReason = "Guest left",
+                publicToken = "pt-71"
+            ),
+            items = emptyList(),
+            payments = emptyList()
+        )
+        val cancelEvent = KotEventEntity(
+            publicToken = "pt-71",
+            kotRevision = "6",
+            eventType = KotEventType.CANCEL,
+            itemSnapshotJson = "[{\"id\":1,\"quantity\":2,\"itemName\":\"Dosa\"}]",
+            originatingDeviceId = "D1",
+            isPrinted = false
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { queueRepository.getPendingForPrinter(kitchenMac) } returns listOf(queuedJob)
+        coEvery { queueRepository.claimPendingForRetry(queuedJob.id) } returns true
+        coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
+        coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns cancelledBill
+        coEvery { kotEventDao.getEvent("pt-71", "6") } returns cancelEvent
+        coEvery { kotEventDao.getUnprintedEventsForBill("pt-71") } returns listOf(cancelEvent)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        manager.flushPendingForPrinter(kitchenMac)
+
+        coVerify(exactly = 1) { printerManager.printBytesTo(any(), any()) }
+        coVerify(exactly = 1) { queueRepository.markSent(queuedJob.id) }
+        coVerify(exactly = 0) { queueRepository.deleteById(any()) }
+        coVerify(exactly = 1) { kotEventDao.markPrinted("pt-71", "6") }
     }
 }

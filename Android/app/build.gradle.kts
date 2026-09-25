@@ -302,6 +302,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.mockk.agent)
+    // Real org.json on the unit-test classpath: KitchenTicketFormatter parses KOT
+    // snapshot JSON, and android.jar's stubbed org.json throws "not mocked" in JVM tests.
+    testImplementation("org.json:json:20240303")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")

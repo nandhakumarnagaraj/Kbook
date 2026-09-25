@@ -169,12 +169,19 @@ fun PrinterConfigView(
         val prefix = wifiSubnetPrefix ?: return@LaunchedEffect
         if (showWifiDialog && wifiHost.isBlank()) wifiHost = prefix
     }
+    // Android 10: DhcpInfo/LinkProperties can settle AFTER the ViewModel init
+    // snapshot (late DHCP lease on boot/roam) — re-detect when the dialog opens
+    // instead of showing an empty IP field and making the user type it all.
+    LaunchedEffect(showWifiDialog) {
+        if (showWifiDialog) viewModel.refreshWifiSubnetPrefix()
+    }
 
     val btDevices by viewModel.btDevices.collectAsStateWithLifecycle()
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
     val connectedPrinterMac by viewModel.connectedPrinterMac.collectAsStateWithLifecycle()
     val printerStatusRoles by viewModel.printerStatusRoles.collectAsStateWithLifecycle()
     val printerHealthMap by viewModel.printerHealth.collectAsStateWithLifecycle()
+    val wifiPrinterNetworkMismatch by viewModel.wifiPrinterNetworkMismatch.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     var showLocationDialog by remember { mutableStateOf(false) }
@@ -313,7 +320,7 @@ fun PrinterConfigView(
                                 ?.let { "USB · ${it.removePrefix("usb:")}" }
                         }
                     },
-                    enabled = enabled,
+enabled = enabled,
                     autoPrint = autoPrint,
                     showAutoPrintToggle = true,
                     paper58 = paper58,
@@ -321,6 +328,10 @@ fun PrinterConfigView(
                     showLogoToggle = true,
                     isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
                     health = customerPrinter?.let { printerHealthMap[it.connectionTargetKey()] },
+                    networkMismatch = customerPrinter?.let {
+                        it.connectionTypeValue() == PrinterConnectionType.WIFI &&
+                        wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
+                    } ?: false,
                     onEnabledChange = { enabled = it },
                     onAutoPrintChange = { autoPrint = it },
                     onPaperSizeChange = { paper58 = it },
@@ -378,7 +389,7 @@ fun PrinterConfigView(
                     }
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
-                PrinterTargetCard(
+PrinterTargetCard(
                     title = "Kitchen Ticket Printer",
                     printerName = kitchenPrinter?.name ?: "No Printer",
                     connectionDescription = kitchenPrinter?.let { printer ->
@@ -402,6 +413,10 @@ fun PrinterConfigView(
                     showLogoToggle = false,
                     isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
                     health = kitchenPrinter?.let { printerHealthMap[it.connectionTargetKey()] },
+                    networkMismatch = kitchenPrinter?.let {
+                        it.connectionTypeValue() == PrinterConnectionType.WIFI &&
+                        wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
+                    } ?: false,
                     onEnabledChange = { kitchenEnabled = it },
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },

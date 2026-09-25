@@ -4,9 +4,21 @@ import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
-import com.khanabook.lite.pos.feature.billing.data.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.core.util.DateUtils
 import java.nio.charset.Charset
+
+/**
+ * One rendered block of a combined kitchen ticket — see
+ * [KitchenTicketFormatter.formatCombinedTicket]. Produced when one user save
+ * generated several KOT events (batched ADD + VOID sharing an eventToken).
+ */
+data class KotTicketSection(
+    val eventType: String,
+    val itemSnapshotJson: String,
+    val eventTimeMs: Long,
+    val kotRevision: String? = null,
+    val cancelReason: String? = null
+)
 
 object KitchenTicketFormatter {
     private val ESC: Byte = 0x1B
@@ -24,7 +36,8 @@ object KitchenTicketFormatter {
         bill: BillWithItems,
         restaurantProfile: RestaurantProfileEntity?,
         printerProfile: PrinterProfileEntity,
-        itemsToPrint: List<com.khanabook.lite.pos.feature.billing.data.BillItemEntity> = bill.items
+        itemsToPrint: List<com.khanabook.lite.pos.feature.billing.data.BillItemEntity> = bill.items,
+        kotRevision: String? = null
     ): ByteArray {
         val is80mm = printerProfile.paperSize == "80mm"
         val charsPerLine = if (is80mm) 40 else 32
@@ -36,7 +49,7 @@ object KitchenTicketFormatter {
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
 
         add(RESET)
-        addBillHeader(out, leftPad, line, bill, restaurantProfile)
+        addBillHeader(out, leftPad, line, bill, restaurantProfile, kotRevision = kotRevision)
 
         itemsToPrint.forEach { item ->
             add(BOLD_ON)
@@ -72,7 +85,8 @@ object KitchenTicketFormatter {
         eventType: String,
         itemSnapshotJson: String,
         eventTimeMs: Long,
-        cancelReason: String? = null
+        cancelReason: String? = null,
+        kotRevision: String? = null
     ): ByteArray {
         val is80mm = printerProfile.paperSize == "80mm"
         val charsPerLine = if (is80mm) 40 else 32
@@ -84,21 +98,11 @@ object KitchenTicketFormatter {
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
 
         add(RESET)
-        addBillHeader(out, leftPad, line, bill, restaurantProfile, eventTimeMs)
+        addBillHeader(out, leftPad, line, bill, restaurantProfile, eventTimeMs, kotRevision)
 
-        val banner = when (eventType) {
-            KotEventType.ADD -> "ADDED ITEMS"
-            KotEventType.VOID -> "*** VOIDED ***"
-            KotEventType.REPRINT -> "*** REPRINT ***"
-            KotEventType.CANCEL -> "*** ORDER CANCELLED ***"
-            else -> null // NEW: plain first ticket, unchanged layout
-        }
+        val banner = bannerFor(eventType)
         if (banner != null) {
-            add(ALIGN_CENTER)
-            add(BOLD_ON)
-            add(leftPad + "$banner\n")
-            add(BOLD_OFF)
-            add(ALIGN_LEFT)
+            emitBanner(out, leftPad, banner)
         }
         cancelReason?.takeIf { it.isNotBlank() }?.let {
             add(leftPad + "Reason: $it\n")
@@ -106,7 +110,86 @@ object KitchenTicketFormatter {
         add("$line\n")
 
         for (lineText in parseSnapshotItems(itemSnapshotJson)) {
+            add(BOLD_ON)
             add(leftPad + lineText + "\n")
+            add(BOLD_OFF)
+        }
+
+        add("$line\n")
+        add("\n\n\n")
+        add(CUT_PAPER)
+        return out.toByteArray()
+    }
+
+    private fun bannerFor(eventType: String): String? = when (eventType) {
+        KotEventType.ADD -> "ADDED ITEMS"
+        KotEventType.VOID -> "*** VOIDED ***"
+        KotEventType.REPRINT -> "*** REPRINT ***"
+        KotEventType.CANCEL -> "*** ORDER CANCELLED ***"
+        else -> null // NEW: plain first ticket, unchanged layout
+    }
+
+    /**
+     * Centered bold banner. Banners that fit the narrow double-width line
+     * (≤16 chars on 58mm) print in LARGE_FONT so the cook can read them across
+     * the kitchen; the long CANCEL banner stays normal size to avoid wrapping.
+     */
+    private fun emitBanner(out: MutableList<Byte>, leftPad: String, banner: String) {
+        fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
+        fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
+
+        val useLargeFont = banner.length <= 16
+        add(ALIGN_CENTER)
+        add(BOLD_ON)
+        if (useLargeFont) add(LARGE_FONT)
+        add((if (useLargeFont) "" else leftPad) + "$banner\n")
+        if (useLargeFont) add(NORMAL_FONT)
+        add(BOLD_OFF)
+        add(ALIGN_LEFT)
+    }
+
+    /**
+     * Renders ONE kitchen ticket covering several KOT events from the same user save
+     * (batched ADD + VOID). The kitchen gets a single slip showing what was added and
+     * what was removed — instead of an immediate ADD ticket followed by a VOID ticket
+     * up to 30s later on the queue flush.
+     *
+     * Sections render in the order given (revision order), each with its own banner
+     * and item snapshot. Header time = the most recent change in the batch.
+     */
+    fun formatCombinedTicket(
+        bill: BillWithItems,
+        restaurantProfile: RestaurantProfileEntity?,
+        printerProfile: PrinterProfileEntity,
+        sections: List<KotTicketSection>
+    ): ByteArray {
+        require(sections.isNotEmpty()) { "Combined ticket needs at least one section" }
+        val is80mm = printerProfile.paperSize == "80mm"
+        val charsPerLine = if (is80mm) 40 else 32
+        val leftPad = if (is80mm) "    " else ""
+        val line = leftPad + "-".repeat(charsPerLine)
+        val out = mutableListOf<Byte>()
+
+        fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
+        fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
+
+        add(RESET)
+        val headerTime = sections.maxOf { it.eventTimeMs }
+        addBillHeader(out, leftPad, line, bill, restaurantProfile, headerTime, sections.last().kotRevision)
+
+        sections.forEach { section ->
+            val banner = bannerFor(section.eventType)
+            if (banner != null) {
+                emitBanner(out, leftPad, banner)
+            }
+            section.cancelReason?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Reason: $it\n") }
+            add("$line\n")
+            for (lineText in parseSnapshotItems(section.itemSnapshotJson)) {
+                add(BOLD_ON)
+                add(leftPad + lineText + "\n")
+                add(BOLD_OFF)
+            }
+            add("\n")
         }
 
         add("$line\n")
@@ -124,7 +207,8 @@ object KitchenTicketFormatter {
         bill: BillWithItems,
         restaurantProfile: RestaurantProfileEntity?,
         printerProfile: PrinterProfileEntity,
-        itemSnapshotJson: String
+        itemSnapshotJson: String,
+        kotRevision: String? = null
     ): ByteArray =
         formatEventTicket(
             bill = bill,
@@ -132,45 +216,65 @@ object KitchenTicketFormatter {
             printerProfile = printerProfile,
             eventType = KotEventType.VOID,
             itemSnapshotJson = itemSnapshotJson,
-            eventTimeMs = bill.bill.createdAt
+            eventTimeMs = bill.bill.createdAt,
+            kotRevision = kotRevision
         )
 
+    /**
+     * Kitchen-slip header — intentionally minimal. The kitchen needs to match the
+     * ticket to an order and know WHEN it changed, nothing else:
+     *   Order: {dailyOrderDisplay}   — primary reference
+     *   Type: {orderType}            — only when meaningful (legacy "order" suppressed)
+     *   Time: {event time}           — when this revision happened
+     *   Customer: {name}             — only when present (takeaway callouts)
+     *   KOT #{revision}              — helps spot missing/late tickets
+     *
+     * Deliberately removed: shop name (branding lives on the customer invoice) and
+     * the Invoice line — for drafts getInvoiceNumberDisplay() falls back to the
+     * dailyOrderDisplay string, printing the same value twice on one slip.
+     */
     private fun addBillHeader(
         out: MutableList<Byte>,
         leftPad: String,
         line: String,
         bill: BillWithItems,
-        restaurantProfile: RestaurantProfileEntity?,
-        eventTimeMs: Long = bill.bill.createdAt
+        @Suppress("UNUSED_PARAMETER") restaurantProfile: RestaurantProfileEntity?,
+        eventTimeMs: Long = bill.bill.createdAt,
+        kotRevision: String? = null
     ) {
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
 
-        add(ALIGN_CENTER)
-        add("${restaurantProfile?.shopName ?: "RESTAURANT"}\n")
-        add("$line\n")
         add(ALIGN_LEFT)
         add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
-        add(leftPad + "Invoice: ${bill.bill.getInvoiceNumberDisplay()}\n")
+        val orderType = bill.bill.orderType.trim()
+        if (orderType.isNotEmpty() && !orderType.equals("order", ignoreCase = true)) {
+            add(leftPad + "Type: ${orderType.uppercase()}\n")
+        }
         add(leftPad + "Time: ${DateUtils.formatDisplay(eventTimeMs)}\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
+        kotRevision?.takeIf { it.isNotBlank() }?.let { add(leftPad + "KOT #$it\n") }
         add("$line\n")
     }
 
+    /**
+     * Parses the event's item snapshot into printable lines. Uses Gson (not org.json)
+     * so JVM unit tests exercise the real parser — org.json is stubbed in android.jar.
+     */
     private fun parseSnapshotItems(itemSnapshotJson: String): List<String> {
         if (itemSnapshotJson.isBlank()) return listOf("(items not captured)")
         return try {
-            val root = org.json.JSONArray(itemSnapshotJson)
+            val root = com.google.gson.JsonParser.parseString(itemSnapshotJson).asJsonArray
             val lines = mutableListOf<String>()
-            for (i in 0 until root.length()) {
-                val obj = root.optJSONObject(i) ?: continue
-                val qty = obj.optInt("quantity", 1)
-                val name = obj.optString("itemName").ifBlank { "Item" }
-                val variant = obj.optString("variantName").takeIf { it.isNotBlank() }
-                val note = obj.optString("specialInstruction").takeIf { it.isNotBlank() }
+            for (element in root) {
+                val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: continue
+                fun string(key: String): String? =
+                    obj.get(key)?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() }
+                val qty = obj.get("quantity")?.takeIf { it.isJsonPrimitive }?.asInt ?: 1
+                val name = string("itemName") ?: "Item"
                 lines += "$qty x $name"
-                variant?.let { lines += "  Variant: $it" }
-                note?.let { lines += "  Note: $it" }
+                string("variantName")?.let { lines += "  Variant: $it" }
+                string("specialInstruction")?.let { lines += "  Note: $it" }
             }
             if (lines.isEmpty()) listOf("(items not captured)") else lines
         } catch (e: Exception) {

@@ -1,19 +1,43 @@
 package com.khanabook.lite.pos.domain.manager
+import com.khanabook.lite.pos.feature.printing.domain.NetworkPrinterScanner
 import com.khanabook.lite.pos.feature.printing.domain.WifiPrinterTransport
 
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import java.net.ServerSocket
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class WifiPrinterTransportTest {
+
+    private val networkPrinterScanner: NetworkPrinterScanner = mockk()
+
+    @Before
+    fun setUp() {
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.w(any(), any<String>()) } returns 0
+        every { android.util.Log.w(any(), any<String>(), any()) } returns 0
+        // Loopback endpoints are never "same subnet" per NetworkInterface rules —
+        // stub the guard so the deliver() path under test is reachable.
+        every { networkPrinterScanner.isSameSubnet(any()) } returns true
+    }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
     @Test
     fun `wifi transport sends raw esc pos bytes to configured endpoint`() = runTest {
         val payload = byteArrayOf(0x1b, 0x40, 0x0a)
@@ -35,7 +59,7 @@ class WifiPrinterTransportTest {
                 port = server.localPort
             )
 
-            assertTrue(WifiPrinterTransport().print(profile, payload))
+            assertTrue(WifiPrinterTransport(networkPrinterScanner).print(profile, payload))
             assertArrayEquals(payload, received.get(2, TimeUnit.SECONDS))
             reader.join(2_000)
         }
@@ -52,6 +76,6 @@ class WifiPrinterTransportTest {
             port = 9100
         )
 
-        assertFalse(WifiPrinterTransport().print(profile, byteArrayOf(0x0a)))
+        assertFalse(WifiPrinterTransport(networkPrinterScanner).print(profile, byteArrayOf(0x0a)))
     }
 }

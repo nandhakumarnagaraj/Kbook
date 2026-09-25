@@ -1239,6 +1239,10 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 val dbTotals = existingItems.groupBy { (it.menuItemId ?: 0L) to it.variantId }
                 val processedDbKeys = mutableSetOf<Pair<Long, Long?>>()
 
+                // One KOT batch per user save: every ADD/VOID event produced by this loop
+                // shares the token so PrintRouter can render them as ONE combined ticket.
+                val kotBatchToken = java.util.UUID.randomUUID().toString()
+
                 for (cartItem in cartItems) {
                     val key = cartItem.item.id to cartItem.variant?.id
                     processedDbKeys.add(key)
@@ -1268,7 +1272,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )
-                        billRepository.insertBillItems(listOf(newItem))
+                        billRepository.insertBillItems(listOf(newItem), kotBatchToken)
                     } else if (cartItem.quantity > totalDbQty) {
                         val diffQty = cartItem.quantity - totalDbQty
                         val price = cartItem.variant?.price ?: cartItem.item.basePrice
@@ -1292,7 +1296,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )
-                        billRepository.insertBillItems(listOf(newItem))
+                        billRepository.insertBillItems(listOf(newItem), kotBatchToken)
                     } else if (cartItem.quantity < totalDbQty) {
                         var reductionNeeded = totalDbQty - cartItem.quantity
                         val sortedDbRows = dbRows.sortedWith(compareBy<BillItemEntity> { it.sentToKot }.thenByDescending { it.id })
@@ -1301,7 +1305,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                             if (reductionNeeded <= 0) break
                             if (row.quantity <= reductionNeeded) {
                                 reductionNeeded -= row.quantity
-                                billRepository.deleteBillItemById(row.id)
+                                billRepository.deleteBillItemById(row.id, kotBatchToken)
                             } else {
                                 val newQty = row.quantity - reductionNeeded
                                 reductionNeeded = 0
@@ -1315,7 +1319,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                                     itemTotal = newItemTotal,
                                     isSynced = false,
                                     updatedAt = System.currentTimeMillis()
-                                ))
+                                ), kotBatchToken)
                             }
                         }
                     }
@@ -1325,7 +1329,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     if (dbKey !in processedDbKeys) {
                         val dbRows = dbTotals[dbKey] ?: emptyList()
                         for (row in dbRows) {
-                            billRepository.deleteBillItemById(row.id)
+                            billRepository.deleteBillItemById(row.id, kotBatchToken)
                         }
                     }
                 }

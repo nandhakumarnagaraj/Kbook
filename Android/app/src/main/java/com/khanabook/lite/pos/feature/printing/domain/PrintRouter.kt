@@ -63,7 +63,7 @@ class PrintRouter @Inject constructor(
         printerProfileRepository,
         PrinterTransportDispatcher(
             BluetoothPrinterTransport(printerManager),
-            WifiPrinterTransport(),
+            WifiPrinterTransport(NetworkPrinterScanner(appContext = null)),
             UsbPrinterTransport(context)
         ),
         kitchenPrintQueueManager,
@@ -125,8 +125,11 @@ class PrintRouter @Inject constructor(
                 // pending events are the real work — they hold the exact snapshot the
                 // kitchen has not seen yet (e.g. an ADD saved by a crash-prone path).
                 val unprintedKotEvents = if (isKitchenTarget && mode == PrintDispatchMode.AUTO) {
+                    // REPRINT events are recorded pre-printed; filtering them keeps the
+                    // combined-selection logic from treating audit rows as work to deliver.
                     bill.bill.publicToken?.takeIf { it.isNotBlank() }
                         ?.let { kotEventDao.getUnprintedEventsForBill(it) }
+                        ?.filter { it.eventType != KotEventType.REPRINT }
                         ?: emptyList()
                 } else {
                     emptyList()
@@ -197,6 +200,15 @@ class PrintRouter @Inject constructor(
                 var claimedQueuedJob = false
                 var success = false
                 var errorMsg = ""
+                // Events rendered on the combined ticket (if a batch group was dispatched).
+                // Set inside the repeat loop, consumed by the success bookkeeping below.
+                var dispatchedGroup: List<KotEventEntity>? = null
+                // Pure-VOID batch (cart save that only removed items): no unsent bill rows,
+                // but unprinted events still need the combined ticket.
+                val batchWorkRemaining = isKitchenTarget &&
+                    mode == PrintDispatchMode.AUTO &&
+                    itemsToPrint.isEmpty() &&
+                    unprintedKotEvents.isNotEmpty()
 
                 repeat(target.copies.coerceAtLeast(1)) {
                     if (!claimedQueuedJob && isKitchenTarget && mode == PrintDispatchMode.AUTO) {
@@ -213,20 +225,28 @@ class PrintRouter @Inject constructor(
                         val bytes = when (PrinterRole.fromValue(target.role)) {
                             PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
                             PrinterRole.KITCHEN -> {
-                                // AUTO dispatch renders the immutable EVENT snapshot (NEW/ADD/
+                                // AUTO dispatch renders the immutable EVENT snapshot(s) (NEW/ADD/
                                 // VOID as recorded) so a late ticket can never leak items added
                                 // after the event. Manual reprint keeps the live full-order copy.
-                                val event = if (mode == PrintDispatchMode.AUTO) {
-                                    resolveEventForItems(bill, itemsToPrint)
-                                } else null
-                                if (event != null) {
-                                    KitchenTicketFormatter.formatEventTicket(
+                                // Batched cart saves produce several events sharing an eventToken;
+                                // they render as ONE combined ticket.
+                                val batchEvents = if (mode == PrintDispatchMode.AUTO) {
+                                    resolveEventsForBatch(itemsToPrint, unprintedKotEvents)
+                                } else emptyList()
+                                if (batchEvents.isNotEmpty()) {
+                                    dispatchedGroup = batchEvents
+                                    KitchenTicketFormatter.formatCombinedTicket(
                                         bill,
                                         restaurantProfile,
                                         target,
-                                        event.eventType,
-                                        event.itemSnapshotJson,
-                                        event.createdAt
+                                        batchEvents.map { ev ->
+                                            KotTicketSection(
+                                                eventType = ev.eventType,
+                                                itemSnapshotJson = ev.itemSnapshotJson,
+                                                eventTimeMs = ev.createdAt,
+                                                kotRevision = ev.kotRevision
+                                            )
+                                        }
                                     )
                                 } else {
                                     KitchenTicketFormatter.format(bill, restaurantProfile, target, itemsToPrint)
@@ -245,18 +265,33 @@ class PrintRouter @Inject constructor(
                 }
 
                 if (success) {
-                    if (isKitchenTarget && mode == PrintDispatchMode.AUTO && itemsToPrint.isNotEmpty()) {
+                    if (isKitchenTarget && mode == PrintDispatchMode.AUTO && (itemsToPrint.isNotEmpty() || batchWorkRemaining)) {
                         maybeClearKitchenQueue(bill.bill.id, target)
-                        // Mark ONLY the event(s) this ticket actually rendered — never the
-                        // whole backlog. Blanket-marking used to swallow events whose ticket
-                        // never physically printed (ADD after VOID, queue retries, etc.).
-                        bill.bill.publicToken?.let { token ->
-                            val printedItemIds = itemsToPrint.mapNotNull { it.id }.toSet()
-                            kotEventDao.getUnprintedEventsForBill(token)
-                                .filter { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == printedItemIds }
-                                .forEach { ev -> kotEventDao.markPrinted(ev.publicToken, ev.kotRevision) }
+                        // Mark ONLY the events this ticket actually rendered — never the
+                        // whole backlog. When a batch group was dispatched, every event in
+                        // the group is on the paper, so the whole group is marked printed.
+                        // Otherwise fall back to the exact item-id match for single events.
+                        val dispatched = dispatchedGroup
+                        if (dispatched != null) {
+                            dispatched.forEach { ev ->
+                                kotEventDao.markPrinted(ev.publicToken, ev.kotRevision)
+                            }
+                            // A direct print here covered everything the bill had pending,
+                            // including UNASSIGNED fallback jobs (e.g. batched VOIDs) whose
+                            // stored MAC can never match this printer — ack them wholesale
+                            // so the 30s flush cannot re-print the same ticket.
+                            kitchenPrintQueueManager.ackAllPendingForBill(bill.bill.id)
+                        } else {
+                            bill.bill.publicToken?.let { token ->
+                                val printedItemIds = itemsToPrint.mapNotNull { it.id }.toSet()
+                                kotEventDao.getUnprintedEventsForBill(token)
+                                    .filter { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == printedItemIds }
+                                    .forEach { ev -> kotEventDao.markPrinted(ev.publicToken, ev.kotRevision) }
+                            }
                         }
-                        billDao.markItemsSentToKot(itemsToPrint.map { it.id }, bill.bill.restaurantId)
+                        if (itemsToPrint.isNotEmpty()) {
+                            billDao.markItemsSentToKot(itemsToPrint.map { it.id }, bill.bill.restaurantId)
+                        }
                     } else {
                         maybeClearKitchenQueue(bill.bill.id, target)
                     }
@@ -393,26 +428,35 @@ class PrintRouter @Inject constructor(
         }.toString()
 
     /**
-     * Picks the unprinted KOT event matching the items about to be dispatched,
-     * preferring an exact item-id match over the newest event. Returns null when
-     * there is no event model to honor (legacy bills without publicToken, or
-     * events already marked printed) — the caller falls back to live formatting.
+     * Picks the KOT event(s) to render for this dispatch. Events recorded by one user
+     * save share a non-blank eventToken (the batch token) and render together as ONE
+     * combined ticket. Legacy single events (no batch token) keep the previous rule:
+     * exact item-id match over the newest unprinted event.
      */
-    private suspend fun resolveEventForItems(bill: BillWithItems, items: List<BillItemEntity>): KotEventEntity? {
-        val token = bill.bill.publicToken?.takeIf { it.isNotBlank() } ?: return null
-        val unprinted = kotEventDao.getUnprintedEventsForBill(token)
-        if (unprinted.isEmpty()) return null
-        val itemIds = items.mapNotNull { it.id }.toSet()
-        return unprinted.lastOrNull { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == itemIds }
-            ?: unprinted.last()
+    private fun resolveEventsForBatch(
+        items: List<BillItemEntity>,
+        unprinted: List<KotEventEntity>
+    ): List<KotEventEntity> {
+        if (unprinted.isEmpty()) return emptyList()
+        val newest = unprinted.last()
+        val batchToken = newest.eventToken?.takeIf { it.isNotBlank() }
+        if (batchToken == null) {
+            val itemIds = items.mapNotNull { it.id }.toSet()
+            val matched = unprinted.lastOrNull { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == itemIds }
+            return listOfNotNull(matched ?: newest)
+        }
+        return unprinted.filter { it.eventToken == batchToken }.ifEmpty { listOf(newest) }
     }
 
+    /** Gson-based (org.json is stubbed in JVM unit tests). */
     private fun parseSnapshotItemIds(snapshotJson: String): Set<Long> =
         try {
-            val root = org.json.JSONArray(snapshotJson)
-            (0 until root.length())
-                .mapNotNull { root.optJSONObject(it)?.optLong("id", -1L)?.takeIf { id -> id > 0 } }
-                .toSet()
+            val root = com.google.gson.JsonParser.parseString(snapshotJson).asJsonArray
+            root.mapNotNull { el ->
+                val obj = el.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+                val id = obj.get("id")?.takeIf { it.isJsonPrimitive }?.asLong ?: return@mapNotNull null
+                id.takeIf { it > 0 }
+            }.toSet()
         } catch (_: Exception) {
             emptySet()
         }

@@ -72,6 +72,7 @@ fun PrinterTargetCard(
     showLogoToggle: Boolean,
     isConnected: Boolean,
     health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth? = null,
+    networkMismatch: Boolean = false,
     helperText: String?,
     onConfigureWifi: (() -> Unit)?,
     onSelectUsb: (() -> Unit)? = null,
@@ -105,14 +106,15 @@ fun PrinterTargetCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(printerName, color = TextLight, style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Box(modifier = Modifier.size(8.dp).background(dotColor(isConnected, health), CircleShape))
+                    Box(modifier = Modifier.size(8.dp).background(dotColor(isConnected, health, networkMismatch), CircleShape))
                 }
                 Text("Connection: ${connectionDescription ?: "---"}", color = TextGold, style = MaterialTheme.typography.labelSmall)
                 KhanaStatusBadge(
-                    text = statusText(connectionDescription, isConnected, health),
+                    text = statusText(connectionDescription, isConnected, health, networkMismatch),
                     kind = when {
                         connectionDescription.isNullOrBlank() -> KhanaStatusKind.Neutral
                         !isConnected -> KhanaStatusKind.Warning
+                        networkMismatch -> KhanaStatusKind.Warning
                         health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_OUT ->
                             KhanaStatusKind.Danger
                         health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_LOW ||
@@ -212,11 +214,13 @@ fun PrinterTargetCard(
     }
 }
 
-/** Dot color combining connection state with ESC/POS health (paper/cover/error). */
+/** Dot color combining connection state with ESC/POS health (paper/cover/error) and network mismatch. */
 private fun dotColor(
     isConnected: Boolean,
-    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?
+    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?,
+    networkMismatch: Boolean
 ): Color = when {
+    networkMismatch -> WarningYellow
     !isConnected -> DangerRed
     health == null -> SuccessGreen
     else -> when (health) {
@@ -229,14 +233,16 @@ private fun dotColor(
     }
 }
 
-/** Badge text combining connection state with ESC/POS health. */
+/** Badge text combining connection state with ESC/POS health and network mismatch. */
 private fun statusText(
     connectionDescription: String?,
     isConnected: Boolean,
-    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?
+    health: com.khanabook.lite.pos.feature.printing.domain.PrinterHealth?,
+    networkMismatch: Boolean
 ): String = when {
     connectionDescription.isNullOrBlank() -> "No printer"
     !isConnected -> "Ready"
+    networkMismatch -> "Network Mismatch"
     health == null -> "Connected"
     else -> when (health) {
         com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.HEALTHY -> "Connected"
@@ -326,6 +332,7 @@ private fun PrinterTargetCardPreview() {
             includeLogo = true,
             showLogoToggle = true,
             isConnected = true,
+            networkMismatch = false,
             helperText = "Receives orders automatically when enabled.",
             onConfigureWifi = {},
             onSelectUsb = {},

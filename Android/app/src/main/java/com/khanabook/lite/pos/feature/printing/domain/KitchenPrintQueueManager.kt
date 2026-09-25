@@ -51,7 +51,7 @@ class KitchenPrintQueueManager @Inject constructor(
         printerManager,
         PrinterTransportDispatcher(
             BluetoothPrinterTransport(printerManager),
-            WifiPrinterTransport(),
+            WifiPrinterTransport(NetworkPrinterScanner(appContext = null)),
             UsbPrinterTransport(context ?: throw IllegalArgumentException("context required"))
         ),
         kotEventDao
@@ -143,6 +143,15 @@ class KitchenPrintQueueManager @Inject constructor(
         queueRepository.markSentIfPresent(billId, printerMac)
     }
 
+    /**
+     * Acknowledges every pending queue job for the bill (any printer target) —
+     * used after a direct print that covered UNASSIGNED fallback jobs whose
+     * stored MAC could never match the dispatching printer.
+     */
+    suspend fun ackAllPendingForBill(billId: Long) {
+        queueRepository.ackAllPendingForBill(billId)
+    }
+
     suspend fun clearForBill(billId: Long) {
         queueRepository.deleteByBillId(billId)
     }
@@ -186,35 +195,70 @@ class KitchenPrintQueueManager @Inject constructor(
                 continue
             }
 
+            // CANCEL notices are recorded AFTER the bill status flips to 'cancelled'
+            // (see BillRepository.cancelOrder) — without this exemption the status gate
+            // below would silently drop the very ticket that tells the kitchen the
+            // order is dead. The audit event still exists either way, but the slip
+            // would never reach paper.
+            val jobEvent = job.publicToken?.let { token ->
+                job.kotRevision?.let { revision -> kotEventDao.getEvent(token, revision) }
+            }
+            val isCancelNotice = jobEvent?.eventType == KotEventType.CANCEL
+
             val isPrintable = bill.bill.orderStatus.equals("completed", ignoreCase = true) ||
                 bill.bill.orderStatus.equals("paid", ignoreCase = true) ||
                 bill.bill.orderStatus.equals("draft", ignoreCase = true)
-            if (!isPrintable) {
+            if (!isPrintable && !isCancelNotice) {
                 queueRepository.deleteById(job.id)
                 continue
             }
 
             try {
                 // ── Event-driven retries: the queued job carries (publicToken, kotRevision)
-                // pointing at an immutable KOT event. The ticket renders the EXACT snapshot
-                // recorded for that event — never the bill's current state, so late retries
-                // cannot leak items added after the event. Dispatch is transport-agnostic:
-                // a ticket that physically printed is printed, however it got there. ──
-                val event = job.publicToken?.let { token ->
-                    job.kotRevision?.let { revision -> kotEventDao.getEvent(token, revision) }
-                }
+                // pointing at an immutable KOT event. The ticket renders the EXACT snapshot(s)
+                // recorded for that event and any batch siblings sharing its eventToken —
+                // never the bill's current state, so late retries cannot leak items added
+                // after the event. Dispatch is transport-agnostic: a ticket that physically
+                // printed is printed, however it got there. ──
+                val event = jobEvent
                 if (event != null) {
-                    val bytes = KitchenTicketFormatter.formatEventTicket(
+                    // Batch-aware: same save → same eventToken → one combined ticket.
+                    val batchToken = event.eventToken?.takeIf { it.isNotBlank() }
+                    val batchEvents = if (batchToken != null) {
+                        kotEventDao.getUnprintedEventsForBill(event.publicToken)
+                            .filter { it.eventToken == batchToken }
+                            .ifEmpty { listOf(event) }
+                    } else {
+                        listOf(event)
+                    }
+                    // Already printed by a concurrent direct dispatch — the direct print
+                    // only acks jobs with its exact MAC, so an UNASSIGNED fallback job
+                    // survives it. Re-printing here would duplicate the ticket; ack instead.
+                    if (batchEvents.all { it.isPrinted }) {
+                        queueRepository.markSent(job.id)
+                        continue
+                    }
+                    val bytes = KitchenTicketFormatter.formatCombinedTicket(
                         bill,
                         restaurantProfile,
                         printerProfile,
-                        event.eventType,
-                        event.itemSnapshotJson,
-                        event.createdAt
+                        batchEvents.map { ev ->
+                            KotTicketSection(
+                                eventType = ev.eventType,
+                                itemSnapshotJson = ev.itemSnapshotJson,
+                                eventTimeMs = ev.createdAt,
+                                kotRevision = ev.kotRevision,
+                                cancelReason = if (ev.eventType == KotEventType.CANCEL) {
+                                    bill.bill.cancelReason.takeIf { it.isNotBlank() }
+                                } else null
+                            )
+                        }
                     )
                     if (printerTransport.print(printerProfile, bytes)) {
                         queueRepository.markSent(job.id)
-                        kotEventDao.markPrinted(event.publicToken, event.kotRevision)
+                        batchEvents.forEach { ev ->
+                            kotEventDao.markPrinted(ev.publicToken, ev.kotRevision)
+                        }
                     } else {
                         queueRepository.markPending(job.id, "print failed")
                         break

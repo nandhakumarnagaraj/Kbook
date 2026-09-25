@@ -10,6 +10,9 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
 
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -96,12 +99,15 @@ class SettingsViewModel @Inject constructor(
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val sessionManager: SessionManager,
     private val syncManager: SyncManager,
-    private val networkPrinterScanner: com.khanabook.lite.pos.feature.printing.domain.NetworkPrinterScanner
+    private val networkPrinterScanner: com.khanabook.lite.pos.feature.printing.domain.NetworkPrinterScanner,
+    private val connectivityManager: ConnectivityManager
 ) : ViewModel() {
 
     private companion object {
         const val WIFI_PROBE_TIMEOUT_MS = 2_000
     }
+
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     val displayScale = sessionManager.getDisplayScale()
 
@@ -155,6 +161,10 @@ class SettingsViewModel @Inject constructor(
     private val _wifiSubnetPrefix = MutableStateFlow<String?>(null)
     val wifiSubnetPrefix: StateFlow<String?> = _wifiSubnetPrefix.asStateFlow()
 
+    /** Per-printer network-mismatch flag keyed by connectionTargetKey(). */
+    private val _wifiPrinterNetworkMismatch = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val wifiPrinterNetworkMismatch: StateFlow<Map<String, Boolean>> = _wifiPrinterNetworkMismatch.asStateFlow()
+
     fun scanForWifiPrinters() {
         if (_isScanningWifiPrinters.value) return
         viewModelScope.launch {
@@ -170,6 +180,18 @@ class SettingsViewModel @Inject constructor(
             } finally {
                 _isScanningWifiPrinters.value = false
             }
+        }
+    }
+
+    /**
+     * Re-detect the auto-fill subnet prefix on demand (right before the Wi-Fi
+     * dialog opens). The network callback only fires on transitions, but on
+     * Android 10 DhcpInfo/LinkProperties can settle late after boot or a roam,
+     * leaving a stale null prefix from init. Cheap and idempotent.
+     */
+    fun refreshWifiSubnetPrefix() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _wifiSubnetPrefix.value = networkPrinterScanner.getAutoFillSubnetPrefix()
         }
     }
 
@@ -238,6 +260,29 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        // Reactive network monitoring: when the device roams to a new Wi-Fi
+        // network (SSID / subnet change), re-evaluate the local subnet prefix
+        // and re-probe all configured Wi-Fi printers so stale IPs are flagged
+        // immediately instead of causing a 5-second SocketTimeoutException.
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+            .build()
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    // Auto-fill prefers the GATEWAY's /24 block on wide-mask networks
+                    // (infrastructure like printers lives there, not in the device's
+                    // scattered DHCP block); identical to the local block on /24s.
+                    _wifiSubnetPrefix.value = networkPrinterScanner.getAutoFillSubnetPrefix()
+                }
+                refreshWifiReachability()
+            }
+        }
+        runCatching {
+            connectivityManager.registerNetworkCallback(networkRequest, networkCallback!!)
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             printerProfileRepository.getProfiles()
                 .filter { it.enabled && !it.macAddress.isNullOrBlank() }
@@ -256,7 +301,16 @@ class SettingsViewModel @Inject constructor(
         refreshDuplicateIdHealth()
         refreshLastSyncTimestamp()
         viewModelScope.launch(Dispatchers.IO) {
-            _wifiSubnetPrefix.value = networkPrinterScanner.getLocalSubnetPrefix()
+            _wifiSubnetPrefix.value = networkPrinterScanner.getAutoFillSubnetPrefix()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            connectivityManager.unregisterNetworkCallback(networkCallback!!)
+        } catch (e: Exception) {
+            // Already unregistered or callback was never registered — safe to ignore.
         }
     }
 
@@ -290,6 +344,8 @@ class SettingsViewModel @Inject constructor(
      *  - Wi-Fi: raw TCP 9100 printing is connectionless and typically
      *    write-only, so a successful TCP connect = reachable (HEALTHY is
      *    reported; paper state cannot be queried reliably over 9100).
+     *    Also checks whether the stored IP is on the current subnet —
+     *    if not, the printer is flagged as UNREACHABLE without a 5s timeout.
      *
      * Safe to call repeatedly — each probe runs in its own coroutine.
      */
@@ -297,20 +353,30 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val profiles = printerProfileRepository.getProfiles()
                 .filter { it.enabled && it.isConnectionConfigured() }
+            val mismatchMap = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
             profiles.forEach { profile ->
                 launch {
+                    val key = profile.connectionTargetKey()
                     val health = when (profile.connectionTypeValue()) {
                         PrinterConnectionType.BLUETOOTH -> {
                             val mac = profile.macAddress
                             if (!btManager.isConnectedTo(mac)) btManager.connect(mac)
                             btManager.queryHealth(mac)
                         }
-                        PrinterConnectionType.WIFI ->
-                            if (probeWifiPrinter(profile.host.orEmpty(), profile.port)) {
+                        PrinterConnectionType.WIFI -> {
+                            val host = profile.host.orEmpty()
+                            val isSubnetMatch = networkPrinterScanner.isSameSubnet(host)
+                            if (!isSubnetMatch) {
+                                mismatchMap[key] = true
+                                PrinterHealth.UNREACHABLE
+                            } else if (probeWifiPrinter(host, profile.port)) {
+                                mismatchMap[key] = false
                                 PrinterHealth.HEALTHY
                             } else {
+                                mismatchMap[key] = true
                                 PrinterHealth.UNREACHABLE
                             }
+                        }
                         PrinterConnectionType.USB -> {
                             val device = usbTransport.findDeviceByKey(profile.macAddress)
                             if (device == null) {
@@ -324,7 +390,8 @@ class SettingsViewModel @Inject constructor(
                         }
                     }
                     _printerHealth.value =
-                        _printerHealth.value + (profile.connectionTargetKey() to health)
+                        _printerHealth.value + (key to health)
+                    _wifiPrinterNetworkMismatch.value = mismatchMap
                 }
             }
         }

@@ -54,18 +54,26 @@ class BluetoothPrinterTransport @Inject constructor(
  *   after a dropped connection. Mirrors the kitchen queue's reprint semantics.
  */
 @Singleton
-class WifiPrinterTransport @Inject constructor() : PrinterTransport {
+class WifiPrinterTransport @Inject constructor(
+    private val networkPrinterScanner: NetworkPrinterScanner
+) : PrinterTransport {
     override val connectionType = PrinterConnectionType.WIFI
 
     override suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean {
         val host = profile.host?.trim().orEmpty()
-        if (host.isBlank() || profile.port !in 1..65535) return false
+        val port = profile.port
+        if (host.isBlank() || port !in 1..65535) return false
 
-        if (withContext(Dispatchers.IO) { deliver(host, profile.port, bytes) }) return true
+        if (withContext(Dispatchers.IO) { networkPrinterScanner.isSameSubnet(host) }.not()) {
+            Log.w(TAG, "Wi-Fi print to $host:$port skipped — IP not on current local subnet")
+            return false
+        }
+
+        if (withContext(Dispatchers.IO) { deliver(host, port, bytes) }) return true
 
         // One bounded retry on a fresh socket — never reuse a half-open connection.
         delay(RETRY_DELAY_MS)
-        return withContext(Dispatchers.IO) { deliver(host, profile.port, bytes) }
+        return withContext(Dispatchers.IO) { deliver(host, port, bytes) }
     }
 
     private fun deliver(host: String, port: Int, bytes: ByteArray): Boolean {

@@ -3,7 +3,11 @@
   "mcp": {
     "lovable": {
       "type": "local",
-      "command": ["npx", "-y", "@lovablelabs/mcp"],
+      "command": [
+        "npx",
+        "-y",
+        "@lovablelabs/mcp"
+      ],
       "enabled": true,
       "environment": {
         "LOVABLE_TOKEN": "your-lovable-api-token"
@@ -25,5 +29,6 @@
       },
       "timeout": 120000
     }
-  }
+  },
+  "snapshot": false
 }

@@ -14,6 +14,8 @@ import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import com.khanabook.lite.pos.feature.billing.domain.InvoiceFormatter
@@ -112,6 +114,9 @@ class PrintRouterTest {
 
         mockkObject(KitchenTicketFormatter)
         every { KitchenTicketFormatter.format(any(), any(), any(), any()) } returns byteArrayOf(0x02)
+        every {
+            KitchenTicketFormatter.formatCombinedTicket(any(), any(), any(), any<List<com.khanabook.lite.pos.feature.printing.domain.KotTicketSection>>())
+        } returns byteArrayOf(0x03)
 
         every { printerManager.connectedDeviceEvents } returns kotlinx.coroutines.flow.MutableSharedFlow()
         every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
@@ -321,4 +326,92 @@ class PrintRouterTest {
         // Skipped because the bill is owned by a different TERMINAL
         coVerify(exactly = 0) { printerManager.connect(kitchenMac) }
     }
+
+    // -------------------------------------------------------------------------
+    // Scenario 8: Batched cart save (ADD + VOID sharing eventToken) → ONE combined
+    // ticket; every event in the batch is marked printed after physical success.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `AUTO - batched add and void events print as one combined ticket`() = runTest {
+        whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
+        whenever(sessionManager.getTerminalId()).thenReturn("TERM_LOCAL")
+        val ownBill = bill.copy(
+            bill = bill.bill.copy(
+                deviceId = "DEVICE_1",
+                currentOwnerTerminalId = "TERM_LOCAL",
+                publicToken = "pt-1"
+            )
+        )
+        val batchToken = "batch-77"
+        val addEvent = kotEvent(revision = "2", eventType = KotEventType.ADD, token = batchToken)
+        val voidEvent = kotEvent(revision = "3", eventType = KotEventType.VOID, token = batchToken)
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { kotEventDao.getUnprintedEventsForBill("pt-1") } returns listOf(addEvent, voidEvent)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(ownBill, restaurantProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(1, result.succeeded)
+        assertTrue(result.successTargets.contains(PrinterRole.KITCHEN.name))
+
+        // Combined ticket rendered (not the live-bill fallback)
+        coVerify(exactly = 1) {
+            KitchenTicketFormatter.formatCombinedTicket(any(), any(), any(), any<List<com.khanabook.lite.pos.feature.printing.domain.KotTicketSection>>())
+        }
+        // BOTH batch events marked printed — no orphaned unprinted ADD
+        coVerify(exactly = 1) { kotEventDao.markPrinted("pt-1", "2") }
+        coVerify(exactly = 1) { kotEventDao.markPrinted("pt-1", "3") }
+    }
+
+    @Test
+    fun `AUTO - events without batch token keep single-event rendering`() = runTest {
+        whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
+        whenever(sessionManager.getTerminalId()).thenReturn("TERM_LOCAL")
+        val ownBill = bill.copy(
+            bill = bill.bill.copy(
+                deviceId = "DEVICE_1",
+                currentOwnerTerminalId = "TERM_LOCAL",
+                publicToken = "pt-1"
+            )
+        )
+        val legacyEvent = kotEvent(revision = "2", eventType = KotEventType.ADD, token = null)
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { kotEventDao.getUnprintedEventsForBill("pt-1") } returns listOf(legacyEvent)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        router.printBill(ownBill, restaurantProfile, PrintDispatchMode.AUTO)
+
+        // Single (non-batched) event renders through the same combined renderer with
+        // ONE section — output identical to the legacy single-event ticket.
+        coVerify(exactly = 1) {
+            KitchenTicketFormatter.formatCombinedTicket(
+                any(), any(), any(),
+                any<List<com.khanabook.lite.pos.feature.printing.domain.KotTicketSection>>()
+            )
+        }
+        coVerify(exactly = 0) {
+            KitchenTicketFormatter.formatEventTicket(any(), any(), any(), any(), any(), any(), any(), any())
+        }
+        coVerify(exactly = 1) { kotEventDao.markPrinted("pt-1", "2") }
+    }
+
+    private fun kotEvent(
+        revision: String,
+        eventType: String,
+        token: String?
+    ) = KotEventEntity(
+        publicToken = "pt-1",
+        kotRevision = revision,
+        eventType = eventType,
+        itemSnapshotJson = "[{\"id\":10,\"quantity\":1,\"itemName\":\"Tea\"}]",
+        originatingDeviceId = "DEVICE_1",
+        eventToken = token,
+        isPrinted = false,
+        createdAt = 1780000000000L
+    )
 }

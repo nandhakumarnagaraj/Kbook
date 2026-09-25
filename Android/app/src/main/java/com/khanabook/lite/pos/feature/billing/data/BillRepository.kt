@@ -566,7 +566,7 @@ class BillRepository(
         billDao.markItemsSentToKot(itemIds, sessionManager.getRestaurantId())
     }
 
-    suspend fun insertBillItems(items: List<BillItemEntity>) {
+    suspend fun insertBillItems(items: List<BillItemEntity>, batchToken: String? = null) {
         val restaurantId = sessionManager.getRestaurantId()
         val terminalId = currentTerminalScope()
         // Only insert items into locally-owned operational bills. History bills are read-only.
@@ -576,13 +576,13 @@ class BillRepository(
         billDao.insertBillItems(allowed)
         allowed.groupBy { it.billId }.forEach { (billId, insertedItems) ->
             parents[billId]?.let { bill ->
-                recordKotEvent(bill, KotEventType.ADD, insertedItems.filter { !it.isDeleted })
+                recordKotEvent(bill, KotEventType.ADD, insertedItems.filter { !it.isDeleted }, batchToken)
             }
         }
         triggerBackgroundSync()
     }
 
-    suspend fun updateBillItem(item: BillItemEntity) {
+    suspend fun updateBillItem(item: BillItemEntity, batchToken: String? = null) {
         val restaurantId = sessionManager.getRestaurantId()
         val bill = billDao.getOperationalBillById(item.billId, restaurantId, currentTerminalScope()) ?: return
         if (!isLocallyOwned(bill)) return
@@ -591,20 +591,20 @@ class BillRepository(
         if (existing != null) {
             when {
                 item.quantity > existing.quantity ->
-                    recordKotEvent(bill, KotEventType.ADD, listOf(item.copy(quantity = item.quantity - existing.quantity)))
+                    recordKotEvent(bill, KotEventType.ADD, listOf(item.copy(quantity = item.quantity - existing.quantity)), batchToken)
                 item.quantity < existing.quantity ->
-                    recordKotEvent(bill, KotEventType.VOID, listOf(existing.copy(quantity = existing.quantity - item.quantity)))
+                    recordKotEvent(bill, KotEventType.VOID, listOf(existing.copy(quantity = existing.quantity - item.quantity)), batchToken)
             }
         }
         triggerBackgroundSync()
     }
 
-    suspend fun deleteBillItemById(id: Long) {
+    suspend fun deleteBillItemById(id: Long, batchToken: String? = null) {
         val restaurantId = sessionManager.getRestaurantId()
         val existing = billDao.getBillItemsByIds(listOf(id), restaurantId).firstOrNull()
         val bill = existing?.let { billDao.getOperationalBillById(it.billId, restaurantId, currentTerminalScope()) }
         if (existing != null && bill != null && isLocallyOwned(bill)) {
-            recordKotEvent(bill, KotEventType.VOID, listOf(existing))
+            recordKotEvent(bill, KotEventType.VOID, listOf(existing), batchToken)
             billDao.deleteBillItemById(id)
             triggerBackgroundSync()
         }
@@ -620,10 +620,17 @@ class BillRepository(
             billDao.getActionableDraftBillsWithItemsFlow(restaurantId, terminalId)
         }
 
+    /**
+     * Appends an immutable KOT event. [batchToken] groups all events produced by ONE
+     * user save (a cart edit that both adds and removes) so the print pipeline can
+     * render them as a single combined ticket — see PrintRouter.resolveEventsForBatch.
+     * It is stored in the existing (previously unused) eventToken column; no migration.
+     */
     private suspend fun recordKotEvent(
         bill: BillEntity,
         eventType: String,
-        items: List<BillItemEntity>
+        items: List<BillItemEntity>,
+        batchToken: String? = null
     ) {
         val publicToken = bill.publicToken?.takeIf { it.isNotBlank() } ?: return
         if (items.isEmpty()) return
@@ -648,6 +655,7 @@ class BillRepository(
                 eventType = eventType,
                 itemSnapshotJson = serializeKotItems(items),
                 originatingDeviceId = sessionManager.getDeviceId(),
+                eventToken = batchToken,
                 isPrinted = false,
                 createdAt = System.currentTimeMillis()
             )
@@ -657,7 +665,10 @@ class BillRepository(
         // order. Skip when another ticket for this bill is already pending — the queue is keyed
         // (billId, printerMac) so a second unassigned job would clobber the first; kot_events
         // still holds the audit record.
-        if (eventType == KotEventType.VOID || eventType == KotEventType.CANCEL) {
+        // Batched VOIDs (batchToken != null) are part of a cart save whose AUTO dispatch
+        // will carry them on the combined ticket — auto-enqueueing here would print the
+        // same void twice (once immediate, once on the queue flush).
+        if ((eventType == KotEventType.VOID || eventType == KotEventType.CANCEL) && batchToken == null) {
             kitchenPrintQueueRepository
                 ?.takeIf { !it.hasPendingForBill(bill.id) }
                 ?.enqueuePending(

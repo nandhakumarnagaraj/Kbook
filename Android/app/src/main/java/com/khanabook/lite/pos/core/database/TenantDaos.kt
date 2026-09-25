@@ -464,6 +464,9 @@ class TenantKitchenPrintQueueDao @Inject constructor(
         dao.markSent(billId, printerMac, updatedAt)
     }
 
+    override suspend fun markSentByBillId(billId: Long, updatedAt: Long): Int =
+        dao.markSentByBillId(billId, updatedAt)
+
     override suspend fun deleteByBillAndPrinter(billId: Long, printerMac: String) {
         dao.deleteByBillAndPrinter(billId, printerMac)
     }
