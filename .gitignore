@@ -69,6 +69,7 @@ Android/app/*.aab
 mcp/
 specs/
 opencode.json
+/CONTEXT.md
 
 # Editor/IDE local settings
 .vscode/

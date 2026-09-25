@@ -1,6 +1,6 @@
 # KhanaBook
 
-> Docs moved to [`docs/`](docs/README.md) — single parent folder for all markdown.
+> Docs live in [`docs/`](docs/README.md) — single parent folder for all documentation.
 > Full project README: [`docs/meta/README.md`](docs/meta/README.md) · Agent guide: [`docs/meta/AGENTS.md`](docs/meta/AGENTS.md)
 
 KhanaBook is an offline-first restaurant billing and operations system for small food businesses (Android POS + Spring Boot backend + Angular web admin).
