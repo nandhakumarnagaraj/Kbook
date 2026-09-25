@@ -74,6 +74,11 @@ opencode.json
 # Editor/IDE local settings
 .vscode/
 
+# GitHub AI skills/agents/hooks (CI workflows stay tracked)
+.github/skills/
+.github/agents/
+.github/hooks/
+
 # Skill lock files
 skills-lock.json
 
