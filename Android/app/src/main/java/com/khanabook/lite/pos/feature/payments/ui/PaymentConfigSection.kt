@@ -205,7 +205,7 @@ fun PaymentConfigView(
             PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
             val readinessMessage = when (val state = paymentReadiness) {
                 PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
-                PaymentReadinessUiState.Unavailable -> "Cannot verify online payment setup. Reconnect and open this screen again."
+                is PaymentReadinessUiState.Unavailable -> state.message
                 is PaymentReadinessUiState.Ready -> when {
                     state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
                     !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
@@ -372,7 +372,8 @@ fun EasebuzzOnboardingHub(
             text = if (onboardingUiState is OnboardingUiState.Loading)
                 "Checking Easebuzz account status…"
             else
-                "Easebuzz account status is unavailable. Reconnect and open this screen again.",
+                (onboardingUiState as? OnboardingUiState.Error)?.message
+                    ?: "Easebuzz account status is unavailable. Reconnect and open this screen again.",
             color = TextGold,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = spacing.small)

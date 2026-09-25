@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRequest
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRepository
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentReadiness
+import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +45,7 @@ sealed class OnboardingEvent {
 sealed class PaymentReadinessUiState {
     data object Loading : PaymentReadinessUiState()
     data class Ready(val readiness: EasebuzzPaymentReadiness) : PaymentReadinessUiState()
-    data object Unavailable : PaymentReadinessUiState()
+    data class Unavailable(val message: String) : PaymentReadinessUiState()
 }
 
 @HiltViewModel
@@ -64,7 +65,11 @@ class EasebuzzOnboardingViewModel @Inject constructor(
             _paymentReadiness.value = PaymentReadinessUiState.Loading
             repository.getPaymentReadiness()
                 .onSuccess { _paymentReadiness.value = PaymentReadinessUiState.Ready(it) }
-                .onFailure { _paymentReadiness.value = PaymentReadinessUiState.Unavailable }
+                .onFailure { e ->
+                    _paymentReadiness.value = PaymentReadinessUiState.Unavailable(
+                        UserMessageSanitizer.sanitize(e, "Cannot verify online payment setup. Reconnect and open this screen again.")
+                    )
+                }
         }
     }
 
@@ -203,8 +208,10 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                         }
                     }
                 }
-                .onFailure {
-                    _uiState.value = OnboardingUiState.Error("Unable to verify Easebuzz account status. Please reconnect and retry.")
+                .onFailure { e ->
+                    _uiState.value = OnboardingUiState.Error(
+                        UserMessageSanitizer.sanitize(e, "Unable to verify Easebuzz account status. Please reconnect and retry.")
+                    )
                 }
         }
     }
@@ -271,7 +278,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        e.message ?: "Network error. Please try again.",
+                        UserMessageSanitizer.sanitize(e, "Network error. Please try again."),
                         isError = true
                     ))
                 }
@@ -297,7 +304,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        e.message ?: "Verification failed. Please try again.",
+                        UserMessageSanitizer.sanitize(e, "Verification failed. Please try again."),
                         isError = true
                     ))
                 }
@@ -313,7 +320,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        e.message ?: "Failed to resend OTP",
+                        UserMessageSanitizer.sanitize(e, "Failed to resend OTP"),
                         isError = true
                     ))
                 }
@@ -349,7 +356,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        e.message ?: "Upload failed. Please try again.",
+                        UserMessageSanitizer.sanitize(e, "Upload failed. Please try again."),
                         isError = true
                     ))
                 }
@@ -366,7 +373,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        e.message ?: "Could not download document.",
+                        UserMessageSanitizer.sanitize(e, "Could not download document."),
                         isError = true
                     ))
                 }

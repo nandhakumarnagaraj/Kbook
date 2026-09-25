@@ -225,4 +225,65 @@ class EasebuzzOnboardingViewModelTest {
 
         assertTrue(viewModel.uiState.value is OnboardingUiState.AwaitingKyc)
     }
+
+    @Test
+    fun `loadPaymentReadiness sets Ready when repository succeeds`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
+            EasebuzzOnboardingStatusResponse(status = "ACTIVE", hasSubMerchant = true, isActive = true)
+        )
+        val readiness = com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentReadiness(
+            paymentLinkReady = true,
+            easebuzzEnabled = true,
+            agreementRequired = false,
+            subMerchantActive = true,
+            subMerchantStatus = "ACTIVE"
+        )
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.success(readiness)
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        val state = viewModel.paymentReadiness.value
+        assertTrue(state is com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Ready)
+        assertEquals(readiness, (state as com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Ready).readiness)
+    }
+
+    @Test
+    fun `loadPaymentReadiness sets Unavailable with message when repository fails`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
+            EasebuzzOnboardingStatusResponse(status = "ACTIVE", hasSubMerchant = true, isActive = true)
+        )
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.failure(
+            java.net.SocketTimeoutException("Unable to resolve host")
+        )
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        val state = viewModel.paymentReadiness.value
+        assertTrue(state is com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable)
+        assertEquals(
+            "Network error. Please check your connection.",
+            (state as com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable).message
+        )
+    }
+
+    @Test
+    fun `loadPaymentReadiness sets Unavailable with fallback when exception has blank message`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
+            EasebuzzOnboardingStatusResponse(status = "ACTIVE", hasSubMerchant = true, isActive = true)
+        )
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.failure(RuntimeException())
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        val state = viewModel.paymentReadiness.value
+        assertTrue(state is com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable)
+        val message = (state as com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable).message
+        assertFalse(message.isNullOrBlank())
+    }
 }
