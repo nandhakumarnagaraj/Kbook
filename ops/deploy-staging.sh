@@ -4,8 +4,10 @@
 set -euo pipefail
 
 PROJECT="kbook-staging"
-COMPOSE_FILE="docker-compose.staging.yml"
-ENV_FILE="${ENV_FILE:-ops/.env.staging}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.staging.yml"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/ops/.env.staging}"
 STAGING_PORT="${STAGING_PORT:-8091}"
 HEALTH="http://127.0.0.1:${STAGING_PORT}/api/v1/actuator/health"
 
@@ -14,7 +16,7 @@ echo "=== KhanaBook STAGING deploy (project=$PROJECT) ==="
 # 1. Preconditions
 command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found"; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "ERROR: 'docker compose' not available"; exit 1; }
-[ -f "$COMPOSE_FILE" ] || { echo "ERROR: $COMPOSE_FILE not found (run from repo root)"; exit 1; }
+[ -f "$COMPOSE_FILE" ] || { echo "ERROR: $COMPOSE_FILE not found"; exit 1; }
 [ -f "$ENV_FILE" ] || { echo "ERROR: $ENV_FILE not found. Copy ops/.env.staging.example and fill it."; exit 1; }
 
 # 2. Guard: refuse if staging env still points anywhere near production values.

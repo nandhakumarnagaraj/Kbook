@@ -6,7 +6,7 @@ All project documentation lives under `docs/` — single parent folder.
 |---|---|
 | `meta/` | Entry-point docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `ANDROID_UI_RULES.md` |
 | `planning/` | Active planning: `PLAN.md`, `PLAN.archive.*`, `FIX_PLAN.md`, `ROOT_CAUSE_LOG.md`, `NEWBILLSCREEN_SPLIT_PLAN.md`, `billing-sync-fix-verification.md`, `post-all-phases-checklist.md` |
-| `archive/` | Large dumps & indexes: `aboutProduct.txt`, `KHANABOOK_FULL_TECHNICAL_SPEC.txt`, `OPERATIONS_AND_ACTIONS.txt`, `UI_CAPABILITY_AUDIT.txt`, `VERSION_ANALYSIS.txt`, `DEEP_FILE_LIST.md`, `PROJECT_FILE_INDEX.md`, `Production_docs.txt` |
+| `archive/` | Large dumps & indexes: `aboutProduct.txt`, `aboutoursaas.txt`, `KHANABOOK_FULL_TECHNICAL_SPEC.txt`, `OPERATIONS_AND_ACTIONS.txt`, `UI_CAPABILITY_AUDIT.txt`, `VERSION_ANALYSIS.txt`, `DEEP_FILE_LIST.md`, `PROJECT_FILE_INDEX.md`, `Production_docs.txt`; `agent-outputs/` for scratch agent run output |
 | `reviews/` | Dated audits: `KHANABOOK_API_REVIEW_VALIDATION_*.md`, `KHANABOOK_DIFFERENTIAL_REVIEW_*.md`, `KHANABOOK_EASEBUZZ_ERA_QA_*.md`, `KHANABOOK_FLOW_WIRING_AUDIT_*.md`, `KHANABOOK_PRODUCTION_RELIABILITY_AUDIT_*.md` |
 | `design/` | Design system: `DESIGN_SYSTEM.md`, `DESIGN_SYSTEM_FREEZE.md`, `LayoutGuidelines.md`, `ResponsiveLayoutMigration.md` |
 | `easebuzz/` | Easebuzz integration: `easebuzz-sdk-plan.md`, `easebuzz-*.txt`, sub-merchant docs, Postman collection |
@@ -14,7 +14,7 @@ All project documentation lives under `docs/` — single parent folder.
 | `screenshots/` | `Screenshot_*.png`, `Splash Screen.png` |
 | `specs/` | `UX_SIMPLIFICATION.md`, `web-admin-v1-features.md`, `v2-third-party-integration-inventory.md` |
 | `android/` | Android checklists & audits |
-| `product/` | `PRODUCT.md`, `DESIGN.md`, feature suggestions |
+| `product/` | `PRODUCT.md`, `DESIGN.md`, feature suggestions, `competitor-uiux-analysis.md` |
 | `api/` | `api-docs.json` |
 | `baseline-provenance/` | Baseline commit & reconciliation docs |
 | `mcp/` | MCP install links |

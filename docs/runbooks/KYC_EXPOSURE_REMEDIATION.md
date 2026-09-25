@@ -41,7 +41,7 @@ tar -czf /var/backups/cdn_kyc_$(date +%F).tar.gz \
 ### 2. Deploy new application code
 ```bash
 git pull
-./deploy-production.sh                                    # builds image, runs V89 migration, restarts
+./ops/deploy-production.sh                                 # builds image, runs V89 migration, restarts
 curl -fsS http://127.0.0.1:8081/api/v1/actuator/health    # expect {"status":"UP"}
 ```
 V89 adds the four `*_key` columns (additive, safe). New KYC uploads now go

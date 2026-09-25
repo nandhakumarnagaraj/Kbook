@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="/var/www/kbook.iadv.cloud"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.production.yml"
+COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.production.yml"
 ENV_FILE="$ROOT_DIR/.env"
 BACKUP_DIR="$ROOT_DIR/backups/postgres"
 

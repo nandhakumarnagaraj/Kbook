@@ -36,11 +36,11 @@ Apache should continue proxying `/api/v2/` to `127.0.0.1:8081`.
 
 1. Update `.env` with production values.
 2. Build and start the new stack:
-   - `./deploy-production.sh`
+   - `./ops/deploy-production.sh`
 3. Restore production data into the compose Postgres:
    - `./ops/restore_postgres.sh /path/to/backup.sql.gz`
 4. Verify:
-   - `docker compose --env-file .env -f docker-compose.production.yml ps`
+   - `docker compose --env-file .env -f ops/docker-compose.production.yml ps`
    - `curl http://127.0.0.1:8081/api/v2/actuator/health`
 
 ## Backup

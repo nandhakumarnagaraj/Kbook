@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "mobile-device": {
-      "command": "npx",
-      "args": ["-y", "mobile-device-mcp"],
-      "timeout": 30000
-    }
-  }
-}

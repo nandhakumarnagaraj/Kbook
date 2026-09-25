@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "vibe": {
-      "command": "npx",
-      "args": ["-y", "github:anubhavg-icpl/vibe"]
-    }
-  }
-}

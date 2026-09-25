@@ -173,9 +173,9 @@ If any of these become v1, open a separate spec rather than expanding this one.
 - New DTOs as needed (reuse `MarketplaceConfig`/`MarketplaceConfigRequest` models)
 
 **Deploy:**
-- `deploy-web.sh` already exists; rebuild + `./deploy-web.sh` after frontend changes.
+- `ops/deploy-web.sh` already exists; rebuild + `./ops/deploy-web.sh` after frontend changes.
 - Marketplace controller is backend -> must pass the Flyway-history gate before
-  `deploy-production.sh` (see prior session notes on V27/V30 rename risk).
+  `ops/deploy-production.sh` (see prior session notes on V27/V30 rename risk).
 
 ---
 

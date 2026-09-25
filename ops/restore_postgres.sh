@@ -8,7 +8,7 @@ fi
 
 backup_file="$1"
 ROOT_DIR="/var/www/kbook.iadv.cloud"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.production.yml"
+COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.production.yml"
 ENV_FILE="$ROOT_DIR/.env"
 
 if [[ ! -f "$backup_file" ]]; then

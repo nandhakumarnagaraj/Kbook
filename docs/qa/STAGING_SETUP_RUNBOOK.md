@@ -64,7 +64,7 @@ Migrations run automatically on server boot (Flyway V1..V89 against the empty `k
 ## 6. Health verification
 ```
 curl -fsS http://127.0.0.1:8091/api/v1/actuator/health    # expect {"status":"UP"}
-docker compose -p kbook-staging --env-file ops/.env.staging -f docker-compose.staging.yml ps
+docker compose -p kbook-staging --env-file ops/.env.staging -f ops/docker-compose.staging.yml ps
 ```
 
 ## 7. Seed procedure (idempotent — safe to re-run)
@@ -99,13 +99,13 @@ Then re-run deploy + seed, or restore the baseline snapshot.
 
 ## 11. Stop staging
 ```
-docker compose -p kbook-staging --env-file ops/.env.staging -f docker-compose.staging.yml down
+docker compose -p kbook-staging --env-file ops/.env.staging -f ops/docker-compose.staging.yml down
 ```
 (`down` keeps the volume; use reset-staging.sh to also drop the DB volume.)
 
 ## 12. Logs
 ```
-docker compose -p kbook-staging --env-file ops/.env.staging -f docker-compose.staging.yml logs -n 200 server
+docker compose -p kbook-staging --env-file ops/.env.staging -f ops/docker-compose.staging.yml logs -n 200 server
 ```
 
 ## 13. External integration configuration

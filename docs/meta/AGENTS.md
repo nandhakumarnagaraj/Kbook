@@ -263,7 +263,7 @@ The production backend runs as a **Docker Compose** stack on the VPS, NOT system
 by the compose stack described in `ops/PRODUCTION_STACK.md`.)
 
 - **Repo root on VPS:** `/var/www/kbook.iadv.cloud`
-- **Stack files:** `docker-compose.production.yml`, `.env` (secrets — never commit)
+- **Stack files:** `ops/docker-compose.production.yml`, `.env` (secrets — never commit)
 - **Backend port:** `127.0.0.1:8081` (not publicly exposed)
 - **Public entry:** Apache proxies `/api/v1/` → `127.0.0.1:8081`
 - **Live health:** `https://kbook.iadv.cloud/api/v1/actuator/health` (open; returns `{"status":"UP"}`)
@@ -273,17 +273,17 @@ by the compose stack described in `ops/PRODUCTION_STACK.md`.)
 ```bash
 cd /var/www/kbook.iadv.cloud
 git pull                                    # pull latest main
-./deploy-production.sh                      # builds image + up -d postgres, server
+./ops/deploy-production.sh                  # builds image + up -d postgres, server
 # OR step-by-step:
-docker compose --env-file .env -f docker-compose.production.yml build server
-docker compose --env-file .env -f docker-compose.production.yml up -d postgres server
+docker compose --env-file .env -f ops/docker-compose.production.yml build server
+docker compose --env-file .env -f ops/docker-compose.production.yml up -d postgres server
 curl -fsS http://127.0.0.1:8081/api/v1/actuator/health
 ```
 
 ### Status / logs / rollback (VPS)
 ```bash
-docker compose --env-file .env -f docker-compose.production.yml ps
-docker compose --env-file .env -f docker-compose.production.yml logs -n 100 server
+docker compose --env-file .env -f ops/docker-compose.production.yml ps
+docker compose --env-file .env -f ops/docker-compose.production.yml logs -n 100 server
 # 500s surface as: Unhandled exception [errorId=xxxx] [/sync/...] — grep server logs for errorId
 # DB safety:
 ./ops/backup_postgres.sh                    # before any deploy that may run a Flyway migration
@@ -297,9 +297,9 @@ The frontend is served as static files by Apache from `/var/www/kbook.iadv.cloud
 ```bash
 cd /var/www/kbook.iadv.cloud
 git pull
-./deploy-web.sh                             # npm ci + ng build + backup docroot + rsync
-# override docroot: WEB_ROOT=/path/to/docroot ./deploy-web.sh
-# reuse existing build: SKIP_BUILD=1 ./deploy-web.sh
+./ops/deploy-web.sh                         # npm ci + ng build + backup docroot + rsync
+# override docroot: WEB_ROOT=/path/to/docroot ./ops/deploy-web.sh
+# reuse existing build: SKIP_BUILD=1 ./ops/deploy-web.sh
 ```
 - Build output: `web-admin/dist/khanabook-web-admin/browser/` (Angular 18, `base href="/"`).
 - `deploy-web.sh` backs up the current docroot to `<docroot>.bak.<timestamp>` before syncing.
@@ -307,7 +307,7 @@ git pull
 
 ### Notes for gstack ship / land-and-deploy
 - Build runs inside the Dockerfile (`mvn package -Dmaven.test.skip=true`); no host Maven needed on VPS.
-- Always `git pull` then `deploy-production.sh` (backend) and/or `deploy-web.sh` (frontend); verify health returns 200 before declaring success.
+- Always `git pull` then `ops/deploy-production.sh` (backend) and/or `ops/deploy-web.sh` (frontend); verify health returns 200 before declaring success.
 - If a Flyway migration runs, JAR rollback is NOT enough — restore the DB backup too.
 - Logs live in the `server` container stdout (docker compose logs), NOT in repo log files
   (`server-run.log` / `web-admin-run.log` in the repo are empty placeholders).

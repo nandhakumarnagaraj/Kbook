@@ -181,7 +181,7 @@ docker compose exec postgres psql -U kbookuser -c \
   "ALTER USER kbookuser WITH PASSWORD '$NEW_PW';"
 
 # 4. Restart server to pick up new password
-docker compose --env-file .env -f docker-compose.production.yml restart server
+docker compose --env-file .env -f ops/docker-compose.production.yml restart server
 ```
 
 ### 3.2 JWT Secret
@@ -194,7 +194,7 @@ NEW_JWT=$(openssl rand -hex 64)
 sed -i "s/JWT_SECRET=.*/JWT_SECRET=$NEW_JWT/" .env
 
 # Restart server (all existing user sessions will be invalidated)
-docker compose --env-file .env -f docker-compose.production.yml restart server
+docker compose --env-file .env -f ops/docker-compose.production.yml restart server
 ```
 
 > ⚠️ Rotating JWT_SECRET logs out ALL users. Plan for off-peak deployment.
@@ -235,7 +235,7 @@ NEW_PAY_SECRET=$(openssl rand -hex 32)
 sed -i "s/PAYMENT_CRYPTO_SECRET=.*/PAYMENT_CRYPTO_SECRET=$NEW_PAY_SECRET/" .env
 
 # Restart server
-docker compose --env-file .env -f docker-compose.production.yml restart server
+docker compose --env-file .env -f ops/docker-compose.production.yml restart server
 ```
 
 ### 3.7 Stitch API Key

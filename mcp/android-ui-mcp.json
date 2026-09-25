@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "android-ui-assist": {
-      "command": "npx",
-      "args": ["android-ui-assist-mcp"],
-      "timeout": 10000
-    }
-  }
-}

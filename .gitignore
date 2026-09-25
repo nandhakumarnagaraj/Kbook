@@ -57,14 +57,21 @@ Android/app/*.aab
 # Local dev CDN uploads (not for VCS)
 /cdn/
 
-# Claude Code / AI agent session data
+# AI agent & tooling local data (never commit)
 .claude/
 .agents/
 .agnes/
 .codex/
 .opencode/
-.kiro/skills/
+.kiro/
+.specify/
 .freebuff/
+mcp/
+specs/
+opencode.json
+
+# Editor/IDE local settings
+.vscode/
 
 # Skill lock files
 skills-lock.json

@@ -16,7 +16,7 @@ On 2026-09-21, SSH access to `kbook.iadv.cloud` succeeded. The VPS checkout was 
 - Slice 17: successful payment callbacks persist post-split work in the same transaction, process it through the retry/dead-letter worker, retain deterministic gateway request IDs, and safely complete replays after a split was recorded.
 - A combined focused server run passed 58 tests across payment links, transaction verification, payment/refund callbacks, refund service/controller, readiness, post-split commission, and merchant agreement storage. After slice 14, `EasebuzzIntegrationTest` passed again with 25 tests. These tests mock Easebuzz and cannot establish live gateway conformance.
 
-Each completed slice has its own `SAAS_SLICE_*` note in this directory and an entry in `FEATURE_DOCS.txt`.
+Each completed slice has its own `SAAS_SLICE_*` note in this directory and an entry in `docs/meta/FEATURE_DOCS.txt`.
 
 ## Remaining production blockers
 

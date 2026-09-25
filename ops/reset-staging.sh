@@ -4,8 +4,10 @@
 set -euo pipefail
 
 PROJECT="kbook-staging"
-COMPOSE_FILE="docker-compose.staging.yml"
-ENV_FILE="${ENV_FILE:-ops/.env.staging}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.staging.yml"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/ops/.env.staging}"
 
 # Refuse to run against anything that looks like production.
 if [ "$PROJECT" != "kbook-staging" ]; then echo "ERROR: wrong project"; exit 1; fi

@@ -33,7 +33,7 @@ cd /var/www/kbook.iadv.cloud
 # Edit .env → change DB_PASSWORD
 # Then:
 docker compose exec postgres psql -U kbookuser -c "ALTER USER kbookuser WITH PASSWORD 'NEW_SECURE_PASSWORD';"
-docker compose --env-file .env -f docker-compose.production.yml restart server
+docker compose --env-file .env -f ops/docker-compose.production.yml restart server
 ```
 
 ### Firebase API Key

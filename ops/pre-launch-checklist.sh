@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ROOT_DIR="/var/www/kbook.iadv.cloud"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.production.yml"
+COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.production.yml"
 ENV_FILE="$ROOT_DIR/.env"
 
 cd "$ROOT_DIR"
@@ -133,7 +133,7 @@ if [ "$error_count" -eq 0 ]; then
     echo "   ✅ No errors in the last hour"
 else
     echo "   ⚠️  $error_count errors in the last hour"
-    echo "   View with: docker compose --env-file .env -f docker-compose.production.yml logs --since 1h server | grep ERROR"
+    echo "   View with: docker compose --env-file .env -f ops/docker-compose.production.yml logs --since 1h server | grep ERROR"
 fi
 echo ""
 
@@ -161,7 +161,7 @@ echo "=========================================="
 echo ""
 echo "Next steps:"
 echo "  1. Fix any ⚠️/❌ items above"
-echo "  2. After .env changes: docker compose --env-file .env -f docker-compose.production.yml up -d server"
+echo "  2. After .env changes: docker compose --env-file .env -f ops/docker-compose.production.yml up -d server"
 echo "  3. Set up UptimeRobot monitor: https://kbook.iadv.cloud/api/v1/actuator/health"
 echo "  4. Test on 2 Android devices + printer"
 echo ""

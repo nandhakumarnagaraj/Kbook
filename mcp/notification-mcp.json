@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "notification": {
-      "command": "npx",
-      "args": ["-y", "@pinkpixel-dev/notification-mcp"],
-      "timeout": 5000
-    }
-  }
-}

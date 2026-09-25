@@ -26,7 +26,7 @@ set -euo pipefail
 # a signed 32-bit int. Empirically verified against a fresh Flyway run (V1-V48).
 
 ROOT_DIR="${ROOT_DIR:-/var/www/kbook.iadv.cloud}"
-COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.production.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/ops/docker-compose.production.yml}"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 MIGRATION_DIR="${MIGRATION_DIR:-server/src/main/resources/db/migration}"
 
