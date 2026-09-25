@@ -228,9 +228,9 @@ fun NewBillScreen(
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
             val route = if (highlightedBillId != null) {
-                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL", highlightBillId = highlightedBillId)
+                Routes.main(NavigationTabs.TAB_REPORTS, source = "ALL", highlightBillId = highlightedBillId)
             } else {
-                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL")
+                Routes.main(NavigationTabs.TAB_REPORTS, source = "ALL")
             }
             navController.navigate(route) {
                 popUpTo(Routes.NEW_BILL_PATTERN) {

@@ -1,0 +1,263 @@
+KhanaBook feature documentation map
+====================================
+
+This file maps the feature areas currently present in Android/app/src/main/java/com/khanabook/lite/pos to their primary implementation documentation. Each area should be reviewed against the linked guidance before changing its design or behavior.
+
+Feature: App shell, lifecycle, splash, permissions
+Source area: core/app, core/di
+Docs: https://developer.android.com/develop/ui/views/launch/splash-screen
+Docs: https://developer.android.com/guide/components/activities/activity-lifecycle
+Docs: https://developer.android.com/training/permissions/requesting
+Audit status (2026-09-20): Reviewed. MainActivity installs the AndroidX splash before super.onCreate, uses lifecycle-aware Compose effects, requests POST_NOTIFICATIONS only on Android 13+, and routes startup from persisted session state. No documentation mismatch found.
+
+Feature: Jetpack Compose UI and Material 3 design system
+Source area: core/designsystem, core/theme, feature/*/ui
+Docs: https://developer.android.com/develop/ui/compose
+Docs: https://developer.android.com/develop/ui/compose/designsystems/material3
+
+Feature: Adaptive layouts and window-size navigation
+Source area: core/navigation, core/theme
+Docs: https://developer.android.com/develop/ui/compose/layouts/adaptive
+Docs: https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes
+
+Feature: Navigation and screen routing
+Source area: core/navigation
+Docs: https://developer.android.com/develop/ui/compose/navigation
+
+Feature: Authentication, phone/OTP login, Google login, session state
+Source area: feature/auth
+Docs: https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
+Docs: https://developers.google.com/identity/android-credential-manager/android/reference/com/google/android/libraries/identity/googleid/GetSignInWithGoogleOption
+Docs: https://firebase.google.com/docs/auth/android/start
+Audit status (2026-09-20): Reviewed. Google login uses Credential Manager with the explicit Sign in with Google option, decodes GoogleIdTokenCredential from the returned CustomCredential, sends the ID token to the server, and handles cancellation/no-credential/device-unsupported results. Server verifies the token signature and configured web-client audience before creating the app session. Device logs show the remaining BAD_AUTHENTICATION/NoCredential entries are Google Play services account/consent state; successful runs reach SessionState READY and sync, so they are not server failures.
+
+Feature: Secure token and credential storage
+Source area: feature/auth, core/database, security preferences
+Docs: https://developer.android.com/privacy-and-security/keystore
+Docs: https://developer.android.com/reference/androidx/security/crypto/package-summary
+
+Feature: Local Room database, migrations, tenant database switching
+Source area: core/database, feature/*/data
+Docs: https://developer.android.com/training/data-storage/room
+Docs: https://developer.android.com/training/data-storage/room/migrating-db-versions
+
+Feature: SQLCipher encrypted database
+Source area: core/database, core/di
+Docs: https://www.zetetic.net/sqlcipher/sqlcipher-for-android/
+
+Feature: Billing, orders, bill items, payments, invoice numbering
+Source area: feature/billing
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/training/data-storage/room
+
+Feature: Menu, categories, variants, stock and inventory
+Source area: feature/menu, feature/inventory
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/training/data-storage/room
+
+Feature: Reports and completed-order status management
+Source area: feature/reports
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/develop/ui/compose/state
+
+Feature: Staff, roles and access control
+Source area: feature/staff, feature/auth
+Docs: https://developer.android.com/topic/architecture
+Docs: https://firebase.google.com/docs/auth/android/start
+
+Feature: Offline-first sync, terminal activation, conflict recovery
+Source area: feature/sync
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/observe
+Docs: https://developer.android.com/topic/architecture/data-layer
+Docs: https://developer.android.com/topic/architecture/data-layer/offline-first
+Audit status (2026-09-20): Reviewed. Local Room/SQLCipher state is used as the working source, WorkManager drains queued changes, network reconnect and boot paths trigger sync, and the server returns per-record success/failure for recovery. The implementation also has quarantine and terminal-approval paths.
+
+Feature: Background jobs and retry scheduling
+Source area: feature/sync/worker, feature/sync/domain
+Docs: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
+Docs: https://developer.android.com/reference/androidx/work/WorkManager
+
+Feature: REST API and network error handling
+Source area: core/network, feature/*/data
+Docs: https://square.github.io/retrofit/
+Docs: https://square.github.io/okhttp/
+
+Feature: Printer configuration and receipt/KOT output
+Source area: feature/printing, feature/settings
+Docs: https://developer.android.com/develop/connectivity/bluetooth
+Docs: https://developer.android.com/develop/connectivity/usb/host
+Docs: https://developer.android.com/training/printing
+Audit status (2026-09-20): Reviewed. Printer routing supports Bluetooth, USB host, and TCP network transports with queued KOT/invoice output and reconnect handling.
+
+Feature: Bluetooth printer transport
+Source area: feature/printing/domain/BluetoothPrinterManager.kt
+Docs: https://developer.android.com/develop/connectivity/bluetooth
+Docs: https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+Audit status (2026-09-20): Reviewed. Android 12+ SCAN/CONNECT and Android 11-and-below legacy/location permissions are declared and requested at runtime; paired-device discovery and RFCOMM/SPP transport are implemented. The feature remains optional and is checked at runtime.
+
+Feature: USB thermal-printer transport
+Source area: feature/printing/domain/UsbPrinterTransport.kt
+Docs: https://developer.android.com/develop/connectivity/usb
+Audit status (2026-09-20): Reviewed. USB host enumeration, per-device permission PendingIntent, bulk-OUT endpoint selection, detach cleanup, and ESC/POS writes are implemented. This follows the Android USB host model; physical printer testing is still required per device model.
+
+Feature: Wi-Fi printer transport
+Source area: feature/printing
+Docs: https://developer.android.com/reference/java/net/Socket
+Docs: https://developer.android.com/develop/connectivity/network-ops/connecting
+Audit status (2026-09-20): Reviewed. The scanner selects an active LAN interface, probes TCP port 9100 with bounded parallelism, and sends raw ESC/POS over sockets. INTERNET/ACCESS_NETWORK_STATE are present; NEARBY_WIFI_DEVICES is not required because the app does not call nearby-device or Wi-Fi scan APIs.
+
+Feature: Camera scanning and barcode/QR capture
+Source area: feature/billing, feature/*/ui where scanner is used
+Docs: https://developer.android.com/training/camerax
+Docs: https://developers.google.com/ml-kit/vision/barcode-scanning/android
+Docs: https://github.com/zxing/zxing
+
+Feature: OCR and text recognition
+Source area: feature/billing, scanner integrations
+Docs: https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+Audit status (2026-09-20): Reviewed. The app uses ML Kit Text Recognition v2, InputImage, the Latin recognizer, camera/file input, bounding-box-aware parsing, and an explicit close path. The manifest requests the OCR model through ML Kit Play Services metadata.
+
+Feature: Easebuzz payments
+Source area: Android feature/payments; server feature/payments and billing/payment modules
+Docs: https://docs.easebuzz.in/docs/payment-gateway/i849ghebwytej-payment-gateway
+Docs: https://docs.easebuzz.in/docs/payment-gateway/05be3a890b572-easy-collect-api-create-link
+Docs: https://docs.easebuzz.in/docs/payment-gateway/ydk17g4xurhhp-submerchant-kyc-approval-webhook
+Docs: https://docs.easebuzz.in/docs/payment-gateway/bwc1ej4g1d490-payout-webhook
+Operations covered: merchant/sub-merchant onboarding; onboarding status and resubmission; KYC access keys, document upload/download, OTP request/resend/verification, FSSAI lookup; Easy Collect payment-link creation for customers and bills; payment return redirect, status refresh, transaction verification, success/failure/auto-refund webhooks; full/partial refunds, refund status, refund webhooks, cancel-and-refund; transaction splits and post-payment splits; on-demand settlement, settlement retrieval and reconciliation; payout creation/status and payout webhooks; duplicate-event detection, hash verification, tenant/permission checks, idempotency, and webhook retries.
+Audit status (2026-09-20): Reviewed. Mobile payment-link/onboarding repositories call the server; server-side code verifies payment, refund, sub-merchant, payout, and settlement webhook hashes and retries failed webhook processing. Gateway credentials are guarded by server configuration and are not stored in the APK. Focused Android tests passed. Real sandbox payment, refund, settlement, payout, and callback delivery remain pending live verification.
+Business policy (2026-09-20): Khanabook charges zero transaction commission. The server rejects nonzero new sub-merchant rates, records zero commission on new successful splits, and assigns the full bill gross amount to the restaurant split label. Easebuzz processing fees and GST are separate. See docs/planning/SAAS_SLICE_1_NO_COMMISSION.md; live settlement math remains unverified.
+Payment readiness (2026-09-20): Android payment settings now reads the server's agreement/sub-merchant readiness before describing payment links as available. The server payment-config GET and master-sync pull no longer auto-enable the restaurant payment toggle while reading. See docs/planning/SAAS_SLICE_2_PAYMENT_READINESS.md.
+
+Feature: Restaurant owner payment agreement
+Source area: Android feature/onboarding; server feature/onboarding and feature/payments
+Docs: https://www.meity.gov.in/writereaddata/files/The%20Information%20Technology%20Act%2C%202000%283%29.pdf
+Docs: https://easebuzz.in/terms/
+Audit status (2026-09-20): The owner reviews the server-provided payment terms, affirms consent, draws a signature, and uploads a PDF. The server stores the exact accepted text, terms and PDF SHA-256 hashes, signer user ID, timestamp, and private document path. Payment links require the current agreement and an active Easebuzz sub-merchant. The in-app drawn signature has not been verified as a prescribed electronic-signature method; legal review and Easebuzz's final approved commercial schedule are required before live rollout. The rate schedule in the current draft comes from the merchant-specific proposal shared by the user, not Easebuzz's public pricing page.
+
+Feature: Push notifications and device token registration
+Source area: feature/notifications
+Docs: https://firebase.google.com/docs/cloud-messaging/android/client
+Audit status (2026-09-20): Reviewed. FCM token refresh, server registration, notification channels, data payload handling, local persistence, deep-link routing, actions, grouping, and Android 13 notification permission are implemented.
+
+Feature: Last-write-wins and conflict protection
+Source area: feature/sync, server/src/main/java/com/khanabook/saas/feature/sync
+Docs: https://developer.android.com/topic/architecture/data-layer/offline-first
+Docs: https://developer.android.com/reference/androidx/work/WorkManager
+Audit status (2026-09-20): Reviewed. Server merge logic applies timestamp/changed-field LWW rules while preserving server-owned and finalized payment state, rejects excessive clock skew, quarantines stale pushes, and handles idempotent transactional retries. HTTP 409 conflicts are pulled and surfaced for recovery instead of silently overwriting newer data.
+
+Feature: Crash reporting and app sessions
+Source area: Firebase configuration and application startup
+Docs: https://firebase.google.com/docs/crashlytics/get-started?platform=android
+Docs: https://firebase.google.com/docs/perf-mon/get-started-android
+
+Feature: Onboarding and first-run setup
+Source area: feature/onboarding
+Docs: https://developer.android.com/topic/architecture
+Docs: https://developer.android.com/develop/ui/compose/state
+
+Feature: Settings, printer settings, app lock and preferences
+Source area: feature/settings
+Docs: https://developer.android.com/develop/ui/compose/state
+Docs: https://developer.android.com/guide/topics/security/biometric-auth
+
+Feature: Feedback and support
+Source area: core/feedback, feature/auth/help and support screens
+Docs: https://developer.android.com/topic/architecture
+
+Cross-check record
+-------------------
+The source directories above were checked against the current Android feature and core packages. This is a documentation/design index; it does not claim that every behavior already satisfies the linked guidance. Review each feature's source, UI states, persistence, error handling, and tests against its links before implementation changes.
+
+Complete feature audit order
+----------------------------
+The following entries cover the full product surface. Each feature is audited against the linked primary documentation and its result is recorded above or in the next audit update.
+
+App startup/lifecycle — https://developer.android.com/guide/components/activities/activity-lifecycle
+Splash screen — https://developer.android.com/develop/ui/views/launch/splash-screen
+Compose UI — https://developer.android.com/develop/ui/compose
+Adaptive layouts — https://developer.android.com/develop/ui/compose/layouts/adaptive
+Navigation — https://developer.android.com/develop/ui/compose/navigation
+Phone/password authentication — https://developer.android.com/topic/architecture
+OTP and password recovery — https://developer.android.com/topic/security/best-practices
+Google sign-in — https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
+Session/logout — https://developer.android.com/topic/architecture
+Keystore/encrypted preferences — https://developer.android.com/privacy-and-security/keystore
+App lock/PIN — https://developer.android.com/privacy-and-security/cryptography
+Merchant onboarding — https://developer.android.com/topic/architecture
+Compliance/FSSAI documents — https://developer.android.com/training/data-storage/shared-preferences
+Staff and roles — https://developer.android.com/topic/architecture
+Permission enforcement — https://developer.android.com/topic/security/best-practices
+Menu categories/items/variants — https://developer.android.com/training/data-storage/room
+OCR menu scanner — https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+Camera and barcode scanning — https://developers.google.com/ml-kit/vision/barcode-scanning/android
+Billing/cart/orders — https://developer.android.com/topic/architecture
+KOT/order workflow — https://developer.android.com/topic/architecture
+Taxes/discounts/invoice numbering — https://developer.android.com/topic/architecture
+Inventory/stock consumption — https://developer.android.com/training/data-storage/room
+Reports/exports — https://developer.android.com/training/data-storage/shared-preferences
+Cash/card/UPI payments — https://developer.android.com/training/basics/intents/sending
+Easebuzz payment links — https://docs.easebuzz.in/
+Easebuzz onboarding/settlements — https://docs.easebuzz.in/
+Easebuzz webhooks/refunds — https://docs.easebuzz.in/
+Bluetooth printing — https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+USB printing — https://developer.android.com/develop/connectivity/usb
+Wi-Fi/network printing — https://developer.android.com/reference/java/net/Socket
+Invoice/KOT print queue — https://developer.android.com/reference/androidx/work/WorkManager
+Offline local database — https://developer.android.com/topic/architecture/data-layer/offline-first
+Initial synchronization — https://developer.android.com/topic/architecture/data-layer/offline-first
+Periodic/background synchronization — https://developer.android.com/reference/androidx/work/WorkManager
+Boot/network-reconnect synchronization — https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started
+Manual Sync Center — https://developer.android.com/topic/architecture
+Conflict recovery — https://developer.android.com/topic/architecture/data-layer/offline-first
+LWW/changed-field merging — https://developer.android.com/topic/architecture/data-layer/offline-first
+Clock-skew/stale-record protection — https://developer.android.com/topic/architecture/data-layer/offline-first
+Sync quarantine — https://developer.android.com/topic/architecture/data-layer/offline-first
+Firebase push notifications — https://firebase.google.com/docs/cloud-messaging/android/get-started
+Notification channels/history — https://developer.android.com/develop/ui/views/notifications/channels
+Notification actions/routing — https://developer.android.com/develop/ui/views/notifications/build-notification
+FSSAI reminder notifications — https://developer.android.com/reference/androidx/work/WorkManager
+Device/terminal registration — https://developer.android.com/topic/architecture
+Terminal approval/counters — https://developer.android.com/topic/architecture
+WhatsApp/phone integrations — https://developer.android.com/training/basics/intents/sending
+Payment-app deep links — https://developer.android.com/training/basics/intents/sending
+Text-to-speech — https://developer.android.com/reference/android/speech/tts/TextToSpeech
+Crashlytics/app sessions — https://firebase.google.com/docs/crashlytics/get-started?platform=android
+Server REST APIs — https://spring.io/guides/gs/rest-service/
+Tenant isolation/authorization — https://owasp.org/www-project-api-security/
+Server audit logging — https://owasp.org/www-project-logging/
+Server rate limiting — https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks
+Database migrations/integrity — https://documentation.red-gate.com/flyway
+
+Cross-check execution record (2026-09-20)
+-----------------------------------------
+The Android feature packages, core packages, server feature modules, manifest permissions, and build dependencies were checked against this index. The requested hardware/OCR/notification/payment/offline-sync/LWW implementations are present in source and their focused documentation entries include findings. Android unit tests passed with `:app:testDebugUnitTest` (BUILD SUCCESSFUL). Remaining work is device and gateway verification for hardware printers, OCR model availability, FCM delivery, and live Easebuzz webhooks; those cannot be proven by source inspection alone.
+
+Live validation update (2026-09-20): Moto G34 5G (`ZA222J5KT7`) connected. APK version 1.0.12/versionCode 29 built and installed successfully. The app launched through adb and reached `SessionState → READY` without an app crash. Connected Android tests were attempted; the runner reported 0 tests and then the device disconnected during teardown, so hardware-specific printer/OCR/FCM/Easebuzz flows still require interactive execution.
+Connected test rerun: 65 tests executed; 64 failed. Most failures are test-harness setup failures because screen test classes are missing `@HiltAndroidTest`; several navigation assertions also assume a login/home state that the installed authenticated session does not provide. This is now an actionable test-suite issue, separate from the successful APK launch smoke test.
+After adding `@HiltAndroidTest` to the eight screen classes, the test sources compile. The next connected run reached two tests before the Hilt test process crashed: `DbDiagnosticTest` also lacks `HiltAndroidRule`, and the FCM service was created before a Hilt test component existed. Production APK launch remains successful; instrumentation harness setup still needs isolation of background services and annotation of remaining tests.
+Latest connected rerun (2026-09-20): the instrumentation process completed without the previous Hilt/FCM crash after adding `@HiltAndroidTest` and disabling the production FCM service in the test manifest. The runner executed 65 tests: 1 passed and 64 failed. The failures are primarily UI precondition failures (tests look for Home/Settings/New Bill controls while the test starts on a different authentication/session state), so this is a test fixture/navigation problem rather than an APK installation crash. The production APK remains launchable on Moto G34 5G; live printer, OCR, FCM delivery, and Easebuzz gateway flows still require interactive verification.
+
+Easebuzz integration cross-check (2026-09-20): Android repository/view-model flows call server-owned payment-link, status, verification, refund, and onboarding APIs. Server code keeps merchant credentials in `EasebuzzProperties`, generates gateway hashes server-side, scopes payment and refund operations to the tenant, verifies payment/refund/payout/sub-merchant webhook hashes, deduplicates webhook events, and queues failed webhook processing for retry. The implementation was compared with the official [Easebuzz Payment Gateway documentation](https://docs.easebuzz.in/docs/payment-gateway/i849ghebwytej-payment-gateway), [Easy Collect create/update link documentation](https://docs.easebuzz.in/docs/payment-gateway/05be3a890b572-easy-collect-api-create-link), [sub-merchant KYC webhook documentation](https://docs.easebuzz.in/docs/payment-gateway/ydk17g4xurhhp-submerchant-kyc-approval-webhook), and [payout webhook documentation](https://docs.easebuzz.in/docs/payment-gateway/bwc1ej4g1d490-payout-webhook). Android Easebuzz repository and onboarding ViewModel tests passed with the focused unit-test task. Server-side Easebuzz tests could not be executed because the Maven wrapper could not start and Maven is not installed in this environment. A real sandbox payment, redirect, refund, and webhook replay remain unverified until gateway credentials and a reachable server callback are available.
+Easebuzz remediation (2026-09-20): refund initiation no longer overwrites the cumulative bill refund amount, refund webhooks preserve an already-recorded cumulative amount, refund email delivery no longer treats a WhatsApp phone number as an email address, and gateway HTTP error bodies are redacted from logs and API responses. A refund-attempt/outbox design is still recommended later so the external gateway call does not run while the bill row lock is held.
+Easebuzz ERA cross-check (2026-09-20): ERA confirmed that `refund_amount` is per refund attempt, refund status is keyed by `easepayid`, refund webhook verification is `sha512(key|easepayid|salt)`, unpaid transactions expire automatically, and `merchant_refund_id` is the retry idempotency key. These match the current refund hash/status/idempotency implementation. ERA also confirmed that `/merchant/v1/submerchant/create/` remains supported for existing integrations. Express Onboarding is an optional modernization path with fewer onboarding steps and pre-configured compliance webhooks; the current legacy onboarding flow is valid and does not require an immediate migration.
+Express onboarding reference (2026-09-20): ERA supplied the official [Express Onboarding API specification](https://docs.easebuzz.in/docs/neobanking/q7ba7nsflsf78), but it does not document replacements for `/submerchant/v1/verify_otp`, `/submerchant/v1/resend_otp`, or `/submerchant/v1/upload_kyc_documents`. Those legacy operations remain unchanged until Easebuzz support provides an account-specific migration contract.
+Webhook form correction (2026-09-20): form-encoded sub-merchant and payout webhook handlers now preserve outer `hash`, event, and identifier fields while decoding nested `data`, allowing hash verification and valid 200 acknowledgements to work with Easebuzz form webhook payloads.
+SaaS slice 3 owner payment switch (2026-09-21): owner-only Easebuzz enable/disable confirmation, server enforcement before new payment links, sync preservation of the server-owned switch, and readiness reporting are documented in [docs/planning/SAAS_SLICE_3_OWNER_PAYMENT_SWITCH.md](docs/planning/SAAS_SLICE_3_OWNER_PAYMENT_SWITCH.md). The corresponding Android and server focused tests passed; live gateway behavior still requires sandbox credentials and a public callback.
+SaaS slice 4 payment amount validation (2026-09-21): direct and bill payment-link requests reject non-positive or over-precise amounts before any Easebuzz call; see [docs/planning/SAAS_SLICE_4_PAYMENT_AMOUNT_VALIDATION.md](docs/planning/SAAS_SLICE_4_PAYMENT_AMOUNT_VALIDATION.md).
+SaaS slice 5 refund amount validation (2026-09-21): refund requests reject amounts with more than two decimal places before any Easebuzz call; see [docs/planning/SAAS_SLICE_5_REFUND_AMOUNT_VALIDATION.md](docs/planning/SAAS_SLICE_5_REFUND_AMOUNT_VALIDATION.md).
+SaaS slice 6 refund failure state (2026-09-21): rejected or empty refund gateway responses now return a stable failed state without changing bill accounting; see [docs/planning/SAAS_SLICE_6_REFUND_FAILURE_STATE.md](docs/planning/SAAS_SLICE_6_REFUND_FAILURE_STATE.md).
+SaaS slice 7 refund HTTP failure contract (2026-09-21): the business refund endpoint now maps Easebuzz rejection to HTTP 400 consistently with the primary payment endpoint; see [docs/planning/SAAS_SLICE_7_REFUND_HTTP_FAILURE.md](docs/planning/SAAS_SLICE_7_REFUND_HTTP_FAILURE.md).
+SaaS slice 8 cancel/refund result (2026-09-21): immediate cancellation no longer claims a refund was applied when Easebuzz rejected it; see [docs/planning/SAAS_SLICE_8_CANCEL_REFUND_RESULT.md](docs/planning/SAAS_SLICE_8_CANCEL_REFUND_RESULT.md).
+SaaS slice 9 partial refund webhook (2026-09-21): completed partial refund callbacks no longer mark the entire bill fully refunded; see [docs/planning/SAAS_SLICE_9_PARTIAL_REFUND_WEBHOOK.md](docs/planning/SAAS_SLICE_9_PARTIAL_REFUND_WEBHOOK.md).
+SaaS slice 10 bill link amount (2026-09-21): bill payment links use locale-independent exact decimal amounts and reject invalid totals; see [docs/planning/SAAS_SLICE_10_BILL_LINK_AMOUNT.md](docs/planning/SAAS_SLICE_10_BILL_LINK_AMOUNT.md).
+SaaS slice 11 payment webhook matching (2026-09-21): signed payment callbacks must match the bill's issued transaction, restaurant, and exact amount before marking it paid; see [docs/planning/SAAS_SLICE_11_PAYMENT_WEBHOOK_MATCH.md](docs/planning/SAAS_SLICE_11_PAYMENT_WEBHOOK_MATCH.md).
+SaaS slice 12 payment status matching (2026-09-21): transaction-status refresh must match the bill's issued transaction ID and exact amount before marking it paid; see [docs/planning/SAAS_SLICE_12_PAYMENT_STATUS_MATCH.md](docs/planning/SAAS_SLICE_12_PAYMENT_STATUS_MATCH.md).
+SaaS slice 13 refund webhook matching (2026-09-21): authenticated Easebuzz payment ID must match the original payment recorded for the bill before a refund callback can change it; see [docs/planning/SAAS_SLICE_13_REFUND_WEBHOOK_CORRELATION.md](docs/planning/SAAS_SLICE_13_REFUND_WEBHOOK_CORRELATION.md).
+SaaS slice 14 verified refund payment ID (2026-09-21): refund initiation requires a correlated Easebuzz payment ID and no longer sends the merchant transaction ID as a fallback; see [docs/planning/SAAS_SLICE_14_REFUND_PAYMENT_ID.md](docs/planning/SAAS_SLICE_14_REFUND_PAYMENT_ID.md).
+Easebuzz production review (2026-09-21): repository verification, remaining release blockers, acceptance criteria for durable refund/split work, and official reference links; see [docs/planning/EASEBUZZ_PRODUCTION_REVIEW_2026-09-21.md](docs/planning/EASEBUZZ_PRODUCTION_REVIEW_2026-09-21.md).
+SaaS slice 15 refund-attempt ledger (2026-09-23): initiated refunds are recorded separately from completed bill refunds, pending amounts are reserved, and callbacks must match the exact recorded attempt; see [docs/planning/SAAS_SLICE_15_REFUND_ATTEMPT_LEDGER.md](docs/planning/SAAS_SLICE_15_REFUND_ATTEMPT_LEDGER.md).
+SaaS slice 16 durable delayed refunds (2026-09-23): cancellation refunds are persisted with a due time and stable work key, survive process restarts, and use the durable retry/dead-letter worker; see [docs/planning/SAAS_SLICE_16_DURABLE_DELAYED_REFUND.md](docs/planning/SAAS_SLICE_16_DURABLE_DELAYED_REFUND.md).
+SaaS slice 17 durable post-split (2026-09-23): successful payment callbacks persist post-split work in the payment transaction, retry it through the durable queue, and safely no-op completed replays; see [docs/planning/SAAS_SLICE_17_DURABLE_POST_SPLIT.md](docs/planning/SAAS_SLICE_17_DURABLE_POST_SPLIT.md).
+Easebuzz refund status transport (2026-09-23): JSON /refund/v1/retrieve request per user-supplied ERA clarification; production acceptance remains unverified. Feature and documentation links: docs/planning/EASEBUZZ_REFUND_STATUS_CONTRACT_2026-09-23.md.
+Easebuzz hosted-checkout go-live mapping (2026-09-23): maps the Easebuzz integration test-case sheet (Debit/Credit/UPI/EMI/NB/Wallet) to KhanaBook implementation, evidence, and open items; EMI out of scope, surcharge policy flagged as reconciliation risk. See docs/planning/EASEBUZZ_HOSTED_CHECKOUT_GO_LIVE_2026-09-23.md.

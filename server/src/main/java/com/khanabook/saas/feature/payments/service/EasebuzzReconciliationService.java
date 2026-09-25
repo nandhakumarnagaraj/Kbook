@@ -325,25 +325,13 @@ public class EasebuzzReconciliationService {
         return result;
     }
 
-    /**
-     * Expected restaurant (sub-merchant) share for a bill: total − KhanaBook commission.
-     * Uses the bill's recorded commissionAmount when a split already succeeded; otherwise
-     * looks up the restaurant's commission rate via the sub-merchant record.
-     */
+    /** Preserve historical settled splits; new restaurant payments have no KhanaBook commission. */
     private BigDecimal expectedRestaurantShare(Bill bill) {
         if (bill.getTotalAmount() == null) return null;
         if (bill.getCommissionAmount() != null) {
             return bill.getTotalAmount().subtract(bill.getCommissionAmount());
         }
-        try {
-            EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(bill.getRestaurantId());
-            BigDecimal rate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
-            BigDecimal commission = bill.getTotalAmount().multiply(rate).divide(new BigDecimal("100"),
-                    2, java.math.RoundingMode.HALF_UP);
-            return bill.getTotalAmount().subtract(commission);
-        } catch (Exception e) {
-            return null;
-        }
+        return bill.getTotalAmount();
     }
 
     /** Bills marked split-settled on this date with no sub-merchant settlement row at Easebuzz. */

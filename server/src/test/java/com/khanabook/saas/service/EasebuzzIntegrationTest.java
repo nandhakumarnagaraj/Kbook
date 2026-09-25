@@ -4,6 +4,9 @@ import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.payments.service.EasebuzzApiClient;
 import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.payments.controller.RestaurantPaymentConfigController;
+import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
@@ -37,12 +40,14 @@ import static org.mockito.Mockito.*;
 class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
     @Autowired private SubMerchantService subMerchantService;
+    @Autowired private RestaurantPaymentConfigController paymentConfigController;
     @Autowired private EasebuzzPaymentService paymentService;
     @Autowired private PostSplitService postSplitService;
     @Autowired private BillRepository billRepository;
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
+    @MockBean private MerchantAgreementService merchantAgreementService;
 
     private static final java.util.concurrent.atomic.AtomicLong TEST_SEQ =
             new java.util.concurrent.atomic.AtomicLong();
@@ -84,7 +89,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("fssaiNumber", "12345678901234");
         data.put("contactEmail", "test@example.com");
         data.put("contactPhone", "9999999999");
-        data.put("commissionRate", "3.0");
+        data.put("commissionRate", "0.0");
 
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
         assertNotNull(sm.getId());
@@ -328,14 +333,100 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("fssaiNumber", "12345678901234");
         data.put("contactEmail", "test@example.com");
         data.put("contactPhone", "9999999999");
-        data.put("commissionRate", "3.0");
+        data.put("commissionRate", "0.0");
         return data;
+    }
+
+    @Test
+    void rejectsNonZeroCommissionOnSubMerchantCreation() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.put("commissionRate", "3.00");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> subMerchantService.create(data, testRestaurantId));
+        assertTrue(subMerchantRepo.findByRestaurantId(testRestaurantId).isEmpty());
+    }
+
+    @Test
+    void paymentLinkRequiresCurrentOwnerAgreement() {
+        createActiveSubMerchant();
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
+
+        assertEquals("AGREEMENT_REQUIRED", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getGatewayTxnId());
+    }
+
+    @Test
+    void paymentLinkRequiresOnboardedSubMerchant() {
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "100.00"));
+
+        assertEquals("SUBMERCHANT_NOT_ACTIVE", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+    }
+
+    @Test
+    void paymentLinkIgnoresLegacyCommissionSetting() {
+        EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setCommissionRate(new BigDecimal("3.00"));
+        subMerchantRepo.save(sm);
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        when(easebuzzApi.createPaymentLink(any())).thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "100.00"));
+
+        assertEquals("success", result.get("status"));
+        verify(easebuzzApi).createPaymentLink(any());
+    }
+
+    @Test
+    void paymentLinkRejectsInvalidAmountBeforeGatewayCall() {
+        createActiveSubMerchant();
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+
+        Map<String, Object> result = paymentService.createPaymentLink(Map.of(
+                "restaurantId", testRestaurantId, "amount", "0.001"));
+
+        assertEquals("INVALID_PAYMENT_AMOUNT", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+    }
+
+    @Test
+    void ownerDisabledEasebuzzBlocksNewBillPaymentLink() {
+        createActiveSubMerchant();
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        TenantContext.setCurrentTenant(testRestaurantId);
+        TenantContext.setCurrentRole("OWNER");
+        try {
+            Map<String, Object> config = paymentConfigController
+                    .updateConfig(Map.of("easebuzzEnabled", false)).getBody();
+            assertEquals(false, config.get("easebuzzEnabled"));
+            assertEquals(false, config.get("paymentLinkReady"));
+        } finally {
+            TenantContext.clear();
+        }
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+
+        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
+
+        assertEquals("PAYMENT_METHOD_DISABLED", result.get("code"));
+        verify(easebuzzApi, never()).createPaymentLink(any());
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getGatewayTxnId());
     }
 
     @Test
     void testPaymentLinkAndWebhook() {
         // Setup active sub-merchant
         EasebuzzSubMerchant sm = createActiveSubMerchant();
+        sm.setCommissionRate(BigDecimal.ZERO);
+        subMerchantRepo.save(sm);
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         // Create a bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
@@ -367,6 +458,73 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void billPaymentLinkUsesDotDecimalRegardlessOfServerLocale() {
+        createActiveSubMerchant();
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
+        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
+        when(easebuzzApi.createPaymentLink(any()))
+                .thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
+
+        java.util.Locale original = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY);
+            assertEquals("success", paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId).get("status"));
+        } finally {
+            java.util.Locale.setDefault(original);
+        }
+
+        verify(easebuzzApi).createPaymentLink(argThat(data -> "1000.00".equals(data.get("amount"))));
+    }
+
+    @Test
+    void transactionVerificationDoesNotPayBillWithMismatchedAmount() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_MATCH_TEST",
+                        "amount", "1.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("PAYMENT_VERIFICATION_MISMATCH", result.get("code"));
+        assertEquals("pending", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
+    void transactionVerificationDoesNotPayBillWithMismatchedTransactionId() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_OTHER_BILL",
+                        "amount", "100.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("PAYMENT_VERIFICATION_MISMATCH", result.get("code"));
+        assertEquals("pending", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
+    void transactionVerificationPaysBillWithMatchingTransactionAndAmount() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PL_MATCH_TEST");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PL_MATCH_TEST")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PL_MATCH_TEST",
+                        "amount", "100.00", "easepayid", "E_MATCH_TEST")));
+
+        Map<String, Object> result = paymentService.verifyPayment(bill.getId());
+
+        assertEquals("success", result.get("status"));
+        assertEquals("paid", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
+    @Test
     void testRefundFlow() {
         // Setup paid bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
@@ -377,7 +535,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Mock transaction status check (needed for resolveEasebuzzId)
         when(easebuzzApi.getTransactionStatus(any()))
-            .thenReturn(Map.of("status", "success", "easebuzz_id", "E250TEST123"));
+            .thenReturn(Map.of("status", true, "msg", Map.of("status", "success",
+                    "txnid", "KBTEST123", "amount", "500.00", "easebuzz_id", "E250TEST123")));
 
         // Mock refund
         when(easebuzzApi.initiateRefund(any(), any(), any()))
@@ -405,6 +564,25 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         Map<String, Object> statusResult = paymentService.getRefundStatus(bill.getId());
         assertEquals("success", statusResult.get("status"));
+    }
+
+    @Test
+    void refundDoesNotCallGatewayWithoutMatchedOriginalPaymentId() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
+        bill.setGatewayTxnId("KBTEST123");
+        bill.setPaymentStatus("paid");
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("KBTEST123"))
+                .thenReturn(Map.of("status", true, "msg", Map.of("status", "success",
+                        "txnid", "OTHER_TRANSACTION", "amount", "500.00",
+                        "easebuzz_id", "E_OTHER_PAYMENT")));
+
+        Map<String, Object> result = paymentService.initiateRefund(
+                bill.getId(), new BigDecimal("250.00"), "Customer request");
+
+        assertEquals("PAYMENT_ID_UNAVAILABLE", result.get("code"));
+        assertNull(billRepository.findById(bill.getId()).orElseThrow().getRefundId());
+        verify(easebuzzApi, never()).initiateRefund(any(), any(), any());
     }
 
     @Test
@@ -438,7 +616,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Should exhaust retries without throwing
         assertDoesNotThrow(() -> 
-            postSplitService.createPostSplitAsync(bill.getId(), "E250TEST", "KBTEST")
+            postSplitService.createPostSplit(bill.getId(), "E250TEST", "KBTEST")
         );
 
         // Verify bill NOT settled
@@ -512,6 +690,9 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         sm.setContactPhone("9999999999");
         sm.setCreatedAt(System.currentTimeMillis());
         sm.setUpdatedAt(System.currentTimeMillis());
+        var profile = restaurantProfileRepository.findByRestaurantId(testRestaurantId).orElseThrow();
+        profile.setEasebuzzEnabled(true);
+        restaurantProfileRepository.save(profile);
         return subMerchantRepo.save(sm);
     }
 

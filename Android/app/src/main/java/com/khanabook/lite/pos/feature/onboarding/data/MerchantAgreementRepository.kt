@@ -20,13 +20,15 @@ class MerchantAgreementRepository @Inject constructor(
 ) {
     suspend fun getStatus(): Result<Map<String, Any?>> = runApi { api.getMerchantAgreementStatus() }
 
-    suspend fun upload(signerName: String, agreementVersion: String, file: File): Result<Map<String, Any?>> {
+    suspend fun upload(signerName: String, agreementVersion: String, termsSha256: String, file: File): Result<Map<String, Any?>> {
         return runApi {
             val requestBody = file.readBytes().toRequestBody("application/pdf".toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
             val namePart = MultipartBody.Part.createFormData("signerName", signerName)
             val versionPart = MultipartBody.Part.createFormData("agreementVersion", agreementVersion)
-            api.uploadMerchantAgreement(filePart, namePart, versionPart)
+            val termsPart = MultipartBody.Part.createFormData("termsSha256", termsSha256)
+            val acceptedPart = MultipartBody.Part.createFormData("accepted", "true")
+            api.uploadMerchantAgreement(filePart, namePart, versionPart, termsPart, acceptedPart)
         }
     }
 

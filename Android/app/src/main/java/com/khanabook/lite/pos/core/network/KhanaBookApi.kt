@@ -311,6 +311,9 @@ interface KhanaBookApi {
         @GET("api/v1/restaurants/payment-config/easebuzz")
         suspend fun getEasebuzzConfig(): Map<String, Any?>
 
+        @PUT("api/v1/restaurants/payment-config/easebuzz")
+        suspend fun updateEasebuzzConfig(@Body request: Map<String, Boolean>): Map<String, Any?>
+
         @GET("api/v1/restaurants/payment-config/easebuzz/sub-merchant-status")
         suspend fun getEasebuzzOnboardingStatus(): com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
 
@@ -358,7 +361,9 @@ interface KhanaBookApi {
         suspend fun uploadMerchantAgreement(
             @Part file: MultipartBody.Part,
             @Part signerName: MultipartBody.Part,
-            @Part agreementVersion: MultipartBody.Part
+            @Part agreementVersion: MultipartBody.Part,
+            @Part termsSha256: MultipartBody.Part,
+            @Part accepted: MultipartBody.Part
         ): Map<String, Any?>
 
         @GET("api/v1/business/merchant-agreement/download")

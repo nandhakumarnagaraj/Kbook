@@ -7,11 +7,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface WebhookRetryJobRepository extends JpaRepository<WebhookRetryJob, Long> {
 
     List<WebhookRetryJob> findByStatusAndNextAttemptAtLessThanEqual(String status, long nextAttemptAt);
+
+    Optional<WebhookRetryJob> findByJobKey(String jobKey);
 
     @Query("SELECT w.status, COUNT(w) FROM WebhookRetryJob w GROUP BY w.status")
     List<Object[]> countByStatusGrouped();

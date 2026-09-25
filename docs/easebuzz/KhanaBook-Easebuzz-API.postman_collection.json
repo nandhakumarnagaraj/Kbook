@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "KhanaBook - Easebuzz Master Collection",
-    "description": "Unified Master collection for KhanaBook v2 Easebuzz integration.\n\nCovers:\n1. Auth (Login & Dev Signup - bypass OTP)\n2. Sub-Merchant Onboarding (Create, Submit, KYC, OTP)\n3. Payments & Refunds (V2, Status, Cancel)\n4. Automated Split Management\n5. Settlements & Payouts (V2, On-Demand)\n6. Webhook Simulations (Reverse Hash verified)\n\nBase URL: http://localhost:8081/api/v2\nSandbox Credentials:\n- Key: ADNX3KYX5\n- Salt: Z4UFP4939\n\nNOTE: Large IDs (RestaurantId) are now sent as Strings to prevent JavaScript precision loss in Postman.",
+    "description": "Unified Master collection for KhanaBook v2 Easebuzz integration.\n\nCovers:\n1. Auth (Login & Dev Signup - bypass OTP)\n2. Sub-Merchant Onboarding (Create, Submit, KYC, OTP)\n3. Payments & Refunds (V2, Status, Cancel)\n4. Automated Split Management\n5. Settlements & Payouts (V2, On-Demand)\n6. Webhook Simulations (Reverse Hash verified)\n\nBase URL: http://localhost:8081/api/v2\nSandbox Credentials:\n- Key: CHANGE_ME_SANDBOX_KEY\n- Salt: CHANGE_ME_SANDBOX_SALT\n\nNOTE: Large IDs (RestaurantId) are now sent as Strings to prevent JavaScript precision loss in Postman.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

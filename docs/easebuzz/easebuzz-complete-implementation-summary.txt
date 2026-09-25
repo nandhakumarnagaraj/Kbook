@@ -3,8 +3,8 @@
   For ERA AI: Verification & Sandbox Testing
 ================================================================================
 
-Merchant Key: ADNX3KYX5
-Salt:         Z4UFP4939
+Merchant Key: CHANGE_ME_SANDBOX_KEY
+Salt:         CHANGE_ME_SANDBOX_SALT
 Sandbox Pay URL:       https://testpay.easebuzz.in
 Sandbox Dashboard URL: https://testdashboard.easebuzz.in
 Sandbox WIRE URL:      https://testwire.easebuzz.in
@@ -31,7 +31,7 @@ Status:      ✅ Implemented — verified against official OpenAPI YAML
 Request:
 {
   "merchant_details": {
-    "merchant_key": "ADNX3KYX5",
+    "merchant_key": "CHANGE_ME_SANDBOX_KEY",
     "hash": "sha512(key|email|phone|salt)"
   },
   "submerchant_details": {
@@ -87,7 +87,7 @@ Optional blocks: kyc_details, submerchant_deduction_percentage, business_details
 Request:
 {
   "merchant_details": {
-    "merchant_key": "ADNX3KYX5",
+    "merchant_key": "CHANGE_ME_SANDBOX_KEY",
     "hash": "sha512(key|email|phone|salt)"
   },
   "submerchant_details": {
@@ -121,7 +121,7 @@ Status:      ✅ Implemented — verified against official OpenAPI YAML
 
 Request:
 {
-  "merchant_key": "ADNX3KYX5",
+  "merchant_key": "CHANGE_ME_SANDBOX_KEY",
   "sub_merchant_id": "S360DILA",
   "name": "Business Name",
   "email": "email@example.com",
@@ -146,7 +146,7 @@ Status:      ✅ Implemented
 
 Request:
 {
-  "merchant_key": "ADNX3KYX5",
+  "merchant_key": "CHANGE_ME_SANDBOX_KEY",
   "sub_merchant_id": "S360DILA",
   "otp": "123456",
   "hash": "sha512(key|sub_merchant_id|otp|salt)"
@@ -163,7 +163,7 @@ Status:      ✅ Implemented
 
 Request:
 {
-  "merchant_key": "ADNX3KYX5",
+  "merchant_key": "CHANGE_ME_SANDBOX_KEY",
   "sub_merchant_id": "S360DILA",
   "hash": "sha512(key|sub_merchant_id|salt)"
 }
@@ -181,7 +181,7 @@ Status:      ✅ Implemented — verified against official OpenAPI YAML
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "hash": "sha512(key|name_on_bank|bank_name|branch_name|ifsc_code|account_number|label|salt)",
   "name_on_bank": "Name as per bank",
   "bank_name": "HDFC",
@@ -209,7 +209,7 @@ Status:      ✅ Implemented — verified against official Stoplight docs
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_request_id": "UMRID_1712345678",
   "easebuzz_id": "E250XXXXXXXXXX",
   "amount": "100.00",
@@ -263,7 +263,7 @@ Status:      ✅ Implemented — verified against official Stoplight docs
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_request_id": "UMRID_1712345678",
   "hash": "sha512(key|merchant_request_id|salt)"
 }
@@ -295,7 +295,7 @@ KhanaBook: POST /api/v2/payments/easebuzz/create-order
 Status:    ✅ Implemented
 
 Parameters:
-  key         = ADNX3KYX5
+  key         = CHANGE_ME_SANDBOX_KEY
   txnid       = <truncated to 20 chars>
   amount      = e.g. "100.00"
   productinfo = <alphanumeric only>
@@ -402,7 +402,7 @@ Status:    ✅ Implemented (with DB logging via EasebuzzPayout entity)
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_request_id": "KB_PAYOUT_1712345678",
   "amount": "500.00",
   "beneficiary_name": "Business Name",
@@ -422,7 +422,7 @@ Status:    ✅ Implemented
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_request_id": "KB_SETTLE_1712345678",
   "amount": "5000.00",
   "hash": "sha512(key|merchant_request_id|amount|salt)"
@@ -439,7 +439,7 @@ Status:    ✅ Implemented
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "date": "2024-05-18",
   "hash": "sha512(key|date|salt)"
 }
@@ -461,7 +461,7 @@ Status:    ✅ Implemented
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_key": "S360DILA",
   "merchant_email": "submerchant@test.in",
   "webhook_conf": [{
@@ -477,7 +477,7 @@ Request:
 ----------------------------------------------------------------------
 18. GET SUB-MERCHANT BY EMAIL
 ----------------------------------------------------------------------
-Easebuzz:  GET https://testwire.easebuzz.in/api/v1/merchants/retrieve/?key=ADNX3KYX5&email=submerchant@test.in
+Easebuzz:  GET https://testwire.easebuzz.in/api/v1/merchants/retrieve/?key=CHANGE_ME_SANDBOX_KEY&email=submerchant@test.in
 KhanaBook: GET /admin/sub-merchants/wire/lookup-by-email?email=
 Status:    ✅ Implemented
 
@@ -515,7 +515,7 @@ Status:    ✅ Implemented
 
 Request:
 {
-  "key": "ADNX3KYX5",
+  "key": "CHANGE_ME_SANDBOX_KEY",
   "merchant_key": "S360DILA",
   "webhook_conf": [{
     "event_type": "TRANSFER_INITIATED",
@@ -611,7 +611,7 @@ Layer 5 — Android POS:
 ================================================================================
 SECTION G: NEEDED FROM ERA FOR SANDBOX TESTING
 ================================================================================
-1. WIRE-API-KEY for merchant key ADNX3KYX5
+1. WIRE-API-KEY for merchant key CHANGE_ME_SANDBOX_KEY
 2. Pre-existing test sub-merchants on WIRE for lookup tests
 3. Confirm merchant_key in WIRE webhook bodies expects sub-merchant ID (S360DILA) vs key (UUID)
 4. Verify all 22 API endpoints against sandbox

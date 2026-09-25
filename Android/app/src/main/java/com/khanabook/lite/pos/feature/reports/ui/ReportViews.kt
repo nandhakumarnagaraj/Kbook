@@ -114,7 +114,6 @@ fun PaymentLevelView(
 ) {
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
-    
     val enabledModes = profile?.let { com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
     
     val mainModes = enabledModes.filter { !com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.isPartPayment(it) }

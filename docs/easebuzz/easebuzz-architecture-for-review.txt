@@ -3,8 +3,8 @@
   For Easebuzz Team Review
 ================================================================================
 
-Merchant Key : ADNX3KYX5
-Salt         : Z4UFP4939
+Merchant Key : CHANGE_ME_SANDBOX_KEY
+Salt         : CHANGE_ME_SANDBOX_SALT
 Environment  : Sandbox (testpay / testdashboard / testwire)
 
 ================================================================================
@@ -14,7 +14,7 @@ Environment  : Sandbox (testpay / testdashboard / testwire)
 KhanaBook is a restaurant POS + ordering platform. We use Easebuzz as our
 payment gateway with a marketplace model:
 
-  - One parent merchant account (ADNX3KYX5)
+  - One parent merchant account (CHANGE_ME_SANDBOX_KEY)
   - Each restaurant onboarded as a sub-merchant
   - Payments route to sub-merchant's bank account via split labels
   - Admin web UI manages the full sub-merchant lifecycle
@@ -177,10 +177,10 @@ payment gateway with a marketplace model:
 ================================================================================
 
 A. Account Configuration:
-   1. Enable Split API (/split/v1/create) for merchant ADNX3KYX5
+   1. Enable Split API (/split/v1/create) for merchant CHANGE_ME_SANDBOX_KEY
    2. Enable Payout v2 (/payout/v2/transfer) for sandbox
    3. Enable On-Demand Settlement (/settlement/v1/on_demand) for sandbox
-   4. Provide WIRE-API-KEY for merchant ADNX3KYX5
+   4. Provide WIRE-API-KEY for merchant CHANGE_ME_SANDBOX_KEY
    5. Confirm testwire.easebuzz.in is accessible
 
 B. KYC (LIVE-ONLY — per Easebuzz support):

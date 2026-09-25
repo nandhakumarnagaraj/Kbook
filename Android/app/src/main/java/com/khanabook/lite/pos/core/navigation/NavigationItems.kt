@@ -18,7 +18,6 @@ data class TabItem(
 object NavigationTabs {
     const val TAB_HOME = 0
     const val TAB_REPORTS = 1
-    const val TAB_ORDERS = 2
     const val TAB_SETTINGS = 3
     const val TAB_PROFILE = 3
 }

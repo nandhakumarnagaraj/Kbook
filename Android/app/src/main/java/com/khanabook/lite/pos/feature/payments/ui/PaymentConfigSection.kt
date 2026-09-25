@@ -61,6 +61,7 @@ import com.khanabook.lite.pos.feature.onboarding.viewmodel.AgreementUiState
 import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewModel
 import com.khanabook.lite.pos.feature.onboarding.viewmodel.MerchantAgreementViewModel
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
+import com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
@@ -98,7 +99,8 @@ fun PaymentConfigView(
     onBack: () -> Unit,
     onNavigateToOnboarding: () -> Unit = {},
     onSectionSelected: (String) -> Unit = {},
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    easebuzzVm: EasebuzzOnboardingViewModel = hiltViewModel()
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -109,6 +111,11 @@ fun PaymentConfigView(
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
+    LaunchedEffect(profile?.easebuzzEnabled) {
+        easebuzzEnabled = profile?.easebuzzEnabled ?: false
+    }
+    val paymentReadiness by easebuzzVm.paymentReadiness.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { easebuzzVm.loadPaymentReadiness() }
     var showTestQrDialog by remember { mutableStateOf(false) }
     val feedbackPrefs = com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackPreferences()
     val feedbackSettings by com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackSettings(feedbackPrefs)
@@ -196,15 +203,36 @@ fun PaymentConfigView(
                 enabled = !readOnly
             )
             PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
-            if (easebuzzEnabled) {
-                Spacer(modifier = Modifier.height(spacing.small))
-                EasebuzzOnboardingHub(
-                    onNavigateToOnboarding = onNavigateToOnboarding,
-                    onOpenAgreement = { onSectionSelected("merchant_agreement") },
-                    onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
-                    readOnly = readOnly
-                )
+            val readinessMessage = when (val state = paymentReadiness) {
+                PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
+                PaymentReadinessUiState.Unavailable -> "Cannot verify online payment setup. Reconnect and open this screen again."
+                is PaymentReadinessUiState.Ready -> when {
+                    state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
+                    !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
+                    state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
+                    !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
+                    !state.readiness.easebuzzEnabled -> "Easebuzz Online is off. New payment links are blocked until the owner turns it on."
+                    !state.readiness.paymentLinkReady -> "The server has not confirmed payment-link readiness."
+                    else -> "Payment link setup is ready. Khanabook commission: 0%; Easebuzz processing fees may apply."
+                }
             }
+            Text(
+                text = readinessMessage,
+                color = if ((paymentReadiness as? PaymentReadinessUiState.Ready)?.readiness?.let {
+                        it.paymentLinkReady && it.easebuzzEnabled == easebuzzEnabled
+                    } == true)
+                    SuccessGreen else TextGold,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = spacing.extraSmall)
+            )
+            Spacer(modifier = Modifier.height(spacing.small))
+            EasebuzzOnboardingHub(
+                onNavigateToOnboarding = onNavigateToOnboarding,
+                onOpenAgreement = { onSectionSelected("merchant_agreement") },
+                onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
+                readOnly = readOnly,
+                easebuzzVm = easebuzzVm
+            )
 
             if (showTestQrDialog && upiHandle.isNotBlank()) {
                 val qrBitmap = remember(upiHandle, profile?.shopName) {
@@ -339,6 +367,19 @@ fun EasebuzzOnboardingHub(
 
     val isRegistered = ebStatus?.hasSubMerchant == true || ebStatus?.isActive == true
 
+    if (onboardingUiState is OnboardingUiState.Loading || onboardingUiState is OnboardingUiState.Error) {
+        Text(
+            text = if (onboardingUiState is OnboardingUiState.Loading)
+                "Checking Easebuzz account status…"
+            else
+                "Easebuzz account status is unavailable. Reconnect and open this screen again.",
+            color = TextGold,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = spacing.small)
+        )
+        return
+    }
+
     if (!isRegistered) {
         // ── State 1: Unregistered (Ultra-clean 1-step call to action) ──
         Card(
@@ -438,7 +479,7 @@ fun EasebuzzOnboardingHub(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        text = if (ebStatus?.isActive == true) "Online Payments Active" else "Registration Submitted",
+                        text = if (ebStatus?.isActive == true) "Easebuzz Account Active" else "Registration Submitted",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = TextLight
@@ -462,7 +503,10 @@ fun EasebuzzOnboardingHub(
             }
 
             Text(
-                text = "Your restaurant is ready to accept online payments via Dynamic UPI QR codes and payment links.",
+                text = if (agreementStatus?.hasCurrentAgreement == true && ebStatus?.isActive == true)
+                    "Your Easebuzz account and payment agreement are ready for online payments."
+                else
+                    "Complete Easebuzz activation and sign the current payment agreement before creating payment links.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextGold.copy(alpha = 0.85f)
             )
@@ -551,8 +595,8 @@ fun EasebuzzOnboardingHub(
 
                 TextButton(onClick = onOpenAgreement) {
                     Text(
-                        text = if (agreementStatus?.hasAgreement == true) "✓ Agreement Signed" else "Merchant Agreement ↗",
-                        color = if (agreementStatus?.hasAgreement == true) SuccessGreen else TextGold,
+                        text = if (agreementStatus?.hasCurrentAgreement == true) "✓ Agreement Signed" else "Payment Agreement ↗",
+                        color = if (agreementStatus?.hasCurrentAgreement == true) SuccessGreen else TextGold,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

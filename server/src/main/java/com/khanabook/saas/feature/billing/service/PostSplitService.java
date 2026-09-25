@@ -9,9 +9,7 @@ import com.khanabook.saas.feature.billing.data.BillRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,24 +26,19 @@ public class PostSplitService {
     private final BillRepository billRepo;
     private final SubMerchantService subMerchantService;
 
-    private static final int MAX_SPLIT_ATTEMPTS = 3;
-    private static final long RETRY_DELAY_MS = 5000;
-
-    @Async("postSplitExecutor")
-    public void createPostSplitAsync(Long billId, String easebuzzId, String txnid) {
-        try {
-            attemptPostSplit(billId, easebuzzId, txnid);
-        } catch (Exception e) {
-            log.error("Post-split async failed billId={} error={}", billId, e.getMessage());
-        }
-    }
-
-    private void attemptPostSplit(Long billId, String easebuzzId, String txnid) {
-        // Fetch data outside transaction
+    public boolean createPostSplit(Long billId, String easebuzzId, String txnid) {
         Bill bill = billRepo.findById(billId).orElse(null);
         if (bill == null) {
             log.warn("Post-split: Bill not found billId={}", billId);
-            return;
+            return false;
+        }
+
+        // A worker may stop after recording success but before completing the
+        // queue row. Treat that replay as complete without consulting mutable
+        // sub-merchant state or calling Easebuzz again.
+        if (bill.getSettledAt() != null && bill.getCommissionAmount() != null) {
+            log.info("Post-split: Bill {} already settled, skipping duplicate attempt", billId);
+            return true;
         }
 
         EasebuzzSubMerchant sm;
@@ -53,18 +46,12 @@ public class PostSplitService {
             sm = subMerchantService.getByRestaurantId(bill.getRestaurantId());
         } catch (Exception e) {
             log.warn("Post-split: Sub-merchant not found for restaurantId={}", bill.getRestaurantId());
-            return;
+            return false;
         }
 
         if (!"ACTIVE".equals(sm.getStatus()) || sm.getSplitLabel() == null) {
             log.warn("Post-split: Sub-merchant not active or no split label billId={}", billId);
-            return;
-        }
-
-        // Guard: skip if split already succeeded for this bill (idempotency)
-        if (bill.getSettledAt() != null && bill.getCommissionAmount() != null) {
-            log.info("Post-split: Bill {} already settled, skipping duplicate attempt", billId);
-            return;
+            return false;
         }
 
         // Generate merchantRequestId ONCE — reused across all retry attempts.
@@ -73,62 +60,33 @@ public class PostSplitService {
         String idSuffix = easebuzzId.length() >= 8 ? easebuzzId.substring(0, 8) : easebuzzId;
         String merchantRequestId = "KB" + billId + "_" + idSuffix;
 
-        BigDecimal commissionRate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
         BigDecimal totalAmount = bill.getTotalAmount();
-        BigDecimal commissionAmount = totalAmount.multiply(commissionRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal restaurantAmount = totalAmount.subtract(commissionAmount);
-
-        if (restaurantAmount.compareTo(BigDecimal.ZERO) < 0) {
-            restaurantAmount = BigDecimal.ZERO;
-            commissionAmount = totalAmount;
-        }
+        BigDecimal commissionAmount = BigDecimal.ZERO;
+        BigDecimal restaurantAmount = totalAmount;
 
         List<Map<String, String>> configuration = new ArrayList<>();
-        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", String.format("%.2f", restaurantAmount)));
+        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", restaurantAmount.setScale(2, RoundingMode.HALF_UP).toPlainString()));
 
         String description = "Split for order #" + bill.getDailyOrderDisplay();
 
-        int attempts = 0;
-        while (attempts < MAX_SPLIT_ATTEMPTS) {
-            attempts++;
-            try {
-                log.info("Post-split attempt {}/{} billId={} merchantRequestId={}", attempts, MAX_SPLIT_ATTEMPTS, billId, merchantRequestId);
-                Map<String, Object> result = easebuzzApi.updateTransactionSplit(
-                    merchantRequestId, easebuzzId, String.format("%.2f", totalAmount), description, configuration
-                );
-
-                if ("success".equals(result.get("status"))) {
-                    log.info("Post-split success billId={} merchantRequestId={}", billId, merchantRequestId);
-                    updateBillAfterSplit(billId, commissionAmount);
-                    return;
-                }
-
-                String error = (String) result.getOrDefault("error", "Unknown error");
-                log.warn("Post-split failed billId={} error={}", billId, error);
-
-                if (error != null && error.contains("EBPTSURVE06")) {
-                    log.error("Post-split max update attempts reached billId={}", billId);
-                    break;
-                }
-
-            } catch (Exception e) {
-                log.error("Post-split exception billId={} error={}", billId, e.getMessage());
+        try {
+            log.info("Post-split durable attempt billId={} merchantRequestId={}", billId, merchantRequestId);
+            Map<String, Object> result = easebuzzApi.updateTransactionSplit(
+                merchantRequestId, easebuzzId, totalAmount.setScale(2, RoundingMode.HALF_UP).toPlainString(), description, configuration
+            );
+            if ("success".equals(result.get("status"))) {
+                log.info("Post-split success billId={} merchantRequestId={}", billId, merchantRequestId);
+                updateBillAfterSplit(billId, commissionAmount);
+                return true;
             }
-
-            if (attempts < MAX_SPLIT_ATTEMPTS) {
-                try {
-                    Thread.sleep(RETRY_DELAY_MS * attempts);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+            log.warn("Post-split failed billId={} error={}", billId,
+                    result.getOrDefault("error", "Unknown error"));
+        } catch (Exception e) {
+            log.error("Post-split exception billId={} error={}", billId, e.getMessage());
         }
-
-        log.error("Post-split exhausted all attempts billId={}", billId);
+        return false;
     }
 
-    @Transactional
     public void updateBillAfterSplit(Long billId, BigDecimal commissionAmount) {
         Bill bill = billRepo.findById(billId).orElse(null);
         if (bill != null) {

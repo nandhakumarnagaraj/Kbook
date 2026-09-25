@@ -8,10 +8,12 @@ import androidx.room.Room
 import com.khanabook.lite.pos.core.database.AppDatabase
 import com.khanabook.lite.pos.core.di.DatabaseModule
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
+@HiltAndroidTest
 class DbDiagnosticTest {
 
     @Test

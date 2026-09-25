@@ -358,7 +358,7 @@ Write-Host "  Sub-Merchant was successfully created with status=true and receive
 Write-Host "  Easebuzz submerchant_id. This confirms hash sequences and API payloads are correct." -ForegroundColor Green
 Write-Host ""
 Write-Host "  Remaining API modules (KYC, Split, OTP, Cancel, Settlement) require Easebuzz" -ForegroundColor Yellow
-Write-Host "  to enable the sub-merchant module on the sandbox account (ADNX3KYX5)." -ForegroundColor Yellow
+Write-Host "  to enable the sub-merchant module on the sandbox account (CHANGE_ME_SANDBOX_KEY)." -ForegroundColor Yellow
 Write-Host "  Contact Easebuzz support to enable the sub-merchant module for sandbox testing." -ForegroundColor Yellow
 
 if ($failCount -gt 0) {

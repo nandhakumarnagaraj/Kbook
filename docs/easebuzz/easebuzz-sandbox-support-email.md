@@ -1,10 +1,10 @@
 To: pgsupport@easebuzz.in
 Cc: gopal@indiaadvocacy.com
-Subject: BLOCKED: Sandbox payment initiation failing with "Invalid sub merchant id" — need enablement for testing (Key: ADNX3KYX5)
+Subject: BLOCKED: Sandbox payment initiation failing with "Invalid sub merchant id" — need enablement for testing
 
 Dear Easebuzz Team,
 
-We are developing a POS platform that integrates Easebuzz for payment processing with sub-merchant management and split payouts. We have sandbox credentials (Key: ADNX3KYX5, Salt: Z4UFP4939) and can access the dashboard, but we are **completely blocked** from testing the basic payment flow.
+We are developing a POS platform that integrates Easebuzz for payment processing with sub-merchant management and split payouts. We have sandbox credentials configured outside source control and can access the dashboard, but we are **completely blocked** from testing the basic payment flow.
 
 ## The Blocking Issue
 

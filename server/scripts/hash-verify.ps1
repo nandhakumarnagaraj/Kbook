@@ -1,5 +1,5 @@
-$key = "ADNX3KYX5"
-$salt = "Z4UFP4939"
+$key = "CHANGE_ME_SANDBOX_KEY"
+$salt = "CHANGE_ME_SANDBOX_SALT"
 $txnid = "KBTEST" + (Get-Random -Minimum 10000 -Maximum 99999).ToString()
 $amount = "10.00"
 $productinfo = "FoodBill"

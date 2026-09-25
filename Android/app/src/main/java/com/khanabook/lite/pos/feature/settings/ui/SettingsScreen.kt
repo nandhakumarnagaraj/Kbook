@@ -224,7 +224,7 @@ fun SettingsScreen(
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
                         PaymentConfigView(profile, saveProfileLoading = saveProfileLoading, onSave = {
                             pendingSaveSection = "payment"
-                            viewModel.saveProfile(it)
+                            viewModel.saveProfile(it, confirmEasebuzzToggle = true)
                         }, onBack = { selectSection("menu") },
                             onNavigateToOnboarding = { navController.navigate(Routes.EASEBUZZ_ONBOARDING) },
                             onSectionSelected = ::selectSection,

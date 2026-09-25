@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.khanabook.lite.pos.BuildConfig
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.util.ValidationUtils
@@ -60,6 +61,7 @@ fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
     var isGoogleLogin by remember { mutableStateOf(false) }
+    var isGoogleRequestInProgress by remember { mutableStateOf(false) }
 
     val loginStatus by viewModel.loginStatus.collectAsStateWithLifecycle()
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
@@ -68,30 +70,31 @@ fun LoginScreen(
     val haptic = LocalHapticFeedback.current
 
     // ── Google Sign-In via Credential Manager ────────────────────────────────
-    // Use Android's dedicated Credential Manager flow for a Google sign-in button.
+    // Replaces the deprecated GoogleSignIn API. The explicit Sign in with Google
+    // option is used for this button so Play Services can offer an account even
+    // when there is no previously authorized Credential Manager entry.
     val coroutineScopeForGoogle = rememberCoroutineScope()
 
     suspend fun launchGoogleSignIn() {
         val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.default_web_client_id)
         if (serverClientId.isBlank()) {
+            isGoogleRequestInProgress = false
             viewModel.setGoogleLoginError("Google Sign-In is not configured. Please use phone number login.")
             return
         }
         try {
             val credentialManager = androidx.credentials.CredentialManager.create(context)
-            val signInOption = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(
-                serverClientId
-            )
+            val googleIdOption = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(serverClientId)
                 .build()
             val request = androidx.credentials.GetCredentialRequest.Builder()
-                .addCredentialOption(signInOption)
+                .addCredentialOption(googleIdOption)
                 .build()
             val response = try {
                 credentialManager.getCredential(context, request)
             } catch (noCredential: androidx.credentials.exceptions.NoCredentialException) {
-                // Retry with all device accounts when the explicit button request
-                // has no matching credential, as Android recommends.
+                // If the button flow finds no credential, let the user select any
+                // Google account available on this shared POS device.
                 val accountPickerOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
                     .setServerClientId(serverClientId)
                     .setFilterByAuthorizedAccounts(false)
@@ -102,31 +105,49 @@ fun LoginScreen(
                     .build()
                 credentialManager.getCredential(context, accountPickerRequest)
             }
-            val returnedCredential = response.credential as? androidx.credentials.CustomCredential
-            val googleIdTokenCredential = returnedCredential
-                ?.takeIf { it.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL }
-                ?.let { GoogleIdTokenCredential.createFrom(it.data) }
-            val googleIdToken = googleIdTokenCredential?.idToken
+            // Credential Manager returns Google ID credentials as a CustomCredential
+            // in some Play Services versions. A direct cast to GoogleIdTokenCredential
+            // therefore fails even though the chooser returned a valid credential.
+            val credential = response.credential
+            val googleIdToken = if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                runCatching {
+                    GoogleIdTokenCredential.createFrom(credential.data).idToken
+                }.onFailure {
+                    Log.e("GOOGLE_SIGN_IN", "Unable to decode Google ID credential", it)
+                }.getOrNull()
+            } else {
+                Log.w("GOOGLE_SIGN_IN", "Unexpected credential type: ${credential.type}")
+                null
+            }
             if (!googleIdToken.isNullOrBlank()) {
                 viewModel.loginWithGoogleToken(googleIdToken)
             } else {
+                isGoogleRequestInProgress = false
                 viewModel.setGoogleLoginError("Google Sign-In did not return a valid token. Please try again.")
             }
         } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
             Log.i("GOOGLE_SIGN_IN", "User cancelled Credential Manager sign-in")
+            isGoogleRequestInProgress = false
             viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
-        } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-            Log.i("GOOGLE_SIGN_IN", "No Google credential is available on this device")
-            viewModel.setGoogleLoginError("No Google account is available. Add an account to this device or use phone/email login.")
+        } catch (e: CancellationException) {
+            // The composable scope can be cancelled when the login screen is left
+            // while the credential chooser is open. Cancellation is expected and
+            // must not be shown as a Google authentication failure.
+            Log.i("GOOGLE_SIGN_IN", "Credential Manager request cancelled with screen lifecycle")
+            throw e
         } catch (e: androidx.credentials.exceptions.GetCredentialException) {
             Log.e("GOOGLE_SIGN_IN", "type=${e.type}, message=${e.localizedMessage}", e)
+            isGoogleRequestInProgress = false
             if (e is androidx.credentials.exceptions.GetCredentialUnsupportedException) {
                 viewModel.setGoogleLoginError("Google Sign-In is not supported on this device. Please update Google Play services.")
+            } else if (e is androidx.credentials.exceptions.NoCredentialException) {
+                viewModel.setGoogleLoginError("No Google account is available. Add an account to this device and try again.")
             } else {
                 viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
             }
         } catch (e: Exception) {
             Log.e("GOOGLE_SIGN_IN", "Unexpected failure", e)
+            isGoogleRequestInProgress = false
             viewModel.setGoogleLoginError("Google Sign-In failed. Please try again or use phone number login.")
         }
     }
@@ -140,7 +161,8 @@ fun LoginScreen(
         when (val s = loginStatus) {
             is AuthViewModel.LoginResult.Loading -> {}
             is AuthViewModel.LoginResult.Success -> {
-                isGoogleLogin = false
+            isGoogleLogin = false
+            isGoogleRequestInProgress = false
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 coroutineScope.launch {
                     KhanaToast.show(context.getString(R.string.toast_welcome_back), ToastKind.Success)
@@ -149,9 +171,13 @@ fun LoginScreen(
             }
             is AuthViewModel.LoginResult.Error -> {
                 isGoogleLogin = false
+                isGoogleRequestInProgress = false
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
-            else -> { isGoogleLogin = false }
+            else -> {
+                isGoogleLogin = false
+                isGoogleRequestInProgress = false
+            }
         }
     }
 
@@ -375,8 +401,9 @@ fun LoginScreen(
                         modifier =
                                 Modifier.size(KhanaBookTheme.iconSize.avatar)
                                         .border(1.dp, BorderGold, CircleShape)
-                                        .clickable(enabled = !isLoading) {
+                                        .clickable(enabled = !isLoading && !isGoogleRequestInProgress) {
                                             isGoogleLogin = true
+                                            isGoogleRequestInProgress = true
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             coroutineScopeForGoogle.launch { launchGoogleSignIn() }
                                         },

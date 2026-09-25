@@ -1,6 +1,6 @@
 To: pgsupport@easebuzz.in
 Cc: gopal@indiaadvocacy.com
-Subject: FOLLOW-UP: Sandbox sub-merchant/split features still blocked (Key: ADNX3KYX5)
+Subject: FOLLOW-UP: Sandbox sub-merchant/split features still blocked (Key: CHANGE_ME_SANDBOX_KEY)
 
 Dear Easebuzz Team,
 

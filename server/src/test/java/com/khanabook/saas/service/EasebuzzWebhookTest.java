@@ -1,8 +1,8 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.feature.payments.service.EasebuzzWireApiClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
@@ -12,6 +12,9 @@ import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
+import com.khanabook.saas.feature.payments.data.RefundAttempt;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
@@ -22,9 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,8 +44,10 @@ class EasebuzzWebhookTest {
 
     @Mock private BillRepository billRepo;
     @Mock private EasebuzzWebhookEventRepository webhookEventRepo;
+    @Mock private RefundAttemptRepository refundAttemptRepo;
     @Mock private EasebuzzProperties props;
-    @Mock private PostSplitService postSplitService;
+    @Mock private com.khanabook.saas.feature.payments.service.WebhookRetryService webhookRetryService;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
     @Mock private SubMerchantService subMerchantService;
     @Mock private EasebuzzPayoutRepository payoutRepo;
     @Mock private PushNotificationService pushNotificationService;
@@ -53,8 +60,8 @@ class EasebuzzWebhookTest {
     @InjectMocks
     private EasebuzzWebhookService webhookService;
 
-    private final String TEST_KEY = "ADNX3KYX5";
-    private final String TEST_SALT = "Z4UFP4939";
+    private final String TEST_KEY = "CHANGE_ME_SANDBOX_KEY";
+    private final String TEST_SALT = "CHANGE_ME_SANDBOX_SALT";
 
     @BeforeEach
     void setup() {
@@ -84,7 +91,9 @@ class EasebuzzWebhookTest {
         Bill mockBill = new Bill();
         mockBill.setId(500L);
         mockBill.setRestaurantId(1L);
-        when(billRepo.findById(500L)).thenReturn(Optional.of(mockBill));
+        mockBill.setGatewayTxnId("KB12345");
+        mockBill.setTotalAmount(new BigDecimal("100.00"));
+        when(billRepo.findByGatewayTxnId("KB12345")).thenReturn(Optional.of(mockBill));
 
         // 3. Execute
         Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
@@ -95,8 +104,8 @@ class EasebuzzWebhookTest {
         assertEquals("success", mockBill.getGatewayStatus());
         assertEquals("KB12345", mockBill.getGatewayTxnId());
         
-        // Verify post-split was triggered
-        verify(postSplitService, times(1)).createPostSplitAsync(eq(500L), eq("E250TEST"), eq("KB12345"));
+        verify(webhookRetryService).enqueueAt(eq("POST_SPLIT"), contains("\"billId\":500"),
+                anyLong(), eq("POST_SPLIT:500:E250TEST"));
     }
 
     @Test
@@ -118,6 +127,7 @@ class EasebuzzWebhookTest {
         mockBill.setId(777L);
         mockBill.setRestaurantId(1L);
         mockBill.setGatewayTxnId("PL12345678");
+        mockBill.setTotalAmount(new BigDecimal("250.00"));
         when(billRepo.findByGatewayTxnId("PL12345678")).thenReturn(Optional.of(mockBill));
 
         Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
@@ -125,7 +135,8 @@ class EasebuzzWebhookTest {
         assertEquals("received", response.get("status"));
         assertEquals("paid", mockBill.getPaymentStatus());
         assertEquals("success", mockBill.getGatewayStatus());
-        verify(postSplitService, times(1)).createPostSplitAsync(eq(777L), eq("E250TEST2"), eq("PL12345678"));
+        verify(webhookRetryService).enqueueAt(eq("POST_SPLIT"), contains("\"billId\":777"),
+                anyLong(), eq("POST_SPLIT:777:E250TEST2"));
     }
 
     @Test
@@ -138,6 +149,207 @@ class EasebuzzWebhookTest {
 
         assertEquals("hash_mismatch", response.get("status"));
         verifyNoInteractions(billRepo);
+    }
+
+    @Test
+    void signedWebhookCannotPayBillUsingUnissuedTransaction() throws Exception {
+        Map<String, String> payload = signedPaymentPayload("OTHER_TXN", "500", "100.00", "1");
+        when(billRepo.findByGatewayTxnId("OTHER_TXN")).thenReturn(Optional.empty());
+
+        webhookService.handlePaymentWebhook(payload);
+
+        verify(billRepo, never()).save(any());
+        verify(webhookRetryService, never()).enqueueAt(eq("POST_SPLIT"), anyString(), anyLong(), anyString());
+    }
+
+    @Test
+    void signedWebhookCannotPayDifferentBillOrAmount() throws Exception {
+        Bill bill = new Bill();
+        bill.setId(500L);
+        bill.setRestaurantId(1L);
+        bill.setGatewayTxnId("PL_500");
+        bill.setPaymentStatus("link_sent");
+        bill.setTotalAmount(new BigDecimal("100.00"));
+        when(billRepo.findByGatewayTxnId("PL_500")).thenReturn(Optional.of(bill));
+
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "501", "100.00", "1"));
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "500", "1.00", "1"));
+        webhookService.handlePaymentWebhook(signedPaymentPayload("PL_500", "500", "100.00", "2"));
+
+        assertEquals("link_sent", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+        verify(webhookRetryService, never()).enqueueAt(eq("POST_SPLIT"), anyString(), anyLong(), anyString());
+    }
+
+    private Map<String, String> signedPaymentPayload(String txnid, String billId, String amount, String restaurantId) throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", txnid);
+        payload.put("status", "success");
+        payload.put("amount", amount);
+        payload.put("udf1", billId);
+        payload.put("udf2", restaurantId);
+        payload.put("easepayid", "E_VALID_TEST");
+        payload.put("firstname", "Customer");
+        payload.put("email", "customer@example.com");
+        payload.put("productinfo", "Order");
+        payload.put("hash", generateReverseHash(payload));
+        return payload;
+    }
+
+    @Test
+    void completedPartialRefundKeepsBillPartiallyRefunded() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        Map<String, String> payload = refundPayload("30.00");
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        stubRefundAttempt(bill, new BigDecimal("30.00"));
+
+        assertEquals("received", webhookService.handleRefundWebhook(payload).get("status"));
+
+        assertEquals("partially_refunded", bill.getPaymentStatus());
+        assertEquals("partially_refunded", bill.getGatewayStatus());
+        assertEquals(new BigDecimal("30.00"), bill.getRefundAmount());
+        verify(billRepo).save(bill);
+    }
+
+    @Test
+    void completedFullRefundMarksBillRefunded() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        stubRefundAttempt(bill, new BigDecimal("100.00"));
+
+        webhookService.handleRefundWebhook(refundPayload("100.00"));
+
+        assertEquals("refunded", bill.getPaymentStatus());
+        assertEquals("refunded", bill.getGatewayStatus());
+    }
+
+    @Test
+    void duplicateRefundCompletionDoesNotDoubleCount() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        RefundAttempt attempt = stubRefundAttempt(bill, new BigDecimal("30.00"));
+
+        webhookService.handleRefundWebhook(refundPayload("30.00"));
+        webhookService.handleRefundWebhook(refundPayload("30.00"));
+
+        assertEquals(new BigDecimal("30.00"), bill.getRefundAmount());
+        assertEquals("COMPLETED", attempt.getStatus());
+        verify(billRepo, times(1)).save(bill);
+    }
+
+    @Test
+    void refundCompletionAmountMustMatchRecordedAttempt() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        RefundAttempt attempt = stubRefundAttempt(bill, new BigDecimal("50.00"));
+
+        webhookService.handleRefundWebhook(refundPayload("30.00"));
+
+        assertEquals(BigDecimal.ZERO, bill.getRefundAmount());
+        assertEquals("paid", bill.getPaymentStatus());
+        assertEquals("INITIATED", attempt.getStatus());
+        assertEquals("refund_review_required", bill.getGatewayStatus());
+    }
+
+    @Test
+    void unconfirmedFailureCallbackKeepsAttemptReservedForReview() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        RefundAttempt attempt = stubRefundAttempt(bill, new BigDecimal("30.00"));
+        Map<String, String> payload = refundPayload("30.00");
+        payload.put("status", "failed");
+
+        webhookService.handleRefundWebhook(payload);
+
+        assertEquals("INITIATED", attempt.getStatus());
+        assertEquals(BigDecimal.ZERO, bill.getRefundAmount());
+        assertEquals("refund_review_required", bill.getGatewayStatus());
+        verify(refundAttemptRepo, never()).save(attempt);
+    }
+
+    @Test
+    void completedRefundWithoutUsableAmountNeedsReview() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        stubRefundAttempt(bill, new BigDecimal("30.00"));
+
+        webhookService.handleRefundWebhook(refundPayload("not-an-amount"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        assertEquals("refund_review_required", bill.getGatewayStatus());
+        verifyNoInteractions(pushNotificationService);
+    }
+
+    @Test
+    void refundWebhookCannotUseValidHashForDifferentPayment() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_DIFFERENT_PAYMENT");
+
+        assertEquals("received", webhookService.handleRefundWebhook(refundPayload("30.00")).get("status"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+        verifyNoInteractions(pushNotificationService);
+    }
+
+    @Test
+    void refundWebhookWithoutOriginalPaymentIdNeedsReconciliation() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), new BigDecimal("30.00"));
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+
+        webhookService.handleRefundWebhook(refundPayload("30.00"));
+
+        assertEquals("paid", bill.getPaymentStatus());
+        verify(billRepo, never()).save(any());
+    }
+
+    private void stubOriginalPaymentEvent(Bill bill, String easebuzzId) {
+        EasebuzzWebhookEvent event = new EasebuzzWebhookEvent();
+        event.setEasebuzzId(easebuzzId);
+        when(webhookEventRepo.findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId()))
+                .thenReturn(Optional.of(event));
+    }
+
+    private RefundAttempt stubRefundAttempt(Bill bill, BigDecimal amount) {
+        RefundAttempt attempt = new RefundAttempt();
+        attempt.setBillId(bill.getId());
+        attempt.setGatewayTxnId(bill.getGatewayTxnId());
+        attempt.setEasebuzzPaymentId("E_REFUND_TEST");
+        attempt.setGatewayRefundId("REF_TEST");
+        attempt.setAmount(amount);
+        attempt.setStatus("INITIATED");
+        when(refundAttemptRepo.findByBillIdAndGatewayRefundId(bill.getId(), "REF_TEST"))
+                .thenReturn(Optional.of(attempt));
+        return attempt;
+    }
+
+    private Bill refundBill(BigDecimal total, BigDecimal refunded) {
+        Bill bill = new Bill();
+        bill.setId(500L);
+        bill.setRestaurantId(1L);
+        bill.setGatewayTxnId("PL_REFUND_TEST");
+        bill.setPaymentStatus("paid");
+        bill.setTotalAmount(total);
+        bill.setRefundAmount(refunded);
+        return bill;
+    }
+
+    private Map<String, String> refundPayload(String amount) throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", "PL_REFUND_TEST");
+        payload.put("status", "refunded");
+        payload.put("easepayid", "E_REFUND_TEST");
+        payload.put("refund_id", "REF_TEST");
+        payload.put("refund_amount", amount);
+        payload.put("hash", sha512(TEST_KEY + "|E_REFUND_TEST|" + TEST_SALT));
+        return payload;
     }
 
     @Test

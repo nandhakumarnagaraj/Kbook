@@ -9,7 +9,6 @@ import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
-    private final RestaurantProfileRepository restaurantProfileRepo;
     private final PushNotificationService pushNotificationService;
 
     public List<EasebuzzSubMerchant> listAll() {
@@ -82,9 +80,7 @@ public class SubMerchantService {
             sm.setBusinessProof2Url(str(data.get("businessProof2Url")));
             sm.setContactEmail(str(data.get("contactEmail")));
             sm.setContactPhone(str(data.get("contactPhone")));
-            Object commissionVal = data.get("commissionRate");
-            sm.setCommissionRate(commissionVal != null
-                    ? new java.math.BigDecimal(commissionVal.toString()) : java.math.BigDecimal.ZERO);
+            sm.setCommissionRate(requireZeroCommission(data.get("commissionRate")));
             if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
                 sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit").toString()));
             if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
@@ -124,8 +120,7 @@ public class SubMerchantService {
         sm.setStatus("PENDING_KYC");
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        ensureEasebuzzEnabled(sm.getRestaurantId());
-        log.info("Sub-merchant {} assigned Easebuzz ID: {}, easebuzzEnabled set to true for restaurant {}", id, subMerchantId, sm.getRestaurantId());
+        log.info("Sub-merchant {} assigned Easebuzz ID: {} for restaurant {}; KYC activation remains pending", id, subMerchantId, sm.getRestaurantId());
         
         try {
             pushNotificationService.pushToRestaurant(
@@ -200,8 +195,7 @@ public class SubMerchantService {
         if (data.containsKey("bankProofUrl")) sm.setBankProofUrl(data.get("bankProofUrl"));
         if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
         if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
-        if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
-            sm.setCommissionRate(new java.math.BigDecimal(data.get("commissionRate")));
+        sm.setCommissionRate(requireZeroCommission(data.get("commissionRate")));
         if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
             sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit")));
         if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
@@ -733,20 +727,6 @@ public class SubMerchantService {
     }
 
     @Transactional
-    public void ensureEasebuzzEnabled(Long restaurantId) {
-        restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
-            if (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled()) {
-                profile.setEasebuzzEnabled(true);
-                long now = System.currentTimeMillis();
-                profile.setUpdatedAt(now);
-                profile.setServerUpdatedAt(now);
-                profile.setDeviceId("server");
-                restaurantProfileRepo.save(profile);
-            }
-        });
-    }
-
-    @Transactional
     public void hardDeleteSubMerchant(Long id) {
         subMerchantRepo.findById(id).ifPresentOrElse(sm -> {
             // Clean up webhook events associated with this sub-merchant's Easebuzz ID
@@ -895,7 +875,6 @@ public class SubMerchantService {
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());
-            ensureEasebuzzEnabled(sm.getRestaurantId());
         } else {
             sm.setStatus("FAILED");
             Object errorObj = result != null ? result.get("error") : null;
@@ -967,5 +946,12 @@ public class SubMerchantService {
         return wireApi.configurePayoutWebhook(
                 merchantKey, eventType, url,
                 intervalUnit, intervalValue, maxAttempts);
+    }
+
+    private static java.math.BigDecimal requireZeroCommission(Object value) {
+        if (value != null && new java.math.BigDecimal(value.toString()).compareTo(java.math.BigDecimal.ZERO) != 0) {
+            throw new IllegalArgumentException("KhanaBook does not charge transaction commission");
+        }
+        return java.math.BigDecimal.ZERO;
     }
 }

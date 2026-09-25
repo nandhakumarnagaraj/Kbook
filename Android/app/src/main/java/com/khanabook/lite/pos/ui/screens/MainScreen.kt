@@ -3,7 +3,6 @@
 package com.khanabook.lite.pos.ui.screens
 import com.khanabook.lite.pos.feature.reports.ui.ReportsScreen
 import com.khanabook.lite.pos.core.theme.*
-import com.khanabook.lite.pos.feature.billing.ui.OrdersScreen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -144,12 +143,6 @@ fun MainScreen(
                     onOpenNotifications = onOpenNotifications
                 )
                 "Reports" -> ReportsScreen(onBack = backToHome)
-                "Orders" -> OrdersScreen(
-                    onBack = backToHome,
-                    navController = navController,
-                    initialSource = initialSource ?: "ALL",
-                    highlightedBillId = initialHighlightBillId
-                )
                 "Settings", "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,

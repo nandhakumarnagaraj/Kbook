@@ -39,13 +39,23 @@ public class WebhookRetryService {
 
     @Transactional
     public WebhookRetryJob enqueue(String webhookType, String payload) {
+        return enqueueAt(webhookType, payload, System.currentTimeMillis(), null);
+    }
+
+    @Transactional
+    public WebhookRetryJob enqueueAt(String webhookType, String payload, long scheduledAt, String jobKey) {
+        if (jobKey != null && !jobKey.isBlank()) {
+            var existing = retryJobRepository.findByJobKey(jobKey);
+            if (existing.isPresent()) return existing.get();
+        }
         WebhookRetryJob job = new WebhookRetryJob();
         job.setWebhookType(webhookType);
+        job.setJobKey(jobKey);
         job.setPayload(payload);
         job.setStatus("PENDING");
         job.setAttemptCount(0);
         job.setMaxAttempts(BACKOFF_MS.length);
-        job.setNextAttemptAt(System.currentTimeMillis());
+        job.setNextAttemptAt(scheduledAt);
         long now = System.currentTimeMillis();
         job.setCreatedAt(now);
         job.setUpdatedAt(now);

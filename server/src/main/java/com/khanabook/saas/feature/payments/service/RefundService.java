@@ -1,10 +1,13 @@
 package com.khanabook.saas.feature.payments.service;
 
-import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.feature.payments.data.RefundAttempt;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.scheduling.TaskScheduler;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +29,9 @@ public class RefundService {
     private static final Logger log = LoggerFactory.getLogger(RefundService.class);
     private final EasebuzzPaymentService easebuzzPaymentService;
     private final BillRepository billRepository;
-    private final EmailNotificationService emailNotificationService;
-    private final TaskScheduler taskScheduler;
+    private final RefundAttemptRepository refundAttemptRepository;
+    private final WebhookRetryService webhookRetryService;
+    private final ObjectMapper objectMapper;
 
     public static final List<Map<String, String>> REASON_TAXONOMY = List.of(
         Map.of("code", "CUSTOMER_REQUEST", "label", "Customer Request"),
@@ -62,47 +63,64 @@ public class RefundService {
         if (bill.getGatewayTxnId() == null || !"paid".equalsIgnoreCase(bill.getPaymentStatus()) && !"success".equalsIgnoreCase(bill.getPaymentStatus()) && !"partially_refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
             throw new BusinessRuleException("Bill is not eligible for refund");
         }
-        BigDecimal existingRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
-        if (existingRefund.compareTo(bill.getTotalAmount()) >= 0) {
-            throw new BusinessRuleException("Bill is already fully refunded (₹" + existingRefund + " of ₹" + bill.getTotalAmount() + ")");
+        BigDecimal completedRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+        BigDecimal pendingRefund = refundAttemptRepository.sumAmountByBillIdAndStatus(billId, "INITIATED");
+        if (pendingRefund == null) pendingRefund = BigDecimal.ZERO;
+        BigDecimal reservedRefund = completedRefund.add(pendingRefund);
+        if (reservedRefund.compareTo(bill.getTotalAmount()) >= 0) {
+            throw new BusinessRuleException("Bill is already fully refunded or reserved for refund (₹" + reservedRefund + " of ₹" + bill.getTotalAmount() + ")");
         }
         if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleException("Refund amount must be positive");
         }
-        BigDecimal remainingRefundable = bill.getTotalAmount().subtract(existingRefund);
+        if (refundAmount.scale() > 2) {
+            throw new BusinessRuleException("Refund amount must have at most two decimal places");
+        }
+        BigDecimal remainingRefundable = bill.getTotalAmount().subtract(reservedRefund);
         if (refundAmount.compareTo(remainingRefundable) > 0) {
             throw new BusinessRuleException("Refund amount (₹" + refundAmount + ") exceeds remaining refundable amount (₹" + remainingRefundable + ")");
         }
 
         log.info("Initiating refund billId={} amount={} reason={}", billId, refundAmount, reason);
-        Map<String, Object> result = easebuzzPaymentService.initiateRefund(billId, refundAmount, reason);
+        Map<String, Object> gatewayResult = easebuzzPaymentService.initiateRefund(billId, refundAmount, reason);
+        Map<String, Object> result = gatewayResult == null
+                ? new LinkedHashMap<>(Map.of("status", "failure", "error", "Refund gateway returned no response"))
+                : new LinkedHashMap<>(gatewayResult);
 
         if ("success".equals(result.get("status"))) {
-            BigDecimal newTotalRefund = existingRefund.add(refundAmount);
-            bill.setRefundAmount(newTotalRefund);
-
-            if (newTotalRefund.compareTo(bill.getTotalAmount()) >= 0) {
-                bill.setPaymentStatus("refunded");
-                bill.setOrderStatus("cancelled");
-            } else {
-                bill.setPaymentStatus("partially_refunded");
+            String merchantRefundId = String.valueOf(result.getOrDefault("merchant_refund_id", ""));
+            String gatewayRefundId = String.valueOf(result.getOrDefault("easebuzz_refund_id", ""));
+            String easebuzzPaymentId = String.valueOf(result.getOrDefault("easebuzz_payment_id", ""));
+            if (merchantRefundId.isBlank() || gatewayRefundId.isBlank() || easebuzzPaymentId.isBlank()) {
+                throw new IllegalStateException("Easebuzz accepted refund without required attempt identifiers");
             }
+            RefundAttempt attempt = new RefundAttempt();
+            attempt.setBillId(billId);
+            attempt.setRestaurantId(restaurantId);
+            attempt.setGatewayTxnId(bill.getGatewayTxnId());
+            attempt.setEasebuzzPaymentId(easebuzzPaymentId);
+            attempt.setMerchantRefundId(merchantRefundId);
+            attempt.setGatewayRefundId(gatewayRefundId);
+            attempt.setAmount(refundAmount);
+            attempt.setStatus("INITIATED");
+            attempt.setReason(reason);
+            attempt.setCreatedAt(System.currentTimeMillis());
+            attempt.setUpdatedAt(attempt.getCreatedAt());
+            refundAttemptRepository.save(attempt);
             bill.setCancelReason(reason);
             billRepository.save(bill);
             result.put("refundStatus", "initiated");
-            result.put("totalRefunded", newTotalRefund);
-            result.put("remainingRefundable", bill.getTotalAmount().subtract(newTotalRefund));
+            result.put("totalRefunded", completedRefund);
+            result.put("pendingRefund", pendingRefund.add(refundAmount));
+            result.put("remainingRefundable", remainingRefundable.subtract(refundAmount));
 
-            if (bill.getCustomerWhatsapp() != null && !bill.getCustomerWhatsapp().isBlank()) {
-                try {
-                    String orderCode = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
-                    emailNotificationService.sendRefundConfirmation(
-                        bill.getCustomerWhatsapp(), bill.getCustomerName(), orderCode, refundAmount, reason);
-                } catch (Exception e) {
-                    // Never roll back a gateway-confirmed refund because a notification failed.
-                    log.warn("Refund confirmed but notification failed for billId={}: {}", billId, e.getMessage(), e);
-                }
-            }
+            // Gateway acceptance only initiates a refund. Customer-facing
+            // completion notices must wait for a matched completion callback.
+        } else {
+            result.put("refundStatus", "failed");
+            result.put("totalRefunded", completedRefund);
+            result.put("pendingRefund", pendingRefund);
+            result.put("remainingRefundable", remainingRefundable);
         }
         result.put("billId", billId);
         return result;
@@ -127,21 +145,29 @@ public class RefundService {
 
         if (delayMinutes <= 0) {
             Map<String, Object> refundResult = initiatePartialRefund(billId, restaurantId, bill.getTotalAmount(), "ORDER_CANCELLED");
-            return Map.of("status", "cancelled", "billId", billId, "refundApplied", true, "refund", refundResult);
+            boolean refundInitiated = "success".equals(refundResult.get("status"));
+            return Map.of("status", "cancelled", "billId", billId,
+                    "refundApplied", refundInitiated,
+                    "refundStatus", refundInitiated ? "initiated" : "failed",
+                    "refund", refundResult);
         }
 
-        BigDecimal finalRefundAmount = bill.getTotalAmount();
-        taskScheduler.schedule(() -> {
-            try {
-                log.info("Executing delayed refund for billId={} after {} minutes", billId, delayMinutes);
-                initiatePartialRefund(billId, restaurantId, finalRefundAmount, "ORDER_CANCELLED");
-                log.info("Delayed refund completed for billId={}", billId);
-            } catch (Exception e) {
-                log.error("Scheduled refund failed: {}", e.getMessage(), e);
-            }
-        }, Instant.now().plus(Duration.ofMinutes(delayMinutes)));
-
-        return Map.of("status", "cancelled", "billId", billId, "refundScheduled", true, "refundDelayMinutes", delayMinutes, "refundAmount", bill.getTotalAmount());
+        long scheduledAt = System.currentTimeMillis() + Duration.ofMinutes(delayMinutes).toMillis();
+        String jobKey = "DELAYED_REFUND:" + restaurantId + ":" + billId;
+        Map<String, Object> payload = Map.of(
+                "billId", billId,
+                "restaurantId", restaurantId,
+                "amount", bill.getTotalAmount().toPlainString(),
+                "reason", "ORDER_CANCELLED");
+        try {
+            var job = webhookRetryService.enqueueAt(
+                    "DELAYED_REFUND", objectMapper.writeValueAsString(payload), scheduledAt, jobKey);
+            return Map.of("status", "cancelled", "billId", billId,
+                    "refundScheduled", true, "refundJobId", job.getId(),
+                    "refundDelayMinutes", delayMinutes, "refundAmount", bill.getTotalAmount());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Could not persist delayed refund job", e);
+        }
     }
 
     public Map<String, Object> getRefundSummary(Long restaurantId) {

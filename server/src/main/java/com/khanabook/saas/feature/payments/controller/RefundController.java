@@ -33,7 +33,11 @@ public class RefundController {
             @RequestBody Map<String, Object> body) {
         BigDecimal amount = new BigDecimal(body.get("refundAmount").toString());
         String reason = (String) body.getOrDefault("reason", "OTHER");
-        return ResponseEntity.ok(refundService.initiatePartialRefund(billId, requireTenant(), amount, reason));
+        Map<String, Object> result = refundService.initiatePartialRefund(billId, requireTenant(), amount, reason);
+        if ("failure".equals(result.get("status"))) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/bill/{billId}/cancel")

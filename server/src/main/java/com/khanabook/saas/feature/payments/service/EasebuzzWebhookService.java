@@ -1,6 +1,5 @@
 package com.khanabook.saas.feature.payments.service;
 
-import com.khanabook.saas.feature.billing.service.PostSplitService;
 import com.khanabook.saas.feature.compliance.data.FssaiTracker;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.service.EasebuzzProperties;
@@ -10,6 +9,8 @@ import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.payments.data.RefundAttempt;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
@@ -36,8 +37,8 @@ public class EasebuzzWebhookService {
     private final SubMerchantService subMerchantService;
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzWebhookEventRepository webhookEventRepo;
+    private final RefundAttemptRepository refundAttemptRepo;
     private final EasebuzzProperties props;
-    private final PostSplitService postSplitService;
     private final EasebuzzPayoutRepository payoutRepo;
     private final org.springframework.core.env.Environment env;
     private final PushNotificationService pushNotificationService;
@@ -81,6 +82,10 @@ public class EasebuzzWebhookService {
                 try {
                     resolveBillFromPayload(payload).ifPresent(bill -> {
                         Long billId = bill.getId();
+                        if (!paymentAmountMatchesBill(bill, amountStr)) {
+                            log.warn("Payment webhook amount mismatch billId={} txnid={} amount={}", billId, txnid, amountStr);
+                            return;
+                        }
                         // Idempotency guard: skip if already marked paid
                         if ("paid".equals(bill.getPaymentStatus())) {
                             log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
@@ -119,9 +124,20 @@ public class EasebuzzWebhookService {
                             amountStr != null ? new BigDecimal(amountStr) : null
                         );
 
-                        // Trigger post-transaction split
+                        // Persist split work atomically with the payment event. The
+                        // scheduled worker can only see this row after commit.
                         if (easebuzzId != null && !easebuzzId.isBlank()) {
-                            postSplitService.createPostSplitAsync(billId, easebuzzId, txnid);
+                            try {
+                                String splitPayload = objectMapper.writeValueAsString(Map.of(
+                                        "billId", billId,
+                                        "easebuzzId", easebuzzId,
+                                        "txnid", txnid));
+                                webhookRetryService.enqueueAt("POST_SPLIT", splitPayload,
+                                        System.currentTimeMillis(),
+                                        "POST_SPLIT:" + billId + ":" + easebuzzId);
+                            } catch (Exception e) {
+                                throw new IllegalStateException("Could not persist post-split work", e);
+                            }
                         } else {
                             log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
                         }
@@ -180,20 +196,42 @@ public class EasebuzzWebhookService {
     private Optional<Bill> resolveBillFromPayload(Map<String, String> payload) {
         String txnid = payload.get("txnid");
         String udf1 = payload.get("udf1");
-        
+        if (txnid == null || txnid.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<Bill> matched = billRepo.findByGatewayTxnId(txnid);
+        if (matched.isEmpty()) {
+            log.warn("Payment webhook has no bill-issued transaction txnid={}", txnid);
+            return Optional.empty();
+        }
+        Bill bill = matched.get();
         if (udf1 != null && !udf1.isBlank()) {
             try {
-                return billRepo.findById(Long.parseLong(udf1));
+                if (!bill.getId().equals(Long.parseLong(udf1))) {
+                    log.warn("Payment webhook bill ID mismatch txnid={} udf1={}", txnid, udf1);
+                    return Optional.empty();
+                }
             } catch (NumberFormatException e) {
                 log.warn("Invalid billId in udf1: {}", udf1);
+                return Optional.empty();
             }
         }
-        
-        if (txnid != null && !txnid.isBlank()) {
-            return billRepo.findByGatewayTxnId(txnid);
+        String udf2 = payload.get("udf2");
+        if (udf2 != null && !udf2.isBlank() && !bill.getRestaurantId().toString().equals(udf2)) {
+            log.warn("Payment webhook restaurant mismatch txnid={} udf2={}", txnid, udf2);
+            return Optional.empty();
         }
-        
-        return Optional.empty();
+        return matched;
+    }
+
+    private boolean paymentAmountMatchesBill(Bill bill, String amountStr) {
+        if (amountStr == null || bill.getTotalAmount() == null) return false;
+        try {
+            BigDecimal paidAmount = new BigDecimal(amountStr);
+            return paidAmount.signum() > 0 && paidAmount.compareTo(bill.getTotalAmount()) == 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private void handleFssaiRenewalSuccess(Map<String, String> payload) {
@@ -254,9 +292,23 @@ public class EasebuzzWebhookService {
             return Map.of("status", "received");
         }
 
-        // Find bill by gateway txnId and update refund status
+        // The refund hash authenticates easepayid, but does not cover txnid.
+        // Correlate both identifiers before letting this callback change a bill.
         try {
             billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
+                String claimedEasepayid = payload.get("easepayid");
+                if (claimedEasepayid == null || claimedEasepayid.isBlank()) {
+                    claimedEasepayid = payload.get("easebuzz_id");
+                }
+                String paymentEasepayid = webhookEventRepo
+                        .findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId())
+                        .map(EasebuzzWebhookEvent::getEasebuzzId)
+                        .orElse(null);
+                if (claimedEasepayid == null || paymentEasepayid == null
+                        || !paymentEasepayid.equals(claimedEasepayid.trim())) {
+                    log.warn("Refund webhook payment ID mismatch billId={} txnid={}", bill.getId(), txnid);
+                    return;
+                }
                 updateBillRefund(bill, status, refundId, refundAmount, payload);
             });
         } catch (Exception e) {
@@ -300,42 +352,79 @@ public class EasebuzzWebhookService {
 
     private void updateBillRefund(Bill bill, String status, String refundId, String refundAmount, Map<String, String> payload) {
         long now = System.currentTimeMillis();
-
-        // Idempotency: skip if already marked refunded
-        if ("refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
-            log.info("Bill {} already refunded, skipping duplicate refund webhook", bill.getId());
+        if (refundId == null || refundId.isBlank()) {
+            log.warn("Refund webhook missing refund ID for billId={}", bill.getId());
+            return;
+        }
+        Optional<RefundAttempt> matched = refundAttemptRepo.findByBillIdAndGatewayRefundId(bill.getId(), refundId);
+        if (matched.isEmpty()) {
+            log.warn("Refund webhook has no recorded attempt billId={} refundId={}", bill.getId(), refundId);
+            return;
+        }
+        RefundAttempt attempt = matched.get();
+        String paymentId = payload.get("easepayid");
+        if (paymentId == null || paymentId.isBlank()) paymentId = payload.get("easebuzz_id");
+        if (paymentId == null || !attempt.getEasebuzzPaymentId().equals(paymentId.trim())
+                || !bill.getGatewayTxnId().equals(attempt.getGatewayTxnId())) {
+            log.warn("Refund webhook attempt/payment mismatch billId={} refundId={}", bill.getId(), refundId);
+            return;
+        }
+        if ("COMPLETED".equals(attempt.getStatus())) {
+            log.info("Duplicate refund completion ignored billId={} refundId={}", bill.getId(), refundId);
             return;
         }
 
-        if (refundId != null && !refundId.isBlank()) {
-            bill.setRefundId(refundId);
-        }
+        BigDecimal webhookRefundAmount = null;
         if (refundAmount != null && !refundAmount.isBlank()) {
             try {
-                bill.setRefundAmount(new BigDecimal(refundAmount));
+                webhookRefundAmount = new BigDecimal(refundAmount);
             } catch (Exception e) {
                 log.warn("Invalid refund_amount in webhook: {}", refundAmount);
             }
         }
+        if (webhookRefundAmount == null || webhookRefundAmount.compareTo(attempt.getAmount()) != 0) {
+            bill.setGatewayStatus("refund_review_required");
+            billRepo.save(bill);
+            log.warn("Refund webhook amount mismatch billId={} refundId={}", bill.getId(), refundId);
+            return;
+        }
 
         if ("refunded".equalsIgnoreCase(status)) {
-            bill.setPaymentStatus("refunded");
-            bill.setGatewayStatus("refunded");
+            BigDecimal completed = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+            BigDecimal cumulative = completed.add(attempt.getAmount());
+            if (bill.getTotalAmount() == null || cumulative.compareTo(bill.getTotalAmount()) > 0) {
+                bill.setGatewayStatus("refund_review_required");
+                log.warn("Refund completion needs amount review for billId={} refundId={}", bill.getId(), refundId);
+            } else {
+                attempt.setStatus("COMPLETED");
+                attempt.setUpdatedAt(now);
+                refundAttemptRepo.save(attempt);
+                bill.setRefundAmount(cumulative);
+                bill.setRefundId(refundId);
+                boolean fullyRefunded = cumulative.compareTo(bill.getTotalAmount()) == 0;
+                bill.setPaymentStatus(fullyRefunded ? "refunded" : "partially_refunded");
+                bill.setGatewayStatus(fullyRefunded ? "refunded" : "partially_refunded");
+                if (fullyRefunded) bill.setOrderStatus("cancelled");
 
-            // Push refund-completed notification to restaurant
-            String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
-            String amountDisplay = refundAmount != null ? "₹" + refundAmount : "";
-            pushNotificationService.pushToRestaurant(
-                bill.getRestaurantId(),
-                "Refund Completed",
-                "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
-                "refund",
-                String.valueOf(bill.getId()),
-                "bill",
-                refundAmount != null ? new java.math.BigDecimal(refundAmount) : null
-            );
+                String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
+                String amountDisplay = webhookRefundAmount != null ? "₹" + webhookRefundAmount : "";
+                pushNotificationService.pushToRestaurant(
+                    bill.getRestaurantId(),
+                    "Refund Completed",
+                    "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
+                    "refund",
+                    String.valueOf(bill.getId()),
+                    "bill",
+                    webhookRefundAmount
+                );
+            }
         } else if ("queued".equalsIgnoreCase(status) || "accepted".equalsIgnoreCase(status)) {
             bill.setGatewayStatus("refund_" + status.toLowerCase());
+        } else if ("failed".equalsIgnoreCase(status) || "rejected".equalsIgnoreCase(status)) {
+            // The documented refund hash covers the payment ID, not the
+            // callback status. Keep the reservation until the gateway status
+            // API confirms failure; otherwise a replay could release it.
+            bill.setGatewayStatus("refund_review_required");
         } else {
             bill.setGatewayStatus("refund_" + (status != null ? status.toLowerCase() : "unknown"));
         }
@@ -356,8 +445,8 @@ public class EasebuzzWebhookService {
         event.setRestaurantId(bill.getRestaurantId());
         event.setTxnId(bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : "");
         event.setStatus("refund_" + (status != null ? status : "unknown"));
-        if (refundAmount != null) {
-            try { event.setAmount(new BigDecimal(refundAmount)); } catch (Exception ignored) {}
+        if (webhookRefundAmount != null) {
+            event.setAmount(webhookRefundAmount);
         }
         event.setRawPayload(payload.toString());
         event.setReceivedAt(now);

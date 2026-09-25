@@ -20,7 +20,7 @@
 | 6 | Reconciliation enabled for the test window | `EASEBUZZ_RECONCILIATION_ENABLED=true` (cron 06:00 IST) |
 | 7 | Test bill exists | Create a bill from the Android POS for ₹1.00 |
 
-**Security note:** `application-dev.properties` currently hardcodes sandbox key/salt (`ADNX3KYX5`/`Z4UFP4939`). See `docs/SECURITY_ROTATION_REQUIRED.md` — rotate before launch; sandbox creds must not be reused in prod.
+**Security note:** `application-dev.properties` requires sandbox credentials through environment variables; no merchant key or salt is stored in the repository. Sandbox credentials must never be reused in production. Any production credential that was previously exposed must be revoked and replaced before the live test.
 
 ---
 
@@ -119,3 +119,22 @@ STOP immediately if any of:
 | Executed by | ______ |
 | Date | ______ |
 | Result | PASS / FAIL |
+
+## 10. KhanaBook deployment evidence (2026-09-20)
+
+The following checks were completed against `https://kbook.iadv.cloud` after deployment:
+
+| Check | Evidence | Result |
+|---|---|---|
+| Deployed revision | `a165d697` | PASS |
+| Application readiness | `GET /api/v1/actuator/health` returned `200` / `UP` | PASS |
+| Invalid refund signature | Refund webhook returned `401` | PASS |
+| Valid refund signature (synthetic, unknown transaction) | Refund webhook returned `200 {"status":"received"}` with no bill match | PASS |
+| Production status API (read-only synthetic transaction) | Easebuzz returned HTTP `200` / `Transaction not found` | PASS |
+| Existing production transaction for reconciliation | No non-null `gateway_txn_id` exists in `bills` or `bill_payments` | PENDING |
+| Exposed env file | `/helper/easebuzz.env` returned `404` | PASS |
+| Production config fail-closed | Compose rejected an empty `EASEBUZZ_PAYMENT_BASE_URL` | PASS |
+| Gateway live transaction/refund | Requires an Easebuzz dashboard test transaction | PENDING |
+| Credential rotation | Revoke and replace credentials previously exposed in the old env file | REQUIRED |
+
+The live payment/refund checkbox must not be marked complete until the merchant key, salt, and Wire API key have been rotated in Easebuzz and a signed ₹1 payment/refund cycle has been captured.

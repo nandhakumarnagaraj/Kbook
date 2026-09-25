@@ -2,6 +2,7 @@ package com.khanabook.saas.feature.payments.service;
 
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
+import com.khanabook.saas.feature.payments.data.RefundAttemptRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewal;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
@@ -9,6 +10,8 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +33,14 @@ public class EasebuzzPaymentService {
     private final EasebuzzApiClient easebuzzApi;
     private final BillRepository billRepo;
     private final EasebuzzWebhookEventRepository webhookEventRepo;
+    private final RefundAttemptRepository refundAttemptRepo;
     private final SubMerchantService subMerchantService;
     private final com.khanabook.saas.feature.payments.service.EasebuzzProperties props;
     private final ChargebackPreventionService chargebackService;
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
+    private final MerchantAgreementService merchantAgreementService;
+    private final RestaurantProfileRepository restaurantProfileRepository;
 
     @Transactional
     public Map<String, Object> getPaymentStatus(Long billId, boolean refresh) {
@@ -110,6 +117,22 @@ public class EasebuzzPaymentService {
         String easebuzzId = str(txnData.getOrDefault("easebuzz_id", txnData.getOrDefault("easepayid", "")));
 
         if ("success".equalsIgnoreCase(easebuzzStatus)) {
+            String returnedTxnId = str(txnData.get("txnid"));
+            BigDecimal returnedAmount;
+            try {
+                Object rawAmount = txnData.get("amount");
+                returnedAmount = rawAmount == null ? null : new BigDecimal(rawAmount.toString());
+            } catch (NumberFormatException e) {
+                returnedAmount = null;
+            }
+            if (!bill.getGatewayTxnId().equals(returnedTxnId) || returnedAmount == null
+                    || returnedAmount.signum() <= 0 || bill.getTotalAmount() == null
+                    || returnedAmount.compareTo(bill.getTotalAmount()) != 0) {
+                log.warn("Rejected Easebuzz verification mismatch billId={} requestedTxn={} returnedTxn={} returnedAmount={}",
+                        billId, bill.getGatewayTxnId(), returnedTxnId, returnedAmount);
+                return Map.of("status", "failure", "code", "PAYMENT_VERIFICATION_MISMATCH",
+                        "error", "Gateway transaction details do not match this bill");
+            }
             bill.setGatewayStatus("success");
             bill.setPaymentStatus("paid");
             bill.setPaidAt(System.currentTimeMillis());
@@ -138,19 +161,17 @@ public class EasebuzzPaymentService {
         // Look up easebuzz_id from the original payment webhook event
         String easebuzzId = resolveEasebuzzId(bill);
         if (easebuzzId.isBlank()) {
-            log.warn("Could not resolve easebuzz_id for billId={} txnid={}, proceeding with txnid as fallback", billId, txnid);
-            easebuzzId = txnid;
+            log.warn("Cannot initiate refund without a verified easebuzz_id billId={} txnid={}", billId, txnid);
+            return Map.of("status", "failure", "code", "PAYMENT_ID_UNAVAILABLE",
+                    "error", "Original Easebuzz payment ID is unavailable; reconcile the payment before refunding");
         }
 
-        // Deterministic merchant_refund_id PER REFUND ATTEMPT: Easebuzz treats a
-        // duplicate merchant_refund_id as idempotent (returns the existing refund,
-        // never moves money twice). The ID includes the amount already refunded
-        // BEFORE this attempt (bill.refundAmount is advanced only AFTER a successful
-        // initiation by RefundService), so:
-        //  - retry of the same attempt -> same baseline -> same ID (gateway dedups)
-        //  - next partial refund       -> new baseline -> new ID (money can move)
-        //  - two concurrent partials   -> same baseline -> one wins (over-refund guard)
+        // The baseline includes completed refunds and initiated attempts. A
+        // repeat before an attempt is recorded reuses the same gateway key;
+        // the next distinct partial attempt gets a new key.
         BigDecimal refundedSoFar = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
+        BigDecimal initiated = refundAttemptRepo.sumAmountByBillIdAndStatus(billId, "INITIATED");
+        if (initiated != null) refundedSoFar = refundedSoFar.add(initiated);
         String merchantRefundId = "REF_" + billId + "_"
                 + refundedSoFar.stripTrailingZeros().toPlainString();
 
@@ -171,13 +192,13 @@ public class EasebuzzPaymentService {
                 }
             }
             bill.setRefundId(ebRefundId.isBlank() ? merchantRefundId : ebRefundId);
-            bill.setRefundAmount(amount);
             bill.setGatewayStatus("refund_initiated");
             billRepo.save(bill);
 
             return Map.of(
                 "status", "success",
                 "easebuzz_refund_id", bill.getRefundId(),
+                "easebuzz_payment_id", easebuzzId,
                 "merchant_refund_id", merchantRefundId,
                 "txnid", txnid
             );
@@ -229,19 +250,24 @@ public class EasebuzzPaymentService {
         }
         try {
             Map<String, Object> raw = easebuzzApi.getTransactionStatus(txnid);
-            if (raw != null) {
-                String topLevel = str(raw.getOrDefault("easebuzz_id", raw.get("easepayid")));
-                if (!topLevel.isBlank()) return topLevel;
+            if (raw == null || !toBool(raw.get("status"))) return "";
+            Object msgObj = raw.get("msg");
+            Object first = msgObj instanceof List<?> list && !list.isEmpty() ? list.get(0) : msgObj;
+            if (!(first instanceof Map<?, ?> transaction)) return "";
+            Object amountValue = transaction.get("amount");
+            BigDecimal amount = amountValue == null ? null : new BigDecimal(amountValue.toString());
+            if (!txnid.equals(str(transaction.get("txnid")))
+                    || !"success".equalsIgnoreCase(str(transaction.get("status")))
+                    || amount == null || amount.signum() <= 0 || bill.getTotalAmount() == null
+                    || amount.compareTo(bill.getTotalAmount()) != 0) {
+                log.warn("Refund payment-ID lookup did not match billId={} txnid={}", bill.getId(), txnid);
+                return "";
             }
-            Object msgObj = raw != null ? raw.get("msg") : null;
-            if (msgObj instanceof Map) {
-                return str(((Map<String, Object>) msgObj).getOrDefault("easebuzz_id", ""));
-            } else if (msgObj instanceof List && !((List<?>) msgObj).isEmpty()) {
-                Object first = ((List<?>) msgObj).get(0);
-                if (first instanceof Map) {
-                    return str(((Map<String, Object>) first).getOrDefault("easebuzz_id", ""));
-                }
-            }
+            String paymentId = str(transaction.get("easebuzz_id"));
+            if (paymentId.isBlank()) paymentId = str(transaction.get("easepayid"));
+            if (paymentId.isBlank()) paymentId = str(raw.get("easebuzz_id"));
+            if (paymentId.isBlank()) paymentId = str(raw.get("easepayid"));
+            return paymentId;
         } catch (Exception e) {
             log.warn("Failed to retrieve easebuzz_id via status API for billId={}: {}", bill.getId(), e.getMessage());
         }
@@ -354,7 +380,22 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> createPaymentLink(Map<String, Object> request) {
         Long restaurantId = ((Number) request.get("restaurantId")).longValue();
-        String amount = request.get("amount").toString();
+        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
+            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
+                    "error", "Restaurant owner must sign the current payment agreement");
+        }
+        BigDecimal parsedAmount;
+        try {
+            Object rawAmount = request.get("amount");
+            parsedAmount = rawAmount == null ? null : new BigDecimal(rawAmount.toString().trim());
+        } catch (NumberFormatException e) {
+            parsedAmount = null;
+        }
+        if (parsedAmount == null || parsedAmount.signum() <= 0 || parsedAmount.scale() > 2) {
+            return Map.of("status", "failure", "code", "INVALID_PAYMENT_AMOUNT",
+                    "error", "Payment amount must be greater than zero with at most two decimal places");
+        }
+        String amount = parsedAmount.setScale(2, RoundingMode.UNNECESSARY).toPlainString();
         String customerName = (String) request.get("customerName");
         String customerEmail = (String) request.get("customerEmail");
         String customerPhone = (String) request.get("customerPhone");
@@ -364,23 +405,33 @@ public class EasebuzzPaymentService {
             merchantTxn = "PL" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
         }
 
-        // Look up sub-merchant
-        String subMerchantId = null;
+        // Restaurant collections must be attributed to an onboarded sub-merchant.
+        String subMerchantId;
         String subMerchantEmail = null;
         String subMerchantPhone = null;
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
-            String subMerchantIdFromSm = sm.getSubMerchantId();
-            if (subMerchantIdFromSm != null && !subMerchantIdFromSm.isBlank()
-                    && ("ACTIVE".equals(sm.getStatus()) || "test".equalsIgnoreCase(props.getPayMode()))) {
-                subMerchantId = subMerchantIdFromSm;
+            subMerchantId = sm.getSubMerchantId();
+            if (subMerchantId == null || subMerchantId.isBlank()
+                    || (!"ACTIVE".equals(sm.getStatus()) && !"test".equalsIgnoreCase(props.getPayMode()))) {
+                return Map.of("status", "failure", "code", "SUBMERCHANT_NOT_ACTIVE",
+                        "error", "Easebuzz sub-merchant onboarding and activation are required");
             }
             if (sm.getContactEmail() != null) subMerchantEmail = sm.getContactEmail();
             if (sm.getContactPhone() != null) subMerchantPhone = sm.getContactPhone();
         } catch (EntityNotFoundException e) {
-            log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
+            return Map.of("status", "failure", "code", "SUBMERCHANT_NOT_ACTIVE",
+                    "error", "Easebuzz sub-merchant onboarding and activation are required");
         } catch (Exception e) {
             log.warn("Error looking up sub-merchant for restaurant {}: {}", restaurantId, e.getMessage(), e);
+            return Map.of("status", "failure", "code", "SUBMERCHANT_LOOKUP_FAILED",
+                    "error", "Unable to verify Easebuzz sub-merchant status");
+        }
+
+        if (!restaurantProfileRepository.findByRestaurantId(restaurantId)
+                .map(profile -> Boolean.TRUE.equals(profile.getEasebuzzEnabled())).orElse(false)) {
+            return Map.of("status", "failure", "code", "PAYMENT_METHOD_DISABLED",
+                    "error", "Easebuzz Online is off for this restaurant. The owner can enable it in payment settings.");
         }
 
         String email = customerEmail != null && !customerEmail.isBlank() ? customerEmail : subMerchantEmail;
@@ -402,9 +453,7 @@ public class EasebuzzPaymentService {
         data.put("udf3", request.getOrDefault("udf3", "").toString());
         data.put("udf4", request.getOrDefault("udf4", "").toString());
         data.put("udf5", request.getOrDefault("udf5", "").toString());
-        if (subMerchantId != null) {
-            data.put("sub_merchant_id", subMerchantId);
-        }
+        data.put("sub_merchant_id", subMerchantId);
 
         // Optional: restrict payment modes
         String showPaymentMode = (String) request.get("show_payment_mode");
@@ -437,6 +486,10 @@ public class EasebuzzPaymentService {
             return Map.of("status", "failure", "code", "ACCESS_DENIED",
                     "error", "Bill does not belong to this restaurant");
         }
+        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
+            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
+                    "error", "Restaurant owner must sign the current payment agreement");
+        }
 
         // Block if already paid
         if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
@@ -455,7 +508,12 @@ public class EasebuzzPaymentService {
                     "message", "Payment link already sent for this bill.");
         }
 
-        String amount = String.format("%.2f", bill.getTotalAmount());
+        if (bill.getTotalAmount() == null || bill.getTotalAmount().signum() <= 0
+                || bill.getTotalAmount().scale() > 2) {
+            return Map.of("status", "failure", "code", "INVALID_PAYMENT_AMOUNT",
+                    "error", "Bill total must be greater than zero with at most two decimal places");
+        }
+        String amount = bill.getTotalAmount().setScale(2, RoundingMode.UNNECESSARY).toPlainString();
         String customerName = bill.getCustomerName() != null
                 ? bill.getCustomerName().replaceAll("[^a-zA-Z0-9 ]", "").trim()
                 : "Customer";
@@ -475,7 +533,7 @@ public class EasebuzzPaymentService {
 
         // Generate unique merchant_txn (max 20 chars for Easebuzz)
         String txnSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
-        String billTail = String.format("%05d", billId % 100000);
+        String billTail = String.format(java.util.Locale.ROOT, "%05d", billId % 100000);
         String merchantTxn = "PL" + billTail + txnSuffix; // 15 chars total
 
         // Build request map — reuse existing createPaymentLink infrastructure

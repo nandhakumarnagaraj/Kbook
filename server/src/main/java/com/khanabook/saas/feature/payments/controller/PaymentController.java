@@ -318,8 +318,9 @@ public class PaymentController {
     @PostMapping(value = "/sub-merchant/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Map<String, Object>> subMerchantWebhookForm(@RequestParam Map<String, String> params) {
         log.debug("Sub-merchant webhook (form-url-encoded) received");
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("status", params.get("status"));
+        // Preserve the outer webhook fields (especially hash, event and
+        // identifiers) while decoding the nested JSON data object.
+        Map<String, Object> payload = new HashMap<>(params);
 
         // The 'data' field is a JSON string in form-url-encoded format
         String dataJson = params.get("data");
@@ -354,8 +355,9 @@ public class PaymentController {
     @PostMapping(value = "/payout/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Map<String, Object>> payoutWebhookForm(@RequestParam Map<String, String> params) {
         log.debug("Payout webhook (form-url-encoded) received: {}", params);
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("status", params.get("status"));
+        // Preserve the outer webhook fields (especially hash and payout
+        // identifiers) while decoding the nested JSON data object.
+        Map<String, Object> payload = new HashMap<>(params);
 
         String dataJson = params.get("data");
         if (dataJson != null && !dataJson.isBlank()) {

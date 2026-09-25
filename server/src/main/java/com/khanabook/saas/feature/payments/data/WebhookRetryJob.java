@@ -20,6 +20,9 @@ public class WebhookRetryJob {
     @Column(name = "webhook_type", nullable = false)
     private String webhookType;
 
+    @Column(name = "job_key", unique = true)
+    private String jobKey;
+
     @Column(name = "payload", columnDefinition = "TEXT", nullable = false)
     private String payload;
 

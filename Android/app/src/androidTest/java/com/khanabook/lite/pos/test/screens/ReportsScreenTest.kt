@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.test.screens
 
+import dagger.hilt.android.testing.HiltAndroidTest
+
 import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.HomeRobot
 import com.khanabook.lite.pos.test.robots.LoginRobot
@@ -7,6 +9,7 @@ import com.khanabook.lite.pos.test.robots.ReportsRobot
 import org.junit.Before
 import org.junit.Test
 
+@HiltAndroidTest
 class ReportsScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot

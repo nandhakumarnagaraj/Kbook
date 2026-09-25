@@ -840,6 +840,7 @@ public class GenericSyncService {
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
+							incomingProfile.setEasebuzzEnabled(false);
 						}
 
 						// Refund default: new bills have no admin refund yet; default to ZERO
@@ -1222,6 +1223,8 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 		if (!(incoming instanceof RestaurantProfile incomingP && existing instanceof RestaurantProfile existingP)) {
 			return;
 		}
+		// Preserve this server-owned switch for every mask, including legacy full-record pushes.
+		incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
 		String mask = incomingP.getChangedFields();
 		if (mask == null || mask.isBlank() || "all".equalsIgnoreCase(mask.trim())) {
 			return;
@@ -1266,7 +1269,6 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 		if (!changed.contains("customtaxnumber")) incomingP.setCustomTaxNumber(existingP.getCustomTaxNumber());
 		if (!changed.contains("customtaxpercentage")) incomingP.setCustomTaxPercentage(existingP.getCustomTaxPercentage());
 		if (!changed.contains("gstexpirydate")) incomingP.setGstExpiryDate(existingP.getGstExpiryDate());
-		if (!changed.contains("easebuzzenabled")) incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
 		// UPI/payment group
 		if (!changed.contains("upienabled")) incomingP.setUpiEnabled(existingP.getUpiEnabled());
 		if (!changed.contains("upihandle")) incomingP.setUpiHandle(existingP.getUpiHandle());

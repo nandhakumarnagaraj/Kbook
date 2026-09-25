@@ -16,7 +16,6 @@ import com.khanabook.lite.pos.feature.billing.ui.CallCustomerScreen
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderDetailScreen
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderScreen
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrdersScreen
-import com.khanabook.lite.pos.feature.billing.ui.OrdersScreen
 import com.khanabook.lite.pos.feature.billing.ui.NewBillScreen
 
 import androidx.compose.animation.*
@@ -319,13 +318,6 @@ internal fun AppNavGraph(
                 onCollectPayment = { draftBillId ->
                     navController.navigate(Routes.newBill(draftBillId = draftBillId, targetStep = 3))
                 }
-            )
-        }
-        composable(Routes.ORDER_STATUS) {
-            SearchScreen(
-                title = context.getString(R.string.check_order_status),
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
             )
         }
         composable(Routes.CALL_CUSTOMER) {

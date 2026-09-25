@@ -25,7 +25,11 @@ data class AgreementStatus(
     val signedAt: Long? = null,
     val signerName: String? = null,
     val agreementVersion: String? = null,
-    val originalFilename: String? = null
+    val originalFilename: String? = null,
+    val currentVersion: String? = null,
+    val currentTerms: String? = null,
+    val currentTermsSha256: String? = null,
+    val hasCurrentAgreement: Boolean = false
 )
 
 sealed class AgreementUiState {
@@ -79,7 +83,11 @@ class MerchantAgreementViewModel @Inject constructor(
             signedAt = (map["signedAt"] as? Number)?.toLong(),
             signerName = map["signerName"] as? String,
             agreementVersion = map["agreementVersion"] as? String,
-            originalFilename = map["originalFilename"] as? String
+            originalFilename = map["originalFilename"] as? String,
+            currentVersion = map["currentVersion"] as? String,
+            currentTerms = map["currentTerms"] as? String,
+            currentTermsSha256 = map["currentTermsSha256"] as? String,
+            hasCurrentAgreement = map["hasCurrentAgreement"] as? Boolean ?: false
         )
     }
 
@@ -93,10 +101,18 @@ class MerchantAgreementViewModel @Inject constructor(
                 _events.emit(AgreementEvent.Toast("Please provide a signature", true))
                 return@launch
             }
+            val status = (_uiState.value as? AgreementUiState.Ready)?.status
+            val terms = status?.currentTerms
+            val version = status?.currentVersion
+            val termsSha256 = status?.currentTermsSha256
+            if (terms.isNullOrBlank() || version.isNullOrBlank() || termsSha256.isNullOrBlank()) {
+                _events.emit(AgreementEvent.Toast("Load the current agreement before signing", true))
+                return@launch
+            }
             _isSubmitting.value = true
             try {
-                val file = AgreementPdfGenerator.generate(context, signerName.trim(), signature)
-                repository.upload(signerName.trim(), AgreementPdfGenerator.AGREEMENT_VERSION, file)
+                val file = AgreementPdfGenerator.generate(context, signerName.trim(), signature, terms, version)
+                repository.upload(signerName.trim(), version, termsSha256, file)
                     .onSuccess {
                         _events.emit(AgreementEvent.Toast("Agreement signed and uploaded successfully"))
                         load()
