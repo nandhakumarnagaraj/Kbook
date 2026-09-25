@@ -3,8 +3,10 @@ import com.khanabook.lite.pos.core.theme.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -31,6 +33,7 @@ fun InventoryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     var showAddDialog by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var deletingId by remember { mutableStateOf<Long?>(null) }
@@ -68,7 +71,10 @@ fun InventoryScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .align(Alignment.CenterHorizontally),
                 contentPadding = PaddingValues(spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
@@ -275,7 +281,11 @@ private fun AddMaterialDialog(
         shape = KhanaRadii.modal,
         title = { Text("New Raw Material", style = MaterialTheme.typography.titleLarge, color = TextLight) },
         text = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+            ) {
                 KhanaBookInputField(value = name, onValueChange = { name = it },
                     label = "Name (e.g. Flour)")
                 Spacer(Modifier.height(spacing.small))

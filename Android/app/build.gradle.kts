@@ -48,7 +48,7 @@ val hasReleaseSigning =
         signingStorePassword.isNotBlank() &&
         signingKeyAlias.isNotBlank() &&
         signingKeyPassword.isNotBlank()
-val signDebugWithRelease = configValue("SIGN_DEBUG_WITH_RELEASE", "true").toBooleanStrictOrNull() ?: true
+val signDebugWithRelease = configValue("SIGN_DEBUG_WITH_RELEASE", "false").toBooleanStrictOrNull() ?: false
 val hasExplicitReleaseVersion =
     configValue("RELEASE_VERSION_CODE").isNotBlank() &&
         configValue("RELEASE_VERSION_NAME").isNotBlank()
@@ -269,19 +269,16 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Social Login
-    implementation(libs.play.services.auth)
-
     // Firebase Cloud Messaging (push notifications)
     implementation(libs.firebase.messaging)
     // Firebase Crashlytics (crash reporting)
     implementation(libs.firebase.crashlytics)
 
 
-    // Google Sign-In via Credential Manager (modern API)
-    implementation("androidx.credentials:credentials:1.3.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    // Google Sign-In via current stable Credential Manager APIs
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     implementation(libs.coil.compose)
     implementation("androidx.browser:browser:1.8.0")
 

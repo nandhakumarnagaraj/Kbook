@@ -79,6 +79,9 @@ class MenuViewModel @Inject constructor(
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val activeCategories: StateFlow<List<CategoryEntity>> = categoryRepository.getActiveCategoriesFlow()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val totalCategoriesCount: StateFlow<Int> = categoryRepository.getAllCategoriesFlow()
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
@@ -128,14 +131,14 @@ class MenuViewModel @Inject constructor(
         searchQuery.value = query
     }
 
-    fun addCategory(name: String, isVeg: Boolean) {
+    fun addCategory(name: String, isVeg: Boolean, sortOrder: Int = 0) {
         if (!canWriteMasterData()) {
             blockMasterDataWrite()
             return
         }
         viewModelScope.launch {
             try {
-                categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg))
+                categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg, sortOrder = sortOrder))
                 setSuccess("Category added")
             } catch (e: Exception) {
                 Log.e("MenuViewModel", "Error adding category", e)
@@ -205,6 +208,27 @@ class MenuViewModel @Inject constructor(
                     com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
                         e,
                         "Failed to delete category. Please try again."
+                    )
+                )
+            }
+        }
+    }
+
+    fun reorderCategories(ordered: List<CategoryEntity>) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
+        viewModelScope.launch {
+            try {
+                categoryRepository.reorderCategories(ordered)
+                setSuccess("Category order saved")
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error reordering categories", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to save category order. Please try again."
                     )
                 )
             }
@@ -424,6 +448,18 @@ class MenuViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
+                // Server sync intentionally keeps inventory-cascaded unavailable items
+                // unavailable. Re-enabling is an explicit owner action on the server.
+                if (enabled) {
+                    val item = menuRepository.getItemById(id)
+                        ?: throw IllegalStateException("Menu item no longer exists")
+                    val serverId = item.serverId
+                        ?: throw IllegalStateException("Menu item is still syncing. Try again in a moment.")
+                    val response = khanaBookApi.markMenuItemAvailable(serverId)
+                    if (!response.isSuccessful) {
+                        throw IllegalStateException("Server rejected the availability change (${response.code()})")
+                    }
+                }
                 menuRepository.toggleItemAvailability(id, enabled)
             } catch (e: Exception) {
                 Log.e("MenuViewModel", "Failed to toggle item availability", e)

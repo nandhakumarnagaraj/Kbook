@@ -80,6 +80,7 @@ fun MenuConfigurationScreen(
     val ocrUiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val canWrite = viewModel.canWriteMasterData()
+    val layout = KhanaBookTheme.layout
 
     val pdfLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -191,7 +192,12 @@ fun MenuConfigurationScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (canWrite && ocrUiState.configMode == null) {
-                AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
+                AnimatedVisibility(
+                    visible = screenVisible,
+                    enter = enterSpec,
+                    exit = exitSpec,
+                    modifier = Modifier.fillMaxSize().widthIn(max = layout.maxContentWidth).align(Alignment.TopCenter)
+                ) {
                     ModeSelectionView(
                         selectedCategoryName = categories.find { it.id == selectedCategoryId }?.name,
                         totalCategoriesCount = totalCategoriesCount,
@@ -207,7 +213,12 @@ fun MenuConfigurationScreen(
                     )
                 }
             } else {
-                AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
+                AnimatedVisibility(
+                    visible = screenVisible,
+                    enter = enterSpec,
+                    exit = exitSpec,
+                    modifier = Modifier.fillMaxSize().widthIn(max = layout.maxContentWidth).align(Alignment.TopCenter)
+                ) {
                     ManualMenuView(
                     categories = categories,
                     selectedCategoryId = selectedCategoryId,
@@ -216,6 +227,10 @@ fun MenuConfigurationScreen(
                     onCategorySelect = { viewModel.selectCategory(it) },
                     onAddCategory = { viewModel.addCategory(it, true) },
                     onUpdateCategory = { viewModel.updateCategory(it) },
+                    onDeleteCategory = { viewModel.deleteCategory(it) },
+                    onAddCategoryWithSort = { name, sortOrder -> viewModel.addCategory(name, true, sortOrder) },
+                    onReorderCategories = { viewModel.reorderCategories(it) },
+                    onToggleCategory = { category, active -> viewModel.toggleCategory(category.id, active) },
                     onAddItem = { name, price, type, variants ->
                         selectedCategoryId?.let {
                             if (variants.isEmpty()) {
@@ -256,7 +271,14 @@ fun MenuConfigurationScreen(
                     onDeleteVariant = { viewModel.deleteVariant(it) },
                     onQuickPhotoUpload = { menuItemId, photoUri ->
                         viewModel.uploadItemPhoto(context, menuItemId, photoUri)
-                    }
+                    },
+                    onDeleteItem = { viewModel.deleteItem(it) },
+                    onMoveItem = { item, targetCategoryId ->
+                        viewModel.updateItem(
+                            item.copy(categoryId = targetCategoryId, updatedAt = System.currentTimeMillis())
+                        )
+                    },
+                    otherCategories = categories.filter { it.id != selectedCategoryId }
                 )
                 }
             }

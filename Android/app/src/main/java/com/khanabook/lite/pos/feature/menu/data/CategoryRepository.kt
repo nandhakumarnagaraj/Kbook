@@ -94,4 +94,20 @@ class CategoryRepository(
         categoryDao.updateCategory(enrichedCategory)
         triggerBackgroundSync()
     }
+
+    suspend fun reorderCategories(ordered: List<CategoryEntity>) {
+        val now = System.currentTimeMillis()
+        ordered.forEachIndexed { index, category ->
+            if (category.sortOrder != index) {
+                categoryDao.updateCategory(
+                    category.copy(
+                        sortOrder = index,
+                        isSynced = false,
+                        updatedAt = now
+                    )
+                )
+            }
+        }
+        triggerBackgroundSync()
+    }
 }

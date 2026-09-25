@@ -165,9 +165,8 @@ data class ResponsiveLayout(
         else -> 1
     }
 
-    // Bottom navigation is used on all sizes (intentional product decision for v1).
-    // NavigationRail may be evaluated for v2 on expanded widths.
-    val useBottomNavigation: Boolean = true
+    // Match the navigation suite: bottom bar in compact windows, rail in medium/expanded.
+    val useBottomNavigation: Boolean = screenWidthDp < 600
 
     val contentPadding: Dp = when {
         isUltraCompact -> 12.dp

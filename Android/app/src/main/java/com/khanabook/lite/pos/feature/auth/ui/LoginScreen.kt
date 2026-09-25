@@ -68,8 +68,7 @@ fun LoginScreen(
     val haptic = LocalHapticFeedback.current
 
     // ── Google Sign-In via Credential Manager ────────────────────────────────
-    // Replaces the deprecated GoogleSignIn API. GetGoogleIdOption returns the
-    // same ID token the backend already verifies (audience = GOOGLE_WEB_CLIENT_ID).
+    // Use Android's dedicated Credential Manager flow for a Google sign-in button.
     val coroutineScopeForGoogle = rememberCoroutineScope()
 
     suspend fun launchGoogleSignIn() {
@@ -81,18 +80,32 @@ fun LoginScreen(
         }
         try {
             val credentialManager = androidx.credentials.CredentialManager.create(context)
-            val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
-                .setServerClientId(serverClientId)
-                // Show the account picker every time (pos devices may be shared);
-                // setFilterByAuthorizedAccounts(true) would silently reuse one account.
-                .setFilterByAuthorizedAccounts(false)
-                .setAutoSelectEnabled(false)
+            val signInOption = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption.Builder(
+                serverClientId
+            )
                 .build()
             val request = androidx.credentials.GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
+                .addCredentialOption(signInOption)
                 .build()
-            val response = credentialManager.getCredential(context, request)
-            val googleIdTokenCredential = response.credential as? GoogleIdTokenCredential
+            val response = try {
+                credentialManager.getCredential(context, request)
+            } catch (noCredential: androidx.credentials.exceptions.NoCredentialException) {
+                // Retry with all device accounts when the explicit button request
+                // has no matching credential, as Android recommends.
+                val accountPickerOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
+                    .setServerClientId(serverClientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val accountPickerRequest = androidx.credentials.GetCredentialRequest.Builder()
+                    .addCredentialOption(accountPickerOption)
+                    .build()
+                credentialManager.getCredential(context, accountPickerRequest)
+            }
+            val returnedCredential = response.credential as? androidx.credentials.CustomCredential
+            val googleIdTokenCredential = returnedCredential
+                ?.takeIf { it.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL }
+                ?.let { GoogleIdTokenCredential.createFrom(it.data) }
             val googleIdToken = googleIdTokenCredential?.idToken
             if (!googleIdToken.isNullOrBlank()) {
                 viewModel.loginWithGoogleToken(googleIdToken)
@@ -102,6 +115,9 @@ fun LoginScreen(
         } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
             Log.i("GOOGLE_SIGN_IN", "User cancelled Credential Manager sign-in")
             viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
+        } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+            Log.i("GOOGLE_SIGN_IN", "No Google credential is available on this device")
+            viewModel.setGoogleLoginError("No Google account is available. Add an account to this device or use phone/email login.")
         } catch (e: androidx.credentials.exceptions.GetCredentialException) {
             Log.e("GOOGLE_SIGN_IN", "type=${e.type}, message=${e.localizedMessage}", e)
             if (e is androidx.credentials.exceptions.GetCredentialUnsupportedException) {

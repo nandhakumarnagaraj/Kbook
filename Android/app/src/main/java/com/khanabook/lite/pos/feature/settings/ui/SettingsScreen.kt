@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.util.formatSaveDuration
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.theme.*
@@ -60,6 +59,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     navController: NavController,
     initialSection: String = "menu",
+    onSectionChanged: (String) -> Unit = {},
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
     onBottomBarVisibilityChange: (Boolean) -> Unit = {},
@@ -75,6 +75,10 @@ fun SettingsScreen(
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
     var section by rememberSaveable(initialSection) { mutableStateOf(initialSection) }
+    fun selectSection(value: String) {
+        section = value
+        onSectionChanged(value)
+    }
     var pendingSaveSection by remember { mutableStateOf<String?>(null) }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -92,16 +96,11 @@ fun SettingsScreen(
         screenVisible = true
     }
     val ctx = LocalContext.current
-    val lastSaveDurationMs by viewModel.lastSaveDurationMs.collectAsStateWithLifecycle()
     val toastScope = rememberCoroutineScope()
     LaunchedEffect(saveProfileSuccess, pendingSaveSection) {
         val savedSection = pendingSaveSection
         if (saveProfileSuccess && savedSection != null) {
-            // One-tap save confirmation: green toast includes the measured local
-            // DB write duration (falls back to the plain message if unavailable).
-            val message = lastSaveDurationMs?.let { duration ->
-                ctx.getString(R.string.toast_profile_saved_timed, formatSaveDuration(duration))
-            } ?: when (savedSection) {
+            val message = when (savedSection) {
                 "payment" -> ctx.getString(R.string.toast_payment_settings_saved)
                 "printer" -> ctx.getString(R.string.toast_printer_settings_saved)
                 "tax" -> ctx.getString(R.string.toast_tax_settings_saved)
@@ -114,7 +113,7 @@ fun SettingsScreen(
             toastScope.launch { KhanaToast.show(message, ToastKind.Success) }
             viewModel.clearSaveProfileState()
             pendingSaveSection = null
-            section = "menu"
+            selectSection("menu")
         }
     }
     LaunchedEffect(saveProfileError, pendingSaveSection) {
@@ -135,8 +134,8 @@ fun SettingsScreen(
     )
     BackHandler {
         when {
-            section in settingsSubSections -> section = "security"
-            section != "menu" -> section = "menu"
+            section in settingsSubSections -> selectSection("security")
+            section != "menu" -> selectSection("menu")
             else -> onBack()
         }
     }
@@ -151,14 +150,14 @@ fun SettingsScreen(
     if (section == "menu_config") {
         MenuConfigurationScreen(
             navController = navController,
-            onBackClick = { section = "menu" },
+            onBackClick = { selectSection("menu") },
             viewModel = menuViewModel
         )
         return
     }
     if (section == "inventory") {
         InventoryScreen(
-            onBack = { section = "menu" }
+            onBack = { selectSection("menu") }
         )
         return
     }
@@ -186,8 +185,8 @@ fun SettingsScreen(
             },
             onBack = {
                 when {
-                    section in settingsSubSections -> section = "security"
-                    section != "menu" -> section = "menu"
+                    section in settingsSubSections -> selectSection("security")
+                    section != "menu" -> selectSection("menu")
                     else -> onBack()
                 }
             },
@@ -207,11 +206,11 @@ fun SettingsScreen(
                             enterSpec = enterSpec,
                             exitSpec = exitSpec,
                             logoutViewModel = logoutViewModel,
-                            onSectionSelected = { section = it }
+                            onSectionSelected = ::selectSection
                         )
                     }
                     "shop" -> {
-                        ShopConfigView(profile, viewModel, authViewModel, onBack = { section = "menu" }, readOnly = !isOwner, onSaved = {
+                        ShopConfigView(profile, viewModel, authViewModel, onBack = { selectSection("menu") }, readOnly = !isOwner, onSaved = {
                             // Route the shop save through the same success flow as the other
                             // sections (toast + return to menu) instead of a private effect
                             // inside ShopConfigView, which could be disposed mid-save by the
@@ -226,9 +225,9 @@ fun SettingsScreen(
                         PaymentConfigView(profile, saveProfileLoading = saveProfileLoading, onSave = {
                             pendingSaveSection = "payment"
                             viewModel.saveProfile(it)
-                        }, onBack = { section = "menu" },
+                        }, onBack = { selectSection("menu") },
                             onNavigateToOnboarding = { navController.navigate(Routes.EASEBUZZ_ONBOARDING) },
-                            onSectionSelected = { section = it },
+                            onSectionSelected = ::selectSection,
                             readOnly = !isOwner
                         )
                     }
@@ -237,14 +236,14 @@ fun SettingsScreen(
                         PrinterConfigView(profile, onSave = {
                             pendingSaveSection = "printer"
                             viewModel.savePrinterSettingsLocally(it)
-                        }, onBack = { section = "menu" }, viewModel = viewModel, isSaving = saveProfileLoading)
+                        }, onBack = { selectSection("menu") }, viewModel = viewModel, isSaving = saveProfileLoading)
                     }
                     "tax" -> {
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
                         TaxConfigView(profile, onSave = {
                             pendingSaveSection = "tax"
                             viewModel.saveProfile(it)
-                        }, onBack = { section = "menu" }, readOnly = !isOwner, isSaving = saveProfileLoading)
+                        }, onBack = { selectSection("menu") }, readOnly = !isOwner, isSaving = saveProfileLoading)
                     }
                     "ui_scale" -> {
                         DisplayScaleView(viewModel = viewModel)
@@ -257,7 +256,7 @@ fun SettingsScreen(
                             if (selectedItem == "notifications") {
                                 navController.navigate(Routes.NOTIFICATIONS)
                             } else {
-                                section = selectedItem
+                                selectSection(selectedItem)
                             }
                         })
                     }
@@ -265,7 +264,7 @@ fun SettingsScreen(
                         AppLockView()
                     }
                     "change_password" -> {
-                        ChangePasswordView(onBack = { section = "security" })
+                        ChangePasswordView(onBack = { selectSection("security") })
                     }
                     "help_support" -> {
                         HelpSupportView(viewModel)
@@ -278,14 +277,14 @@ fun SettingsScreen(
                     }
                     "merchant_agreement" -> {
                         com.khanabook.lite.pos.feature.onboarding.ui.MerchantAgreementScreen(
-                            onBack = { section = "menu" },
+                            onBack = { selectSection("menu") },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
                     "compliance_documents" -> {
                         com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
-                            onBack = { section = "menu" },
-                            onOpenAgreement = { section = "merchant_agreement" }
+                            onBack = { selectSection("menu") },
+                            onOpenAgreement = { selectSection("merchant_agreement") }
                         )
                     }
                 }

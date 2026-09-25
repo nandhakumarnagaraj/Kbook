@@ -9,10 +9,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
@@ -30,6 +35,7 @@ import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.menu.ui.MenuConfigurationTags
 import com.khanabook.lite.pos.core.theme.*
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private data class PendingManualItemOverwrite(
     val existing: MenuWithVariants,
@@ -71,11 +77,21 @@ fun ManualMenuView(
      * item row shows an upload icon on the right so the owner can set or replace a
      * dish photo without opening the edit dialog.
      */
-    onQuickPhotoUpload: ((Long, android.net.Uri) -> Unit)? = null
+    onQuickPhotoUpload: ((Long, android.net.Uri) -> Unit)? = null,
+    onDeleteItem: ((MenuItemEntity) -> Unit)? = null,
+    onMoveItem: ((MenuItemEntity, Long) -> Unit)? = null,
+    otherCategories: List<CategoryEntity> = emptyList(),
+    onDeleteCategory: ((CategoryEntity) -> Unit)? = null,
+    onAddCategoryWithSort: ((String, Int) -> Unit)? = null,
+    onReorderCategories: ((List<CategoryEntity>) -> Unit)? = null,
+    onToggleCategory: ((CategoryEntity, Boolean) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var showEditCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showDeleteCategoryConfirm by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showManageCategories by remember { mutableStateOf(false) }
+    var showSelectedCategoryMenu by remember { mutableStateOf(false) }
 
     // Quick per-row dish photo upload. Remembers which item the picker was opened
     // for, then hands the picked image to the caller for upload.
@@ -115,62 +131,131 @@ fun ManualMenuView(
         }
 
     Column(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
-        LazyRow(
+        val categoryRowState = rememberLazyListState()
+        val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.small),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                .padding(horizontal = spacing.medium, vertical = spacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            items(categories) { category ->
-                val isSelected = category.id == selectedCategoryId
-                Surface(
-                    onClick = { onCategorySelect(category.id) },
-                    shape = KhanaRadii.md,
-                    color = if (isSelected) PrimaryGold else DarkBrown2,
-                    border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
-                    contentColor = if (isSelected) DarkBrown1 else TextLight
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = spacing.smallMedium, vertical = spacing.small)
-                            .combinedClickable(
-                                onClick = { onCategorySelect(category.id) },
-                                onLongClick = if (canWrite) ({ showEditCategoryDialog = category }) else (null)
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Menu categories",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = selectedCategory?.let {
+                        val itemLabel = if (visibleMenuItems.size == 1) "1 item" else "${visibleMenuItems.size} items"
+                        "${it.name} · $itemLabel"
+                    }
+                        ?: "Select a category",
+                    color = TextGold.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (canWrite) {
+                if (selectedCategory != null) {
+                    Box {
+                        IconButton(onClick = { showSelectedCategoryMenu = true }) {
+                            Icon(Icons.Default.MoreVert, "Actions for ${selectedCategory.name}", tint = TextGold)
+                        }
+                        DropdownMenu(
+                            expanded = showSelectedCategoryMenu,
+                            onDismissRequest = { showSelectedCategoryMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit Category") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null, tint = TextGold) },
+                                onClick = { showSelectedCategoryMenu = false; showEditCategoryDialog = selectedCategory }
+                            )
+                            if (onToggleCategory != null) {
+                                DropdownMenuItem(
+                                    text = { Text(if (selectedCategory.isActive) "Hide from billing" else "Show in billing") },
+                                    leadingIcon = { Icon(if (selectedCategory.isActive) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = TextGold) },
+                                    onClick = {
+                                        showSelectedCategoryMenu = false
+                                        onToggleCategory(selectedCategory, !selectedCategory.isActive)
+                                    }
+                                )
+                            }
+                            if (onDeleteCategory != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Delete Category") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = NonVegRed) },
+                                    onClick = { showSelectedCategoryMenu = false; showDeleteCategoryConfirm = selectedCategory }
+                                )
+                            }
+                            if (onReorderCategories != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Manage Categories") },
+                                    leadingIcon = { Icon(Icons.Default.Tune, null, tint = TextGold) },
+                                    onClick = { showSelectedCategoryMenu = false; showManageCategories = true }
+                                )
+                            }
+                        }
+                    }
+                }
+                KhanaSecondaryButton(
+                    text = "Add Category",
+                    onClick = { showAddCategoryDialog = true },
+                    leadingIcon = Icons.Default.Add,
+                    modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.medium, vertical = spacing.extraSmall)
+        ) {
+            LazyRow(
+                state = categoryRowState,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(categories) { category ->
+                    val isSelected = category.id == selectedCategoryId
+                    Surface(
+                        onClick = { onCategorySelect(category.id) },
+                        shape = KhanaRadii.md,
+                        color = (if (isSelected) PrimaryGold else DarkBrown2)
+                            .copy(alpha = if (category.isActive) 1f else 0.5f),
+                        border = BorderStroke(1.dp, (if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f))
+                            .copy(alpha = if (category.isActive) 1f else 0.5f)),
+                        contentColor = if (isSelected) DarkBrown1 else TextLight
                     ) {
-                        Text(
-                            text = if (isSelected && visibleMenuItems.isNotEmpty()) "${category.name} (${visibleMenuItems.size})" else category.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                        if (isSelected && canWrite) {
-                            Spacer(modifier = Modifier.width(spacing.extraSmall))
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit Category",
-                                modifier = Modifier
-                                    .size(KhanaBookTheme.iconSize.xsmall)
-                                    .clickable { showEditCategoryDialog = category },
-                                tint = DarkBrown1
+                        Row(
+                            modifier = Modifier
+                                .widthIn(max = 220.dp)
+                                .heightIn(min = 36.dp)
+                                .padding(horizontal = spacing.smallMedium, vertical = spacing.small),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
             }
-            if (canWrite) {
-                item {
-                    KhanaSecondaryButton(
-                        text = "Add Category",
-                        onClick = { showAddCategoryDialog = true },
-                        leadingIcon = Icons.Default.Add,
-                        modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
-                    )
-                }
-            }
+            HorizontalChipScrollbar(
+                state = categoryRowState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.small)
+            )
         }
-
         if (categories.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -256,6 +341,9 @@ fun ManualMenuView(
                             canWrite = canWrite,
                             onToggleAvailability = onToggleAvailability,
                             onEditClick = { showEditItemDialog = it },
+                            onDeleteItem = onDeleteItem,
+                            onMoveItem = onMoveItem,
+                            otherCategories = otherCategories,
                             onUploadPhotoClick = if (onQuickPhotoUpload != null) {
                                 {
                                     pendingPhotoItemId = itemWithVariants.menuItem.id
@@ -282,8 +370,8 @@ fun ManualMenuView(
                 ) {
                     if (canWrite) {
                         Text(
-                            "Tap to edit  •  Toggle switch to enable / disable",
-                            color = TextGold.copy(alpha = 0.35f),
+                            "Tap an item to edit · Only available items appear on bills",
+                            color = TextGold.copy(alpha = 0.75f),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center
                         )
@@ -370,6 +458,59 @@ fun ManualMenuView(
         )
     }
 
+    showDeleteCategoryConfirm?.let { cat ->
+        val itemCount = menuItems.count { it.menuItem.categoryId == cat.id }
+        KhanaBookDialog(
+            onDismissRequest = { showDeleteCategoryConfirm = null },
+            title = "Delete Category",
+            message = if (itemCount > 0)
+                "Delete \"${cat.name}\" and all $itemCount item(s) inside it? This cannot be undone."
+            else
+                "Delete \"${cat.name}\"? This cannot be undone."
+        ) {
+            TextButton(onClick = { showDeleteCategoryConfirm = null }) {
+                Text("Cancel", color = TextGold)
+            }
+            TextButton(
+                onClick = {
+                    showDeleteCategoryConfirm?.let { onDeleteCategory?.invoke(it) }
+                    showDeleteCategoryConfirm = null
+                }
+            ) {
+                Text("Delete", color = NonVegRed)
+            }
+        }
+    }
+
+    if (showManageCategories && canWrite) {
+        ManageCategoriesDialog(
+            categories = categories,
+            itemCounts = menuItems.groupBy { it.menuItem.categoryId }.mapValues { it.value.size },
+            canWrite = canWrite,
+            onAddCategory = { name, sortOrder ->
+                if (onAddCategoryWithSort != null) {
+                    onAddCategoryWithSort(name, sortOrder)
+                } else {
+                    onAddCategory(name)
+                }
+                showManageCategories = false
+            },
+            onRenameCategory = { category ->
+                showManageCategories = false
+                showEditCategoryDialog = category
+            },
+            onDeleteCategory = { category ->
+                showManageCategories = false
+                showDeleteCategoryConfirm = category
+            },
+            onReorderCategories = { ordered ->
+                onReorderCategories?.invoke(ordered)
+                showManageCategories = false
+            },
+            onDismiss = { showManageCategories = false }
+        )
+    }
+
     // Item Dialogs
     if (showAddItemDialog) {
         ItemEditDialog(
@@ -439,10 +580,16 @@ fun MenuItemRow(
     canWrite: Boolean = true,
     onToggleAvailability: (Long, Boolean) -> Unit,
     onEditClick: (MenuWithVariants) -> Unit,
-    onUploadPhotoClick: (() -> Unit)? = null
+    onUploadPhotoClick: (() -> Unit)? = null,
+    onDeleteItem: ((MenuItemEntity) -> Unit)? = null,
+    onMoveItem: ((MenuItemEntity, Long) -> Unit)? = null,
+    otherCategories: List<CategoryEntity> = emptyList()
 ) {
     val item = itemWithVariants.menuItem
     val variants = itemWithVariants.variants
+    var moreMenuExpanded by remember { mutableStateOf(false) }
+    var showMoveCategoryDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -487,13 +634,13 @@ fun MenuItemRow(
                 if (variants.isNotEmpty()) {
                     Text(
                         text = "${variants.size} variants • Starts from ₹${variants.minOf { it.price.toDoubleOrNull() ?: 0.0 }.toInt()}",
-                        color = TextGold.copy(alpha = 0.6f),
+                        color = TextGold,
                         style = MaterialTheme.typography.labelSmall
                     )
                 } else {
                     Text(
                         text = "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}",
-                        color = TextGold.copy(alpha = 0.6f),
+                        color = TextGold,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -503,40 +650,74 @@ fun MenuItemRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
                 ) {
-                    KhanaBookSwitch(
-                        checked = item.isAvailable,
-                        onCheckedChange = { onToggleAvailability(item.id, it) },
-                        checkedTrackColor = PrimaryGold,
-                        checkedThumbColor = BrownSelected
-                    )
-                    if (onUploadPhotoClick != null) {
-                        val hasPhoto = !item.imageUrl.isNullOrBlank()
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .width(KhanaBookTheme.spacing.extraLarge * 2)
-                                .clip(KhanaRadii.sm)
-                                .clickable(onClick = onUploadPhotoClick)
-                                .padding(
-                                    horizontal = KhanaBookTheme.spacing.extraSmall,
-                                    vertical = KhanaBookTheme.spacing.hairline
-                                )
-                        ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Switch(
+                            checked = item.isAvailable,
+                            onCheckedChange = { onToggleAvailability(item.id, it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = BrownSelected,
+                                checkedTrackColor = PrimaryGold,
+                                checkedBorderColor = PrimaryGold,
+                                uncheckedThumbColor = TextLight,
+                                uncheckedTrackColor = DarkBrown1,
+                                uncheckedBorderColor = BorderGold
+                            )
+                        )
+                        Text(
+                            text = if (item.isAvailable) "Available" else "Unavailable",
+                            color = if (item.isAvailable) VegGreen else NonVegRed,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    if (onUploadPhotoClick != null && item.imageUrl.isNullOrBlank()) {
+                        IconButton(onClick = onUploadPhotoClick) {
                             Icon(
                                 imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = if (hasPhoto)
-                                    "Change photo for ${item.name}"
-                                else
-                                    "Upload photo for ${item.name}",
-                                tint = PrimaryGold.copy(alpha = 0.85f),
-                                modifier = Modifier.size(20.dp)
+                                contentDescription = "Upload photo for ${item.name}",
+                                tint = PrimaryGold.copy(alpha = 0.85f)
                             )
-                            Text(
-                                text = "Add Photo",
-                                color = TextGold,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { moreMenuExpanded = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More actions for ${item.name}",
+                                tint = TextGold
                             )
+                        }
+                        DropdownMenu(
+                            expanded = moreMenuExpanded,
+                            onDismissRequest = { moreMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null, tint = TextGold) },
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onEditClick(itemWithVariants)
+                                }
+                            )
+                            if (otherCategories.isNotEmpty() && onMoveItem != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Move to Category") },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, null, tint = TextGold) },
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        showMoveCategoryDialog = true
+                                    }
+                                )
+                            }
+                            if (onDeleteItem != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = NonVegRed) },
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        showDeleteConfirmDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -545,14 +726,102 @@ fun MenuItemRow(
                     shape = KhanaRadii.pill,
                     color = if (item.isAvailable) VegGreen.copy(alpha = 0.15f) else NonVegRed.copy(alpha = 0.15f)
                 ) {
-                    Text(
-                        text = if (item.isAvailable) "Available" else "Unavailable",
-                        color = if (item.isAvailable) VegGreen else NonVegRed,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = KhanaBookTheme.spacing.small, vertical = KhanaBookTheme.spacing.extraSmall)
-                    )
+Text(
+                    text = if (item.isAvailable) "Available" else "Unavailable",
+                    color = if (item.isAvailable) VegGreen else NonVegRed,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = KhanaBookTheme.spacing.small, vertical = KhanaBookTheme.spacing.extraSmall)
+                )
                 }
             }
+        }
+    }
+
+    if (showMoveCategoryDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showMoveCategoryDialog = false },
+            title = "Move to Category",
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    otherCategories.forEach { category ->
+                        TextButton(
+                            onClick = {
+                                onMoveItem?.invoke(item, category.id)
+                                showMoveCategoryDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(category.name, color = TextLight)
+                        }
+                    }
+                }
+            }
+        ) {
+            TextButton(onClick = { showMoveCategoryDialog = false }) {
+                Text("Cancel", color = TextGold)
+            }
+        }
+    }
+
+    if (showDeleteConfirmDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = "Delete Item",
+            message = "Remove \"${item.name}\" from the menu? This cannot be undone."
+        ) {
+            TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                Text("Cancel", color = TextGold)
+            }
+            TextButton(onClick = {
+                onDeleteItem?.invoke(item)
+                showDeleteConfirmDialog = false
+            }) {
+                Text("Delete", color = NonVegRed)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HorizontalChipScrollbar(
+    state: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    val layoutInfo = state.layoutInfo
+    val viewport = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).coerceAtLeast(0)
+    val items = layoutInfo.visibleItemsInfo
+    val firstStart = items.firstOrNull()?.offset ?: 0
+    val lastEnd = items.lastOrNull()?.let { it.offset + it.size } ?: viewport
+    val seenCount = items.size.coerceAtLeast(1)
+    val avgItemExtent = if (seenCount > 1) {
+        ((lastEnd - firstStart) / seenCount.toFloat()).coerceAtLeast(0f)
+    } else {
+        0f
+    }
+    val totalItems = layoutInfo.totalItemsCount.coerceAtLeast(1)
+    val contentLength = (avgItemExtent * totalItems).coerceAtLeast(viewport.toFloat())
+    val scrollRange = contentLength - viewport
+    val isScrollable = scrollRange > 1f
+
+    Box(
+        modifier = modifier
+            .height(3.dp)
+            .clip(CircleShape)
+            .background(BorderGold.copy(alpha = 0.18f))
+    ) {
+        if (isScrollable) {
+            val thumbFraction = (viewport.toFloat() / contentLength).coerceIn(0.12f, 1f)
+            val travel = 1f - thumbFraction
+            val scrollFraction = (layoutInfo.viewportStartOffset.toFloat() / scrollRange).coerceIn(0f, 1f)
+            val fullWidth = layoutInfo.viewportSize.width
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(thumbFraction)
+                    .offset { IntOffset((fullWidth * travel * scrollFraction).roundToInt(), 0) }
+                    .clip(CircleShape)
+                    .background(PrimaryGold.copy(alpha = 0.85f))
+            )
         }
     }
 }

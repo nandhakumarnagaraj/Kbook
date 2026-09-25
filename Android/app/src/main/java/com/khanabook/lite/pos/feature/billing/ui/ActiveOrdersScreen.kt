@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -119,30 +120,35 @@ fun ActiveOrdersScreen(
             )
         }
     ) { paddingValues ->
-        com.khanabook.lite.pos.core.designsystem.ListLayout(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
                 .horizontalNavigationSwipe(onSwipeRight = onBack),
-            isEmpty = activeRows.isEmpty(),
-            emptyState = { EmptyActiveOrders() }
+            contentAlignment = Alignment.TopCenter
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            com.khanabook.lite.pos.core.designsystem.ListLayout(
+                modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp),
+                isEmpty = activeRows.isEmpty(),
+                emptyState = { EmptyActiveOrders() }
             ) {
-                items(activeRows, key = { it.bill.id }) { row ->
-                        ActiveOrderCard(
-                            row = row,
-                            onOpen = { onOpenActiveOrder(row.bill.id) },
-                            onPayment = { onCollectPayment(row.bill.id) },
-                            onMoreActions = { onOpenActiveOrder(row.bill.id) }
-                        )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    items(activeRows, key = { it.bill.id }) { row ->
+                            ActiveOrderCard(
+                                row = row,
+                                onOpen = { onOpenActiveOrder(row.bill.id) },
+                                onPayment = { onCollectPayment(row.bill.id) },
+                                onMoreActions = { onOpenActiveOrder(row.bill.id) }
+                            )
+                        }
+                    item {
+                        Spacer(modifier = Modifier.height(spacing.bottomListPadding))
                     }
-                item {
-                    Spacer(modifier = Modifier.height(spacing.bottomListPadding))
                 }
             }
         }

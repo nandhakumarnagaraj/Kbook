@@ -60,6 +60,7 @@ fun CallCustomerScreen(
     val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
 
     fun submitDailySearch() {
         if (dailyId.isBlank() || dailyDate.isBlank()) return
@@ -133,16 +134,22 @@ fun CallCustomerScreen(
                 )
             }
     ) { padding ->
-        Column(
+        Box(
                 modifier =
                         Modifier.padding(padding)
                                 .consumeWindowInsets(padding)
                                 .fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                                 .horizontalNavigationSwipe(onSwipeRight = onBack)
-                                .imePadding()
-                                .padding(spacing.large)
+                                .imePadding(),
+                contentAlignment = Alignment.TopCenter
         ) {
+          Column(
+                  modifier = Modifier
+                          .fillMaxSize()
+                          .widthIn(max = layout.maxContentWidth)
+                          .padding(spacing.large)
+          ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
               Column {
             TabRow(
@@ -367,6 +374,7 @@ fun CallCustomerScreen(
                 }
               } // end Column
             } // end AnimatedVisibility body
+        }
         }
     }
 }

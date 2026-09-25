@@ -63,6 +63,7 @@ fun ReprintKdsScreen(
     val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -114,6 +115,8 @@ fun ReprintKdsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .align(Alignment.TopCenter)
                 .statusBarsPadding()
         ) {
             // Header

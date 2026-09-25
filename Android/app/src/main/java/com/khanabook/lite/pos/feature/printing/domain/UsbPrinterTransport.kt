@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.feature.printing.domain
 
 import android.app.PendingIntent
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -13,9 +14,15 @@ import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.util.Log
+import android.net.Uri
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -85,7 +92,7 @@ class UsbPrinterTransport @Inject constructor(
     private val sessions = ConcurrentHashMap<String, UsbSession>()
 
     /** Emitted when a permission reply arrives; suspenders resume on it. */
-    private val permissionReplies = ConcurrentHashMap<String, (Boolean) -> Unit>()
+    private val permissionReplies = ConcurrentHashMap<Int, (Boolean) -> Unit>()
 
     private val permissionReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -98,7 +105,7 @@ class UsbPrinterTransport @Inject constructor(
             }
             val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
             if (device != null) {
-                permissionReplies.remove(deviceKey(device))?.invoke(granted)
+                permissionReplies.remove(device.deviceId)?.invoke(granted)
             }
         }
     }
@@ -131,11 +138,12 @@ class UsbPrinterTransport @Inject constructor(
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private fun ensureReceiverRegistered() {
         if (receiverRegistered) return
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(permissionReceiver, filter, Context.RECEIVER_EXPORTED)
+            context.registerReceiver(permissionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("DEPRECATION")
             context.registerReceiver(permissionReceiver, filter)
@@ -194,21 +202,36 @@ class UsbPrinterTransport @Inject constructor(
         if (manager.hasPermission(device)) return true
         ensureReceiverRegistered()
         return withTimeoutOrNull(PERMISSION_REPLY_TIMEOUT_MS) {
-            suspendCancellableCoroutine { cont ->
-                val key = deviceKey(device)
-                permissionReplies[key] = { granted ->
-                    if (cont.isActive) cont.resume(granted)
-                }
-                val pi = PendingIntent.getBroadcast(
+            coroutineScope {
+                val requestId = device.deviceId
+                val reply = CompletableDeferred<Boolean>()
+                permissionReplies[requestId] = { granted -> reply.complete(granted) }
+                val permissionIntent = PendingIntent.getBroadcast(
                     context,
-                    key.hashCode(),
-                    Intent(ACTION_USB_PERMISSION).setPackage(context.packageName),
-                    PendingIntent.FLAG_IMMUTABLE
+                    requestId,
+                    Intent(ACTION_USB_PERMISSION)
+                        .setPackage(context.packageName)
+                        .setData(Uri.parse("${context.packageName}://usb-permission/$requestId")),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
-                manager.requestPermission(device, pi)
-                cont.invokeOnCancellation { permissionReplies.remove(key) }
+                val permissionPoll = async(Dispatchers.IO) {
+                    while (isActive && !reply.isCompleted) {
+                        if (manager.hasPermission(device)) {
+                            reply.complete(true)
+                            break
+                        }
+                        delay(100)
+                    }
+                }
+                try {
+                    manager.requestPermission(device, permissionIntent)
+                    reply.await()
+                } finally {
+                    permissionPoll.cancel()
+                    permissionReplies.remove(requestId)
+                }
             }
-        } ?: false
+        } ?: manager.hasPermission(device)
     }
 
     /** Finds an attached device by our "usb:vid:pid[:serial]" key. */

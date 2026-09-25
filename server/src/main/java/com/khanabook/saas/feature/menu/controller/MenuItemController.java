@@ -49,6 +49,13 @@ public class MenuItemController {
 		return ResponseEntity.ok().build();
 	}
 
+	@PutMapping("/{menuItemId}/available")
+	public ResponseEntity<Void> markAsAvailable(@PathVariable Long menuItemId) {
+		SyncPushGuard.requireMasterDataWriter();
+		service.markItemAsAvailable(TenantContext.getCurrentTenant(), menuItemId);
+		return ResponseEntity.ok().build();
+	}
+
 	@PutMapping("/unavailable/all")
 	public ResponseEntity<Void> markAllAsUnavailable() {
 		SyncPushGuard.requireMasterDataWriter();

@@ -4,6 +4,7 @@ package com.khanabook.lite.pos.core.navigation
 import com.khanabook.lite.pos.feature.notifications.ui.NotificationsScreen
 import com.khanabook.lite.pos.feature.settings.ui.QuickStartScreen
 import com.khanabook.lite.pos.feature.staff.ui.StaffPermissionScreen
+import com.khanabook.lite.pos.feature.printing.ui.KitchenDisplayScreen
 import com.khanabook.lite.pos.feature.printing.ui.ReprintKdsScreen
 import com.khanabook.lite.pos.feature.sync.ui.InitialSyncScreen
 import com.khanabook.lite.pos.feature.auth.ui.AppLockScreen
@@ -335,6 +336,12 @@ internal fun AppNavGraph(
         }
         composable(Routes.REPRINT_KDS) {
             ReprintKdsScreen(
+                onBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(Routes.KITCHEN_DISPLAY) {
+            KitchenDisplayScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )

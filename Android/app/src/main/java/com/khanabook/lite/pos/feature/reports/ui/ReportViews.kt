@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.animateColorAsState
@@ -280,6 +281,7 @@ fun OrderLevelView(
     rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
     onStatusChange: (Long, String) -> Unit = { _, _ -> },
     onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
     onRequestCancel: (Long) -> Unit = {},
@@ -289,7 +291,7 @@ fun OrderLevelView(
     val invoiceHeader = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
 
-        Row(
+        if (!compactLayout) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium)
@@ -331,6 +333,7 @@ fun OrderLevelView(
                         row = row,
                         profile = profile,
                         enabledModes = enabledModes,
+                        compactLayout = compactLayout,
                         onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
                         onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
                         onRequestCancel = { onRequestCancel(row.billId) },
@@ -347,6 +350,7 @@ fun OrderRowItem(
     row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
     onStatusChange: (String) -> Unit = {},
     onPayModeChange: (PaymentMode) -> Unit = {},
     onRequestCancel: () -> Unit = {},
@@ -364,23 +368,49 @@ fun OrderRowItem(
         colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
         shape = KhanaRadii.sm
     ) {
+        if (compactLayout) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Order ${row.dailyId}",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    row.invoiceDisplay,
+                    modifier = Modifier.weight(1f),
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TableCell(row.dailyId, COL_ORDER)
+            if (!compactLayout) TableCell(row.dailyId, COL_ORDER)
 
-            TableCell(
-                row.invoiceDisplay,
-                COL_INVOICE,
-                fontWeight = FontWeight.Bold,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
+            if (!compactLayout) {
+                TableCell(
+                    row.invoiceDisplay,
+                    COL_INVOICE,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                )
+            }
 
             // Mode dropdown
-            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_MODE), contentAlignment = Alignment.Center) {
                 val modeColor = if (!canEdit) Color.Gray else getPayModeColor(row.paymentMode)
                 Surface(
                     onClick = { if (canEdit) payModeExpanded = true },
@@ -412,7 +442,7 @@ fun OrderRowItem(
             }
 
             // Status dropdown
-            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_STATUS), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
@@ -464,7 +494,7 @@ fun OrderRowItem(
             }
 
             // Action (View)
-            Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = { onViewDetails(row.billId) },
                     color = Color.Transparent,

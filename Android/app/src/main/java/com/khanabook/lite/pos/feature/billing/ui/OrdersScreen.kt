@@ -77,6 +77,7 @@ fun OrdersScreen(
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     var detailCancelBillId by remember { mutableStateOf<Long?>(null) }
     var cancelBillId by remember { mutableStateOf<Long?>(null) }
@@ -152,6 +153,8 @@ fun OrdersScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .align(Alignment.TopCenter)
                 .padding(bottom = spacing.small)
         ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
@@ -203,12 +206,13 @@ fun OrdersScreen(
                         .fillMaxSize()
                         .padding(horizontal = spacing.medium)
                 ) {
-                    TableHeader(isGstEnabled = isGstEnabled)
+                    val useTableLayout = layout.isWideListDetail
+                    if (useTableLayout) TableHeader(isGstEnabled = isGstEnabled)
 
                     if (isLoading) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             repeat(10) {
-                                SkeletonTableRow(columns = 5)
+                                SkeletonTableRow(columns = if (useTableLayout) 5 else 2)
                                 Spacer(modifier = Modifier.height(spacing.hairline))
                             }
                         }
@@ -243,6 +247,7 @@ fun OrdersScreen(
                                 OrderTableRow(
                                     row = row,
                                     enabledModes = enabledModes,
+                                    compactLayout = !useTableLayout,
                                     isHighlighted = row.billId == highlightedBillId,
                                     onClick = {
                                         selectedBillId = row.billId

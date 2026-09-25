@@ -44,6 +44,10 @@ public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 	int markAsUnavailable(@Param("id") Long id, @Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("UPDATE MenuItem m SET m.isAvailable = true, m.updatedAt = :updatedAt WHERE m.id = :id AND m.restaurantId = :restaurantId AND m.isDeleted = false")
+	int markAsAvailable(@Param("id") Long id, @Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("UPDATE MenuItem m SET m.isAvailable = false, m.updatedAt = :updatedAt WHERE m.restaurantId = :restaurantId AND m.isAvailable = true AND m.isDeleted = false")
 	int markAllAsUnavailable(@Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
 }

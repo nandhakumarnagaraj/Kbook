@@ -82,6 +82,7 @@ fun SearchScreen(
     val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val layout = KhanaBookTheme.layout
     val notFoundMessage = if (title.contains("Status", ignoreCase = true)) {
         "No orders found"
     } else {
@@ -174,16 +175,22 @@ fun SearchScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
                 .horizontalNavigationSwipe(onSwipeRight = onBack)
-                .imePadding()
-                .padding(horizontal = spacing.medium, vertical = spacing.medium)
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
+          Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .padding(horizontal = spacing.medium, vertical = spacing.medium)
+          ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
               Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
@@ -518,6 +525,7 @@ fun SearchScreen(
               } // end inner Column
               } // end AnimatedVisibility body
          }
+        }
      }
  }
 

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data access for immutable KOT events (PLAN §6).
@@ -44,6 +45,17 @@ interface KotEventDao {
 
     @Query("UPDATE kot_events SET is_printed = 1 WHERE public_token = :publicToken AND is_printed = 0")
     suspend fun markUnprintedEventsPrinted(publicToken: String): Int
+
+    @Query(
+        "SELECT * FROM kot_events WHERE public_token = :publicToken AND is_printed = 0 ORDER BY CAST(kot_revision AS INTEGER) ASC"
+    )
+    suspend fun getUnprintedEventsForBill(publicToken: String): List<KotEventEntity>
+
+    /** Observe pending KOT events; Room emits again when tickets are inserted or acknowledged. */
+    @Query(
+        "SELECT * FROM kot_events WHERE is_printed = 0 ORDER BY created_at ASC, CAST(kot_revision AS INTEGER) ASC"
+    )
+    fun observeUnprintedEvents(): Flow<List<KotEventEntity>>
 
     @Query(
         "SELECT * FROM kot_events WHERE public_token = :publicToken AND kot_revision = :kotRevision LIMIT 1"

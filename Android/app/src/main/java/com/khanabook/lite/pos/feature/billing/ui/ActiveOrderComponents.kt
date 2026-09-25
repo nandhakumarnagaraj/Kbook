@@ -187,7 +187,7 @@ fun CompactMenuSection(
     menuViewModel: MenuViewModel,
     billingViewModel: BillingViewModel
 ) {
-    val categories by menuViewModel.categories.collectAsStateWithLifecycle()
+    val categories by menuViewModel.activeCategories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
@@ -200,7 +200,8 @@ fun CompactMenuSection(
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
 
     LaunchedEffect(categories) {
-        if (selectedCategoryId == null && categories.isNotEmpty()) {
+        val current = selectedCategoryId
+        if (categories.isNotEmpty() && (current == null || categories.none { it.id == current })) {
             menuViewModel.selectCategory(categories.first().id)
         }
     }

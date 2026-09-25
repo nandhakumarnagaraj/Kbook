@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +30,7 @@ fun NotificationsScreen(
     modifier: Modifier = Modifier,
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
+    val layout = KhanaBookTheme.layout
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
     val unreadCount by viewModel.unreadCount.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -64,6 +66,8 @@ fun NotificationsScreen(
                 onRefresh = { viewModel.refreshFromServer() },
                 modifier = Modifier
                     .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .align(Alignment.CenterHorizontally)
                     .padding(bottom = KhanaBookTheme.spacing.large)
             )
         }

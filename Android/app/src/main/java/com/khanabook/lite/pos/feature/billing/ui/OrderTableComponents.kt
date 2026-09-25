@@ -73,6 +73,7 @@ fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
     isHighlighted: Boolean = false,
+    compactLayout: Boolean = false,
     onClick: () -> Unit,
     onShare: () -> Unit,
     onShareText: () -> Unit,
@@ -115,23 +116,62 @@ fun OrderTableRow(
                 }
             )
     ) {
+        if (compactLayout) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium, vertical = spacing.small),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                Text(
+                    text = "Order ${row.dailyNo}",
+                    color = if (isCancelled) TextLight.copy(alpha = 0.45f) else PrimaryGold,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(0.8f)
+                )
+                Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = row.invoiceDisplay,
+                        color = if (isCancelled) TextLight.copy(alpha = 0.45f) else TextLight,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = DateUtils.formatTableDate(row.salesDate),
+                        color = TextMuted,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
+                .padding(
+                    horizontal = if (compactLayout) spacing.medium else spacing.extraSmall,
+                    vertical = if (compactLayout) spacing.extraSmall else spacing.small
+                ),
+            horizontalArrangement = if (compactLayout) Arrangement.spacedBy(spacing.small) else Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TableCell(
-                row.dailyNo, COL_ORDER,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
-            TableCell(
-                row.invoiceDisplay, COL_INVOICE,
-                fontWeight = FontWeight.Bold,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
+            if (!compactLayout) {
+                TableCell(
+                    row.dailyNo, COL_ORDER,
+                    color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                )
+                TableCell(
+                    row.invoiceDisplay, COL_INVOICE,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                )
+            }
 
-            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_MODE), contentAlignment = if (compactLayout) Alignment.CenterStart else Alignment.Center) {
                 val color = if (!canEdit) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (canEdit) payModeExpanded = true },
@@ -163,7 +203,7 @@ fun OrderTableRow(
                 }
             }
 
-            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_STATUS), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
@@ -215,12 +255,14 @@ fun OrderTableRow(
                 }
             }
 
-            TableCell(
-                DateUtils.formatTableDate(row.salesDate),
-                COL_DATE,
-                fontSize = 11.sp,
-                maxLines = 2
-            )
+            if (!compactLayout) {
+                TableCell(
+                    DateUtils.formatTableDate(row.salesDate),
+                    COL_DATE,
+                    fontSize = 11.sp,
+                    maxLines = 2
+                )
+            }
         }
 
         if (isCancelled && row.cancelReason.isNotBlank()) {

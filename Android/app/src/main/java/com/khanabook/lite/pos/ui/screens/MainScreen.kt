@@ -6,13 +6,14 @@ import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.billing.ui.OrdersScreen
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -71,6 +72,13 @@ fun MainScreen(
 ) {
     val visibleTabs = remember { NavigationUtils.getVisibleTabs() }
     val haptic = LocalHapticFeedback.current
+    val layout = KhanaBookTheme.layout
+    val typeScale = KhanaBookTheme.typeScale
+    val navigationSuiteType = if (layout.screenWidthDp >= 600) {
+        NavigationSuiteType.NavigationRail
+    } else {
+        NavigationSuiteType.NavigationBar
+    }
 
     var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
@@ -82,6 +90,9 @@ fun MainScreen(
         mutableIntStateOf(initialVisibleIndex) 
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
+    var settingsSection by rememberSaveable(initialSettingsSection) {
+        mutableStateOf(initialSettingsSection ?: "menu")
+    }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
     val moveToTab: (Int) -> Unit = { index ->
         val target = index.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
@@ -142,7 +153,8 @@ fun MainScreen(
                 "Settings", "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
-                    initialSection = initialSettingsSection ?: "menu",
+                    initialSection = settingsSection,
+                    onSectionChanged = { settingsSection = it },
                     onScanClick = onScanClick,
                     menuViewModel = menuViewModel,
                     onBottomBarVisibilityChange = { visible -> showBottomBar = visible }
@@ -151,28 +163,39 @@ fun MainScreen(
         }
     }
 
-    Scaffold(
-        // Opt out of automatic inset injection — safeDrawing can include gesture zones and
-        // display cutouts that exceed the bottomBar height on Android 16, causing double-counting.
-        // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
-        // handle all insets explicitly instead.
-        contentWindowInsets = WindowInsets(0),
-        containerColor = DarkBrown1,
-        bottomBar = {
-            if (showBottomBar) {
-                AppBottomBar(
-                    visibleTabs = visibleTabs,
-                    currentSelectedIndex = safeSelectedTabIndex,
-                    onTabSelected = moveToTab
-                )
-            }
-        }
-    ) { padding ->
+    val unselectedNavColor = TextLight.copy(alpha = 0.6f)
+    val suiteItemColors = NavigationSuiteDefaults.itemColors(
+        navigationBarItemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = PrimaryGold,
+            unselectedIconColor = unselectedNavColor,
+            selectedTextColor = PrimaryGold,
+            unselectedTextColor = unselectedNavColor,
+            indicatorColor = PrimaryGold.copy(alpha = 0.1f)
+        ),
+        navigationRailItemColors = NavigationRailItemDefaults.colors(
+            selectedIconColor = PrimaryGold,
+            unselectedIconColor = unselectedNavColor,
+            selectedTextColor = PrimaryGold,
+            unselectedTextColor = unselectedNavColor,
+            indicatorColor = PrimaryGold.copy(alpha = 0.1f)
+        )
+    )
+    val navIconSize = when (typeScale) {
+        TypeScaleTier.Tablet -> 28.dp
+        TypeScaleTier.LargePhone -> 26.dp
+        else -> 24.dp
+    }
+    val navLabelStyle = when (typeScale) {
+        TypeScaleTier.Tablet -> MaterialTheme.typography.labelMedium
+        else -> MaterialTheme.typography.labelSmall
+    }
+
+    val mainContent: @Composable () -> Unit = {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp)
+                .then(if (!showBottomBar) Modifier.navigationBarsPadding() else Modifier)
                 .horizontalNavigationSwipe(
                     enabled = showBottomBar && visibleTabs.size > 1,
                     onSwipeLeft = { moveToTab(safeSelectedTabIndex + 1) },
@@ -181,6 +204,38 @@ fun MainScreen(
         ) {
             content(Modifier.fillMaxSize())
         }
+    }
+
+    if (showBottomBar) {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                visibleTabs.forEachIndexed { index, item ->
+                    this.item(
+                        selected = safeSelectedTabIndex == index,
+                        onClick = { moveToTab(index) },
+                        icon = {
+                            AnimatedTabIcon(
+                                item = item,
+                                selected = safeSelectedTabIndex == index,
+                                size = navIconSize
+                            )
+                        },
+                        label = { Text(item.label, style = navLabelStyle) },
+                        alwaysShowLabel = true,
+                        colors = suiteItemColors
+                    )
+                }
+            },
+            layoutType = navigationSuiteType,
+            navigationSuiteColors = NavigationSuiteDefaults.colors(
+                navigationBarContainerColor = DarkBrown1,
+                navigationRailContainerColor = DarkBrown1
+            ),
+            containerColor = DarkBrown1,
+            content = mainContent
+        )
+    } else {
+        mainContent()
     }
 }
 

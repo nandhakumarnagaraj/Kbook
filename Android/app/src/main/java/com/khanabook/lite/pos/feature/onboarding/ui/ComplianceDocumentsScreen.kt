@@ -50,6 +50,7 @@ fun ComplianceDocumentsScreen(
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     val vm: EasebuzzOnboardingViewModel = hiltViewModel()
     val settingsVm: SettingsViewModel = hiltViewModel()
@@ -121,13 +122,18 @@ fun ComplianceDocumentsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = spacing.medium)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScroll(rememberScrollState())
+                .padding(top = spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,6 +289,7 @@ fun ComplianceDocumentsScreen(
             }
 
             Spacer(Modifier.height(spacing.large))
+        }
         }
     }
 }

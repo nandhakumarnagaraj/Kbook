@@ -49,7 +49,13 @@ import com.khanabook.lite.pos.core.theme.TextLight
 import java.text.SimpleDateFormat
 
 @Composable
-fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTimestamp: Long = 0L) {
+fun ProfileCard(
+    user: UserEntity?,
+    profile: RestaurantProfileEntity?,
+    lastSyncTimestamp: Long = 0L,
+    /** When supplied, the whole card is tappable (restaurant/account profile) and a chevron is shown. */
+    onClick: (() -> Unit)? = null
+) {
     val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
     // Show the signed-in person's OWN number here (this is the account line), not the
     // shared restaurant/shop contact number, which is configured separately.
@@ -65,6 +71,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
 
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = CardBG),
         shape = KhanaRadii.xl
     ) {
@@ -89,6 +96,14 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
                     Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
                 Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+            }
+            if (onClick != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open restaurant profile",
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+                )
             }
         }
     }

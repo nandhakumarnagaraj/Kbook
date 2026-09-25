@@ -6,7 +6,9 @@ import com.khanabook.lite.pos.core.theme.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -118,14 +120,16 @@ fun HomeScreen(
                 .fillMaxSize()
                 .widthIn(max = layout.maxContentWidth)
                 .align(Alignment.TopCenter)
+                .then(if (layout.compactHomeHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(
                     horizontal = layout.contentPadding,
                     vertical = if (layout.compactHomeHeight && layout.isLandscape) spacing.extraSmall else sectionSpacing
                 ),
             // Distribute leftover height across section gaps — never stretches cards —
             // but cap each gap so tall windows get rhythm, not 170dp voids.
-            verticalArrangement = remember(sectionSpacing, layout.maxSectionGap) {
-                BoundedVerticalSpaceBetween(sectionSpacing, layout.maxSectionGap)
+            verticalArrangement = remember(sectionSpacing, layout.maxSectionGap, layout.compactHomeHeight) {
+                if (layout.compactHomeHeight) Arrangement.spacedBy(sectionSpacing)
+                else BoundedVerticalSpaceBetween(sectionSpacing, layout.maxSectionGap)
             }
         ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
@@ -470,17 +474,24 @@ fun HomeScreen(
                                 }
                             }
                         }
-                        Column(
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
+                            maxItemsInEachRow = layout.homeActionColumns,
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small),
                             verticalArrangement = Arrangement.spacedBy(spacing.small)
                         ) {
+                            val actionModifier = if (layout.homeActionColumns > 1) {
+                                Modifier.weight(1f)
+                            } else {
+                                Modifier.fillMaxWidth()
+                            }
                             if (showActiveOrders) {
                                 HomeActionCard(
                                     text = "Active Orders",
                                     subtitle = activeSubtitle,
                                     icon = Icons.Default.ShoppingCart,
                                     backgroundColor = CardBG,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = actionModifier,
                                     onClick = {
                                         if (activeDraftBills.isEmpty()) {
                                             coroutineScope.launch {
@@ -497,7 +508,7 @@ fun HomeScreen(
                                 subtitle = "Search previous invoices",
                                 icon = Icons.Default.Search,
                                 backgroundColor = CardBG,
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = actionModifier,
                                 onClick = onSearchBill
                             )
                             HomeActionCard(
@@ -505,7 +516,7 @@ fun HomeScreen(
                                 subtitle = "Kitchen ticket",
                                 icon = Icons.Default.Restaurant,
                                 backgroundColor = CardBG,
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = actionModifier,
                                 onClick = onReprintKds
                             )
                             if (!quickModeEnabled) {
@@ -514,7 +525,7 @@ fun HomeScreen(
                                     subtitle = "Dial from saved customers",
                                     icon = Icons.Default.Call,
                                     backgroundColor = CardBG,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = actionModifier,
                                     onClick = onCallCustomer
                                 )
                             }

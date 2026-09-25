@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -131,6 +132,7 @@ fun MerchantAgreementScreen(
     }
 
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     Scaffold(
         containerColor = DarkBrown1,
@@ -157,14 +159,18 @@ fun MerchantAgreementScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = spacing.large, vertical = spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        Box(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = spacing.large, vertical = spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            ) {
             when (val state = uiState) {
                 is AgreementUiState.Loading -> {
                     Box(
@@ -315,6 +321,7 @@ fun MerchantAgreementScreen(
                     }
                 }
             }
+        }
         }
     }
 }

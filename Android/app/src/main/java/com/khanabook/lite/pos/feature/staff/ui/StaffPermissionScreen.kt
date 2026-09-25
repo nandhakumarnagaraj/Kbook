@@ -33,6 +33,7 @@ fun StaffPermissionScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     // Non-fatal action feedback (success/failure) is surfaced as a one-shot toast.
     LaunchedEffect(Unit) {
@@ -62,7 +63,10 @@ fun StaffPermissionScreen(
             var applyTemplate by remember { mutableStateOf<RoleTemplateDto?>(null) }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .align(Alignment.CenterHorizontally),
                 contentPadding = PaddingValues(spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {

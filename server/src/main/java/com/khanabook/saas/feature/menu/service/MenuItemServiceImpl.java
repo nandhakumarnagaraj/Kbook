@@ -205,6 +205,17 @@ public class MenuItemServiceImpl implements MenuItemService {
 
 	@Override
 	@Transactional
+	public void markItemAsAvailable(Long tenantId, Long menuItemId) {
+		long now = System.currentTimeMillis();
+		int updated = repository.markAsAvailable(menuItemId, tenantId, now);
+		if (updated == 0) {
+			throw new IllegalArgumentException("Menu item not found or deleted");
+		}
+		pushNotificationService.pushSyncNow(tenantId);
+	}
+
+	@Override
+	@Transactional
 	public void markAllItemsAsUnavailable(Long tenantId) {
 		long now = System.currentTimeMillis();
 		repository.markAllAsUnavailable(tenantId, now);

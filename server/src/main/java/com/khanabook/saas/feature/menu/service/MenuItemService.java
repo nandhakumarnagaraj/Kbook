@@ -11,6 +11,7 @@ public interface MenuItemService {
 	List<MenuItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 
 	void markItemAsUnavailable(Long tenantId, Long menuItemId);
+	void markItemAsAvailable(Long tenantId, Long menuItemId);
 
 	void markAllItemsAsUnavailable(Long tenantId);
 

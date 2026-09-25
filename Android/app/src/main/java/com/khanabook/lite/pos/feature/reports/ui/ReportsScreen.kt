@@ -55,6 +55,7 @@ fun ReportsScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val reportError by viewModel.error.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val context = LocalContext.current
     val canViewFullReports = remember { viewModel.canViewFullReports() }
     val canExportReports = remember { viewModel.canExportReports() }
@@ -222,6 +223,7 @@ fun ReportsScreen(
                         rows = orderLevelRows,
                         profile = profile,
                         enabledModes = enabledModes,
+                        compactLayout = !layout.isWideListDetail,
                         onStatusChange = { billId, newStatus ->
                             viewModel.updateOrderStatus(billId, newStatus)
                         },

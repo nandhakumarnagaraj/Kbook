@@ -90,7 +90,8 @@ fun ModeSelectionView(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(MenuConfigurationTags.manualEntryCard),
+                .testTag(MenuConfigurationTags.manualEntryCard)
+                .clickable { onManualClick() },
             colors = CardDefaults.cardColors(containerColor = CardBG),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.35f))
         ) {
@@ -192,7 +193,7 @@ fun ModeSelectionView(
                         )
                     }
                     Text(
-                        text = "AI can make mistakes.please view before saving..",
+                        text = "AI can make mistakes. Please review before saving.",
                         color = Color.White,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,

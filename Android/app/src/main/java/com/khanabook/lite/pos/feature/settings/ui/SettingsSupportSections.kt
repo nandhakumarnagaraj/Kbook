@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.core.theme.KhanaRadii
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,8 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -254,15 +255,19 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.feature.auth.viewmodel.Logou
         }
     }
 
-    Button(
+    // Secondary visual weight (design review #11): an outlined destructive action
+    // instead of a filled button competing with primary gold CTAs. Accidental sign-out
+    // is still guarded by the confirmation dialog above.
+    OutlinedButton(
         onClick = { if (!isLoading) showConfirmDialog = true },
         enabled = !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(KhanaBookTheme.spacing.buttonHeightCompact),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = DangerRed,
-            disabledContainerColor = DangerRed.copy(alpha = 0.4f)
+        border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.7f)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = DangerRed,
+            disabledContentColor = DangerRed.copy(alpha = 0.45f)
         ),
         shape = KhanaRadii.lg
     ) {

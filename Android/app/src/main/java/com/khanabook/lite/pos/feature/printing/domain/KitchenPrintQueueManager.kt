@@ -195,20 +195,26 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             try {
-                // ── Void tickets: print only the voided-item snapshot, never the whole bill ──
-                val voidEvent = job.publicToken?.let { token ->
+                // ── Event-driven retries: the queued job carries (publicToken, kotRevision)
+                // pointing at an immutable KOT event. The ticket renders the EXACT snapshot
+                // recorded for that event — never the bill's current state, so late retries
+                // cannot leak items added after the event. Dispatch is transport-agnostic:
+                // a ticket that physically printed is printed, however it got there. ──
+                val event = job.publicToken?.let { token ->
                     job.kotRevision?.let { revision -> kotEventDao.getEvent(token, revision) }
                 }
-                if (voidEvent != null && voidEvent.eventType == KotEventType.VOID) {
-                    val bytes = KitchenTicketFormatter.formatVoidTicket(
+                if (event != null) {
+                    val bytes = KitchenTicketFormatter.formatEventTicket(
                         bill,
                         restaurantProfile,
                         printerProfile,
-                        voidEvent.itemSnapshotJson
+                        event.eventType,
+                        event.itemSnapshotJson,
+                        event.createdAt
                     )
                     if (printerTransport.print(printerProfile, bytes)) {
                         queueRepository.markSent(job.id)
-                        kotEventDao.markPrinted(voidEvent.publicToken, voidEvent.kotRevision)
+                        kotEventDao.markPrinted(event.publicToken, event.kotRevision)
                     } else {
                         queueRepository.markPending(job.id, "print failed")
                         break
@@ -216,24 +222,17 @@ class KitchenPrintQueueManager @Inject constructor(
                     continue
                 }
 
-                // ── NEW/ADD retries: only re-print items the kitchen has NOT seen yet.
-                // If a direct-print path already delivered them, the retry must not
-                // print a duplicate ticket. ──
+                // ── Legacy jobs without an event reference: fall back to printing only
+                // items the kitchen has NOT seen yet (sentToKot flag). ──
                 val unsentItems = bill.items.filter { !it.sentToKot }
                 if (unsentItems.isEmpty()) {
                     // Already delivered by a concurrent direct print — nothing to retry.
                     queueRepository.markSent(job.id)
-                    if (job.publicToken != null && job.kotRevision != null) {
-                        kotEventDao.markPrinted(job.publicToken, job.kotRevision)
-                    }
                     continue
                 }
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile, unsentItems)
                 if (printerTransport.print(printerProfile, bytes)) {
                     queueRepository.markSent(job.id)
-                    if (job.publicToken != null && job.kotRevision != null) {
-                        kotEventDao.markPrinted(job.publicToken, job.kotRevision)
-                    }
                 } else {
                     queueRepository.markPending(job.id, "print failed")
                     break

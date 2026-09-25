@@ -384,8 +384,25 @@ class BillRepository(
     suspend fun cancelOrder(id: Long, reason: String, scheduleDurableSync: Boolean = true) {
         val restaurantId = sessionManager.getRestaurantId()
         val current = billDao.getBillById(id, restaurantId) ?: return
+        // Snapshot BEFORE the status flips to 'cancelled' — the CANCEL event must
+        // capture the order exactly as the kitchen last knew it.
+        val before = billDao.getBillWithItemsById(id, restaurantId)
         billDao.cancelBill(id, reason, System.currentTimeMillis(), restaurantId)
         kitchenPrintQueueRepository?.deleteByBillId(id)
+        // Kitchen cancellation notice: only when the kitchen has ALREADY received the
+        // order (≥1 printed KOT event). Records a CANCEL event whose full-order snapshot
+        // prints/is displayed as "*** ORDER CANCELLED ***". Orders the kitchen never
+        // saw get no notice — they never knew the order existed.
+        val publicToken = current.publicToken?.takeIf { it.isNotBlank() }
+        if (publicToken != null && isKitchenPrintableStatus(current.orderStatus)) {
+            val hasPrinted = kotEventDao.getEventsForBill(publicToken).any { it.isPrinted }
+            if (hasPrinted) {
+                val items = before?.items?.filter { !it.isDeleted } ?: emptyList()
+                if (items.isNotEmpty()) {
+                    recordKotEvent(before!!.bill, KotEventType.CANCEL, items)
+                }
+            }
+        }
         if (scheduleDurableSync) triggerBackgroundSync()
     }
 
@@ -640,13 +657,13 @@ class BillRepository(
         // order. Skip when another ticket for this bill is already pending — the queue is keyed
         // (billId, printerMac) so a second unassigned job would clobber the first; kot_events
         // still holds the audit record.
-        if (eventType == KotEventType.VOID) {
+        if (eventType == KotEventType.VOID || eventType == KotEventType.CANCEL) {
             kitchenPrintQueueRepository
                 ?.takeIf { !it.hasPendingForBill(bill.id) }
                 ?.enqueuePending(
                     billId = bill.id,
                     printerMac = KitchenPrintQueueRepository.UNASSIGNED_PRINTER_MAC,
-                    error = "Void KOT",
+                    error = if (eventType == KotEventType.CANCEL) "Cancel KOT" else "Void KOT",
                     publicToken = publicToken,
                     kotRevision = revision
                 )

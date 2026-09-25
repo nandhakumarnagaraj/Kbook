@@ -108,6 +108,9 @@ interface KhanaBookApi {
         @POST("api/v1/sync/menuitem/push")
         suspend fun pushMenuItems(@Body items: List<MenuItemSyncDto>): PushSyncResponse
 
+        @PUT("api/v1/sync/menuitem/{menuItemId}/available")
+        suspend fun markMenuItemAvailable(@Path("menuItemId") menuItemId: Long): retrofit2.Response<Unit>
+
         @POST("api/v1/sync/itemvariant/push")
         suspend fun pushItemVariants(@Body variants: List<ItemVariantSyncDto>): PushSyncResponse
 

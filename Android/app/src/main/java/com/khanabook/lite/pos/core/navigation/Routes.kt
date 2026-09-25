@@ -54,6 +54,7 @@ object Routes {
     // ── Tools ──────────────────────────────────────────────────────────────────
     const val CALL_CUSTOMER = "call_customer"
     const val REPRINT_KDS = "reprint_kds"
+    const val KITCHEN_DISPLAY = "kitchen_display"
     const val NOTIFICATIONS = "notifications"
     const val STAFF_PERMISSIONS = "staff_permissions"
 

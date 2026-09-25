@@ -13,6 +13,10 @@ object KotEventType {
     const val NEW = "NEW"
     const val ADD = "ADD"
     const val VOID = "VOID"
+    /** Deliberate full-copy reprint triggered manually from the order screens. */
+    const val REPRINT = "REPRINT"
+    /** Whole-order cancellation; only recorded when the kitchen already received the order. */
+    const val CANCEL = "CANCEL"
     /** Crash/ambiguous origin — recorded rather than silently printed. */
     const val UNKNOWN = "UNKNOWN"
 }

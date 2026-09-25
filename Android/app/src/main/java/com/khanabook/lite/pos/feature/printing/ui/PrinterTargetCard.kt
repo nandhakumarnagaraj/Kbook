@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.khanabook.lite.pos.feature.printing.ui
 
@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
@@ -52,6 +56,7 @@ import com.khanabook.lite.pos.core.theme.PrimaryGold
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.core.theme.WarningYellow
 
 @Composable
@@ -153,7 +158,13 @@ fun PrinterTargetCard(
                     }
                 }
                 if (onConfigureWifi != null) {
-                    KhanaButtonRow {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                        // In portrait, when there isn't enough width for all three, USB wraps to its
+                        // own line below BT + Wi-Fi instead of squeezing.
+                    ) {
                         KhanaSecondaryButton(
                             text = "BT",
                             onClick = onSelectPrinter,
@@ -293,6 +304,37 @@ fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean)
         KhanaBookSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+@Preview(name = "Printer Card - Phone", device = Devices.PHONE, showBackground = true)
+@Preview(name = "Printer Card - Foldable", device = Devices.FOLDABLE, showBackground = true)
+@Preview(name = "Printer Card - Tablet", device = Devices.TABLET, showBackground = true)
+@Preview(name = "Printer Card - Desktop", device = Devices.DESKTOP, showBackground = true)
+@Composable
+private fun PrinterTargetCardPreview() {
+    KhanaBookLiteTheme {
+        PrinterTargetCard(
+            title = "Customer Receipt Printer",
+            printerName = "ESC/POS BT 58mm",
+            connectionDescription = "Connected",
+            enabled = true,
+            autoPrint = true,
+            showAutoPrintToggle = true,
+            paper58 = true,
+            includeLogo = true,
+            showLogoToggle = true,
+            isConnected = true,
+            helperText = "Receives orders automatically when enabled.",
+            onConfigureWifi = {},
+            onSelectUsb = {},
+            onEnabledChange = {},
+            onAutoPrintChange = {},
+            onPaperSizeChange = {},
+            onIncludeLogoChange = {},
+            onSelectPrinter = {},
+            onTestPrint = {}
         )
     }
 }

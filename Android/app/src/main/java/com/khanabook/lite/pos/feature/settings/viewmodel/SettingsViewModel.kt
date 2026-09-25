@@ -11,7 +11,6 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.net.Uri
-import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -71,7 +70,7 @@ data class DuplicateIdHealth(
 sealed interface PrinterUiEvent {
     data object Connected : PrinterUiEvent
     data object ConnectionFailed : PrinterUiEvent
-    data class WifiSaved(val elapsedMs: Long) : PrinterUiEvent
+    data object WifiSaved : PrinterUiEvent
     data object WifiSaveFailed : PrinterUiEvent
     data object TestPrintSent : PrinterUiEvent
     data object TestPrintFailed : PrinterUiEvent
@@ -711,18 +710,23 @@ class SettingsViewModel @Inject constructor(
         return usbTransport.requestPermission(device)
     }
 
+    fun currentUsbPrinterKey(key: String): String? =
+        usbTransport.findDeviceByKey(key)?.let {
+            com.khanabook.lite.pos.feature.printing.domain.UsbPrinterTransport.deviceKey(it)
+        }
+
     /**
      * Saves a USB printer profile for the role. USB identity is stored in the
      * macAddress column as "usb:vid:pid[:serial]" — the same key format used
      * by the transport and connectionTargetKey().
      */
-    fun saveUsbPrinter(
+    suspend fun saveUsbPrinter(
         role: PrinterRole,
         deviceKey: String,
         label: String,
         paperSize: String
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             try {
                 val existing = printerProfileRepository.getByRole(role.name)
                 existing
@@ -834,7 +838,6 @@ class SettingsViewModel @Inject constructor(
         _btConnectResult.value = null
         _isSavingWifiPrinter.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            val startedAt = SystemClock.elapsedRealtime()
             try {
                 val existing = printerProfileRepository.getByRole(role.name)
                 existing
@@ -875,7 +878,7 @@ class SettingsViewModel @Inject constructor(
                 // Confirm immediately after the local DB write so the dialog closes
                 // on a real persisted state; the pending-print flush and reachability
                 // re-probe below continue in the background.
-                _printerEvents.emit(PrinterUiEvent.WifiSaved(SystemClock.elapsedRealtime() - startedAt))
+                _printerEvents.emit(PrinterUiEvent.WifiSaved)
                 if (role == PrinterRole.KITCHEN) {
                     kitchenPrintQueueManager.flushPendingForPrinter(profile.connectionTargetKey())
                 }
@@ -974,10 +977,6 @@ class SettingsViewModel @Inject constructor(
     private val _saveProfileSuccess = MutableStateFlow(false)
     val saveProfileSuccess: StateFlow<Boolean> = _saveProfileSuccess.asStateFlow()
 
-    /** Measured duration of the last successful profile DB write, for the save confirmation toast. */
-    private val _lastSaveDurationMs = MutableStateFlow<Long?>(null)
-    val lastSaveDurationMs: StateFlow<Long?> = _lastSaveDurationMs.asStateFlow()
-
     private val _logoUploadLoading = MutableStateFlow(false)
     val logoUploadLoading: StateFlow<Boolean> = _logoUploadLoading.asStateFlow()
 
@@ -1022,7 +1021,6 @@ class SettingsViewModel @Inject constructor(
             _saveProfileError.value = null
             _saveProfileSuccess.value = false
 
-            val startedAt = SystemClock.elapsedRealtime()
             try {
                 val newNumber = profile.whatsappNumber ?: ""
                 restaurantRepository.saveProfile(profile)
@@ -1030,7 +1028,6 @@ class SettingsViewModel @Inject constructor(
                     userRepository.updateWhatsappNumber(current.id, newNumber)
                     userRepository.setCurrentUser(current.copy(whatsappNumber = newNumber))
                 }
-                _lastSaveDurationMs.value = SystemClock.elapsedRealtime() - startedAt
                 _saveProfileSuccess.value = true
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Profile save failed", e)

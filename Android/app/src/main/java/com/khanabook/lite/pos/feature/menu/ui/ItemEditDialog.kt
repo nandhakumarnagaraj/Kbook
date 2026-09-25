@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+﻿@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.feature.menu.ui
 
@@ -7,12 +7,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -92,7 +97,10 @@ fun ItemEditDialog(
     var priceError by remember { mutableStateOf<String?>(null) }
     var variantError by remember { mutableStateOf<String?>(null) }
 
-    var showAddVariantDialog by remember { mutableStateOf(false) }
+    var showVariantEditor by remember { mutableStateOf(false) }
+    var newVariantName by remember { mutableStateOf("") }
+    var newVariantPrice by remember { mutableStateOf("") }
+    var newVariantError by remember { mutableStateOf<String?>(null) }
     var editableVariants by remember(variants) {
         mutableStateOf(
             variants.map {
@@ -118,97 +126,65 @@ fun ItemEditDialog(
 
     KhanaBookDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier
+            .imePadding()
+            .heightIn(max = 720.dp),
         title = title,
         content = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // ── Dish Photo Section ─────────────────────────────────────────
+                // ── Dish Photo Section ─────────────────────────────────────────â”€
                 val hasPhoto = (selectedPhotoUri != null) || (!isPhotoRemoved && !initialImageUrl.isNullOrBlank())
 
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkBrown2, KhanaRadii.md)
-                        .border(1.dp, BorderGold.copy(alpha = 0.25f), KhanaRadii.md)
-                        .padding(KhanaBookTheme.spacing.smallMedium),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .height(112.dp)
+                        .clip(KhanaRadii.md)
+                        .background(DarkBrown2)
+                        .border(1.dp, BorderGold.copy(alpha = 0.35f), KhanaRadii.md)
+                        .clickable { photoPickerLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(KhanaRadii.md)
-                            .background(DarkBrown1),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selectedPhotoUri != null) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(selectedPhotoUri)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Dish photo",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else if (!isPhotoRemoved && !initialImageUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(initialImageUrl)
-                                    .crossfade(true)
-                                    .diskCachePolicy(CachePolicy.ENABLED)
-                                    .build(),
-                                contentDescription = "Dish photo",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.AddPhotoAlternate,
-                                contentDescription = null,
-                                tint = TextGold.copy(alpha = 0.5f),
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (hasPhoto) "Dish Photo" else "Add Dish Photo",
-                            color = TextLight,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                    if (hasPhoto) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(selectedPhotoUri ?: if (isPhotoRemoved) null else initialImageUrl)
+                                .crossfade(true)
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .build(),
+                            contentDescription = "Dish photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
-                        Text(
-                            text = if (hasPhoto) "Tap edit or remove" else "Optional photo (PNG, JPG, WebP)",
-                            color = TextGold.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
-                            Icon(
-                                if (hasPhoto) Icons.Default.Edit else Icons.Default.AddAPhoto,
-                                contentDescription = "Choose Photo",
-                                tint = PrimaryGold
-                            )
-                        }
-                        if (hasPhoto) {
-                            IconButton(onClick = {
+                        Surface(
+                            color = DarkBrown1.copy(alpha = 0.78f),
+                            shape = KhanaRadii.pill,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                        ) {
+                            TextButton(onClick = {
                                 selectedPhotoUri = null
                                 isPhotoRemoved = true
                             }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Remove Photo",
-                                    tint = NonVegRed.copy(alpha = 0.8f)
-                                )
+                                Icon(Icons.Default.Delete, "Remove photo", tint = NonVegRed)
+                                Text("Remove", color = TextLight)
                             }
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.AddAPhoto,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text("Tap to add a dish photo", color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                            Text("Optional · PNG, JPG, or WebP", color = TextGold, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -220,6 +196,7 @@ fun ItemEditDialog(
                         if (nameError != null) nameError = null
                     },
                     label = { Text("Item Name", color = TextGold) },
+                    placeholder = { Text("e.g. Paneer Butter Masala", color = TextGold.copy(alpha = 0.7f)) },
                     isError = nameError != null,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryGold,
@@ -243,6 +220,7 @@ fun ItemEditDialog(
                             if (priceError != null) priceError = null
                         },
                         label = { Text("Base Price (₹)", color = TextGold) },
+                        placeholder = { Text("e.g. 120", color = TextGold.copy(alpha = 0.7f)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = priceError != null,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -290,9 +268,109 @@ fun ItemEditDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Variants", color = PrimaryGold, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { showAddVariantDialog = true }) {
+                    TextButton(
+                        onClick = {
+                            showVariantEditor = !showVariantEditor
+                            newVariantError = null
+                        }
+                    ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                        Text("Add Variant", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            if (showVariantEditor) "Close" else "Add Variant",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                if (showVariantEditor) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DarkBrown2, KhanaRadii.md)
+                            .border(1.dp, BorderGold.copy(alpha = 0.35f), KhanaRadii.md)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "New Variant",
+                            color = TextLight,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        OutlinedTextField(
+                            value = newVariantName,
+                            onValueChange = {
+                                newVariantName = it
+                                newVariantError = null
+                            },
+                            label = { Text("Variant Name") },
+                            placeholder = { Text("e.g. Small, Medium, Large") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = newVariantError != null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryGold,
+                                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                                focusedTextColor = TextLight,
+                                unfocusedTextColor = TextLight
+                            )
+                        )
+                        OutlinedTextField(
+                            value = newVariantPrice,
+                            onValueChange = {
+                                newVariantPrice = it
+                                newVariantError = null
+                            },
+                            label = { Text("Price (₹)") },
+                            placeholder = { Text("e.g. 80") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = newVariantError != null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryGold,
+                                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                                focusedTextColor = TextLight,
+                                unfocusedTextColor = TextLight
+                            )
+                        )
+                        newVariantError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                        ) {
+                            TextButton(onClick = {
+                                showVariantEditor = false
+                                newVariantName = ""
+                                newVariantPrice = ""
+                                newVariantError = null
+                            }) {
+                                Text("Cancel", color = TextGold)
+                            }
+                            TextButton(onClick = {
+                                val parsedVariantPrice = newVariantPrice.toDoubleOrNull()
+                                when {
+                                    newVariantName.isBlank() -> newVariantError = "Variant name is required"
+                                    newVariantPrice.isBlank() || parsedVariantPrice == null -> newVariantError = "Enter a valid variant price"
+                                    parsedVariantPrice < 0.0 -> newVariantError = "Price cannot be negative"
+                                    !MenuPricingRules.isValidPrice(parsedVariantPrice) -> newVariantError = MenuPricingRules.ERROR_MESSAGE
+                                    else -> {
+                                        editableVariants = editableVariants + EditableVariantDraft(
+                                            name = newVariantName.trim(),
+                                            price = parsedVariantPrice
+                                        )
+                                        price = ""
+                                        newVariantName = ""
+                                        newVariantPrice = ""
+                                        showVariantEditor = false
+                                    }
+                                }
+                            }) {
+                                Text("Add", color = PrimaryGold)
+                            }
+                        }
                     }
                 }
 
@@ -386,51 +464,8 @@ fun ItemEditDialog(
                 }
             }
         ) {
-            Text("Save", color = PrimaryGold)
+            Text(if (title == "Add New Item") "Add Item" else "Save Changes", color = PrimaryGold)
         }
     }
 
-    if (showAddVariantDialog) {
-        var newVName by remember { mutableStateOf("") }
-        var newVPrice by remember { mutableStateOf("") }
-        var newVariantError by remember { mutableStateOf<String?>(null) }
-
-        KhanaBookDialog(
-            onDismissRequest = { showAddVariantDialog = false },
-            title = "Add Variant",
-            content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = newVName, onValueChange = { newVName = it }, label = { Text("Variant Name") })
-                    OutlinedTextField(value = newVPrice, onValueChange = { newVPrice = it; newVariantError = null }, label = { Text("Price (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = newVariantError != null)
-                    newVariantError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            },
-        ) {
-            TextButton(onClick = { showAddVariantDialog = false }) {
-                Text("Cancel", color = TextGold)
-            }
-            TextButton(onClick = {
-                val parsedVariantPrice = newVPrice.toDoubleOrNull()
-                when {
-                    newVName.isBlank() -> newVariantError = "Item name is required"
-                    newVPrice.isBlank() || parsedVariantPrice == null -> newVariantError = "Enter a valid item price"
-                    (parsedVariantPrice ?: 0.0) < 0.0 -> newVariantError = "Price cannot be negative"
-                    !MenuPricingRules.isValidPrice(parsedVariantPrice) -> newVariantError = MenuPricingRules.ERROR_MESSAGE
-                    else -> {
-                        val variantPrice = parsedVariantPrice ?: 0.0
-                        editableVariants = editableVariants + EditableVariantDraft(
-                            name = newVName.trim(),
-                            price = variantPrice
-                        )
-                        price = ""
-                        showAddVariantDialog = false
-                    }
-                }
-            }) {
-                Text("Add", color = PrimaryGold)
-            }
-        }
-    }
 }

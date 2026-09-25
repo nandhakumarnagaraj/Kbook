@@ -113,7 +113,7 @@
                 tools:node="remove" />
         </provider>
         <service
-            android:name="com.khanabook.lite.pos.domain.manager.PrintService"
+            android:name="com.khanabook.lite.pos.feature.printing.domain.PrintService"
             android:foregroundServiceType="connectedDevice|dataSync"
             android:exported="false" />
         <service

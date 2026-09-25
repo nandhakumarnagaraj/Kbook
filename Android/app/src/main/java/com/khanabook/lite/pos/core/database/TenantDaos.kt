@@ -887,6 +887,8 @@ class TenantKotEventDao @Inject constructor(
     override suspend fun getMaxRevisionForBill(publicToken: String): Long = dao.getMaxRevisionForBill(publicToken)
     override suspend fun getLatestUnprintedEvent(publicToken: String): KotEventEntity? = dao.getLatestUnprintedEvent(publicToken)
     override suspend fun markUnprintedEventsPrinted(publicToken: String): Int = dao.markUnprintedEventsPrinted(publicToken)
+    override suspend fun getUnprintedEventsForBill(publicToken: String): List<KotEventEntity> = dao.getUnprintedEventsForBill(publicToken)
+    override fun observeUnprintedEvents() = dao.observeUnprintedEvents()
     override suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity? = dao.getEvent(publicToken, kotRevision)
 }
 

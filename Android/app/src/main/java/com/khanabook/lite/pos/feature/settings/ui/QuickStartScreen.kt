@@ -44,6 +44,7 @@ fun QuickStartScreen(
     viewModel: QuickStartViewModel = hiltViewModel()
 ) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
@@ -74,6 +75,10 @@ fun QuickStartScreen(
             .statusBarsPadding()
     ) {
         StickyBottomScaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .align(Alignment.TopCenter),
             bottomBar = {
                 Column {
                     // Error display

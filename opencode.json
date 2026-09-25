@@ -9,6 +9,21 @@
         "LOVABLE_TOKEN": "your-lovable-api-token"
       },
       "timeout": 20000
+    },
+    "artemis": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\nandh\\artemis\\.venv\\Scripts\\python.exe",
+        "-m",
+        "mcp_server"
+      ],
+      "enabled": true,
+      "environment": {
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": "C:\\Users\\nandh\\artemis",
+        "ARTEMIS_DESKTOP_NOTIFY": "true"
+      },
+      "timeout": 120000
     }
   }
 }

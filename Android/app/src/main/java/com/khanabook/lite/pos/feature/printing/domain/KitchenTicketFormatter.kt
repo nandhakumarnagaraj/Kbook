@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.feature.printing.domain
 
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
@@ -52,15 +53,26 @@ object KitchenTicketFormatter {
     }
 
     /**
-     * Renders a VOID-only kitchen ticket from the item snapshot captured in the KOT event.
-     * A full bill is NOT reprinted — only the voided quantities are flagged for the kitchen
-     * so staff know what was scrubbed from the order.
+     * Renders a kitchen ticket from an immutable KOT EVENT snapshot, not the
+     * bill's current state. Every kitchen-facing revision (NEW, ADD, VOID,
+     * REPRINT, CANCEL) is printed exactly as it was recorded, so late
+     * dispatch/retries can never silently leak items added AFTER the event.
+     *
+     * Banner mapping:
+     *  - NEW          → (no banner — the first order ticket)
+     *  - ADD          → "ADDED ITEMS" (only the delta rows)
+     *  - VOID         → "*** VOIDED ***" (only the voided rows)
+     *  - REPRINT      → "*** REPRINT ***" (full order copy)
+     *  - CANCEL       → "*** ORDER CANCELLED ***" (full order copy + reason)
      */
-    fun formatVoidTicket(
+    fun formatEventTicket(
         bill: BillWithItems,
         restaurantProfile: RestaurantProfileEntity?,
         printerProfile: PrinterProfileEntity,
-        itemSnapshotJson: String
+        eventType: String,
+        itemSnapshotJson: String,
+        eventTimeMs: Long,
+        cancelReason: String? = null
     ): ByteArray {
         val is80mm = printerProfile.paperSize == "80mm"
         val charsPerLine = if (is80mm) 40 else 32
@@ -72,12 +84,25 @@ object KitchenTicketFormatter {
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
 
         add(RESET)
-        addBillHeader(out, leftPad, line, bill, restaurantProfile)
-        add(ALIGN_CENTER)
-        add(BOLD_ON)
-        add(leftPad + "*** VOIDED ***\n")
-        add(BOLD_OFF)
-        add(ALIGN_LEFT)
+        addBillHeader(out, leftPad, line, bill, restaurantProfile, eventTimeMs)
+
+        val banner = when (eventType) {
+            KotEventType.ADD -> "ADDED ITEMS"
+            KotEventType.VOID -> "*** VOIDED ***"
+            KotEventType.REPRINT -> "*** REPRINT ***"
+            KotEventType.CANCEL -> "*** ORDER CANCELLED ***"
+            else -> null // NEW: plain first ticket, unchanged layout
+        }
+        if (banner != null) {
+            add(ALIGN_CENTER)
+            add(BOLD_ON)
+            add(leftPad + "$banner\n")
+            add(BOLD_OFF)
+            add(ALIGN_LEFT)
+        }
+        cancelReason?.takeIf { it.isNotBlank() }?.let {
+            add(leftPad + "Reason: $it\n")
+        }
         add("$line\n")
 
         for (lineText in parseSnapshotItems(itemSnapshotJson)) {
@@ -90,12 +115,33 @@ object KitchenTicketFormatter {
         return out.toByteArray()
     }
 
+    /**
+     * Renders a VOID-only kitchen ticket from the item snapshot captured in the KOT event.
+     * A full bill is NOT reprinted — only the voided quantities are flagged for the kitchen
+     * so staff know what was scrubbed from the order.
+     */
+    fun formatVoidTicket(
+        bill: BillWithItems,
+        restaurantProfile: RestaurantProfileEntity?,
+        printerProfile: PrinterProfileEntity,
+        itemSnapshotJson: String
+    ): ByteArray =
+        formatEventTicket(
+            bill = bill,
+            restaurantProfile = restaurantProfile,
+            printerProfile = printerProfile,
+            eventType = KotEventType.VOID,
+            itemSnapshotJson = itemSnapshotJson,
+            eventTimeMs = bill.bill.createdAt
+        )
+
     private fun addBillHeader(
         out: MutableList<Byte>,
         leftPad: String,
         line: String,
         bill: BillWithItems,
-        restaurantProfile: RestaurantProfileEntity?
+        restaurantProfile: RestaurantProfileEntity?,
+        eventTimeMs: Long = bill.bill.createdAt
     ) {
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
         fun add(text: String) { out.addAll(text.toByteArray(Charset.forName("GBK")).toList()) }
@@ -106,13 +152,13 @@ object KitchenTicketFormatter {
         add(ALIGN_LEFT)
         add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
         add(leftPad + "Invoice: ${bill.bill.getInvoiceNumberDisplay()}\n")
-        add(leftPad + "Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
+        add(leftPad + "Time: ${DateUtils.formatDisplay(eventTimeMs)}\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
         add("$line\n")
     }
 
     private fun parseSnapshotItems(itemSnapshotJson: String): List<String> {
-        if (itemSnapshotJson.isBlank()) return listOf("(voided items not captured)")
+        if (itemSnapshotJson.isBlank()) return listOf("(items not captured)")
         return try {
             val root = org.json.JSONArray(itemSnapshotJson)
             val lines = mutableListOf<String>()
@@ -126,9 +172,9 @@ object KitchenTicketFormatter {
                 variant?.let { lines += "  Variant: $it" }
                 note?.let { lines += "  Note: $it" }
             }
-            if (lines.isEmpty()) listOf("(voided items not captured)") else lines
+            if (lines.isEmpty()) listOf("(items not captured)") else lines
         } catch (e: Exception) {
-            listOf("(voided items not captured)")
+            listOf("(items not captured)")
         }
     }
 }

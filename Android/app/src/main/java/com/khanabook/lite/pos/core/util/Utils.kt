@@ -26,15 +26,6 @@ import java.math.RoundingMode
 import java.util.*
 
 /**
- * Formats a save-confirmation duration for toasts: "840 ms" under one second,
- * otherwise "1.2 s". Used by the one-tap save confirmations (Wi-Fi printer,
- * shop config) so the user sees how fast the local write was.
- */
-fun formatSaveDuration(elapsedMs: Long): String =
-    if (elapsedMs < 1_000) "$elapsedMs ms"
-    else String.format(Locale.US, "%.1f s", elapsedMs / 1000.0)
-
-/**
  * Utility functions for Date formatting and manipulation.
  */
 object DateUtils {

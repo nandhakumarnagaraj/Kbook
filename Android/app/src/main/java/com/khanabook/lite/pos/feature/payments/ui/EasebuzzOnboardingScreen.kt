@@ -56,6 +56,7 @@ fun EasebuzzOnboardingScreen(
     val currentStep by viewModel.currentStep.collectAsStateWithLifecycle()
     val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -98,12 +99,18 @@ fun EasebuzzOnboardingScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
+            contentAlignment = Alignment.TopCenter
+        ) {
+          Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
                 // No imePadding() here: each step (BusinessDetails/BankDetails via
                 // StickyBottomScaffold) owns its own IME inset. Applying it on this
                 // wrapper too double-counted the keyboard height.
@@ -182,6 +189,7 @@ fun EasebuzzOnboardingScreen(
 
         if (isSubmitting && uiState is OnboardingUiState.InProgress) {
             KhanaBookLoadingOverlay(visible = true, message = "Submitting...")
+        }
         }
         }
     }

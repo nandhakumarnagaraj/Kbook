@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -81,6 +82,7 @@ fun PaymentLinkScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -136,6 +138,10 @@ fun PaymentLinkScreen(
                 )
         ) {
             StickyBottomScaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .align(Alignment.TopCenter),
                 bottomBar = {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(spacing.small)

@@ -8,14 +8,18 @@ import com.khanabook.lite.pos.feature.printing.ui.*
 import com.khanabook.lite.pos.core.theme.KhanaRadii
 import com.khanabook.lite.pos.core.theme.BorderGold
 import com.khanabook.lite.pos.core.theme.CardBG
-import com.khanabook.lite.pos.core.util.formatSaveDuration
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.usb.UsbManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.runtime.DisposableEffect
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -229,11 +233,10 @@ fun PrinterConfigView(
                 }
                 PrinterUiEvent.ConnectionFailed ->
                     context.getString(R.string.toast_printer_connect_failed) to ToastKind.Error
-                is PrinterUiEvent.WifiSaved -> {
-                    // One-tap save: dialog closes itself the moment the local DB
-                    // write lands, confirmed by a green toast with the time taken.
+                PrinterUiEvent.WifiSaved -> {
+                    // Confirm the save without exposing internal write timing.
                     showWifiDialog = false
-                    "Saved in ${formatSaveDuration(event.elapsedMs)} ✓" to ToastKind.Success
+                    "Wi-Fi printer saved" to ToastKind.Success
                 }
                 PrinterUiEvent.WifiSaveFailed ->
                     "Couldn't save Wi-Fi printer. Please try again." to ToastKind.Error
@@ -551,7 +554,31 @@ fun PrinterConfigView(
         }
     }
 
+    // Live USB list while the picker is open: attaching the printer AFTER opening
+    // the sheet used to leave it empty until the sheet was closed and reopened.
     if (showUsbSheet) {
+        DisposableEffect(Unit) {
+            val usbListReceiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context?, intent: Intent?) {
+                    when (intent?.action) {
+                        UsbManager.ACTION_USB_DEVICE_ATTACHED,
+                        UsbManager.ACTION_USB_DEVICE_DETACHED -> usbDevices = viewModel.listUsbPrinters()
+                    }
+                }
+            }
+            val filter = IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED).apply {
+                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(usbListReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                context.registerReceiver(usbListReceiver, filter)
+            }
+            onDispose {
+                runCatching { context.unregisterReceiver(usbListReceiver) }
+            }
+        }
         ModalBottomSheet(
             onDismissRequest = { showUsbSheet = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -582,25 +609,33 @@ fun PrinterConfigView(
                             .fillMaxWidth()
                             .clickable {
                                 if (hasPermission) {
-                                    viewModel.saveUsbPrinter(
-                                        role = pendingRole,
-                                        deviceKey = key,
-                                        label = label,
-                                        paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
-                                            if (paper58) "58mm" else "80mm"
-                                        } else {
-                                            if (kitchenPaper58) "58mm" else "80mm"
-                                        }
-                                    )
-                                    showUsbSheet = false
+                                    usbScope.launch {
+                                        val currentKey = viewModel.currentUsbPrinterKey(key) ?: key
+                                        viewModel.saveUsbPrinter(
+                                            role = pendingRole,
+                                            deviceKey = currentKey,
+                                            label = label,
+                                            paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                                if (paper58) "58mm" else "80mm"
+                                            } else {
+                                                if (kitchenPaper58) "58mm" else "80mm"
+                                            }
+                                        )
+                                        showUsbSheet = false
+                                    }
                                 } else {
                                     usbScope.launch {
                                         val granted = viewModel.requestUsbPermission(key)
+                                        // Re-snapshot immediately after the grant so rows never
+                                        // show a stale "Tap to allow" if the save fails or the
+                                        // sheet stays open. After the grant the device key may
+                                        // change (serial becomes readable) — recompute it.
+                                        usbDevices = viewModel.listUsbPrinters()
                                         if (granted) {
-                                            usbDevices = viewModel.listUsbPrinters()
+                                            val currentKey = viewModel.currentUsbPrinterKey(key) ?: key
                                             viewModel.saveUsbPrinter(
                                                 role = pendingRole,
-                                                deviceKey = key,
+                                                deviceKey = currentKey,
                                                 label = label,
                                                 paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
                                                     if (paper58) "58mm" else "80mm"

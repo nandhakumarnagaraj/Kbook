@@ -7,7 +7,10 @@ import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
 import com.khanabook.lite.pos.feature.billing.data.BillDao
+import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.printing.data.KotEventDao
+import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
+import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
@@ -117,9 +120,21 @@ class PrintRouter @Inject constructor(
         val printJobs = immediateTargets.map { target ->
             async(Dispatchers.IO) {
                 val isKitchenTarget = target.role == PrinterRole.KITCHEN.name
+                // Unprinted KOT events for this bill (AUTO mode only). When every item
+                // is already flagged sentToKot but events are still unprinted, the
+                // pending events are the real work — they hold the exact snapshot the
+                // kitchen has not seen yet (e.g. an ADD saved by a crash-prone path).
+                val unprintedKotEvents = if (isKitchenTarget && mode == PrintDispatchMode.AUTO) {
+                    bill.bill.publicToken?.takeIf { it.isNotBlank() }
+                        ?.let { kotEventDao.getUnprintedEventsForBill(it) }
+                        ?: emptyList()
+                } else {
+                    emptyList()
+                }
                 val itemsToPrint = if (isKitchenTarget) {
                     if (mode == PrintDispatchMode.AUTO) {
-                        bill.items.filter { !it.sentToKot }
+                        val unsent = bill.items.filter { !it.sentToKot }
+                        if (unsent.isNotEmpty() || unprintedKotEvents.isEmpty()) unsent else emptyList()
                     } else {
                         bill.items
                     }
@@ -127,7 +142,7 @@ class PrintRouter @Inject constructor(
                     emptyList()
                 }
 
-                if (isKitchenTarget && itemsToPrint.isEmpty()) {
+                if (isKitchenTarget && itemsToPrint.isEmpty() && unprintedKotEvents.isEmpty()) {
                     return@async Triple(target.role, true, "")
                 }
 
@@ -166,6 +181,14 @@ class PrintRouter @Inject constructor(
                 }
                 // ────────────────────────────────────────────────────────────────────────
 
+                // Manual kitchen reprint = deliberate full-copy delivery to the kitchen.
+                // Record it as a printed REPRINT event so the audit trail and the
+                // "kitchen already received this order" check (used by CANCEL notices)
+                // reflect the re-delivery.
+                if (isKitchenTarget && mode == PrintDispatchMode.MANUAL_KITCHEN_ONLY) {
+                    recordReprintAudit(bill)
+                }
+
                 if (!isKitchenTarget && mode == PrintDispatchMode.AUTO && bill.bill.orderStatus.equals("draft", ignoreCase = true)) {
                     // Do not auto-print customer receipts for draft orders
                     return@async Triple(target.role, true, "")
@@ -189,7 +212,26 @@ class PrintRouter @Inject constructor(
                         ) ?: return@repeat
                         val bytes = when (PrinterRole.fromValue(target.role)) {
                             PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
-                            PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target, itemsToPrint)
+                            PrinterRole.KITCHEN -> {
+                                // AUTO dispatch renders the immutable EVENT snapshot (NEW/ADD/
+                                // VOID as recorded) so a late ticket can never leak items added
+                                // after the event. Manual reprint keeps the live full-order copy.
+                                val event = if (mode == PrintDispatchMode.AUTO) {
+                                    resolveEventForItems(bill, itemsToPrint)
+                                } else null
+                                if (event != null) {
+                                    KitchenTicketFormatter.formatEventTicket(
+                                        bill,
+                                        restaurantProfile,
+                                        target,
+                                        event.eventType,
+                                        event.itemSnapshotJson,
+                                        event.createdAt
+                                    )
+                                } else {
+                                    KitchenTicketFormatter.format(bill, restaurantProfile, target, itemsToPrint)
+                                }
+                            }
                         }
                         if (printerTransport.print(target, bytes)) {
                             success = true
@@ -205,7 +247,15 @@ class PrintRouter @Inject constructor(
                 if (success) {
                     if (isKitchenTarget && mode == PrintDispatchMode.AUTO && itemsToPrint.isNotEmpty()) {
                         maybeClearKitchenQueue(bill.bill.id, target)
-                        bill.bill.publicToken?.let { kotEventDao.markUnprintedEventsPrinted(it) }
+                        // Mark ONLY the event(s) this ticket actually rendered — never the
+                        // whole backlog. Blanket-marking used to swallow events whose ticket
+                        // never physically printed (ADD after VOID, queue retries, etc.).
+                        bill.bill.publicToken?.let { token ->
+                            val printedItemIds = itemsToPrint.mapNotNull { it.id }.toSet()
+                            kotEventDao.getUnprintedEventsForBill(token)
+                                .filter { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == printedItemIds }
+                                .forEach { ev -> kotEventDao.markPrinted(ev.publicToken, ev.kotRevision) }
+                        }
                         billDao.markItemsSentToKot(itemsToPrint.map { it.id }, bill.bill.restaurantId)
                     } else {
                         maybeClearKitchenQueue(bill.bill.id, target)
@@ -303,6 +353,69 @@ class PrintRouter @Inject constructor(
         }
         return false
     }
+
+    /** Appends an already-printed REPRINT audit event for a manual kitchen reprint. */
+    private suspend fun recordReprintAudit(bill: BillWithItems) {
+        val token = bill.bill.publicToken?.takeIf { it.isNotBlank() } ?: return
+        val items = bill.items.filter { !it.isDeleted }
+        if (items.isEmpty()) return
+        val revision = (kotEventDao.getMaxRevisionForBill(token) + 1L).toString()
+        kotEventDao.insert(
+            KotEventEntity(
+                publicToken = token,
+                kotRevision = revision,
+                eventType = KotEventType.REPRINT,
+                itemSnapshotJson = serializeItemSnapshot(items),
+                originatingDeviceId = sessionManager.getDeviceId(),
+                isPrinted = true,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun serializeItemSnapshot(items: List<BillItemEntity>): String =
+        org.json.JSONArray().apply {
+            items.forEach { item ->
+                put(
+                    org.json.JSONObject().apply {
+                        put("id", item.id)
+                        put("menuItemId", item.menuItemId ?: org.json.JSONObject.NULL)
+                        put("itemName", item.itemName)
+                        put("variantId", item.variantId ?: org.json.JSONObject.NULL)
+                        put("variantName", item.variantName ?: org.json.JSONObject.NULL)
+                        put("price", item.price)
+                        put("quantity", item.quantity)
+                        put("itemTotal", item.itemTotal)
+                        put("specialInstruction", item.specialInstruction ?: org.json.JSONObject.NULL)
+                    }
+                )
+            }
+        }.toString()
+
+    /**
+     * Picks the unprinted KOT event matching the items about to be dispatched,
+     * preferring an exact item-id match over the newest event. Returns null when
+     * there is no event model to honor (legacy bills without publicToken, or
+     * events already marked printed) — the caller falls back to live formatting.
+     */
+    private suspend fun resolveEventForItems(bill: BillWithItems, items: List<BillItemEntity>): KotEventEntity? {
+        val token = bill.bill.publicToken?.takeIf { it.isNotBlank() } ?: return null
+        val unprinted = kotEventDao.getUnprintedEventsForBill(token)
+        if (unprinted.isEmpty()) return null
+        val itemIds = items.mapNotNull { it.id }.toSet()
+        return unprinted.lastOrNull { ev -> parseSnapshotItemIds(ev.itemSnapshotJson) == itemIds }
+            ?: unprinted.last()
+    }
+
+    private fun parseSnapshotItemIds(snapshotJson: String): Set<Long> =
+        try {
+            val root = org.json.JSONArray(snapshotJson)
+            (0 until root.length())
+                .mapNotNull { root.optJSONObject(it)?.optLong("id", -1L)?.takeIf { id -> id > 0 } }
+                .toSet()
+        } catch (_: Exception) {
+            emptySet()
+        }
 
     private suspend fun latestKotEventPublicToken(bill: BillWithItems): String? =
         bill.bill.publicToken?.takeIf { it.isNotBlank() }
