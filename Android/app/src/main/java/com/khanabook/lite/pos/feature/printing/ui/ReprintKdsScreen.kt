@@ -45,7 +45,8 @@ fun ReprintKdsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     searchViewModel: SearchViewModel = hiltViewModel(),
-    billingViewModel: BillingViewModel = hiltViewModel()
+    billingViewModel: BillingViewModel = hiltViewModel(),
+    settingsViewModel: com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var invoiceQuery by remember { mutableStateOf("") }
@@ -57,6 +58,10 @@ fun ReprintKdsScreen(
     }
 
     val vmResult by searchViewModel.searchResult.collectAsStateWithLifecycle()
+    // GST toggle drives invoice terminology — same rule as Orders table and
+    // printed receipts.
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     val vmHasSearched by searchViewModel.hasSearched.collectAsStateWithLifecycle()
     val isKitchenPrinting by billingViewModel.kitchenPrinting.collectAsStateWithLifecycle()
     val billingError by billingViewModel.error.collectAsStateWithLifecycle()
@@ -162,7 +167,7 @@ fun ReprintKdsScreen(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1; searchViewModel.clearSearch(); invoiceQuery = "" },
-                    text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
+                    text = { Text(invoiceLabel, style = MaterialTheme.typography.labelLarge) }
                 )
             }
 
@@ -227,11 +232,12 @@ fun ReprintKdsScreen(
                         invoiceQuery = it.trim()
                         showInvoiceError = false
                     },
-                    label = { Text("Invoice No (e.g. A01 or INV42)") },
+                    label = { Text(invoiceLabel) },
+                    placeholder = { Text("e.g. 26A1-000042 or A01") },
                     isError = showInvoiceError,
                     supportingText = {
                         if (showInvoiceError) {
-                            Text("Bill not found. Try order number or invoice number.")
+                            Text("Enter an invoice number")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -278,7 +284,7 @@ fun ReprintKdsScreen(
                     message = if (vmHasSearched) {
                         "Check the order or invoice number and try again."
                     } else {
-                        "Use Order No with date, or Invoice No for older bills."
+                        "Use Order No with date, or $invoiceLabel for older bills."
                     },
                     icon = if (vmHasSearched) Icons.Default.SearchOff else Icons.Default.Print,
                     modifier = Modifier

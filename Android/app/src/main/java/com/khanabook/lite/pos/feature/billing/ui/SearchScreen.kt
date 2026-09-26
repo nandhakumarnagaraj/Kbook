@@ -74,6 +74,9 @@ fun SearchScreen(
     val result by viewModel.searchResult.collectAsStateWithLifecycle()
     val hasSearched by viewModel.hasSearched.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    // GST toggle drives invoice terminology — same rule as Orders table
+    // (OrderTableComponents) and printed receipts (InvoiceFormatter).
+    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     val billingError by billingViewModel.error.collectAsStateWithLifecycle()
     val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -221,7 +224,7 @@ fun SearchScreen(
                                 viewModel.clearSearch()
                             }
                         },
-                        text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text(invoiceLabel, style = MaterialTheme.typography.labelLarge) }
                     )
                 }
 
@@ -285,8 +288,8 @@ fun SearchScreen(
                                 .filter { char -> char.isLetterOrDigit() || char == '-' }
                             showLifetimeQueryError = false
                         },
-                        label = { Text("Invoice No") },
-                        placeholder = { Text("e.g. 26A1-000042") },
+                        label = { Text(invoiceLabel) },
+                        placeholder = { Text("e.g. 26A1-000042 or A01") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,

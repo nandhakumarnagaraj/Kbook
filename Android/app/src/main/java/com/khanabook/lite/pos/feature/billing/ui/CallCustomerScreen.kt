@@ -41,7 +41,8 @@ import kotlinx.coroutines.launch
 fun CallCustomerScreen(
         onBack: () -> Unit,
         modifier: Modifier = Modifier,
-        viewModel: SearchViewModel = hiltViewModel()
+        viewModel: SearchViewModel = hiltViewModel(),
+        settingsViewModel: com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var lifetimeId by remember { mutableStateOf("") }
@@ -55,6 +56,10 @@ fun CallCustomerScreen(
         )
     }
     val result by viewModel.searchResult.collectAsStateWithLifecycle()
+    // GST toggle drives invoice terminology — same rule as Orders table and
+    // printed receipts.
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
@@ -180,7 +185,7 @@ fun CallCustomerScreen(
                                 viewModel.clearSearch()
                             }
                         },
-                        text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text(invoiceLabel, style = MaterialTheme.typography.labelLarge) }
                 )
             }
 
@@ -243,7 +248,8 @@ fun CallCustomerScreen(
                             lifetimeId = it.trim()
                             showLifetimeIdError = false
                         },
-                        label = { Text("Invoice No (e.g. A01 or INV42)") },
+                        label = { Text(invoiceLabel) },
+                        placeholder = { Text("e.g. 26A1-000042 or A01") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = callCustomerSearchFieldColors(),
                         singleLine = true,
@@ -258,7 +264,7 @@ fun CallCustomerScreen(
                         isError = showLifetimeIdError,
                         supportingText = {
                             if (showLifetimeIdError) {
-                                Text("Bill not found. Try order number or invoice number.")
+                                Text("Enter an invoice number")
                             }
                         }
                 )
