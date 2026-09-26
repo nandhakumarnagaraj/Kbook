@@ -1,0 +1,41 @@
+#!/bin/sh
+# Rewrites agent attribution into a single, idempotent co-author trailer block.
+
+msg_file="$1"
+[ -n "$msg_file" ] || exit 0
+[ "$2" = "merge" ] && exit 0
+
+tmp_file=$(mktemp)
+
+awk '
+  /^Co-authored-by: (OpenCode|Claude|Codebuff|aider) / { next }
+  /^Assisted-by: / { next }
+  { lines[NR] = $0 }
+  END {
+    last = NR
+    while (last > 0 && lines[last] ~ /^[[:space:]]*$/) last--
+    for (i = 1; i <= last; i++) print lines[i]
+  }
+' "$msg_file" >"$tmp_file"
+
+if [ -s "$tmp_file" ]; then
+  mv "$tmp_file" "$msg_file"
+else
+  rm -f "$tmp_file"
+  exit 0
+fi
+
+if [ -n "$(tail -c 1 "$msg_file")" ]; then
+  printf '\n' >>"$msg_file"
+fi
+
+{
+  printf '\n'
+  printf 'Co-authored-by: OpenCode <noreply@opencode.ai>\n'
+  printf 'Co-authored-by: Claude <noreply@anthropic.com>\n'
+  printf 'Co-authored-by: Codebuff <noreply@codebuff.com>\n'
+  printf 'Co-authored-by: aider <aider@aider.chat>\n'
+  printf 'Assisted-by: opencode/big-pickle\n'
+} >>"$msg_file"
+
+exit 0
