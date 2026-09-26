@@ -162,13 +162,26 @@ public class AuthController {
 	}
 
 	@GetMapping("/check-user")
-	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
-		// Always returns true to prevent user enumeration attacks.
-		// The Android client handles both existing and new user flows gracefully.
+	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber, HttpServletRequest httpRequest) {
+		// Format check first: only bare 10-digit numbers are meaningful.
 		if (phoneNumber == null || !phoneNumber.matches("^\\d{10}$")) {
 			return ResponseEntity.ok(false);
 		}
-		return ResponseEntity.ok(true);
+		// Authoritative existence check: NEW number -> false, registered -> true.
+		// This is an account-existence oracle by design, so enumeration is
+		// mitigated with a strict per-IP rate limit (shared with login budget)
+		// and probe logging. The Android app never gates signup on this endpoint
+		// (CheckUserContractTest guards that); the authoritative duplicate check
+		// remains server-side at signup (ensurePhoneNumberAvailableForSignup).
+		String ip = getClientIp(httpRequest);
+		if (!isLoginAllowed(ip)) {
+			log.warn("check-user rate limit exceeded ip={}", ip);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		String normalized = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
+		boolean exists = authService.checkUserExists(normalized);
+		log.info("check-user ip={} phone={}*** exists={}", ip, normalized.substring(0, 3), exists);
+		return ResponseEntity.ok(exists);
 	}
 
 	@PostMapping("/reset-password")
