@@ -61,7 +61,7 @@ fun ReprintKdsScreen(
     // GST toggle drives invoice terminology — same rule as Orders table and
     // printed receipts.
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
-    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
+    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
     val vmHasSearched by searchViewModel.hasSearched.collectAsStateWithLifecycle()
     val isKitchenPrinting by billingViewModel.kitchenPrinting.collectAsStateWithLifecycle()
     val billingError by billingViewModel.error.collectAsStateWithLifecycle()

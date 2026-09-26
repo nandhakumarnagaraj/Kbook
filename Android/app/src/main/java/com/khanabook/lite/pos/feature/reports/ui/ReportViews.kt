@@ -288,7 +288,7 @@ fun OrderLevelView(
     onViewDetails: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val invoiceHeader = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
+    val invoiceHeader = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
 
         if (!compactLayout) Row(

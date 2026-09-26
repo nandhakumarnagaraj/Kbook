@@ -76,7 +76,7 @@ fun SearchScreen(
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     // GST toggle drives invoice terminology — same rule as Orders table
     // (OrderTableComponents) and printed receipts (InvoiceFormatter).
-    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
+    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
     val billingError by billingViewModel.error.collectAsStateWithLifecycle()
     val printStatus by billingViewModel.printStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current

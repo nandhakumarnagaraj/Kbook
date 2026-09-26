@@ -41,7 +41,7 @@ private val COL_DATE    = 1.7f
 @Composable
 fun TableHeader(isGstEnabled: Boolean) {
     val spacing = KhanaBookTheme.spacing
-    val invoiceHeader = if (isGstEnabled) "Tax Inv No" else "Invoice No"
+    val invoiceHeader = if (isGstEnabled) "Tax Invoice No" else "Invoice No"
     Row(
         modifier = Modifier
             .fillMaxWidth()
