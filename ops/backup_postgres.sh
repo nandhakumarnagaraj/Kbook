@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 ROOT_DIR="/var/www/kbook.iadv.cloud"
 COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.production.yml"

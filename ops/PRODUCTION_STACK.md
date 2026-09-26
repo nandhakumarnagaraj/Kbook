@@ -12,7 +12,7 @@ This stack runs Kbook backend and PostgreSQL in one private Docker Compose netwo
   - not exposed on a public host port
   - persistent volume: `pgdata`
 
-Apache should continue proxying `/api/v2/` to `127.0.0.1:8081`.
+The edge web server (nginx in production) proxies `/api/` to `127.0.0.1:8081`. The API context path is `/api/v1` — there is no `/api/v2`.
 
 ## Required `.env` values
 
@@ -41,7 +41,7 @@ Apache should continue proxying `/api/v2/` to `127.0.0.1:8081`.
    - `./ops/restore_postgres.sh /path/to/backup.sql.gz`
 4. Verify:
    - `docker compose --env-file .env -f ops/docker-compose.production.yml ps`
-   - `curl http://127.0.0.1:8081/api/v2/actuator/health`
+   - `curl http://127.0.0.1:8081/api/v1/actuator/health`
 
 ## Backup
 
