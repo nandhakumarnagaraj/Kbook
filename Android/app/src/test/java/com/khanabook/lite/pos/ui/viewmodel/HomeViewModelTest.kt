@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.sync.domain.SyncManager
 import com.khanabook.lite.pos.feature.sync.domain.ConnectionStatus
 import com.khanabook.lite.pos.feature.sync.domain.NetworkMonitor
+import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -38,6 +39,7 @@ class HomeViewModelTest {
     private lateinit var printerManager: BluetoothPrinterManager
     private lateinit var networkMonitor: NetworkMonitor
     private lateinit var syncManager: SyncManager
+    private lateinit var sessionManager: SessionManager
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
@@ -78,6 +80,7 @@ class HomeViewModelTest {
         printerManager = mockk(relaxed = true)
         syncManager = mockk(relaxed = true)
         every { syncManager.clockDriftSeconds } returns MutableStateFlow(null)
+        sessionManager = mockk(relaxed = true)
 
         every { printerProfileRepository.getProfilesFlow() } returns flowOf(emptyList())
         every { printerManager.connectedDeviceMacs } returns MutableStateFlow(emptySet())
@@ -91,7 +94,8 @@ class HomeViewModelTest {
             restaurantRepository,
             printerManager,
             networkMonitor,
-            syncManager
+            syncManager,
+            sessionManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
     }
@@ -107,6 +111,7 @@ class HomeViewModelTest {
         printerManager = mockk(relaxed = true)
         syncManager = mockk(relaxed = true)
         every { syncManager.clockDriftSeconds } returns MutableStateFlow(null)
+        sessionManager = mockk(relaxed = true)
 
         val viewModel = HomeViewModel(
             billRepository,
@@ -116,7 +121,8 @@ class HomeViewModelTest {
             restaurantRepository,
             printerManager,
             networkMonitor,
-            syncManager
+            syncManager,
+            sessionManager
         )
 
         org.junit.Assert.assertEquals(HomeViewModel.SummaryScope.THIS_COUNTER, viewModel.summaryScope.value)

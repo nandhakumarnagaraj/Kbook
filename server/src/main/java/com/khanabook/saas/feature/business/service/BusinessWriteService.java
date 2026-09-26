@@ -99,6 +99,9 @@ public class BusinessWriteService {
     public StaffCreatedResponse createStaff(Long restaurantId, CreateStaffRequest req) {
         UserRole role = parseRole(req.role());
 
+        // Fix #2 (issues.txt): canonicalize the phone before any lookup or write so
+        // +91 / leading-0 / spaced variants cannot create format-variant duplicates.
+        req = new CreateStaffRequest(req.name(), com.khanabook.saas.core.utility.PhoneNormalizer.normalize(req.phone()), req.role(), req.email(), req.permissions());
         // Only a LIVE (not soft-deleted) account blocks re-adding this phone.
         // Soft-deleted staff must not reserve the number forever — mirrors signup
         // (AuthServiceImpl#ensurePhoneNumberAvailableForSignup).

@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,6 +40,16 @@ public class AppVersionFilter extends OncePerRequestFilter {
     /** Versions below this value will receive a deprecation warning header. */
     private static final int SOFT_MIN_VERSION = 30;
 
+    /**
+     * Hard cutoff (Phase 3): versioned clients below this value receive 410 Gone
+     * and are NOT admitted to any /api path. 0 disables the cutoff. Set via
+     * APP_MIN_SUPPORTED_VERSION env var in production once the fixed build
+     * (which no longer gates signup on /auth/check-user) is live on the
+     * Play Store — see issues.txt fix plan item 1.
+     */
+    @Value("${app.version.min-supported:0}")
+    private int minSupportedVersion;
+
     /** Header the Android app sends (BuildConfig.VERSION_CODE). */
     public static final String HEADER_APP_VERSION  = "X-App-Version";
     public static final String HEADER_APP_PLATFORM = "X-App-Platform";
@@ -57,6 +69,21 @@ public class AppVersionFilter extends OncePerRequestFilter {
             try {
                 int versionCode = Integer.parseInt(versionStr.trim());
                 String path = request.getRequestURI();
+
+                if (minSupportedVersion > 0 && versionCode < minSupportedVersion) {
+                    // Hard cutoff: the build is known-broken (e.g. v21 falsely
+                    // reports "number already exists" at signup). Reject with a
+                    // machine-readable error the app can surface as "please update".
+                    log.warn("Blocked outdated client: platform={} version={} path={}",
+                            platform, versionCode, path);
+                    response.setStatus(HttpStatus.GONE.value());
+                    response.setContentType("application/json");
+                    response.setHeader(HEADER_DEPRECATION,
+                            "Your app version (" + versionCode + ") is no longer supported.");
+                    response.getWriter().write(
+                            "{\"error\":\"UPGRADE_REQUIRED\",\"message\":\"This app version is no longer supported. Please update KhanaBook from the Play Store.\"}");
+                    return; // do NOT continue the chain
+                }
 
                 if (versionCode < SOFT_MIN_VERSION) {
                     log.warn("Deprecated client detected: platform={} version={} path={}",

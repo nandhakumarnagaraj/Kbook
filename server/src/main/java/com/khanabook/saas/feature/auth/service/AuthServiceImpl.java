@@ -55,6 +55,11 @@ public class AuthServiceImpl implements AuthService {
         String normalized = raw.trim();
         if (normalized.contains("@")) {
             normalized = normalized.toLowerCase(java.util.Locale.ROOT);
+        } else {
+            // Fix #2 (issues.txt): canonicalize phone identifiers so +91 / leading-0 /
+            // spaced variants collapse to the bare 10-digit number instead of
+            // creating format-variant duplicate accounts or failing lookups.
+            normalized = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(normalized);
         }
         return normalized;
     }
@@ -64,6 +69,10 @@ public class AuthServiceImpl implements AuthService {
         String loginId = normalizeLoginIdentifier(request.getLoginId());
         User user = userRepository.findByLoginIdIgnoreCase(loginId)
                 .or(() -> userRepository.findByEmailIgnoreCase(loginId))
+                // Fix #4 (issues.txt): phone-registered users could fail lookup
+                // because login() never checked phone_number directly — unlike
+                // reset-password's findUserByLoginId. Aligned here.
+                .or(() -> userRepository.findByPhoneNumber(loginId))
                 .or(() -> userRepository.findByWhatsappNumber(loginId))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid login ID or password"));
 
@@ -86,6 +95,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse signup(SignupRequest request) {
+        request.setPhoneNumber(com.khanabook.saas.core.utility.PhoneNormalizer.normalize(request.getPhoneNumber()));
         ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
         passwordResetOtpService.validateSignupOtpOrThrow(request.getPhoneNumber(), request.getOtp());
 
@@ -137,6 +147,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse devSignup(SignupRequest request) {
+        request.setPhoneNumber(com.khanabook.saas.core.utility.PhoneNormalizer.normalize(request.getPhoneNumber()));
         ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
         releaseIdentifierFromDeletedUsers(request.getPhoneNumber());
         Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
@@ -209,6 +220,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void requestSignupOtp(String phoneNumber) {
+        phoneNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
         ensurePhoneNumberAvailableForSignup(phoneNumber);
         passwordResetOtpService.issueSignupOtp(phoneNumber);
     }
@@ -365,6 +377,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void requestPasswordResetOtp(String phoneNumber) {
+        phoneNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
         // Anti-enumeration: never reveal whether an account exists for this phone.
         // Issue the OTP only when the account is present; otherwise return silently
         // so the endpoint responds identically (200) for known and unknown numbers.
@@ -379,6 +392,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void resetPassword(String phoneNumber, String otp, String newPassword) {
+        phoneNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
         passwordResetOtpService.validateOtpOrThrow(phoneNumber, otp);
 
         User user = findUserByLoginId(phoneNumber)

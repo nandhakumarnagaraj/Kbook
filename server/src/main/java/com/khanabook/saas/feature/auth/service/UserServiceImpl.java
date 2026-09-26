@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Transactional
 	public void requestMobileNumberUpdateOtp(Long tenantId, String newMobileNumber) {
+		newMobileNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(newMobileNumber);
 		User currentUser = getPrimaryUser(tenantId);
 		if (newMobileNumber.equals(currentUser.getWhatsappNumber())) {
 			return;
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Transactional
 	public void confirmMobileNumberUpdate(Long tenantId, String newMobileNumber, String otp) {
+		newMobileNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(newMobileNumber);
 		User currentUser = getPrimaryUser(tenantId);
 		if (newMobileNumber.equals(currentUser.getWhatsappNumber())) {
 			return;
