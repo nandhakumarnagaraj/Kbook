@@ -163,8 +163,10 @@ public class AuthController {
 
 	@GetMapping("/check-user")
 	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber, HttpServletRequest httpRequest) {
-		// Format check first: only bare 10-digit numbers are meaningful.
-		if (phoneNumber == null || !phoneNumber.matches("^\\d{10}$")) {
+		// Normalize FIRST so +91 / leading-0 / spaced variants collapse to the bare
+		// 10-digit number, then validate. Only then is it an existence check.
+		String normalized = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
+		if (normalized == null || !normalized.matches("^\\d{10}$")) {
 			return ResponseEntity.ok(false);
 		}
 		// Authoritative existence check: NEW number -> false, registered -> true.
@@ -178,7 +180,6 @@ public class AuthController {
 			log.warn("check-user rate limit exceeded ip={}", ip);
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
-		String normalized = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(phoneNumber);
 		boolean exists = authService.checkUserExists(normalized);
 		log.info("check-user ip={} phone={}*** exists={}", ip, normalized.substring(0, 3), exists);
 		return ResponseEntity.ok(exists);
