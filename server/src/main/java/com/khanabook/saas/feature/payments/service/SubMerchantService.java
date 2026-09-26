@@ -122,15 +122,15 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         log.info("Sub-merchant {} assigned Easebuzz ID: {} for restaurant {}; KYC activation remains pending", id, subMerchantId, sm.getRestaurantId());
         
-        try {
-            pushNotificationService.pushToRestaurant(
+        try {                pushNotificationService.pushToRestaurant(
                 sm.getRestaurantId(),
                 "Sub-Merchant Linked",
                 "Easebuzz sub-merchant account linked successfully. KYC verification is pending.",
                 "kyc",
                 String.valueOf(sm.getId()),
                 "submerchant",
-                java.math.BigDecimal.ZERO
+                null
+
             );
         } catch (Exception e) {
             log.warn("Failed to push submerchant link notification: {}", e.getMessage());
@@ -159,7 +159,7 @@ public class SubMerchantService {
                     "kyc",
                     String.valueOf(sm.getId()),
                     "submerchant",
-                    java.math.BigDecimal.ZERO
+                    null
                 );
             } catch (Exception e) {
                 log.warn("Failed to push KYC status update notification: {}", e.getMessage());
@@ -443,17 +443,15 @@ public class SubMerchantService {
                     statusMessage = "Rejected/Needs attention ⚠️";
                 } else {
                     statusMessage = "Pending Verification ⏳";
-                }
-
-                pushNotificationService.pushToRestaurant(
-                    sm.getRestaurantId(),
-                    "KYC Status Update",
-                    "Your sub-merchant KYC status is now: " + statusMessage,
-                    "kyc",
-                    String.valueOf(sm.getId()),
-                    "submerchant",
-                    java.math.BigDecimal.ZERO
-                );
+                }                pushNotificationService.pushToRestaurant(
+                sm.getRestaurantId(),
+                "KYC Status Update",
+                "Your sub-merchant KYC status is now: " + statusMessage,
+                "kyc",
+                String.valueOf(sm.getId()),
+                "submerchant",
+                null
+            );
             } catch (Exception e) {
                 log.warn("Failed to push KYC status update notification: {}", e.getMessage());
             }

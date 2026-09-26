@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.feature.payments.domain.PaymentReturnManager
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.navigation.NavigationTabs
@@ -119,6 +120,8 @@ fun NewBillScreen(
     val error by billingViewModel.error.collectAsStateWithLifecycle()
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val activeDraftBills by billingViewModel.activeDraftBillsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val orderPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
     val context = androidx.compose.ui.platform.LocalContext.current
     val menuFeedbackPreferences = rememberMenuFeedbackPreferences()
     val menuFeedbackSettings by rememberMenuFeedbackSettings(menuFeedbackPreferences)
@@ -248,12 +251,17 @@ fun NewBillScreen(
         if (navController != null) {
             val isFreshBillCreation = draftBillId == null && billingViewModel.editingBillId == null
             val targetDraftId = draftBillId ?: billingViewModel.editingBillId ?: billingViewModel.lastBill.value?.bill?.id
+            val isPayAfterFood = orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD
             if (isFreshBillCreation) {
-                navController.navigate(Routes.ACTIVE_ORDERS) {
-                    popUpTo(Routes.NEW_BILL_PATTERN) {
-                        inclusive = true
+                if (isPayAfterFood) {
+                    navigateToHome()
+                } else {
+                    navController.navigate(Routes.ACTIVE_ORDERS) {
+                        popUpTo(Routes.NEW_BILL_PATTERN) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
-                    launchSingleTop = true
                 }
             } else if (targetDraftId != null) {
                 val prevRoute = navController.previousBackStackEntry?.destination?.route
@@ -267,6 +275,8 @@ fun NewBillScreen(
                         launchSingleTop = true
                     }
                 }
+            } else if (isPayAfterFood) {
+                navigateToHome()
             } else {
                 navController.navigate(Routes.ACTIVE_ORDERS) {
                     popUpTo(Routes.NEW_BILL_PATTERN) {

@@ -49,7 +49,7 @@
 - Angular: standalone components, strict templates, strict TypeScript
 - No ESLint, Prettier, checkstyle, or ktlint configs exist (do not add them unless asked)
 - Avoid adding explanatory comments to code unless asked
-- Android: min SDK 26, target SDK 35
+- Android: min SDK 26, compile SDK 36, target SDK 36
 - Server: Java 17, Spring Boot 3.5.x, JPA/Hibernate, JWT auth
 - Do not commit secrets (.env, local.properties, keystores, google-services.json)
 

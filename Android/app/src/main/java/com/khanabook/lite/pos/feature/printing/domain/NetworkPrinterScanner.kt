@@ -5,6 +5,7 @@ import android.os.Build
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.util.Log
+import com.khanabook.lite.pos.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

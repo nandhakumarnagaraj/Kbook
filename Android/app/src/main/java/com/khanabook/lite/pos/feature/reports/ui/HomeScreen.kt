@@ -204,7 +204,7 @@ fun HomeScreen(
                                     StatItem("Customers", stats.customerCount.toString(), statMod)
                                     StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
                                     StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
-                                    StatItem("KDS Pending", stats.kdsPendingCount.toString(), statMod)
+                                    StatItem("KOT Pending", stats.kdsPendingCount.toString(), statMod)
                                 }
                             }
                         }
@@ -217,7 +217,8 @@ fun HomeScreen(
                     // Warning cards: on compact-height windows show a collapsed chip to
                     // preserve the height budget for all 5 actions. Tap expands details.
                     val hasPaymentWarning = pendingOnlinePayments.isNotEmpty()
-                    val hasSyncWarning = quarantinedSyncCount > 0
+                    // Sync quarantine is a technical/owner concern — hidden from staff.
+                    val hasSyncWarning = viewModel.isOwner && quarantinedSyncCount > 0
                     val warningCount = (if (hasPaymentWarning) 1 else 0) + (if (hasSyncWarning) 1 else 0)
                     var warningsExpanded by remember { mutableStateOf(false) }
                     val showFullWarnings = !layout.compactHomeHeight || warningsExpanded
@@ -324,7 +325,7 @@ fun HomeScreen(
                             }
                         }
                     }
-                    if (showFullWarnings && hasSyncWarning) {
+                    if (viewModel.isOwner && showFullWarnings && hasSyncWarning) {
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = PrimaryGold.copy(alpha = 0.12f)),
@@ -345,13 +346,17 @@ fun HomeScreen(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "$quarantinedSyncCount quarantined child row(s) need review",
+                                        text = if (quarantinedSyncCount == 1) {
+                                            "$quarantinedSyncCount item needs review before it can sync"
+                                        } else {
+                                            "$quarantinedSyncCount items need review before they can sync"
+                                        },
                                         color = TextLight,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Open Sync Center to inspect quarantined bill items and payments.",
+                                        text = "Open Sync Center to check and fix these items.",
                                         color = TextGold,
                                         style = MaterialTheme.typography.bodySmall
                                     )
@@ -363,7 +368,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (clockDriftWarning) {
+                    if (viewModel.isOwner && clockDriftWarning) {
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = WarningYellow.copy(alpha = 0.12f)),
@@ -390,7 +395,7 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Tablet clock differs by >3 mins from server. Please enable 'Set time automatically' in Android Settings to avoid sync and invoice sequence skew.",
+                                        text = "This tablet's clock is off by more than 3 minutes. Turn on 'Set time automatically' in Android Settings so bills and invoices stay in order.",
                                         color = TextLight,
                                         style = MaterialTheme.typography.bodySmall
                                     )
@@ -442,7 +447,7 @@ fun HomeScreen(
                                 )
                                 if (!(layout.compactHomeHeight && layout.isLandscape)) {
                                     Text(
-                                        text = "Works offline. Sync runs in background.",
+                                        text = if (viewModel.isOwner) "Works offline. Sync runs in background." else "Start taking orders right away.",
                                         color = DarkBrown1.copy(alpha = 0.85f),
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier.padding(top = spacing.extraSmall)
@@ -492,15 +497,7 @@ fun HomeScreen(
                                     icon = Icons.Default.ShoppingCart,
                                     backgroundColor = CardBG,
                                     modifier = actionModifier,
-                                    onClick = {
-                                        if (activeDraftBills.isEmpty()) {
-                                            coroutineScope.launch {
-                                                KhanaToast.show("No active order", ToastKind.Info)
-                                            }
-                                        } else {
-                                            onActiveOrder()
-                                        }
-                                    }
+                                    onClick = onActiveOrder
                                 )
                             }
                             HomeActionCard(
@@ -513,7 +510,7 @@ fun HomeScreen(
                             )
                             HomeActionCard(
                                 text = "Reprint KOT",
-                                subtitle = "Kitchen ticket",
+                                subtitle = "Kitchen Order Ticket",
                                 icon = Icons.Default.Restaurant,
                                 backgroundColor = CardBG,
                                 modifier = actionModifier,

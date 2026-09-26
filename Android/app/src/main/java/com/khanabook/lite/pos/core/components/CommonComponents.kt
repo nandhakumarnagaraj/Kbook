@@ -28,6 +28,24 @@ fun KhanaDatePickerField(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     
+    // Internal state is yyyy-MM-dd (search APIs depend on it) but the field
+    // displays the friendlier 26-Sep-2026 format.
+    val displayDate = remember(selectedDate) {
+        if (selectedDate.isBlank()) {
+            ""
+        } else {
+            try {
+                val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(selectedDate)
+                if (parsed != null) {
+                    SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH).format(parsed)
+                } else {
+                    selectedDate
+                }
+            } catch (e: Exception) {
+                selectedDate
+            }
+        }
+    }
     
     val calendar = Calendar.getInstance()
     if (selectedDate.isNotEmpty()) {
@@ -42,7 +60,7 @@ fun KhanaDatePickerField(
     )
 
     KhanaBookInputField(
-        value = selectedDate,
+        value = displayDate,
         onValueChange = { },
         readOnly = true,
         label = label,

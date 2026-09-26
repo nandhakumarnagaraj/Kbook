@@ -110,7 +110,7 @@ public class PushNotificationService {
                     "system",
                     null,
                     null,
-                    BigDecimal.ZERO
+                    null
                 );
             });
         } catch (Exception e) {

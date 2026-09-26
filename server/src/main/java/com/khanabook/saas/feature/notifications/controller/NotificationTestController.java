@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -39,7 +38,7 @@ public class NotificationTestController {
         }
         String title = data != null ? data.getOrDefault("title", "👋 Welcome to KhanaBook!") : "👋 Welcome to KhanaBook!";
         String message = data != null ? data.getOrDefault("message", "Your push notifications are working perfectly.") : "Your push notifications are working perfectly.";
-        pushNotificationService.pushToRestaurant(restaurantId, title, message, "system", null, null, BigDecimal.ZERO);
+        pushNotificationService.pushToRestaurant(restaurantId, title, message, "system", null, null, null);
         return ResponseEntity.ok(Map.of("status", "success", "message", "Test notification sent"));
     }
 
@@ -65,7 +64,7 @@ public class NotificationTestController {
         Map<String, String> data = (Map<String, String>) payload.get("data");
         if (data == null) {
             data = Map.of(
-                "type", "FSSAI_ALERT",
+                "type", "fssai_expiry",
                 "restaurantId", "REST001",
                 "daysLeft", "30"
             );

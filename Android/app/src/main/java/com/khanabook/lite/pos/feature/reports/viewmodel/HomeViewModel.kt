@@ -39,8 +39,13 @@ class HomeViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val printerManager: BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.feature.sync.domain.NetworkMonitor,
-    private val syncManager: com.khanabook.lite.pos.feature.sync.domain.SyncManager
+    private val syncManager: com.khanabook.lite.pos.feature.sync.domain.SyncManager,
+    private val sessionManager: com.khanabook.lite.pos.feature.auth.domain.SessionManager
 ) : ViewModel() {
+
+    /** Owner-only surfaces (sync/clock technical warnings) are hidden from staff. */
+    val isOwner: Boolean
+        get() = sessionManager.isOwner()
 
     val clockDriftWarning: StateFlow<Boolean> = syncManager.clockDriftSeconds
         .map { drift -> (drift ?: 0L) > com.khanabook.lite.pos.feature.sync.domain.SyncManager.MAX_ALLOWED_CLOCK_DRIFT_SECONDS }

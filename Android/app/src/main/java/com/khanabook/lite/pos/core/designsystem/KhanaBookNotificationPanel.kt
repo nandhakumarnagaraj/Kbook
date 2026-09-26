@@ -84,9 +84,14 @@ fun NotificationRow(
     val (icon, iconColor) = when (notification.notificationType) {
         "payment_received" -> Icons.Default.Payment to SuccessGreen
         "refund" -> Icons.Default.Replay to DangerRed
+        "order_cancelled", "qr_order", "order" -> Icons.Default.Restaurant to DangerRed
         "kyc" -> Icons.Default.VerifiedUser to BrandPurple
         "settlement" -> Icons.Default.AccountBalance to LightGold
         "fssai_expiry" -> Icons.Default.WarningAmber to WarningYellow
+        "inventory_low" -> Icons.Default.Inventory2 to WarningYellow
+        "terminal" -> Icons.Default.Devices to TextMuted
+        "permission_request" -> Icons.Default.AdminPanelSettings to BrandPurple
+        "BILL_EDIT_DIGEST" -> Icons.Default.FactCheck to LightGold
         else -> Icons.Default.Notifications to PrimaryGold
     }
 
@@ -187,14 +192,20 @@ fun NotificationRow(
                     )
                 }
 
-                notification.amount?.let { amt ->
+                // Amount pill only for real, positive money amounts — hides "0"
+                // placeholders from non-money notifications (welcome, FSSAI, KYC).
+                val amountValue = notification.amount
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.toBigDecimalOrNull()
+                if (amountValue != null && amountValue > java.math.BigDecimal.ZERO) {
                     Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.extraSmall))
                     Surface(
                         shape = KhanaRadii.pill,
                         color = SuccessGreen.copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = "₹$amt",
+                            text = "₹$amountValue",
                             color = SuccessGreen,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold
@@ -209,8 +220,8 @@ fun NotificationRow(
 }
 
 /**
- * Full notification list panel — push notifications with header, mark-all-read,
- * empty state, and refresh action.
+ * Full notification list panel — push notifications with category filter chips,
+ * mark-all-read, and empty state. Refresh happens automatically on screen entry.
  */
 @Composable
 fun NotificationListPanel(
@@ -218,41 +229,47 @@ fun NotificationListPanel(
     unreadCount: Int,
     onNotificationClick: (NotificationEntity) -> Unit,
     onMarkAllRead: () -> Unit,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    isRefreshing: Boolean = false
+    modifier: Modifier = Modifier
 ) {
+    var selectedFilter by remember { mutableStateOf(NotificationFilter.ALL) }
+    val filteredNotifications = remember(notifications, selectedFilter) {
+        notifications.filter { selectedFilter.matches(it.notificationType) }
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = KhanaBookTheme.spacing.medium),
         verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
+        if (unreadCount > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Notifications",
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    text = "$unreadCount unread",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                 )
-                if (unreadCount > 0) {
-                    Text(
-                        text = "$unreadCount unread",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
-                    )
+                TextButton(onClick = onMarkAllRead) {
+                    Text("Mark all read", color = PrimaryGold)
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)) {
-                if (unreadCount > 0) {
-                    TextButton(onClick = onMarkAllRead) {
-                        Text("Mark all read", color = PrimaryGold)
-                    }
-                }
+        }
+
+        // Category filter chips — All · Payments · Orders · Alerts
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
+        ) {
+            NotificationFilter.entries.forEach { filter ->
+                NotificationFilterChip(
+                    label = filter.label,
+                    isSelected = selectedFilter == filter,
+                    onClick = { selectedFilter = filter },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -285,64 +302,81 @@ fun NotificationListPanel(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                    TextButton(onClick = onRefresh, enabled = !isRefreshing) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = PrimaryGold
-                            )
-                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                            Text("Refreshing…")
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                            Text("Refresh")
-                        }
-                    }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
-            ) {
-                items(notifications, key = { it.id }) { notification ->
-                    NotificationRow(
-                        notification = notification,
-                        onClick = { onNotificationClick(notification) }
-                    )
-                }
-                item {
-                    TextButton(
-                        onClick = onRefresh,
-                        enabled = !isRefreshing,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = PrimaryGold
-                            )
-                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                            Text("Refreshing…")
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(KhanaBookTheme.spacing.extraSmall))
-                            Text("Refresh")
-                        }
+            if (filteredNotifications.isEmpty()) {
+                KhanaEmptyState(
+                    title = "No ${selectedFilter.label} notifications",
+                    message = "Notifications in this category will appear here.",
+                    icon = Icons.Default.NotificationsNone
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
+                ) {
+                    items(filteredNotifications, key = { it.id }) { notification ->
+                        NotificationRow(
+                            notification = notification,
+                            onClick = { onNotificationClick(notification) }
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+/** Notification categories shown as filter chips on the notification list. */
+private enum class NotificationFilter(val label: String) {
+    ALL("All"),
+    PAYMENTS("Payments"),
+    ORDERS("Orders"),
+    ALERTS("Alerts");
+
+    fun matches(type: String): Boolean {
+        val t = type.trim().lowercase()
+        return when (this) {
+            ALL -> true
+            PAYMENTS -> t in PAYMENT_TYPES
+            ORDERS -> t in ORDER_TYPES
+            ALERTS -> t !in PAYMENT_TYPES && t !in ORDER_TYPES
+        }
+    }
+
+    companion object {
+        private val PAYMENT_TYPES = setOf("payment_received", "refund", "settlement")
+        private val ORDER_TYPES = setOf("qr_order", "order", "order_cancelled")
+    }
+}
+
+/** Segmented filter chip styled like OrderFilterChip — gold when selected. */
+@Composable
+private fun NotificationFilterChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 36.dp),
+        shape = KhanaRadii.md,
+        color = if (isSelected) PrimaryGold else Color.Transparent,
+        border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
+        contentColor = if (isSelected) DarkBrown1 else TextLight
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
         }
     }
 }

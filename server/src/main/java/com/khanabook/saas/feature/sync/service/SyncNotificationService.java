@@ -44,7 +44,7 @@ public class SyncNotificationService {
                         "Order Cancelled",
                         "Order " + displayOrder + " has been cancelled. Reason: "
                             + (bill.getCancelReason() != null ? bill.getCancelReason() : "None specified"),
-                        "refund",
+                        "order_cancelled",
                         String.valueOf(bill.getId() != null ? bill.getId() : bill.getLocalId()),
                         "bill",
                         bill.getTotalAmount()

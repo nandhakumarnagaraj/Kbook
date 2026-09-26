@@ -32,12 +32,12 @@ public class AdminNotificationController {
         String referenceId = (String) payload.get("referenceId");
         String referenceType = (String) payload.get("referenceType");
 
-        BigDecimal amount = BigDecimal.ZERO;
+        BigDecimal amount = null;
         if (payload.containsKey("amount")) {
             try {
                 amount = new BigDecimal(payload.get("amount").toString());
             } catch (Exception e) {
-                // use default zero
+                // leave null — no amount pill on the device
             }
         }
 

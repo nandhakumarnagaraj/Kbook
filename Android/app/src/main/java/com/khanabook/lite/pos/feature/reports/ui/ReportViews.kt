@@ -262,6 +262,7 @@ fun PartPaymentCard(
 
 private val COL_ORDER   = 0.8f
 private val COL_INVOICE = 1.3f
+private val COL_DATE    = 1.0f
 private val COL_MODE    = 1.1f
 private val COL_STATUS  = 1.2f
 private val COL_ACTION  = 0.8f
@@ -300,6 +301,7 @@ fun OrderLevelView(
         ) {
             HeaderCell("Order No", COL_ORDER)
             HeaderCell(invoiceHeader, COL_INVOICE)
+            HeaderCell("Date", COL_DATE)
             HeaderCell("Mode", COL_MODE)
             HeaderCell("Status", COL_STATUS)
             HeaderCell("Action", COL_ACTION)
@@ -380,6 +382,14 @@ fun OrderRowItem(
                     maxLines = 1
                 )
                 Text(
+                    row.date,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = spacing.extraSmall),
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
                     row.invoiceDisplay,
                     modifier = Modifier.weight(1f),
                     color = TextLight,
@@ -405,6 +415,11 @@ fun OrderRowItem(
                     COL_INVOICE,
                     fontWeight = FontWeight.Bold,
                     color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                )
+                TableCell(
+                    row.date,
+                    COL_DATE,
+                    color = if (isCancelled) TextLight.copy(alpha = 0.5f) else TextMuted
                 )
             }
 

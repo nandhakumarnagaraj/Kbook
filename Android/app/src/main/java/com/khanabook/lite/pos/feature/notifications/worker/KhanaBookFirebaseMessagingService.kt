@@ -60,7 +60,9 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
 
         val referenceId = message.data["referenceId"]
         val referenceType = message.data["referenceType"]
-        val amount = message.data["amount"]
+        // Server serializes a null amount as "" — treat blank as absent so the
+        // amount pill never renders for non-money notifications.
+        val amount = message.data["amount"]?.takeIf { it.isNotBlank() }
         val notificationId = (message.data["notificationId"]?.toLongOrNull()
             ?: System.currentTimeMillis())
 
@@ -125,9 +127,12 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         val colorInt = when (type) {
             "payment_received" -> 0xFF16A34A.toInt() // Green
             "refund" -> 0xFFEF4444.toInt() // Red
+            "order_cancelled" -> 0xFFEF4444.toInt() // Red
+            "qr_order" -> 0xFF16A34A.toInt() // Green — matches in-app banner
             "kyc" -> 0xFF8B5CF6.toInt() // Violet
             "settlement" -> 0xFF0284C7.toInt() // Blue
             "fssai_expiry" -> 0xFFF97316.toInt() // Saffron
+            "inventory_low" -> 0xFFF97316.toInt() // Saffron
             else -> 0xFF7C5CDB.toInt() // Purple (system default)
         }
 
@@ -227,7 +232,9 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun domainLabel(type: String): String = when (type) {
-        "payment_received", "qr_order" -> "payment alert"
+        "payment_received" -> "payment alert"
+        "qr_order" -> "new order"
+        "order_cancelled" -> "order cancelled"
         "refund" -> "refund update"
         "kyc" -> "KYC update"
         "settlement" -> "settlement update"

@@ -167,7 +167,7 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
                 // Logo — carries over from the native splash at full size, then
                 // does a celebratory spring pop after a short hold
                 Image(
-                    painter = painterResource(id = R.drawable.splash_logo),
+                    painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = "KhanaBook POS",
                     modifier = Modifier
                         .size(150.dp)

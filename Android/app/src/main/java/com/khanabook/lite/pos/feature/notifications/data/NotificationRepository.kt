@@ -166,7 +166,9 @@ class NotificationRepository @Inject constructor(
                         message = map["message"] as? String,
                         referenceId = map["referenceId"] as? String,
                         referenceType = map["referenceType"] as? String,
-                        amount = map["amount"]?.toString(),
+                        // Blank amount (server null/zero placeholder) means "no amount" —
+                        // prevents a stray ₹ pill on non-money notifications.
+                        amount = map["amount"]?.toString()?.takeIf { it.isNotBlank() },
                         isRead = map["isRead"] as? Boolean ?: false,
                         createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
                     )

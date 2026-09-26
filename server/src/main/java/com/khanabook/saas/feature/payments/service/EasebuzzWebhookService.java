@@ -263,7 +263,7 @@ public class EasebuzzWebhookService {
                     renewal.getRestaurantId(),
                     "FSSAI Renewal Paid",
                     "Your FSSAI renewal payment of ₹" + amountStr + " was received successfully. We are processing your compliance renewal.",
-                    "system",
+                    "payment_received",
                     renewal.getFssaiNumber(),
                     "fssai",
                     amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO

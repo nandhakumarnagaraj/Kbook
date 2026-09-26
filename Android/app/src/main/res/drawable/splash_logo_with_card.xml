@@ -15,7 +15,7 @@
         android:left="20dp"
         android:right="20dp">
         <bitmap
-            android:src="@drawable/ic_khanabook_logo"
+            android:src="@drawable/khanabook_logo"
             android:gravity="center" />
     </item>
 </layer-list>

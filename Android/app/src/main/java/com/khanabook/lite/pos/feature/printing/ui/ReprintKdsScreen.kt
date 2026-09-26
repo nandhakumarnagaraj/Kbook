@@ -134,11 +134,19 @@ fun ReprintKdsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
                     }
-                    Text("Reprint KDS", color = PrimaryGold, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Reprint KOT", color = PrimaryGold, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Box {}
                 }
             }
 
+            // All content below the header shares one horizontal padding so the
+            // tab underline, fields and result card align — same rhythm as
+            // Find Bill / Call Customer.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium)
+            ) {
             // Tabs
             TabRow(
                 selectedTabIndex = selectedTab,
@@ -162,13 +170,11 @@ fun ReprintKdsScreen(
 
             // Search Fields
             if (selectedTab == 0) {
-                Box(modifier = Modifier.padding(horizontal = spacing.medium)) {
-                    KhanaDatePickerField(
-                        label = "Select Date",
-                        selectedDate = dailyDate,
-                        onDateSelected = { dailyDate = it }
-                    )
-                }
+                KhanaDatePickerField(
+                    label = "Select Date",
+                    selectedDate = dailyDate,
+                    onDateSelected = { dailyDate = it }
+                )
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -182,11 +188,14 @@ fun ReprintKdsScreen(
                             showDailyIdError = true
                         }
                     },
-                    label = { Text("Order No", color = TextGold) },
+                    label = { Text("Order No") },
                     isError = showDailyIdError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
+                    supportingText = {
+                        if (showDailyIdError) {
+                            Text("Please enter numbers only")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
@@ -198,9 +207,6 @@ fun ReprintKdsScreen(
                     ),
                     colors = outlinedSearchFieldColors()
                 )
-                if (showDailyIdError) {
-                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
-                }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -210,9 +216,7 @@ fun ReprintKdsScreen(
                         keyboardController?.hide()
                         doSearch()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
+                    modifier = Modifier.fillMaxWidth(),
                     leadingIcon = Icons.Default.Search,
                     enabled = dailyId.isNotEmpty()
                 )
@@ -223,11 +227,14 @@ fun ReprintKdsScreen(
                         invoiceQuery = it.trim()
                         showInvoiceError = false
                     },
-                    label = { Text("Invoice No (e.g. A01 or INV42)", color = TextGold) },
+                    label = { Text("Invoice No (e.g. A01 or INV42)") },
                     isError = showInvoiceError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
+                    supportingText = {
+                        if (showInvoiceError) {
+                            Text("Bill not found. Try order number or invoice number.")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
@@ -239,9 +246,6 @@ fun ReprintKdsScreen(
                     ),
                     colors = outlinedSearchFieldColors()
                 )
-                if (showInvoiceError) {
-                    Text("Bill not found. Try order number or invoice number.", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
-                }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -251,9 +255,7 @@ fun ReprintKdsScreen(
                         keyboardController?.hide()
                         doSearch()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
+                    modifier = Modifier.fillMaxWidth(),
                     leadingIcon = Icons.Default.Search,
                     enabled = invoiceQuery.isNotEmpty()
                 )
@@ -271,17 +273,20 @@ fun ReprintKdsScreen(
                     }
                 )
             } ?: run {
-                if (vmHasSearched) {
-                    KhanaEmptyState(
-                        title = "No pending KDS found",
-                        message = "Try another order or invoice number.",
-                        icon = Icons.Default.SearchOff,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = spacing.huge)
-                    )
-                }
+                KhanaEmptyState(
+                    title = if (vmHasSearched) "No Order Found" else "Search for an order to reprint",
+                    message = if (vmHasSearched) {
+                        "Check the order or invoice number and try again."
+                    } else {
+                        "Use Order No with date, or Invoice No for older bills."
+                    },
+                    icon = if (vmHasSearched) Icons.Default.SearchOff else Icons.Default.Print,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = spacing.huge)
+                )
             }
+            } // end shared-padding content column
         }
     }
 }
@@ -295,11 +300,7 @@ private fun KdsBillCard(
     val spacing = KhanaBookTheme.spacing
     val bill = billWithItems.bill
     val isCancelled = bill.orderStatus == "cancelled"
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.medium)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -373,7 +374,7 @@ private fun KdsBillCard(
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
                 KhanaPrimaryButton(
-                    text = if (isPrinting) "Printing KDS..." else "Reprint KDS",
+                    text = if (isPrinting) "Printing KOT..." else "Reprint KOT",
                     onClick = { if (!isCancelled && !isPrinting) onPrint(billWithItems) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isCancelled && !isPrinting,

@@ -23,7 +23,7 @@
         android:height="88dp"
         android:gravity="center">
         <bitmap
-            android:src="@drawable/ic_khanabook_logo"
+            android:src="@drawable/khanabook_logo"
             android:gravity="fill" />
     </item>
 </layer-list>

@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -165,7 +164,7 @@ public class FssaiTrackerService {
             "fssai_expiry",
             profile.getFssaiNumber(), // referenceId is the license number
             severity,                 // referenceType acts as severity payload
-            BigDecimal.ZERO
+            null                      // not a money event — no amount pill
         );
     }
 }
