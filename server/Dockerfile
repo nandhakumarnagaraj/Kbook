@@ -26,6 +26,13 @@ RUN --mount=type=cache,target=/root/.m2 \
 # Authoritative build identity, written after packaging so it cannot be lost to the
 # plugin's no-git fallback. Kept in its own RUN so a Maven failure still reports as a
 # Maven failure rather than being masked by the identity check.
+#
+# Writing target/classes/git.properties is NOT sufficient: `mvn package` above has
+# already assembled the jar, so the file lands on disk but never inside the artifact.
+# An earlier revision validated target/classes only, so the build passed and printed a
+# plausible commit id while the shipped jar still carried the plugin's 35-byte
+# header-only file. The identity is therefore injected into each jar, and then read
+# back OUT OF THE JAR -- the check must inspect the thing that actually ships.
 RUN set -eu; \
     : "${GIT_COMMIT_ID:?GIT_COMMIT_ID build arg is required - build via ops/deploy-production.sh}"; \
     printf 'git.branch=%s\ngit.commit.id=%s\ngit.commit.id.abbrev=%.7s\ngit.commit.time=%s\n' \
@@ -37,7 +44,21 @@ RUN set -eu; \
     fi; \
     case "$commit" in \
       *[!0-9a-f]*) echo "FATAL: git.commit.id is not lowercase hex: '$commit'" >&2; exit 1;; \
-    esac
+    esac; \
+    for j in target/*.jar; do \
+      rm -rf target/identity; mkdir -p target/identity/BOOT-INF/classes; \
+      cp target/classes/git.properties target/identity/BOOT-INF/classes/git.properties; \
+      jar --update --file "$j" -C target/identity BOOT-INF/classes/git.properties; \
+    done; \
+    for j in target/*.jar; do \
+      rm -rf /tmp/verify-identity; mkdir -p /tmp/verify-identity; \
+      ( cd /tmp/verify-identity && jar --extract --file "/app/$j" BOOT-INF/classes/git.properties ); \
+      embedded="$(sed -n 's/^git\.commit\.id=//p' /tmp/verify-identity/BOOT-INF/classes/git.properties)"; \
+      if [ "$embedded" != "$commit" ]; then \
+        echo "FATAL: $j does not carry the build identity. Found '$embedded', expected '$commit'" >&2; exit 1; \
+      fi; \
+      echo "identity verified inside $j: $embedded"; \
+    done
 
 # ── Runtime stage ───────────────────────────────────────────────────────────────
 FROM eclipse-temurin:17-jre-alpine AS runtime
