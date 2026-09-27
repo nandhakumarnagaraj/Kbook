@@ -1002,7 +1002,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 if (billWithItems != null) {
                     if (billWithItems.bill.orderStatus == OrderStatus.COMPLETED.dbValue || 
                         billWithItems.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
-                        _error.value = "Cannot edit a settled order."
+                        _error.value = "Paid orders can't be edited."
                         return@launch
                     }
                     if (billWithItems.bill.orderStatus == OrderStatus.CANCELLED.dbValue) {
@@ -1216,7 +1216,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 val existingBill = existingWithItems.bill
                 if (existingBill.orderStatus == OrderStatus.COMPLETED.dbValue || 
                     existingBill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
-                    _error.value = "Cannot update a settled order."
+                    _error.value = "Paid orders can't be edited."
                     _isLoading.value = false
                     return@withLock false
                 }

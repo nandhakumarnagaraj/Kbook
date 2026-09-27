@@ -42,6 +42,7 @@ import com.khanabook.lite.pos.feature.billing.ui.TableCell
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -382,15 +383,25 @@ fun OrderRowItem(
     // Mode/status edits are allowed only on the SAME DAY the bill was taken
     // (owner request). Unknown timestamps (createdAt == 0, legacy callers) stay
     // editable so we never over-restrict.
-    val canEdit = !isCancelled && run {
-        if (row.createdAt <= 0L) {
-            true
+    val isSameDayAsTaken = row.createdAt <= 0L || run {
+        val taken = java.util.Calendar.getInstance().apply { timeInMillis = row.createdAt }
+        val now = java.util.Calendar.getInstance()
+        taken.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR) &&
+            taken.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR)
+    }
+    val canEdit = !isCancelled && isSameDayAsTaken
+
+    // A previous-day row used to open nothing and say nothing, so the tap just
+    // looked broken. Say why in plain words — "settled" is billing jargon a
+    // restaurant owner will not parse.
+    val toastScope = rememberCoroutineScope()
+    val onEditBlocked: () -> Unit = {
+        val message = if (row.orderStatus == OrderStatus.COMPLETED) {
+            "Paid orders can't be edited."
         } else {
-            val taken = java.util.Calendar.getInstance().apply { timeInMillis = row.createdAt }
-            val now = java.util.Calendar.getInstance()
-            taken.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR) &&
-                taken.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR)
+            "Only today's orders can be edited."
         }
+        toastScope.launch { KhanaToast.show(message, ToastKind.Warning) }
     }
     // Dine-in "pay after food" drafts are unsettled bills: their payment mode is
     // decided at settlement time on the billing screen, and they must never be
@@ -434,7 +445,14 @@ fun OrderRowItem(
             Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
                 val modeColor = getPayModeColor(row.paymentMode)
                 Surface(
-                    onClick = { if (canEdit && !isPayAfterFoodDraft) payModeExpanded = true },
+                    onClick = {
+                        when {
+                            isCancelled -> Unit
+                            !isSameDayAsTaken -> onEditBlocked()
+                            isPayAfterFoodDraft -> Unit
+                            else -> payModeExpanded = true
+                        }
+                    },
                     color = modeColor,
                     shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.hairline)
@@ -471,7 +489,13 @@ fun OrderRowItem(
                     else -> TextMuted
                 }
                 Surface(
-                    onClick = { if (canEdit) statusExpanded = true },
+                    onClick = {
+                        when {
+                            isCancelled -> Unit
+                            !isSameDayAsTaken -> onEditBlocked()
+                            else -> statusExpanded = true
+                        }
+                    },
                     color = statusColor,
                     shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)

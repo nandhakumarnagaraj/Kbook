@@ -34,6 +34,15 @@ import com.khanabook.lite.pos.core.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.auth.viewmodel.AppLockViewModel
 
+// The previous scale (64dp icon, headlineLarge title, 20dp dots, 72dp keys) put the
+// content at ~676dp, which overflowed most phones and forced the column to scroll.
+// These values land the whole screen at ~542dp so it fits without scrolling.
+// PIN_KEY_SIZE stays well clear of the 48dp minimum touch target.
+private val LOCK_ICON_SIZE = 40.dp
+private val PIN_DOT_SIZE = 14.dp
+private val PIN_KEY_SIZE = 60.dp
+private val ERROR_SLOT_HEIGHT = 28.dp
+
 @Composable
 fun AppLockScreen(
     onUnlock: () -> Unit,
@@ -131,13 +140,13 @@ fun AppLockScreen(
                 .navigationBarsPadding()
                 .padding(spacing.medium)
         ) {
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             Icon(
                 Icons.Default.Lock,
                 contentDescription = "App locked",
                 tint = PrimaryGold,
-                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
+                modifier = Modifier.size(LOCK_ICON_SIZE)
             )
 
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -145,35 +154,35 @@ fun AppLockScreen(
             Text(
                 "KhanaBook Lite",
                 color = PrimaryGold,
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
             )
 
-            Spacer(modifier = Modifier.height(spacing.small))
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
 
             Text(
                 "Enter your PIN to continue",
                 color = TextLight,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium
             )
 
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             // Dot indicators with shake
             Row(
-                horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium),
                 modifier = Modifier.offset(x = shakeOffset.value.dp)
             ) {
                 repeat(4) { index ->
                     val filled = index < enteredPin.length
                     Box(
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(PIN_DOT_SIZE)
                             .background(
                                 color = if (filled) PrimaryGold else Color.Transparent,
                                 shape = CircleShape
                             )
                             .border(
-                                width = 2.dp,
+                                width = 1.5.dp,
                                 color = if (filled) PrimaryGold else BorderGold,
                                 shape = CircleShape
                             )
@@ -182,7 +191,7 @@ fun AppLockScreen(
             }
 
             // Error message
-            Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.height(ERROR_SLOT_HEIGHT), contentAlignment = Alignment.Center) {
                 errorMessage?.let { message ->
                     Text(
                         message,
@@ -218,7 +227,7 @@ fun AppLockScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.large))
         }
     }
 
@@ -261,12 +270,12 @@ fun PinNumpad(
     )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalArrangement = Arrangement.spacedBy(spacing.smallMedium),
         modifier = Modifier.fillMaxWidth()
     ) {
         rows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(spacing.large)
+                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
                 row.forEach { key ->
                     when (key) {
@@ -278,7 +287,7 @@ fun PinNumpad(
                                 Icons.Default.Fingerprint,
                                 contentDescription = "Biometric or screen lock",
                                 tint = if (showBiometric) PrimaryGold else Color.Transparent,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
                             )
                         }
                         "del" -> PinKey(onClick = {
@@ -319,7 +328,7 @@ fun PinKey(
         onClick = {
             if (enabled) onClick()
         },
-        modifier = Modifier.size(72.dp),
+        modifier = Modifier.size(PIN_KEY_SIZE),
         shape = CircleShape,
         color = Color.White.copy(alpha = if (enabled) 0.08f else 0.0f),
         enabled = enabled

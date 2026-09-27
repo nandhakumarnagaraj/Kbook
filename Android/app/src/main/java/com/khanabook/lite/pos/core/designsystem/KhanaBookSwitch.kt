@@ -10,12 +10,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.theme.VegGreen
 
@@ -48,7 +50,12 @@ fun KhanaBookSwitch(
             .size(width = 44.dp, height = 26.dp)
             .background(if (enabled) trackColor else uncheckedTrackColor.copy(alpha = 0.4f), CircleShape)
             .border(1.dp, Color.White.copy(alpha = if (enabled) 0.18f else 0.06f), CircleShape)
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = onCheckedChange
+            )
             .padding(KhanaBookTheme.spacing.hairline),
         contentAlignment = Alignment.CenterStart
     ) {

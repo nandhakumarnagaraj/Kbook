@@ -71,7 +71,7 @@ fun SettingsListView(
 
         SettingsItem(
             icon = Icons.Default.Notifications,
-            text = "Notifications",
+            text = "Notifications Preferences",
             onClick = { onSelectItem("notifications") },
             modifier = Modifier.fillMaxWidth()
         )

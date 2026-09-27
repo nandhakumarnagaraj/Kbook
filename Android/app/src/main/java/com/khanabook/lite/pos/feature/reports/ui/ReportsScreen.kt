@@ -247,40 +247,40 @@ fun ReportsScreen(
                 }
             }
 
-            if (canExportReports) {
-            ReportDownloadBottomBar(
-                onDownloadClick = {
-                    scope.launch {
-                        try {
-                            isExporting = true
-                            val file = viewModel.exportReport(context, "PDF", profile)
-                            if (!file.exists() || file.length() == 0L) {
-                                KhanaToast.show("Report export failed - empty file", ToastKind.Error)
-                                return@launch
+            if (canExportReports && reportType == "Payment") {
+                ReportDownloadBottomBar(
+                    onDownloadClick = {
+                        scope.launch {
+                            try {
+                                isExporting = true
+                                val file = viewModel.exportReport(context, "PDF", profile)
+                                if (!file.exists() || file.length() == 0L) {
+                                    KhanaToast.show("Report export failed - empty file", ToastKind.Error)
+                                    return@launch
+                                }
+                                val pdfUri = androidx.core.content.FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.provider",
+                                    file
+                                )
+                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "application/pdf"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, pdfUri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
+                            } catch (e: Exception) {
+                                KhanaToast.show(
+                                    UserMessageSanitizer.sanitize(e, "Report export failed. Please try again."),
+                                    ToastKind.Error
+                                )
+                            } finally {
+                                isExporting = false
                             }
-                            val pdfUri = androidx.core.content.FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.provider",
-                                file
-                            )
-                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "application/pdf"
-                                putExtra(android.content.Intent.EXTRA_STREAM, pdfUri)
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
-                        } catch (e: Exception) {
-                            KhanaToast.show(
-                                UserMessageSanitizer.sanitize(e, "Report export failed. Please try again."),
-                                ToastKind.Error
-                            )
-                        } finally {
-                            isExporting = false
                         }
-                    }
-                },
-                isExporting = isExporting
-            )
+                    },
+                    isExporting = isExporting
+                )
             }
         }
 

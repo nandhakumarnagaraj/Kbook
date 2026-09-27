@@ -144,16 +144,43 @@ fun ChangePasswordView(
             if (step == 1) {
                 OutlinedTextField(
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = { },
+                    readOnly = true,
                     label = { Text("Registered Phone Number", color = TextGold) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    supportingText = {
+                        Text(
+                            "This number is linked to your account and can't be changed here.",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = PrimaryGold.copy(alpha = 0.7f)
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = "Locked",
+                            tint = TextGold.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    // Material3 draws a readOnly field with its disabled colour slots, so
+                    // these are what keep the value legible instead of washed out.
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.35f),
                         focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                        unfocusedTextColor = TextLight,
+                        disabledTextColor = TextLight.copy(alpha = 0.8f),
+                        disabledLabelColor = TextGold.copy(alpha = 0.6f),
+                        disabledBorderColor = BorderGold.copy(alpha = 0.35f),
+                        disabledLeadingIconColor = PrimaryGold.copy(alpha = 0.45f),
+                        disabledTrailingIconColor = TextGold.copy(alpha = 0.45f)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )

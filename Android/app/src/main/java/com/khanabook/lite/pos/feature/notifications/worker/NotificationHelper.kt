@@ -31,6 +31,21 @@ object NotificationHelper {
     private const val GROUP_OPERATIONS = "khanabook_group_operations"
 
     /**
+     * Every channel this app registers, in the order they should be shown to the user.
+     * The single source of truth: the OS channel's own name and description are reused by
+     * the in-app notifications preferences screen, so the two can never disagree.
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun registeredChannels(context: Context): List<NotificationChannel> = listOf(
+        paymentChannel(context),
+        refundChannel(context),
+        settlementChannel(context),
+        kycChannel(context),
+        systemChannel(context),
+        inventoryChannel(context)
+    )
+
+    /**
      * Create all notification channels for API 26+.
      * Must be called once, e.g. from FirebaseMessagingService.onCreate()
      * or Application.onCreate().
@@ -46,24 +61,56 @@ object NotificationHelper {
         val operationsGroup = NotificationChannelGroup(GROUP_OPERATIONS, "Operations")
         manager.createNotificationChannelGroups(listOf(paymentsGroup, systemGroup, operationsGroup))
 
-        manager.createNotificationChannel(
-            paymentChannel(context)
-        )
-        manager.createNotificationChannel(
-            refundChannel(context)
-        )
-        manager.createNotificationChannel(
-            kycChannel(context)
-        )
-        manager.createNotificationChannel(
-            settlementChannel(context)
-        )
-        manager.createNotificationChannel(
-            systemChannel(context)
-        )
-        manager.createNotificationChannel(
-            inventoryChannel(context)
-        )
+        registeredChannels(context).forEach { manager.createNotificationChannel(it) }
+    }
+
+    /**
+     * Whether a channel is currently allowed to post notifications.
+     *
+     * Android hides `NotificationManager.setNotificationEnabled` and
+     * `NotificationChannel.areNotificationsEnabled` from apps on purpose, but
+     * `importance` is public: a disabled channel is always [NotificationManager.IMPORTANCE_NONE].
+     * Reading it also means a channel the user muted in Android Settings shows as off here,
+     * instead of us reporting a stale "on".
+     */
+    fun isChannelEnabled(context: Context, channelId: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val existing = manager.getNotificationChannel(channelId) ?: return true
+        return existing.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
+    /**
+     * Enables or disables a channel from inside the app.
+     *
+     * Android hides `setNotificationEnabled`, and treats a lowered importance as
+     * user-owned: re-registering a channel at a higher importance is silently ignored once
+     * it has been at [NotificationManager.IMPORTANCE_NONE]. So enabling has to delete the
+     * channel and recreate it, which is the documented way to reset a channel.
+     *
+     * The cost is that a channel's per-channel sound and vibration are reset when the user
+     * re-enables it, and its notification history is cleared when they turn it off. That is
+     * why those two remain configurable in Android Settings rather than here.
+     */
+    fun setChannelEnabled(context: Context, channelId: String, enabled: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val designed = registeredChannels(context).firstOrNull { it.id == channelId } ?: return
+        if (enabled) {
+            manager.deleteNotificationChannel(designed.id)
+            manager.createNotificationChannel(designed)
+        } else {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    designed.id,
+                    designed.name,
+                    NotificationManager.IMPORTANCE_NONE
+                ).apply {
+                    description = designed.description
+                    setShowBadge(false)
+                }
+            )
+        }
     }
 
     // ── Channel Definitions ─────────────────────────────────────
