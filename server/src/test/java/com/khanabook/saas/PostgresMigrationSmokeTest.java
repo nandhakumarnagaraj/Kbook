@@ -3,6 +3,8 @@ package com.khanabook.saas;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -10,6 +12,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,12 +22,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Migration smoke test: applies the full Flyway migration chain to an empty
  * Testcontainers PostgreSQL and asserts the server starts with Hibernate
- * validation passing, the migration history head is V72 (permission system),
+ * validation passing, every migration on the classpath applied exactly once,
  * and key tables from each phase exist with their expected structure.
  *
  * <p>This is a hard deployment gate — if this fails, the Flyway chain is broken
  * and cannot be deployed to production. Uses real Postgres (not H2) because
  * migrations use Postgres-specific syntax (partial indexes, JSONB, etc.).
+ *
+ * <p>The chain assertions read the migration files off the classpath rather than
+ * pinning a version or a count, so adding a migration does not require editing
+ * this test, and a version collision is caught rather than tolerated.
  */
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -63,12 +72,15 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
-    void migrationHistoryHeadIsV96() {
-        List<String> versions = jdbcTemplate.queryForList(
-                "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC",
+    void migrationHistoryHeadIsHighestVersionOnClasspath() {
+        List<String> onClasspath = migrationVersionsOnClasspath();
+        assertThat(onClasspath).isNotEmpty();
+
+        String head = jdbcTemplate.queryForObject(
+                "SELECT version FROM flyway_schema_history WHERE success = TRUE "
+                        + "ORDER BY installed_rank DESC LIMIT 1",
                 String.class);
-        assertThat(versions).isNotEmpty();
-        assertThat(versions.get(0)).isEqualTo("96");
+        assertThat(head).isEqualTo(onClasspath.get(onClasspath.size() - 1));
     }
 
     @Test
@@ -153,16 +165,57 @@ class PostgresMigrationSmokeTest {
 
     @Test
     void noGapsInMigrationChain() {
-        // Verify all migrations applied successfully with no failures
         Integer failedCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = FALSE",
                 Integer.class);
         assertThat(failedCount).isZero();
 
-        // Verify expected count: V1-V68, V71-V96 = 78 migrations (V69/V70 were removed as duplicates)
-        Integer totalMigrations = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE type = 'SQL'",
-                Integer.class);
-        assertThat(totalMigrations).isEqualTo(78);
+        // The chain is checked against the migration files actually on the classpath,
+        // not a hardcoded total. A pinned count silently rotted at "78" while the schema
+        // moved past it, so this gate reported on a version of the schema that stopped
+        // existing ten migrations ago and would never have flagged a bad chain.
+        List<String> onClasspath = migrationVersionsOnClasspath();
+        assertThat(onClasspath).isNotEmpty();
+
+        // Two files sharing a version is the failure that actually happened here: a new
+        // V100 collided with the existing V100 and Flyway refused to resolve the chain.
+        // assertThat(list) alone would not catch it, because Flyway collapses the pair
+        // into a single resolved version.
+        assertThat(onClasspath).doesNotHaveDuplicates();
+
+        List<String> applied = jdbcTemplate.queryForList(
+                "SELECT version FROM flyway_schema_history WHERE success = TRUE",
+                String.class);
+
+        // Every file applied, and nothing applied that has no file. Gaps themselves are
+        // legitimate (V69/V70 were removed as duplicates), so equality against the
+        // classpath is the meaningful invariant rather than a contiguous run.
+        assertThat(applied).containsExactlyInAnyOrderElementsOf(onClasspath);
+    }
+
+    /**
+     * Every {@code V<n>__<name>.sql} shipped in the jar, ascending by numeric version.
+     * Version, not filename, is the sort key: {@code V9} predates {@code V10}.
+     */
+    private static List<String> migrationVersionsOnClasspath() {
+        Resource[] resources;
+        try {
+            resources = new PathMatchingResourcePatternResolver()
+                    .getResources("classpath*:db/migration/V*__*.sql");
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not scan db/migration on the classpath", e);
+        }
+        return Arrays.stream(resources)
+                .map(PostgresMigrationSmokeTest::versionOf)
+                .sorted(Comparator.comparingInt(Integer::parseInt))
+                .toList();
+    }
+
+    private static String versionOf(Resource resource) {
+        String filename = resource.getFilename();
+        if (filename == null) {
+            throw new IllegalStateException("Migration resource has no filename: " + resource);
+        }
+        return filename.substring(1, filename.indexOf("__"));
     }
 }
