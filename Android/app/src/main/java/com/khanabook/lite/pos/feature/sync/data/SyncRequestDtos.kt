@@ -133,6 +133,7 @@ data class MenuItemSyncDto(
     @SerializedName("currentStock") val currentStock: Int?,
     @SerializedName("lowStockThreshold") val lowStockThreshold: Int?,
     @SerializedName("barcode") val barcode: String?,
+    @SerializedName("hasVariants") val hasVariants: Boolean? = null,
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,

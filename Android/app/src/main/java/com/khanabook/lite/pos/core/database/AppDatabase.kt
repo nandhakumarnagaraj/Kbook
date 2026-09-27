@@ -49,7 +49,7 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 76,
+        version = 77,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -1123,6 +1123,30 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `collect_customer_number` INTEGER NOT NULL DEFAULT 1")
                 }
                 android.util.Log.i("AppDatabase", "MIGRATION_75_76 complete: added collect_customer_number to restaurant_profile")
+            }
+        }
+
+        val MIGRATION_76_77 = object : Migration(76, 77) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("menu_items", "has_variants")) {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `has_variants` INTEGER NOT NULL DEFAULT 0")
+                }
+                // Backfill from reality rather than trusting the default. An item is a
+                // variant container if any of its variants survive. A stale FALSE on a real
+                // container is recoverable; a stale TRUE on a simple item would render a
+                // meaningless "from Rs." price, so only ever promote, never demote.
+                db.execSQL(
+                    """
+                    UPDATE `menu_items`
+                    SET `has_variants` = 1
+                    WHERE EXISTS (
+                        SELECT 1 FROM `item_variants` v
+                        WHERE v.`menu_item_id` = `menu_items`.`id`
+                          AND v.`is_deleted` = 0
+                    )
+                    """.trimIndent()
+                )
+                android.util.Log.i("AppDatabase", "MIGRATION_76_77 complete: added has_variants to menu_items")
             }
         }
 

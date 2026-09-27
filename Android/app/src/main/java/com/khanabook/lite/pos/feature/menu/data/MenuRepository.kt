@@ -38,15 +38,32 @@ class MenuRepository(
     }
 
     suspend fun updateItem(item: MenuItemEntity, changedFields: String? = null) {
+        val fields = changedFields ?: computeChangedFields(item)
         val enriched = item.copy(
-            basePrice = MenuPricingRules.normalizePrice(item.basePrice),
+            basePrice = if (fields.changesField("basePrice")) {
+                MenuPricingRules.normalizePrice(item.basePrice)
+            } else {
+                item.basePrice
+            },
             isSynced = false,
             updatedAt = System.currentTimeMillis(),
             permissionRevisionAtCreation = permissionManager.currentRevision(),
-            changedFields = changedFields ?: computeChangedFields(item)
+            changedFields = fields
         )
         menuDao.updateItem(enriched)
         triggerBackgroundSync()
+    }
+
+    /**
+     * Mirrors the server's field-mask semantics in GenericSyncService.applyChangedFieldsMerge:
+     * a null/blank/"all"/wildcard mask means a full record, otherwise the mask is a
+     * comma-separated list of the fields the device actually changed.
+     */
+    private fun String?.changesField(field: String): Boolean {
+        if (this == null) return true
+        val trimmed = trim()
+        if (trimmed.isEmpty() || trimmed.equals("all", true) || trimmed.contains("*")) return true
+        return split(",").any { it.trim().equals(field, ignoreCase = true) }
     }
 
     /**
@@ -184,6 +201,29 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
+    /**
+     * Recompute [MenuItemEntity.hasVariants] from the variant table and persist it only
+     * when it actually changed.
+     *
+     * This is the single choke point that keeps the flag honest. Deriving it here rather
+     * than trusting callers means adding, renaming, or removing a variant can never leave
+     * the parent claiming a mode it does not have — which is the class of bug that
+     * produced the menu save crash documented in
+     * docs/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md.
+     */
+    private suspend fun refreshHasVariantsFlag(itemId: Long) {
+        val restaurantId = sessionManager.getRestaurantId()
+        val shouldHaveVariants = menuDao.countLiveVariants(itemId, restaurantId) > 0
+        val current = menuDao.getItemById(itemId, restaurantId) ?: return
+        if (current.hasVariants == shouldHaveVariants) return
+        menuDao.updateItemHasVariantsFlag(
+            itemId = itemId,
+            hasVariants = shouldHaveVariants,
+            updatedAt = System.currentTimeMillis(),
+            restaurantId = restaurantId
+        )
+    }
+
     suspend fun insertVariant(variant: ItemVariantEntity): Long {
         val enriched =
                 variant.copy(
@@ -194,16 +234,21 @@ class MenuRepository(
                         updatedAt = System.currentTimeMillis()
                 )
         val id = menuDao.insertVariant(enriched)
+        refreshHasVariantsFlag(variant.menuItemId)
         triggerBackgroundSync()
         return id
     }
-
-    suspend fun updateVariant(variant: ItemVariantEntity) {
-        val enriched = variant.copy(
-            price = MenuPricingRules.normalizePrice(variant.price),
-            isSynced = false,
-            updatedAt = System.currentTimeMillis()
-        )
+    suspend fun updateVariant(variant: ItemVariantEntity, normalizePrice: Boolean = true) {
+        val enriched =
+                variant.copy(
+                        price = if (normalizePrice) {
+                            MenuPricingRules.normalizePrice(variant.price)
+                        } else {
+                            variant.price
+                        },
+                        isSynced = false,
+                        updatedAt = System.currentTimeMillis()
+                )
         menuDao.updateVariant(enriched)
         triggerBackgroundSync()
     }
@@ -219,11 +264,12 @@ class MenuRepository(
             android.util.Log.w("MenuRepository", "Invalid variant stock: '${current.currentStock}' or delta: '$delta'", e)
             "0.0"
         }
-        updateVariant(current.copy(currentStock = newStock))
+        updateVariant(current.copy(currentStock = newStock), normalizePrice = false)
     }
 
     suspend fun deleteVariant(variant: ItemVariantEntity) {
         menuDao.markVariantDeleted(variant.id, System.currentTimeMillis(), sessionManager.getRestaurantId())
+        refreshHasVariantsFlag(variant.menuItemId)
         triggerBackgroundSync()
     }
 

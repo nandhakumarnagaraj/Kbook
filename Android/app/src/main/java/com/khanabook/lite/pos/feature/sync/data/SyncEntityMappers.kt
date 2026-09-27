@@ -157,8 +157,9 @@ fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
     // Parse to Int safely; null if not parseable (server treats null as "untracked").
     currentStock     = currentStock.toIntOrNull(),
     lowStockThreshold = lowStockThreshold.toIntOrNull(),
-    barcode          = barcode,
-    createdAt        = createdAt,
+     barcode          = barcode,
+     hasVariants      = hasVariants,
+     createdAt        = createdAt,
     updatedAt        = updatedAt,
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,

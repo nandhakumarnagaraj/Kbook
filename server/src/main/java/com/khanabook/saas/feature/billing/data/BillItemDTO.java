@@ -33,4 +33,7 @@ public class BillItemDTO {
     private java.math.BigDecimal price;
     @JsonProperty("itemTotal")
     private java.math.BigDecimal itemTotal;
+    /** Client-owned: a kitchen special instruction, erased on every line update while absent. */
+    @JsonProperty("specialInstruction")
+    private String specialInstruction;
 }

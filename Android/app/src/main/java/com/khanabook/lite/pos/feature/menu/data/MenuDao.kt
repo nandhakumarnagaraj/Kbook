@@ -11,7 +11,7 @@ interface MenuDao {
     @Query("SELECT id, server_id as serverId FROM menu_items WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllMenuItemServerIds(restaurantId: Long): List<com.khanabook.lite.pos.feature.sync.domain.ServerIdMapping>
 
-    @Query("SELECT id, image_url AS imageUrl, image_version AS imageVersion FROM menu_items WHERE restaurant_id = :restaurantId")
+    @Query("SELECT id, image_url AS imageUrl, image_version AS imageVersion, has_variants AS hasVariants FROM menu_items WHERE restaurant_id = :restaurantId")
     suspend fun getAllMenuItemImageInfo(restaurantId: Long): List<com.khanabook.lite.pos.feature.sync.domain.MenuItemImageInfo>
 
     @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
@@ -106,6 +106,25 @@ interface MenuDao {
         "UPDATE item_variants SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE menu_item_id = :itemId AND restaurant_id = :restaurantId"
     )
     suspend fun markVariantsDeletedByItem(itemId: Long, updatedAt: Long, restaurantId: Long)
+
+    @Query("SELECT COUNT(*) FROM item_variants WHERE menu_item_id = :itemId AND restaurant_id = :restaurantId AND is_deleted = 0")
+    suspend fun countLiveVariants(itemId: Long, restaurantId: Long): Int
+
+    /**
+     * Narrow, targeted write of the derived variant-mode flag.
+     *
+     * Deliberately not a whole-row [updateItem]: the flag is recomputed from the variant
+     * table, so writing it must not roll back an unrelated field the user just edited.
+     */
+    @Query(
+        "UPDATE menu_items SET has_variants = :hasVariants, is_synced = 0, updated_at = :updatedAt, changed_fields = 'hasVariants' WHERE id = :itemId AND restaurant_id = :restaurantId"
+    )
+    suspend fun updateItemHasVariantsFlag(
+        itemId: Long,
+        hasVariants: Boolean,
+        updatedAt: Long,
+        restaurantId: Long
+    )
 
     @Query("SELECT * FROM item_variants WHERE menu_item_id = :itemId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY sort_order ASC")
     fun getVariantsForItemFlow(itemId: Long, restaurantId: Long): Flow<List<ItemVariantEntity>>

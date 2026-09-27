@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.feature.billing.data
+import android.util.Log
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
 
@@ -9,6 +10,7 @@ import com.khanabook.lite.pos.feature.printing.data.KotEventDao
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import kotlinx.coroutines.CancellationException
 import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
 import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
@@ -75,17 +77,43 @@ class BillRepository(
             scheduleDurableSync: Boolean = true
     ): Long {
         val billId = billDao.insertFullBill(bill, items, payments)
-        billDao.getBillWithItemsById(billId, sessionManager.getRestaurantId())?.let {
-            recordKotEvent(it.bill, KotEventType.NEW, it.items.filter { item -> !item.isDeleted })
+
+        // Everything past this line is post-commit. Nothing below may surface as a failed
+        // save, or the cashier retries and creates a duplicate order.
+        try {
+            billDao.getBillWithItemsById(billId, sessionManager.getRestaurantId())?.let {
+                recordKotEvent(it.bill, KotEventType.NEW, it.items.filter { item -> !item.isDeleted })
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("BillRepository", "Bill $billId saved but KOT event recording failed", e)
         }
-        
+
         if (bill.orderStatus.equals("completed", ignoreCase = true) ||
             bill.orderStatus.equals("paid", ignoreCase = true)
         ) {
-            inventoryConsumptionManager?.consumeMaterialsForBill(items)
+            // The bill is already committed above. A failure here must not surface as a
+            // failed save, or the cashier retries and creates a duplicate order. Stock
+            // drift is recoverable; a duplicated order is not.
+            try {
+                inventoryConsumptionManager?.consumeMaterialsForBill(items)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("BillRepository", "Bill $billId saved but inventory consumption failed", e)
+            }
         }
-        
-        if (scheduleDurableSync) triggerBackgroundSync()
+
+        if (scheduleDurableSync) {
+            try {
+                triggerBackgroundSync()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("BillRepository", "Bill $billId saved but sync scheduling failed", e)
+            }
+        }
         return billId
     }
 

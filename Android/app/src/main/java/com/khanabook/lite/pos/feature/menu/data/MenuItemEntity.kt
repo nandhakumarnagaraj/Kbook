@@ -41,6 +41,19 @@ data class MenuItemEntity(
     val barcode: String? = null,
     @SerializedName("imageUrl") @ColumnInfo(name = "image_url") val imageUrl: String? = null,
     @SerializedName("imageVersion") @ColumnInfo(name = "image_version", defaultValue = "0") val imageVersion: Int = 0,
+    /**
+     * True when this row only groups [ItemVariantEntity] rows and [basePrice] is a
+     * derived display value ("from Rs.150"), not a payable price.
+     *
+     * Explicit on purpose. Pricing mode used to be inferred from a blank or zero
+     * [basePrice], which forced every caller to guess and is what crashed the menu save
+     * dialog. See docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
+     *
+     * [basePrice] deliberately stays NOT NULL: every competitor in the reference set
+     * keeps a non-null parent price and puts the nullability on the cart line instead.
+     */
+    @ColumnInfo(name = "has_variants", defaultValue = "0")
+    val hasVariants: Boolean = false,
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

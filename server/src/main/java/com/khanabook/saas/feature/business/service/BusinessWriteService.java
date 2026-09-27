@@ -8,6 +8,7 @@ import com.khanabook.saas.feature.billing.data.BillItem;
 import com.khanabook.saas.feature.billing.data.BillPayment;
 import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.menu.data.Category;
+import com.khanabook.saas.core.utility.PricingConstants;
 import com.khanabook.saas.feature.menu.data.ItemVariant;
 import com.khanabook.saas.feature.menu.data.ItemRecipe;
 import com.khanabook.saas.feature.menu.data.MenuExtractionJob;
@@ -434,6 +435,11 @@ public class BusinessWriteService {
             double price = Double.parseDouble(basePrice);
             if (price <= 0) {
                 throw new IllegalArgumentException("Base price must be greater than zero");
+            }
+            // This only checked the floor, so the Rs. 1,00,000 cap was not enforced on the
+            // web-admin create or update path at all.
+            if (java.math.BigDecimal.valueOf(price).compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
+                throw new IllegalArgumentException("Base price must be between Rs. 0 and Rs. 1,00,000");
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Base price must be a valid number");

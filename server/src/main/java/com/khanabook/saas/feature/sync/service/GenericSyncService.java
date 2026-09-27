@@ -1110,6 +1110,20 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 		if (incoming instanceof RestaurantProfile incomingProfile
 				&& existing instanceof RestaurantProfile existingProfile) {
 			incomingProfile.setIsSuspended(existingProfile.getIsSuspended());
+			// Marketplace integrations are configured by an owner in web admin, never by a
+			// till. These are absent from RestaurantProfileDTO, so without restoring them a
+			// legacy whole-record push silently blanks the credentials and disconnects the
+			// integration.
+			incomingProfile.setZomatoEnabled(existingProfile.getZomatoEnabled());
+			incomingProfile.setSwiggyEnabled(existingProfile.getSwiggyEnabled());
+			incomingProfile.setZomatoOutletId(existingProfile.getZomatoOutletId());
+			incomingProfile.setSwiggyStoreId(existingProfile.getSwiggyStoreId());
+			incomingProfile.setZomatoApiKey(existingProfile.getZomatoApiKey());
+			incomingProfile.setZomatoWebhookSecret(existingProfile.getZomatoWebhookSecret());
+			incomingProfile.setSwiggyApiKey(existingProfile.getSwiggyApiKey());
+			incomingProfile.setSwiggyWebhookSecret(existingProfile.getSwiggyWebhookSecret());
+			incomingProfile.setMarketplaceNotes(existingProfile.getMarketplaceNotes());
+			incomingProfile.setOwnWebsiteEnabled(existingProfile.getOwnWebsiteEnabled());
 		}
 		// Inventory cascade is server-owned: when a raw material runs out,
 		// InventoryService hides dependent menu items. A device menu push must
@@ -1153,6 +1167,23 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 					&& !"cancelled".equalsIgnoreCase(incomingBill.getOrderStatus())) {
 				incomingBill.setOrderStatus(existingBill.getOrderStatus());
 			}
+			// ── Settlement and inventory ledger are server-owned, always ──────────
+			// None of these exist on BillDTO, so BeanUtils leaves them null and the save
+			// would overwrite the row with the entity's field initializer. They are
+			// restored unconditionally rather than under a status condition: the previous
+			// guard only fired when existing was "paid" AND incoming was not, so a device
+			// that pushed paymentStatus="paid" fell through and nulled the very fields
+			// reconciliation depends on.
+			incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
+			incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
+			incomingBill.setRefundId(existingBill.getRefundId());
+			incomingBill.setSettledAmount(existingBill.getSettledAmount());
+			incomingBill.setSettledAt(existingBill.getSettledAt());
+			incomingBill.setCommissionAmount(existingBill.getCommissionAmount());
+			// InventoryService.deductForFinalizedBill skips when this is TRUE. Letting a
+			// push reset it to false makes the bill deduct stock a second time.
+			incomingBill.setInventoryDeducted(
+					existingBill.getInventoryDeducted() != null ? existingBill.getInventoryDeducted() : false);
 		}
 	}
 

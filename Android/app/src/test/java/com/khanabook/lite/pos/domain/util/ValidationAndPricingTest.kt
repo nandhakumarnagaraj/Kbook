@@ -103,4 +103,85 @@ class ValidationAndPricingTest {
         assertFalse(MenuPricingRules.isValidPrice(100000.01))
         assertFalse(MenuPricingRules.isValidPrice(null))
     }
+
+    @Test
+    fun `isSyncedPriceText accepts anything the server column accepts`() {
+        // The server enforces NUMERIC(12,2) CHECK (price >= 0) with no ceiling, so the pull
+        // filter must not be the authoring band. Dropping these would hide valid items.
+        assertTrue(MenuPricingRules.isSyncedPriceText("1"))
+        assertTrue(MenuPricingRules.isSyncedPriceText("150.555"))
+        assertTrue(MenuPricingRules.isSyncedPriceText("0"))
+        assertTrue(MenuPricingRules.isSyncedPriceText("0.999"))
+        assertTrue(MenuPricingRules.isSyncedPriceText("250000.00"))
+        assertTrue(MenuPricingRules.isSyncedPriceText("9999999999.99"))
+    }
+
+    @Test
+    fun `isSyncedPriceText rejects only what the server would refuse to store`() {
+        assertFalse(MenuPricingRules.isSyncedPriceText("-5"))
+        assertFalse(MenuPricingRules.isSyncedPriceText("10000000000.00"))
+        assertFalse(MenuPricingRules.isSyncedPriceText("abc"))
+        assertFalse(MenuPricingRules.isSyncedPriceText(""))
+        assertFalse(MenuPricingRules.isSyncedPriceText("   "))
+        assertFalse(MenuPricingRules.isSyncedPriceText(null))
+    }
+
+    @Test
+    fun `authoring band and synced band are deliberately different`() {
+        // Guards the regression that made sync pull reuse the authoring band.
+        assertTrue(MenuPricingRules.isValidPrice(250000.0).not())
+        assertTrue(MenuPricingRules.isSyncedPriceText("250000.00"))
+    }
+
+    @Test
+    fun `resolveBasePrice keeps a typed base price even when variants exist`() {
+        assertEquals(
+            "150.00",
+            MenuPricingRules.resolveBasePrice("150", listOf(180.0, 200.0))
+        )
+    }
+
+    @Test
+    fun `resolveBasePrice falls back to the cheapest variant when base price is blank`() {
+        assertEquals(
+            "150.00",
+            MenuPricingRules.resolveBasePrice("", listOf(200.0, 150.0, 180.0))
+        )
+        assertEquals(
+            "150.00",
+            MenuPricingRules.resolveBasePrice("   ", listOf(150.0))
+        )
+        assertEquals("150.00", MenuPricingRules.resolveBasePrice(null, listOf(150.0)))
+    }
+
+    @Test
+    fun `resolveBasePrice ignores invalid variants and normalizes the fallback`() {
+        assertEquals(
+            "150.56",
+            MenuPricingRules.resolveBasePrice("", listOf(0.0, 0.5, 150.555))
+        )
+    }
+
+    @Test
+    fun `resolveBasePrice with no variants preserves the base price for validation`() {
+        assertEquals("150.00", MenuPricingRules.resolveBasePrice("150", emptyList()))
+        assertEquals("", MenuPricingRules.resolveBasePrice("", emptyList()))
+        assertEquals(
+            "0.0",
+            MenuPricingRules.resolveBasePrice("0.0", emptyList())
+        )
+    }
+
+    @Test
+    fun `resolveBasePrice can return an out-of-band value that normalizePrice then rejects`() {
+        // there is no valid fallback, so resolveBasePrice passes the value through and the
+        // caller surfaces the authoring error. The old test name claimed the opposite.
+        val resolved = MenuPricingRules.resolveBasePrice("", listOf(50.0))
+        assertTrue(MenuPricingRules.isValidPrice(resolved.toDoubleOrNull()))
+        assertThrows(IllegalArgumentException::class.java) {
+            MenuPricingRules.normalizePrice(
+                MenuPricingRules.resolveBasePrice("", listOf(200001.0))
+            )
+        }
+    }
 }

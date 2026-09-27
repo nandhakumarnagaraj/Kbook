@@ -231,7 +231,17 @@ public class MenuItemServiceImpl implements MenuItemService {
 			if (existing.isPresent() && existing.get().getRestaurantId().equals(tenantId)) {
 				MenuItem toUpdate = existing.get();
 				if (item.getName() != null) toUpdate.setName(item.getName());
-				if (item.getBasePrice() != null) toUpdate.setBasePrice(item.getBasePrice());
+				// The create path runs validateMenuItem, but this one did not, so the cap was
+				// bypassable via PUT /sync/menuitem/update-existing.
+				if (item.getBasePrice() != null) {
+					if (item.getBasePrice().compareTo(BigDecimal.ZERO) < 0) {
+						throw new IllegalArgumentException("Price cannot be negative");
+					}
+					if (item.getBasePrice().compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
+						throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
+					}
+					toUpdate.setBasePrice(item.getBasePrice());
+				}
 				if (item.getDescription() != null) toUpdate.setDescription(item.getDescription());
 				if (item.getFoodType() != null) toUpdate.setFoodType(item.getFoodType());
 				if (item.getCategoryId() != null) toUpdate.setCategoryId(item.getCategoryId());

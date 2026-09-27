@@ -25,7 +25,11 @@ public class StockLogDTO {
     private Long serverMenuItemId;
     private Long serverVariantId;
 
-    private java.math.BigDecimal changeAmount;
+    /**
+     * Must stay named "delta" to match the entity property and the client wire field.
+     * BeanUtils.copyProperties matches by name, so a different name here binds nothing and
+     * leaves the NOT NULL delta column unset, failing every stock-log push.
+     */
+    private java.math.BigDecimal delta;
     private String reason;
-    private String referenceId;
 }

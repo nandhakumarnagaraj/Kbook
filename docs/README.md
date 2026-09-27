@@ -7,8 +7,8 @@ All project documentation lives under `docs/` — single parent folder.
 | `meta/` | Entry-point docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `ANDROID_UI_RULES.md` |
 | `planning/` | Active planning: `PLAN.md`, `PLAN.archive.*`, `FIX_PLAN.md`, `ROOT_CAUSE_LOG.md`, `NEWBILLSCREEN_SPLIT_PLAN.md`, `billing-sync-fix-verification.md`, `post-all-phases-checklist.md` |
 | `archive/` | Large dumps & indexes: `aboutProduct.txt`, `aboutoursaas.txt`, `KHANABOOK_FULL_TECHNICAL_SPEC.txt`, `OPERATIONS_AND_ACTIONS.txt`, `UI_CAPABILITY_AUDIT.txt`, `VERSION_ANALYSIS.txt`, `DEEP_FILE_LIST.md`, `PROJECT_FILE_INDEX.md`, `Production_docs.txt`; `agent-outputs/` for scratch agent run output |
-| `reviews/` | Dated audits: `KHANABOOK_API_REVIEW_VALIDATION_*.md`, `KHANABOOK_DIFFERENTIAL_REVIEW_*.md`, `KHANABOOK_EASEBUZZ_ERA_QA_*.md`, `KHANABOOK_FLOW_WIRING_AUDIT_*.md`, `KHANABOOK_PRODUCTION_RELIABILITY_AUDIT_*.md` |
-| `design/` | Design system: `DESIGN_SYSTEM.md`, `DESIGN_SYSTEM_FREEZE.md`, `LayoutGuidelines.md`, `ResponsiveLayoutMigration.md` |
+| `reviews/` | Dated audits: `KHANABOOK_API_REVIEW_VALIDATION_*.md`, `KHANABOOK_DIFFERENTIAL_REVIEW_*.md`, `KHANABOOK_EASEBUZZ_ERA_QA_*.md`, `KHANABOOK_FLOW_WIRING_AUDIT_*.md`, `KHANABOOK_PRODUCTION_RELIABILITY_AUDIT_*.md`, `KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md` (menu price crash, post-commit duplicate orders, silent DTO/entity sync drift) |
+| `design/` | Design system: `DESIGN_SYSTEM.md`, `DESIGN_SYSTEM_FREEZE.md`, `LayoutGuidelines.md`, `ResponsiveLayoutMigration.md`, `MENU_ITEM_MODEL_INDIA_FIT_GAP.md` (menu/variant/pricing model, competitor comparison, India fit-gap) |
 | `easebuzz/` | Easebuzz integration: `easebuzz-sdk-plan.md`, `easebuzz-*.txt`, sub-merchant docs, Postman collection |
 | `easebuzz-review/` | External review package + diagrams |
 | `screenshots/` | `Screenshot_*.png`, `Splash Screen.png` |

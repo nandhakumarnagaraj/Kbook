@@ -349,9 +349,22 @@ class TenantMenuDao @Inject constructor(
         dao.markVariantDeleted(id, updatedAt, restaurantId)
     }
 
-    override suspend fun markVariantsDeletedByItem(itemId: Long, updatedAt: Long, restaurantId: Long) {
-        dao.markVariantsDeletedByItem(itemId, updatedAt, restaurantId)
-    }
+  override suspend fun markVariantsDeletedByItem(itemId: Long, updatedAt: Long, restaurantId: Long) {
+    dao.markVariantsDeletedByItem(itemId, updatedAt, restaurantId)
+  }
+
+  override suspend fun countLiveVariants(itemId: Long, restaurantId: Long): Int =
+    dao.countLiveVariants(itemId, restaurantId)
+
+  override suspend fun updateItemHasVariantsFlag(
+    itemId: Long,
+    hasVariants: Boolean,
+    updatedAt: Long,
+    restaurantId: Long
+  ) {
+    dao.updateItemHasVariantsFlag(itemId, hasVariants, updatedAt, restaurantId)
+  }
+
 
     override fun getVariantsForItemFlow(itemId: Long, restaurantId: Long): Flow<List<ItemVariantEntity>> = runFlow { it.menuDao().getVariantsForItemFlow(itemId, restaurantId) }
     override fun getMenuWithVariantsByCategoryFlow(categoryId: Long, restaurantId: Long): Flow<List<MenuWithVariants>> = runFlow { it.menuDao().getMenuWithVariantsByCategoryFlow(categoryId, restaurantId) }

@@ -21,4 +21,6 @@ public class CategoryDTO {
     private String name;
     private Integer sortOrder;
     private Boolean isActive;
+    /** Client-owned: the app sends this, and while it was absent it was dropped on every push. */
+    private Boolean isVeg;
 }

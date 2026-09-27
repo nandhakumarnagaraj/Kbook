@@ -22,6 +22,7 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
+import com.khanabook.lite.pos.feature.menu.domain.MenuPricingRules
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -1288,6 +1289,15 @@ class MasterSyncProcessor @Inject constructor(
 
                     if (localCategoryId !in knownCategoryIds) {
                         null
+                    } else if (!MenuPricingRules.isSyncedPriceText(remoteMenuItem.basePrice?.toPlainString())) {
+                        // Storing an out-of-band price locally would poison every later write
+                        // that re-validates it (stock updates, edits). Skip the record instead
+                        // of displaying a wrong price; a corrected server value re-syncs it.
+                        Log.w(
+                            "MasterSyncProcessor",
+                            "Skipping menu item '${remoteMenuItem.name}' with out-of-range price '${remoteMenuItem.basePrice}'"
+                        )
+                        null
                     } else {
                         val isMyDevice = remoteMenuItem.deviceId == currentDeviceId
                         val assignedId = when {
@@ -1308,7 +1318,13 @@ class MasterSyncProcessor @Inject constructor(
                         isAvailable = remoteMenuItem.isAvailable ?: true,
                         currentStock = remoteMenuItem.currentStock.toSafeString(),
                         lowStockThreshold = remoteMenuItem.lowStockThreshold.toSafeString(),
-                        barcode = remoteMenuItem.barcode,
+                          barcode = remoteMenuItem.barcode,
+                          // Older servers omit the flag. Prefer the server's answer, then
+                          // whatever we already had locally, so pulling from a pre-V100 server
+                          // cannot silently strip a real container's "from Rs." rendering.
+                          hasVariants = remoteMenuItem.hasVariants
+                              ?: existingImageById[assignedId]?.hasVariants
+                              ?: false,
                         imageUrl = run {
                             val local = existingImageById[assignedId]
                             val remoteVer = remoteMenuItem.imageVersion ?: 0
@@ -1381,6 +1397,12 @@ class MasterSyncProcessor @Inject constructor(
                     } ?: remoteVariant.menuItemId
 
                     if (localMenuItemId !in knownMenuItemIds) {
+                        null
+                    } else if (!MenuPricingRules.isSyncedPriceText(remoteVariant.price?.toPlainString())) {
+                        Log.w(
+                            "MasterSyncProcessor",
+                            "Skipping variant '${remoteVariant.variantName}' with out-of-range price '${remoteVariant.price}'"
+                        )
                         null
                     } else {
                         val isMyDevice = remoteVariant.deviceId == currentDeviceId

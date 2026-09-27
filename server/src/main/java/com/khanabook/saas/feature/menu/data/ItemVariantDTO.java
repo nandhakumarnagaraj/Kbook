@@ -26,7 +26,14 @@ public class ItemVariantDTO {
 
     private String variantName;
     private java.math.BigDecimal price;
+    /**
+     * The app's on-hand quantity. Named "stock" on the wire, and the entity column is
+     * current_stock, so BeanUtils cannot map this. current_stock stays server-owned and is
+     * recomputed by ItemVariantRepository.recalculateStock from the stock-log ledger.
+     */
     private java.math.BigDecimal stock;
     private Boolean trackStock;
     private Boolean isAvailable;
+    /** Client-owned: sent by the app, and absent here sort_order was dropped on every push. */
+    private Integer sortOrder;
 }

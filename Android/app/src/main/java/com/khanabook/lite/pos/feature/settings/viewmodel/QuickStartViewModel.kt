@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.feature.settings.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
@@ -30,7 +31,8 @@ class QuickStartViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
     private val sessionManager: SessionManager,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -58,32 +60,38 @@ class QuickStartViewModel @Inject constructor(
 
             try {
                 withContext(Dispatchers.IO) {
-                    // 1. Save/update restaurant profile with shop name
-                    saveShopName(shopName)
+                    // Seeding spans three repositories, so a failure on item k left the shop
+                    // name and category already committed while quickStartCompleted stayed
+                    // false. The user then retried and re-inserted the committed items as
+                    // duplicates. One transaction makes the seed all-or-nothing.
+                    databaseProvider.getDatabase().withTransaction {
+                        // 1. Save/update restaurant profile with shop name
+                        saveShopName(shopName)
 
-                    // 2. Create a default "General" category
-                    val categoryId = categoryRepository.insertCategory(
-                        CategoryEntity(
-                            name = "General",
-                            isVeg = true,
-                            sortOrder = 0
-                        )
-                    )
-
-                    // 3. Insert menu items
-                    items.filter { it.name.isNotBlank() && it.price.isNotBlank() }
-                        .forEach { item ->
-                            val price = item.price.toDoubleOrNull() ?: return@forEach
-                            if (price <= 0) return@forEach
-                            menuRepository.insertItem(
-                                MenuItemEntity(
-                                    categoryId = categoryId,
-                                    name = item.name.trim(),
-                                    basePrice = item.price.trim(),
-                                    createdAt = System.currentTimeMillis()
-                                )
+                        // 2. Create a default "General" category
+                        val categoryId = categoryRepository.insertCategory(
+                            CategoryEntity(
+                                name = "General",
+                                isVeg = true,
+                                sortOrder = 0
                             )
-                        }
+                        )
+
+                        // 3. Insert menu items
+                        items.filter { it.name.isNotBlank() && it.price.isNotBlank() }
+                            .forEach { item ->
+                                val price = item.price.toDoubleOrNull() ?: return@forEach
+                                if (price <= 0) return@forEach
+                                menuRepository.insertItem(
+                                    MenuItemEntity(
+                                        categoryId = categoryId,
+                                        name = item.name.trim(),
+                                        basePrice = item.price.trim(),
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                )
+                            }
+                    }
                 }
 
                 // 4. Mark quick start as done

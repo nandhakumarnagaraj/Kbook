@@ -25,6 +25,16 @@ public class MenuItemDTO {
     private Long serverCategoryId;
 
     private java.math.BigDecimal basePrice;
+    private String foodType;
+    private String barcode;
+    private java.math.BigDecimal currentStock;
+    private java.math.BigDecimal lowStockThreshold;
+    /**
+     * Whether the item is a variant container whose base price is a derived display
+     * value. Carried explicitly so the client never has to infer pricing mode from a
+     * blank or zero price.
+     */
+    private Boolean hasVariants;
     private String imageUrl;
     private Integer imageVersion;
     private Boolean isVeg;

@@ -43,6 +43,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import java.math.BigDecimal
+import java.math.RoundingMode
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,7 +93,7 @@ fun ItemEditDialog(
     ) -> Unit = { name, price, type, vars, _, _ -> onConfirm(name, price, type, vars) }
 ) {
     var name by remember(initialName) { mutableStateOf(initialName) }
-    var price by remember(initialPrice) { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
+    var price by remember(initialPrice) { mutableStateOf(formatPriceInput(initialPrice)) }
     var foodType by remember(initialType) { mutableStateOf(initialType) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var priceError by remember { mutableStateOf<String?>(null) }
@@ -455,7 +457,8 @@ fun ItemEditDialog(
                     outOfRangeDraftVariant != null -> variantError = MenuPricingRules.ERROR_MESSAGE
                     else -> onConfirmWithPhoto(
                         normalizedName,
-                        parsedPrice ?: 0.0,
+                        MenuPricingRules.resolveBasePrice(price, editableVariants.map { it.price })
+                            .toDoubleOrNull() ?: 0.0,
                         foodType,
                         editableVariants.map { it.name.trim() to it.price },
                         selectedPhotoUri,
@@ -468,4 +471,17 @@ fun ItemEditDialog(
         }
     }
 
+}
+
+/**
+ * Renders a stored price for editing without losing paise. toInt() would silently turn a
+ * legal 120.99 into "120", and because the field is seeded from this value, a user who opens
+ * an item and taps Save without touching the price would write 120.00 back.
+ */
+private fun formatPriceInput(value: Double): String {
+    if (value == 0.0) return ""
+    return BigDecimal.valueOf(value)
+        .setScale(2, RoundingMode.HALF_UP)
+        .stripTrailingZeros()
+        .toPlainString()
 }

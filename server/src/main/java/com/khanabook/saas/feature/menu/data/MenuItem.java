@@ -58,6 +58,21 @@ public class MenuItem extends BaseSyncEntity {
 	private java.math.BigDecimal lowStockThreshold;
 
 	/**
+	 * True when this row is a grouping container for {@link ItemVariant} rows and its
+	 * {@code basePrice} is a derived display value rather than a price a customer can
+	 * actually pay.
+	 *
+	 * <p>Deliberately explicit. Pricing mode used to be inferred from a blank or zero
+	 * {@code basePrice}, which made every caller guess and is what crashed the menu save
+	 * dialog. See docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
+	 *
+	 * <p>{@code basePrice} stays NOT NULL on purpose: every competitor in the reference
+	 * set keeps a non-null parent price and puts the nullability on the cart line instead.
+	 */
+	@Column(name = "has_variants", nullable = false)
+	private Boolean hasVariants = false;
+
+	/**
 	 * Permission revision the acting user held on-device when this row was
 	 * created/edited (P1). Nullable: older clients that do not stamp it fall back
 	 * to the grant-only gate in {@link com.khanabook.saas.core.security.authz.MenuPushAuthorizer}.
