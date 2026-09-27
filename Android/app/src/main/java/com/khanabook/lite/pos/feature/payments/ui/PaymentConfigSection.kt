@@ -47,12 +47,22 @@ import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackPreferences
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackSettings
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import com.khanabook.lite.pos.core.util.ShopLogoLoader
 import com.khanabook.lite.pos.feature.payments.domain.QrCodeManager
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
@@ -120,6 +130,28 @@ fun PaymentConfigView(
     val feedbackPrefs = com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackPreferences()
     val feedbackSettings by com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackSettings(feedbackPrefs)
     val toastScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val testQrBitmap by produceState<android.graphics.Bitmap?>(
+        null,
+        showTestQrDialog,
+        upiHandle,
+        // payee name intentionally not encoded: UPI apps show the bank-verified NPCI name
+        profile?.logoUrl,
+        profile?.logoPath
+    ) {
+        value = if (showTestQrDialog && upiHandle.isNotBlank()) {
+            val logo = ShopLogoLoader.loadShopLogo(context, profile?.logoUrl, profile?.logoPath, fallbackToDefault = true)
+            withContext(Dispatchers.Default) {
+                QrCodeManager.generateUpiQrWithLogo(
+                    vpa = upiHandle,
+                    name = "", // pn omitted: UPI apps show the bank-verified name
+                    amount = 1.0,
+                    logo = logo,
+                    size = 512
+                )
+            }
+        } else null
+    }
 
     Column(
         modifier = Modifier
@@ -202,42 +234,60 @@ fun PaymentConfigView(
                 onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
                 enabled = !readOnly
             )
-            PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
-            val readinessMessage = when (val state = paymentReadiness) {
-                PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
-                is PaymentReadinessUiState.Unavailable -> state.message
-                is PaymentReadinessUiState.Ready -> when {
-                    state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
-                    !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
-                    state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
-                    !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
-                    !state.readiness.easebuzzEnabled -> "Easebuzz Online is off. New payment links are blocked until the owner turns it on."
-                    !state.readiness.paymentLinkReady -> "The server has not confirmed payment-link readiness."
-                    else -> "Payment link setup is ready. Khanabook commission: 0%; Easebuzz processing fees may apply."
+            // Easebuzz hidden from UI until launch — profile flag, save flow and
+            // server contracts untouched. Restore the toggle + EasebuzzOnboardingHub
+            // call to bring the full setup back.
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = spacing.small),
+                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                shape = KhanaRadii.card,
+                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.medium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CreditCard,
+                        contentDescription = null,
+                        tint = TextGold.copy(alpha = 0.7f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.medium))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Online Payments (Payment Link)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TextLight
+                        )
+                        Text(
+                            "Accept customer payments online — coming soon.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGold.copy(alpha = 0.75f)
+                        )
+                    }
+                    Surface(
+                        color = PrimaryGold.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(4.dp),
+                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            "SOON",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryGold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
-            Text(
-                text = readinessMessage,
-                color = if ((paymentReadiness as? PaymentReadinessUiState.Ready)?.readiness?.let {
-                        it.paymentLinkReady && it.easebuzzEnabled == easebuzzEnabled
-                    } == true)
-                    SuccessGreen else TextGold,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = spacing.extraSmall)
-            )
-            Spacer(modifier = Modifier.height(spacing.small))
-            EasebuzzOnboardingHub(
-                onNavigateToOnboarding = onNavigateToOnboarding,
-                onOpenAgreement = { onSectionSelected("merchant_agreement") },
-                onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
-                readOnly = readOnly,
-                easebuzzVm = easebuzzVm
-            )
 
             if (showTestQrDialog && upiHandle.isNotBlank()) {
-                val qrBitmap = remember(upiHandle, profile?.shopName) {
-                    QrCodeManager.generateUpiQr(upiHandle, profile?.shopName ?: "KhanaBook Merchant", 1.0, 512)
-                }
                 AlertDialog(
                     onDismissRequest = { showTestQrDialog = false },
                     containerColor = DarkBrownSheet,
@@ -250,23 +300,40 @@ fun PaymentConfigView(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "Scan this test QR with Google Pay, PhonePe, or Paytm to confirm your registered bank account name.",
+                                "Scan this test QR with Google Pay, PhonePe, or Paytm — the name shown is exactly what your customers will see. Use a Merchant (Current Account) UPI ID to display your restaurant name.",
                                 color = TextGold,
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Spacer(modifier = Modifier.height(spacing.medium))
-                            if (qrBitmap != null) {
-                                Image(
-                                    bitmap = qrBitmap.asImageBitmap(),
-                                    contentDescription = "Test UPI QR",
-                                    modifier = Modifier.size(180.dp)
-                                )
+                            val qrImage = testQrBitmap
+                            Box(
+                                modifier = Modifier
+                                    .size(190.dp)
+                                    .background(Color.White, KhanaRadii.lg)
+                                    .border(2.dp, PrimaryGold.copy(alpha = 0.8f), KhanaRadii.lg)
+                                    .padding(spacing.smallMedium),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (qrImage != null) {
+                                    Image(
+                                        bitmap = qrImage.asImageBitmap(),
+                                        contentDescription = "Test UPI QR",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(36.dp),
+                                        color = PrimaryGold,
+                                        strokeWidth = 3.dp
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(spacing.small))
                             Text(
                                 "UPI ID: $upiHandle\nTest Amount: ₹1.00",
                                 color = TextGold.copy(alpha = 0.8f),
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     },
@@ -277,6 +344,7 @@ fun PaymentConfigView(
                     }
                 )
             }
+
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             ConfigActionButtons(

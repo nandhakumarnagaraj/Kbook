@@ -464,7 +464,7 @@ fun ItemEditDialog(
                 }
             }
         ) {
-            Text(if (title == "Add New Item") "Add Item" else "Save Changes", color = PrimaryGold)
+            Text(if (title == "Add New Item") "Add Item" else "Save", color = PrimaryGold)
         }
     }
 

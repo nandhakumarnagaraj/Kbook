@@ -229,7 +229,7 @@ class ReportExporter(private val context: Context) {
         canvas.drawLine(margin, y, contentRight, y, pThick); y += 20f
 
         // ── REPORT INFO ────────────────────────────────────────────
-        val reportLabel = if (reportType == "Payment") "Payment Level Report" else "Order Level Report"
+        val reportLabel = if (reportType == "Payment") "Payments Report" else "Orders Report"
         val dateRange = if (fromMillis > 0L && toMillis > 0L)
             "${fmtDate(fromMillis)}  –  ${fmtDate(toMillis)}"
         else timeFilter
@@ -531,7 +531,7 @@ class ReportExporter(private val context: Context) {
 
         val sb = StringBuilder()
         shopName?.takeIf { it.isNotBlank() }?.let { sb.appendLine(it) }
-        sb.appendLine("$reportType Level Report — $dateRange")
+        sb.appendLine("${if (reportType == "Payment") "Payments Report" else "Orders Report"} — $dateRange")
         sb.appendLine()
 
         val summary = paymentBreakdown.filter { !it.key.contains("_part") && !it.key.contains("+") }

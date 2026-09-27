@@ -16,7 +16,10 @@ object PaymentModeManager {
         if (profile.cashEnabled) modes.add(PaymentMode.CASH)
         if (profile.upiEnabled) modes.add(PaymentMode.UPI)
         if (profile.posEnabled) modes.add(PaymentMode.POS)
-        if (profile.easebuzzEnabled) modes.add(PaymentMode.PAYMENT_LINK)
+        // Easebuzz (Send Payment Link) is hidden from all UI mode lists until launch.
+        // The profile flag and server flow stay untouched — flipping this back to
+        // `if (profile.easebuzzEnabled)` restores it everywhere.
+        // if (profile.easebuzzEnabled) modes.add(PaymentMode.PAYMENT_LINK)
 
         
         if (profile.cashEnabled && profile.upiEnabled) modes.add(PaymentMode.PART_CASH_UPI)

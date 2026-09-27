@@ -97,14 +97,6 @@ fun ProfileCard(
                 }
                 Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
             }
-            if (onClick != null) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Open restaurant profile",
-                    tint = PrimaryGold,
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.small)
-                )
-            }
         }
     }
 }
@@ -147,12 +139,6 @@ internal fun SettingsItem(icon: ImageVector, text: String, modifier: Modifier = 
                 color = TextLight,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = PrimaryGold,
-                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
             )
         }
     }

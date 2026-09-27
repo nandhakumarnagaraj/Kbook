@@ -5,6 +5,7 @@ import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.KhanaRadii
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -31,6 +32,7 @@ fun KhanaBookCard(
     shape: Shape = KhanaRadii.lg,
     colors: CardColors = CardDefaults.cardColors(containerColor = DarkBrown2),
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    border: BorderStroke? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -57,6 +59,7 @@ fun KhanaBookCard(
         shape = shape,
         colors = colors,
         elevation = elevation,
+        border = border,
         content = content
     )
 }

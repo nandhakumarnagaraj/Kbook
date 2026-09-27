@@ -130,12 +130,41 @@ interface MenuDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSyncedMenuItems(items: List<MenuItemEntity>)
 
+    @Query(
+        """
+        SELECT * FROM menu_items
+        WHERE restaurant_id = :restaurantId
+          AND server_id IS NULL
+          AND category_id = :categoryId
+          AND lower(trim(name)) = lower(trim(:name))
+          LIMIT 1
+        """
+    )
+    suspend fun findUnsyncedItemByName(
+        restaurantId: Long,
+        categoryId: Long,
+        name: String
+    ): MenuItemEntity?
+
     @Transaction
     suspend fun upsertSyncedMenuItems(items: List<MenuItemEntity>) {
         for (item in items) {
             val existing = item.serverId?.let { findItemByServerId(it, item.restaurantId) }
             if (existing != null) {
                 updateItem(item)
+            } else if (item.serverId != null) {
+                // No local row carries this serverId. Before inserting a shadow
+                // copy, ADOPT an unsynced local row with the same identity
+                // (category + normalized name) — a pending edit/add whose
+                // serverId ack was lost (logout/reinstall churn). Linking it
+                // completes the handshake instead of duplicating.
+                val adoptable = findUnsyncedItemByName(item.restaurantId, item.categoryId, item.name)
+                if (adoptable != null) {
+                    updateMenuItemServerIdByLocalId(adoptable.id, item.serverId!!, item.restaurantId)
+                    updateItem(item.copy(id = adoptable.id))
+                } else {
+                    insertItem(item)
+                }
             } else {
                 insertItem(item)
             }

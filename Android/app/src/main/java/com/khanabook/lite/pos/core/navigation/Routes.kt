@@ -56,6 +56,7 @@ object Routes {
     const val REPRINT_KDS = "reprint_kds"
     const val KITCHEN_DISPLAY = "kitchen_display"
     const val NOTIFICATIONS = "notifications"
+    const val NOTIFICATIONS_PREFERENCES = "notifications_preferences"
     const val STAFF_PERMISSIONS = "staff_permissions"
 
     const val OCR_SCANNER_PATTERN = "ocr_scanner/{source}"

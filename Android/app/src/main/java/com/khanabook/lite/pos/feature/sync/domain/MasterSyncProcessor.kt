@@ -1339,10 +1339,30 @@ class MasterSyncProcessor @Inject constructor(
                 "menuItemId=${remoteMenuItem.localId ?: remoteMenuItem.serverId}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
             }
             menuDao.upsertSyncedMenuItems(resolvedMenuItems)
-            if (preferredMenuItemIdsByServerId.isNotEmpty()) {
+            // Dedup runs for EVERY pulled serverId, not only this device's rows.
+            // After a reinstall the deviceId changes, so isMyDevice no longer
+            // matches — a one-sided guard left shadow copies visible. The map
+            // above already covers own-device rows; for foreign rows the
+            // upsert assigned id = serverId, so dedup by serverId alone is
+            // safe (each pulled serverId keeps exactly one preferred row).
+            val allPulledServerIds = masterData.menuItems.mapNotNull { it.serverId }
+                .filter { it > 0L }
+                .distinct()
+            if (allPulledServerIds.isNotEmpty()) {
+                // Preferred local id per serverId: own-device rows use their
+                // local id; foreign rows use the serverId itself (assignedId).
+                val preferredIds = masterData.menuItems.mapNotNull { remoteMenuItem ->
+                    val serverId = remoteMenuItem.serverId ?: return@mapNotNull null
+                    if (serverId <= 0L) return@mapNotNull null
+                    val isMyDevice = remoteMenuItem.deviceId == sessionManager.getDeviceId()
+                    when {
+                        isMyDevice && (remoteMenuItem.localId ?: 0L) > 0L -> remoteMenuItem.localId
+                        else -> serverId
+                    }
+                }
                 menuDao.hideDuplicateMenuItemsByServerIds(
-                    serverIds = preferredMenuItemIdsByServerId.keys.toList(),
-                    preferredIds = preferredMenuItemIdsByServerId.values.toList(),
+                    serverIds = allPulledServerIds,
+                    preferredIds = preferredIds.filter { it > 0L }.distinct(),
                     restaurantId = restaurantId
                 )
             }

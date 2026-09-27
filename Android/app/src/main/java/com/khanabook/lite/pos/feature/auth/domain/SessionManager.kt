@@ -80,17 +80,36 @@ open class SessionManager @Inject constructor(@ApplicationContext private val co
     }
 
     open fun getDeviceId(): String {
-        return runCatching {
+        return try {
             synchronized(this) {
                 var deviceId = securePrefs.getString("device_id", null)
                 if (deviceId == null) {
-                    val rawHex = java.util.UUID.randomUUID().toString().replace("-", "")
-                    deviceId = "dev_" + rawHex.substring(0, 8)
+                    // Prefer ANDROID_ID: stable across app updates/reinstalls on the
+                    // same device (scoped to the signing key). A random ID would
+                    // change on every reinstall and break the server's (deviceId,
+                    // localId) row-identity matching — the root cause of duplicate
+                    // menu items after logout/reinstall cycles.
+                    val androidId = runCatching {
+                        android.provider.Settings.Secure.getString(
+                            context.contentResolver,
+                            android.provider.Settings.Secure.ANDROID_ID
+                        )
+                    }.getOrNull()
+                    deviceId = if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+                        "dev_" + androidId.lowercase().take(12)
+                    } else {
+                        "dev_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8)
+                    }
                     saveDeviceId(deviceId)
                 }
                 deviceId
             }
-        }.getOrDefault("dev_default")
+        } catch (t: Throwable) {
+            // Last-resort fallback must still be unique per device — a constant
+            // ID here would make every broken device look identical to the sync
+            // engine and resurrect the duplicate-row bug.
+            "dev_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8)
+        }
     }
 
     fun saveDeviceId(deviceId: String) {

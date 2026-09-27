@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -255,19 +257,19 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.feature.auth.viewmodel.Logou
         }
     }
 
-    // Secondary visual weight (design review #11): an outlined destructive action
-    // instead of a filled button competing with primary gold CTAs. Accidental sign-out
-    // is still guarded by the confirmation dialog above.
-    OutlinedButton(
+    // Full red destructive action (owner request). Accidental sign-out is still
+    // guarded by the confirmation dialog above.
+    Button(
         onClick = { if (!isLoading) showConfirmDialog = true },
         enabled = !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(KhanaBookTheme.spacing.buttonHeightCompact),
-        border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.7f)),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = DangerRed,
-            disabledContentColor = DangerRed.copy(alpha = 0.45f)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DangerRed,
+            contentColor = Color.White,
+            disabledContainerColor = DangerRed.copy(alpha = 0.45f),
+            disabledContentColor = Color.White.copy(alpha = 0.7f)
         ),
         shape = KhanaRadii.lg
     ) {

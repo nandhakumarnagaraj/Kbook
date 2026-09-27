@@ -2,6 +2,9 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
 import com.khanabook.lite.pos.feature.menu.data.MenuRepository
+import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
+import com.khanabook.lite.pos.core.network.KhanaBookApi
+import retrofit2.Response
 import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
@@ -170,7 +173,8 @@ class MenuViewModelTest {
 
     private fun ownerViewModel(
         categoryRepository: CategoryRepository = mockk(relaxed = true),
-        menuRepository: MenuRepository = mockk(relaxed = true)
+        menuRepository: MenuRepository = mockk(relaxed = true),
+        khanaBookApi: KhanaBookApi = mockk(relaxed = true)
     ): MenuViewModel {
         val sessionManager = mockk<SessionManager>()
         every { sessionManager.canWriteMasterData() } returns true
@@ -180,7 +184,7 @@ class MenuViewModelTest {
             databaseProvider = mockk(relaxed = true),
             permissionManager = mockk<PermissionManager>(relaxed = true),
             sessionManager = sessionManager,
-            khanaBookApi = mockk(relaxed = true)
+            khanaBookApi = khanaBookApi
         )
     }
 
@@ -222,7 +226,14 @@ class MenuViewModelTest {
     @Test
     fun `availability toggle success stays silent`() {
         val menuRepository = mockk<MenuRepository>(relaxed = true)
-        val viewModel = ownerViewModel(menuRepository = menuRepository)
+        // Re-enabling an item requires server confirmation: the item must resolve
+        // (with a serverId) and the API call must succeed.
+        val syncedItem = mockk<MenuItemEntity>(relaxed = true)
+        every { syncedItem.serverId } returns 1L
+        coEvery { menuRepository.getItemById(any()) } returns syncedItem
+        val khanaBookApi = mockk<KhanaBookApi>()
+        coEvery { khanaBookApi.markMenuItemAvailable(any()) } returns Response.success(Unit)
+        val viewModel = ownerViewModel(menuRepository = menuRepository, khanaBookApi = khanaBookApi)
 
         viewModel.toggleItem(1L, true)
 

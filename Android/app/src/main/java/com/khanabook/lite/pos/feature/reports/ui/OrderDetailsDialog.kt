@@ -102,7 +102,7 @@ fun OrderDetailsDialog(
                     val bill = billWithItems.bill
                     val items = billWithItems.items
 
-                    DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}", valueColor = PrimaryGold, fontWeight = FontWeight.Bold)
+                    DetailRow("Order No:", "#${bill.dailyOrderDisplay}", valueColor = PrimaryGold, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(spacing.small))
                     val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
                     DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay())

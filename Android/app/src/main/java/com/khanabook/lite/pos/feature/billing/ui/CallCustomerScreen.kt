@@ -213,6 +213,7 @@ fun CallCustomerScreen(
                             }
                         },
                         label = { Text("Order No") },
+                        placeholder = { Text("e.g. A01") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
@@ -249,7 +250,7 @@ fun CallCustomerScreen(
                             showLifetimeIdError = false
                         },
                         label = { Text(invoiceLabel) },
-                        placeholder = { Text("e.g. 26A1-000042 or A01") },
+                        placeholder = { Text("e.g. A000042") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = callCustomerSearchFieldColors(),
                         singleLine = true,
@@ -328,7 +329,7 @@ fun CallCustomerScreen(
                         Spacer(modifier = Modifier.height(spacing.small))
 
                         Text(
-                                text = "Last Order: #${currentResult.bill.dailyOrderDisplay.split("-").last()} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
+                                text = "Last Order: #${currentResult.bill.dailyOrderDisplay} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
                                 color = TextGold.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.labelSmall
                         )

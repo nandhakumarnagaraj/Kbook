@@ -389,14 +389,28 @@ class MenuViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _isPhotoUploading.value = true
+            var loggedServerId: Long? = null
             try {
                 val currentItem = menuRepository.getItemById(menuItemId)
                 val targetId = currentItem?.serverId
                     ?: throw IllegalStateException("Item is still syncing. Try again in a moment.")
+                loggedServerId = targetId
                 val part = withContext(Dispatchers.IO) {
                     com.khanabook.lite.pos.core.util.MultipartUtils.imageUriToPart(context.applicationContext, uri)
                 }
-                val response = khanaBookApi.uploadMenuItemImage(targetId, part)
+                // A photo upload that races the just-finished item push can hit an
+                // optimistic-lock 409 (row changed between load and save). One
+                // short retry after the sync settles resolves it.
+                val response = try {
+                    khanaBookApi.uploadMenuItemImage(targetId, part)
+                } catch (e: retrofit2.HttpException) {
+                    if (e.code() == 409) {
+                        kotlinx.coroutines.delay(1500)
+                        khanaBookApi.uploadMenuItemImage(targetId, part)
+                    } else {
+                        throw e
+                    }
+                }
                 menuRepository.updateItemPhotoMetadata(menuItemId, response.imageUrl, response.imageVersion)
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show("Dish photo updated", com.khanabook.lite.pos.core.designsystem.ToastKind.Success)
                 onUploaded(response.imageUrl)
@@ -404,7 +418,15 @@ class MenuViewModel @Inject constructor(
                 Log.e("MenuViewModel", "Invalid menu-item photo for localId=$menuItemId", e)
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(e.message ?: "Invalid photo", com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } catch (e: Exception) {
-                Log.e("MenuViewModel", "Menu-item photo upload failed for localId=$menuItemId", e)
+                // Capture the server's error body — the 409 handler that fired
+                // (optimistic-lock vs data-integrity vs duplicate) decides the fix.
+                val errorBody = (e as? retrofit2.HttpException)?.response()?.errorBody()?.string()
+                Log.e(
+                    "MenuViewModel",
+                    "Menu-item photo upload failed for localId=$menuItemId " +
+                        "serverId=$loggedServerId code=${(e as? retrofit2.HttpException)?.code()} body=$errorBody",
+                    e
+                )
                 val msg = com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again.")
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } finally {

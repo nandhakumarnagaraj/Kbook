@@ -172,7 +172,7 @@ fun OrderTableRow(
             }
 
             Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_MODE), contentAlignment = if (compactLayout) Alignment.CenterStart else Alignment.Center) {
-                val color = if (!canEdit) Color.Gray else getPayModeColor(row.payMode)
+                val color = getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (canEdit) payModeExpanded = true },
                     color = color,

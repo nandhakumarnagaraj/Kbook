@@ -8,6 +8,7 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -228,6 +231,8 @@ fun AboutAppView() {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val currentYear = Year.now().value
+    val context = LocalContext.current
+    val toastScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -258,7 +263,7 @@ fun AboutAppView() {
             verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
             Text(
-                "KhanaBook Lite",
+                "KhanaBook",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
@@ -274,6 +279,48 @@ fun AboutAppView() {
             color = BorderGold.copy(alpha = 0.2f),
             modifier = Modifier.padding(horizontal = spacing.large)
         )
+
+        // Legal links (Play Store requirement: reachable privacy policy).
+        // Open in the browser — kept on this single screen by design.
+        listOf(
+            "Privacy Policy" to "https://www.khanabook.com/privacy-policy",
+            "Terms of Use" to "https://www.khanabook.com/terms"
+        ).forEach { (label, url) ->
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
+                shape = KhanaRadii.lg
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            } catch (_: Exception) {
+                                toastScope.launch {
+                                    KhanaToast.show("No browser available", ToastKind.Error)
+                                }
+                            }
+                        }
+                        .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        tint = PrimaryGold.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.medium))
+                    Text(
+                        label,
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
 
         Text(
             "A smart, offline-first POS solution built for restaurants and food businesses. Manage orders, track payments, and generate reports — all from your Android device.",

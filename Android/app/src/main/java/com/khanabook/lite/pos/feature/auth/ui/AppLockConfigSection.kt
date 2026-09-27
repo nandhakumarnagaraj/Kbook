@@ -1,8 +1,6 @@
 package com.khanabook.lite.pos.feature.auth.ui
 import com.khanabook.lite.pos.feature.settings.ui.SettingsItem
 
-import com.khanabook.lite.pos.core.theme.KhanaRadii
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,12 +18,9 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.TextIncrease
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.feature.auth.ui.SettingsGroupLabel
-import com.khanabook.lite.pos.core.theme.CardBG
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 
 @Composable
@@ -42,91 +37,58 @@ fun SettingsListView(
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         SettingsGroupLabel("Security")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.Filled.Lock,
-                text = "App Lock",
-                onClick = { onSelectItem("app_lock") }
-            )
-        }
+        // SettingsItem renders its own complete card — no outer wrapper box,
+        // otherwise you get a card inside a card.
+        SettingsItem(
+            icon = Icons.Filled.Lock,
+            text = "App Lock",
+            onClick = { onSelectItem("app_lock") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.Filled.Password,
-                text = "Change Password",
-                onClick = { onSelectItem("change_password") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.Filled.Password,
+            text = "Change Password",
+            onClick = { onSelectItem("change_password") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         SettingsGroupLabel("Appearance")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.AutoMirrored.Filled.VolumeUp,
-                text = "Interaction Feedback",
-                onClick = { onSelectItem("interaction_feedback") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.AutoMirrored.Filled.VolumeUp,
+            text = "Interaction Feedback",
+            onClick = { onSelectItem("interaction_feedback") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         SettingsGroupLabel("Data")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.Filled.SyncProblem,
-                text = "Sync Center",
-                onClick = { onSelectItem("sync_center") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.Filled.SyncProblem,
+            text = "Sync Center",
+            onClick = { onSelectItem("sync_center") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.card
-        ) {
-            SettingsItem(
-                icon = Icons.Default.Notifications,
-                text = "Notifications",
-                onClick = { onSelectItem("notifications") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.Default.Notifications,
+            text = "Notifications",
+            onClick = { onSelectItem("notifications") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         SettingsGroupLabel("About")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.AutoMirrored.Filled.HelpOutline,
-                text = "Help & Support",
-                onClick = { onSelectItem("help_support") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.AutoMirrored.Filled.HelpOutline,
+            text = "Help & Support",
+            onClick = { onSelectItem("help_support") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = KhanaRadii.lg
-        ) {
-            SettingsItem(
-                icon = Icons.Filled.Info,
-                text = "About App",
-                onClick = { onSelectItem("about_app") }
-            )
-        }
+        SettingsItem(
+            icon = Icons.Filled.Info,
+            text = "About App",
+            onClick = { onSelectItem("about_app") },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

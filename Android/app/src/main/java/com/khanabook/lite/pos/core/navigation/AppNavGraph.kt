@@ -344,6 +344,12 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
+        composable(Routes.NOTIFICATIONS_PREFERENCES) {
+            com.khanabook.lite.pos.feature.notifications.ui.NotificationPreferencesScreen(
+                onBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         composable(Routes.STAFF_PERMISSIONS) {
             StaffPermissionScreen(
                 onBack = { navController.popBackStack() }

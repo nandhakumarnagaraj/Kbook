@@ -254,7 +254,9 @@ fun SettingsScreen(
                     "security" -> {
                         SettingsListView(onSelectItem = { selectedItem ->
                             if (selectedItem == "notifications") {
-                                navController.navigate(Routes.NOTIFICATIONS)
+                                // Preferences only here — the full Notification Center
+                                // (with the list) stays on the Home bell icon.
+                                navController.navigate(Routes.NOTIFICATIONS_PREFERENCES)
                             } else {
                                 selectSection(selectedItem)
                             }

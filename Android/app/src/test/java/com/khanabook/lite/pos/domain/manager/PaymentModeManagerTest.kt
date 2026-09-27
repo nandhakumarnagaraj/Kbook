@@ -4,6 +4,7 @@ import com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager
 import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
 
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -80,6 +81,29 @@ class PaymentModeManagerTest {
             assertEquals(mode, components[0].mode)
             assertEquals("250.00", components[0].amount)
         }
+    }
+
+    @Test
+    fun `getEnabledModes hides Easebuzz payment link until launch`() {
+        val profile = RestaurantProfileEntity(
+            id = 1L,
+            shopName = "Test Shop",
+            restaurantId = 123L,
+            cashEnabled = true,
+            upiEnabled = true,
+            posEnabled = true,
+            easebuzzEnabled = true
+        )
+
+        val modes = PaymentModeManager.getEnabledModes(profile)
+
+        assertTrue("Cash should be selectable", modes.contains(PaymentMode.CASH))
+        assertTrue("UPI should be selectable", modes.contains(PaymentMode.UPI))
+        assertTrue("POS should be selectable", modes.contains(PaymentMode.POS))
+        assertFalse(
+            "Payment Link must stay out of UI mode lists until launch",
+            modes.contains(PaymentMode.PAYMENT_LINK)
+        )
     }
 
     @Test

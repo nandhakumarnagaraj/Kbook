@@ -32,6 +32,7 @@ fun CustomDateRangePickerDialog(
     initialStartDateMillis: Long? = null,
     initialEndDateMillis: Long? = null,
     state: DateRangePickerState? = null,
+    showQuickPresets: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (startMillis: Long, endMillis: Long) -> Unit
 ) {
@@ -112,41 +113,43 @@ fun CustomDateRangePickerDialog(
 
                 Spacer(modifier = Modifier.height(spacing.large))
 
-                // Quick Presets
-                Text(
-                    text = "QUICK PRESETS",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = TextGold.copy(alpha = 0.6f),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                if (showQuickPresets) {
+                    // Quick Presets
+                    Text(
+                        text = "QUICK PRESETS",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = TextGold.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-                ) {
-                    DatePresetChip("Today", modifier = Modifier.weight(1f)) {
-                        fromDateMillis = getStartOfDayMillis()
-                        toDateMillis = getEndOfDayMillis()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                    ) {
+                        DatePresetChip("Today", modifier = Modifier.weight(1f)) {
+                            fromDateMillis = getStartOfDayMillis()
+                            toDateMillis = getEndOfDayMillis()
+                        }
+                        DatePresetChip("Yesterday", modifier = Modifier.weight(1f)) {
+                            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+                            fromDateMillis = getStartOfDayMillis(cal)
+                            toDateMillis = getEndOfDayMillis(cal)
+                        }
+                        DatePresetChip("Last 7D", modifier = Modifier.weight(1f)) {
+                            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
+                            fromDateMillis = getStartOfDayMillis(cal)
+                            toDateMillis = getEndOfDayMillis()
+                        }
+                        DatePresetChip("This Month", modifier = Modifier.weight(1f)) {
+                            val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }
+                            fromDateMillis = getStartOfDayMillis(cal)
+                            toDateMillis = getEndOfDayMillis()
+                        }
                     }
-                    DatePresetChip("Yesterday", modifier = Modifier.weight(1f)) {
-                        val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
-                        fromDateMillis = getStartOfDayMillis(cal)
-                        toDateMillis = getEndOfDayMillis(cal)
-                    }
-                    DatePresetChip("Last 7D", modifier = Modifier.weight(1f)) {
-                        val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
-                        fromDateMillis = getStartOfDayMillis(cal)
-                        toDateMillis = getEndOfDayMillis()
-                    }
-                    DatePresetChip("This Month", modifier = Modifier.weight(1f)) {
-                        val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }
-                        fromDateMillis = getStartOfDayMillis(cal)
-                        toDateMillis = getEndOfDayMillis()
-                    }
+
+                    Spacer(modifier = Modifier.height(spacing.large))
                 }
-
-                Spacer(modifier = Modifier.height(spacing.large))
 
                 // From Date Field
                 DateFieldCard(

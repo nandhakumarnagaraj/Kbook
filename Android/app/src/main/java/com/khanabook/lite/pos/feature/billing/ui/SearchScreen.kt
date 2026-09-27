@@ -250,6 +250,7 @@ fun SearchScreen(
                             }
                         },
                         label = { Text("Order No") },
+                        placeholder = { Text("e.g. A01") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
@@ -289,7 +290,7 @@ fun SearchScreen(
                             showLifetimeQueryError = false
                         },
                         label = { Text(invoiceLabel) },
-                        placeholder = { Text("e.g. 26A1-000042 or A01") },
+                        placeholder = { Text("e.g. A000042") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
@@ -465,7 +466,7 @@ fun SearchScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text("Order ID", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Text(
-                                            "#${currentResult.bill.dailyOrderDisplay.split("-").last()}",
+                                            "#${currentResult.bill.dailyOrderDisplay}",
                                             color = TextLight,
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )

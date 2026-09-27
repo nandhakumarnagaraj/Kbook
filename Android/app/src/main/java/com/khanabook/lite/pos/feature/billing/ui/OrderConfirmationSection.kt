@@ -517,24 +517,9 @@ internal suspend fun loadShopLogoBlocking(
     context: android.content.Context,
     logoUrl: String?,
     logoPath: String?
-): android.graphics.Bitmap? {
-    if (!logoUrl.isNullOrBlank()) {
-        try {
-            val request = ImageRequest.Builder(context)
-                .data(logoUrl)
-                .allowHardware(false)
-                .size(128)
-                .memoryCachePolicy(CachePolicy.ENABLED)
-                .diskCachePolicy(CachePolicy.ENABLED)
-                .build()
-            val result = context.imageLoader.execute(request)
-            val bitmap = (result as? SuccessResult)?.drawable?.toBitmap()
-            if (bitmap != null) return bitmap
-        } catch (_: Exception) { }
-    }
-    return AppAssetStore.resolveAssetPath(logoPath)?.let { path ->
-        try {
-            BitmapFactory.decodeFile(path)
-        } catch (_: Exception) { null }
-    }
-}
+): android.graphics.Bitmap? = com.khanabook.lite.pos.core.util.ShopLogoLoader.loadShopLogo(
+    context = context,
+    logoUrl = logoUrl,
+    logoPath = logoPath,
+    fallbackToDefault = true
+)

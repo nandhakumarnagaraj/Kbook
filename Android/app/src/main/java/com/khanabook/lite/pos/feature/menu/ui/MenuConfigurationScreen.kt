@@ -170,13 +170,6 @@ fun MenuConfigurationScreen(
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center
                         )
-                        if (ocrUiState.configMode == "manual") {
-                            Text(
-                                text = "${categories.size} categories",
-                                color = TextGold.copy(alpha = 0.6f),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
                     }
                 },
                 navigationIcon = {

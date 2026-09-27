@@ -168,7 +168,7 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
         profile?.gstin?.takeIf { it.isNotBlank() }?.let { sb.append("GSTIN: $it\n") }
     }
     sb.append("--------------------------\n")
-    sb.append("*Order ID:* #${bill.bill.dailyOrderDisplay.split("-").last()}\n")
+    sb.append("*Order ID:* #${bill.bill.dailyOrderDisplay}\n")
     val invLabel = if (gstEnabled) "Tax Invoice No" else "Invoice No"
     sb.append("*$invLabel:* ${bill.bill.getInvoiceNumberDisplay()}\n")
     sb.append("*Date:* ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")

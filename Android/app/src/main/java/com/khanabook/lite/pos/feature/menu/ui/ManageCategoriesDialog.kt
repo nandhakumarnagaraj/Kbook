@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -89,7 +88,6 @@ fun ManageCategoriesDialog(
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var rowHeightPx by remember { mutableIntStateOf(0) }
 
-    var newCategoryName by remember { mutableStateOf("") }
 
     val orderChanged = items.map { it.id } != categories.map { it.id }
 
@@ -210,54 +208,13 @@ fun ManageCategoriesDialog(
                                     tint = TextGold
                                 )
                             }
-                            IconButton(onClick = { onDeleteCategory(category) }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete ${category.name}",
-                                    tint = NonVegRed
-                                )
-                            }
+                            // Category delete intentionally removed from UI (owner request).
+                            // The onDeleteCategory callback is kept so it can be restored.
                         }
                     }
                 }
             }
 
-            if (canWrite) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = newCategoryName,
-                        onValueChange = { newCategoryName = it },
-                        label = { Text("New Category", color = TextGold) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGold,
-                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    IconButton(
-                        onClick = {
-                            val name = newCategoryName.trim()
-                            if (name.isNotEmpty()) {
-                                onAddCategory(
-                                    name,
-                                    (items.maxOfOrNull { it.sortOrder } ?: 0) + 1
-                                )
-                                newCategoryName = ""
-                            }
-                        },
-                        enabled = newCategoryName.isNotBlank()
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Category", tint = PrimaryGold)
-                    }
-                }
-            }
         }
     ) {
         TextButton(onClick = onDismiss) {
@@ -272,7 +229,7 @@ fun ManageCategoriesDialog(
             )
         ) {
             Text(
-                if (orderChanged) "Save Category Order" else "No Changes to Save",
+                if (orderChanged) "Save" else "No Changes",
                 fontWeight = FontWeight.Bold
             )
         }

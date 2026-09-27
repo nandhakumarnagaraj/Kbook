@@ -94,14 +94,6 @@ internal fun OrderDetailRow.isTakeawayOrder(): Boolean {
 
 
 
-internal fun getPayModeColor(mode: PaymentMode): Color {
-    return when (mode) {
-        PaymentMode.CASH -> SuccessGreen
-        PaymentMode.UPI -> Brown500 
-        PaymentMode.POS -> PrimaryGold
-        else -> Brown500
-    }
-}
 
 internal fun periodRange(tab: Int): Pair<Long, Long> {
     val cal = Calendar.getInstance()

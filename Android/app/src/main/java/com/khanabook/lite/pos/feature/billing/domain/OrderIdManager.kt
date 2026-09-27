@@ -10,12 +10,13 @@ object OrderIdManager {
     private const val INDIA_TIMEZONE = AppConstants.DEFAULT_TIMEZONE
     
     /**
-     * Returns the formatted daily order ID (e.g., "01", "10", or "A1-01").
+     * Returns the formatted daily order ID (e.g., "01", "10", or "B1-05").
+     * Terminal series joins directly without a dash: "A" + "01" -> "A01".
      */
     fun getDailyOrderDisplay(date: String, counter: Long, terminalSeries: String? = null): String {
         val displayCounter = counter.toString().padStart(2, '0')
         return if (terminalSeries != null && terminalSeries.isNotBlank()) {
-            "$terminalSeries-$displayCounter"
+            "$terminalSeries$displayCounter"
         } else {
             displayCounter
         }

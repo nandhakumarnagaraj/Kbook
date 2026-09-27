@@ -376,6 +376,11 @@ class TenantMenuDao @Inject constructor(
 
     override suspend fun findItemByServerId(serverId: Long, restaurantId: Long): MenuItemEntity? =
         dao.findItemByServerId(serverId, restaurantId)
+    override suspend fun findUnsyncedItemByName(
+        restaurantId: Long,
+        categoryId: Long,
+        name: String
+    ): MenuItemEntity? = dao.findUnsyncedItemByName(restaurantId, categoryId, name)
 
     override suspend fun hideDuplicateMenuItemsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long) {
         dao.hideDuplicateMenuItemsByServerIds(serverIds, preferredIds, restaurantId)

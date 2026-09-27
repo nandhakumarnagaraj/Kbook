@@ -67,7 +67,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.map { bill ->
             OrderLevelRow(
-                dailyId = bill.dailyOrderDisplay.split("-").last(),
+                dailyId = bill.dailyOrderDisplay,
                 invoiceDisplay = bill.getInvoiceNumberDisplay(),
                 billId = bill.id,
                 paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
@@ -75,6 +75,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
                 orderType = bill.orderType,
                 orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
                 date = DateUtils.formatDisplay(bill.createdAt),
+                createdAt = bill.createdAt,
                 cancelReason = bill.cancelReason,
                 totalAmount = bill.totalAmount.toString()
             )
@@ -89,7 +90,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.map { bill ->
                 OrderDetailRow(
-                    dailyNo = bill.dailyOrderDisplay.split("-").last(),
+                    dailyNo = bill.dailyOrderDisplay,
                     invoiceDisplay = bill.getInvoiceNumberDisplay(),
                     billId = bill.id,
                     currentStatus = formatCurrentStatus(bill),
@@ -99,6 +100,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
                     sourceChannel = bill.sourceChannel,
                     orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
                     salesDate = bill.createdAt,
+                    createdAt = bill.createdAt,
                     cancelReason = bill.cancelReason
                 )
             }

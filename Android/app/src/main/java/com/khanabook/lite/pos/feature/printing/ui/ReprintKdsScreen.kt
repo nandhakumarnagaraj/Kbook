@@ -194,6 +194,7 @@ fun ReprintKdsScreen(
                         }
                     },
                     label = { Text("Order No") },
+                    placeholder = { Text("e.g. A01") },
                     isError = showDailyIdError,
                     supportingText = {
                         if (showDailyIdError) {
@@ -233,7 +234,7 @@ fun ReprintKdsScreen(
                         showInvoiceError = false
                     },
                     label = { Text(invoiceLabel) },
-                    placeholder = { Text("e.g. 26A1-000042 or A01") },
+                    placeholder = { Text("e.g. A000042") },
                     isError = showInvoiceError,
                     supportingText = {
                         if (showInvoiceError) {
@@ -320,7 +321,7 @@ private fun KdsBillCard(
                 ) {
                     Column {
                         Text(
-                            text = "Order #${bill.dailyOrderDisplay.split("-").last()}",
+                            text = "Order #${bill.dailyOrderDisplay}",
                             color = PrimaryGold,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold

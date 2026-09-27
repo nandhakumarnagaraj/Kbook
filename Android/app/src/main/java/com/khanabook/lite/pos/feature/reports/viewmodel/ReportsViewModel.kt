@@ -55,7 +55,7 @@ class ReportsViewModel @Inject constructor(
     private val _reportType = MutableStateFlow("Order") 
     val reportType: StateFlow<String> = _reportType
 
-    private val _timeFilter = MutableStateFlow("Daily") 
+    private val _timeFilter = MutableStateFlow("Today") 
     val timeFilter: StateFlow<String> = _timeFilter
 
     private val _selectedBillDetails = MutableStateFlow<com.khanabook.lite.pos.feature.billing.data.BillWithItems?>(null)
@@ -104,36 +104,44 @@ class ReportsViewModel @Inject constructor(
     }
 
     private fun updateDateRangeAndLoad(filter: String) {
+        // Custom keeps whatever range the user already picked.
+        if (filter == "Custom" && currentFrom > 0L && currentTo > 0L) {
+            loadReports(currentFrom, currentTo)
+            return
+        }
         val cal = Calendar.getInstance()
-        val to = cal.timeInMillis
 
-        val from = when (filter) {
-            "Daily" -> {
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.timeInMillis
+        val (from, to) = when (filter) {
+            "Yesterday" -> {
+                cal.add(Calendar.DAY_OF_YEAR, -1)
+                val from = startOfDay(cal)
+                val to = endOfDay(cal)
+                from to to
             }
-            "Weekly" -> {
-                cal.add(Calendar.DAY_OF_YEAR, -6)
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.timeInMillis
+            else -> {
+                // "Today" (legacy "Daily" treated the same)
+                val from = startOfDay(cal)
+                val to = System.currentTimeMillis()
+                from to to
             }
-            "Monthly" -> {
-                cal.set(Calendar.DAY_OF_MONTH, 1)
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.timeInMillis
-            }
-            else -> cal.timeInMillis
         }
         loadReports(from, to)
+    }
+
+    private fun startOfDay(cal: Calendar): Long {
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
+    private fun endOfDay(cal: Calendar): Long {
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        return cal.timeInMillis
     }
 
     fun setCustomDateRange(from: Long, to: Long) {

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -454,12 +453,6 @@ fun HomeScreen(
                                     )
                                 }
                             }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = DarkBrown1,
-                                modifier = Modifier.size(layout.primaryIconSize)
-                            )
                         }
                     }
                     // Actions live as separate top-level children so BoundedVerticalSpaceBetween

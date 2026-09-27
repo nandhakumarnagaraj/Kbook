@@ -9,11 +9,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CallSplit
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PointOfSale
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -128,7 +133,7 @@ fun PaymentLevelView(
     ) {
         items(mainModes) { mode ->
             PaymentModeItem(
-                mode = mode.displayLabel,
+                mode = mode,
                 amount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0
             )
         }
@@ -143,26 +148,15 @@ fun PaymentLevelView(
                 )
             }
 
-            val chunkedPartModes = partModes.chunked(2)
-            items(chunkedPartModes) { rowModes ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    rowModes.forEach { mode ->
-                        val labels = com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.getPartLabels(mode)
-                        PartPaymentCard(
-                            label = mode.displayLabel,
-                            totalAmount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0,
-                            part1Amount = breakdown["${mode.displayLabel}_part1"]?.toDoubleOrNull() ?: 0.0,
-                            part2Amount = breakdown["${mode.displayLabel}_part2"]?.toDoubleOrNull() ?: 0.0,
-                            part1Label = labels.first,
-                            part2Label = labels.second,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    if (rowModes.size < 2) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
+            // One part-payment card per full row — same rhythm as the
+            // Cash/UPI/POS cards above.
+            items(partModes) { mode ->
+                PartPaymentCard(
+                    label = mode.displayLabel,
+                    mode = mode,
+                    totalAmount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
         
@@ -198,12 +192,24 @@ fun ReportDownloadBottomBar(
 }
 
 @Composable
-fun PaymentModeItem(mode: String, amount: Double) {
+fun PaymentModeItem(mode: PaymentMode, amount: Double) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val modeColor = getPayModeIconTint(mode)
+    val modeIcon = when (mode) {
+        PaymentMode.CASH -> Icons.Default.Payments
+        PaymentMode.UPI -> Icons.Default.QrCode2
+        PaymentMode.POS -> Icons.Default.PointOfSale
+        PaymentMode.EASEBUZZ, PaymentMode.PAYMENT_LINK -> Icons.Default.CreditCard
+        else -> Icons.Default.CallSplit
+    }
+    // Single flat box styled like Settings cards: warm CardBG container,
+    // gold-tinted icon circle, gold chevron. No elevation/border stack.
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.4f))
+        shape = KhanaRadii.lg,
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -211,51 +217,68 @@ fun PaymentModeItem(mode: String, amount: Double) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Description,
-                contentDescription = null,
-                tint = PrimaryGold.copy(alpha = 0.5f),
-                modifier = Modifier.size(iconSize.medium)
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(modeColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    modeIcon,
+                    contentDescription = null,
+                    tint = modeColor,
+                    modifier = Modifier.size(iconSize.medium)
+                )
+            }
             Spacer(modifier = Modifier.width(spacing.medium))
-            Text(mode, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(CurrencyUtils.formatPrice(amount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = TextGold,
-                modifier = Modifier.size(iconSize.small)
-            )
         }
     }
 }
 
 @Composable
 fun PartPaymentCard(
-    label: String, 
-    totalAmount: Double, 
-    part1Amount: Double, 
-    part2Amount: Double,
-    part1Label: String,
-    part2Label: String,
+    label: String,
+    mode: PaymentMode,
+    totalAmount: Double,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+    val modeColor = getPayModeIconTint(mode)
+    // Single flat box styled like Settings cards: warm CardBG container,
+    // mode-tinted icon, no elevation/border stack.
     KhanaBookCard(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = GreenReportBg.copy(alpha = 0.4f)),
-        shape = KhanaRadii.md
+        shape = KhanaRadii.lg,
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(spacing.small)) {
-            Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = VegGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(spacing.hairline))
-            Text(
-                "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",
-                color = TextLight.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.labelSmall
-
-
-            )
+        // Same rhythm as PaymentModeItem: icon circle, label, gold total, chevron.
+        Column(modifier = Modifier.padding(spacing.medium)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(modeColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.CallSplit,
+                        contentDescription = null,
+                        tint = modeColor,
+                        modifier = Modifier.size(iconSize.medium)
+                    )
+                }
+                Spacer(modifier = Modifier.width(spacing.medium))
+                Text(label, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(
+                    CurrencyUtils.formatPrice(totalAmount),
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }
@@ -267,14 +290,6 @@ private val COL_MODE    = 1.1f
 private val COL_STATUS  = 1.2f
 private val COL_ACTION  = 0.8f
 
-internal fun getPayModeColor(mode: PaymentMode): Color {
-    return when (mode) {
-        PaymentMode.CASH -> SuccessGreen
-        PaymentMode.UPI -> Brown500 
-        PaymentMode.POS -> PrimaryGold
-        else -> Brown500
-    }
-}
 
 @Composable
 fun OrderLevelView(
@@ -291,7 +306,7 @@ fun OrderLevelView(
     val invoiceHeader = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
 
-        if (!compactLayout) Row(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium)
@@ -299,12 +314,21 @@ fun OrderLevelView(
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("Order No", COL_ORDER)
-            HeaderCell(invoiceHeader, COL_INVOICE)
-            HeaderCell("Date", COL_DATE)
-            HeaderCell("Mode", COL_MODE)
-            HeaderCell("Status", COL_STATUS)
-            HeaderCell("Action", COL_ACTION)
+            if (compactLayout) {
+                // Phone table: OrderNo | InvoiceNo | Mode | Status | Action
+                HeaderCell("OrderNo", COL_ORDER)
+                HeaderCell("InvoiceNo", COL_INVOICE)
+                HeaderCell("Mode", COL_MODE)
+                HeaderCell("Status", COL_STATUS)
+                HeaderCell("Action", COL_ACTION)
+            } else {
+                HeaderCell("Order No", COL_ORDER)
+                HeaderCell(invoiceHeader, COL_INVOICE)
+                HeaderCell("Date", COL_DATE)
+                HeaderCell("Mode", COL_MODE)
+                HeaderCell("Status", COL_STATUS)
+                HeaderCell("Action", COL_ACTION)
+            }
         }
 
         if (rows.isEmpty()) {
@@ -361,61 +385,50 @@ fun OrderRowItem(
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
-    val canEdit = !isCancelled
+    // Mode/status edits are allowed only on the SAME DAY the bill was taken
+    // (owner request). Unknown timestamps (createdAt == 0, legacy callers) stay
+    // editable so we never over-restrict.
+    val canEdit = !isCancelled && run {
+        if (row.createdAt <= 0L) {
+            true
+        } else {
+            val taken = java.util.Calendar.getInstance().apply { timeInMillis = row.createdAt }
+            val now = java.util.Calendar.getInstance()
+            taken.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR) &&
+                taken.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR)
+        }
+    }
+    // Dine-in "pay after food" drafts are unsettled bills: their payment mode is
+    // decided at settlement time on the billing screen, and they must never be
+    // marked Completed from the report (that would skip payment capture).
+    // They may only be cancelled from here.
+    val isPayAfterFoodDraft = row.orderStatus == OrderStatus.DRAFT &&
+        row.orderType.trim().lowercase() in setOf("dine_in", "dine-in", "dinein") &&
+        com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
+            .fromDbValue(profile?.orderPaymentFlowMode) ==
+            com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode.PAY_AFTER_FOOD
 
+    // Details open ONLY via the View action button — the row itself is not clickable,
+    // so stray taps while scrolling never pop the dialog.
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { onViewDetails(row.billId) },
         colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
         shape = KhanaRadii.sm
     ) {
-        if (compactLayout) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Order ${row.dailyId}",
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    row.date,
-                    color = TextMuted,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = spacing.extraSmall),
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    row.invoiceDisplay,
-                    modifier = Modifier.weight(1f),
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!compactLayout) TableCell(row.dailyId, COL_ORDER)
-
+            TableCell(row.dailyId, COL_ORDER)
+            TableCell(
+                row.invoiceDisplay,
+                COL_INVOICE,
+                fontWeight = FontWeight.Bold,
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+            )
             if (!compactLayout) {
-                TableCell(
-                    row.invoiceDisplay,
-                    COL_INVOICE,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-                )
                 TableCell(
                     row.date,
                     COL_DATE,
@@ -424,10 +437,10 @@ fun OrderRowItem(
             }
 
             // Mode dropdown
-            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_MODE), contentAlignment = Alignment.Center) {
-                val modeColor = if (!canEdit) Color.Gray else getPayModeColor(row.paymentMode)
+            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
+                val modeColor = getPayModeColor(row.paymentMode)
                 Surface(
-                    onClick = { if (canEdit) payModeExpanded = true },
+                    onClick = { if (canEdit && !isPayAfterFoodDraft) payModeExpanded = true },
                     color = modeColor,
                     shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.hairline)
@@ -456,7 +469,7 @@ fun OrderRowItem(
             }
 
             // Status dropdown
-            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_STATUS), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
@@ -488,7 +501,9 @@ fun OrderRowItem(
                     onDismissRequest = { statusExpanded = false },
                     modifier = Modifier.background(DarkBrown2)
                 ) {
-                    if (row.orderStatus != OrderStatus.COMPLETED) {
+                    // Pay-after-food dine-in drafts: no direct "Completed" — settle
+                    // on the billing screen, or cancel here.
+                    if (row.orderStatus != OrderStatus.COMPLETED && !isPayAfterFoodDraft) {
                         DropdownMenuItem(
                             text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
@@ -507,8 +522,8 @@ fun OrderRowItem(
                 }
             }
 
-            // Action (View)
-            Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_ACTION), contentAlignment = Alignment.Center) {
+            // Action (View) — the ONLY way to open order details
+            Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = { onViewDetails(row.billId) },
                     color = Color.Transparent,

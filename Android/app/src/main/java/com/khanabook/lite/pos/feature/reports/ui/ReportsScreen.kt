@@ -96,7 +96,7 @@ fun ReportsScreen(
     var isExporting by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.setTimeFilter("Daily")
+        viewModel.setTimeFilter("Today")
     }
 
     Box(
@@ -146,9 +146,9 @@ fun ReportsScreen(
                     // needs reports.full — matching what AnalyticsController enforces
                     // server-side for the same data.
                     val availableFilters = if (canViewFullReports) {
-                        listOf("Daily", "Weekly", "Monthly", "Custom")
+                        listOf("Today", "Yesterday", "Custom")
                     } else {
-                        listOf("Daily")
+                        listOf("Today")
                     }
                     availableFilters.forEach { filter ->
                         FilterChip(
@@ -172,6 +172,7 @@ fun ReportsScreen(
             
             if (showDateRangePicker) {
                 CustomDateRangePickerDialog(
+                    showQuickPresets = false,
                     onDismiss = { showDateRangePicker = false },
                     onConfirm = viewModel::setCustomDateRange
                 )
@@ -186,13 +187,13 @@ fun ReportsScreen(
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
                     ReportTypeToggle(
-                        label = "Payment Level Report",
+                        label = "Payments Report",
                         isSelected = reportType == "Payment",
                         onClick = { viewModel.setReportType("Payment") },
                         modifier = Modifier.weight(1f)
                     )
                     ReportTypeToggle(
-                        label = "Order Level Report",
+                        label = "Orders Report",
                         isSelected = reportType == "Order",
                         onClick = { viewModel.setReportType("Order") },
                         modifier = Modifier.weight(1f)

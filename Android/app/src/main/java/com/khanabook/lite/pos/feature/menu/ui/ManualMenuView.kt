@@ -173,23 +173,6 @@ fun ManualMenuView(
                                 leadingIcon = { Icon(Icons.Default.Edit, null, tint = TextGold) },
                                 onClick = { showSelectedCategoryMenu = false; showEditCategoryDialog = selectedCategory }
                             )
-                            if (onToggleCategory != null) {
-                                DropdownMenuItem(
-                                    text = { Text(if (selectedCategory.isActive) "Hide from billing" else "Show in billing") },
-                                    leadingIcon = { Icon(if (selectedCategory.isActive) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = TextGold) },
-                                    onClick = {
-                                        showSelectedCategoryMenu = false
-                                        onToggleCategory(selectedCategory, !selectedCategory.isActive)
-                                    }
-                                )
-                            }
-                            if (onDeleteCategory != null) {
-                                DropdownMenuItem(
-                                    text = { Text("Delete Category") },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = NonVegRed) },
-                                    onClick = { showSelectedCategoryMenu = false; showDeleteCategoryConfirm = selectedCategory }
-                                )
-                            }
                             if (onReorderCategories != null) {
                                 DropdownMenuItem(
                                     text = { Text("Manage Categories") },
@@ -200,12 +183,6 @@ fun ManualMenuView(
                         }
                     }
                 }
-                KhanaSecondaryButton(
-                    text = "Add Category",
-                    onClick = { showAddCategoryDialog = true },
-                    leadingIcon = Icons.Default.Add,
-                    modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
-                )
             }
         }
         Box(
@@ -219,6 +196,41 @@ fun ManualMenuView(
                 horizontalArrangement = Arrangement.spacedBy(spacing.small),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Add Category lives in the chips row as the FIRST chip — same
+                // height, padding and shape as the category chips. Green fill
+                // marks it as an "add/positive" action distinct from the chips.
+                if (canWrite) {
+                    item {
+                        Surface(
+                            onClick = { showAddCategoryDialog = true },
+                            shape = KhanaRadii.md,
+                            color = VegGreen,
+                            contentColor = DarkBrown1,
+                            modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .heightIn(min = 36.dp)
+                                    .padding(horizontal = spacing.smallMedium, vertical = spacing.small),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add Category",
+                                    tint = DarkBrown1,
+                                    modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall)
+                                )
+                                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                Text(
+                                    text = "Add Category",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
                 items(categories) { category ->
                     val isSelected = category.id == selectedCategoryId
                     Surface(
@@ -369,12 +381,6 @@ fun ManualMenuView(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (canWrite) {
-                        Text(
-                            "Tap an item to edit · Only available items appear on bills",
-                            color = TextGold.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center
-                        )
                         Spacer(modifier = Modifier.height(spacing.small))
                         Button(
                             onClick = { showAddItemDialog = true },
@@ -650,34 +656,18 @@ fun MenuItemRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.extraSmall)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Switch(
-                            checked = item.isAvailable,
-                            onCheckedChange = { onToggleAvailability(item.id, it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = BrownSelected,
-                                checkedTrackColor = PrimaryGold,
-                                checkedBorderColor = PrimaryGold,
-                                uncheckedThumbColor = TextLight,
-                                uncheckedTrackColor = DarkBrown1,
-                                uncheckedBorderColor = BorderGold
-                            )
+                    Switch(
+                        checked = item.isAvailable,
+                        onCheckedChange = { onToggleAvailability(item.id, it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BrownSelected,
+                            checkedTrackColor = PrimaryGold,
+                            checkedBorderColor = PrimaryGold,
+                            uncheckedThumbColor = TextLight,
+                            uncheckedTrackColor = DarkBrown1,
+                            uncheckedBorderColor = BorderGold
                         )
-                        Text(
-                            text = if (item.isAvailable) "Available" else "Unavailable",
-                            color = if (item.isAvailable) VegGreen else NonVegRed,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    if (onUploadPhotoClick != null && item.imageUrl.isNullOrBlank()) {
-                        IconButton(onClick = onUploadPhotoClick) {
-                            Icon(
-                                imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = "Upload photo for ${item.name}",
-                                tint = PrimaryGold.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
+                    )
                     Box {
                         IconButton(onClick = { moreMenuExpanded = true }) {
                             Icon(
@@ -698,26 +688,6 @@ fun MenuItemRow(
                                     onEditClick(itemWithVariants)
                                 }
                             )
-                            if (otherCategories.isNotEmpty() && onMoveItem != null) {
-                                DropdownMenuItem(
-                                    text = { Text("Move to Category") },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, null, tint = TextGold) },
-                                    onClick = {
-                                        moreMenuExpanded = false
-                                        showMoveCategoryDialog = true
-                                    }
-                                )
-                            }
-                            if (onDeleteItem != null) {
-                                DropdownMenuItem(
-                                    text = { Text("Delete") },
-                                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = NonVegRed) },
-                                    onClick = {
-                                        moreMenuExpanded = false
-                                        showDeleteConfirmDialog = true
-                                    }
-                                )
-                            }
                         }
                     }
                 }

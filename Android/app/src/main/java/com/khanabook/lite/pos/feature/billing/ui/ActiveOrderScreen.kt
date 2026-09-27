@@ -147,14 +147,14 @@ fun ActiveOrderScreen(
 
     val context = LocalContext.current
     val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(
-        null, profile?.upiHandle, profile?.shopName, upiPayableAmount, canGenerateAmountQr
+        null, profile?.upiHandle, upiPayableAmount, canGenerateAmountQr
     ) {
         val handle = profile?.upiHandle
         value = if (canGenerateAmountQr && !handle.isNullOrBlank()) {
             val logo = loadShopLogoBlocking(context, profile?.logoUrl, profile?.logoPath)
             withContext(Dispatchers.Default) {
                 QrCodeManager.generateUpiQrWithLogo(
-                    handle, profile?.shopName ?: "RESTAURANT", upiPayableAmount, logo, 512
+                    handle, "", upiPayableAmount, logo, 512 // pn omitted: UPI apps show bank-verified name
                 )
             }
         } else null

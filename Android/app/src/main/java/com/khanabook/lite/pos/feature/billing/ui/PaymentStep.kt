@@ -510,7 +510,7 @@ fun PaymentStep(
     val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(
         null,
         profile?.upiHandle,
-        profile?.shopName,
+        // payee name intentionally not encoded: UPI apps show the bank-verified NPCI name
         upiPayableAmount,
         canGenerateAmountQr,
         profile?.logoUrl,
@@ -522,7 +522,7 @@ fun PaymentStep(
             withContext(Dispatchers.Default) {
                 QrCodeManager.generateUpiQrWithLogo(
                     handle,
-                    profile?.shopName ?: "RESTAURANT",
+                    "", // pn omitted: UPI apps show the bank-verified name
                     upiPayableAmount,
                     logo,
                     512
@@ -1189,11 +1189,4 @@ fun FailedStep(
 }
 
 
-private fun getPayModeColorStep(mode: PaymentMode): Color {
-    return when (mode) {
-        PaymentMode.CASH -> SuccessGreen
-        PaymentMode.UPI -> Brown500 
-        PaymentMode.POS -> PrimaryGold
-        else -> Brown500
-    }
-}
+

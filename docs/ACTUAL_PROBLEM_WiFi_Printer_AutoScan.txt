@@ -1,0 +1,332 @@
+===============================================================================
+ACTUAL PROBLEM: Wi-Fi PRINTER AUTO SCAN / IP FETCH
+Works on Android 15 -> Broke on Android 10 -> Fix flipped it -> Now broken on Android 15
+Investigation record with Android docs cross-check + competitor research
+===============================================================================
+Date of investigation : 27-Sep-2026
+Project              : KhanaBook Lite POS (Android)
+Module               : feature/printing  (NetworkPrinterScanner.kt)
+Key commit           : 7a15e00f  "fix: Wi-Fi printer auto-detection and stale IP fast-fail"
+Prepared from        : repo evidence, official Android docs/AOSP sources,
+                       competitor APK decompilation (read-only, no code edits)
+
+-------------------------------------------------------------------------------
+1. PROBLEM TIMELINE
+-------------------------------------------------------------------------------
+
+ROUND 1 (original problem):
+  - Wi-Fi printer auto scan / auto IP fetch WORKED on Android 15
+  - Did NOT work on Android 10
+  - Symptom then: subnet prefix / gateway detection failed on Android 10
+    (DhcpInfo / LinkProperties settling late on A10, stale null prefix)
+
+ROUND 2 (the fix, commit 7a15e00f, 25-Sep-2026):
+  Changes made in NetworkPrinterScanner.kt + related files:
+    - getActiveLanNetwork(): reads REAL netmask via
+      NetworkInterface.interfaceAddresses -> InterfaceAddress.getNetworkPrefixLength()
+      (only trusted when plausible 1..32)
+    - getGatewayIp(): LinkProperties default-route gateway FIRST (all networks),
+      DhcpInfo.gateway fallback (little-endian int -> dotted string)
+    - scanSubnet(): if mask >= /22 scan exact on-link range; if wider/unknown
+      scan device /24 + GATEWAY /24 blocks (max 8 blocks bridging)
+    - isSameSubnet(): NEW guard - WifiPrinterTransport.print() SKIPS the print
+      if printer IP is "not on current local subnet"
+    - SettingsViewModel: NetworkCallback re-detect + "Network Mismatch" badge
+  Commit message claimed: "Prevents 5-second SocketTimeoutException on Android 10+"
+
+ROUND 3 (current problem - THE ACTUAL PROBLEM):
+  - After the fix: Android 10 now WORKS fine
+  - Android 15 now DOES NOT WORK
+  - The fix flipped the failure from A10 to A15.
+
+-------------------------------------------------------------------------------
+2. REPO EVIDENCE (what the code does today)
+-------------------------------------------------------------------------------
+
+File: Android/app/src/main/java/com/khanabook/lite/pos/feature/printing/domain/
+      NetworkPrinterScanner.kt
+
+  getActiveLanNetwork()
+    - Enumerates NetworkInterface.getNetworkInterfaces()
+    - WLAN/ETH/AP interfaces preferred, site-local fallback
+    - Reads InterfaceAddress.networkPrefixLength as the REAL mask
+    - Plausibility filter: trusts only 1..32 (rejects 0, /64-on-IPv4, negative)
+
+  getGatewayIp()
+    - 1st choice: ConnectivityManager.getLinkProperties() default-route gateway
+      (WifiManager.dhcpInfo deprecated since API 31 - docs point to LinkProperties)
+    - Fallback: WifiManager.getDhcpInfo().gateway  (still the working path on
+      API 26-30 devices; some OEM builds return empty LinkProperties routes)
+
+  scanSubnet()
+    - mask >= /22 : exact on-link range scan (<=1022 hosts)
+    - wider/unknown: device /24 + gateway /24, bridged band, MAX_SCAN_BLOCKS=8
+    - Probes TCP port 9100, 250ms timeout, parallelism 32
+    - Logs failure census: "Subnet scan done: local=... mask=... targets=...
+      open=... reasons={timeout,refused,error} tookMs=..."
+
+  isSameSubnet()
+    - Fails OPEN only when: no network found / mask unknown / malformed input
+    - Fails CLOSED when mask is plausible-but-wrong  <-- KEY RISK
+
+Callers:
+  - SettingsViewModel.scanForWifiPrinters() / refreshWifiSubnetPrefix() /
+    init NetworkCallback / refreshWifiReachability()  (mismatch badge)
+  - WifiPrinterTransport.print()  (HARD BLOCK: skips print when guard fails)
+
+Manifest permissions (Android/app/src/main/AndroidManifest.xml):
+  - INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE  (present)
+  - CHANGE_WIFI_STATE  (REMOVED earlier - see docs/SESSION_LOG_2026-08-21.txt)
+  - ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION  (maxSdkVersion=30)
+
+Build config: minSdk 26, targetSdk 36, compileSdk 36
+  -> targetSdk 36 means BOTH Android 15 behavior-change pages apply.
+
+-------------------------------------------------------------------------------
+3. ANDROID DOCS CROSS-CHECK (official sources, verified)
+-------------------------------------------------------------------------------
+
+[1] Android 15 behavior changes - apps targeting 15+
+    (developer.android.com/about/versions/15/behavior-changes-15)
+    Full text checked: FGS types/timeouts, edge-to-edge, OpenJDK 17 changes,
+    TLS 1.0/1.1, screen orientation, background activity, intents.
+    => NOTHING about sockets, LAN probing, ConnectivityManager, Wi-Fi or
+       NetworkInterface. NOT the cause.
+
+[2] Android 15 behavior changes - all apps
+    (developer.android.com/about/versions/15/behavior-changes-all)
+    Full text checked: 16KB pages, private space, stopped state, min target
+    SDK 24, package visibility, PNG emoji removal.
+    => NOTHING relevant. NOT the cause.
+
+[3] java.net.InterfaceAddress  (AOSP source, libcore/ojluni, main branch)
+    Javadoc: prefix "Typical IPv4 values would be 8 (255.0.0.0), 16, or 24"
+    -> ADVISORY ONLY, no guarantee of a correct mask.
+    Android-specific implementation found in source:
+        private short countPrefixLength(InetAddress netmask) {
+            short count = 0;
+            for (byte b : netmask.getAddress()) {
+                for (; b != 0; b <<= 1, ++count);
+            }
+            return count;
+        }
+    - Counts EVERY set bit in all 4 bytes (does not stop at first 0 bit)
+    - Kernel/OEM reports the mask via netlink; if a device reports a
+      non-contiguous or /32 mask, the result is WRONG but still within our
+      1..32 plausibility filter -> undetectable -> guard fails CLOSED.
+    - Known field reports: some devices return /64 for IPv4 (SO #19153329).
+
+[4] android.net.DhcpInfo  (AOSP source, packages/modules/Connectivity)
+    "A simple object for retrieving the results of a DHCP request."
+    Plain int fields: ipAddress, gateway, NETMASK, dns1, dns2, serverAddress,
+    leaseDuration. 0 = absent. No version-specific behavior documented.
+    NOTE: DhcpInfo also carries NETMASK - currently unused by our code
+    (we only read gateway) -> cross-check opportunity.
+
+[5] WifiManager.getDhcpInfo()
+    Officially DEPRECATED: "Use the methods on android.net.LinkProperties..."
+    Still functional on both A10 and A15 (legacy path works - which is exactly
+    why Android 10 works after the fix: DhcpInfo fallback succeeds there).
+
+[6] Wi-Fi scanning overview
+    (developer.android.com/develop/connectivity/wifi/wifi-scan)
+    startScan()/getScanResults() on Android 10+ REQUIRE:
+      - ACCESS_FINE_LOCATION granted at runtime
+      - CHANGE_WIFI_STATE permission
+      - Location services ON
+    => Our app does NOT call startScan/getScanResults at all - our "scan" is a
+       plain TCP port-9100 socket sweep (confirmed by our own audit:
+       docs/meta/FEATURE_DOCS.txt "the app does not call nearby-device or
+       Wi-Fi scan APIs"). These documented requirements DO NOT APPLY.
+       (Relevant only if we ever add WifiManager-based scanning.)
+
+DOCS CONCLUSION:
+  No DOCUMENTED Android 15 platform change explains the regression.
+  Every API this feature uses (NetworkInterface, ConnectivityManager.
+  getLinkProperties, DhcpInfo, plain Socket connect) is documented to behave
+  the same on Android 10 and Android 15.
+  => The A10-works / A15-fails split must come from RUNTIME INPUT divergence
+     (network config / OEM-reported mask / gateway state at call time)
+     feeding the new logic from commit 7a15e00f.
+
+-------------------------------------------------------------------------------
+4. RANKED HYPOTHESES (falsifiable)
+-------------------------------------------------------------------------------
+
+H1. DIFFERENT LAN / DIFFERENT DHCP MASK (most likely)
+    A10 device sits on a normal /24 (everything passes). A15 device sits on a
+    wide-mask /12-/16 network: scan caps at 8 /24 blocks (2032 hosts) AND
+    isSameSubnet() REJECTS the printer IP -> "Network Mismatch" -> print
+    skipped.
+    CHECK: scan log mask= / targets= ; does UI show "Network Mismatch"?
+
+H2. WRONG-BUT-PLAUSIBLE PREFIX FROM OEM (A15 device)
+    networkPrefixLength returns e.g. /32 or /24 while real mask is wider
+    (see countPrefixLength finding above). Scan covers the wrong block.
+    CHECK: log mask= value vs router's actual subnet.
+
+H3. GATEWAY DISCOVERY ASYMMETRY
+    On A15, LinkProperties may return a cellular/IPv6-only route first (Wi-Fi
+    route not yet validated) -> gateway block null/wrong. A10 succeeds via
+    the DhcpInfo fallback.
+    CHECK: logcat NetworkPrinterScanner lines at connect time.
+
+H4. TIMING / ORDERING
+    refreshWifiSubnetPrefix() exists because DhcpInfo/LinkProperties settle
+    late. A15 evaluated before route valid.
+    CHECK: does re-entering Settings / tapping refresh make it work?
+
+DECISIVE EVIDENCE TO CAPTURE (Android 15 device):
+    adb logcat -s NetworkPrinterScanner WifiPrinterTransport SettingsViewModel
+    Key line: "Subnet scan done: local=... mask=... targets=... open=...
+    reasons=..."
+    Plus: "Wi-Fi print to x.x.x.x skipped - IP not on current local subnet"
+    => direct proof the isSameSubnet() guard is blocking.
+    ALSO: put BOTH devices on the SAME Wi-Fi network -> splits "OS version"
+    from "network/environment" as the cause.
+
+-------------------------------------------------------------------------------
+5. COMPETITOR RESEARCH (APK decompilation, read-only)
+-------------------------------------------------------------------------------
+
+APK folder: C:\Users\nandh\Desktop\Khanabook V1 -assest\competitor_apks
+
+Status per APK:
+  com.khide.restaurant        FULLY ANALYZED - has complete thermal package
+                              (the real benchmark for this feature)
+  com.petpooja.billing        Manifest only: NO Wi-Fi/location perms
+                              -> no network printer discovery at all
+  in.billkaro.app             Manifest only: Bluetooth-only printing
+  com.binaryscript.offlineshop Manifest only: no Wi-Fi perms -> none
+  com.loyverse.sale           APK CORRUPT (truncated download, no central
+                              directory) - needs re-download to analyze
+  in.co.ezo                   APK corrupt too; decompiled sources exist but
+                              no thermal/discovery code found in own package
+  com.piquantservices.khanabooklite.debug  (our own debug build - skipped)
+
+5.1 KHIDE (com.khide.restaurant) - HOW THEY DO IT
+     Source: decompiled .../com/khide/restaurant/thermal/connections/
+             WiFiPrinterConnection.java (+ Companion lambdas)
+
+     a) Device IP the LEGACY way:
+        WifiManager.getConnectionInfo().getIpAddress() -> first 3 octets
+        (deprecated API 31, but still functional on A10 AND A15)
+
+     b) FIXED /24 SWEEP:
+        Generates x.y.z.1 .. x.y.z.254 and probes them.
+        NO netmask logic, NO gateway logic, NO InterfaceAddress at all.
+
+     c) MULTI-PORT PROBE LIST:
+        PRINTER_PORTS = 9100, 9101, 9102, 631 (IPP), 515 (LPD), 721 (LPR)
+        -> catches printers where RAW 9100 is disabled but IPP/LPD is on.
+
+     d) HOSTNAME / mDNS PRE-PASS (scanKnownHostname):
+        InetAddress.getByName(<printer-hostname>) -> OS resolves .local via
+        mDNS -> then probes all 6 ports. Zero-permission discovery path.
+        Log line found: "Found KPC307-UEWB at hostname ..." -> they also do
+        MODEL-SPECIFIC handling (KPC307-UEWB: createKPC307UEWB,
+        detectKPC307Features, isKPC307FromHostname).
+
+     e) Reachability pre-filter: InetAddress.isReachable(1000)
+        (weak on Android: ICMP needs privileges, falls back to TCP echo 7)
+
+     f) isWiFiConnected(): NetworkCapabilities.hasTransport(TRANSPORT_WIFI)
+        -> transport ONLY, does NOT require NET_CAPABILITY_INTERNET
+        (works on offline LANs; ours requires INTERNET capability - stricter)
+
+     g) NO SUBNET GUARD AT ALL: no mask, no "Network Mismatch", discovery
+        logic can NEVER block a print (they eat the 5s timeout on stale IPs
+        instead - the exact bug we fixed).
+
+5.2 WHY COMPETITOR "JUST WORKS" ON BOTH ANDROID 10 AND 15:
+    Their WifiManager-IP + fixed /24 path contains NONE of the constructs
+    implicated in our regression (no getNetworkPrefixLength, no LinkProperties
+    routes). Immune to the OEM prefix quirk and gateway-state timing.
+    Trade-off: breaks on wide-mask LANs, no stale-IP protection.
+
+-------------------------------------------------------------------------------
+6. OURS vs COMPETITOR (head to head)
+-------------------------------------------------------------------------------
+
+Aspect                     | Ours (NetworkPrinterScanner)      | Khide
+---------------------------+-----------------------------------+------------------
+Device IP source           | NetworkInterface enumeration      | WifiManager (legacy)
+Mask handling              | Real prefix + plausibility filter | Assumes /24, always
+Wide-mask LANs             | Gateway-block bridging            | BREAKS
+Port coverage              | 9100 only                         | 6 ports incl IPP/LPD
+mDNS/hostname discovery    | None                              | .local pre-pass
+Stale-IP protection        | Guard + badge + fast-fail         | None (5s timeout)
+Guard can BLOCK printing   | YES (current A15 regression)      | Never blocks
+NetworkCallback condition  | Requires NET_CAPABILITY_INTERNET  | Transport WiFi only
+Transport robustness       | Chunked writes + watchdog         | Plain socket, 10s
+
+-------------------------------------------------------------------------------
+7. RESEARCH RESULT: WHAT TO ADOPT IN KHANABOOK
+-------------------------------------------------------------------------------
+
+P0 - FIXES THE CURRENT A15 REGRESSION (from docs research)
+  1. Make isSameSubnet() FAIL-OPEN (warn-only): downgrade the hard print-block
+     to log + yellow badge only. A discovery-side guess must never block a
+     valid print.  Location: PrinterTransport.kt line ~67.
+  2. Triangulate device IP with WifiManager.getConnectionInfo().getIpAddress();
+     if it disagrees with NetworkInterface result -> distrust prefix ->
+     fail-open. (Competitor uses this API exclusively; works on A10 AND A15.)
+     Location: getActiveLanNetwork().
+  3. Cross-validate prefix against DhcpInfo.netmask (field exists per AOSP
+     source; we already read DhcpInfo.gateway). Disagreement -> prefer DhcpInfo
+     or mark mask unknown. Location: getActiveLanNetwork().
+  4. Close the OFFLINE Wi-Fi gap: our NetworkRequest requires
+     NET_CAPABILITY_INTERNET -> on restaurant Wi-Fi without internet (common
+     in our market) onAvailable never fires and auto-fill never refreshes.
+     Add a second registration with TRANSPORT_WIFI/ETHERNET only, no INTERNET
+     capability. Location: SettingsViewModel init.
+  5. (Debug aid) Surface the scan census (mask/targets/reasons) in Settings
+     diagnostics so field issues are debuggable without adb.
+
+P1 - DISCOVERY CAPABILITY (from competitor research)
+  6. Multi-port probing: 9100 first, then 631 (IPP) + 515 (LPD) as fallback
+     pass (9101/9102/721 in deep scan). Keeps scan time flat.
+  7. mDNS/.local hostname pre-pass before the subnet sweep. Even better:
+     NsdManager with _printer._tcp / _ipp._tcp - the documented API, no
+     location permission needed. Fast path, zero permissions.
+  8. Quick/Deep scan modes in UI (quick = 9100 @ 250ms, deep = 6 ports +
+     longer timeout). Our failure-reasons census already provides the model.
+  9. Auto-name discovered printers from vendor hostname patterns
+     (Khide's KPC307-style model handling).
+
+WHAT NOT TO ADOPT (and why)
+  x  Fixed /24 assumption - breaks on wide-mask LANs (our documented Lenovo
+     TB-X505X /12 case: device 10.176.2.x, gateway 10.176.0.x, printer
+     10.176.1.x).
+  x  No stale-IP guard - that is the 5-second SocketTimeoutException we
+     already fixed in 7a15e00f.
+  x  Plain unbounded socket writes - our chunked-write + watchdog transport
+     is strictly better.
+
+NET POSITION
+  Our architecture is AHEAD of the benchmark. The wins are:
+  (a) make the guard fail-safe instead of fail-closed,
+  (b) fix the offline-Wi-Fi callback gap,
+  (c) borrow the two cheap competitor tricks (multi-port, mDNS pre-pass).
+
+-------------------------------------------------------------------------------
+8. NEXT STEPS
+-------------------------------------------------------------------------------
+  1. Capture A15 logcat (section 4) -> confirm H1/H2/H3/H4 before any change.
+  2. Same-network A10 vs A15 comparison test.
+  3. Implement P0 items 1-4 (smallest diff, biggest field impact).
+  4. P1 items 6-7 as a follow-up feature (discovery v2).
+  5. Optional: re-download Loyverse APK (industry-leading printer stack)
+     for a deeper benchmark.
+
+-------------------------------------------------------------------------------
+9. TOOLING / ARTIFACTS CREATED DURING THIS INVESTIGATION
+-------------------------------------------------------------------------------
+  - jadx 1.5.6 (portable) at C:\Users\nandh\apk-tools\  (APK decompiler)
+  - aapt2 from local Android SDK build-tools 36.0.0 (manifest parsing)
+  - Decompiled trees under competitor_apks\decompiled\
+  - No changes made to project source code (docs cross-check only)
+
+===============================================================================
+END OF RECORD
+===============================================================================
