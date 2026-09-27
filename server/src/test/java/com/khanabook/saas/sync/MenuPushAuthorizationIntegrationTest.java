@@ -121,6 +121,7 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private MenuItemRepository menuItemRepository;
+  @Autowired private ItemVariantRepository itemVariantRepository;
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private PermissionService permissionService;
     @Autowired private StaffPermissionRevisionRepository revisionRepository;
@@ -380,41 +381,148 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
         assertThat(after.getHasVariants()).isTrue(); // flag preserved, not silently cleared
     }
 
-    // The other direction. Nothing on this server recomputes has_variants from
-    // itemvariants - the terminal is the only place variant CRUD happens - so a pushed
-    // flag is the only way it can ever become accurate. Discarding it stranded the row
-    // in a stale state: the variant rows landed, but every other terminal pulled the
-    // item as a plain item and hid the variants entirely.
+  // has_variants is derived data. The terminal is the only place variant CRUD happens,
+  // and menu items and variants are pushed as two separate requests, so a client-declared
+  // flag is either absent (every build before the field existed) or racing the variant
+  // rows that justify it. ItemVariantServiceImpl therefore recomputes it from the rows
+  // after every variant push, which is what these lock down. Promoting via the item push
+  // alone must NOT work - that is the bug: variant rows would land on the server while
+  // the flag stayed false and every other terminal pulled the item with no variants.
 
-    @Test
-    void ownerPush_promotingItemToVariantContainer_isHonoured() throws Exception {
-        MenuItem plain = createServerMenuItem(new BigDecimal("180.00"), false);
-        menuItemRepository.save(plain);
-        assertThat(plain.getHasVariants()).isFalse();
+  @Test
+  void ownerPush_declaringHasVariantsWithoutPushingVariants_doesNotPromoteTheItem() throws Exception {
+      MenuItem plain = createServerMenuItem(new BigDecimal("180.00"), false);
+      menuItemRepository.save(plain);
 
-        mockMvc.perform(post("/sync/menuitem/push")
-                .contentType("application/json")
-                .header("Authorization", "Bearer " + ownerToken)
-                .content(hasVariantsPushJson(plain, Boolean.TRUE)))
-                .andExpect(status().isOk());
+      mockMvc.perform(post("/sync/menuitem/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(hasVariantsPushJson(plain, Boolean.TRUE)))
+              .andExpect(status().isOk());
 
-        MenuItem after = menuItemRepository.findById(plain.getId()).orElseThrow();
-        assertThat(after.getHasVariants()).isTrue();
-    }
+      MenuItem after = menuItemRepository.findById(plain.getId()).orElseThrow();
+      assertThat(after.getHasVariants())
+              .as("the flag is derived, not declared: no variants were pushed, so no promote")
+              .isFalse();
+  }
 
-    @Test
-    void ownerPush_demotingItemBackToSimpleItem_isHonoured() throws Exception {
-        MenuItem container = createServerMenuItem(new BigDecimal("250.00"), true);
-        container.setHasVariants(true);
-        menuItemRepository.save(container);
+  @Test
+  void ownerPush_pushingAVariant_promotesTheParentRegardlessOfTheDeclaredFlag() throws Exception {
+      MenuItem plain = createServerMenuItem(new BigDecimal("180.00"), false);
+      menuItemRepository.save(plain);
+      // The item push above may legitimately carry a stale false. The variant rows are
+      // the evidence, so they win.
+      mockMvc.perform(post("/sync/menuitem/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(hasVariantsPushJson(plain, Boolean.FALSE)))
+              .andExpect(status().isOk());
 
-        mockMvc.perform(post("/sync/menuitem/push")
-                .contentType("application/json")
-                .header("Authorization", "Bearer " + ownerToken)
-                .content(hasVariantsPushJson(container, Boolean.FALSE)))
-                .andExpect(status().isOk());
+      mockMvc.perform(post("/sync/itemvariant/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(variantPushJson(plain, "Small", new BigDecimal("150.00"))))
+              .andExpect(status().isOk());
 
-        MenuItem after = menuItemRepository.findById(container.getId()).orElseThrow();
-        assertThat(after.getHasVariants()).isFalse();
-    }
+      MenuItem after = menuItemRepository.findById(plain.getId()).orElseThrow();
+      assertThat(after.getHasVariants()).isTrue();
+  }
+
+  @Test
+  void ownerPush_deletingTheLastVariant_demotesTheParentBackToASimpleItem() throws Exception {
+      MenuItem container = createServerMenuItem(new BigDecimal("250.00"), true);
+      container.setHasVariants(true);
+      menuItemRepository.save(container);
+
+      mockMvc.perform(post("/sync/itemvariant/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(variantPushJson(container, "Small", new BigDecimal("200.00"))))
+              .andExpect(status().isOk());
+      assertThat(menuItemRepository.findById(container.getId()).orElseThrow().getHasVariants())
+              .isTrue();
+
+      // Soft-delete the only variant. The parent must follow it back down, which is only
+      // possible because the recompute runs for deletions too.
+      ItemVariant stored = itemVariantRepository
+              .findByServerMenuItemIdAndIsDeletedFalse(container.getId()).get(0);
+      mockMvc.perform(post("/sync/itemvariant/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(variantDeleteJson(stored)))
+              .andExpect(status().isOk());
+
+      MenuItem after = menuItemRepository.findById(container.getId()).orElseThrow();
+      assertThat(after.getHasVariants())
+              .as("deleting the last variant must demote the parent")
+              .isFalse();
+  }
+
+  // A recompute that did not advance server_updated_at would never reach the other
+  // terminals, because that is the column the item pull cursor filters on. The
+  // correction would sit in the database and the symptom would persist.
+
+  @Test
+  void recomputingTheFlag_advancesThePullCursorSoOtherTerminalsSeeIt() throws Exception {
+      MenuItem plain = createServerMenuItem(new BigDecimal("180.00"), false);
+      plain.setServerUpdatedAt(1_000L);
+      menuItemRepository.save(plain);
+      long cursorBefore = plain.getServerUpdatedAt();
+
+      mockMvc.perform(post("/sync/itemvariant/push")
+              .contentType("application/json")
+              .header("Authorization", "Bearer " + ownerToken)
+              .content(variantPushJson(plain, "Small", new BigDecimal("150.00"))))
+              .andExpect(status().isOk());
+
+      long cursorAfter = menuItemRepository.findById(plain.getId()).orElseThrow().getServerUpdatedAt();
+      assertThat(cursorAfter)
+              .as("server_updated_at must advance or no other terminal ever pulls the flag")
+              .isGreaterThan(cursorBefore);
+  }
+
+  private String variantPushJson(MenuItem parent, String variantName, BigDecimal price) {
+      return """
+          [{
+            "localId": 5001,
+            "deviceId": "DEV_A",
+            "restaurantId": %d,
+            "menuItemId": %d,
+            "serverMenuItemId": %d,
+            "variantName": "%s",
+            "price": %s,
+            "isAvailable": true,
+            "trackStock": false,
+            "isDeleted": false,
+            "createdAt": %d,
+            "updatedAt": %d,
+            "serverUpdatedAt": 0
+          }]
+          """.formatted(RESTAURANT, parent.getId(), parent.getId(), variantName,
+                  price.toPlainString(), System.currentTimeMillis(), System.currentTimeMillis());
+  }
+
+  private String variantDeleteJson(ItemVariant stored) {
+      return """
+          [{
+            "localId": %d,
+            "deviceId": "%s",
+            "restaurantId": %d,
+            "menuItemId": %d,
+            "serverMenuItemId": %d,
+            "variantName": "%s",
+            "price": %s,
+            "isAvailable": true,
+            "trackStock": false,
+            "isDeleted": true,
+            "createdAt": %d,
+            "updatedAt": %d,
+            "serverUpdatedAt": 0
+          }]
+          """.formatted(stored.getLocalId(), stored.getDeviceId(), RESTAURANT,
+                  stored.getMenuItemId(), stored.getServerMenuItemId(), stored.getVariantName(),
+                  stored.getPrice().toPlainString(), System.currentTimeMillis(),
+                  System.currentTimeMillis());
+  }
 }
+

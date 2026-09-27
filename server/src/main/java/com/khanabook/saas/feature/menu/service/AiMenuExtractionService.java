@@ -282,8 +282,9 @@ public class AiMenuExtractionService {
     @Transactional
     public BulkImportResult bulkImportMenu(Long restaurantId, ExtractedMenuResponse payload) {
         int categoriesCreated = 0;
-        int itemsCreated = 0;
-        int variantsCreated = 0;
+		int itemsCreated = 0;
+		int variantsCreated = 0;
+		List<Long> variantContainerIds = new ArrayList<>();
         long now = System.currentTimeMillis();
 
         for (ExtractedCategory catDto : payload.categories()) {
@@ -332,28 +333,37 @@ public class AiMenuExtractionService {
                 MenuItem savedItem = menuItemRepository.save(item);
                 itemsCreated++;
 
-                if (itemDto.variants() != null && !itemDto.variants().isEmpty()) {
-                    int sort = 0;
-                    for (ExtractedVariant varDto : itemDto.variants()) {
-                        ItemVariant variant = new ItemVariant();
-                        variant.setRestaurantId(restaurantId);
-                        variant.setMenuItemId(savedItem.getId());
-                        variant.setServerMenuItemId(savedItem.getId());
-                        variant.setVariantName(varDto.name());
-                        variant.setPrice(varDto.price());
-                        variant.setIsAvailable(true);
-                        variant.setSortOrder(sort++);
-                        variant.setDeviceId("ai-import");
-                        variant.setLocalId(System.currentTimeMillis() + variantsCreated);
-                        variant.setCreatedAt(now);
-                        variant.setUpdatedAt(now);
-                        variant.setServerUpdatedAt(now);
-                        itemVariantRepository.save(variant);
-                        variantsCreated++;
-                    }
-                }
-            }
-        }
+			 if (itemDto.variants() != null && !itemDto.variants().isEmpty()) {
+				 int sort = 0;
+				 for (ExtractedVariant varDto : itemDto.variants()) {
+					 ItemVariant variant = new ItemVariant();
+					 variant.setRestaurantId(restaurantId);
+					 variant.setMenuItemId(savedItem.getId());
+					 variant.setServerMenuItemId(savedItem.getId());
+					 variant.setVariantName(varDto.name());
+					 variant.setPrice(varDto.price());
+					 variant.setIsAvailable(true);
+					 variant.setSortOrder(sort++);
+					 variant.setDeviceId("ai-import");
+					 variant.setLocalId(System.currentTimeMillis() + variantsCreated);
+					 variant.setCreatedAt(now);
+					 variant.setUpdatedAt(now);
+					 variant.setServerUpdatedAt(now);
+					 itemVariantRepository.save(variant);
+					 variantsCreated++;
+				 }
+				 // This path never set has_variants, so an imported item with variants was
+				 // stored as a plain item and every terminal pulled it without them. Derive
+				 // it from the rows just written, exactly as the sync push path does.
+				 variantContainerIds.add(savedItem.getId());
+			 }
+		 }
+		}
+
+		if (!variantContainerIds.isEmpty()) {
+			menuItemRepository.recomputeHasVariantsFlag(
+					variantContainerIds, restaurantId, System.currentTimeMillis());
+		}
 
         if (itemsCreated > 0) {
             pushNotificationService.pushSyncNow(restaurantId);

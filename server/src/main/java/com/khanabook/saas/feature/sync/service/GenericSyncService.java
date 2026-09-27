@@ -1197,17 +1197,16 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 			// wrong: V106 only ever promotes, never demotes, and a silent demote would
 			// render a meaningless "from" price on a variant container.
 			//
-			// Only a null is substituted. A current build that sends an explicit value is
-			// authoritative, because the terminal is the only place variant CRUD happens:
-			// nothing on this server recomputes has_variants from itemvariants. Assigning
-			// unconditionally, as this used to, silently discarded a legitimate promote and
-			// stranded the flag in a stale state - the variant rows landed while every
-			// other terminal pulled the item as a plain item with no variants shown. The
-			// old-client path is unaffected: those builds still send null.
-			if (incomingItem.getHasVariants() == null) {
-				incomingItem.setHasVariants(
-						existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
-			}
+			// The stored value is only ever a placeholder here, never the authority.
+			// ItemVariantServiceImpl recomputes has_variants from the variant rows
+			// themselves after every variant push, so the invariant is
+			// has_variants == EXISTS(live variants) regardless of what any client sends.
+			// Honouring a client-declared value instead would leave the flag pinned at
+			// whatever that device believed: a terminal reporting true for an item it
+			// never pushed variants for would strand it as a container with no variants,
+			// and no variant push would arrive to correct it.
+			incomingItem.setHasVariants(
+					existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
 		}
 	}
 

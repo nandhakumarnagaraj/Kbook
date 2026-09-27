@@ -26,6 +26,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 	private final GenericSyncService genericSyncService;
 
 	@Override
+	@Transactional
 	public PushSyncResponse pushData(Long tenantId, List<ItemVariant> payload) {
 		List<ItemVariant> toSync = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
@@ -59,9 +60,37 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		}
 
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
+		recomputeParentVariantFlags(tenantId, toSync);
 		response.getFailedLocalIds().addAll(failedLocalIds);
+
 		response.getFailedReasons().putAll(failedReasons);
 		return response;
+	}
+
+	/**
+	 * Recomputes each affected parent's {@code has_variants} from the variant rows that
+	 * just landed, rather than believing the flag the device declared.
+	 *
+	 * <p>Runs after the batch so the rows it reads are the ones this push wrote, and it
+	 * runs for deletions too - that is the only way a parent can be demoted back to a
+	 * simple item. Every terminal that touches a variant goes through this endpoint,
+	 * including builds too old to send the field at all, so the flag can no longer be
+	 * stranded in a stale state that hides variants from other terminals.
+	 *
+	 * <p>No @Transactional here on purpose: this is a self-invocation, so Spring's proxy
+	 * would bypass it and the flush would fail with no active transaction. pushData
+	 * carries the annotation instead, which also makes the variant rows and the flag
+	 * land in one commit - no other terminal can pull a half-applied variant change.
+	 */
+	void recomputeParentVariantFlags(Long tenantId, List<ItemVariant> pushed) {
+		java.util.Set<Long> parentIds = pushed.stream()
+				.map(ItemVariant::getServerMenuItemId)
+				.filter(java.util.Objects::nonNull)
+				.collect(java.util.stream.Collectors.toSet());
+		if (parentIds.isEmpty()) {
+			return;
+		}
+		menuItemRepository.recomputeHasVariantsFlag(parentIds, tenantId, System.currentTimeMillis());
 	}
 
 	@Override

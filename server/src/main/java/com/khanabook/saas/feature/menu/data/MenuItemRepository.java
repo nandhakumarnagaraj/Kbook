@@ -50,4 +50,39 @@ public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("UPDATE MenuItem m SET m.isAvailable = false, m.updatedAt = :updatedAt WHERE m.restaurantId = :restaurantId AND m.isAvailable = true AND m.isDeleted = false")
 	int markAllAsUnavailable(@Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
+
+	/**
+	 * Recomputes {@code menuitems.has_variants} from the live variant rows instead of
+	 * trusting a client to declare it.
+	 *
+	 * <p>Nothing on this server creates or deletes variants on its own initiative: the
+	 * terminal is the only place variant CRUD happens, and menu items and variants are
+	 * pushed as two separate requests. So a client-declared flag is either absent (every
+	 * build released before the field existed) or racing the variant rows that justify it.
+	 * Deriving the value here keeps a single invariant true:
+	 * {@code has_variants == EXISTS(live variants)}.
+	 *
+	 * <p>Written as native SQL because a subquery in a JPQL bulk-update SET clause is
+	 * only validated at execution time, so a mistake there would surface in production
+	 * rather than at build time.
+	 *
+	 * <p>{@code server_updated_at} is advanced deliberately. The item pull cursor is
+	 * {@code server_updated_at}, so a correction that did not advance it would never
+	 * reach the other terminals - which is the exact symptom this exists to repair. No
+	 * other column is touched, so recomputing can never roll back an edit the user just
+	 * made.
+	 */
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query(value = """
+			UPDATE menuitems m
+			   SET has_variants = EXISTS (
+			         SELECT 1 FROM itemvariants v
+			          WHERE v.server_menu_item_id = m.id AND v.is_deleted = false),
+			       server_updated_at = :serverUpdatedAt
+			 WHERE m.restaurant_id = :restaurantId
+			   AND m.id IN (:ids)
+			""", nativeQuery = true)
+	int recomputeHasVariantsFlag(@Param("ids") java.util.Collection<Long> ids,
+			@Param("restaurantId") Long restaurantId,
+			@Param("serverUpdatedAt") Long serverUpdatedAt);
 }
