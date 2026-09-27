@@ -299,4 +299,56 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
         MenuItem after = menuItemRepository.findById(existing.getId()).orElseThrow();
         assertThat(after.getIsAvailable()).isFalse(); // applied
     }
+
+    // ── has_variants back-compat ───────────────────────────────────────────
+    // menuitems.has_variants is NOT NULL, but every POS build released before the
+    // field existed omits it from the push payload, and SyncMapper copies the
+    // omission through as null. Both of these therefore used to fail the whole
+    // batch with DataIntegrityViolationException -> 409, i.e. an owner on an older
+    // terminal could not save a menu edit at all. The JSON below deliberately
+    // carries no "hasVariants" key, exactly as those builds send it.
+
+    @Test
+    void ownerPush_insertingItemWithoutHasVariants_isAcceptedAndDefaultsToFalse() throws Exception {
+        String body = """
+            [{
+              "localId": 2001, "deviceId": "DEV_A", "restaurantId": %d,
+              "categoryId": %d, "serverCategoryId": %d, "name": "Legacy Paneer",
+              "basePrice": 180.00, "foodType": "veg", "isAvailable": true,
+              "createdAt": %d, "updatedAt": %d, "isDeleted": false, "serverUpdatedAt": 0
+            }]
+            """.formatted(RESTAURANT, category.getId(), category.getId(),
+                    System.currentTimeMillis(), System.currentTimeMillis());
+
+        mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + ownerToken)
+                .content(body))
+                .andExpect(status().isOk());
+
+        MenuItem inserted = menuItemRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT).stream()
+                .filter(m -> "Legacy Paneer".equals(m.getName()))
+                .findFirst().orElseThrow();
+        assertThat(inserted.getHasVariants()).isFalse(); // NOT NULL honoured, row landed
+    }
+
+    @Test
+    void ownerPush_editingPriceOfVariantContainerWithoutHasVariants_doesNotDemoteIt() throws Exception {
+        // The dangerous direction: defaulting a null to false on the UPDATE path would
+        // quietly clear the flag on a real variant container, and the menu grid would
+        // then show a meaningless "from" price. V106 only ever promotes, never demotes.
+        MenuItem container = createServerMenuItem(new BigDecimal("250.00"), true);
+        container.setHasVariants(true);
+        menuItemRepository.save(container);
+
+        mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + ownerToken)
+                .content(priceChangeJson(container, new BigDecimal("300.00"), null)))
+                .andExpect(status().isOk());
+
+        MenuItem after = menuItemRepository.findById(container.getId()).orElseThrow();
+        assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // edit applied
+        assertThat(after.getHasVariants()).isTrue(); // flag preserved, not silently cleared
+    }
 }

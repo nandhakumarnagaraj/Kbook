@@ -124,6 +124,18 @@ public class MenuItemServiceImpl implements MenuItemService {
 		if (item.getBasePrice().compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
 			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
 		}
+
+		// menuitems.has_variants is NOT NULL, but a client build that predates the field
+		// omits it and SyncMapper copies the omission through as null, so an INSERT from
+		// such a build failed the batch with a 409. Default a genuinely new row to false.
+		// Updates are deliberately not defaulted here: an update carries a server id
+		// (MenuItemDTO.id, serialized as "serverId"), and null there means
+		// "unchanged/unknown", which GenericSyncService resolves from the stored row
+		// instead. Defaulting those too would silently demote a variant container whose
+		// owner just edited its price.
+		if (item.getHasVariants() == null && item.getId() == null) {
+			item.setHasVariants(false);
+		}
 	}
 
 	private void resolveDuplicateMenuItem(Long tenantId, MenuItem item) {

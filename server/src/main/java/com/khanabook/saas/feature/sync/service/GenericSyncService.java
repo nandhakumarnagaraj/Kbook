@@ -1185,6 +1185,22 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 			incomingBill.setInventoryDeducted(
 					existingBill.getInventoryDeducted() != null ? existingBill.getInventoryDeducted() : false);
 		}
+		if (incoming instanceof MenuItem incomingItem && existing instanceof MenuItem existingItem) {
+			// has_variants is NOT NULL on the column but absent from every client build
+			// that predates it, and BeanUtils copies an absent DTO field as null. A push
+			// from such a build therefore failed the whole batch with
+			// DataIntegrityViolationException -> 409 instead of updating the row, so no
+			// menu edit from an older POS terminal could land at all.
+			//
+			// null means "this client does not know the column exists", never "clear it",
+			// so fall back to the server value. An explicit false from a current build is
+			// still honoured, so a real demote is not blocked. Falling back to false
+			// instead would be wrong: V106 only ever promotes, never demotes, and a
+			// silent demote would render a meaningless "from" price on a variant
+			// container.
+			incomingItem.setHasVariants(
+					existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
+		}
 	}
 
 	/**
