@@ -196,13 +196,7 @@ fun PaymentModeItem(mode: PaymentMode, amount: Double) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val modeColor = getPayModeIconTint(mode)
-    val modeIcon = when (mode) {
-        PaymentMode.CASH -> Icons.Default.Payments
-        PaymentMode.UPI -> Icons.Default.QrCode2
-        PaymentMode.POS -> Icons.Default.PointOfSale
-        PaymentMode.EASEBUZZ, PaymentMode.PAYMENT_LINK -> Icons.Default.CreditCard
-        else -> Icons.Default.CallSplit
-    }
+    val modeIcon = getPayModeIcon(mode)
     // Single flat box styled like Settings cards: warm CardBG container,
     // gold-tinted icon circle, gold chevron. No elevation/border stack.
     KhanaBookCard(
@@ -265,7 +259,7 @@ fun PartPaymentCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.CallSplit,
+                        getPayModeIcon(mode),
                         contentDescription = null,
                         tint = modeColor,
                         modifier = Modifier.size(iconSize.medium)

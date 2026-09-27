@@ -7,8 +7,6 @@ import com.khanabook.lite.pos.core.theme.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,22 +61,15 @@ fun OrderDetailsDialog(
                     .padding(spacing.medium)
                     .fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Order Details",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = PrimaryGold)
-                    }
-                }
+                // No top-right "X" — the footer Close button below is the single
+                // dismiss affordance, so the header is just the title.
+                Text(
+                    text = "Order Details",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 HorizontalDivider(color = BorderGold.copy(alpha = 0.5f), thickness = 1.dp)
                 Spacer(modifier = Modifier.height(spacing.medium))

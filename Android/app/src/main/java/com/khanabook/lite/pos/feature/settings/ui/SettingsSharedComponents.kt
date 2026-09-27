@@ -57,11 +57,6 @@ fun ProfileCard(
     onClick: (() -> Unit)? = null
 ) {
     val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
-    // Show the signed-in person's OWN number here (this is the account line), not the
-    // shared restaurant/shop contact number, which is configured separately.
-    val displayPhone = user?.whatsappNumber?.takeIf { it.isNotBlank() }
-        ?: user?.phoneNumber?.takeIf { it.isNotBlank() }
-        ?: profile?.whatsappNumber ?: ""
     val spacing = KhanaBookTheme.spacing
     val syncLabel = remember(lastSyncTimestamp) {
         if (lastSyncTimestamp > 0L) {
@@ -92,9 +87,6 @@ fun ProfileCard(
             Spacer(modifier = Modifier.size(spacing.medium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = displayName, color = TextLight, style = MaterialTheme.typography.titleLarge)
-                if (displayPhone.isNotBlank()) {
-                    Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
-                }
                 Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
             }
         }

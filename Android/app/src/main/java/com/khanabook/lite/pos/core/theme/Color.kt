@@ -39,3 +39,10 @@ val Green800 = Color(0xFF2E7D32)
 val GoogleRed = Color(0xFFDB4437)
 val WhatsAppGreen = Color(0xFF25D366)
 val SmsBlue = Color(0xFF1976D2)
+
+// Part-payment trio — one hue per tender combination so a report row is
+// identifiable by colour alone, without reading the label. Hue-spread (teal /
+// orange / sky) and light enough to stay legible on the warm card surfaces.
+val PartCashUpiTeal = Color(0xFF00A394)
+val PartCashPosOrange = Color(0xFFEF6C00)
+val PartUpiPosSky = Color(0xFF4FA3E3)
