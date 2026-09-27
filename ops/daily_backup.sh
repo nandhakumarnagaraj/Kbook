@@ -12,7 +12,15 @@ RETENTION_DAYS=14
 
 mkdir -p "$BACKUP_DIR"
 
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*" >> "$LOG_FILE"; }
+log() {
+  local line="[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*"
+  echo "$line" >> "$LOG_FILE"
+  # Also to the terminal when a human is running it. Cron discards stdout, so this
+  # costs nothing there - and it stops a manual run from looking like it did nothing,
+  # which is how a rejected backup went unnoticed for a whole cycle.
+  [ -t 1 ] && echo "$line"
+  return 0
+}
 
 cd "$ROOT_DIR"
 
@@ -42,30 +50,58 @@ fi
 # database satisfies perfectly: an empty pg_dump is a valid ~20-byte gzip. Production
 # retained two such files and would have restored an empty database while every
 # integrity check reported success. Assert the dump actually carries data.
-MIN_COMPRESSED_BYTES=${MIN_COMPRESSED_BYTES:-100000}
-MIN_RAW_BYTES=${MIN_RAW_BYTES:-1000000}
+#
+# These floors are tripwires for a pathologically tiny file, NOT the real test, and
+# they must never exceed the smallest legitimate dump of this schema. An earlier
+# revision set MIN_RAW_BYTES=1000000, never measured against this database: every
+# valid dump lands in a 599K-641K band, so the gate rejected 100% of good backups
+# and then deleted them. A later revision set the floors to 50000/100000, which
+# still rejected a genuine 52-table dump in testing. Logical dump size tracks the
+# DATA, while pg_database_size reports physical size including bloat and free space
+# (14MB here against a ~640KB dump) - a floor derived from the latter will always
+# reject the former, and any absolute floor is a bet on how full the database is.
+# Set these absurdly low and let the content assertions below do the real work: they
+# are size-independent, which is the property that actually matters.
+MIN_COMPRESSED_BYTES=${MIN_COMPRESSED_BYTES:-1024}
+MIN_RAW_BYTES=${MIN_RAW_BYTES:-2048}
+# A genuine dump of this schema contains 52 CREATE TABLE statements. An empty or
+# truncated one contains none. That 52-vs-0 gap is a far stronger signal than any
+# byte threshold, and unlike a byte threshold it does not need calibrating against a
+# database that may grow or shrink.
+MIN_CREATE_TABLES=${MIN_CREATE_TABLES:-40}
+
+# A rejected archive is preserved, not deleted. Deleting it destroyed a perfectly
+# good 640KB backup and left nothing to inspect, which is what made the failure
+# undiagnosable. Renaming keeps the evidence while stopping anyone from restoring
+# it by accident.
+reject() {
+  local reason="$1"
+  log "ERROR: $reason"
+  log "       Preserved for inspection as ${db_file}.FAILED - do not restore it."
+  mv -f "$db_file" "${db_file}.FAILED" 2>/dev/null || rm -f "$db_file"
+  [ -n "${raw_file:-}" ] && rm -f "$raw_file"
+  exit 1
+}
 
 db_size=$(stat -c%s "$db_file")
 if [ "$db_size" -lt "$MIN_COMPRESSED_BYTES" ]; then
-  log "ERROR: DB backup is only ${db_size}B (< ${MIN_COMPRESSED_BYTES}B) - an empty database"
-  log "       compresses to a valid gzip and passes 'gzip -t'. Refusing to keep it as a backup."
-  rm -f "$db_file"
-  exit 1
+  reject "DB backup is only ${db_size}B (< ${MIN_COMPRESSED_BYTES}B) - an empty database compresses to a valid gzip and passes 'gzip -t'."
 fi
 
 raw_file=$(mktemp)
 trap 'rm -f "$raw_file"' EXIT
 if ! gzip -dc "$db_file" > "$raw_file"; then
-  log "ERROR: DB backup failed to decompress: $db_file"
-  rm -f "$db_file" "$raw_file"
-  exit 1
+  reject "DB backup failed to decompress: $db_file"
 fi
 
 raw_size=$(stat -c%s "$raw_file")
 if [ "$raw_size" -lt "$MIN_RAW_BYTES" ]; then
-  log "ERROR: DB backup decompresses to only ${raw_size}B (< ${MIN_RAW_BYTES}B) - truncated or empty"
-  rm -f "$db_file" "$raw_file"
-  exit 1
+  reject "DB backup decompresses to only ${raw_size}B (< ${MIN_RAW_BYTES}B) - truncated or empty"
+fi
+
+table_count=$(grep -cE '^CREATE TABLE ' "$raw_file" || true)
+if [ "$table_count" -lt "$MIN_CREATE_TABLES" ]; then
+  reject "DB backup contains only ${table_count} CREATE TABLE statements (< ${MIN_CREATE_TABLES}) - the schema is not in this dump."
 fi
 
 # Size alone can be met by a partial dump, so also require the tables that carry the
@@ -75,12 +111,10 @@ fi
 # a completely healthy backup.
 for table in restaurantprofiles menuitems bills; do
   if ! grep -qE "^COPY public\.${table} " "$raw_file"; then
-    log "ERROR: DB backup has no COPY block for ${table} - dump is partial or empty"
-    rm -f "$db_file" "$raw_file"
-    exit 1
+    reject "DB backup has no COPY block for ${table} - dump is partial or empty"
   fi
 done
-log "DB backup verified: ${db_size}B gz / ${raw_size}B raw, critical tables present"
+log "DB backup verified: ${db_size}B gz / ${raw_size}B raw, ${table_count} tables, critical tables present"
 
 # ── 2. CDN images (restaurant menu photos) ───────────────────────────────────
 cdn_file="$BACKUP_DIR/cdn_images_${ts}.tar.gz"
