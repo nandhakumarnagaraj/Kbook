@@ -8,9 +8,31 @@ COMPOSE_FILE="$ROOT_DIR/ops/docker-compose.production.yml"
 ENV_FILE="$ROOT_DIR/.env"
 BACKUP_DIR="$ROOT_DIR/backups/daily"
 LOG_FILE="$ROOT_DIR/backups/cron.log"
+STATUS_FILE="$ROOT_DIR/backups/STATUS"
 RETENTION_DAYS=14
 
 mkdir -p "$BACKUP_DIR"
+
+# Covers every exit path. `set -e` aborts on the first failure, and a failure
+# previously left no trace outside cron.log, which is why a rejected backup went
+# unnoticed for 15 hours: cron sees the job's stdout and stderr, not a log file
+# nobody is told to read. So a failure is echoed to stderr (picked up by a MAILTO
+# in the crontab or any log forwarder) and the verdict is also written to
+# backups/STATUS, which needs no mail transport at all. A health check can assert
+# that file is "OK" and no older than ~26 hours without knowing anything else.
+on_exit() {
+  local code="$?"
+  if [ -n "${raw_file:-}" ]; then rm -f "$raw_file" 2>/dev/null || true; fi
+  local ts
+  ts="$(date -u +%Y%m%dT%H%M%SZ)"
+  if [ "$code" -eq 0 ]; then
+    printf 'OK %s\n' "$ts" > "$STATUS_FILE"
+  else
+    printf 'FAILED %s exit=%s\n' "$ts" "$code" > "$STATUS_FILE" || true
+    echo "[$ts] BACKUP CYCLE FAILED (exit $code) - see $LOG_FILE" >&2
+  fi
+}
+trap on_exit EXIT
 
 log() {
   local line="[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*"
@@ -18,9 +40,10 @@ log() {
   # Also to the terminal when a human is running it. Cron discards stdout, so this
   # costs nothing there - and it stops a manual run from looking like it did nothing,
   # which is how a rejected backup went unnoticed for a whole cycle.
-  [ -t 1 ] && echo "$line"
+  if [ -t 1 ]; then echo "$line"; fi
   return 0
 }
+
 
 cd "$ROOT_DIR"
 
@@ -89,7 +112,8 @@ if [ "$db_size" -lt "$MIN_COMPRESSED_BYTES" ]; then
 fi
 
 raw_file=$(mktemp)
-trap 'rm -f "$raw_file"' EXIT
+# raw_file is cleaned by on_exit's EXIT trap above; setting another EXIT trap here
+# would silently replace it and the STATUS file would stop being written.
 if ! gzip -dc "$db_file" > "$raw_file"; then
   reject "DB backup failed to decompress: $db_file"
 fi
