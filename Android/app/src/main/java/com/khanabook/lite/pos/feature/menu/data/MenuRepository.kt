@@ -39,6 +39,17 @@ class MenuRepository(
 
     suspend fun updateItem(item: MenuItemEntity, changedFields: String? = null) {
         val fields = changedFields ?: computeChangedFields(item)
+
+        // A null/blank mask means "the whole record" to the server's field-mask merge,
+        // so a no-op update must never be written. computeChangedFields returns null
+        // precisely when nothing changed, and the old code carried that null straight
+        // through: it re-normalized the price, marked the row dirty, triggered a push,
+        // and persisted changedFields = null - which the server reads as "overwrite
+        // every field", so an accidental no-op edit would silently replace every
+        // server-side value with this device's possibly-stale copy.
+        // An explicit "all" is not blank, so callers that mean "full record" still work.
+        if (fields.isNullOrBlank()) return
+
         val enriched = item.copy(
             basePrice = if (fields.changesField("basePrice")) {
                 MenuPricingRules.normalizePrice(item.basePrice)
@@ -93,6 +104,11 @@ class MenuRepository(
             if (current.barcode != newItem.barcode) add("barcode")
             if (current.imageUrl != newItem.imageUrl) add("imageUrl")
             if (current.imageVersion != newItem.imageVersion) add("imageVersion")
+            // Must stay in step with the fields updateItem is willing to skip. A field
+            // missing from this diff reads as "unchanged", so a caller flipping it via
+            // updateItem would never push it to the server. The variant flow itself is
+            // safe - refreshHasVariantsFlag uses its own targeted DAO update.
+            if (current.hasVariants != newItem.hasVariants) add("hasVariants")
         }.joinToString(",").ifEmpty {
             null
         }

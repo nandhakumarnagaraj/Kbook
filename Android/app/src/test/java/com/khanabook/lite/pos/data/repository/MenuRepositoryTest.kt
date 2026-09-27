@@ -216,4 +216,62 @@ class MenuRepositoryTest {
 
         coVerify(exactly = 0) { menuDao.updateItem(any()) }
     }
+
+    // computeChangedFields returns null when nothing changed, but changesField() reads a
+    // null mask as "the whole record". Left unreconciled, one stray no-op save wrote
+    // changedFields = null, which the server resolves as "overwrite every field" - so an
+    // edit that changed nothing could still replace every server-side value with this
+    // device's stale copy.
+
+    @Test
+    fun `an update that changes nothing is not written at all`() = runTest {
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+        coEvery { menuDao.updateItem(any()) } just Runs
+
+        repository.updateItem(item(price = "250"))
+
+        coVerify(exactly = 0) { menuDao.updateItem(any()) }
+        io.mockk.verify(exactly = 0) {
+            workManager.enqueueUniqueWork(any(), any(), any<androidx.work.OneTimeWorkRequest>())
+        }
+    }
+
+    @Test
+    fun `an explicit all mask still writes`() = runTest {
+        every { permissionManager.currentRevision() } returns 7L
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "250"), changedFields = "all")
+
+        coVerify(exactly = 1) { menuDao.updateItem(any()) }
+        assertEquals("all", saved.captured.changedFields)
+    }
+
+    @Test
+    fun `a real change is written with only that field in the mask`() = runTest {
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "300"))
+
+        coVerify(exactly = 1) { menuDao.updateItem(any()) }
+        assertEquals("basePrice", saved.captured.changedFields)
+    }
+
+    // hasVariants must stay in the diff: a field missing from it reads as "unchanged",
+    // so flipping it alone would be skipped as a no-op and never reach the server.
+    @Test
+    fun `flipping only the variant flag is treated as a change`() = runTest {
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "250").copy(hasVariants = true))
+
+        coVerify(exactly = 1) { menuDao.updateItem(any()) }
+        assertEquals("hasVariants", saved.captured.changedFields)
+    }
 }

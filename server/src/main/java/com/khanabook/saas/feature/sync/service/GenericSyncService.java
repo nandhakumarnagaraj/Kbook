@@ -1193,13 +1193,21 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 			// menu edit from an older POS terminal could land at all.
 			//
 			// null means "this client does not know the column exists", never "clear it",
-			// so fall back to the server value. An explicit false from a current build is
-			// still honoured, so a real demote is not blocked. Falling back to false
-			// instead would be wrong: V106 only ever promotes, never demotes, and a
-			// silent demote would render a meaningless "from" price on a variant
-			// container.
-			incomingItem.setHasVariants(
-					existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
+			// so fall back to the server value. Falling back to false instead would be
+			// wrong: V106 only ever promotes, never demotes, and a silent demote would
+			// render a meaningless "from" price on a variant container.
+			//
+			// Only a null is substituted. A current build that sends an explicit value is
+			// authoritative, because the terminal is the only place variant CRUD happens:
+			// nothing on this server recomputes has_variants from itemvariants. Assigning
+			// unconditionally, as this used to, silently discarded a legitimate promote and
+			// stranded the flag in a stale state - the variant rows landed while every
+			// other terminal pulled the item as a plain item with no variants shown. The
+			// old-client path is unaffected: those builds still send null.
+			if (incomingItem.getHasVariants() == null) {
+				incomingItem.setHasVariants(
+						existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
+			}
 		}
 	}
 

@@ -195,10 +195,38 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
               "isDeleted": false,
               "serverUpdatedAt": 0
             }]
-            """.formatted(existing.getId(), RESTAURANT, category.getId(), category.getId(),
-                    newPrice.toPlainString(), revField,
-                    System.currentTimeMillis(), System.currentTimeMillis());
-    }
+              """.formatted(existing.getId(), RESTAURANT, category.getId(), category.getId(),
+                      newPrice.toPlainString(), revField,
+                      System.currentTimeMillis(), System.currentTimeMillis());
+  }
+
+  // Same payload as priceChangeJson but carrying an explicit "hasVariants" key, which
+  // is what distinguishes a current build from a legacy one. priceChangeJson
+  // deliberately omits the key, so it can only ever exercise the null fallback.
+  private String hasVariantsPushJson(MenuItem existing, Boolean hasVariants) {
+      return """
+          [{
+            "serverId": %d,
+            "localId": 1000,
+            "deviceId": "DEV_A",
+            "restaurantId": %d,
+            "categoryId": %d,
+            "serverCategoryId": %d,
+            "name": "Biryani",
+            "basePrice": %s,
+            "foodType": "veg",
+            "isAvailable": true,
+            "hasVariants": %s,
+            "createdAt": %d,
+            "updatedAt": %d,
+            "isDeleted": false,
+            "serverUpdatedAt": 0
+          }]
+          """.formatted(existing.getId(), RESTAURANT, category.getId(), category.getId(),
+                  existing.getBasePrice().toPlainString(), hasVariants,
+                  System.currentTimeMillis(), System.currentTimeMillis());
+  }
+
 
 // ── FINDING FIXED: staff (even with a menu.* grant) cannot write master data.
 //    The pen is role-bound — denial surfaces via failedReasons, not a 403. ──
@@ -350,5 +378,43 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
         MenuItem after = menuItemRepository.findById(container.getId()).orElseThrow();
         assertThat(after.getBasePrice()).isEqualByComparingTo(new BigDecimal("300.00")); // edit applied
         assertThat(after.getHasVariants()).isTrue(); // flag preserved, not silently cleared
+    }
+
+    // The other direction. Nothing on this server recomputes has_variants from
+    // itemvariants - the terminal is the only place variant CRUD happens - so a pushed
+    // flag is the only way it can ever become accurate. Discarding it stranded the row
+    // in a stale state: the variant rows landed, but every other terminal pulled the
+    // item as a plain item and hid the variants entirely.
+
+    @Test
+    void ownerPush_promotingItemToVariantContainer_isHonoured() throws Exception {
+        MenuItem plain = createServerMenuItem(new BigDecimal("180.00"), false);
+        menuItemRepository.save(plain);
+        assertThat(plain.getHasVariants()).isFalse();
+
+        mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + ownerToken)
+                .content(hasVariantsPushJson(plain, Boolean.TRUE)))
+                .andExpect(status().isOk());
+
+        MenuItem after = menuItemRepository.findById(plain.getId()).orElseThrow();
+        assertThat(after.getHasVariants()).isTrue();
+    }
+
+    @Test
+    void ownerPush_demotingItemBackToSimpleItem_isHonoured() throws Exception {
+        MenuItem container = createServerMenuItem(new BigDecimal("250.00"), true);
+        container.setHasVariants(true);
+        menuItemRepository.save(container);
+
+        mockMvc.perform(post("/sync/menuitem/push")
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + ownerToken)
+                .content(hasVariantsPushJson(container, Boolean.FALSE)))
+                .andExpect(status().isOk());
+
+        MenuItem after = menuItemRepository.findById(container.getId()).orElseThrow();
+        assertThat(after.getHasVariants()).isFalse();
     }
 }
