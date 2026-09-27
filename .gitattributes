@@ -1,1 +1,9 @@
 .githooks/* text eol=lf
+
+# Shell scripts and the Dockerfile are executed, not read. A stray CRLF turns every
+# line into "command: not found" on the production host, and these run the deploy
+# and the backup. This repo is edited on Windows with core.autocrlf=true, which
+# normalises to LF on commit today, but that is a machine setting rather than a
+# guarantee - pin it here instead.
+*.sh text eol=lf
+Dockerfile text eol=lf

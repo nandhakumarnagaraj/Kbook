@@ -28,6 +28,14 @@ services:
     build:
       context: ../server
       dockerfile: Dockerfile
+      args:
+        # The build context is server/, so the plugin cannot see the repository.
+        # deploy-production.sh supplies these. Left permissive here on purpose: the
+        # hard failure lives in server/Dockerfile, which checks the stamped value is
+        # a real 40-char sha rather than trusting an unset variable to be caught.
+        GIT_COMMIT_ID: ${GIT_COMMIT_ID:-}
+        GIT_BRANCH: ${GIT_BRANCH:-unknown}
+        GIT_COMMIT_TIME: ${GIT_COMMIT_TIME:-unknown}
     restart: unless-stopped
     depends_on:
       postgres:

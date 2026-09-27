@@ -2,6 +2,18 @@
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
+# Build identity, supplied by ops/deploy-production.sh from the checked-out clone.
+#
+# The Maven build context is server/ (ops/docker-compose.production.yml), so the
+# repository is not visible to the build and git-commit-id-maven-plugin cannot read a
+# commit. pom.xml sets failOnNoGitDirectory=false, so that failed silently and shipped a
+# header-only git.properties: the deployed jar carried no commit id, and "which commit is
+# running?" could only be guessed from a wall-clock build time that came from a different
+# file entirely (build-info.properties).
+ARG GIT_COMMIT_ID
+ARG GIT_BRANCH
+ARG GIT_COMMIT_TIME
+
 # Cache dependency layer separately from source
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 \
@@ -10,6 +22,22 @@ RUN --mount=type=cache,target=/root/.m2 \
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn package -Dmaven.test.skip=true -q
+
+# Authoritative build identity, written after packaging so it cannot be lost to the
+# plugin's no-git fallback. Kept in its own RUN so a Maven failure still reports as a
+# Maven failure rather than being masked by the identity check.
+RUN set -eu; \
+    : "${GIT_COMMIT_ID:?GIT_COMMIT_ID build arg is required - build via ops/deploy-production.sh}"; \
+    printf 'git.branch=%s\ngit.commit.id=%s\ngit.commit.id.abbrev=%.7s\ngit.commit.time=%s\n' \
+      "$GIT_BRANCH" "$GIT_COMMIT_ID" "$GIT_COMMIT_ID" "$GIT_COMMIT_TIME" \
+      > target/classes/git.properties; \
+    commit="$(sed -n 's/^git\.commit\.id=//p' target/classes/git.properties)"; \
+    if [ "${#commit}" -ne 40 ] || [ -z "$commit" ]; then \
+      echo "FATAL: git.commit.id is not a 40-char sha: '$commit'" >&2; exit 1; \
+    fi; \
+    case "$commit" in \
+      *[!0-9a-f]*) echo "FATAL: git.commit.id is not lowercase hex: '$commit'" >&2; exit 1;; \
+    esac
 
 # ── Runtime stage ───────────────────────────────────────────────────────────────
 FROM eclipse-temurin:17-jre-alpine AS runtime

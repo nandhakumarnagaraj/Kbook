@@ -20,7 +20,7 @@ set -euo pipefail
 # MIGRATION_DIR + a connection string are supplied directly), and python3 for
 # the checksum comparison.
 #
-# Checksum semantics: mirrors Flyway's ChecksumCalculator — CRC-32 over the
+# Checksum semantics: mirrors Flyway's ChecksumCalculator â€” CRC-32 over the
 # concatenation of BufferedReader.readLine() outputs (line terminators and
 # blank-line bytes excluded, UTF-8 BOM stripped from the first line), stored as
 # a signed 32-bit int. Empirically verified against a fresh Flyway run (V1-V48).
@@ -53,7 +53,7 @@ resolve_python() {
       return 0
     fi
   done
-  echo "ERROR    : python3/python not found — cannot compare checksums" >&2
+  echo "ERROR    : python3/python not found â€” cannot compare checksums" >&2
   exit 2
 }
 
@@ -125,11 +125,23 @@ while IFS='|' read -r rank version description checksum success; do
     continue
   fi
 
-  if [ -n "$checksum" ] && [ "$checksum" != "" ]; then
-    check_crc "$file" "$checksum"
-  else
-    echo "WARN     : version $version has no recorded checksum"
+  # A row with no recorded checksum is a HARD FAILURE, not a warning.
+  #
+  # Flyway skips checksum validation for any row whose stored checksum is NULL, so
+  # such a row is permanently exempt: editing its script tomorrow would never be
+  # detected by `flyway validate`, by the app at boot, or by any future migration.
+  # Production carried exactly this defect â€” V82 was hand-applied with checksum NULL
+  # and is missing the index its own script creates â€” and it stayed invisible through
+  # 88 "Successfully validated" migrations and two independent read-only audits.
+  # A NULL checksum is also the signature of a hand-inserted row: nothing executed
+  # that script, so the ledger cannot vouch the schema matches it.
+  if [ -z "$checksum" ] || [ "$checksum" = "" ] || [ "$checksum" = "null" ]; then
+    echo "NOCHECKSUM: version $version ($description) has no recorded checksum; Flyway will never validate it"
+    mismatches=$((mismatches + 1))
+    continue
   fi
+
+  check_crc "$file" "$checksum"
 done < "$HISTORY_FILE"
 
 if [ "$found_applied" = false ]; then
@@ -157,5 +169,19 @@ if [ "$mismatches" -eq 0 ]; then
   exit 0
 else
   echo "RECONCILE FAILED: $mismatches discrepancy(ies). Halt deployment (Requirement 2.12)."
+  cat >&2 <<'REMEDIATION'
+
+How to clear a NOCHECKSUM row (never hand-apply a migration again):
+  1. Take and VERIFY a fresh database backup first.
+  2. Confirm the schema actually matches what the script declares â€” for a
+     half-applied script, check every object it creates, not just the columns.
+  3. Create anything the script declares but the database is missing, using
+     IF NOT EXISTS so the statement is idempotent.
+  4. Backfill the ledger row so Flyway can validate it from then on:
+         ./mvnw -q flyway:repair -Dflyway.url=<jdbc-url> ...
+     or, equivalently, UPDATE flyway_schema_history SET checksum = <crc32>
+     for that one version.
+  5. Re-run this script. It must print RECONCILED before you deploy.
+REMEDIATION
   exit 1
 fi

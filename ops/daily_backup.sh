@@ -38,6 +38,50 @@ if ! gzip -t "$db_file"; then
   exit 1
 fi
 
+# Content check. `gzip -t` only proves the stream is DECOMPRESSABLE, which an empty
+# database satisfies perfectly: an empty pg_dump is a valid ~20-byte gzip. Production
+# retained two such files and would have restored an empty database while every
+# integrity check reported success. Assert the dump actually carries data.
+MIN_COMPRESSED_BYTES=${MIN_COMPRESSED_BYTES:-100000}
+MIN_RAW_BYTES=${MIN_RAW_BYTES:-1000000}
+
+db_size=$(stat -c%s "$db_file")
+if [ "$db_size" -lt "$MIN_COMPRESSED_BYTES" ]; then
+  log "ERROR: DB backup is only ${db_size}B (< ${MIN_COMPRESSED_BYTES}B) - an empty database"
+  log "       compresses to a valid gzip and passes 'gzip -t'. Refusing to keep it as a backup."
+  rm -f "$db_file"
+  exit 1
+fi
+
+raw_file=$(mktemp)
+trap 'rm -f "$raw_file"' EXIT
+if ! gzip -dc "$db_file" > "$raw_file"; then
+  log "ERROR: DB backup failed to decompress: $db_file"
+  rm -f "$db_file" "$raw_file"
+  exit 1
+fi
+
+raw_size=$(stat -c%s "$raw_file")
+if [ "$raw_size" -lt "$MIN_RAW_BYTES" ]; then
+  log "ERROR: DB backup decompresses to only ${raw_size}B (< ${MIN_RAW_BYTES}B) - truncated or empty"
+  rm -f "$db_file" "$raw_file"
+  exit 1
+fi
+
+# Size alone can be met by a partial dump, so also require the tables that carry the
+# business to be present. Grep the decompressed FILE, never a `gzip | grep -q` pipe:
+# `grep -q` exits at the first match, gzip takes SIGPIPE, and under `set -o pipefail`
+# that pipeline reports failure - which would make this check reject, and then delete,
+# a completely healthy backup.
+for table in restaurantprofiles menuitems bills; do
+  if ! grep -qE "^COPY public\.${table} " "$raw_file"; then
+    log "ERROR: DB backup has no COPY block for ${table} - dump is partial or empty"
+    rm -f "$db_file" "$raw_file"
+    exit 1
+  fi
+done
+log "DB backup verified: ${db_size}B gz / ${raw_size}B raw, critical tables present"
+
 # ── 2. CDN images (restaurant menu photos) ───────────────────────────────────
 cdn_file="$BACKUP_DIR/cdn_images_${ts}.tar.gz"
 if tar -czf "$cdn_file" -C /var/www cdn.kbook.iadv.cloud; then

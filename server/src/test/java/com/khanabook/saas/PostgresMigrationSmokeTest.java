@@ -170,6 +170,33 @@ class PostgresMigrationSmokeTest {
                 Integer.class);
         assertThat(failedCount).isZero();
 
+        // A row with a NULL checksum is permanently invisible to Flyway: DbValidate skips
+        // it, so neither `flyway validate` nor app startup will ever object, and no future
+        // migration re-applies it. Production carried exactly this — V82 was hand-applied
+        // with checksum NULL and never received the index its own script creates — and it
+        // survived 88 "Successfully validated" migrations plus two read-only audits
+        // because nothing ever queried for it. Assert the absence of the condition, not
+        // merely the absence of a mismatch.
+        List<String> unvalidated = jdbcTemplate.queryForList(
+                "SELECT version FROM flyway_schema_history WHERE checksum IS NULL",
+                String.class);
+        assertThat(unvalidated)
+                .as("migrations with a NULL checksum are never validated by Flyway; "
+                        + "repair the ledger so they are, instead of hand-inserting rows")
+                .isEmpty();
+
+        // Every row should have been applied by the same migrator user. More than one
+        // distinct value means at least one migration was hand-applied outside Flyway
+        // (production carried exactly one, installed_by='manual'), which means nothing
+        // executed that script and the ledger cannot vouch the schema matches it.
+        List<String> installers = jdbcTemplate.queryForList(
+                "SELECT DISTINCT installed_by FROM flyway_schema_history WHERE installed_by IS NOT NULL",
+                String.class);
+        assertThat(installers)
+                .as("distinct flyway_schema_history.installed_by values; more than one means a "
+                        + "migration was hand-applied and bypassed the migrator")
+                .hasSize(1);
+
         // The chain is checked against the migration files actually on the classpath,
         // not a hardcoded total. A pinned count silently rotted at "78" while the schema
         // moved past it, so this gate reported on a version of the schema that stopped
