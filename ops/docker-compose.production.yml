@@ -1,3 +1,10 @@
+# Pinned explicitly. Compose otherwise infers the project name from the directory
+# holding this file ("ops"), which does NOT match the live production stack
+# ("kbookiadvcloud"). The mismatch made ops/deploy-production.sh build the wrong
+# image tag, start a second postgres against an empty volume, and fail to bind
+# 127.0.0.1:8081. Pin it so every ops/ script targets the real stack.
+name: kbookiadvcloud
+
 services:
   postgres:
     image: postgres:16-alpine
