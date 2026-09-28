@@ -98,9 +98,18 @@ public class FirebaseConfig {
     }
 
     private FirebaseApp buildApp(GoogleCredentials creds, String projectId) {
+        // Hard timeouts on the FCM HTTP transport (firebase-admin >= 9 exposes these
+        // on FirebaseOptions). Defaults are UNBOUNDED, so a stalled Google endpoint
+        // blocked request threads indefinitely; combined with pushSyncNow running
+        // inline this produced ~60s hangs on menu toggle / sync push (client-visible
+        // SocketTimeoutException). 5s connect / 10s read: FCM is a best-effort
+        // nudge — fail fast; the periodic sync covers correctness (see design note
+        // on PushNotificationService.pushSyncNow).
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(creds)
                 .setProjectId(projectId)
+                .setConnectTimeout(5_000)
+                .setReadTimeout(10_000)
                 .build();
         try {
             FirebaseApp existing = FirebaseApp.getInstance("khanabook");

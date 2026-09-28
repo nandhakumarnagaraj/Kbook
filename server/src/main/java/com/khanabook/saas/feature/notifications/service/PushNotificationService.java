@@ -9,6 +9,7 @@ import com.khanabook.saas.feature.notifications.data.NotificationEventRepository
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,16 +34,19 @@ public class PushNotificationService {
     private final NotificationEventRepository notificationEventRepo;
     private final RestaurantProfileRepository restaurantProfileRepo;
     private final FirebaseApp firebaseApp;
+    private final java.util.concurrent.Executor pushExecutor;
 
     @Autowired
     public PushNotificationService(DeviceTokenRepository deviceTokenRepo,
                                    NotificationEventRepository notificationEventRepo,
                                    RestaurantProfileRepository restaurantProfileRepo,
-                                   @Autowired(required = false) FirebaseApp firebaseApp) {
+                                   @Autowired(required = false) FirebaseApp firebaseApp,
+                                   @Qualifier("pushNotificationExecutor") java.util.concurrent.Executor pushExecutor) {
         this.deviceTokenRepo = deviceTokenRepo;
         this.notificationEventRepo = notificationEventRepo;
         this.restaurantProfileRepo = restaurantProfileRepo;
         this.firebaseApp = firebaseApp;
+        this.pushExecutor = pushExecutor;
         if (firebaseApp == null) {
             log.warn("FirebaseApp not available. Push notifications will be DISABLED.");
         }
@@ -129,6 +133,37 @@ public class PushNotificationService {
         if (firebaseApp == null || restaurantId == null) {
             return;
         }
+        // Fire-and-forget: an FCM stall must never block the caller's HTTP request.
+        // This method is invoked inline from menu toggle / sync push endpoints; running
+        // it on the caller thread caused ~60s SocketTimeoutExceptions on the device
+        // whenever the VPS->Google network path hung (no read timeout on the default
+        // transport). Failures are logged, never propagated.
+        try {
+            pushExecutor.execute(() -> {
+                try {
+                    pushSyncNowInternal(restaurantId);
+                } catch (Exception e) {
+                    // Catch Exception, not just FirebaseMessagingException: raw socket
+                    // IOExceptions from the HTTP transport previously escaped and failed
+                    // the caller's request.
+                    log.warn("pushSyncNow failed for restaurantId={}: {}", restaurantId, e.getMessage());
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // Defense in depth: the bean uses DiscardPolicy, but if someone swaps in
+            // AbortPolicy, a saturated pool must still never fail the caller. A dropped
+            // sync_now nudge is harmless — devices also run the periodic 2-minute sync
+            // (offline-first: FCM is an optimization, never the source of truth).
+            log.debug("pushSyncNow discarded (push executor saturated) for restaurantId={}", restaurantId);
+        }
+    }
+
+    /**
+     * Runs on the push executor. Reads device tokens fresh (the calling thread may
+     * hold a transaction that has not committed yet — the executor task runs after
+     * the caller returns, so tokens registered in the same request are visible).
+     */
+    private void pushSyncNowInternal(Long restaurantId) throws FirebaseMessagingException {
         List<DeviceToken> tokens = deviceTokenRepo.findByRestaurantIdAndActiveTrue(restaurantId);
         if (tokens.isEmpty()) {
             return;
@@ -146,25 +181,21 @@ public class PushNotificationService {
                 .setTtl(60L)
                 .build())
             .build();
-        try {
-            BatchResponse response = FirebaseMessaging.getInstance(firebaseApp).sendEachForMulticast(multicast);
-            if (response.getFailureCount() > 0) {
-                List<SendResponse> responses = response.getResponses();
-                for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
-                    SendResponse sendResponse = responses.get(i);
-                    if (!sendResponse.isSuccessful()) {
-                        Exception ex = sendResponse.getException();
-                        if (isUnregistered(ex)) {
-                            DeviceToken dt = tokens.get(i);
-                            dt.setActive(false);
-                            dt.setUpdatedAt(System.currentTimeMillis());
-                            deviceTokenRepo.save(dt);
-                        }
+        BatchResponse response = FirebaseMessaging.getInstance(firebaseApp).sendEachForMulticast(multicast);
+        if (response.getFailureCount() > 0) {
+            List<SendResponse> responses = response.getResponses();
+            for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
+                SendResponse sendResponse = responses.get(i);
+                if (!sendResponse.isSuccessful()) {
+                    Exception ex = sendResponse.getException();
+                    if (isUnregistered(ex)) {
+                        DeviceToken dt = tokens.get(i);
+                        dt.setActive(false);
+                        dt.setUpdatedAt(System.currentTimeMillis());
+                        deviceTokenRepo.save(dt);
                     }
                 }
             }
-        } catch (FirebaseMessagingException e) {
-            log.warn("pushSyncNow failed for restaurantId={}: {}", restaurantId, e.getMessage());
         }
     }
 

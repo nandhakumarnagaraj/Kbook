@@ -18,6 +18,27 @@ import java.util.concurrent.Executor;
 @EnableScheduling
 public class AsyncConfig {
 
+    /**
+     * Fire-and-forget FCM pushes (pushSyncNow, etc.) run here instead of the caller's
+     * HTTP request thread. A stalled Google endpoint used to hang menu toggle / sync
+     * push requests for ~60s (client-visible SocketTimeoutException) because the
+     * Firebase Admin SDK call blocked inline. Rejected tasks are DISCARDED (never
+     * queued-then-blocked): a dropped sync_now nudge costs nothing — devices also
+     * run the 2-minute periodic sync — while a blocked API request thread costs a
+     * user-facing timeout.
+     */
+    @Bean(name = "pushNotificationExecutor")
+    Executor pushNotificationExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("PushNotif-");
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy());
+        executor.initialize();
+        return executor;
+    }
+
     @Bean(name = "menuExtractionExecutor")
     Executor menuExtractionExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
