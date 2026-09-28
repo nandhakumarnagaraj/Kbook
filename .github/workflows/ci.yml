@@ -52,6 +52,82 @@ jobs:
       - name: Set up Gradle caching
         uses: gradle/actions/setup-gradle@v4
 
+      # google-services.json is per-developer Firebase config and is gitignored
+      # on purpose, but the Google Services plugin hard-fails the build when the
+      # file is missing. Unit tests never talk to Firebase, so write a stub with
+      # the real application ids — the plugin needs the shape, not live credentials.
+      # Two clients are required: the release id, and the debug id, because the
+      # debug build type adds an applicationIdSuffix of ".debug".
+      - name: Create stub google-services.json
+        working-directory: Android/app
+        run: |
+          cat > google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "khanabook-ci-stub",
+              "storage_bucket": "khanabook-ci-stub.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.piquantservices.khanabooklite"
+                  }
+                },
+                "oauth_client": [
+                  {
+                    "client_id": "000000000000-ci-stub.apps.googleusercontent.com",
+                    "client_type": 3,
+                    "android_client_info": {
+                      "package_name": "com.piquantservices.khanabooklite"
+                    }
+                  }
+                ],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyCI-STUB-KEY-NOT-A-REAL-CREDENTIAL-0000"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:1111111111111111111111",
+                  "android_client_info": {
+                    "package_name": "com.piquantservices.khanabooklite.debug"
+                  }
+                },
+                "oauth_client": [
+                  {
+                    "client_id": "000000000000-ci-stub.apps.googleusercontent.com",
+                    "client_type": 3,
+                    "android_client_info": {
+                      "package_name": "com.piquantservices.khanabooklite.debug"
+                    }
+                  }
+                ],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyCI-STUB-KEY-NOT-A-REAL-CREDENTIAL-0000"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+
       - name: Run Android unit tests
         working-directory: Android
         run: ./gradlew testDebugUnitTest --no-daemon --stacktrace

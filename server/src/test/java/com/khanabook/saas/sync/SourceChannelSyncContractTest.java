@@ -86,6 +86,24 @@ class SourceChannelSyncContractTest {
 
     private String terminalId;
 
+    /**
+     * Pushes the bill and fails loudly if the server rejected it.
+     *
+     * <p>{@code pushData} reports per-record failures in {@link
+     * com.khanabook.saas.feature.sync.data.PushSyncResponse#failedReasons} rather
+     * than throwing, so a test that ignores the response fails later with a
+     * misleading "No value present" from the follow-up lookup instead of the
+     * real cause (validation, clock skew, terminal ownership, ...).
+     */
+    private void pushExpectingSuccess(Bill bill) {
+        var response = billService.pushData(RESTAURANT_ID, List.of(bill));
+        assertThat(response.getFailedLocalIds())
+                .as("push rejected: %s", response.getFailedReasons())
+                .isEmpty();
+        assertThat(response.getSuccessfulLocalIds()).contains(bill.getLocalId());
+    }
+
+
     @BeforeEach
     void setUp() {
         cleanupTenantData();
@@ -110,7 +128,8 @@ class SourceChannelSyncContractTest {
         long localId = 910001L;
         Bill pushed = buildBill(localId, "zomato");
 
-        billService.pushData(RESTAURANT_ID, List.of(pushed));
+        pushExpectingSuccess(pushed);
+
 
         Bill stored = billRepository
                 .findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_ID, DEVICE_ID, localId)
@@ -132,7 +151,8 @@ class SourceChannelSyncContractTest {
         long localId = 910002L;
         Bill pushed = buildBill(localId, "");
 
-        billService.pushData(RESTAURANT_ID, List.of(pushed));
+        pushExpectingSuccess(pushed);
+
 
         Bill stored = billRepository
                 .findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_ID, DEVICE_ID, localId)
@@ -154,7 +174,8 @@ class SourceChannelSyncContractTest {
         long localId = 910003L;
         Bill pushed = buildBill(localId, null);
 
-        billService.pushData(RESTAURANT_ID, List.of(pushed));
+        pushExpectingSuccess(pushed);
+
 
         Bill stored = billRepository
                 .findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_ID, DEVICE_ID, localId)
@@ -190,7 +211,11 @@ class SourceChannelSyncContractTest {
 
         bill.setDailyOrderId(localId);
         bill.setDailyOrderDisplay("#" + localId);
-        bill.setOrderType("order");
+        // Must be one of SyncPayloadValidator's VALID_ORDER_TYPES
+        // (dine_in | takeaway | delivery | parcel) or the push is rejected
+        // before it is ever persisted. The Android client only ever sends
+        // "dine_in" or "takeaway" (BillingViewModel).
+        bill.setOrderType("dine_in");
         bill.setSourceChannel(sourceChannel);
         bill.setCustomerName("Walk-in");
         bill.setSubtotal(new BigDecimal("100.00"));
