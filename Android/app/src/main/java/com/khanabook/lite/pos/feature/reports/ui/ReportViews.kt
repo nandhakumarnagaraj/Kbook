@@ -279,7 +279,6 @@ fun PartPaymentCard(
 }
 
 private val COL_ORDER   = 0.8f
-private val COL_INVOICE = 1.3f
 private val COL_DATE    = 1.0f
 private val COL_MODE    = 1.1f
 private val COL_STATUS  = 1.2f
@@ -298,7 +297,6 @@ fun OrderLevelView(
     onViewDetails: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val invoiceHeader = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
 
         Row(
@@ -310,15 +308,13 @@ fun OrderLevelView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (compactLayout) {
-                // Phone table: OrderNo | InvoiceNo | Mode | Status | Action
+                // Phone table: OrderNo | Mode | Status | Action
                 HeaderCell("OrderNo", COL_ORDER)
-                HeaderCell("InvoiceNo", COL_INVOICE)
                 HeaderCell("Mode", COL_MODE)
                 HeaderCell("Status", COL_STATUS)
                 HeaderCell("Action", COL_ACTION)
             } else {
                 HeaderCell("Order No", COL_ORDER)
-                HeaderCell(invoiceHeader, COL_INVOICE)
                 HeaderCell("Date", COL_DATE)
                 HeaderCell("Mode", COL_MODE)
                 HeaderCell("Status", COL_STATUS)
@@ -427,12 +423,6 @@ fun OrderRowItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TableCell(row.dailyId, COL_ORDER)
-            TableCell(
-                row.invoiceDisplay,
-                COL_INVOICE,
-                fontWeight = FontWeight.Bold,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
             if (!compactLayout) {
                 TableCell(
                     row.date,
