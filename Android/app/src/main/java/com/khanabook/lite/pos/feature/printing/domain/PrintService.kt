@@ -69,10 +69,7 @@ class PrintService : Service() {
         super.onCreate()
         createNotificationChannel()
         try {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            } else 0
-            ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), type)
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), resolveForegroundServiceType())
         } catch (e: Throwable) {
             Log.e(TAG, "Failed starting PrintService in foreground with type connectedDevice", e)
             try {
@@ -81,6 +78,26 @@ class PrintService : Service() {
             } catch (ex: Throwable) {
                 Log.e(TAG, "Failed fallback startForeground", ex)
             }
+        }
+    }
+
+    /**
+     * Android 14+ validates the connectedDevice type at startForeground time against
+     * RUNTIME grants (BLUETOOTH_CONNECT, or an attached USB device). A fresh install
+     * has no Bluetooth grant yet, so that type throws SecurityException. dataSync is
+     * declared in the manifest as a fallback type and has no runtime prerequisite,
+     * so use it whenever the Bluetooth grant is absent. Real printing still needs the
+     * Bluetooth permission regardless — this only keeps the service itself startable.
+     */
+    private fun resolveForegroundServiceType(): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return 0
+        val hasBluetoothGrant = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        return if (hasBluetoothGrant) {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        } else {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
         }
     }
 
