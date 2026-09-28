@@ -1,5 +1,7 @@
 package com.khanabook.saas.feature.sync.service;
 
+import java.util.List;
+
 import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
@@ -23,5 +25,19 @@ public class SyncFallbackSaver {
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public <T extends BaseSyncEntity, ID> T saveRecord(JpaRepository<T, ID> repository, T record) {
 		return repository.save(record);
+	}
+
+	/**
+	 * Runs the batch saveAll() in its OWN transaction so a batch-aborting failure
+	 * (unique-constraint or optimistic-lock) rolls back only this inner transaction
+	 * and never marks the outer handlePushSync transaction rollback-only. Before this
+	 * existed, a caught batch failure still poisoned the outer commit — the caller
+	 * threw UnexpectedRollbackException at the proxy boundary and the client received
+	 * HTTP 500 instead of the per-record failedLocalIds response, so devices retried
+	 * forever. With this, the response always reaches the client.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public <T extends BaseSyncEntity, ID> List<T> saveBatchInNewTx(JpaRepository<T, ID> repository, List<T> records) {
+		return repository.saveAll(records);
 	}
 }

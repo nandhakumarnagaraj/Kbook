@@ -205,6 +205,28 @@ public class GenericSyncService {
 		return userProfileSyncService.findExistingUserByIdentity(tenantId, incomingUser, userRepository);
 	}
 
+	/**
+	 * True when a batch saveAll() failure is a per-record conflict class that the
+	 * per-record fallback can isolate (unique-constraint or optimistic-lock),
+	 * including commit/flush-time WRAPPERS of those exceptions (JPA/Hibernate
+	 * rethrows at commit are commonly TransactionSystemException / JpaSystemException
+	 * with the real cause nested). Walks the cause chain; anything unrecoverable
+	 * (lock-wait timeout, connection loss) returns false and propagates.
+	 */
+	private static boolean isRecoverableBatchFailure(Throwable e) {
+		Throwable current = e;
+		int depth = 0;
+		while (current != null && depth < 10) {
+			if (current instanceof org.springframework.dao.DataIntegrityViolationException
+					|| current instanceof org.springframework.orm.ObjectOptimisticLockingFailureException) {
+				return true;
+			}
+			current = current.getCause();
+			depth++;
+		}
+		return false;
+	}
+
 	@Transactional
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
 			SyncRepository<T, Long> repository) {
@@ -925,14 +947,18 @@ public class GenericSyncService {
 		}
 
 		if (!allRecordsToSave.isEmpty()) {
+			List<T> savedBatch = null;
 			try {
-				List<T> saved = repository.saveAll(allRecordsToSave);
-				for (T entity : saved) {
+				// Batch attempt runs in its OWN transaction: a failure here rolls back
+				// only the inner tx, leaving the outer handlePushSync transaction clean
+				// so the per-record response below always reaches the client.
+				savedBatch = syncFallbackSaver.saveBatchInNewTx(repository, allRecordsToSave);
+				for (T entity : savedBatch) {
 					if (entity.getLocalId() != null && entity.getId() != null) {
 						localToServerIdMap.put(entity.getLocalId(), entity.getId());
 					}
 				}
-			} catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException e) {
+			} catch (RuntimeException e) {
 				// saveAll is all-or-nothing: a single unique-constraint collision
 				// (e.g. ux_bills_restaurant_invoice_series_active) rolls back the
 				// ENTIRE batch. If we rethrow here the whole push fails and the
@@ -943,15 +969,20 @@ public class GenericSyncService {
 				// after a full pull re-keys local ids and hides duplicates), staging
 				// two merges onto one @Version-guarded entity — the second flush
 				// carries a stale version and aborts the whole batch as HTTP 409.
-				// Instead, fall back to per-record saves so the non-colliding
-				// records commit and only the genuinely conflicting localIds
-				// land in failedLocalIds (which the client quarantines after
-				// conflict recovery). This breaks the loop and preserves data.
-				String causeMessage = e.getMostSpecificCause() != null
-						? e.getMostSpecificCause().getMessage()
-						: e.getMessage();
-log.error("Batch save failed (data-integrity or optimistic-lock) during saveAll for {} records; falling back to per-record save. Cause: {}",
-					allRecordsToSave.size(), causeMessage);
+				// These failures can surface at flush/commit time WRAPPED in
+				// TransactionSystemException / JpaSystemException / UnexpectedRollbackException,
+				// so classify by walking the cause chain instead of matching the
+				// thrown type alone. Anything else (lock-wait timeouts, connection
+				// loss) is NOT recoverable per-record and must propagate unchanged.
+				if (!isRecoverableBatchFailure(e)) {
+					throw e;
+				}
+				String causeMessage = (e instanceof org.springframework.dao.DataAccessException dae
+						&& dae.getMostSpecificCause() != null)
+						? dae.getMostSpecificCause().getMessage()
+						: String.valueOf(e.getMessage());
+log.error("Batch save failed (recoverable conflict) during saveAll for {} records; falling back to per-record save. Type={} Cause: {}",
+					allRecordsToSave.size(), e.getClass().getName(), causeMessage);
 			for (T record : allRecordsToSave) {
 					if (record instanceof Bill bill) {
 						log.warn("  Bill: localId={} serverId={} restaurantId={} orderType={} orderStatus={}",
