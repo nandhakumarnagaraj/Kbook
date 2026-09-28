@@ -217,7 +217,12 @@ interface MenuDao {
     @Transaction
     suspend fun upsertSyncedItemVariants(items: List<ItemVariantEntity>) {
         for (variant in items) {
+            // Match by serverId first; if the pulled row carries a local id that already
+            // exists locally (serverId missing or remapped), match by primary key too —
+            // insertVariant uses ABORT and crashed the conflict-recovery pull with
+            // UNIQUE constraint failed: item_variants.id (code 1555).
             val existing = variant.serverId?.let { findVariantByServerId(it, variant.restaurantId) }
+                ?: getVariantById(variant.id, variant.restaurantId)
             if (existing != null) {
                 updateVariant(variant)
             } else {
