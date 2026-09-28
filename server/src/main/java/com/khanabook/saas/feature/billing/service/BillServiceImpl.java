@@ -89,6 +89,15 @@ public class BillServiceImpl implements BillService {
 						: bill.getUpdatedAt() != null ? bill.getUpdatedAt() : System.currentTimeMillis();
 				bill.setLastResetDate(formatter.format(Instant.ofEpochMilli(created)));
 			}
+			// bills.source_channel is NOT NULL (V25), but the field initializer on
+			// Bill (= "") is overwritten by Jackson when a client sends an explicit
+			// "sourceChannel": null — e.g. an older build that predates the field.
+			// Without this the insert throws a constraint violation, the whole push
+			// is rejected, and the bill is silently lost. Normalize at the trust
+			// boundary so a malformed/legacy payload can never drop a sale.
+			if (bill.getSourceChannel() == null) {
+				bill.setSourceChannel("");
+			}
 		}
 		allocateMissingInvoiceNumbers(tenantId, payload, zoneId);
 		return genericSyncService.handlePushSync(tenantId, payload, repository);
