@@ -207,24 +207,40 @@ public class GenericSyncService {
 
 	/**
 	 * True when a batch saveAll() failure is a per-record conflict class that the
-	 * per-record fallback can isolate (unique-constraint or optimistic-lock),
-	 * including commit/flush-time WRAPPERS of those exceptions (JPA/Hibernate
-	 * rethrows at commit are commonly TransactionSystemException / JpaSystemException
-	 * with the real cause nested). Walks the cause chain; anything unrecoverable
-	 * (lock-wait timeout, connection loss) returns false and propagates.
+	 * per-record fallback can isolate (unique-constraint or optimistic-lock).
+	 *
+	 * Two failure shapes exist (both observed in production):
+	 * <ol>
+	 *   <li>FLUSH-time: Spring translates the Hibernate exception to
+	 *       DataIntegrityViolationException / ObjectOptimisticLockingFailureException
+	 *       — matched anywhere in the chain (tier 1).</li>
+	 *   <li>COMMIT-time: JPA aborts the commit and wraps the RAW Hibernate/JPA
+	 *       exception in TransactionSystemException → RollbackException →
+	 *       PersistenceException (or JpaSystemException → PersistenceException).
+	 *       No Spring Data translation runs, so the only reliable signal is the
+	 *       DEEPEST (leaf) cause, which names the real database failure (tier 2).</li>
+	 * </ol>
+	 * Anything unrecoverable per-record (connection loss, lock-wait timeout,
+	 * unknown leaf) returns false and propagates — the client must see the
+	 * failure rather than have every record marked failed.
 	 */
 	private static boolean isRecoverableBatchFailure(Throwable e) {
 		Throwable current = e;
+		Throwable leaf = e;
 		int depth = 0;
 		while (current != null && depth < 10) {
 			if (current instanceof org.springframework.dao.DataIntegrityViolationException
 					|| current instanceof org.springframework.orm.ObjectOptimisticLockingFailureException) {
 				return true;
 			}
+			leaf = current;
 			current = current.getCause();
 			depth++;
 		}
-		return false;
+		// Tier 2: commit-time wrappers carry raw JPA/Hibernate leaves.
+		return leaf instanceof org.hibernate.exception.ConstraintViolationException
+				|| leaf instanceof jakarta.persistence.EntityExistsException
+				|| leaf instanceof jakarta.persistence.OptimisticLockException;
 	}
 
 	@Transactional
