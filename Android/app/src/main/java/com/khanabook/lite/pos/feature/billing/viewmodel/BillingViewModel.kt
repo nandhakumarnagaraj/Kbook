@@ -1186,9 +1186,11 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save draft order", e)
-                _error.value = e.message ?: "Failed to save draft order"
+                _error.value = "Could not save the order. Please try again."
                 _isLoading.value = false
                 false
             }
@@ -1236,6 +1238,34 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 val existingItems = existingWithItems.items
                 val cartItems = cartManager.currentItems
 
+                // Cart entries can hold menu ids that no longer resolve: a sync pull may
+                // re-key local menu ids, and drafts pulled from another terminal carry that
+                // terminal's local numbering. The FK only fires on rows we actually write,
+                // so resolve every reference to the current menu row before touching the
+                // DB: stale ids are re-matched by name, dangling variants fall back to the
+                // base item (matching the FK's SET_NULL design). Only an item that is
+                // genuinely gone (name lookup fails) blocks the save.
+                val resolvedCartItems = mutableListOf<Triple<CartItem, Long, Long?>>()
+                for (cart in cartItems) {
+                    var itemId = cart.item.id
+                    var variantId: Long? = cart.variant?.id
+                    val currentRow = if (itemId != 0L) menuRepository.getItemById(itemId) else null
+                    if (currentRow == null) {
+                        val healed = menuRepository.getItemByName(cart.item.name)
+                        if (healed == null) {
+                            _error.value = "Some selected items are no longer on the menu. Please remove them and add again."
+                            _isLoading.value = false
+                            return@withLock false
+                        }
+                        itemId = healed.id
+                        variantId = null
+                    } else if (variantId != null && variantId != 0L &&
+                        menuRepository.getVariantById(variantId) == null) {
+                        variantId = null
+                    }
+                    resolvedCartItems.add(Triple(cart, itemId, variantId))
+                }
+
                 val dbTotals = existingItems.groupBy { (it.menuItemId ?: 0L) to it.variantId }
                 val processedDbKeys = mutableSetOf<Pair<Long, Long?>>()
 
@@ -1243,8 +1273,8 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 // shares the token so PrintRouter can render them as ONE combined ticket.
                 val kotBatchToken = java.util.UUID.randomUUID().toString()
 
-                for (cartItem in cartItems) {
-                    val key = cartItem.item.id to cartItem.variant?.id
+                for ((cartItem, resolvedItemId, resolvedVariantId) in resolvedCartItems) {
+                    val key = resolvedItemId to resolvedVariantId
                     processedDbKeys.add(key)
 
                     val dbRows = dbTotals[key] ?: emptyList()
@@ -1258,9 +1288,9 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
 
                         val newItem = BillItemEntity(
                             billId = billId,
-                            menuItemId = cartItem.item.id,
+                            menuItemId = resolvedItemId,
                             itemName = cartItem.item.name,
-                            variantId = cartItem.variant?.id,
+                            variantId = resolvedVariantId,
                             variantName = cartItem.variant?.variantName,
                             price = price,
                             quantity = cartItem.quantity,
@@ -1282,9 +1312,9 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
 
                         val newItem = BillItemEntity(
                             billId = billId,
-                            menuItemId = cartItem.item.id,
+                            menuItemId = resolvedItemId,
                             itemName = cartItem.item.name,
-                            variantId = cartItem.variant?.id,
+                            variantId = resolvedVariantId,
                             variantName = cartItem.variant?.variantName,
                             price = price,
                             quantity = diffQty,
@@ -1386,9 +1416,11 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to append items to draft", e)
-                _error.value = e.message ?: "Failed to append items"
+                _error.value = "Could not update the order. Please try again."
                 _isLoading.value = false
                 false
             }

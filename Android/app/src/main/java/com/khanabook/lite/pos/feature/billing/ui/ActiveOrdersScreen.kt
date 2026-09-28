@@ -57,8 +57,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.util.CurrencyUtils
-import com.khanabook.lite.pos.core.util.DateUtils
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.designsystem.KhanaStatusBadge
 import com.khanabook.lite.pos.core.designsystem.KhanaStatusKind
@@ -75,6 +73,7 @@ import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
 import com.khanabook.lite.pos.core.theme.WarningYellow
+import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderSummaryRow
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrdersViewModel
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
@@ -196,26 +195,6 @@ private fun ActiveOrderCard(
 ) {
     val spacing = KhanaBookTheme.spacing
     val bill = row.bill
-    val title = when (bill.orderType.trim().lowercase()) {
-        "takeaway", "take_away" -> {
-            val name = bill.customerName?.takeIf { it.isNotBlank() }
-            if (name != null) "Takeaway - $name" else "Takeaway"
-        }
-        "parcel", "online", "online_order" -> {
-            val name = bill.customerName?.takeIf { it.isNotBlank() }
-            if (name != null) "Online - $name" else "Online Order"
-        }
-        else -> { // Dine-in
-            val name = bill.customerName?.takeIf { it.isNotBlank() }
-            if (name == null || name.lowercase() == "table") {
-                "Table"
-            } else if (name.startsWith("table", ignoreCase = true)) {
-                name
-            } else {
-                "Table $name"
-            }
-        }
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -248,17 +227,8 @@ private fun ActiveOrderCard(
                 modifier = Modifier
                     .weight(1f)
                     .padding(spacing.medium),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                    contentDescription = null,
-                    tint = PrimaryGold,
-                    modifier = Modifier
-                        .size(KhanaBookTheme.iconSize.medium)
-                        .padding(top = 2.dp)
-                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
@@ -268,57 +238,35 @@ private fun ActiveOrderCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = title,
-                            color = TextLight,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text(
-                            text = CurrencyUtils.formatPrice(bill.totalAmount),
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                    val itemsLabel = if (row.itemCount == 1 && !row.singleItemName.isNullOrBlank()) {
-                        row.singleItemName
-                    } else {
-                        "${row.itemCount} item${if (row.itemCount == 1) "" else "s"}"
-                    }
-                    Text(
-                        text = "${bill.dailyOrderDisplay} • ${orderTypeLabel(bill.orderType)} • $itemsLabel",
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+                            )
+                            Text(
+                                text = bill.dailyOrderDisplay,
+                                color = TextGold,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             KhanaStatusBadge(
                                 text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
                                 kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success,
                                 filled = true
                             )
-                            KhanaStatusBadge(
-                                text = if (row.requiresPaymentRecovery) "Payment recovery" else "Unpaid",
-                                kind = KhanaStatusKind.Danger,
-                                filled = true
-                            )
                         }
                         Text(
-                            text = DateUtils.getRelativeTimeString(bill.updatedAt),
-                            color = TextGold.copy(alpha = 0.55f),
-                            style = MaterialTheme.typography.labelSmall,
+                            text = CurrencyUtils.formatPrice(bill.totalAmount),
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1
                         )
                     }

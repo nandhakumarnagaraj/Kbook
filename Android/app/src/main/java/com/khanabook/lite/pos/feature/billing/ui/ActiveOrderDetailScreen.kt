@@ -2,34 +2,52 @@
 
 package com.khanabook.lite.pos.feature.billing.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,23 +56,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
-import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderActionGrid
-import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderSummaryCard
-import com.khanabook.lite.pos.feature.billing.ui.ItemSection
-import com.khanabook.lite.pos.feature.billing.ui.activeOrderTitle
 import com.khanabook.lite.pos.core.theme.DangerRed
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
+import com.khanabook.lite.pos.core.theme.KhanaRadii
 import com.khanabook.lite.pos.core.theme.PrimaryGold
 import com.khanabook.lite.pos.core.theme.RichEspresso
+import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.core.util.CurrencyUtils
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderDetailViewModel
 
 @Composable
@@ -67,6 +88,7 @@ fun ActiveOrderDetailScreen(
     val billWithItems by viewModel.bill.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
+    val spacing = KhanaBookTheme.spacing
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { event ->
@@ -93,11 +115,10 @@ fun ActiveOrderDetailScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = billWithItems?.let(::activeOrderTitle) ?: "Active Order",
+                        text = billWithItems?.bill?.dailyOrderDisplay ?: "Active Order",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 1
                     )
                 },
                 navigationIcon = {
@@ -105,7 +126,19 @@ fun ActiveOrderDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1),
+                actions = {
+                    billWithItems?.let { detail ->
+                        Text(
+                            text = CurrencyUtils.formatPrice(detail.bill.totalAmount),
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.padding(end = KhanaBookTheme.spacing.medium)
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -122,46 +155,60 @@ fun ActiveOrderDetailScreen(
                     CircularProgressIndicator(color = PrimaryGold)
                 }
             } else {
-                val sentItems = detail.items.filter { it.sentToKot }
-                val newItems = detail.items.filterNot { it.sentToKot }
+                val listState = rememberLazyListState()
+                val lastItemIndex = detail.items.size + 1
+                val actionsOffScreen by remember(detail.items.size) {
+                    derivedStateOf {
+                        val visible = listState.layoutInfo.visibleItemsInfo
+                        visible.lastOrNull()?.index ?: 0 < lastItemIndex
+                    }
+                }
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(KhanaBookTheme.spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small)
-                ) {
-                    item {
-                        ActiveOrderSummaryCard(detail)
+                    contentPadding = PaddingValues(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {                    item(key = "info") {
+                        Text(
+                            text = detail.items.sumOf { it.quantity }.toString() + " items" +
+                                " • " + CurrencyUtils.formatPrice(detail.bill.totalAmount),
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
-                    item {
-                        ActiveOrderActionGrid(
-                            hasNewItems = newItems.isNotEmpty(),
-                            hasSentItems = sentItems.isNotEmpty(),
-                            onAddItems = { onAddItems(detail.bill.id) },
+                    items(detail.items) { item ->
+                        OrderItemLine(item)
+                    }
+                    item(key = "actions") {
+                        DetailActionButtons(
+                            detail = detail,
+                            onAddItems = onAddItems,
                             onUpdateKot = viewModel::updateKot,
-                            onPayment = { onCollectPayment(detail.bill.id) },
-                            onPrintBill = viewModel::printBill,
-                            onReprintKot = viewModel::reprintKot,
-                            onCancel = { showCancelDialog = true }
+                            onCollectPayment = onCollectPayment,
+                            onCancel = { showCancelDialog = true },
+                            modifier = Modifier.padding(top = spacing.medium)
                         )
                     }
-                    item {
-                        ItemSection(
-                            title = "Sent to Kitchen",
-                            items = sentItems,
-                            emptyText = "No items sent to kitchen yet",
-                            highlighted = false
+                }
+
+                AnimatedVisibility(
+                    visible = actionsOffScreen,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    Surface(color = DarkBrown1) {
+                        DetailActionButtons(
+                            detail = detail,
+                            onAddItems = onAddItems,
+                            onUpdateKot = viewModel::updateKot,
+                            onCollectPayment = onCollectPayment,
+                            onCancel = { showCancelDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = spacing.medium, vertical = spacing.small)
                         )
-                    }
-                    item {
-                        ItemSection(
-                            title = "Pending KOT",
-                            items = newItems,
-                            emptyText = "No new items to send",
-                            highlighted = true
-                        )
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.bottomListPadding))
                     }
                 }
             }
@@ -206,5 +253,86 @@ fun ActiveOrderDetailScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun DetailActionButtons(
+    detail: BillWithItems,
+    onAddItems: (Long) -> Unit,
+    onUpdateKot: () -> Unit,
+    onCollectPayment: (Long) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val newItems = detail.items.filterNot { it.sentToKot }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = { onAddItems(detail.bill.id) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryGold,
+                    contentColor = DarkBrown1
+                ),
+                shape = KhanaRadii.md
+            ) {
+                Icon(Icons.Default.Edit, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Modify", fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = onUpdateKot,
+                enabled = newItems.isNotEmpty(),
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryGold,
+                    contentColor = DarkBrown1,
+                    disabledContainerColor = PrimaryGold.copy(alpha = 0.25f),
+                    disabledContentColor = DarkBrown1.copy(alpha = 0.5f)
+                ),
+                shape = KhanaRadii.md
+            ) {
+                Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Update KOT", fontWeight = FontWeight.Bold)
+            }
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = { onCollectPayment(detail.bill.id) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SuccessGreen,
+                    contentColor = TextLight
+                ),
+                shape = KhanaRadii.md
+            ) {
+                Icon(Icons.Default.Payments, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Payment", fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f)),
+                shape = KhanaRadii.md
+            ) {
+                Icon(Icons.Default.Cancel, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Cancel Order")
+            }
+        }
     }
 }
