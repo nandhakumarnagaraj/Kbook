@@ -74,8 +74,10 @@ opencode.json
 # Editor/IDE local settings
 .vscode/
 
-# GitHub local directory (agents, skills, hooks, workflows — CI intentionally not in repo)
-/.github/
+# GitHub local directory (agents, skills, hooks stay local) — but workflows ARE
+# tracked: CI gates every push/PR (see .github/workflows/ci.yml)
+/.github/*
+!/.github/workflows/
 
 # Local test data file
 dev_test
