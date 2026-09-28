@@ -100,6 +100,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -931,12 +932,17 @@ public class GenericSyncService {
 						localToServerIdMap.put(entity.getLocalId(), entity.getId());
 					}
 				}
-			} catch (DataIntegrityViolationException e) {
+			} catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException e) {
 				// saveAll is all-or-nothing: a single unique-constraint collision
 				// (e.g. ux_bills_restaurant_invoice_series_active) rolls back the
 				// ENTIRE batch. If we rethrow here the whole push fails and the
 				// colliding bills stay isSynced=false on the device, which makes
 				// Android re-push them on every cycle -> infinite 409 loop.
+				// ObjectOptimisticLockingFailureException has the same batch-killing
+				// effect: two client rows can resolve to the SAME server row (e.g.
+				// after a full pull re-keys local ids and hides duplicates), staging
+				// two merges onto one @Version-guarded entity — the second flush
+				// carries a stale version and aborts the whole batch as HTTP 409.
 				// Instead, fall back to per-record saves so the non-colliding
 				// records commit and only the genuinely conflicting localIds
 				// land in failedLocalIds (which the client quarantines after
@@ -944,7 +950,7 @@ public class GenericSyncService {
 				String causeMessage = e.getMostSpecificCause() != null
 						? e.getMostSpecificCause().getMessage()
 						: e.getMessage();
-log.error("DataIntegrityViolationException during saveAll for {} records; falling back to per-record save. Cause: {}",
+log.error("Batch save failed (data-integrity or optimistic-lock) during saveAll for {} records; falling back to per-record save. Cause: {}",
 					allRecordsToSave.size(), causeMessage);
 			for (T record : allRecordsToSave) {
 					if (record instanceof Bill bill) {
@@ -961,8 +967,8 @@ log.error("DataIntegrityViolationException during saveAll for {} records; fallin
 						if (saved.getLocalId() != null && saved.getId() != null) {
 							localToServerIdMap.put(saved.getLocalId(), saved.getId());
 						}
-					} catch (DataIntegrityViolationException recordEx) {
-						// Idempotent recovery: if this is a Bill and the publicToken already exists,
+				} catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException recordEx) {
+					// Idempotent recovery: if this is a Bill and the publicToken already exists,
 						// treat as success (the previous push succeeded but client didn't get the response)
 						if (record instanceof Bill failedBill) {
 							Bill existing = billSyncService.attemptIdempotentRecovery(failedBill, record.getRestaurantId());

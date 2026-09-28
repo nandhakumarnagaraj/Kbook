@@ -195,7 +195,7 @@ interface MenuDao {
 
     @Query("""
         UPDATE menu_items
-        SET is_deleted = 1
+        SET is_deleted = 1, is_synced = 1
         WHERE restaurant_id = :restaurantId
           AND server_id IN (:serverIds)
           AND id NOT IN (:preferredIds)
@@ -231,7 +231,7 @@ interface MenuDao {
 
     @Query("""
         UPDATE item_variants
-        SET is_deleted = 1
+        SET is_deleted = 1, is_synced = 1
         WHERE restaurant_id = :restaurantId
           AND server_id IN (:serverIds)
           AND id NOT IN (:preferredIds)
