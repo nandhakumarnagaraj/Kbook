@@ -200,7 +200,8 @@ class DatabaseProvider @Inject constructor(
                 AppDatabase.MIGRATION_73_74,
                 AppDatabase.MIGRATION_74_75,
   AppDatabase.MIGRATION_75_76,
-  AppDatabase.MIGRATION_76_77
+  AppDatabase.MIGRATION_76_77,
+  AppDatabase.MIGRATION_77_78
   )
             .build()
     }
@@ -271,12 +272,6 @@ class DatabaseProvider @Inject constructor(
                     val variants = legacyDb!!.menuDao().getAllVariantsOnce(restaurantId)
                     if (variants.isNotEmpty()) {
                         newDb!!.menuDao().upsertSyncedItemVariants(variants)
-                    }
-
-                    // 5. Migrate StockLogs
-                    val unsyncedStock = legacyDb!!.inventoryDao().getUnsyncedStockLogs(restaurantId)
-                    if (unsyncedStock.isNotEmpty()) {
-                        newDb!!.inventoryDao().insertSyncedStockLogs(unsyncedStock)
                     }
 
                     // 6. Migrate Bills, BillItems, BillPayments

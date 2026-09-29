@@ -14,7 +14,6 @@ import com.khanabook.lite.pos.feature.printing.data.KotEventEntity
 import com.khanabook.lite.pos.feature.printing.data.KotEventType
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
-import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import io.mockk.coEvery
@@ -38,7 +37,6 @@ class BillRepositoryTest {
 
     private lateinit var billDao: BillDao
     private lateinit var restaurantDao: com.khanabook.lite.pos.feature.auth.data.RestaurantDao
-    private lateinit var inventoryConsumptionManager: InventoryConsumptionManager
     private lateinit var workManager: WorkManager
     private lateinit var kotEventDao: KotEventDao
     private lateinit var sessionManager: SessionManager
@@ -54,7 +52,6 @@ class BillRepositoryTest {
         
         billDao = mockk(relaxed = true)
         restaurantDao = mockk(relaxed = true)
-        inventoryConsumptionManager = mockk(relaxed = true)
         workManager = mockk(relaxed = true)
         every {
             workManager.enqueueUniqueWork(any<String>(), any<ExistingWorkPolicy>(), any<OneTimeWorkRequest>())
@@ -72,7 +69,6 @@ class BillRepositoryTest {
         billRepository = BillRepository(
             billDao = billDao,
             restaurantDao = restaurantDao,
-            inventoryConsumptionManager = inventoryConsumptionManager,
             workManager = workManager,
             kotEventDao = kotEventDao,
             sessionManager = sessionManager
@@ -104,7 +100,6 @@ class BillRepositoryTest {
         billRepository.insertFullBill(bill, items, payments)
 
         coVerify { billDao.insertFullBill(bill, items, payments) }
-        coVerify { inventoryConsumptionManager.consumeMaterialsForBill(items) }
     }
 
     @Test
@@ -127,7 +122,6 @@ class BillRepositoryTest {
         billRepository.insertFullBill(bill, items, payments)
 
         coVerify { billDao.insertFullBill(bill, items, payments) }
-        coVerify(inverse = true) { inventoryConsumptionManager.consumeMaterialsForBill(any()) }
     }
 
     @Test

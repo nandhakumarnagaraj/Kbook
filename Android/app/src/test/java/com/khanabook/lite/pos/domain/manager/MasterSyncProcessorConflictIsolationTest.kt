@@ -7,7 +7,6 @@ import android.util.Log
 import com.khanabook.lite.pos.core.database.DatabaseProvider
 import com.khanabook.lite.pos.feature.billing.data.BillDao
 import com.khanabook.lite.pos.feature.menu.data.CategoryDao
-import com.khanabook.lite.pos.feature.inventory.data.InventoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuDao
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileDao
 import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
@@ -44,7 +43,6 @@ class MasterSyncProcessorConflictIsolationTest {
     private lateinit var userDao: UserDao
     private lateinit var categoryDao: CategoryDao
     private lateinit var menuDao: MenuDao
-    private lateinit var inventoryDao: InventoryDao
     private lateinit var printerProfileDao: PrinterProfileDao
     private lateinit var sessionManager: SessionManager
 
@@ -63,7 +61,6 @@ class MasterSyncProcessorConflictIsolationTest {
         userDao = mockk(relaxed = true)
         categoryDao = mockk(relaxed = true)
         menuDao = mockk(relaxed = true)
-        inventoryDao = mockk(relaxed = true)
         printerProfileDao = mockk(relaxed = true)
         sessionManager = mockk(relaxed = true)
         processor = MasterSyncProcessor(
@@ -74,7 +71,6 @@ class MasterSyncProcessorConflictIsolationTest {
             userDao = userDao,
             categoryDao = categoryDao,
             menuDao = menuDao,
-            inventoryDao = inventoryDao,
             printerProfileDao = printerProfileDao,
             sessionManager = sessionManager,
             permissionManager = mockk(relaxed = true)

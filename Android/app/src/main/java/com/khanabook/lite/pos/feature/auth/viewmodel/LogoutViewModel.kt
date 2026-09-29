@@ -200,7 +200,6 @@ class LogoutViewModel @Inject constructor(
         val categoryCount = async { database.categoryDao().getUnsyncedCategories(activeRestaurantId).size }
         val menuItemCount = async { database.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
         val variantCount = async { database.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
-        val stockLogCount = async { database.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
         val bills = async { database.billDao().getUnsyncedBills(activeRestaurantId) }
         val billItemCount = async { database.billDao().getUnsyncedBillItems(activeRestaurantId).size }
         val billPaymentCount = async { database.billDao().getUnsyncedBillPayments(activeRestaurantId).size }
@@ -210,7 +209,6 @@ class LogoutViewModel @Inject constructor(
         val cc = categoryCount.await()
         val mic = menuItemCount.await()
         val vc = variantCount.await()
-        val slc = stockLogCount.await()
         val unsyncedBills = bills.await()
         val bc = unsyncedBills.size
         val bic = billItemCount.await()
@@ -228,7 +226,6 @@ class LogoutViewModel @Inject constructor(
             if (cc > 0) add("$cc categories")
             if (mic > 0) add("$mic menu items")
             if (vc > 0) add("$vc variants")
-            if (slc > 0) add("$slc stock logs")
             if (bc > 0) add("$bc bills")
             if (bic > 0) add("$bic bill items")
             if (bpc > 0) add("$bpc bill payments")

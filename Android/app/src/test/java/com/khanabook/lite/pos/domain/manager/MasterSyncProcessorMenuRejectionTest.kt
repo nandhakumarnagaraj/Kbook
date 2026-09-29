@@ -8,7 +8,6 @@ import android.util.Log
 import com.khanabook.lite.pos.core.database.DatabaseProvider
 import com.khanabook.lite.pos.feature.billing.data.BillDao
 import com.khanabook.lite.pos.feature.menu.data.CategoryDao
-import com.khanabook.lite.pos.feature.inventory.data.InventoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuDao
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileDao
 import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
@@ -67,7 +66,6 @@ class MasterSyncProcessorMenuRejectionTest {
             userDao = mockk<UserDao>(relaxed = true),
             categoryDao = mockk<CategoryDao>(relaxed = true),
             menuDao = menuDao,
-            inventoryDao = mockk<InventoryDao>(relaxed = true),
             printerProfileDao = mockk<PrinterProfileDao>(relaxed = true),
             sessionManager = sessionManager,
             permissionManager = mockk(relaxed = true)

@@ -452,7 +452,6 @@ class SyncManager @Inject constructor(
                 categories = acc.categories + page.categories,
                 menuItems = acc.menuItems + page.menuItems,
                 itemVariants = acc.itemVariants + page.itemVariants,
-                stockLogs = acc.stockLogs + page.stockLogs,
                 bills = acc.bills + page.bills,
                 billItems = acc.billItems + page.billItems,
                 billPayments = acc.billPayments + page.billPayments,
@@ -467,7 +466,6 @@ class SyncManager @Inject constructor(
             response.categories.size +
             response.menuItems.size +
             response.itemVariants.size +
-            response.stockLogs.size +
             response.bills.size +
             response.billItems.size +
             response.billPayments.size
@@ -489,7 +487,6 @@ enum class SyncStep(val displayName: String) {
     PushCategories("Uploading Categories..."),
     PushMenuItems("Uploading Menu Items..."),
     PushItemVariants("Uploading Item Variants..."),
-    PushStockLogs("Uploading Stock Logs..."),
     PushBills("Uploading Bills..."),
     PushBillItems("Uploading Bill Items..."),
     PushBillPayments("Uploading Payments..."),

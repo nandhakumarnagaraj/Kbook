@@ -2,7 +2,6 @@ package com.khanabook.lite.pos.core.database
 import com.khanabook.lite.pos.feature.staff.data.*
 import com.khanabook.lite.pos.feature.printing.data.*
 import com.khanabook.lite.pos.feature.sync.data.*
-import com.khanabook.lite.pos.feature.inventory.data.*
 import com.khanabook.lite.pos.feature.billing.data.*
 import com.khanabook.lite.pos.feature.auth.data.*
 
@@ -42,14 +41,13 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         BillItemEntity::class,
                         BillPaymentEntity::class,
                         SyncQuarantineEntity::class,
-                        StockLogEntity::class,
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class,
                         NotificationEntity::class,
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 77,
+        version = 78,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -60,7 +58,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun printerProfileDao(): PrinterProfileDao
     abstract fun kitchenPrintQueueDao(): KitchenPrintQueueDao
     abstract fun billDao(): BillDao
-    abstract fun inventoryDao(): InventoryDao
     abstract fun kotEventDao(): KotEventDao
     abstract fun notificationDao(): NotificationDao
     abstract fun permissionCacheDao(): PermissionCacheDao
@@ -1147,6 +1144,18 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                     """.trimIndent()
                 )
                 android.util.Log.i("AppDatabase", "MIGRATION_76_77 complete: added has_variants to menu_items")
+            }
+        }
+
+        val MIGRATION_77_78 = object : Migration(77, 78) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Inventory feature removed 2026-09-29: the stock_logs ledger and its
+                // sync path are gone. The ledger was headless (no Android surface ever
+                // read it), so historical rows are dropped rather than preserved.
+                // Menu-item/variant stock columns on menu tables are NOT removed —
+                // they are menu configuration, still synced and still displayed.
+                db.execSQL("DROP TABLE IF EXISTS `stock_logs`")
+                android.util.Log.i("AppDatabase", "MIGRATION_77_78 complete: dropped stock_logs")
             }
         }
 

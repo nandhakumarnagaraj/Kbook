@@ -5,7 +5,6 @@ import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
-import com.khanabook.lite.pos.feature.inventory.data.StockLogEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
@@ -16,7 +15,6 @@ import com.khanabook.lite.pos.feature.sync.data.CategorySyncDto
 import com.khanabook.lite.pos.feature.sync.data.ItemVariantSyncDto
 import com.khanabook.lite.pos.feature.sync.data.MenuItemSyncDto
 import com.khanabook.lite.pos.feature.sync.data.RestaurantProfileSyncDto
-import com.khanabook.lite.pos.feature.sync.data.StockLogSyncDto
 import com.khanabook.lite.pos.feature.sync.data.UserSyncDto
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -127,9 +125,6 @@ class SyncDtoContractTest {
             "serverMenuItemId", // mirrored on push
             "createdAt",        // mapped on DTO
         ),
-        "StockLogEntity" to setOf(
-            "serverMenuItemId", "serverVariantId", // mirrored on push
-        ),
         "UserEntity" to setOf(
             "tokenInvalidatedAt", // local session bookkeeping
             "createdAt",          // mapped on DTO
@@ -182,10 +177,6 @@ class SyncDtoContractTest {
         assertAllBusinessFieldsMapped(ItemVariantEntity::class.java, ItemVariantSyncDto::class.java)
 
     @Test
-    fun stockLogEntityHasNoUnmappedFields() =
-        assertAllBusinessFieldsMapped(StockLogEntity::class.java, StockLogSyncDto::class.java)
-
-    @Test
     fun userEntityHasNoUnmappedFields() =
         assertAllBusinessFieldsMapped(UserEntity::class.java, UserSyncDto::class.java)
 
@@ -204,7 +195,6 @@ class SyncDtoContractTest {
             CategoryEntity::class.java to CategorySyncDto::class.java,
             MenuItemEntity::class.java to MenuItemSyncDto::class.java,
             ItemVariantEntity::class.java to ItemVariantSyncDto::class.java,
-            StockLogEntity::class.java to StockLogSyncDto::class.java,
             UserEntity::class.java to UserSyncDto::class.java,
             RestaurantProfileEntity::class.java to RestaurantProfileSyncDto::class.java,
         )

@@ -1132,6 +1132,14 @@ class SettingsViewModel @Inject constructor(
         // transition before the UI consumed it, which surfaced as "Save needs two
         // clicks" on every config screen.
         if (_saveProfileLoading.value) return
+        // Defense-in-depth: shop/payment/tax configuration is owner-only. The UI
+        // already renders those sections read-only for staff (SettingsScreen passes
+        // readOnly = !isOwner); this guard closes ViewModel-level bypasses so no
+        // code path can persist a restaurant profile change as SHOP_STAFF.
+        if (!sessionManager.canWriteConfig()) {
+            _saveProfileError.value = "Only the owner can change restaurant, payment, or tax settings."
+            return
+        }
         viewModelScope.launch {
             _saveProfileLoading.value = true
             _saveProfileError.value = null

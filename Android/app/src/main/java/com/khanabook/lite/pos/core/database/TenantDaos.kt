@@ -2,7 +2,6 @@ package com.khanabook.lite.pos.core.database
 import com.khanabook.lite.pos.feature.staff.data.*
 import com.khanabook.lite.pos.feature.printing.data.*
 import com.khanabook.lite.pos.feature.sync.data.*
-import com.khanabook.lite.pos.feature.inventory.data.*
 import com.khanabook.lite.pos.feature.billing.data.*
 
 import com.khanabook.lite.pos.feature.notifications.data.NotificationDao
@@ -856,42 +855,6 @@ class TenantBillDao @Inject constructor(
     override suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity> = dao.getRecentDineInBillsWithCustomers(restaurantId, terminalId)
     override suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long, terminalId: String): BillEntity? = dao.getBillByLifetimeNo(lifetimeNo, restaurantId, terminalId)
     override suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity> = dao.getBillsWithPendingKds(restaurantId, terminalId)
-}
-
-@Singleton
-class TenantInventoryDao @Inject constructor(
-    private val databaseProvider: DatabaseProvider
-) : InventoryDao {
-    private val dao get() = databaseProvider.getDatabase().inventoryDao()
-
-    override suspend fun insertStockLog(log: StockLogEntity) {
-        dao.insertStockLog(log)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {
-        return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }
-    }
-
-    override fun getLogsForItem(itemId: Long, restaurantId: Long): Flow<List<StockLogEntity>> = runFlow { it.inventoryDao().getLogsForItem(itemId, restaurantId) }
-    override fun getAllLogs(restaurantId: Long): Flow<List<StockLogEntity>> = runFlow { it.inventoryDao().getAllLogs(restaurantId) }
-    override suspend fun getUnsyncedStockLogs(restaurantId: Long): List<StockLogEntity> = dao.getUnsyncedStockLogs(restaurantId)
-
-    override suspend fun markStockLogsAsSynced(ids: List<Long>, restaurantId: Long) {
-        dao.markStockLogsAsSynced(ids, restaurantId)
-    }
-
-    override suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long) {
-        dao.updateServerIdByLocalId(localId, serverId, restaurantId)
-    }
-
-    override suspend fun insertSyncedStockLogs(items: List<StockLogEntity>) {
-        dao.insertSyncedStockLogs(items)
-    }
-
-    override suspend fun deleteAllSyncedStockLogs(restaurantId: Long) {
-        dao.deleteAllSyncedStockLogs(restaurantId)
-    }
 }
 
 @Singleton

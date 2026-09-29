@@ -11,7 +11,6 @@ import com.khanabook.lite.pos.core.database.AppDatabase
 import com.khanabook.lite.pos.core.database.DatabaseProvider
 import com.khanabook.lite.pos.feature.billing.data.BillDao
 import com.khanabook.lite.pos.feature.menu.data.CategoryDao
-import com.khanabook.lite.pos.feature.inventory.data.InventoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuDao
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileDao
 import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
@@ -101,7 +100,6 @@ class MasterSyncProcessorImageMergeTest {
             userDao = userDao,
             categoryDao = categoryDao,
             menuDao = menuDao,
-            inventoryDao = mockk<InventoryDao>(relaxed = true),
             printerProfileDao = mockk<PrinterProfileDao>(relaxed = true),
             sessionManager = sessionManager,
             permissionManager = mockk(relaxed = true)

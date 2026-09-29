@@ -3,7 +3,6 @@ import com.khanabook.lite.pos.feature.staff.data.*
 import com.khanabook.lite.pos.feature.printing.data.*
 import com.khanabook.lite.pos.core.database.TenantBillDao
 import com.khanabook.lite.pos.core.database.TenantCategoryDao
-import com.khanabook.lite.pos.core.database.TenantInventoryDao
 import com.khanabook.lite.pos.core.database.TenantKitchenPrintQueueDao
 import com.khanabook.lite.pos.core.database.TenantKotEventDao
 import com.khanabook.lite.pos.core.database.TenantMenuDao
@@ -11,7 +10,6 @@ import com.khanabook.lite.pos.core.database.TenantNotificationDao
 import com.khanabook.lite.pos.core.database.TenantPrinterProfileDao
 import com.khanabook.lite.pos.core.database.TenantRestaurantDao
 import com.khanabook.lite.pos.core.database.TenantUserDao
-import com.khanabook.lite.pos.feature.inventory.data.InventoryDao
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueDao
 import com.khanabook.lite.pos.feature.printing.data.KotEventDao
 
@@ -31,13 +29,11 @@ import com.khanabook.lite.pos.core.database.AppDatabase
 import com.khanabook.lite.pos.core.database.DatabaseProvider
 import com.khanabook.lite.pos.core.network.KhanaBookApi
 import com.khanabook.lite.pos.feature.notifications.data.NotificationDao
-import com.khanabook.lite.pos.feature.inventory.data.InventoryRepository
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.feature.notifications.data.NotificationRepository
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
 import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
 import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
-import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
 import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 import com.khanabook.lite.pos.feature.auth.data.UserRepository
 import com.khanabook.lite.pos.feature.auth.domain.KeystoreBackedPreferences
@@ -190,7 +186,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_73_74,
                 AppDatabase.MIGRATION_74_75,
   AppDatabase.MIGRATION_75_76,
-  AppDatabase.MIGRATION_76_77
+  AppDatabase.MIGRATION_76_77,
+  AppDatabase.MIGRATION_77_78
   )
             .build()
     }
@@ -207,7 +204,6 @@ object DatabaseModule {
     @Provides @Singleton fun providePrinterProfileDao(databaseProvider: DatabaseProvider): PrinterProfileDao = TenantPrinterProfileDao(databaseProvider)
     @Provides @Singleton fun provideKitchenPrintQueueDao(databaseProvider: DatabaseProvider): KitchenPrintQueueDao = TenantKitchenPrintQueueDao(databaseProvider)
     @Provides @Singleton fun provideBillDao(databaseProvider: DatabaseProvider): BillDao = TenantBillDao(databaseProvider)
-    @Provides @Singleton fun provideInventoryDao(databaseProvider: DatabaseProvider): InventoryDao = TenantInventoryDao(databaseProvider)
     @Provides @Singleton fun provideKotEventDao(databaseProvider: DatabaseProvider): KotEventDao = TenantKotEventDao(databaseProvider)
     @Provides @Singleton fun provideNotificationDao(databaseProvider: DatabaseProvider): NotificationDao = TenantNotificationDao(databaseProvider)
 
@@ -275,7 +271,6 @@ object DatabaseModule {
     fun provideBillRepository(
         billDao: BillDao,
         restaurantDao: RestaurantDao,
-        inventoryConsumptionManager: InventoryConsumptionManager,
         workManager: androidx.work.WorkManager,
         kitchenPrintQueueRepository: KitchenPrintQueueRepository,
         kotEventDao: KotEventDao,
@@ -286,29 +281,12 @@ object DatabaseModule {
     ) = BillRepository(
         billDao,
         restaurantDao,
-        inventoryConsumptionManager,
         workManager,
         kitchenPrintQueueRepository,
         kotEventDao,
         sessionManager,
         kitchenPrintQueueManager
     )
-
-    @Provides
-    @Singleton
-    fun provideInventoryRepository(
-        inventoryDao: InventoryDao,
-        menuDao: MenuDao,
-        sessionManager: SessionManager,
-        workManager: androidx.work.WorkManager
-    ) = InventoryRepository(inventoryDao, menuDao, sessionManager, workManager)
-
-    @Provides
-    @Singleton
-    fun provideInventoryConsumptionManager(
-        menuRepository: MenuRepository,
-        inventoryRepository: InventoryRepository
-    ) = InventoryConsumptionManager(menuRepository, inventoryRepository)
 
 
     @Provides

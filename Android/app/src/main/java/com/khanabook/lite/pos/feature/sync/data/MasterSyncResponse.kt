@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.feature.sync.data
 import com.khanabook.lite.pos.feature.printing.data.*
-import com.khanabook.lite.pos.feature.inventory.data.StockLogEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
@@ -20,7 +19,6 @@ data class MasterSyncResponse(
     @SerializedName("categories") val categories: List<CategoryEntity> = emptyList(),
     @SerializedName("menuItems") val menuItems: List<MenuItemPullDto> = emptyList(),
     @SerializedName("itemVariants") val itemVariants: List<ItemVariantPullDto> = emptyList(),
-    @SerializedName("stockLogs") val stockLogs: List<StockLogEntity> = emptyList(),
     @SerializedName("bills") val bills: List<BillEntity> = emptyList(),
     @SerializedName("billItems") val billItems: List<BillItemEntity> = emptyList(),
     @SerializedName("billPayments") val billPayments: List<BillPaymentEntity> = emptyList(),

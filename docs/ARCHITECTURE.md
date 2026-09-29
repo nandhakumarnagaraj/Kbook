@@ -43,7 +43,6 @@ com.khanabook.lite.pos
     ├── auth/         login, signup, session (SessionManager is a GLOBAL dependency), app lock, roles
     ├── billing/      the money path: new bill, active orders, drafts, KOT events, cart (36 files)
     ├── menu/         categories, items, variants, OCR menu scan
-    ├── inventory/    stock logs, consumption (StockLogEntity)
     ├── payments/     Easebuzz SDK, UPI QR, payment recovery, PaymentStateManager
     ├── printing/     Bluetooth/network printers, PrintRouter, KOT/KDS, invoice PDF (29 files)
     ├── reports/      dashboard, exports (reads bills heavily)
@@ -60,12 +59,12 @@ com.khanabook.lite.pos
 | `feature/sync/domain/MasterSyncProcessor.kt` | 1748 | Re-writes the whole local DB from server pulls; touches every entity |
 | `feature/billing/viewmodel/BillingViewModel.kt` | 1748 | All money-path writes; injected into by sync (see §4) |
 | `feature/billing/data/BillDao.kt` | 1367 | Every query against `bills`/`bill_items` |
-| `core/database/AppDatabase.kt` | 1298 | Schema v77 + ~25 hand-written migrations |
+| `core/database/AppDatabase.kt` | 1298 | Schema v78 + ~25 hand-written migrations |
 | `feature/settings/viewmodel/SettingsViewModel.kt` | 1267 | Writes config consumed by billing/printing/payments |
 | `feature/menu/viewmodel/MenuViewModel.kt` | 1228 | Menu writes → FK targets for billing |
 
 ### Cross-feature import counts (files that import another feature; repo-wide grep, 2026-09-28)
-`auth→sync 5 · auth→billing 4 · billing→auth 10 · billing→payments 12 · billing→printing 7 · billing→menu 8 · billing→reports 4 · billing→settings 5 · billing→sync 4 · printing→billing 8 · printing→auth 10 · reports→billing 7 · reports→payments 4 · settings→auth 9 · settings→payments 4 · settings→menu 3 · staff→auth 3 · sync→auth 6 · sync→billing 4 · sync→menu 4 · sync→inventory 3 · sync→notifications 3 · sync→printing 3 …`
+`auth→sync 5 · auth→billing 4 · billing→auth 10 · billing→payments 12 · billing→printing 7 · billing→menu 8 · billing→reports 4 · billing→settings 5 · billing→sync 4 · printing→billing 8 · printing→auth 10 · reports→billing 7 · reports→payments 4 · settings→auth 9 · settings→payments 4 · settings→menu 3 · staff→auth 3 · sync→auth 6 · sync→billing 4 · sync→menu 4 · sync→notifications 3 · sync→printing 3 …` (inventory feature removed 2026-09-29 — `sync→inventory` no longer exists)
 
 **Reading this table:** `billing` and `settings` are the two biggest "fan-out" modules. A change to anything billing *exports* (entities, `PrintDispatchMode`, KOT event contract, `BillCalculator`) or settings *writes* (GST %, payment config, printer profile) radiates the widest.
 
@@ -84,7 +83,7 @@ Legend: `A → B` = code in A **imports** B, so changing B's exports can break A
 | Change here | Silently affects | Mechanism |
 |---|---|---|
 | `menu` rows (edit/delete/re-key via web admin or sync pull) | `billing` cart & drafts | `bill_items.menu_item_id` FK to `menu_items`; drafts from other terminals carry *foreign* local ids |
-| `master pull` re-writes `menu_items`, `users`, `restaurant_profile` | `billing`, `printing`, `reports`, `inventory` | `MasterSyncProcessor` replaces rows inside a transaction; local ids can shift |
+| `master pull` re-writes `menu_items`, `users`, `restaurant_profile` | `billing`, `printing`, `reports` | `MasterSyncProcessor` replaces rows inside a transaction; local ids can shift |
 | `settings` (GST %, tax mode, printer paper size, order_payment_flow_mode) | `billing` totals, `printing` layout, `payments` flow | Config is read live from `restaurant_profile` at save/print time |
 | `billing` KOT event contract (`KotEventEntity`, snapshot JSON, `eventToken`) | `printing` (PrintRouter, KitchenTicketFormatter, KDS), `sync` | Event-sourced tickets are parsed from immutable snapshots |
 | Printer profile / role mapping | `billing` auto-print, `printing` KDS | `PrintRouter` decides KITCHEN vs CUSTOMER by role + ownership guards |
@@ -117,7 +116,7 @@ Adopted from the current codebase (mostly already true, some violations noted in
 2. **Forbidden:** `feature → feature` **except** through the narrow, whitelisted edges below (these exist today and are intentional):
    - any → `auth.domain.SessionManager` (session/tenant/terminal context)
    - any → `staff.domain.PermissionManager` (permission gates)
-   - `sync → {billing,menu,inventory,printing,notifications,payments}.data` (the sync engine is the one module allowed to write everyone's tables)
+   - `sync → {billing,menu,printing,notifications,payments}.data` (the sync engine is the one module allowed to write everyone's tables; inventory removed 2026-09-29)
    - `core.database` → feature `.data` entities (the single schema owner, reversed direction, accepted)
    - `MasterSyncProcessor` currently imports `billing.viewmodel.BillingViewModel` (line 16) — **to be removed** (§5, F6); never add new ones like it.
 3. **New feature checklist:** new feature = new `feature/<name>/` slice with `data/domain/ui/viewmodel`. Register route in `AppNavGraph`. If it needs a table: entity goes in the feature's `data/`, gets registered in `AppDatabase` (bump version + write migration), and *only then* decide whether sync must carry it (if yes: `MasterSyncProcessor` + server DTO + `SyncEntityMappers`).

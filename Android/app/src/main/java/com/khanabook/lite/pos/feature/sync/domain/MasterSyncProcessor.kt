@@ -2,10 +2,8 @@ package com.khanabook.lite.pos.feature.sync.domain
 import com.khanabook.lite.pos.feature.printing.data.*
 import com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 import com.khanabook.lite.pos.feature.sync.data.*
-import com.khanabook.lite.pos.feature.inventory.data.InventoryDao
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileDao
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileEntity
-import com.khanabook.lite.pos.feature.inventory.data.StockLogEntity
 import com.khanabook.lite.pos.feature.sync.data.SyncQuarantineEntity
 import com.khanabook.lite.pos.feature.sync.data.PushSyncResponse
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
@@ -54,7 +52,6 @@ class MasterSyncProcessor @Inject constructor(
     private val userDao: UserDao,
     private val categoryDao: CategoryDao,
     private val menuDao: MenuDao,
-    private val inventoryDao: InventoryDao,
     private val printerProfileDao: PrinterProfileDao,
     private val sessionManager: SessionManager,
     private val permissionManager: PermissionManager
@@ -1468,24 +1465,6 @@ class MasterSyncProcessor @Inject constructor(
         variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
         knownVariantIds = variantIdMap.values.toMutableSet()
 
-        if (masterData.stockLogs.isNotEmpty()) {
-            val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteLog ->
-                val localMenuItemId = remoteLog.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteLog.menuItemId
-                val localVariantId = remoteLog.serverVariantId?.let { variantIdMap[it] } ?: remoteLog.variantId
-
-                if (localMenuItemId !in knownMenuItemIds) return@mapNotNull null
-                if (remoteLog.serverVariantId != null && remoteLog.serverVariantId > 0 && localVariantId !in knownVariantIds) return@mapNotNull null
-
-                remoteLog.copy(
-                    menuItemId = localMenuItemId,
-                    variantId = localVariantId,
-                    delta = remoteLog.delta ?: "0",
-                    reason = remoteLog.reason ?: "",
-                    isSynced = true
-                )
-            }
-            inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
-        }
         }
 
         // Commit master data (profiles, users, categories, menu items, variants) immediately

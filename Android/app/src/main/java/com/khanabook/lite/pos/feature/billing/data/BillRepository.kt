@@ -19,7 +19,6 @@ import com.khanabook.lite.pos.feature.billing.data.BillFinalizationResult
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
-import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
 import javax.inject.Provider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,7 +54,6 @@ internal fun <T> terminalScopedFlow(
 class BillRepository(
         private val billDao: BillDao,
         private val restaurantDao: com.khanabook.lite.pos.feature.auth.data.RestaurantDao,
-        private val inventoryConsumptionManager: InventoryConsumptionManager? = null,
         private val workManager: WorkManager,
         private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null,
         private val kotEventDao: KotEventDao,
@@ -99,20 +97,9 @@ class BillRepository(
             Log.e("BillRepository", "Bill $billId saved but KOT event recording failed", e)
         }
 
-        if (bill.orderStatus.equals("completed", ignoreCase = true) ||
-            bill.orderStatus.equals("paid", ignoreCase = true)
-        ) {
-            // The bill is already committed above. A failure here must not surface as a
-            // failed save, or the cashier retries and creates a duplicate order. Stock
-            // drift is recoverable; a duplicated order is not.
-            try {
-                inventoryConsumptionManager?.consumeMaterialsForBill(items)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e("BillRepository", "Bill $billId saved but inventory consumption failed", e)
-            }
-        }
+        // Inventory feature removed 2026-09-29: bills no longer consume stock.
+        // The bill is already committed above; a failure past this point must not
+        // surface as a failed save or the cashier retries and duplicates the order.
 
         if (scheduleDurableSync) {
             try {
@@ -216,9 +203,6 @@ class BillRepository(
             requestedPayments = payments,
             completedAt = completedAt
         )
-        if (finalized.outcome == BillFinalizationOutcome.FINALIZED_NOW) {
-            inventoryConsumptionManager?.consumeMaterialsForBill(finalized.billWithItems.items)
-        }
         return finalized
     }
 
@@ -274,9 +258,6 @@ class BillRepository(
             ),
             completedAt = completedAt
         )
-        if (finalized.outcome == BillFinalizationOutcome.FINALIZED_NOW) {
-            inventoryConsumptionManager?.consumeMaterialsForBill(finalized.billWithItems.items)
-        }
         return finalized
     }
 
@@ -411,10 +392,6 @@ class BillRepository(
             )
         )
 
-        if (isBecomingDeducted && !wasDeducted) {
-            val billWithItems = billDao.getBillWithItemsById(id, restaurantId)
-            billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
-        }
         triggerBackgroundSync()
     }
 

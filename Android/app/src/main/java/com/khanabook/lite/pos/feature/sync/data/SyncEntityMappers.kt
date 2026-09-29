@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.feature.sync.data
 import com.khanabook.lite.pos.feature.printing.data.*
-import com.khanabook.lite.pos.feature.inventory.data.StockLogEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
@@ -256,20 +255,3 @@ fun UserEntity.toSyncDto() = UserSyncDto(
     serverUpdatedAt = serverUpdatedAt,
 )
 
-fun StockLogEntity.toSyncDto() = StockLogSyncDto(
-    localDbId        = id,
-    restaurantId     = restaurantId,
-    deviceId         = deviceId,
-    localId          = id,
-    serverId         = serverId,
-    menuItemId       = menuItemId,
-    serverMenuItemId = serverMenuItemId,
-    variantId        = variantId ?: 0L,
-    serverVariantId  = serverVariantId,
-    delta            = delta?.toDoubleOrNull() ?: 0.0,
-    reason           = reason ?: "",
-    createdAt        = createdAt,
-    updatedAt        = updatedAt,
-    isDeleted        = isDeleted,
-    serverUpdatedAt  = serverUpdatedAt,
-)

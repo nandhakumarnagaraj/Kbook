@@ -44,6 +44,28 @@
 | Server specific test | `mvn test -Dtest=TestClassName` |
 | Web admin tests | `npm test` or `ng test` |
 
+## Product Scope (AUTHORITATIVE — read before building anything)
+
+KhanaBook Android is an **offline-first billing POS**. The feature set is deliberately SMALL:
+
+**In scope:** offline GST billing · menu configuration (categories/items/variants, OCR import) ·
+shop/payment/tax/printer configuration · sync · 5-terminal multi-device · Easebuzz sub-merchant
+payments (testing phase) · reports · notifications.
+
+**Do NOT build (removed or never planned):** Zomato/Swiggy/marketplace integrations · storefront
+ordering · inventory/stock ledger (REMOVED 2026-09-29 — `stock_logs` table dropped in schema v78;
+menu-item stock *fields* remain as menu config) · staff management UI (permissions come from the
+server via PermissionManager) · payment links · kitchen display screen.
+
+**Role model (enforced, do not weaken):**
+- `OWNER` — writes everything: restaurant, menu, payment/Easebuzz, tax, printer config
+- `SHOP_STAFF` — read restaurant/menu/payment/tax config; may write printer config and app
+  settings (PIN, display, feedback). Gates: `SessionManager.canWriteMasterData()` (owner-only
+  menu writes), `SessionManager.canWriteConfig()` (owner-only profile saves), UI `readOnly` flags.
+- `KBOOK_ADMIN` — platform admin (server side).
+
+If a task seems to require any out-of-scope feature, stop and ask — do not resurrect ghosts.
+
 ## Conventions
 - Kotlin code style: official
 - Angular: standalone components, strict templates, strict TypeScript
