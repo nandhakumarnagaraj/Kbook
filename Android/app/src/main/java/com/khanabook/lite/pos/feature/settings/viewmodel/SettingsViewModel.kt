@@ -108,6 +108,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    // P0.4: transport-only callback for restaurant Wi-Fi/Ethernet WITHOUT
+    // internet (common in our market) — fires onAvailable there too.
+    private var lanNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     val displayScale = sessionManager.getDisplayScale()
 
@@ -152,6 +155,11 @@ class SettingsViewModel @Inject constructor(
     private val _discoveredWifiPrinters = MutableStateFlow<List<com.khanabook.lite.pos.feature.printing.domain.DiscoveredPrinter>>(emptyList())
     val discoveredWifiPrinters: StateFlow<List<com.khanabook.lite.pos.feature.printing.domain.DiscoveredPrinter>> = _discoveredWifiPrinters.asStateFlow()
 
+    // P0.5: last scan census (mask/targets/reasons/duration) surfaced in the
+    // printer dialog so "0 found" is debuggable without adb.
+    private val _lastWifiScanCensus = MutableStateFlow<com.khanabook.lite.pos.feature.printing.domain.ScanCensus?>(null)
+    val lastWifiScanCensus: StateFlow<com.khanabook.lite.pos.feature.printing.domain.ScanCensus?> = _lastWifiScanCensus.asStateFlow()
+
     // One-tap save: surfaced so the dialog Save button can show a spinner and
     // stay disabled until the local DB write completes.
     private val _isSavingWifiPrinter = MutableStateFlow(false)
@@ -165,16 +173,31 @@ class SettingsViewModel @Inject constructor(
     private val _wifiPrinterNetworkMismatch = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val wifiPrinterNetworkMismatch: StateFlow<Map<String, Boolean>> = _wifiPrinterNetworkMismatch.asStateFlow()
 
-    fun scanForWifiPrinters() {
+    /** [deepScan] selects the 6-port set (incl. 9101/9102/721); default quick = 9100 + IPP/LPD. */
+    fun scanForWifiPrinters(deepScan: Boolean = false) {
         if (_isScanningWifiPrinters.value) return
         viewModelScope.launch {
             _isScanningWifiPrinters.value = true
             _discoveredWifiPrinters.value = emptyList()
+            _lastWifiScanCensus.value = null
             try {
-                val found = networkPrinterScanner.scanSubnet { printer ->
-                    _discoveredWifiPrinters.value = (_discoveredWifiPrinters.value + printer).distinctBy { it.ip }
+                // P1.7: zero-permission mDNS/.local pre-pass first — usually finds
+                // the printer in a single service-resolution without a subnet sweep.
+                val mdnsFound = networkPrinterScanner.scanMdns { printer ->
+                    _discoveredWifiPrinters.value = (_discoveredWifiPrinters.value + printer)
+                        .distinctBy { "${it.ip}:${it.port}" }
                 }
-                _discoveredWifiPrinters.value = found
+                // P1.6/P1.8: subnet sweep (multi-port fallback + optional deep set),
+                // emitting the outcome census for the diagnostics surface.
+                val subnetFound = networkPrinterScanner.scanSubnet(
+                    deepScan = deepScan,
+                    onPrinterFound = { printer ->
+                        _discoveredWifiPrinters.value = (_discoveredWifiPrinters.value + printer)
+                            .distinctBy { "${it.ip}:${it.port}" }
+                    },
+                    onCensus = { census -> _lastWifiScanCensus.value = census }
+                )
+                _discoveredWifiPrinters.value = (mdnsFound + subnetFound).distinctBy { "${it.ip}:${it.port}" }
             } catch (e: Exception) {
                 Log.w("SettingsViewModel", "Wi-Fi printer subnet scan failed", e)
             } finally {
@@ -282,6 +305,27 @@ class SettingsViewModel @Inject constructor(
         runCatching {
             connectivityManager.registerNetworkCallback(networkRequest, networkCallback!!)
         }
+        // P0.4: a second registration keyed on transport (Wi-Fi/Ethernet) WITHOUT
+        // requiring NET_CAPABILITY_INTERNET. Restaurant Wi-Fi frequently has no
+        // internet egress, so the INTERNET-keyed request above never fires
+        // onAvailable there — leaving the subnet prefix/printer reachability
+        // stale and undetectable until the user re-enters Settings.
+        val lanNetworkRequest = NetworkRequest.Builder()
+            .addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+            .addTransportType(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+            .build()
+        lanNetworkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    // Same auto-fill logic as the INTERNET-keyed callback above.
+                    _wifiSubnetPrefix.value = networkPrinterScanner.getAutoFillSubnetPrefix()
+                }
+                refreshWifiReachability()
+            }
+        }
+        runCatching {
+            connectivityManager.registerNetworkCallback(lanNetworkRequest, lanNetworkCallback!!)
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             printerProfileRepository.getProfiles()
@@ -309,6 +353,11 @@ class SettingsViewModel @Inject constructor(
         super.onCleared()
         try {
             connectivityManager.unregisterNetworkCallback(networkCallback!!)
+        } catch (e: Exception) {
+            // Already unregistered or callback was never registered — safe to ignore.
+        }
+        try {
+            connectivityManager.unregisterNetworkCallback(lanNetworkCallback!!)
         } catch (e: Exception) {
             // Already unregistered or callback was never registered — safe to ignore.
         }

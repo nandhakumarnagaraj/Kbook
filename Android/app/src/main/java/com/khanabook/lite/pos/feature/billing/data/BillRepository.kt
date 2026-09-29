@@ -18,7 +18,11 @@ import com.khanabook.lite.pos.feature.billing.data.BillFinalizationOutcome
 import com.khanabook.lite.pos.feature.billing.data.BillFinalizationResult
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
+import javax.inject.Provider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.khanabook.lite.pos.feature.payments.domain.PaymentRecoveryAssessment
 import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
 import com.khanabook.lite.pos.feature.sync.domain.enqueueMasterSyncOnce
@@ -55,7 +59,12 @@ class BillRepository(
         private val workManager: WorkManager,
         private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null,
         private val kotEventDao: KotEventDao,
-        private val sessionManager: SessionManager
+        private val sessionManager: SessionManager,
+        // Deferred (Provider) to break the DI cycle: KitchenPrintQueueManager depends on
+        // BillRepository directly, so a hard dependency here would be circular. Resolved
+        // lazily at call time (after construction) to flush a cancellation ticket now
+        // instead of waiting for the queue manager's 30s retry tick.
+        private val kitchenPrintQueueManager: Provider<KitchenPrintQueueManager>? = null
 ) {
     private val gson = Gson()
 
@@ -422,13 +431,32 @@ class BillRepository(
         // prints/is displayed as "*** ORDER CANCELLED ***". Orders the kitchen never
         // saw get no notice — they never knew the order existed.
         val publicToken = current.publicToken?.takeIf { it.isNotBlank() }
+        var cancelNoticeRecorded = false
         if (publicToken != null && isKitchenPrintableStatus(current.orderStatus)) {
             val hasPrinted = kotEventDao.getEventsForBill(publicToken).any { it.isPrinted }
             if (hasPrinted) {
                 val items = before?.items?.filter { !it.isDeleted } ?: emptyList()
                 if (items.isNotEmpty()) {
                     recordKotEvent(before!!.bill, KotEventType.CANCEL, items)
+                    cancelNoticeRecorded = true
                 }
+            }
+        }
+        // The cancellation slip is enqueued (recordKotEvent) rather than printed inline, so
+        // without this kick it would sit until the queue manager's 30s retry tick — and be
+        // dropped entirely if no connected KITCHEN printer is resolvable at that moment.
+        // Flush now (on IO) so the kitchen is told immediately, like the order-time KOT.
+        if (cancelNoticeRecorded) {
+            try {
+                withContext(Dispatchers.IO) {
+                    kitchenPrintQueueManager?.get()?.flushAllPending()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The order is already cancelled in the DB; a print hiccup must not fail the
+                // cancel. The queued job stays pending and retries on the next tick.
+                Log.w("BillRepository", "Bill $id cancelled but immediate KOT flush failed", e)
             }
         }
         if (scheduleDurableSync) triggerBackgroundSync()

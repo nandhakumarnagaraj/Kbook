@@ -264,8 +264,16 @@ class UsbPrinterTransport @Inject constructor(
             val session = sessions[key] ?: run {
                 val device = findDeviceByKey(key) ?: return@withContext false
                 if (!manager.hasPermission(device)) {
-                    Log.w(TAG, "No USB permission for $key — prompt needed from settings UI")
-                    return@withContext false
+                    // Bluetooth auto-connects at print time; USB's old behavior was to
+                    // silently fail when the grant was missing (dropped on replug/restart)
+                    // and only heal from the settings picker. Auto-request here so
+                    // autoprint self-heals exactly like the BT path. On denial/timeout
+                    // we still fail gracefully and the kitchen queue retries.
+                    Log.i(TAG, "No USB permission for $key at print time — requesting")
+                    if (!requestPermission(device)) {
+                        Log.w(TAG, "USB permission denied for $key — autoprint aborted")
+                        return@withContext false
+                    }
                 }
                 openSession(device, key) ?: return@withContext false
             }

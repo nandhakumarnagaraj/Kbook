@@ -125,9 +125,12 @@ fun KhanaBookLiteTheme(
     // not override it. Layouts must accommodate larger text via scrolling and wrapping.
     val effectiveFontScale = density.fontScale
     val effectiveDensity = density.density * displayScale
+    // Resolved once here so every screen's KhanaBookTheme.spacing.* reads gaps and
+    // control heights that already match the current window's type tier.
+    val appSpacing = spacingForTier(responsiveLayout.typeScaleTier)
     CompositionLocalProvider(
         LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),
-        LocalSpacing provides Spacing(),
+        LocalSpacing provides appSpacing,
         LocalIconSize provides IconSize(),
         LocalResponsiveLayout provides responsiveLayout,
         LocalTypeScale provides responsiveLayout.typeScaleTier

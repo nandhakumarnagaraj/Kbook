@@ -260,15 +260,10 @@ fun PaymentConfigView(
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Online Payments (Payment Link)",
+                            "Online Payments",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = TextLight
-                        )
-                        Text(
-                            "Accept customer payments online — coming soon.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextGold.copy(alpha = 0.75f)
                         )
                     }
                     Surface(
@@ -291,24 +286,18 @@ fun PaymentConfigView(
                 AlertDialog(
                     onDismissRequest = { showTestQrDialog = false },
                     containerColor = DarkBrownSheet,
-                    title = {
-                        Text("Interactive UPI Verification Test", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-                    },
                     text = {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = spacing.medium)
                         ) {
-                            Text(
-                                "Scan this test QR with Google Pay, PhonePe, or Paytm — the name shown is exactly what your customers will see. Use a Merchant (Current Account) UPI ID to display your restaurant name.",
-                                color = TextGold,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Spacer(modifier = Modifier.height(spacing.medium))
                             val qrImage = testQrBitmap
                             Box(
                                 modifier = Modifier
-                                    .size(190.dp)
+                                    .size(220.dp)
                                     .background(Color.White, KhanaRadii.lg)
                                     .border(2.dp, PrimaryGold.copy(alpha = 0.8f), KhanaRadii.lg)
                                     .padding(spacing.smallMedium),
@@ -328,9 +317,17 @@ fun PaymentConfigView(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(spacing.small))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
-                                "UPI ID: $upiHandle\nTest Amount: ₹1.00",
+                                upiHandle,
+                                color = TextGold,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(spacing.extraSmall))
+                            Text(
+                                "Test Amount: ₹1.00",
                                 color = TextGold.copy(alpha = 0.8f),
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center

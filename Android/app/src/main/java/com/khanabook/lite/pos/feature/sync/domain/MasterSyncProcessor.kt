@@ -64,6 +64,18 @@ class MasterSyncProcessor @Inject constructor(
 
     private val tag = "MasterSyncProcessor"
 
+    // Bill-family pushes are transient by design: a dine-in order is a living row
+    // re-pushed at draft -> modify -> pay, so the server can reject the re-push of an
+    // already-synced bill with an optimistic-lock 409. Escalating that into the
+    // timestamp=0 recovery pull forces a ~1000-record re-pull plus the repair/reconcile
+    // write-storm after every paid order. These labels are therefore NOT rethrown at the
+    // end of pushAllInternal — the same-cycle pull from the last checkpoint re-imports the
+    // server's current row and reconcilePulledBillsByClientFingerprint resyncs it. All
+    // other entities keep the existing conflict-recovery behaviour unchanged.
+    private val billFamilyConflictLabels = setOf(
+        "bills", "bills follow-up", "bill items", "bill payments"
+    )
+
     // INFO logs are verbose; suppress in release to reduce logcat noise.
     // WARN / ERROR always surface — production sync failures must be visible.
     private fun logInfo(msg: String) { if (BuildConfig.DEBUG) Log.i(tag, msg) }
@@ -528,20 +540,6 @@ class MasterSyncProcessor @Inject constructor(
             onPermanentlyRejected = { rejected -> quarantineRejectedVariants(rejected, restaurantId) }
         )
 
-        // Stock log push disabled — inventory tracking not in use
-        // onStepChange?.invoke(SyncStep.PushStockLogs)
-        // val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
-        // val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
-        // pushBatches(
-        //     label = "stock logs",
-        //     records = validStockLogs,
-        //     localId = StockLogEntity::id,
-        //     transform = StockLogEntity::toSyncDto,
-        //     push = api::pushStockLogs,
-        //     markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
-        //     onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
-        //     isolateHttpConflicts = isolateHttpConflicts
-        // )
 
         val unsyncedBills = billDao.getUnsyncedBills(restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
@@ -635,7 +633,13 @@ class MasterSyncProcessor @Inject constructor(
             logWarn("Bill payment failures isolated from other acknowledged work", conflict)
         }
 
-        isolatedConflicts.firstOrNull()?.let { throw it }
+        // Bill-family 409s (stale optimistic-lock re-push of an already-synced bill)
+        // must NOT escalate into the timestamp=0 recovery pull — the same-cycle pull from
+        // the last checkpoint already brings the server's current state for those rows and
+        // the fingerprint reconcile marks them synced. Escalating here is what turned a
+        // normal "pay after food" order into a 998-1009 record re-pull + repair/reconcile
+        // write-storm on every cycle. Real conflicts on other entities still escalate.
+        isolatedConflicts.firstOrNull { it.syncEntityLabel !in billFamilyConflictLabels }?.let { throw it }
 
         return true
     }
@@ -1113,6 +1117,15 @@ class MasterSyncProcessor @Inject constructor(
             }
         }
 
+        // Shared across master data and billing transactions so FK resolution succeeds
+        // without keeping master data locked during billing processing.
+        val remoteUserIdToLocalId = mutableMapOf<Long, Long>()
+        var knownUserIds: Set<Long> = emptySet()
+        var menuItemIdMap: Map<Long, Long> = emptyMap()
+        var knownMenuItemIds: MutableSet<Long> = mutableSetOf()
+        var variantIdMap: Map<Long, Long> = emptyMap()
+        var knownVariantIds: MutableSet<Long> = mutableSetOf()
+
         databaseProvider.getDatabase().withTransaction {
             if (masterData.profiles.isNotEmpty()) {
                 val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
@@ -1188,7 +1201,7 @@ class MasterSyncProcessor @Inject constructor(
         // Maps each remote user's original local id → the local id we actually stored.
         // Bills reference users via the original device's local id (createdBy), so we need
         // this to remap the FK to whatever id we assigned on this device.
-        val remoteUserIdToLocalId = mutableMapOf<Long, Long>()
+
 
         if (masterData.users.isNotEmpty()) {
             val localUsers = userDao.getAllUsersOnce()
@@ -1248,7 +1261,7 @@ class MasterSyncProcessor @Inject constructor(
         // Update permission cache from sync response (lightweight — just string keys)
         permissionManager.updateFromSync(masterData.grantedPermissions, masterData.permissionRevision)
 
-        val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
+        knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
 
         if (masterData.categories.isNotEmpty()) {
             categoryDao.upsertSyncedCategories(
@@ -1258,6 +1271,7 @@ class MasterSyncProcessor @Inject constructor(
                         name = remoteCategory.name.orFallback("Category"),
                         isVeg = remoteCategory.isVeg,
                         sortOrder = remoteCategory.sortOrder ?: 0,
+                        isActive = remoteCategory.isActive,
                         createdAt = remoteCategory.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteCategory.restaurantId ?: 0L,
                         deviceId = remoteCategory.deviceId.orFallback(""),
@@ -1273,7 +1287,8 @@ class MasterSyncProcessor @Inject constructor(
 
         // Fetch category ID mapping
         val categoryIdMap = categoryDao.getAllCategoryServerIds(restaurantId).associate { it.serverId to it.id }
-        val knownCategoryIds = categoryIdMap.values.toMutableSet()
+        val allLocalCategories = categoryDao.getAllCategoriesOnce(restaurantId)
+        val knownCategoryIds = (categoryIdMap.values + allLocalCategories.map { it.id }).toMutableSet()
 
         if (masterData.menuItems.isNotEmpty()) {
             val currentDeviceId = sessionManager.getDeviceId()
@@ -1361,32 +1376,27 @@ class MasterSyncProcessor @Inject constructor(
             // above already covers own-device rows; for foreign rows the
             // upsert assigned id = serverId, so dedup by serverId alone is
             // safe (each pulled serverId keeps exactly one preferred row).
+            val currentMenuItemMap = menuDao.getAllMenuItemServerIds(restaurantId).associate { it.serverId to it.id }
             val allPulledServerIds = masterData.menuItems.mapNotNull { it.serverId }
                 .filter { it > 0L }
                 .distinct()
             if (allPulledServerIds.isNotEmpty()) {
-                // Preferred local id per serverId: own-device rows use their
-                // local id; foreign rows use the serverId itself (assignedId).
-                val preferredIds = masterData.menuItems.mapNotNull { remoteMenuItem ->
-                    val serverId = remoteMenuItem.serverId ?: return@mapNotNull null
-                    if (serverId <= 0L) return@mapNotNull null
-                    val isMyDevice = remoteMenuItem.deviceId == sessionManager.getDeviceId()
-                    when {
-                        isMyDevice && (remoteMenuItem.localId ?: 0L) > 0L -> remoteMenuItem.localId
-                        else -> serverId
-                    }
+                val preferredIds = allPulledServerIds.mapNotNull { serverId ->
+                    preferredMenuItemIdsByServerId[serverId] ?: currentMenuItemMap[serverId]
                 }
-                menuDao.hideDuplicateMenuItemsByServerIds(
-                    serverIds = allPulledServerIds,
-                    preferredIds = preferredIds.filter { it > 0L }.distinct(),
-                    restaurantId = restaurantId
-                )
+                if (preferredIds.isNotEmpty()) {
+                    menuDao.hideDuplicateMenuItemsByServerIds(
+                        serverIds = allPulledServerIds,
+                        preferredIds = preferredIds.filter { it > 0L }.distinct(),
+                        restaurantId = restaurantId
+                    )
+                }
             }
         }
 
         // Fetch menu item ID mapping
-        val menuItemIdMap = menuDao.getAllMenuItemServerIds(restaurantId).associate { it.serverId to it.id }
-        val knownMenuItemIds = menuItemIdMap.values.toMutableSet()
+        menuItemIdMap = menuDao.getAllMenuItemServerIds(restaurantId).associate { it.serverId to it.id }
+        knownMenuItemIds = menuItemIdMap.values.toMutableSet()
 
         if (masterData.itemVariants.isNotEmpty()) {
             val currentDeviceId = sessionManager.getDeviceId()
@@ -1455,8 +1465,8 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Fetch variant ID mapping
-        val variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
-        val knownVariantIds = variantIdMap.values.toMutableSet()
+        variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
+        knownVariantIds = variantIdMap.values.toMutableSet()
 
         if (masterData.stockLogs.isNotEmpty()) {
             val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteLog ->
@@ -1476,8 +1486,24 @@ class MasterSyncProcessor @Inject constructor(
             }
             inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
         }
+        }
 
-        if (masterData.bills.isNotEmpty()) {
+        // Commit master data (profiles, users, categories, menu items, variants) immediately
+        // so the POS catalog is available and unblocked in ~20ms. Historical billing records
+        // are processed in their own transaction so large sync batches never hold the menu tables locked.
+        databaseProvider.getDatabase().withTransaction {
+            if (knownUserIds.isEmpty()) {
+                knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
+            }
+            if (menuItemIdMap.isEmpty()) {
+                menuItemIdMap = menuDao.getAllMenuItemServerIds(restaurantId).associate { it.serverId to it.id }
+                knownMenuItemIds = menuItemIdMap.values.toMutableSet()
+            }
+            if (variantIdMap.isEmpty()) {
+                variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
+                knownVariantIds = variantIdMap.values.toMutableSet()
+            }
+            if (masterData.bills.isNotEmpty()) {
             val repairedBills = mutableListOf<String>()
             val resolvedBills = masterData.bills.map { remoteBill ->
                     val resolvedCreatedBy = remoteBill.createdBy?.let { remoteId ->

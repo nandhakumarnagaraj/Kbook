@@ -772,7 +772,7 @@ PrinterTargetCard(
 
                 if (discoveredWifiPrinters.isNotEmpty()) {
                     Text(
-                        "Found ${discoveredWifiPrinters.size} Printer(s) (Tap to select):",
+                        "Found ${discoveredWifiPrinters.size} Printer(s):",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGold,
                         modifier = Modifier.padding(bottom = spacing.extraSmall)

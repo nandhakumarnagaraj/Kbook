@@ -3,7 +3,6 @@ import com.khanabook.lite.pos.core.theme.*
 
 import android.os.SystemClock
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -26,6 +25,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.theme.*
 import kotlinx.coroutines.Dispatchers
@@ -144,6 +144,9 @@ private data class KindStyle(
 )
 
 private fun styleFor(kind: ToastKind): KindStyle = when (kind) {
+    // One background for every toast: DarkBrown2. Because that fill is very dark, the
+    // raw accent clears 3:1 against it as a border — red 3.13, green 4.28, gold 6.56,
+    // yellow 9.80 — so the accent needs no lightening to read as an edge.
     ToastKind.Success -> KindStyle(DarkBrown2, TextLight, SuccessGreen, Icons.Default.CheckCircle)
     ToastKind.Error -> KindStyle(DarkBrown2, TextLight, DangerRed, Icons.Default.Error)
     ToastKind.Warning -> KindStyle(DarkBrown2, TextLight, WarningYellow, Icons.Default.Warning)
@@ -171,16 +174,22 @@ fun KhanaBookSnackbar(data: SnackbarData) {
 
     Surface(
         modifier = Modifier
-            .padding(horizontal = spacing.medium, vertical = spacing.small)
+            .padding(horizontal = spacing.large, vertical = spacing.small)
+            .fillMaxWidth()
             .shadow(spacing.small, shape)
             .clip(shape)
             .semantics { liveRegion = LiveRegionMode.Polite },
         color = style.container,
-        border = BorderStroke(spacing.hairline / 2, style.accent.copy(alpha = 0.55f)),
+        // The Row child must not paint a background over this ring — see below.
+        border = BorderStroke(1.5.dp, style.accent),
     ) {
         Row(
+            // NO background() here. This Row is the Surface's child node, so it
+            // paints AFTER the Surface's own .background() and .border() chain —
+            // a fill here would cover the 1.5dp border ring completely. The
+            // Surface already supplies the colour.
             modifier = Modifier
-                .background(style.container)
+                .fillMaxWidth()
                 .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
             verticalAlignment = Alignment.CenterVertically,
         ) {

@@ -36,6 +36,7 @@ import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.feature.notifications.data.NotificationRepository
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
 import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
+import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.inventory.domain.InventoryConsumptionManager
 import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 import com.khanabook.lite.pos.feature.auth.data.UserRepository
@@ -278,7 +279,10 @@ object DatabaseModule {
         workManager: androidx.work.WorkManager,
         kitchenPrintQueueRepository: KitchenPrintQueueRepository,
         kotEventDao: KotEventDao,
-        sessionManager: SessionManager
+        sessionManager: SessionManager,
+        // Provider (not the concrete type) to break the KitchenPrintQueueManager <-> BillRepository
+        // dependency cycle; the queue manager takes BillRepository directly.
+        kitchenPrintQueueManager: javax.inject.Provider<KitchenPrintQueueManager>
     ) = BillRepository(
         billDao,
         restaurantDao,
@@ -286,7 +290,8 @@ object DatabaseModule {
         workManager,
         kitchenPrintQueueRepository,
         kotEventDao,
-        sessionManager
+        sessionManager,
+        kitchenPrintQueueManager
     )
 
     @Provides

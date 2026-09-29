@@ -81,9 +81,15 @@ fun NewBillScreen(
     navController: androidx.navigation.NavController? = null,
     resumePendingPayment: Boolean = false,
     draftBillId: Long? = null,
-    initialStep: Int = 1
+    initialStep: Int = 1,
+    quickModeHint: Boolean? = null
 ) {
-    val quickMode by billingViewModel.quickMode.collectAsStateWithLifecycle()
+    // The profile read is slow (DataStore -> activeDatabaseFlow -> Room), so a fresh
+    // BillingViewModel cannot know its mode on the first frame. Callers that already have
+    // it pass quickModeHint and we skip the wait entirely; otherwise we gate on our own read.
+    val billingProfile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
+    val resolvedQuickMode = quickModeHint ?: billingProfile?.isQuickBillingEnabled
+    val quickMode = resolvedQuickMode ?: false
     var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else if (quickMode) 2 else initialStep) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
     val effectiveFirstStep = if (quickMode) 2 else 1
@@ -109,8 +115,11 @@ fun NewBillScreen(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
+    // A supplied hint means we already know the mode, so there is nothing to wait for and
+    // nothing to hide — the screen paints immediately instead of showing a blank frame.
+    var entryResolved by remember { mutableStateOf(quickModeHint != null) }
     var screenVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { screenVisible = true }
+    LaunchedEffect(entryResolved) { if (entryResolved) screenVisible = true }
     val enterSpec = fadeIn(tween(350)) + slideInVertically(
         initialOffsetY = { it / 6 },
         animationSpec = tween(350, easing = FastOutSlowInEasing)
@@ -151,7 +160,7 @@ fun NewBillScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardDraftDialog = false
-                    billingViewModel.resetForNewBill()
+                    billingViewModel.resetForNewBill(quickMode)
                     onBack()
                 }) { Text("Discard") }
             },
@@ -173,17 +182,22 @@ fun NewBillScreen(
         performBack()
     }
 
-    LaunchedEffect(draftBillId, resumePendingPayment, quickMode) {
+    // Wait for the mode to be known before picking an entry step: otherwise step 1 paints,
+    // then slides to step 2, and this whole block re-runs mid-entry (clearing the cart,
+    // cancelling drafts). With a hint from the caller this resolves on the first frame.
+    LaunchedEffect(draftBillId, resumePendingPayment, resolvedQuickMode) {
+        val isQuick = resolvedQuickMode ?: return@LaunchedEffect
         if (draftBillId == null && !resumePendingPayment) {
-            billingViewModel.resetForNewBill()
-            billingViewModel.applyQuickBillDefaultsIfNeeded()
+            billingViewModel.resetForNewBill(isQuick)
+            billingViewModel.applyQuickBillDefaultsIfNeeded(isQuick)
             billingViewModel.cancelPendingOnlineDrafts()
             PaymentReturnManager.clearLatestEvent()
-            step = if (quickMode) 2 else 1
+            step = if (isQuick) 2 else 1
         }
         if (resumePendingPayment) {
             step = 3
         }
+        entryResolved = true
     }
 
     // Easebuzz gateway return: the payment screen writes the result into our
@@ -293,30 +307,32 @@ fun NewBillScreen(
     Scaffold(
         containerColor = DarkBrown1,
         topBar = {
-            Column(modifier = Modifier.background(DarkBrown1)) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            if (quickMode) "Quick Bill" else "New Bill",
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            enabled = !paymentFlowLocked,
-                            onClick = {
-                                if (paymentFlowLocked) return@IconButton
-                                performBack()
+            AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = fadeOut(tween(200))) {
+                Column(modifier = Modifier.background(DarkBrown1)) {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            Text(
+                                if (quickMode) "Quick Bill" else "New Bill",
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                enabled = !paymentFlowLocked,
+                                onClick = {
+                                    if (paymentFlowLocked) return@IconButton
+                                    performBack()
+                                }
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                             }
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
-                )
-                
-                BillStepper(currentStep = step, quickMode = quickMode)
+                        },
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+                    )
+
+                    BillStepper(currentStep = step, quickMode = quickMode)
+                }
             }
         }
     ) { paddingValues ->

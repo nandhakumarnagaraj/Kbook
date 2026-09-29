@@ -3,18 +3,14 @@
 package com.khanabook.lite.pos.core.navigation
 import com.khanabook.lite.pos.feature.notifications.ui.NotificationsScreen
 import com.khanabook.lite.pos.feature.settings.ui.QuickStartScreen
-import com.khanabook.lite.pos.feature.staff.ui.StaffPermissionScreen
-import com.khanabook.lite.pos.feature.printing.ui.KitchenDisplayScreen
 import com.khanabook.lite.pos.feature.printing.ui.ReprintKdsScreen
 import com.khanabook.lite.pos.feature.sync.ui.InitialSyncScreen
 import com.khanabook.lite.pos.feature.auth.ui.AppLockScreen
 import com.khanabook.lite.pos.feature.auth.ui.RoleAccessScreen
-import com.khanabook.lite.pos.feature.auth.ui.BackgroundReliabilityScreen
 import com.khanabook.lite.pos.feature.auth.ui.LoginScreen
 import com.khanabook.lite.pos.feature.billing.ui.SearchScreen
 import com.khanabook.lite.pos.feature.billing.ui.CallCustomerScreen
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderDetailScreen
-import com.khanabook.lite.pos.feature.billing.ui.ActiveOrderScreen
 import com.khanabook.lite.pos.feature.billing.ui.ActiveOrdersScreen
 import com.khanabook.lite.pos.feature.billing.ui.NewBillScreen
 
@@ -98,12 +94,6 @@ internal fun AppNavGraph(
                             popUpTo(Routes.APP_LOCK) { inclusive = true }
                         }
                     }
-                },
-                onRecoverAccount = {
-                    authViewModel.logout()
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
-                    }
                 }
             )
         }
@@ -148,16 +138,6 @@ internal fun AppNavGraph(
                     sessionManager.setInitialSyncCompleted(true)
                     navController.navigate(authenticatedStartDestination()) {
                         popUpTo(Routes.QUICK_START) { inclusive = true }
-                    }
-                }
-            )
-        }
-        composable(Routes.BACKGROUND_RELIABILITY) {
-            BackgroundReliabilityScreen(
-                onDone = {
-                    sessionManager.setBackgroundReliabilityPromptShown(true)
-                    navController.navigate(authenticatedStartDestination()) {
-                        popUpTo(Routes.BACKGROUND_RELIABILITY) { inclusive = true }
                     }
                 }
             )
@@ -216,7 +196,7 @@ internal fun AppNavGraph(
                 initialHighlightBillId = highlightBillId,
                 initialSettingsSection = section,
                 navController = navController,
-                onNewBill = { navController.navigate(Routes.newBill()) },
+                onNewBill = { quickMode -> navController.navigate(Routes.newBill(quickMode = quickMode)) },
                 onActiveOrder = { navController.navigate(Routes.ACTIVE_ORDERS) },
                 onOpenActiveOrder = { draftBillId ->
                     navController.navigate(Routes.activeOrderDetail(draftBillId))
@@ -249,19 +229,25 @@ internal fun AppNavGraph(
                 navArgument("targetStep") {
                     type = NavType.IntType
                     defaultValue = 1
+                },
+                navArgument("quickMode") {
+                    type = NavType.IntType
+                    defaultValue = -1
                 }
             )
         ) { backStackEntry ->
             val resumePayment = backStackEntry.arguments?.getBoolean("resumePayment") == true
             val draftBillId = backStackEntry.arguments?.getLong("draftBillId") ?: -1L
             val targetStep = backStackEntry.arguments?.getInt("targetStep") ?: 1
+            val quickModeArg = backStackEntry.arguments?.getInt("quickMode") ?: -1
             NewBillScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize(),
                 navController = navController,
                 resumePendingPayment = resumePayment,
                 draftBillId = if (draftBillId == -1L) null else draftBillId,
-                initialStep = targetStep
+                initialStep = targetStep,
+                quickModeHint = if (quickModeArg >= 0) quickModeArg == 1 else null
             )
         }
         composable(Routes.OCR_SCANNER_PATTERN) { backStackEntry ->
@@ -332,12 +318,6 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable(Routes.KITCHEN_DISPLAY) {
-            KitchenDisplayScreen(
-                onBack = { navController.popBackStack() },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
         composable(Routes.NOTIFICATIONS, deepLinks = listOf(navDeepLink { uriPattern = "khanabook://notifications" })) {
             NotificationsScreen(
                 onBack = { navController.popBackStack() },
@@ -348,11 +328,6 @@ internal fun AppNavGraph(
             com.khanabook.lite.pos.feature.notifications.ui.NotificationPreferencesScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
-            )
-        }
-        composable(Routes.STAFF_PERMISSIONS) {
-            StaffPermissionScreen(
-                onBack = { navController.popBackStack() }
             )
         }
 
@@ -373,19 +348,6 @@ internal fun AppNavGraph(
         }
         composable(Routes.MERCHANT_AGREEMENT) {
             com.khanabook.lite.pos.feature.onboarding.ui.MerchantAgreementScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route = Routes.PAYMENT_LINK_PATTERN,
-            arguments = listOf(
-                navArgument("restaurantId") {
-                    type = NavType.LongType
-                    defaultValue = 0L
-                }
-            )
-        ) {
-            com.khanabook.lite.pos.feature.payments.ui.PaymentLinkScreen(
                 onBack = { navController.popBackStack() }
             )
         }

@@ -246,6 +246,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
         SET record_origin = 'local_created', record_scope = 'terminal_operational'
         WHERE restaurant_id = :restaurantId AND is_deleted = 0 AND is_synced = 1
           AND created_terminal_id = :terminalId
+          AND record_scope != 'terminal_operational'
     """)
     suspend fun reconcileLocalRecordScope(restaurantId: Long, terminalId: String): Int
 

@@ -55,7 +55,7 @@ fun MainScreen(
     initialHighlightBillId: Long? = null,
     initialSettingsSection: String? = null,
     navController: NavController,
-    onNewBill: () -> Unit,
+    onNewBill: (Boolean?) -> Unit,
     onActiveOrder: () -> Unit,
     onOpenActiveOrder: (Long) -> Unit = {},
     onResumePendingPayment: () -> Unit,
@@ -276,52 +276,3 @@ fun AnimatedTabIcon(item: TabItem, selected: Boolean, size: Dp) {
     )
 }
 
-@Composable
-fun AppBottomBar(
-    visibleTabs: List<TabItem>,
-    currentSelectedIndex: Int,
-    onTabSelected: (Int) -> Unit
-) {
-    val layout = KhanaBookTheme.layout
-    val typeScale = KhanaBookTheme.typeScale
-    // Scale icon size for tablets — default 24dp is too small on 10" screens at mdpi
-    val navIconSize = when (typeScale) {
-        TypeScaleTier.Tablet -> 28.dp
-        TypeScaleTier.LargePhone -> 26.dp
-        else -> 24.dp
-    }
-    // Scale label style — labelSmall is too tiny on tablets at arm's length
-    val navLabelStyle = when (typeScale) {
-        TypeScaleTier.Tablet -> MaterialTheme.typography.labelMedium
-        else -> MaterialTheme.typography.labelSmall
-    }
-
-    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
-    NavigationBar(
-        containerColor = DarkBrown1,
-        modifier = Modifier.navigationBarsPadding(),
-        tonalElevation = 0.dp
-    ) {
-        visibleTabs.forEachIndexed { index, item ->
-            NavigationBarItem(
-                selected = currentSelectedIndex == index,
-                onClick = { onTabSelected(index) },
-                icon = {
-                    AnimatedTabIcon(
-                        item = item,
-                        selected = currentSelectedIndex == index,
-                        size = navIconSize
-                    )
-                },
-                label = { Text(item.label, style = navLabelStyle) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = PrimaryGold,
-                    unselectedIconColor = TextLight.copy(alpha = 0.6f),
-                    selectedTextColor = PrimaryGold,
-                    unselectedTextColor = TextLight.copy(alpha = 0.6f),
-                    indicatorColor = PrimaryGold.copy(alpha = 0.1f)
-                )
-            )
-        }
-    }
-}

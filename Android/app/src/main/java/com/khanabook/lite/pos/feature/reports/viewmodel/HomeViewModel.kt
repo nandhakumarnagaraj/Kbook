@@ -151,9 +151,22 @@ class HomeViewModel @Inject constructor(
             initialValue = OrderPaymentFlowMode.PAY_BEFORE_FOOD
         )
 
+    /**
+     * Same signal as [quickModeEnabled], but null until the profile row has actually
+     * loaded. Hand this to NewBill so it can open in the right mode on the first frame
+     * instead of waiting on its own (slow) database read.
+     */
+    val quickModeResolved: StateFlow<Boolean?> = profileFlow
+        .map { it?.isQuickBillingEnabled }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     /** True when the restaurant has turned off collecting the customer mobile number (quick billing). */
-    val quickModeEnabled: StateFlow<Boolean> = profileFlow
-        .map { it?.collectCustomerNumber == false }
+    val quickModeEnabled: StateFlow<Boolean> = quickModeResolved
+        .map { it ?: false }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

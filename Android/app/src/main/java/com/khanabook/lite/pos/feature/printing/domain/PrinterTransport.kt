@@ -64,9 +64,13 @@ class WifiPrinterTransport @Inject constructor(
         val port = profile.port
         if (host.isBlank() || port !in 1..65535) return false
 
+        // P0.1 fail-open: the subnet guard is a discovery-side *guess* (mask
+        // reported by the OS/OEM can be wrong-but-plausible), so it must never
+        // hard-block a possible print. Downgraded to warn-only — the bounded
+        // connect timeout still caps a wrong-IP attempt, and the "Network
+        // Mismatch" badge in Settings remains the field-level signal.
         if (withContext(Dispatchers.IO) { networkPrinterScanner.isSameSubnet(host) }.not()) {
-            Log.w(TAG, "Wi-Fi print to $host:$port skipped — IP not on current local subnet")
-            return false
+            Log.w(TAG, "Wi-Fi print to $host:$port — IP not on current local subnet; attempting anyway")
         }
 
         if (withContext(Dispatchers.IO) { deliver(host, port, bytes) }) return true

@@ -66,6 +66,37 @@ class WifiPrinterTransportTest {
     }
 
     @Test
+    fun `wifi transport fails open when subnet guard disagrees`() = runTest {
+        // P0.1 fail-open: a wrong-but-plausible subnet guess from the OS/OEM
+        // must never hard-block a real print. When isSameSubnet says "mismatch",
+        // the transport logs the warning and still attempts delivery.
+        every { networkPrinterScanner.isSameSubnet(any()) } returns false
+        val payload = byteArrayOf(0x1b, 0x40, 0x0a)
+        ServerSocket(0).use { server ->
+            val received = CompletableFuture<ByteArray>()
+            val reader = Thread {
+                server.accept().use { socket ->
+                    received.complete(socket.getInputStream().readNBytes(payload.size))
+                }
+            }
+            reader.start()
+
+            val profile = PrinterProfileEntity(
+                role = PrinterRole.CUSTOMER.name,
+                name = "Subnet-Guard Mismatch Printer",
+                macAddress = "",
+                connectionType = PrinterConnectionType.WIFI.name,
+                host = "127.0.0.1",
+                port = server.localPort
+            )
+
+            assertTrue(WifiPrinterTransport(networkPrinterScanner).print(profile, payload))
+            assertArrayEquals(payload, received.get(2, TimeUnit.SECONDS))
+            reader.join(2_000)
+        }
+    }
+
+    @Test
     fun `wifi transport rejects an invalid endpoint`() = runTest {
         val profile = PrinterProfileEntity(
             role = PrinterRole.KITCHEN.name,

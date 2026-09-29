@@ -56,10 +56,12 @@ interface CategoryDao {
     suspend fun upsertSyncedCategories(items: List<com.khanabook.lite.pos.feature.menu.data.CategoryEntity>) {
         for (category in items) {
             val existing = category.serverId?.let { findCategoryByServerId(it, category.restaurantId) }
+                ?: getCategoryByName(category.name, category.restaurantId)
+                ?: getCategoryById(category.id, category.restaurantId)
             if (existing != null) {
-                updateCategory(category)
+                updateCategory(category.copy(id = existing.id, isDeleted = category.isDeleted))
             } else {
-                insertCategory(category)
+                insertCategory(category.copy(id = 0L))
             }
         }
     }

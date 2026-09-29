@@ -77,36 +77,65 @@ class MenuViewModel @Inject constructor(
     fun canDeleteItem(): Boolean = canWriteMasterData()
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val activeCategories: StateFlow<List<CategoryEntity>> = categoryRepository.getActiveCategoriesFlow()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    /**
+     * Catalog facts that must agree with each other, delivered as ONE emission.
+     *
+     * These used to be three independent `Lazily` StateFlows. On a cold screen they
+     * started independently, so "catalog finished loading" could arrive while the
+     * item count was still its initial 0 — which the billing screen read as
+     * "this restaurant has no menu items" and rendered the empty state on a fully
+     * stocked menu. One flow, one emission, no disagreeing frame.
+     */
+    data class CatalogState(
+        val loaded: Boolean = false,
+        val categories: List<CategoryEntity> = emptyList(),
+        val totalItemCount: Int = 0
+    )
 
-    val totalCategoriesCount: StateFlow<Int> = categoryRepository.getAllCategoriesFlow()
-        .map { it.size }
-        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
-
-    val totalItemsCount: StateFlow<Int> = menuRepository.getAllItemsFlow()
-        .map { it.filter { item -> !item.isDeleted }.size }
-        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
-
-    val isCatalogLoaded: StateFlow<Boolean> = combine(
+    val catalogState: StateFlow<CatalogState> = combine(
         categoryRepository.getAllCategoriesFlow(),
+        categoryRepository.getActiveCategoriesFlow(),
         menuRepository.getAllItemsFlow()
-    ) { _, _ -> true }
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    ) { _, active, items ->
+        CatalogState(
+            loaded = true,
+            categories = active,
+            totalItemCount = items.count { item -> !item.isDeleted }
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, CatalogState())
+
+    val activeCategories: StateFlow<List<CategoryEntity>> = catalogState
+        .map { it.categories }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val totalCategoriesCount: StateFlow<Int> = categories
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val totalItemsCount: StateFlow<Int> = catalogState
+        .map { it.totalItemCount }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val isCatalogLoaded: StateFlow<Boolean> = catalogState
+        .map { it.loaded }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val selectedCategoryId = MutableStateFlow<Long?>(null)
+    val isMenuItemsLoading = MutableStateFlow(true)
 
-    val menuItems: StateFlow<List<MenuWithVariants>> = combine(selectedCategoryId, categories) { selectedId, categoryList ->
+    val menuItems: StateFlow<List<MenuWithVariants>> = combine(selectedCategoryId, activeCategories) { selectedId, categoryList ->
             selectedId ?: categoryList.firstOrNull()?.id
         }
+        .filterNotNull()
         .distinctUntilChanged()
         .flatMapLatest { id ->
-            if (id != null) menuRepository.getMenuWithVariantsByCategoryFlow(id)
-            else flowOf(emptyList())
+            isMenuItemsLoading.value = true
+            menuRepository.getMenuWithVariantsByCategoryFlow(id)
+                .onEach { isMenuItemsLoading.value = false }
         }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val searchQuery = MutableStateFlow("")
 
@@ -116,12 +145,28 @@ class MenuViewModel @Inject constructor(
             if (query.isBlank()) flowOf(emptyList())
             else menuRepository.searchMenuWithVariants(query)
         }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val disabledItemsCount = MutableStateFlow(0)
     val menuAddOnsCount = MutableStateFlow(0)
     private val _isPhotoUploading = MutableStateFlow(false)
     val isPhotoUploading: StateFlow<Boolean> = _isPhotoUploading.asStateFlow()
+
+    init {
+        // Keep the selected category pointing at a real, visible tab without the
+        // screen having to bootstrap it. Previously this was seeded by a LaunchedEffect
+        // inside the composable, so the grid sat on `flowOf(emptyList())` until the UI
+        // ran — which rendered as an empty menu on entry.
+        viewModelScope.launch {
+            catalogState.collect { state ->
+                val current = selectedCategoryId.value
+                val available = state.categories
+                if (available.isNotEmpty() && (current == null || available.none { it.id == current })) {
+                    selectedCategoryId.value = available.first().id
+                }
+            }
+        }
+    }
 
     fun selectCategory(id: Long?) {
         selectedCategoryId.value = id

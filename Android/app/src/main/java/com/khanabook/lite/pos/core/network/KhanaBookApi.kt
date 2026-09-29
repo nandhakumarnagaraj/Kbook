@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.core.network
 import com.khanabook.lite.pos.feature.sync.data.*
-import com.khanabook.lite.pos.feature.inventory.data.*
 import com.khanabook.lite.pos.feature.billing.data.CounterResponse
 import com.khanabook.lite.pos.feature.auth.data.*
 
@@ -114,8 +113,6 @@ interface KhanaBookApi {
         @POST("api/v1/sync/itemvariant/push")
         suspend fun pushItemVariants(@Body variants: List<ItemVariantSyncDto>): PushSyncResponse
 
-        @POST("api/v1/sync/stocklog/push")
-        suspend fun pushStockLogs(@Body logs: List<StockLogSyncDto>): PushSyncResponse
 
         // ── Master pull (primary sync path) ─────────────────────────────────
         @GET("api/v1/sync/master/pull")
@@ -222,46 +219,6 @@ interface KhanaBookApi {
 
         @POST("api/v1/permissions/apply-template")
         suspend fun applyRoleTemplate(@Body body: ApplyTemplateBody)
-
-        // ── Inventory (raw materials + recipes) ──────────────────────────────
-
-        @GET("api/v1/inventory/materials")
-        suspend fun getRawMaterials(): List<RawMaterialDto>
-
-        @POST("api/v1/inventory/materials")
-        suspend fun createRawMaterial(@Body body: CreateMaterialBody): RawMaterialDto
-
-        @PUT("api/v1/inventory/materials/{id}")
-        suspend fun updateRawMaterial(@Path("id") id: Long, @Body body: UpdateMaterialBody): RawMaterialDto
-
-        @DELETE("api/v1/inventory/materials/{id}")
-        suspend fun deleteRawMaterial(@Path("id") id: Long)
-
-        @GET("api/v1/inventory/recipes/{menuItemId}")
-        suspend fun getItemRecipes(@Path("menuItemId") menuItemId: Long): List<ItemRecipeDto>
-
-        @POST("api/v1/inventory/recipes")
-        suspend fun createRecipeLine(@Body body: CreateRecipeBody): ItemRecipeDto
-
-        @DELETE("api/v1/inventory/recipes/{id}")
-        suspend fun deleteRecipeLine(@Path("id") id: Long)
-
-        // ── Analytics ────────────────────────────────────────────────────────
-
-        @GET("api/v1/analytics/item-sales")
-        suspend fun getItemSales(
-            @Query("from") from: String,
-            @Query("to") to: String
-        ): List<ItemSalesRow>
-
-        @GET("api/v1/analytics/hourly-sales")
-        suspend fun getHourlySales(@Query("date") date: String): List<HourlySalesRow>
-
-        @GET("api/v1/analytics/food-cost")
-        suspend fun getFoodCost(
-            @Query("from") from: String,
-            @Query("to") to: String
-        ): List<FoodCostRow>
 
         @GET("api/v1/business/staff")
         suspend fun getStaffList(): List<StaffListItem>

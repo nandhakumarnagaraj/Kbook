@@ -76,17 +76,18 @@ fun InAppNotificationBanner(
             onClick = onOpen,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
                 .shadow(6.dp, MaterialTheme.shapes.medium),
             shape = MaterialTheme.shapes.medium,
             color = DarkBrown2,
             border = BorderStroke(1.dp, accent.copy(alpha = 0.6f)),
         ) {
             Row(
+                // No background() here on purpose: the Surface already paints DarkBrown2.
+                // An unrounded background painted over the rounded Surface edge, which
+                // hid the 1dp accent border along the left and right sides.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkBrown2)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

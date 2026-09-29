@@ -51,7 +51,6 @@ import com.khanabook.lite.pos.feature.printing.ui.PrinterConfigView
 import com.khanabook.lite.pos.feature.settings.ui.SettingsHomeSection
 import com.khanabook.lite.pos.feature.auth.ui.SettingsListView
 import com.khanabook.lite.pos.feature.settings.ui.ShopConfigView
-import com.khanabook.lite.pos.feature.inventory.ui.InventoryScreen
 import com.khanabook.lite.pos.feature.settings.ui.TaxConfigView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,12 +151,6 @@ fun SettingsScreen(
             navController = navController,
             onBackClick = { selectSection("menu") },
             viewModel = menuViewModel
-        )
-        return
-    }
-    if (section == "inventory") {
-        InventoryScreen(
-            onBack = { selectSection("menu") }
         )
         return
     }

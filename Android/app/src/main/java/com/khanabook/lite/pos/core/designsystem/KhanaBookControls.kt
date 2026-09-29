@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.core.theme.BorderGold
@@ -112,13 +114,17 @@ fun KhanaPrimaryButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     leadingIcon: ImageVector? = null,
-    height: androidx.compose.ui.unit.Dp = 56.dp
+    height: Dp = Dp.Unspecified
 ) {
     val spacing = KhanaBookTheme.spacing
+    // Dp.Unspecified means "use the window's responsive control height". Callers
+    // can still pin an explicit height. heightIn (not height) so a raised OS font
+    // scale grows the button to fit its label instead of clipping it.
+    val resolvedHeight = if (height == Dp.Unspecified) spacing.buttonHeightLarge else height
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        modifier = modifier.height(height),
+        modifier = modifier.heightIn(min = resolvedHeight),
         colors = ButtonDefaults.buttonColors(
             containerColor = PrimaryGold,
             contentColor = DarkBrown1,
@@ -153,7 +159,7 @@ fun KhanaSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(KhanaBookTheme.spacing.buttonHeightLarge),
+        modifier = modifier.heightIn(min = KhanaBookTheme.spacing.buttonHeightLarge),
         border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = PrimaryGold,
@@ -181,7 +187,7 @@ fun KhanaDestructiveButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(KhanaBookTheme.spacing.buttonHeightLarge),
+        modifier = modifier.heightIn(min = KhanaBookTheme.spacing.buttonHeightLarge),
         colors = ButtonDefaults.buttonColors(
             containerColor = DangerRed,
             contentColor = TextLight,

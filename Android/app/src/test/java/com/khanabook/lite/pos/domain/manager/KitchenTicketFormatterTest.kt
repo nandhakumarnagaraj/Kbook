@@ -68,7 +68,7 @@ class KitchenTicketFormatterTest {
     }
 
     @Test
-    fun `event ticket shows type and kot revision`() {
+    fun `event ticket shows type and omits customer and kot fields`() {
         val bill = parcelBill()
         val printer = kitchenPrinter58()
         val output = String(
@@ -90,10 +90,12 @@ class KitchenTicketFormatterTest {
 
         assertTrue(output.contains("Order: 2026-09-25-77"))
         assertTrue(output.contains("Type: PARCEL"))
-        assertTrue(output.contains("KOT #4"))
         assertTrue(output.contains("ADDED ITEMS"))
         assertTrue("OUTPUT=[$output]", output.contains("Gobi 65"))
         assertFalse(output.contains("Invoice:"))
+        // Customer name and KOT revision are no longer printed on kitchen slips.
+        assertFalse(output.contains("KOT #"))
+        assertFalse(output.contains("Ravi"))
     }
 
     @Test
@@ -143,16 +145,19 @@ class KitchenTicketFormatterTest {
 
         assertTrue(output.contains("ADDED ITEMS"))
         assertTrue(output.contains("*** VOIDED ***"))
+        // Revision number rides the banner on the same line, not a "KOT #" header.
+        assertTrue("OUTPUT=[$output]", output.contains("5 ADDED ITEMS"))
+        assertTrue("OUTPUT=[$output]", output.contains("6 *** VOIDED ***"))
         assertTrue("OUTPUT=[$output]", output.contains("2 x Paneer Tikka"))
         assertTrue(output.contains("1 x Dosa"))
-        assertTrue(output.contains("KOT #6"))
+        assertFalse(output.contains("KOT #"))
         assertFalse(output.contains("Invoice:"))
         // One header only — Order line appears exactly once
         assertEquals(1, Regex("Order:").findAll(output).count())
     }
 
     @Test
-    fun `combined ticket carries cancel reason`() {
+    fun `cancel ticket shows banner and reason but no items`() {
         val bill = parcelBill()
         val output = String(
             KitchenTicketFormatter.formatCombinedTicket(
@@ -174,6 +179,32 @@ class KitchenTicketFormatterTest {
 
         assertTrue(output.contains("*** ORDER CANCELLED ***"))
         assertTrue(output.contains("Reason: Customer left"))
+        // A cancelled order must not print its food lines to the kitchen.
+        assertFalse("OUTPUT=[$output]", output.contains("Full Meals"))
+    }
+
+    @Test
+    fun `new ticket carries created banner`() {
+        val bill = parcelBill()
+        val output = String(
+            KitchenTicketFormatter.formatCombinedTicket(
+                bill = bill,
+                restaurantProfile = null,
+                printerProfile = kitchenPrinter58(),
+                sections = listOf(
+                    KotTicketSection(
+                        eventType = KotEventType.NEW,
+                        itemSnapshotJson = snapshot(quantity = 1, name = "Idli"),
+                        eventTimeMs = 1780000000000L,
+                        kotRevision = "1"
+                    )
+                )
+            ),
+            Charset.forName("GBK")
+        )
+
+        assertTrue("OUTPUT=[$output]", output.contains("1 *** CREATED ***"))
+        assertTrue(output.contains("1 x Idli"))
     }
 
     // ------------------------------------------------------------------

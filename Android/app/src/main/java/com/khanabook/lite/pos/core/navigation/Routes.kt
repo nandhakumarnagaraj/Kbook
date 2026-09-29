@@ -19,7 +19,6 @@ object Routes {
     // ── Onboarding ─────────────────────────────────────────────────────────────
     const val INITIAL_SYNC = "initial_sync"
     const val QUICK_START = "quick_start"
-    const val BACKGROUND_RELIABILITY = "background_reliability"
 
     // ── Main shell (bottom tabs) ───────────────────────────────────────────────
     const val MAIN_PATTERN =
@@ -38,26 +37,40 @@ object Routes {
 
     // ── Billing / orders ───────────────────────────────────────────────────────
     const val NEW_BILL_PATTERN =
-        "new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}"
+        "new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}&quickMode={quickMode}"
 
-    fun newBill(resumePayment: Boolean = false, draftBillId: Long? = null, targetStep: Int = 1): String =
-        "new_bill?resumePayment=$resumePayment&draftBillId=${draftBillId ?: -1L}&targetStep=$targetStep"
+    /**
+     * [quickMode] lets the caller hand NewBill a mode it has already resolved, so the screen
+     * can open correctly on its first frame. Null means "unknown" — the screen then resolves
+     * it from its own profile read. Encoded as -1 unknown / 0 normal / 1 quick because a
+     * plain boolean default cannot express "not known yet".
+     */
+    fun newBill(
+        resumePayment: Boolean = false,
+        draftBillId: Long? = null,
+        targetStep: Int = 1,
+        quickMode: Boolean? = null
+    ): String {
+        val encoded = when (quickMode) {
+            null -> -1
+            true -> 1
+            false -> 0
+        }
+        return "new_bill?resumePayment=$resumePayment&draftBillId=${draftBillId ?: -1L}&targetStep=$targetStep&quickMode=$encoded"
+    }
 
     const val ACTIVE_ORDERS = "active_orders"
     const val ACTIVE_ORDER_DETAIL_PATTERN = "active_order_detail/{billId}"
 
     fun activeOrderDetail(billId: Long): String = "active_order_detail/$billId"
 
-    const val ORDER_STATUS = "order_status"
     const val SEARCH_BILL = "search_bill"
 
     // ── Tools ──────────────────────────────────────────────────────────────────
     const val CALL_CUSTOMER = "call_customer"
     const val REPRINT_KDS = "reprint_kds"
-    const val KITCHEN_DISPLAY = "kitchen_display"
     const val NOTIFICATIONS = "notifications"
     const val NOTIFICATIONS_PREFERENCES = "notifications_preferences"
-    const val STAFF_PERMISSIONS = "staff_permissions"
 
     const val OCR_SCANNER_PATTERN = "ocr_scanner/{source}"
 
@@ -70,7 +83,4 @@ object Routes {
     const val EASEBUZZ_ONBOARDING = "easebuzz_onboarding"
     const val COMPLIANCE_DOCUMENTS = "compliance_documents"
     const val MERCHANT_AGREEMENT = "merchant_agreement"
-    const val PAYMENT_LINK_PATTERN = "payment_link?restaurantId={restaurantId}"
-
-    fun paymentLink(restaurantId: Long = 0L): String = "payment_link?restaurantId=$restaurantId"
 }

@@ -170,7 +170,7 @@ interface MenuDao {
         for (item in items) {
             val existing = item.serverId?.let { findItemByServerId(it, item.restaurantId) }
             if (existing != null) {
-                updateItem(item)
+                updateItem(item.copy(id = existing.id, isDeleted = item.isDeleted))
             } else if (item.serverId != null) {
                 // No local row carries this serverId. Before inserting a shadow
                 // copy, ADOPT an unsynced local row with the same identity
@@ -180,9 +180,14 @@ interface MenuDao {
                 val adoptable = findUnsyncedItemByName(item.restaurantId, item.categoryId, item.name)
                 if (adoptable != null) {
                     updateMenuItemServerIdByLocalId(adoptable.id, item.serverId!!, item.restaurantId)
-                    updateItem(item.copy(id = adoptable.id))
+                    updateItem(item.copy(id = adoptable.id, isDeleted = item.isDeleted))
                 } else {
-                    insertItem(item)
+                    val existingById = getItemById(item.id, item.restaurantId)
+                    if (existingById != null) {
+                        insertItem(item.copy(id = 0L))
+                    } else {
+                        insertItem(item)
+                    }
                 }
             } else {
                 insertItem(item)
@@ -199,6 +204,15 @@ interface MenuDao {
         WHERE restaurant_id = :restaurantId
           AND server_id IN (:serverIds)
           AND id NOT IN (:preferredIds)
+          AND server_id IN (
+              SELECT server_id
+              FROM menu_items
+              WHERE restaurant_id = :restaurantId
+                AND server_id IN (:serverIds)
+                AND is_deleted = 0
+              GROUP BY server_id
+              HAVING COUNT(*) > 1
+          )
     """)
     suspend fun hideDuplicateMenuItemsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long)
 
@@ -224,7 +238,7 @@ interface MenuDao {
             val existing = variant.serverId?.let { findVariantByServerId(it, variant.restaurantId) }
                 ?: getVariantById(variant.id, variant.restaurantId)
             if (existing != null) {
-                updateVariant(variant)
+                updateVariant(variant.copy(id = existing.id, isDeleted = variant.isDeleted))
             } else {
                 insertVariant(variant)
             }
@@ -240,6 +254,15 @@ interface MenuDao {
         WHERE restaurant_id = :restaurantId
           AND server_id IN (:serverIds)
           AND id NOT IN (:preferredIds)
+          AND server_id IN (
+              SELECT server_id
+              FROM item_variants
+              WHERE restaurant_id = :restaurantId
+                AND server_id IN (:serverIds)
+                AND is_deleted = 0
+              GROUP BY server_id
+              HAVING COUNT(*) > 1
+          )
     """)
     suspend fun hideDuplicateVariantsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long)
 }

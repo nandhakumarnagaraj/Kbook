@@ -167,18 +167,6 @@ fun PrinterTargetCard(
                         // In portrait, when there isn't enough width for all three, USB wraps to its
                         // own line below BT + Wi-Fi instead of squeezing.
                     ) {
-                        KhanaSecondaryButton(
-                            text = "BT",
-                            onClick = onSelectPrinter,
-                            leadingIcon = Icons.Default.Bluetooth,
-                            modifier = Modifier.weight(1f)
-                        )
-                        KhanaSecondaryButton(
-                            text = "Wi-Fi",
-                            onClick = onConfigureWifi,
-                            leadingIcon = Icons.Default.Wifi,
-                            modifier = Modifier.weight(1f)
-                        )
                         if (onSelectUsb != null) {
                             KhanaSecondaryButton(
                                 text = "USB",
@@ -187,7 +175,25 @@ fun PrinterTargetCard(
                                 modifier = Modifier.weight(1f)
                             )
                         }
+                        KhanaSecondaryButton(
+                            text = "Wi-Fi",
+                            onClick = onConfigureWifi,
+                            leadingIcon = Icons.Default.Wifi,
+                            modifier = Modifier.weight(1f)
+                        )
+                        KhanaSecondaryButton(
+                            text = "Bluetooth",
+                            onClick = onSelectPrinter,
+                            leadingIcon = Icons.Default.Bluetooth,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
+                    Text(
+                        "Contact us to find a compatible printer.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGold.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(vertical = spacing.extraSmall)
+                    )
                     KhanaPrimaryButton(
                         text = "Test Printer",
                         onClick = onTestPrint,

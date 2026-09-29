@@ -2,11 +2,6 @@
 
 package com.khanabook.lite.pos.feature.billing.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,12 +11,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,16 +32,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -74,7 +65,6 @@ import com.khanabook.lite.pos.core.theme.RichEspresso
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
-import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderDetailViewModel
 
@@ -115,10 +105,11 @@ fun ActiveOrderDetailScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = billWithItems?.bill?.dailyOrderDisplay ?: "Active Order",
+                        text = "OrderNo - ${billWithItems?.bill?.dailyOrderDisplay ?: "--"}",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -126,19 +117,7 @@ fun ActiveOrderDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1),
-                actions = {
-                    billWithItems?.let { detail ->
-                        Text(
-                            text = CurrencyUtils.formatPrice(detail.bill.totalAmount),
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            modifier = Modifier.padding(end = KhanaBookTheme.spacing.medium)
-                        )
-                    }
-                }
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
             )
         }
     ) { paddingValues ->
@@ -156,28 +135,17 @@ fun ActiveOrderDetailScreen(
                 }
             } else {
                 val listState = rememberLazyListState()
-                val lastItemIndex = detail.items.size + 1
-                val actionsOffScreen by remember(detail.items.size) {
-                    derivedStateOf {
-                        val visible = listState.layoutInfo.visibleItemsInfo
-                        visible.lastOrNull()?.index ?: 0 < lastItemIndex
-                    }
-                }
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {                    item(key = "info") {
-                        Text(
-                            text = detail.items.sumOf { it.quantity }.toString() + " items" +
-                                " • " + CurrencyUtils.formatPrice(detail.bill.totalAmount),
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall
+                ) {
+                    item(key = "items") {
+                        OrderItemsTable(
+                            items = detail.getConsolidatedItems(),
+                            total = detail.bill.totalAmount
                         )
-                    }
-                    items(detail.items) { item ->
-                        OrderItemLine(item)
                     }
                     item(key = "actions") {
                         DetailActionButtons(
@@ -187,27 +155,6 @@ fun ActiveOrderDetailScreen(
                             onCollectPayment = onCollectPayment,
                             onCancel = { showCancelDialog = true },
                             modifier = Modifier.padding(top = spacing.medium)
-                        )
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = actionsOffScreen,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    Surface(color = DarkBrown1) {
-                        DetailActionButtons(
-                            detail = detail,
-                            onAddItems = onAddItems,
-                            onUpdateKot = viewModel::updateKot,
-                            onCollectPayment = onCollectPayment,
-                            onCancel = { showCancelDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .padding(horizontal = spacing.medium, vertical = spacing.small)
                         )
                     }
                 }
@@ -267,6 +214,7 @@ private fun DetailActionButtons(
 ) {
     val spacing = KhanaBookTheme.spacing
     val newItems = detail.items.filterNot { it.sentToKot }
+    val buttonHeight = KhanaBookTheme.layout.actionButtonHeight
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing.small)
@@ -277,7 +225,7 @@ private fun DetailActionButtons(
         ) {
             Button(
                 onClick = { onAddItems(detail.bill.id) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryGold,
                     contentColor = DarkBrown1
@@ -291,7 +239,7 @@ private fun DetailActionButtons(
             Button(
                 onClick = onUpdateKot,
                 enabled = newItems.isNotEmpty(),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryGold,
                     contentColor = DarkBrown1,
@@ -311,7 +259,7 @@ private fun DetailActionButtons(
         ) {
             Button(
                 onClick = { onCollectPayment(detail.bill.id) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SuccessGreen,
                     contentColor = TextLight
@@ -322,16 +270,18 @@ private fun DetailActionButtons(
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                 Text("Payment", fontWeight = FontWeight.Bold)
             }
-            OutlinedButton(
+            Button(
                 onClick = onCancel,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f)),
+                modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DangerRed,
+                    contentColor = TextLight
+                ),
                 shape = KhanaRadii.md
             ) {
                 Icon(Icons.Default.Cancel, null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Cancel Order")
+                Text("Cancel Order", fontWeight = FontWeight.Bold)
             }
         }
     }
