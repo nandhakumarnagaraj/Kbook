@@ -72,9 +72,14 @@ constructor(
               // otherwise a food truck / stall device on battery silently stops syncing.
               .build()
 
+      // 15 minutes is WorkManager's enforced minimum periodic interval — the OS
+      // silently clamped the old 2-minute request up to this anyway (log: "Interval
+      // duration lesser than minimum allowed; Changed to 900000"). Declaring the
+      // true value keeps the request honest and drops the system warning. Fast
+      // sync-after-event is covered by the one-time network-reconnect path instead.
       val syncRequest =
               PeriodicWorkRequestBuilder<MasterSyncWorker>(
-                              2,
+                              15,
                               TimeUnit.MINUTES
                       )
                       .setConstraints(constraints)
