@@ -9,11 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,7 +61,6 @@ import com.khanabook.lite.pos.core.designsystem.KhanaStatusKind
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
 import com.khanabook.lite.pos.core.theme.BorderGold
 import com.khanabook.lite.pos.core.theme.CardBG
-import com.khanabook.lite.pos.core.theme.DangerRed
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
@@ -72,8 +69,6 @@ import com.khanabook.lite.pos.core.theme.RichEspresso
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
-import com.khanabook.lite.pos.core.theme.WarningYellow
-import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderSummaryRow
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrdersViewModel
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
@@ -203,130 +198,88 @@ private fun ActiveOrderCard(
         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.26f)),
         shape = KhanaRadii.md
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(spacing.medium)
         ) {
-            val ageMinutes = (System.currentTimeMillis() - bill.updatedAt) / 60_000L
-            val barColor = when {
-                ageMinutes < 5 -> null
-                ageMinutes < 15 -> WarningYellow
-                else -> DangerRed
-            }
-            if (barColor != null) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(barColor)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                        contentDescription = null,
+                        tint = PrimaryGold,
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+                    )
+                    Text(
+                        text = "OrderNo: ${bill.dailyOrderDisplay}",
+                        color = TextGold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                KhanaStatusBadge(
+                    text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
+                    kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success,
+                    filled = true
                 )
             }
+            Spacer(modifier = Modifier.height(spacing.small))
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(spacing.medium),
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                Button(
+                    onClick = onPayment,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    shape = KhanaRadii.md,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                                contentDescription = null,
-                                tint = PrimaryGold,
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
-                            )
-                            Text(
-                                text = bill.dailyOrderDisplay,
-                                color = TextGold,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            KhanaStatusBadge(
-                                text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
-                                kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success,
-                                filled = true
-                            )
-                        }
-                        Text(
-                            text = CurrencyUtils.formatPrice(bill.totalAmount),
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(spacing.extraSmall))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Button(
-                            onClick = onPayment,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                            shape = KhanaRadii.md,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                        ) {
-                            Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                if (row.requiresPaymentRecovery) "Recover" else "Payment",
-                                color = TextLight,
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                softWrap = false
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = onMoreActions,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                            border = BorderStroke(1.dp, BorderGold),
-                            shape = KhanaRadii.md,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                        ) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = PrimaryGold, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "More Actions",
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                softWrap = false
-                            )
-                        }
-                    }
+                    Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (row.requiresPaymentRecovery) "Recover" else "Payment",
+                        color = TextLight,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        softWrap = false
+                    )
+                }
+                OutlinedButton(
+                    onClick = onMoreActions,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, BorderGold),
+                    shape = KhanaRadii.md,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                ) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = PrimaryGold, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "More Actions",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        softWrap = false
+                    )
                 }
             }
         }
     }
 }
 
-private fun orderTypeLabelScreen(value: String?): String {
-    return when (value?.trim()?.lowercase()) {
-        "takeaway", "take_away" -> "Takeaway"
-        "parcel", "online", "online_order" -> "Online Order"
-        "dine_in", "dine-in" -> "Dine-in"
-        else -> "Dine-in"
-    }
-}

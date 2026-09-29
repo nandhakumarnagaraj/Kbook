@@ -1,9 +1,11 @@
 @file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.feature.billing.ui
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -93,16 +95,26 @@ fun MenuSelectionStep(
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
-    val totalItemsCount by menuViewModel.totalItemsCount.collectAsStateWithLifecycle()
-    val isCatalogLoaded by menuViewModel.isCatalogLoaded.collectAsStateWithLifecycle()
+    val catalog by menuViewModel.catalogState.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val isMenuItemsLoading by menuViewModel.isMenuItemsLoading.collectAsStateWithLifecycle()
     val connectionStatus by billingViewModel.connectionStatus.collectAsStateWithLifecycle()
     val isOffline = connectionStatus == ConnectionStatus.Unavailable
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
-    val hasNoMenuItems = isCatalogLoaded && totalItemsCount == 0 && searchQuery.isBlank()
+    // "Loaded" and the item count now come from one atomic emission, so this can no
+    // longer be true while the count is still its initial zero.
+    val hasNoMenuItems = catalog.loaded && catalog.totalItemCount == 0 && searchQuery.isBlank()
+    // [DEBUG-kbcat]
+    LaunchedEffect(catalog.loaded, catalog.totalItemCount, categories.size, displayItems.size, selectedCategoryId, hasNoMenuItems, isMenuItemsLoading) {
+        Log.i(
+            "KB-CATALOG",
+            "[DEBUG-kbcat] loaded=${catalog.loaded} total=${catalog.totalItemCount} cats=${categories.size} " +
+                "display=${displayItems.size} selCat=$selectedCategoryId loading=$isMenuItemsLoading noMenu=$hasNoMenuItems"
+        )
+    }
     
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
@@ -111,20 +123,13 @@ fun MenuSelectionStep(
     val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
     val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
     val paymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
-    val canSaveTableOrder = currentOrderType == "dine_in" &&
+    val canSaveTableOrder = currentOrderType == OrderType.DINE_IN &&
         (paymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD || billingViewModel.editingBillId != null)
     val addItemWithFeedback = { addToCart: () -> Unit ->
         performMenuItemAdd(
             addToCart = addToCart,
             playFeedback = onItemAddedFeedback
         )
-    }
-
-    LaunchedEffect(categories) {
-        val current = selectedCategoryId
-        if (categories.isNotEmpty() && (current == null || categories.none { it.id == current })) {
-            menuViewModel.selectCategory(categories.first().id)
-        }
     }
 
     val derivedItemCount by remember {
@@ -176,15 +181,15 @@ fun MenuSelectionStep(
                 ) {
                     OrderTypeButton(
                         text = "Dine-In",
-                        isSelected = currentOrderType == "dine_in",
+                        isSelected = currentOrderType == OrderType.DINE_IN,
                         modifier = Modifier.weight(1f),
-                        onClick = { billingViewModel.setOrderType("dine_in") }
+                        onClick = { billingViewModel.setOrderType(OrderType.DINE_IN) }
                     )
                     OrderTypeButton(
                         text = "Takeaway",
-                        isSelected = currentOrderType == "takeaway",
+                        isSelected = currentOrderType == OrderType.TAKEAWAY,
                         modifier = Modifier.weight(1f),
-                        onClick = { billingViewModel.setOrderType("takeaway") }
+                        onClick = { billingViewModel.setOrderType(OrderType.TAKEAWAY) }
                     )
                 }
             }
@@ -276,7 +281,9 @@ fun MenuSelectionStep(
                 }
             }
 
-            if (!isCatalogLoaded && categories.isEmpty() && displayItems.isEmpty()) {
+            val isInitialLoading = (!catalog.loaded || (isMenuItemsLoading && displayItems.isEmpty())) && searchQuery.isBlank()
+
+            if (isInitialLoading) {
                 SkeletonMenuScreen(modifier = Modifier.weight(1f))
             } else if (hasNoMenuItems) {
                 NoMenuItemsEmptyState(modifier = Modifier.weight(1f))

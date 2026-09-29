@@ -12,15 +12,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.PrimaryGold
 import com.khanabook.lite.pos.core.theme.TextGold
+import com.khanabook.lite.pos.core.theme.TypeScaleTier
 
 @Composable
 fun StatItem(
     label: String, 
     value: String, 
     modifier: Modifier = Modifier,
-    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    large: Boolean = false
 ) {
     val spacing = KhanaBookTheme.spacing
+    // `large` stat values are the hero numbers of a summary card: keep titleMedium on
+    // CompactPhone (where three values share one row) but scale up on roomier tiers
+    // so the money figures outrank the section title above them.
+    val largeStatStyle = if (!large || KhanaBookTheme.typeScale == TypeScaleTier.CompactPhone) {
+        MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+    } else {
+        MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+    }
     Column(
         modifier = modifier,
         horizontalAlignment = horizontalAlignment
@@ -28,7 +38,9 @@ fun StatItem(
         Text(
             text = value,
             color = PrimaryGold,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            style = if (large) largeStatStyle else {
+                MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+            },
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis
@@ -36,7 +48,11 @@ fun StatItem(
         Text(
             text = label,
             color = TextGold,
-            style = MaterialTheme.typography.labelSmall,
+            style = if (large) {
+                MaterialTheme.typography.labelMedium
+            } else {
+                MaterialTheme.typography.labelSmall
+            },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = spacing.extraSmall)

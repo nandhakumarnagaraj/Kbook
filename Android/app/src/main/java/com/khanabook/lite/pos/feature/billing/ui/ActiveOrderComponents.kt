@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.feature.billing.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.feature.billing.viewmodel.BillingViewModel.CartItem
 import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
@@ -70,8 +71,8 @@ fun BillInfoHeader(
                 KhanaStatusBadge(
                     text =
                         when (orderType.trim().lowercase()) {
-                            "dine_in", "dine-in" -> "DINE-IN"
-                            "online", "online_order", "parcel" -> "ONLINE ORDER"
+                            in OrderType.DINE_IN_ALIASES -> "DINE-IN"
+                            in OrderType.ONLINE_ALIASES -> "ONLINE ORDER"
                             else -> "TAKEAWAY"
                         },
                     kind = KhanaStatusKind.Info
@@ -192,19 +193,11 @@ fun CompactMenuSection(
     val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
-    val totalItemsCount by menuViewModel.totalItemsCount.collectAsStateWithLifecycle()
-    val isCatalogLoaded by menuViewModel.isCatalogLoaded.collectAsStateWithLifecycle()
+    val catalog by menuViewModel.catalogState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val gridColumns = layout.menuGridColumns
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
-
-    LaunchedEffect(categories) {
-        val current = selectedCategoryId
-        if (categories.isNotEmpty() && (current == null || categories.none { it.id == current })) {
-            menuViewModel.selectCategory(categories.first().id)
-        }
-    }
 
     OutlinedTextField(
         value = searchQuery,
@@ -260,7 +253,7 @@ fun CompactMenuSection(
         }
     }
 
-    if (!isCatalogLoaded && categories.isEmpty()) {
+    if (!catalog.loaded && categories.isEmpty()) {
         Box(modifier = Modifier.height(120.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = PrimaryGold)
         }

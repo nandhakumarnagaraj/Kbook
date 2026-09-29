@@ -34,6 +34,7 @@ import androidx.compose.animation.core.tween
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.OrderStatus
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.util.DateUtils
@@ -392,10 +393,10 @@ fun OrderRowItem(
     // restaurant owner will not parse.
     val toastScope = rememberCoroutineScope()
     val onEditBlocked: () -> Unit = {
-        val message = if (row.orderStatus == OrderStatus.COMPLETED) {
-            "Paid orders can't be edited."
-        } else {
-            "Only today's orders can be edited."
+        val message = when {
+            isCancelled -> "Cancelled orders can't be changed."
+            row.orderStatus == OrderStatus.COMPLETED -> "Paid orders can't be edited."
+            else -> "Only today's orders can be edited."
         }
         toastScope.launch { KhanaToast.show(message, ToastKind.Warning) }
     }
@@ -404,7 +405,7 @@ fun OrderRowItem(
     // marked Completed from the report (that would skip payment capture).
     // They may only be cancelled from here.
     val isPayAfterFoodDraft = row.orderStatus == OrderStatus.DRAFT &&
-        row.orderType.trim().lowercase() in setOf("dine_in", "dine-in", "dinein") &&
+        row.orderType.trim().lowercase() in OrderType.DINE_IN_ALIASES &&
         com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
             .fromDbValue(profile?.orderPaymentFlowMode) ==
             com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode.PAY_AFTER_FOOD
@@ -437,8 +438,7 @@ fun OrderRowItem(
                 Surface(
                     onClick = {
                         when {
-                            isCancelled -> Unit
-                            !isSameDayAsTaken -> onEditBlocked()
+                            isCancelled || !isSameDayAsTaken -> onEditBlocked()
                             isPayAfterFoodDraft -> Unit
                             else -> payModeExpanded = true
                         }
@@ -481,8 +481,7 @@ fun OrderRowItem(
                 Surface(
                     onClick = {
                         when {
-                            isCancelled -> Unit
-                            !isSameDayAsTaken -> onEditBlocked()
+                            isCancelled || !isSameDayAsTaken -> onEditBlocked()
                             else -> statusExpanded = true
                         }
                     },
@@ -517,7 +516,10 @@ fun OrderRowItem(
                             onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
                         )
                     }
-                    if (row.orderStatus != OrderStatus.DRAFT) {
+                    // Mirror of the guard above: a completed order is settled, so it
+                    // must not be demoted back to Pending. Together the two rules
+                    // mean no row can move backwards through the status flow.
+                    if (row.orderStatus != OrderStatus.COMPLETED && row.orderStatus != OrderStatus.DRAFT) {
                         DropdownMenuItem(
                             text = { Text("Pending", color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }

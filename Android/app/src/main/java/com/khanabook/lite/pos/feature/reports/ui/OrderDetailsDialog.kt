@@ -21,6 +21,7 @@ import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.util.DateUtils
@@ -101,8 +102,8 @@ fun OrderDetailsDialog(
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
                     Spacer(modifier = Modifier.height(spacing.small))
                     val orderTypeDisplay = when (bill.orderType.trim().lowercase()) {
-                        "dine_in", "dine-in" -> "Dine-in"
-                        "takeaway", "take_away" -> "Takeaway"
+                        in OrderType.DINE_IN_ALIASES -> "Dine-in"
+                        in OrderType.TAKEAWAY_ALIASES -> "Takeaway"
                         else -> bill.orderType.replaceFirstChar { it.uppercase() }
                     }
                     DetailRow("Order Type:", orderTypeDisplay)

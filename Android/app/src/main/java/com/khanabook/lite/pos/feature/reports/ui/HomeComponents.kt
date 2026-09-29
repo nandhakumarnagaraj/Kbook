@@ -149,7 +149,8 @@ internal fun SyncStatusHeader(
                                 color = containerColor.copy(alpha = 0.5f),
                                 blurRadius = 4f
                             ) else null
-                        )
+                        ),
+                        maxLines = 1
                     )
                 }
             }
@@ -209,9 +210,10 @@ internal fun HomeActionCard(
                     Text(
                         text = subtitle,
                         color = TextGold.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = KhanaBookTheme.spacing.hairline)
                     )
                 }
             }

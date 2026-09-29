@@ -45,6 +45,25 @@ enum class PaymentStatus(val dbValue: String) {
     }
 }
 
+/**
+ * Canonical order-type values stored in the bills table, plus the alias sets
+ * found in historical rows. Feature code must reference these instead of raw
+ * string literals so the DB contract lives in exactly one place.
+ */
+object OrderType {
+    const val DINE_IN = "dine_in"
+    const val TAKEAWAY = "takeaway"
+
+    /** Every value that means Dine-in, including legacy spellings. */
+    val DINE_IN_ALIASES = setOf(DINE_IN, "dine-in", "dinein")
+
+    /** Every value that means Takeaway, including legacy spellings. */
+    val TAKEAWAY_ALIASES = setOf(TAKEAWAY, "take_away")
+
+    /** Every value that means an online/aggregator order. */
+    val ONLINE_ALIASES = setOf("parcel", "online", "online_order")
+}
+
 enum class FoodType(val dbValue: String, val displayLabel: String) {
     VEG("veg", "Veg"),
     NON_VEG("nonveg", "Non-Veg");

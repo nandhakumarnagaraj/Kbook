@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.reports.viewmodel.HomeViewModel
@@ -42,7 +44,7 @@ import androidx.compose.animation.core.*
 
 @Composable
 fun HomeScreen(
-    onNewBill: () -> Unit,
+    onNewBill: (Boolean?) -> Unit,
     onActiveOrder: () -> Unit,
     onOpenActiveOrder: (Long) -> Unit = {},
     onResumePendingPayment: () -> Unit,
@@ -66,6 +68,7 @@ fun HomeScreen(
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val orderPaymentFlowMode by viewModel.orderPaymentFlowMode.collectAsStateWithLifecycle()
     val quickModeEnabled by viewModel.quickModeEnabled.collectAsStateWithLifecycle()
+    val quickModeResolved by viewModel.quickModeResolved.collectAsStateWithLifecycle()
     val showActiveOrders = orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
@@ -82,10 +85,12 @@ fun HomeScreen(
     // card interiors and typography follow the resolved window tier.
     val sectionSpacing = layout.sectionSpacing
 
-    var headerVisible by remember { mutableStateOf(false) }
-    var statsVisible by remember { mutableStateOf(false) }
-    var primaryVisible by remember { mutableStateOf(false) }
-    var actionsVisible by remember { mutableStateOf(false) }
+    // rememberSaveable: entrance flags and the expanded-warnings state must survive
+    // configuration changes (rotation) instead of replaying the intro and re-collapsing.
+    var headerVisible by rememberSaveable { mutableStateOf(false) }
+    var statsVisible by rememberSaveable { mutableStateOf(false) }
+    var primaryVisible by rememberSaveable { mutableStateOf(false) }
+    var actionsVisible by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         headerVisible = true
@@ -137,10 +142,10 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = if (layout.compactHomeHeight) spacing.small else spacing.medium),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing.hairline)) {
                             if (!layout.compactHomeHeight) {
                                 Text(
                                     text = greeting,
@@ -178,49 +183,52 @@ fun HomeScreen(
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(
-                                modifier = Modifier.padding(
-                                    horizontal = layout.cardPaddingHorizontal,
-                                    vertical = layout.cardPaddingVertical
-                                )
-                            ) {
-                                Text(
-                                    text = "Today's Summary",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                Spacer(modifier = Modifier.height(spacing.small))
-
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                    verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                    maxItemsInEachRow = 3
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(
+                                            horizontal = layout.cardPaddingHorizontal,
+                                            vertical = spacing.smallMedium
+                                        ),
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
-                                    val statMod = Modifier.weight(1f)
-                                    StatItem("Orders", stats.orderCount.toString(), statMod)
-                                    StatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), statMod)
-                                    StatItem("Customers", stats.customerCount.toString(), statMod)
-                                    StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
-                                    StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
-                                    StatItem("KOT Pending", stats.kdsPendingCount.toString(), statMod)
+                                    Text(
+                                        text = "Today's Summary",
+                                        color = TextGold,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                                        verticalArrangement = Arrangement.spacedBy(spacing.small),
+                                        maxItemsInEachRow = 3
+                                    ) {
+                                        val statMod = Modifier.weight(1f)
+                                        StatItem("Orders", stats.orderCount.toString(), statMod, large = true)
+                                        StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod, large = true)
+                                        StatItem("KOT Pending", stats.kdsPendingCount.toString(), statMod, large = true)
+                                    }
                                 }
-                            }
                         }
                     }
                 }
             }
 
-            AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                Column(verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
+            val hasPaymentWarning = pendingOnlinePayments.isNotEmpty()
+            // Sync quarantine is a technical/owner concern — hidden from staff.
+            val hasSyncWarning = viewModel.isOwner && quarantinedSyncCount > 0
+            val warningCount = (if (hasPaymentWarning) 1 else 0) + (if (hasSyncWarning) 1 else 0)
+            val hasClockDriftWarning = viewModel.isOwner && clockDriftWarning
+            var warningsExpanded by rememberSaveable { mutableStateOf(false) }
+            val showFullWarnings = !layout.compactHomeHeight || warningsExpanded
+
+            if (warningCount > 0 || hasClockDriftWarning) {
+                AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
+                    // smallMedium inside the alert group — sectionSpacing only belongs
+                    // BETWEEN sections, not between stacked warning cards.
+                    Column(verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)) {
                     // Warning cards: on compact-height windows show a collapsed chip to
                     // preserve the height budget for all 5 actions. Tap expands details.
-                    val hasPaymentWarning = pendingOnlinePayments.isNotEmpty()
-                    // Sync quarantine is a technical/owner concern — hidden from staff.
-                    val hasSyncWarning = viewModel.isOwner && quarantinedSyncCount > 0
-                    val warningCount = (if (hasPaymentWarning) 1 else 0) + (if (hasSyncWarning) 1 else 0)
-                    var warningsExpanded by remember { mutableStateOf(false) }
-                    val showFullWarnings = !layout.compactHomeHeight || warningsExpanded
 
                     if (warningCount > 0 && !showFullWarnings) {
                         // Compact collapsed chip
@@ -402,16 +410,19 @@ fun HomeScreen(
                             }
                         }
                     }
+                    }
+                    }
+                }
 
-
-                    val primaryActionLabel = if (orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
-                        "Create New Order"
-                    } else {
-                        "Create New Bill"
+                AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
+                    val primaryActionLabel = when {
+                        quickModeEnabled -> "Create Quick Bill"
+                        orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD -> "Create New Order"
+                        else -> "Create New Bill"
                     }
                     KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { onNewBill() },
+                        onClick = { onNewBill(quickModeResolved) },
                         colors = CardDefaults.cardColors(containerColor = PrimaryGold),
                         shape = KhanaRadii.xl
                     ) {
@@ -455,14 +466,17 @@ fun HomeScreen(
                             }
                         }
                     }
-                    // Actions live as separate top-level children so BoundedVerticalSpaceBetween
-                    // distributes remaining height evenly across ALL section gaps.
-                    AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
+
+                }
+
+                // Actions live as separate top-level children so BoundedVerticalSpaceBetween
+                // distributes remaining height evenly across ALL section gaps.
+                AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
                         val activeSubtitle = when {
                             activeDraftBills.isEmpty() -> "No active orders"
                             else -> {
-                                val dineIn = activeDraftBills.count { it.orderType == "dine_in" }
-                                val takeaway = activeDraftBills.count { it.orderType == "takeaway" }
+                                val dineIn = activeDraftBills.count { it.orderType == OrderType.DINE_IN }
+                                val takeaway = activeDraftBills.count { it.orderType == OrderType.TAKEAWAY }
                                 buildString {
                                     append("${activeDraftBills.size} order${if (activeDraftBills.size > 1) "s" else ""} waiting")
                                     val parts = mutableListOf<String>()
@@ -521,11 +535,8 @@ fun HomeScreen(
                             }
                         }
                     } // end AnimatedVisibility(actionsVisible)
-                }
-            }
         }
     }
-
 }
 
 

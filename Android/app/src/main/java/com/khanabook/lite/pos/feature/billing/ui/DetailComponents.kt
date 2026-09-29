@@ -25,6 +25,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,10 +34,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.domain.model.PaymentStatus
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.util.DateUtils
@@ -328,13 +331,154 @@ internal fun OrderItemLine(item: BillItemEntity) {
     }
 }
 
+@Composable
+internal fun OrderItemsTable(
+    items: List<BillItemEntity>,
+    total: String,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    val snoWidth = layout.orderTableIndexWidth
+    val countWidth = layout.orderTableCountWidth
+    val priceWidth = layout.orderTablePriceWidth
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = KhanaRadii.md
+    ) {
+        Column(modifier = Modifier.padding(spacing.medium)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "##",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.width(snoWidth)
+                )
+                Text(
+                    text = "Items",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "Count",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(countWidth)
+                )
+                Text(
+                    text = "Price",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(priceWidth)
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = spacing.extraSmall),
+                color = BorderGold.copy(alpha = 0.4f)
+            )
+            items.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.extraSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = (index + 1).toString(),
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.width(snoWidth)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.itemName,
+                            color = TextLight,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (!item.variantName.isNullOrBlank() || !item.specialInstruction.isNullOrBlank()) {
+                            Text(
+                                text = listOfNotNull(
+                                    item.variantName?.takeIf { it.isNotBlank() },
+                                    item.specialInstruction?.takeIf { it.isNotBlank() }
+                                ).joinToString(" · "),
+                                color = TextGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Text(
+                        text = item.quantity.toString(),
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(countWidth)
+                    )
+                    Text(
+                        text = CurrencyUtils.formatPrice(item.itemTotal),
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(priceWidth)
+                    )
+                }
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(top = spacing.small),
+                color = BorderGold.copy(alpha = 0.6f)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = CurrencyUtils.formatPrice(total),
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(priceWidth)
+                )
+            }
+        }
+    }
+}
+
 internal fun activeOrderTitle(detail: BillWithItems): String {
     val bill = detail.bill
     val name = bill.customerName?.takeIf { it.isNotBlank() }
     return when {
-        bill.orderType.equals("takeaway", ignoreCase = true) -> "Takeaway Active Order"
-        bill.orderType.equals("parcel", ignoreCase = true) -> "Online Order Active Order"
-        bill.orderType.equals("online", ignoreCase = true) -> "Online Order Active Order"
+        bill.orderType.equals(OrderType.TAKEAWAY, ignoreCase = true) -> "Takeaway Active Order"
+        OrderType.ONLINE_ALIASES.any { bill.orderType.equals(it, ignoreCase = true) } -> "Online Order Active Order"
         !name.isNullOrBlank() -> "$name Active Order"
         else -> "Table Active Order"
     }
@@ -342,9 +486,8 @@ internal fun activeOrderTitle(detail: BillWithItems): String {
 
 internal fun orderTypeLabel(value: String?): String {
     return when (value?.trim()?.lowercase()) {
-        "takeaway", "take_away" -> "Takeaway"
-        "parcel", "online", "online_order" -> "Online Order"
-        "dine_in", "dine-in" -> "Dine-in"
+        in OrderType.TAKEAWAY_ALIASES -> "Takeaway"
+        in OrderType.ONLINE_ALIASES -> "Online Order"
         else -> "Dine-in"
     }
 }

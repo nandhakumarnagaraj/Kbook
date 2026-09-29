@@ -66,12 +66,15 @@ data class ResponsiveLayout(
         TypeScaleTier.Tablet -> 16.dp
     } + if (isTallScreen) 4.dp else 0.dp
 
-    // Hero action (primary CTA) interior padding — taller hierarchy anchor
+    // Hero action (primary CTA) interior padding — taller hierarchy anchor.
+    // Tablet capped at 28 (+8 on tall screens = 36dp): the previous 48dp base made
+    // the hero over half vertical padding on tall tablets — taller than its own
+    // icon container, reading as empty space rather than emphasis.
     val primaryCardVertical: Dp = when (typeScaleTier) {
         TypeScaleTier.CompactPhone -> 20.dp
         TypeScaleTier.MediumPhone -> 24.dp
         TypeScaleTier.LargePhone -> 28.dp
-        TypeScaleTier.Tablet -> 48.dp
+        TypeScaleTier.Tablet -> 28.dp
     } + if (isTallScreen) 8.dp else 0.dp
 
     // Action card icon containers — larger touch visuals as space grows
@@ -185,6 +188,32 @@ data class ResponsiveLayout(
         WindowWidthTier.Medium -> 600.dp
         WindowWidthTier.Expanded -> 680.dp
     }
+
+    // ─── Action button height ───────────────────────────────────────────────
+    // Row-of-buttons CTAs (order detail: Modify / Update KOT / Payment / Cancel).
+    // Grows with the type tier so the taller Tablet/LargePhone text has room
+    // inside the button instead of crowding it. 48dp is the Material minimum
+    // touch target, so it is the floor on every device — shrinking below that
+    // would trade a POS tap target for visual breathing room, which is the
+    // wrong trade for a server hitting this with one hand.
+    //
+    // Consumers must apply this as heightIn(min = ...) rather than height(...),
+    // so the button can still grow when the OS font scale is raised.
+    val actionButtonHeight: Dp = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 48.dp
+        TypeScaleTier.MediumPhone -> 52.dp
+        TypeScaleTier.LargePhone -> 56.dp
+        TypeScaleTier.Tablet -> 60.dp
+    }
+
+    // ─── Order table column widths ──────────────────────────────────────────
+    // Proportional to window width so the item-name column keeps a usable share
+    // on a 320dp budget phone and gains real estate on a tablet. Clamped so the
+    // index column never over-widens and the price column never truncates a
+    // normal amount. No hardcoded breakpoints — adapts to any device.
+    val orderTableIndexWidth: Dp = (screenWidthDp * 0.075f).dp.coerceIn(24.dp, 40.dp)
+    val orderTableCountWidth: Dp = (screenWidthDp * 0.10f).dp.coerceIn(40.dp, 64.dp)
+    val orderTablePriceWidth: Dp = (screenWidthDp * 0.19f).dp.coerceIn(76.dp, 140.dp)
 
     // ─── Semantic auth spacing ─────────────────────────────────────────────
     // These resolve to existing spacing scale values per height tier.

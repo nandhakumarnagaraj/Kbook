@@ -230,11 +230,11 @@ class BillingViewModel @Inject constructor(
     private val _editingBillId = MutableStateFlow<Long?>(null)
     val editingBillId: Long? get() = _editingBillId.value
 
-    private val _orderType = MutableStateFlow("dine_in")
+    private val _orderType = MutableStateFlow(OrderType.DINE_IN)
     val orderType: StateFlow<String> = _orderType
 
     val quickMode: StateFlow<Boolean> = _cachedProfile
-        .map { it?.collectCustomerNumber == false }
+        .map { it?.isQuickBillingEnabled ?: false }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun setOrderType(type: String) {
@@ -452,13 +452,12 @@ class BillingViewModel @Inject constructor(
         _customerWhatsapp.value = whatsapp
     }
 
-    fun resetForNewBill() {
+    fun resetForNewBill(isQuickMode: Boolean) {
         invalidateRestoration()
         cartManager.clear()
-        val isQuickMode = quickMode.value
         _customerName.value = if (isQuickMode) "Quick Bill" else ""
         _customerWhatsapp.value = ""
-        _orderType.value = if (isQuickMode) "takeaway" else "dine_in"
+        _orderType.value = if (isQuickMode) OrderType.TAKEAWAY else OrderType.DINE_IN
         paymentStateManager.reset()
         _lastBill.value = null
         _error.value = null
@@ -466,9 +465,9 @@ class BillingViewModel @Inject constructor(
         savedStateHandle[PENDING_ONLINE_BILL_ID] = null
     }
 
-    fun applyQuickBillDefaultsIfNeeded() {
-        if (quickMode.value) {
-            _orderType.value = "takeaway"
+    fun applyQuickBillDefaultsIfNeeded(isQuickMode: Boolean) {
+        if (isQuickMode) {
+            _orderType.value = OrderType.TAKEAWAY
             _customerName.value = "Quick Bill"
             _customerWhatsapp.value = ""
         }
@@ -1012,7 +1011,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     _editingBillId.value = billId
                     _customerName.value = billWithItems.bill.customerName ?: ""
                     _customerWhatsapp.value = billWithItems.bill.customerWhatsapp ?: ""
-                    _orderType.value = billWithItems.bill.orderType ?: "dine_in"
+                    _orderType.value = billWithItems.bill.orderType ?: OrderType.DINE_IN
 
                     val cartList = billWithItems.items.map { billItem ->
                         val menuItem = menuRepository.getItemById(billItem.menuItemId ?: 0L)
@@ -1059,7 +1058,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
         cartManager.clear()
         _customerName.value = ""
         _customerWhatsapp.value = ""
-        _orderType.value = "dine_in"
+        _orderType.value = OrderType.DINE_IN
         paymentStateManager.setPersistedPaymentTotal(null)
         paymentStateManager.setPaymentRecovery(PaymentRecoveryAssessment.Empty)
     }
@@ -1121,7 +1120,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     invoiceSeries = invoice?.invoiceSeries,
                     invoiceSequence = invoice?.invoiceSequence,
                     invoiceNumber = invoice?.invoiceNumber,
-                    orderType = "dine_in",
+                    orderType = OrderType.DINE_IN,
                     customerName = tableName.ifBlank { "Table" },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                     subtotal = finalSummary.subtotal,

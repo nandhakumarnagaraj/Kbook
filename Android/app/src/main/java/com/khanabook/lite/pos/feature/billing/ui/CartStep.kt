@@ -28,6 +28,7 @@ import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.util.ValidationUtils
 import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.feature.billing.viewmodel.BillingViewModel
 import kotlinx.coroutines.flow.flowOf
 
@@ -46,21 +47,21 @@ fun CustomerInfoStep(
 
     val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsStateWithLifecycle(emptyList())
     val recentDineInCustomers by (billingViewModel?.recentDineInCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsStateWithLifecycle(emptyList())
-    val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf("dine_in")).collectAsStateWithLifecycle("dine_in")
-    var selectedOrderType by remember { mutableStateOf(if (currentOrderType == "takeaway") "takeaway" else "dine_in") }
+    val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf(OrderType.DINE_IN)).collectAsStateWithLifecycle(OrderType.DINE_IN)
+    var selectedOrderType by remember { mutableStateOf(if (currentOrderType == OrderType.TAKEAWAY) OrderType.TAKEAWAY else OrderType.DINE_IN) }
 
     LaunchedEffect(Unit) {
         billingViewModel?.loadRecentCustomers()
         billingViewModel?.loadRecentDineInCustomers()
     }
     LaunchedEffect(currentOrderType) {
-        selectedOrderType = if (currentOrderType == "takeaway") "takeaway" else "dine_in"
+        selectedOrderType = if (currentOrderType == OrderType.TAKEAWAY) OrderType.TAKEAWAY else OrderType.DINE_IN
     }
 
     val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
     val isNextEnabled = when (selectedOrderType) {
-        "dine_in" -> ValidationUtils.isValidPhone(whatsapp)
-        "takeaway" -> ValidationUtils.isValidPhone(whatsapp)
+        OrderType.DINE_IN -> ValidationUtils.isValidPhone(whatsapp)
+        OrderType.TAKEAWAY -> ValidationUtils.isValidPhone(whatsapp)
         else -> false
     }
 
@@ -130,19 +131,19 @@ fun CustomerInfoStep(
         ) {
             OrderTypeButton(
                 text = "Dine-In",
-                isSelected = selectedOrderType == "dine_in",
+                isSelected = selectedOrderType == OrderType.DINE_IN,
                 modifier = Modifier.weight(1f)
             ) {
-                selectedOrderType = "dine_in"
-                billingViewModel?.setOrderType("dine_in")
+                selectedOrderType = OrderType.DINE_IN
+                billingViewModel?.setOrderType(OrderType.DINE_IN)
             }
             OrderTypeButton(
                 text = "Takeaway",
-                isSelected = selectedOrderType == "takeaway",
+                isSelected = selectedOrderType == OrderType.TAKEAWAY,
                 modifier = Modifier.weight(1f)
             ) {
-                selectedOrderType = "takeaway"
-                billingViewModel?.setOrderType("takeaway")
+                selectedOrderType = OrderType.TAKEAWAY
+                billingViewModel?.setOrderType(OrderType.TAKEAWAY)
             }
         }
         Spacer(modifier = Modifier.height(spacing.large))
@@ -221,7 +222,7 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.large))
         }
 
-        if (recentCustomers.isNotEmpty() && selectedOrderType == "takeaway") {
+        if (recentCustomers.isNotEmpty() && selectedOrderType == OrderType.TAKEAWAY) {
             Text(
                 "Recent Customers",
                 color = TextGold,
@@ -264,7 +265,7 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.medium))
         }
 
-        if (selectedOrderType == "dine_in") {
+        if (selectedOrderType == OrderType.DINE_IN) {
             if (recentDineInCustomers.isNotEmpty()) {
                 Text(
                     "Recent Tables",
@@ -338,7 +339,7 @@ fun CustomerInfoStep(
                 },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
             )
-        } else if (selectedOrderType == "takeaway") {
+        } else if (selectedOrderType == OrderType.TAKEAWAY) {
             OutlinedTextField(
                 value = whatsapp,
                 onValueChange = {
