@@ -57,6 +57,16 @@ ordering · inventory/stock ledger (REMOVED 2026-09-29 — `stock_logs` table dr
 menu-item stock *fields* remain as menu config) · staff management UI (permissions come from the
 server via PermissionManager) · payment links · kitchen display screen.
 
+**Data visibility model (do NOT re-implement in the wrong layer):**
+- **Android is terminal-scoped.** Each terminal sees ONLY its own bills — enforced in the DAO
+  (`BillDao.getBillsByDateRange` filters `created_terminal_id = :terminalId`). Never add
+  terminal/role checks in Android UI for "cross-terminal" edits; cross-terminal bills are not
+  present in the data to begin with.
+- **Web-admin is the common place.** The restaurant-wide bill view (all terminals) lives ONLY
+  in the web-admin dashboard, where server-side role checks (OWNER / SHOP_ADMIN) apply.
+- Status/mode edit rules on Android (same-day, cancelled-excluded) are defined in
+  `ReportViews.kt` `OrderRowItem` — they are self-scoped by the DAO filter above.
+
 **Role model (enforced, do not weaken):**
 - `OWNER` — writes everything: restaurant, menu, payment/Easebuzz, tax, printer config
 - `SHOP_STAFF` — read restaurant/menu/payment/tax config; may write printer config and app
