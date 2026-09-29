@@ -300,8 +300,16 @@ public class BillSyncService {
      * that apart from a cashier genuinely cancelling a completed bill.
      *
      * <p>{@code statusVersion} carries the intent: the device increments it only on an
-     * explicit user action. A strictly greater incoming version is a deliberate edit and
-     * is applied; anything else is treated as stale and the finalized state is restored.
+     * explicit user action. A greater incoming version is a deliberate edit and is
+     * applied. An EQUAL version is also accepted when the transition is a forward move
+     * into a finalized state (e.g. draft→completed) or an owner-style cancellation of a
+     * non-finalized bill — this closes the same-day edit race where the server row was
+     * created in the same sync cycle (server version advanced to match the device, so a
+     * strictly-greater check rejected the legitimate edit and the next pull reverted the
+     * status on the device, the "status change comes back old form" defect).
+     * Demotions out of finalized states and un-cancel transitions still require a
+     * strictly greater version, and a gateway-paid bill can NEVER be reverted regardless
+     * of version — those protections are unchanged.
      */
     public void protectBillState(Bill incomingBill, Bill existingBill) {
         if (isDeliberateStatusEdit(incomingBill, existingBill)) {
@@ -315,6 +323,20 @@ public class BillSyncService {
             incomingBill.setPaidAt(existingBill.getPaidAt());
             incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
             incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
+        }
+        // Equal-version forward transitions are deliberate same-day edits, not stale
+        // pushes: the device did read the server's current version, then edited on top
+        // of it (server row created/advanced in the same sync cycle). Demotions OUT of
+        // finalized states and un-cancel transitions are NOT forward — they keep
+        // requiring a strictly greater version below.
+        boolean equalVersionForwardTransition =
+                versionOf(incomingBill) == versionOf(existingBill)
+                        && (isFinalizedOrderStatus(incomingBill.getOrderStatus())
+                            || "cancelled".equalsIgnoreCase(incomingBill.getOrderStatus()))
+                        && !isFinalizedOrderStatus(existingBill.getOrderStatus())
+                        && !"cancelled".equalsIgnoreCase(existingBill.getOrderStatus());
+        if (equalVersionForwardTransition) {
+            return;
         }
         // orderStatus: completed/paid/cancelled are terminal.
         // A stale device push must not revert completed → draft.
