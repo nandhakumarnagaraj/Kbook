@@ -69,17 +69,29 @@ public class InventoryService {
 	 */
 	@Transactional
 	public void deductForFinalizedBill(Bill bill) {
-		if (bill == null || Boolean.TRUE.equals(bill.getInventoryDeducted())) {
+		if (bill == null) {
 			return;
 		}
 		Long tenantId = bill.getRestaurantId();
 		if (tenantId == null || bill.getId() == null) {
 			return;
 		}
+		// Idempotency guard reads the COMMITTED truth, not the in-memory copy: the
+		// instance handed to us may be a detached payload copy, or a stale outer
+		// persistence-context copy whose flag write was rolled back with a failed
+		// commit (the 2026-09-29 false-409 defect — deduction then retried on every
+		// push). In-memory true still short-circuits for in-process callers.
+		if (Boolean.TRUE.equals(bill.getInventoryDeducted())
+				|| billRepository.isInventoryDeducted(bill.getId())) {
+			return;
+		}
 
 		List<BillItem> items = billItemRepository.findByServerBillIdAndIsDeletedFalseOrderById(bill.getId());
 		if (items.isEmpty()) {
-			bill.setInventoryDeducted(true);
+			// No recipes/no items: still persist the flag so the deduction is never
+			// retried (the old code set it only in memory and returned — the flag was
+			// never persisted on this path).
+			billRepository.markInventoryDeducted(bill.getId());
 			return;
 		}
 
@@ -138,10 +150,21 @@ public class InventoryService {
 			});
 		}
 
-		bill.setInventoryDeducted(true);
-		billRepository.save(bill); // explicit: payload copies are detached after merge()
-		log.info("Inventory deducted for billId={} restaurantId={} materials={}",
-				bill.getId(), tenantId, deductions.size());
+		// Persist the flag WITHOUT mutating the passed Bill instance. Mutating it
+		// dirties the caller's persistence-context copy; after the inner REQUIRES_NEW
+		// batch save committed and bumped @Version, the outer flush of that stale copy
+		// matched 0 rows and the whole push was answered 409 — rolling back the stock
+		// deduction AND the flag with it (2026-09-29 defect D1/D2). The version-neutral
+		// bulk UPDATE sidesteps the persistence context entirely: no dirty copy, and
+		// flag + stock still commit atomically in this transaction.
+		billRepository.markInventoryDeducted(bill.getId());
+		if (deductions.isEmpty()) {
+			log.info("Inventory deduction completed for billId={} restaurantId={} materials=0 (no recipes configured) — flag persisted",
+					bill.getId(), tenantId);
+		} else {
+			log.info("Inventory deducted for billId={} restaurantId={} materials={}",
+					bill.getId(), tenantId, deductions.size());
+		}
 	}
 
 	/**

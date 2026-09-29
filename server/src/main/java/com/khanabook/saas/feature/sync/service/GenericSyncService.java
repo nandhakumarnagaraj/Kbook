@@ -1196,29 +1196,27 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			}
 		}
 		// ── P0-2: Bill state machine protection ────────────────────────────────
-		// Prevent LWW from reverting finalized bill state. Once a bill reaches
-		// a terminal state (paid, completed, cancelled), a stale device push
-		// with a higher timestamp must not undo the transition.
+		// ORDER STATUS IS DELIBERATELY NOT RESTORED HERE. This method runs BEFORE
+		// BillSyncService.protectBillState in the save path and has no access to
+		// statusVersion intent; an unconditional finalized-status restore here erased the
+		// device's edit before the version-aware guard could judge it — every status
+		// change (even a strictly-newer deliberate one) was swallowed and saved as the
+		// old status, and the device's pull then "reverted" it (the 2026-09-29
+		// "status change not persistent" defect). protectBillState is now the SINGLE
+		// authority for orderStatus: stale pushes are restored AND loudly rejected
+		// (STALE_STATUS_PUSH); deliberate edits (strictly newer, or equal-version
+		// forward transitions) pass through.
 		if (incoming instanceof Bill incomingBill && existing instanceof Bill existingBill) {
-			// paymentStatus: "paid" is terminal. Gateway webhook sets it.
-			// A stale device push must not revert paid → pending.
+			// paymentStatus: "paid" is terminal. Gateway webhook sets it, and the device
+			// vocabulary (pending/success/failed) can never legitimately produce "paid",
+			// so this restore can only ever correct a device that has not seen the
+			// webhook payment — unconditional is safe.
 			if ("paid".equalsIgnoreCase(existingBill.getPaymentStatus())
 					&& !"paid".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
 				incomingBill.setPaymentStatus(existingBill.getPaymentStatus());
 				incomingBill.setPaidAt(existingBill.getPaidAt());
 				incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
 				incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
-			}
-			// orderStatus: completed/paid/cancelled are terminal.
-			// A stale device push must not revert completed → draft.
-			if (isFinalizedOrderStatus(existingBill.getOrderStatus())
-					&& !isFinalizedOrderStatus(incomingBill.getOrderStatus())) {
-				incomingBill.setOrderStatus(existingBill.getOrderStatus());
-			}
-			// cancelled is also terminal — don't un-cancel
-			if ("cancelled".equalsIgnoreCase(existingBill.getOrderStatus())
-					&& !"cancelled".equalsIgnoreCase(incomingBill.getOrderStatus())) {
-				incomingBill.setOrderStatus(existingBill.getOrderStatus());
 			}
 			// ── Settlement and inventory ledger are server-owned, always ──────────
 			// None of these exist on BillDTO, so BeanUtils leaves them null and the save

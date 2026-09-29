@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,6 +20,28 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Bill b WHERE b.id = :id")
     Optional<Bill> findByIdForUpdate(@Param("id") Long id);
+
+    /**
+     * DB-level idempotency check for inventory deduction. The in-memory flag on a
+     * Bill instance may be stale (detached payload copies, or a managed copy in an
+     * outer persistence context whose flag write was rolled back with a failed
+     * commit), so the guard must read the committed truth.
+     */
+    @Query("SELECT COUNT(b) > 0 FROM Bill b WHERE b.id = :id AND b.inventoryDeducted = true")
+    boolean isInventoryDeducted(@Param("id") Long id);
+
+    /**
+     * Version-neutral flag write (defence in depth, 2026-09-29): persisting
+     * inventory_deducted through a managed entity dirtied the caller's stale
+     * persistence-context copy; when an inner REQUIRES_NEW batch save had already
+     * committed and bumped @Version, the outer flush matched 0 rows and the whole
+     * request was answered 409 even though the status change had committed. A bulk
+     * UPDATE bypasses the persistence context entirely — no dirty copy, no stale
+     * version, and the idempotency guard itself survives any future regression.
+     */
+    @Modifying
+    @Query("UPDATE Bill b SET b.inventoryDeducted = true WHERE b.id = :id AND (b.inventoryDeducted = false OR b.inventoryDeducted IS NULL)")
+    int markInventoryDeducted(@Param("id") Long id);
 
     Optional<Bill> findByIdAndRestaurantId(Long id, Long restaurantId);
 

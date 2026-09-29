@@ -27,14 +27,17 @@ jobs:
           cache: maven
 
       # TODO(re-include excluded classes): these 6 classes already fail on main
-      # (pre-existing bill-push 409s + Easebuzz webhook notification arg drift).
+      # (Easebuzz webhook notification arg drift). The four bill-push 409 classes
+      # were un-excluded on 2026-09-29: the second-writer defect behind their false
+      # 409s is fixed (preserveServerOwnedState no longer restores orderStatus;
+      # inventory deduction is version-neutral), all 35 pass locally.
       # They are excluded so CI starts green; REMOVE them from this list as each
       # is fixed — do not add new ones.
       - name: Run server tests
         working-directory: server
         run: >
           ./mvnw -B test
-          -Dtest='!EasebuzzWebhookTest,!EasebuzzWebhookServiceTest,!TerminalIsolationIntegrationTest,!MasterSyncTerminalIsolationTest,!P0FixesIntegrationTest,!LwwConflictResolutionIntegrationTest'
+          -Dtest='!EasebuzzWebhookTest,!EasebuzzWebhookServiceTest'
           -Dsurefire.failIfNoSpecifiedTests=false
 
   android:
