@@ -72,15 +72,6 @@ internal fun RestaurantPaymentFlowSelector(
             Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Billing Mode", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    if (selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
-                        "Dine-in orders can stay open until payment."
-                    } else {
-                        "Orders collect payment before food is served."
-                    },
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
         PaymentFlowToggleSwitch(
@@ -142,15 +133,6 @@ internal fun CustomerNumberCollectorSelector(
             Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Collect Customer Number?", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    if (checked) {
-                        "Billing asks for the customer's mobile number."
-                    } else {
-                        "Billing skips customer details for faster checkout."
-                    },
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
             KhanaBookSwitch(
                 checked = checked,

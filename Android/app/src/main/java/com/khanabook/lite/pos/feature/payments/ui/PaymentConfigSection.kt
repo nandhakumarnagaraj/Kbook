@@ -272,7 +272,7 @@ fun PaymentConfigView(
                         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            "SOON",
+                            "coming soon",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryGold,

@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.net.Uri
 import com.khanabook.lite.pos.R
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
@@ -107,6 +108,7 @@ fun ShopConfigView(
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
     var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
+    var pendingLogoUri by remember { mutableStateOf<Uri?>(null) }
 
     val profileLogoUrl by viewModel.profile.collectAsStateWithLifecycle()
     val logoUrl = profileLogoUrl?.logoUrl
@@ -270,9 +272,8 @@ fun ShopConfigView(
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            viewModel.uploadLogo(context, it) {
-                logoUpdateTrigger = System.currentTimeMillis()
-            }
+            pendingLogoUri = it
+            logoUpdateTrigger = System.currentTimeMillis()
         }
     }
 
@@ -303,7 +304,8 @@ fun ShopConfigView(
                         .border(1.dp, Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    val logoModel = logoUrl?.takeIf { it.isNotBlank() }
+                    val logoModel = pendingLogoUri?.toString()
+                        ?: logoUrl?.takeIf { it.isNotBlank() }
                         ?: AppAssetStore.resolveAssetPath(logoPath)
                     if (!logoModel.isNullOrBlank()) {
                         var isLogoLoading by remember { mutableStateOf(true) }
@@ -340,7 +342,7 @@ fun ShopConfigView(
                     border = BorderStroke(1.dp, PrimaryGold),
                     shape = KhanaRadii.xl,
                     enabled = !logoUploadLoading && !readOnly
-                ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = PrimaryGold) }
+                ) { Text("Change Logo", color = PrimaryGold) }
             }
 
             if (isCompactWidth) {
@@ -498,7 +500,8 @@ fun ShopConfigView(
                             updatedProfile?.let {
                                 focusManager.clearFocus()
                                 onSaved()
-                                viewModel.saveProfile(it)
+                                viewModel.saveProfileWithLogo(context, it, pendingLogoUri)
+                                pendingLogoUri = null
                             }
                         }
                 },

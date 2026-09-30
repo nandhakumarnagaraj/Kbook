@@ -591,6 +591,56 @@ class BillRepository(
         }
     }
 
+    /**
+     * Number of bills whose KOT the kitchen has not yet received, bounded to
+     * [startMillis]..[endMillis] and - unless [allTerminals] is set - to the
+     * current counter.
+     *
+     * Callers that merely want "is anything still queued?" should use
+     * [KitchenPrintQueueRepository.getPendingCountFlow] instead: that one is
+     * deliberately all-time, because a reprint/flush action must drain every
+     * backlog regardless of when the bill was raised. This method is for
+     * *summary cards*, which are day- and scope-bounded by definition.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun countBillsWithPendingKdsForDay(
+        startMillis: Long,
+        endMillis: Long,
+        allTerminals: Boolean
+    ): Flow<Int> =
+        sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            countBillsWithPendingKdsForDay(
+                restaurantId = restaurantId,
+                terminalId = currentTerminalScope(),
+                startMillis = startMillis,
+                endMillis = endMillis,
+                allTerminals = allTerminals
+            )
+        }
+
+    /**
+     * Scope/terminal routing for [countBillsWithPendingKdsForDay], split out so the
+     * decision is a pure function of its arguments. SessionManager cannot be mocked in
+     * pure JUnit (final `restaurantId` StateFlow), so keeping this separate is what
+     * makes the routing testable at all.
+     *
+     * An unresolved terminal scope yields 0 rather than falling back to the shop-wide
+     * query: leaking other terminals' pending KOTs into this counter would be worse
+     * than reporting none.
+     */
+    internal fun countBillsWithPendingKdsForDay(
+        restaurantId: Long,
+        terminalId: String,
+        startMillis: Long,
+        endMillis: Long,
+        allTerminals: Boolean
+    ): Flow<Int> = when {
+        allTerminals ->
+            billDao.countBillsWithPendingKdsForDayAllTerminals(restaurantId, startMillis, endMillis)
+        terminalId.isBlank() -> flowOf(0)
+        else -> billDao.countBillsWithPendingKdsForDay(restaurantId, terminalId, startMillis, endMillis)
+    }
+
     suspend fun getUnsentItemsForBill(billId: Long): List<BillItemEntity> {
         return billDao.getUnsentItemsForBill(billId, sessionManager.getRestaurantId())
     }

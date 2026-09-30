@@ -213,10 +213,21 @@ class HomeViewModel @Inject constructor(
                 SummaryScope.THIS_COUNTER -> billRepository.getBillsByDateRange(start, end)
                 SummaryScope.SHOP_TOTAL -> billRepository.getShopBillsByDateRange(start, end)
             }
-            
+
+            // The KOT counter is rendered as a sibling of Orders / Avg Order inside the
+            // same "Today's Summary" card, so it must honour the same day window and the
+            // same scope switch. The queue's all-time count is right for flush/reprint
+            // actions but wrong for a summary tile - an old un-dispatched ticket would
+            // otherwise keep today's card permanently non-zero.
+            val pendingKdsFlow = billRepository.countBillsWithPendingKdsForDay(
+                startMillis = start,
+                endMillis = end,
+                allTerminals = scope == SummaryScope.SHOP_TOTAL
+            )
+
             combine(
                 billsFlow,
-                kitchenPrintQueueRepository.getPendingCountFlow()
+                pendingKdsFlow
             ) { bills, kdsPendingCount ->
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }

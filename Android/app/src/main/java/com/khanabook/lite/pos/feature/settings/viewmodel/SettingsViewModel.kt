@@ -1216,6 +1216,50 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Uploads a pending shop logo (if any) and then saves the profile — both
+     * commits happen atomically so the logo and the rest of the shop config
+     * reach the server together, gated behind the Save button.
+     */
+    fun saveProfileWithLogo(context: Context, profile: RestaurantProfileEntity, logoUri: Uri?) {
+        if (_saveProfileLoading.value) return
+        if (!sessionManager.canWriteConfig()) {
+            _saveProfileError.value = "Only the owner can change restaurant, payment, or tax settings."
+            return
+        }
+        viewModelScope.launch {
+            _saveProfileLoading.value = true
+            _saveProfileError.value = null
+            _saveProfileSuccess.value = false
+            try {
+                val finalProfile = if (logoUri != null) {
+                    val part = withContext(Dispatchers.IO) {
+                        MultipartUtils.imageUriToPart(context.applicationContext, logoUri)
+                    }
+                    val url = restaurantRepository.uploadLogo(part)
+                    profile.copy(logoUrl = url)
+                } else {
+                    profile
+                }
+                restaurantRepository.saveProfile(finalProfile)
+                val newNumber = finalProfile.whatsappNumber ?: ""
+                userRepository.currentUser.value?.let { current ->
+                    userRepository.updateWhatsappNumber(current.id, newNumber)
+                    userRepository.setCurrentUser(current.copy(whatsappNumber = newNumber))
+                }
+                _saveProfileSuccess.value = true
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Profile save with logo failed", e)
+                _saveProfileError.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Couldn't save settings. Please try again."
+                )
+            } finally {
+                _saveProfileLoading.value = false
+            }
+        }
+    }
+
     fun addCategory(name: String) {
         viewModelScope.launch {
             categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = true, createdAt = System.currentTimeMillis()))

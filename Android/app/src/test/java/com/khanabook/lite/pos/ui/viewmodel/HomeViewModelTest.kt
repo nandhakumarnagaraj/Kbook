@@ -66,6 +66,9 @@ class HomeViewModelTest {
         every { networkMonitor.status } returns flowOf(ConnectionStatus.Available)
         every { billRepository.getUnsyncedCount() } returns flowOf(0)
         every { kitchenPrintQueueRepository.getPendingCountFlow() } returns flowOf(0)
+        // The "Today's Summary" KOT tile reads the day/scope-bounded count, not the
+        // queue's all-time one. Stub it explicitly so the combine in todayStats emits.
+        every { billRepository.countBillsWithPendingKdsForDay(any(), any(), any()) } returns flowOf(0)
         
         val profile = RestaurantProfileEntity(
             id = 1,

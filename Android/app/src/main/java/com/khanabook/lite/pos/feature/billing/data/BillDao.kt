@@ -13,6 +13,7 @@ import com.khanabook.lite.pos.feature.billing.data.BillFinalizationOutcome
 import com.khanabook.lite.pos.feature.billing.data.BillFinalizationResult
 import com.khanabook.lite.pos.feature.payments.domain.PaymentRecoveryAssessment
 import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
+import com.khanabook.lite.pos.feature.printing.data.KitchenPrintDispatchStatus
 import kotlinx.coroutines.flow.Flow
 
 data class BillIdDuplicateGroup(
@@ -1365,4 +1366,58 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         """
     )
     suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity>
+
+    /**
+     * KOT-pending count for the "Today's Summary" tile, scoped to one counter.
+     *
+     * The tile is rendered inside the same card as the Orders / Avg Order stats,
+     * which are day- and scope-bounded - so this must be too, otherwise a stale
+     * queued ticket from a previous week keeps the card permanently non-zero.
+     *
+     * COUNT(DISTINCT kpq.bill_id): the queue is unique on (bill_id, printer_mac), so
+     * a bill that failed against two kitchen printers occupies two rows but is a
+     * single pending KOT.
+     *
+     * Statuses are enumerated rather than written as `!= 'SENT'` so that adding a
+     * dead-letter status later cannot silently inflate this counter.
+     */
+    @Query(
+        """
+        SELECT COUNT(DISTINCT kpq.bill_id)
+        FROM kitchen_print_queue kpq
+        INNER JOIN bills b ON b.id = kpq.bill_id
+        WHERE kpq.dispatch_status IN ('${KitchenPrintDispatchStatus.PENDING}', '${KitchenPrintDispatchStatus.RETRYING}')
+          AND kpq.restaurant_id = :restaurantId
+          AND b.is_deleted = 0
+          AND b.created_at BETWEEN :startMillis AND :endMillis
+          AND b.created_terminal_id = :terminalId
+        """
+    )
+    fun countBillsWithPendingKdsForDay(
+        restaurantId: Long,
+        terminalId: String,
+        startMillis: Long,
+        endMillis: Long
+    ): Flow<Int>
+
+    /**
+     * Shop-wide variant of [countBillsWithPendingKdsForDay] for the SHOP_TOTAL summary
+     * scope - every terminal in the restaurant, still bounded to the selected day.
+     */
+    @Query(
+        """
+        SELECT COUNT(DISTINCT kpq.bill_id)
+        FROM kitchen_print_queue kpq
+        INNER JOIN bills b ON b.id = kpq.bill_id
+        WHERE kpq.dispatch_status IN ('${KitchenPrintDispatchStatus.PENDING}', '${KitchenPrintDispatchStatus.RETRYING}')
+          AND kpq.restaurant_id = :restaurantId
+          AND b.is_deleted = 0
+          AND b.created_at BETWEEN :startMillis AND :endMillis
+        """
+    )
+    fun countBillsWithPendingKdsForDayAllTerminals(
+        restaurantId: Long,
+        startMillis: Long,
+        endMillis: Long
+    ): Flow<Int>
 }

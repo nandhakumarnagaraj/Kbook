@@ -307,6 +307,11 @@ private fun KdsBillCard(
     val spacing = KhanaBookTheme.spacing
     val bill = billWithItems.bill
     val isCancelled = bill.orderStatus == "cancelled"
+    // Mirrors the rule used by the Active Orders list badge: the kitchen has not
+    // received the order while any live item is still flagged unsent. sent_to_kot is
+    // only set once the kitchen print has actually succeeded (PrintRouter), so this
+    // is real delivery state rather than an assumption.
+    val kotPending = billWithItems.items.filterNot { it.isDeleted }.any { !it.sentToKot }
     Column(modifier = Modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -333,8 +338,16 @@ private fun KdsBillCard(
                         )
                     }
                     KhanaStatusBadge(
-                        text = if (isCancelled) "CANCELLED" else "KDS PENDING",
-                        kind = if (isCancelled) KhanaStatusKind.Danger else KhanaStatusKind.Warning,
+                        text = when {
+                            isCancelled -> "CANCELLED"
+                            kotPending -> "KOT PENDING"
+                            else -> "KOT SENT"
+                        },
+                        kind = when {
+                            isCancelled -> KhanaStatusKind.Danger
+                            kotPending -> KhanaStatusKind.Warning
+                            else -> KhanaStatusKind.Success
+                        },
                         filled = false
                     )
                 }
