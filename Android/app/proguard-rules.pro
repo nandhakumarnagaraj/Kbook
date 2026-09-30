@@ -6,10 +6,39 @@
 
 # â”€â”€ Retrofit / Gson (data models must survive obfuscation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Keep all fields in remote DTO / API model classes for Gson deserialization
+# NOTE: The vertical-slice restructure (99c320d8) moved all DTOs out of
+# data.remote.api / data.remote.dto into feature.*.data and core.network.
+# The old package rules below became dead letters, so R8 renamed/stripped Gson
+# request fields in minified release builds -> server saw {} bodies and
+# returned 400 "idToken is required" / "loginId is required" (AAB-only bug).
+
+# 1) Canonical Gson rules: any @SerializedName-annotated field survives
+#    (allowobfuscation is safe: the JSON name comes from the annotation,
+#    not the field name).
+-keepclasseswithmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class * extends com.google.gson.reflect.TypeToken
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.TypeAdapter
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * extends com.google.gson.JsonSerializer
+-keep class * extends com.google.gson.JsonDeserializer
+
+# 2) Keep fields of every Retrofit @Body / response model class, wherever they
+#    live now (feature slices + core.network). Belt-and-braces so models
+#    WITHOUT @SerializedName (plain-name fields like ExtractedItemDto) also
+#    keep their JSON keys.
+-keepclassmembers class com.khanabook.lite.pos.core.network.** { <fields>; }
+-keepclassmembers class com.khanabook.lite.pos.feature.*.data.** { <fields>; }
+
+# 3) Reset-password DTOs (live outside the old packages too)
+-keepclassmembers class com.khanabook.lite.pos.feature.auth.data.ResetPasswordRequest { *; }
+-keepclassmembers class com.khanabook.lite.pos.feature.auth.data.PasswordResetOtpRequest { *; }
+
+# Legacy locations (pre-restructure; kept harmlessly in case old artifacts build)
 -keepclassmembers class com.khanabook.lite.pos.data.remote.api.** { *; }
 -keepclassmembers class com.khanabook.lite.pos.data.remote.dto.** { *; }
--keepclassmembers class com.khanabook.lite.pos.data.remote.ResetPasswordRequest { *; }
--keepclassmembers class com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest { *; }
 
 # Retain generic type info used by Retrofit/Gson
 -keepattributes Signature
