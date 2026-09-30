@@ -37,7 +37,7 @@ class StaffCreationProperties {
         passwordResetOtpService = mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
-                passwordResetOtpService);
+                passwordResetOtpService, mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));
         // Tombstone-aware staff create: only a LIVE account blocks the phone, and any
         // soft-deleted rows holding it are released first. Default to "available".
         when(userRepository.findActiveByAnyIdentifier(anyString())).thenReturn(java.util.Optional.empty());
@@ -48,13 +48,18 @@ class StaffCreationProperties {
 
     /**
      * Property 2: For any valid CreateStaffRequest (name non-empty, phone exactly 10 digits,
-     * role in {OWNER, SHOP_STAFF}), the service SHALL create a user and return a response
-     * containing a non-null temporary password and the assigned userId.
+     * role in {OWNER, SHOP_STAFF}), the service SHALL create a user, return a response
+     * containing the assigned userId, and report that the generated password was
+     * delivered to the phone on file.
+     *
+     * <p>Onboarding delivers a GENERATED PASSWORD. The previous implementation issued a
+     * staff-invite OTP under a namespace that had no validator and no consuming
+     * endpoint, so the code could never be redeemed; this assertion is what caught it.
      *
      * Validates: Requirements 2.2
      */
     @Property(tries = 20)
-    @Label("Property 2: Valid staff request produces user with OTP sent and userId")
+    @Label("Property 2: Valid staff request produces user with credentials sent and userId")
     void validStaffRequestProducesValidUser(
             @ForAll("validNames") String name,
             @ForAll("validPhones") String phone,
@@ -74,13 +79,53 @@ class StaffCreationProperties {
         StaffCreatedResponse response = service.createStaff(1L, request);
 
         assertNotNull(response.userId(), "userId must not be null");
-        assertTrue(response.otpSent(), "otpSent must be true on successful onboarding");
+        assertTrue(response.credentialsSent(), "credentialsSent must be true on successful onboarding");
         assertEquals(name, response.name());
         assertEquals(phone, response.phone());
         assertEquals(role.toUpperCase(), response.role());
 
         verify(userRepository).save(any(User.class));
-        verify(passwordResetOtpService).issueOtp(phone);
+        verify(passwordResetOtpService).sendStaffCredentials(eq(phone), anyString());
+    }
+
+    /**
+     * The generated password is read off a WhatsApp message and typed by hand, so it
+     * must always be typable: correct length, at least one lower/upper/digit, and no
+     * characters that are visually ambiguous (0/O, 1/l/I).
+     */
+    @Property(tries = 200)
+    @Label("Generated staff password is always typable and never ambiguous")
+    void generatedPasswordIsAlwaysTypable() {
+        setupService();
+        when(userRepository.findActiveByAnyIdentifier(anyString())).thenReturn(java.util.Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(42L);
+            return u;
+        });
+
+        java.util.List<String> generated = new java.util.ArrayList<>();
+        doAnswer(inv -> {
+            generated.add(inv.getArgument(1));
+            return null;
+        }).when(passwordResetOtpService).sendStaffCredentials(anyString(), anyString());
+
+        for (int i = 0; i < 5; i++) {
+            service.createStaff(1L, new CreateStaffRequest("Staff", "9876543210", "SHOP_STAFF", null, null));
+        }
+
+        assertFalse(generated.isEmpty(), "a password must be generated per staff account");
+        for (String pw : generated) {
+            assertEquals(10, pw.length(), "password length must be stable: " + pw);
+            assertTrue(pw.chars().anyMatch(Character::isLowerCase), "needs a lowercase: " + pw);
+            assertTrue(pw.chars().anyMatch(Character::isUpperCase), "needs an uppercase: " + pw);
+            assertTrue(pw.chars().anyMatch(Character::isDigit), "needs a digit: " + pw);
+            for (char c : pw.toCharArray()) {
+                assertFalse("01lIO".indexOf(c) >= 0, "ambiguous character '" + c + "' in " + pw);
+            }
+        }
+        assertEquals(generated.size(), new java.util.HashSet<>(generated).size(),
+                "generated passwords must not repeat across staff accounts");
     }
 
     // ─── Property 3: Staff Input Validation ──────────────────────────────────────

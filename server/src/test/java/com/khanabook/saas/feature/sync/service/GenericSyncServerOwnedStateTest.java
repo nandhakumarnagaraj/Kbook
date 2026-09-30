@@ -41,4 +41,50 @@ class GenericSyncServerOwnedStateTest {
 
         assertThat(incoming.getIsSuspended()).isTrue();
     }
+
+    /**
+     * Online Payments Setup is owner-gated in RestaurantPaymentConfigController and
+     * additionally requires a signed Merchant Agreement. The flag rides on
+     * RestaurantProfileDTO, so a device push must not be able to flip it on and
+     * bypass both checks.
+     */
+    @Test
+    void deviceProfilePushCannotEnableEasebuzzPayments() {
+        RestaurantProfile existing = new RestaurantProfile();
+        existing.setEasebuzzEnabled(false);
+        RestaurantProfile incoming = new RestaurantProfile();
+        incoming.setEasebuzzEnabled(true);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getEasebuzzEnabled()).isFalse();
+    }
+
+    /**
+     * Owner-side counterpart: an owner who legitimately enabled payments online must
+     * survive a stale device push carrying the older disabled value.
+     */
+    @Test
+    void deviceProfilePushCannotDisableOwnerEnabledEasebuzz() {
+        RestaurantProfile existing = new RestaurantProfile();
+        existing.setEasebuzzEnabled(true);
+        RestaurantProfile incoming = new RestaurantProfile();
+        incoming.setEasebuzzEnabled(false);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getEasebuzzEnabled()).isTrue();
+    }
+
+    @Test
+    void deviceProfilePushPreservesEasebuzzWhenUnset() {
+        RestaurantProfile existing = new RestaurantProfile();
+        existing.setEasebuzzEnabled(true);
+        RestaurantProfile incoming = new RestaurantProfile();
+        incoming.setEasebuzzEnabled(null);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getEasebuzzEnabled()).isTrue();
+    }
 }

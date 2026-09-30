@@ -249,7 +249,12 @@ export interface StaffCreatedResponse {
   name: string;
   phone: string;
   role: string;
-  otpSent: boolean;
+  credentialsSent: boolean;
+}
+
+export interface StaffCredentialsResponse {
+  userId: number;
+  phone: string;
 }
 
 export interface UpdateStaffRequest {

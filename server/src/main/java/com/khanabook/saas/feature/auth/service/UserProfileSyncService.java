@@ -144,4 +144,36 @@ public class UserProfileSyncService {
             newUser.setTokenInvalidatedAt(null);
         }
     }
+
+    /**
+     * Role enforcement for a brand-new User record arriving over sync, taking the
+     * CALLER's role into account.
+     *
+     * <p>Security: account creation over the sync channel is an owner capability.
+     * A SHOP_STAFF terminal is a legitimate caller of {@code /sync/config/users/push}
+     * (it mirrors its own profile row), so the endpoint itself must stay open — but a
+     * non-owner must never be able to mint a new account, and must never be able to
+     * choose a role. Previously {@code enforceNewUserRole} only checked
+     * {@code isKbookAdmin}, so {@code !isKbookAdmin} was true for a SHOP_STAFF token
+     * and a fabricated new User row was granted OWNER + isActive + a cleared
+     * tokenInvalidatedAt — a full tenant takeover (staff management, refunds, terminal
+     * revocation). Existing users were already safe: {@code preserveServerOwnedState}
+     * restores their role from the stored row.
+     *
+     * @return true when the record may be persisted; false when the caller is not
+     *         permitted to create accounts. On false the caller must quarantine the
+     *         record rather than persist a downgraded one.
+     */
+    public boolean enforceNewUserRoleForCaller(User newUser, boolean isKbookAdmin, String callerRole) {
+        if (isKbookAdmin) {
+            return true;
+        }
+        if (!UserRole.OWNER.name().equals(callerRole)) {
+            return false;
+        }
+        newUser.setRole(UserRole.OWNER);
+        newUser.setIsActive(true);
+        newUser.setTokenInvalidatedAt(null);
+        return true;
+    }
 }

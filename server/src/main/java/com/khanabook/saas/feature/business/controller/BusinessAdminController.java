@@ -111,6 +111,16 @@ public class BusinessAdminController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Re-sends a freshly generated password to a staff member and revokes their
+     * existing sessions. Owner-only, matching the rest of the staff write surface.
+     */
+    @PostMapping("/staff/{userId}/resend-credentials")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<StaffCredentialsResponse> resendStaffCredentials(@PathVariable Long userId) {
+        return ResponseEntity.ok(businessWriteService.resendStaffCredentials(requireTenant(), userId));
+    }
+
     @PostMapping("/staff/{userId}/deactivate")
     @RequireRole(UserRole.OWNER)
     public ResponseEntity<Void> deactivateStaff(@PathVariable Long userId) {

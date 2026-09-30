@@ -36,7 +36,8 @@ class StaffEditProperties {
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
-                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class));
+                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class),
+                mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));
     }
 
     // ─── Property 5: Staff Edit Preserves Integrity ──────────────────────────────

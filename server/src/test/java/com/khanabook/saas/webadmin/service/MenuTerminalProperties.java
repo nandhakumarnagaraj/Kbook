@@ -55,7 +55,8 @@ class MenuTerminalProperties {
         when(profileRepository.findAndLockByRestaurantId(anyLong())).thenReturn(Optional.of(profile));
         service = new BusinessWriteService(userRepository, categoryRepository, menuItemRepository,
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
-                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class));
+                mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class),
+                mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));
     }
 
     // ─── Property 11: Terminal Reactivation State Transition ─────────────────────

@@ -58,8 +58,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -70,6 +72,40 @@ public class BusinessWriteService {
     private static final Logger log = LoggerFactory.getLogger(BusinessWriteService.class);
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    /**
+     * Staff passwords are read off a WhatsApp message and typed on a phone keypad,
+     * so the generator favours unambiguous characters over maximum entropy: no
+     * 0/O, 1/l/I. Ambiguity here costs real support calls, and the value is only
+     * ever a starting credential that the staff member can change.
+     */
+    private static final SecureRandom PASSWORD_RANDOM = new SecureRandom();
+    private static final String PW_LOWER = "abcdefghijkmnopqrstuvwxyz";
+    private static final String PW_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private static final String PW_DIGIT = "23456789";
+    private static final int PW_LENGTH = 10;
+
+    private static String generateStaffPassword() {
+        String all = PW_LOWER + PW_UPPER + PW_DIGIT;
+        StringBuilder sb = new StringBuilder(PW_LENGTH);
+        // Guarantee one character from each class so the value cannot degrade into
+        // an all-lowercase word that is trivial to guess or type.
+        sb.append(PW_LOWER.charAt(PASSWORD_RANDOM.nextInt(PW_LOWER.length())));
+        sb.append(PW_UPPER.charAt(PASSWORD_RANDOM.nextInt(PW_UPPER.length())));
+        sb.append(PW_DIGIT.charAt(PASSWORD_RANDOM.nextInt(PW_DIGIT.length())));
+        while (sb.length() < PW_LENGTH) {
+            sb.append(all.charAt(PASSWORD_RANDOM.nextInt(all.length())));
+        }
+        // Shuffle so the guaranteed characters are not always in the first 3 slots.
+        char[] chars = sb.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = PASSWORD_RANDOM.nextInt(i + 1);
+            char tmp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = tmp;
+        }
+        return new String(chars);
+    }
+
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final MenuItemRepository menuItemRepository;
@@ -77,6 +113,7 @@ public class BusinessWriteService {
     private final RestaurantProfileRepository profileRepository;
     private final PermissionService permissionService;
     private final com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
+    private final com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository;
 
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
@@ -84,7 +121,8 @@ public class BusinessWriteService {
                                 RestaurantTerminalRepository terminalRepository,
                                 RestaurantProfileRepository profileRepository,
                                 PermissionService permissionService,
-                                com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService) {
+                                com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService,
+                                com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
@@ -92,6 +130,7 @@ public class BusinessWriteService {
         this.profileRepository = profileRepository;
         this.permissionService = permissionService;
         this.passwordResetOtpService = passwordResetOtpService;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     // ─── Staff CRUD ──────────────────────────────────────────────────────────────
@@ -113,11 +152,13 @@ public class BusinessWriteService {
         // indexes (phone_number / login_id / whatsapp_number) don't block reuse.
         releaseIdentifierFromDeletedUsers(req.phone());
 
-        // OTP-based onboarding: no temp password is generated or shared. The account
-        // is created with an unguessable hash so nobody can log in until the staff
-        // member sets their own password via the OTP (Forgot Password) flow. This
-        // removes the shared-secret weak link where the owner knew each staff password.
-        String hash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+        // Onboarding: the system generates a password and sends it to the staff
+        // member on WhatsApp. They sign in with it and can change it from the app
+        // at any time. This replaces the previous OTP-only flow, whose
+        // staff-invite challenge was written under a namespace that had no
+        // validator and no consuming endpoint, so the code could never be redeemed.
+        String generatedPassword = generateStaffPassword();
+        String hash = passwordEncoder.encode(generatedPassword);
 
         User user = new User();
         user.setName(req.name());
@@ -146,23 +187,67 @@ public class BusinessWriteService {
             permissionService.grantDefaultReadOnly(restaurantId, saved.getId(), TenantContext.getCurrentUserId());
         }
 
-        // Auto-issue an OTP straight to the staff member's phone so they can set
-        // their own password on first login. Never block staff creation if the
-        // OTP send fails (owner can trigger a resend from the login screen).
-        boolean otpSent;
+// Deliver the generated password straight to the staff member. Never block staff
+        // creation if the send fails — the account is still usable via "Re-send
+        // password" from the staff list, or Forgot Password in the app.
+        boolean credentialsSent;
         try {
-            passwordResetOtpService.issueOtp(saved.getPhoneNumber());
-            otpSent = true;
+            passwordResetOtpService.sendStaffCredentials(saved.getPhoneNumber(), generatedPassword);
+            credentialsSent = true;
         } catch (RuntimeException e) {
-            log.warn("Staff created but onboarding OTP send failed for userId={}: {}",
+            log.warn("Staff created but credentials send failed for userId={}: {}",
                     saved.getId(), e.getMessage());
-            otpSent = false;
+            credentialsSent = false;
         }
 
         return new StaffCreatedResponse(
                 saved.getId(), saved.getName(), saved.getPhoneNumber(),
-                saved.getRole().name(), otpSent
+                saved.getRole().name(), credentialsSent
         );
+    }
+
+    /**
+     * Issues a fresh password for a staff member and sends it to their phone.
+     *
+     * <p>Needed because a generated password is delivered over WhatsApp, which is
+     * lossy: the message can fail, or be missed. Mirrors
+     * {@code AuthServiceImpl#resetPassword} on the security side — the hash is
+     * replaced, tokens issued under the previous password are invalidated, and all
+     * refresh tokens are revoked, so a leaked first password stops working the
+     * moment the owner re-sends.
+     */
+    @Transactional
+    public StaffCredentialsResponse resendStaffCredentials(Long restaurantId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff member not found"));
+        // Tenant check before any role check so a cross-tenant id is indistinguishable
+        // from a missing one.
+        if (!restaurantId.equals(user.getRestaurantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff member not found");
+        }
+        if (user.getRole() == UserRole.OWNER || user.getRole() == UserRole.KBOOK_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "This account is not a staff account");
+        }
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "This staff account is deactivated. Activate it first.");
+        }
+
+        String generatedPassword = generateStaffPassword();
+        long now = System.currentTimeMillis();
+        user.setPasswordHash(passwordEncoder.encode(generatedPassword));
+        user.setTokenInvalidatedAt(now);
+        user.setUpdatedAt(now);
+        user.setServerUpdatedAt(now);
+        userRepository.save(user);
+        refreshTokenRepository.revokeAllForUser(user.getId());
+
+        passwordResetOtpService.sendStaffCredentials(user.getPhoneNumber(), generatedPassword);
+        log.info("Re-sent generated password for staff userId={} restaurant={} — sessions revoked",
+                user.getId(), restaurantId);
+
+        return new StaffCredentialsResponse(user.getId(), user.getPhoneNumber());
     }
 
     @Transactional

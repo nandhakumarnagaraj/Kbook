@@ -19,6 +19,7 @@ import {
   RejectTerminalRequest,
   RenameTerminalRequest,
   StaffCreatedResponse,
+  StaffCredentialsResponse,
   TerminalRequest,
   UpdateMenuItemRequest,
   UpdateStaffRequest,
@@ -135,6 +136,17 @@ export class BusinessApiService {
 
   deactivateStaff(userId: number) {
     return this.http.post<void>(`${API_BASE_URL}/business/staff/${userId}/deactivate`, {});
+  }
+
+  /**
+   * Issues a fresh generated password, sends it over WhatsApp, and signs the
+   * staff member out of every device. Used when the first delivery is lost.
+   */
+  resendStaffCredentials(userId: number) {
+    return this.http.post<StaffCredentialsResponse>(
+      `${API_BASE_URL}/business/staff/${userId}/resend-credentials`,
+      {},
+    );
   }
 
   activateStaff(userId: number) {

@@ -4,7 +4,6 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { HttpErrorResponse } from '@angular/common/http';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { AuthService } from '../../core/auth/auth.service';
 import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/models/api.models';
 
 @Component({
@@ -46,18 +45,19 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
           <div class="success-section">
             <h4 id="create-staff-title">Staff Member Created</h4>
             <p><strong>{{ createdStaff.name }}</strong> ({{ createdStaff.role }})</p>
-            <p *ngIf="createdStaff.otpSent" class="otp-note">
-              A one-time code was sent to <strong>{{ createdStaff.phone }}</strong> on WhatsApp.
-              Ask them to open the app, tap <strong>Forgot Password</strong>, and set their own password.
+            <p *ngIf="createdStaff.credentialsSent" class="otp-note">
+              A login password was sent to <strong>{{ createdStaff.phone }}</strong> on WhatsApp.
+              Ask them to sign in with it, then change it from the app.
             </p>
-            <p *ngIf="!createdStaff.otpSent" class="otp-note warn">
-              The account was created, but the WhatsApp code could not be sent. Use “Resend code”
-              below, or the staff member can tap <strong>Forgot Password</strong> in the app anytime.
+            <p *ngIf="!createdStaff.credentialsSent" class="otp-note warn">
+              The account was created, but the password could not be sent on WhatsApp. Use
+              “Re-send password” below, or the staff member can tap
+              <strong>Forgot Password</strong> in the app to set their own.
             </p>
-            <button type="button" class="ghost-btn" (click)="resendOtp()" [disabled]="resending()">
-              {{ resending() ? 'Sending...' : 'Resend code' }}
+            <button type="button" class="ghost-btn" (click)="resendCredentials()" [disabled]="resending()">
+              {{ resending() ? 'Sending...' : 'Re-send password' }}
             </button>
-            <p class="muted">No password is stored or shared — the staff member chooses their own.</p>
+            <p class="muted">Re-sending issues a new password and signs the staff member out everywhere.</p>
           </div>
           <div class="modal-actions">
             <button class="primary-btn" (click)="close.emit()">Done</button>
@@ -114,8 +114,7 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
 export class StaffFormModalComponent {
   private readonly api = inject(BusinessApiService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(ToastService);
-  private readonly auth = inject(AuthService);
+private readonly toast = inject(ToastService);
 
   open = input(false);
   isEdit = input(false);
@@ -216,21 +215,21 @@ export class StaffFormModalComponent {
     }
   }
 
-  resendOtp(): void {
-    const phone = this.createdStaff?.phone;
-    if (!phone || this.resending()) return;
+  resendCredentials(): void {
+    const userId = this.createdStaff?.userId;
+    if (!userId || this.resending()) return;
     this.resending.set(true);
-    this.auth.requestPasswordOtp(phone).subscribe({
+    this.api.resendStaffCredentials(userId).subscribe({
       next: () => {
         this.resending.set(false);
         if (this.createdStaff) {
-          this.createdStaff = { ...this.createdStaff, otpSent: true };
+          this.createdStaff = { ...this.createdStaff, credentialsSent: true };
         }
-        this.toast.show('A new code was sent on WhatsApp.', 'success');
+        this.toast.show('A new password was sent on WhatsApp.', 'success');
       },
       error: () => {
         this.resending.set(false);
-        this.toast.show('Could not send the code. Please try again.', 'error');
+        this.toast.show('Could not send the password. Please try again.', 'error');
       }
     });
   }

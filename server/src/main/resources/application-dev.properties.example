@@ -7,6 +7,20 @@ spring.datasource.password=your_local_dev_password_here
 
 whatsapp.meta.access-token=${WHATSAPP_META_ACCESS_TOKEN:}
 whatsapp.meta.phone-number-id=${WHATSAPP_META_PHONE_NUMBER_ID:}
+
+# Per-operation WhatsApp OTP templates. Each flow sends its own copy so the
+# recipient sees the correct reason for the code. A missing specific value
+# falls back to the legacy template below, then to local-testing log mode.
+whatsapp.meta.otp-template-signup=${WHATSAPP_META_OTP_TEMPLATE_SIGNUP:}
+whatsapp.meta.otp-template-password-reset=${WHATSAPP_META_OTP_TEMPLATE_PASSWORD_RESET:}
+whatsapp.meta.otp-template-staff-invite=${WHATSAPP_META_OTP_TEMPLATE_STAFF_INVITE:}
+whatsapp.meta.otp-template-mobile-update=${WHATSAPP_META_OTP_TEMPLATE_MOBILE_UPDATE:}
+whatsapp.meta.otp-template-web-reset=${WHATSAPP_META_OTP_TEMPLATE_WEB_RESET:}
+# Generated staff password delivery. Blank falls back to the staff-invite template.
+whatsapp.meta.staff-credentials-template=${WHATSAPP_META_STAFF_CREDENTIALS_TEMPLATE:}
+
+# Legacy single-template fallback. Kept so an unconfigured operation degrades
+# to today's behaviour instead of failing.
 whatsapp.meta.otp-template-name=${WHATSAPP_META_OTP_TEMPLATE_NAME:verification_otp}
 
 jwt.secret=replace_with_a_strong_random_secret_of_at_least_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxx

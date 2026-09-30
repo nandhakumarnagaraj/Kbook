@@ -857,8 +857,21 @@ public class GenericSyncService {
 
 						// SECURITY: new users created via sync are always OWNER.
 						// Only KBOOK_ADMIN can create admin users (via web-admin, not sync).
+						// Only the OWNER may create accounts at all: a SHOP_STAFF terminal
+						// legitimately pushes this endpoint to mirror its own profile row, so
+						// the channel stays open — but account creation is an owner capability
+						// and a non-owner must never mint a row or pick a role. Quarantine the
+						// record instead of persisting a downgraded one, so the failure is
+						// visible to the owner rather than silently reshaped.
 						if (incomingRecord instanceof User newUser) {
-							userProfileSyncService.enforceNewUserRole(newUser, isKbookAdmin);
+							if (!userProfileSyncService.enforceNewUserRoleForCaller(newUser, isKbookAdmin, role)) {
+								failedLocalIds.add(incomingRecord.getLocalId());
+								failedReasons.put(incomingRecord.getLocalId(),
+										"Only the restaurant owner may create staff accounts");
+								securityAuditService.record("SYNC_PUSH", "ROLE_ESCALATION_BLOCKED",
+										"user:" + incomingRecord.getLocalId(), null);
+								continue;
+							}
 						}
 
 							// Enforce parent-bill terminal ownership for child records
@@ -1177,6 +1190,11 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			incomingProfile.setSwiggyWebhookSecret(existingProfile.getSwiggyWebhookSecret());
 			incomingProfile.setMarketplaceNotes(existingProfile.getMarketplaceNotes());
 			incomingProfile.setOwnWebsiteEnabled(existingProfile.getOwnWebsiteEnabled());
+			// Easebuzz enablement is owner-gated AND gated on a signed Merchant
+			// Agreement (see RestaurantPaymentConfigController#updateConfig). It is
+			// carried on the DTO, so without restoring it any device push could flip
+			// online payments on and bypass both checks.
+			incomingProfile.setEasebuzzEnabled(existingProfile.getEasebuzzEnabled());
 		}
 		// Inventory cascade is server-owned: when a raw material runs out,
 		// InventoryService hides dependent menu items. A device menu push must
