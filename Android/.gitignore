@@ -21,3 +21,4 @@ signing.properties
 
 # Credentials template - copy values into local.properties
 secrets.properties
+sweep*.txt >> .gitignore
