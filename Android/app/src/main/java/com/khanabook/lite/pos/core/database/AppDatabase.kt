@@ -1502,7 +1502,10 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
 
         val MIGRATION_66_67 = object : Migration(66, 67) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
+                // easebuzz_enabled was already added in MIGRATION_39_40, so guard with hasColumn
+                if (!db.hasColumn("restaurant_profile", "easebuzz_enabled")) {
+                    db.execSQL("ALTER TABLE restaurant_profile ADD COLUMN easebuzz_enabled INTEGER NOT NULL DEFAULT 0")
+                }
             }
         }
 
@@ -1902,7 +1905,235 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_menu_item_id` ON `bill_items` (`menu_item_id`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_variant_id` ON `bill_items` (`variant_id`)")
 
-                android.util.Log.i("AppDatabase", "MIGRATION_78_79 complete: users+bills+bill_items rebuilt to current spec")
+                // ── bill_payments ─────────────────────────────────────────
+                // v18 stored `amount` as REAL; SQLite cannot ALTER COLUMN TYPE,
+                // so every device that migrated from ≤v18 still has REAL affinity
+                // at v78. Additionally server_bill_id, terminal_id,
+                // bill_public_token, operation_id, sync_status, created_at,
+                // gateway_txn_id, gateway_status, verified_by and version were
+                // never back-filled for early-start migration chains. Rebuild to
+                // exact 79.json DDL so column affinity and presence both match.
+                fun bpCol(name: String, fallback: String): String =
+                    if (db.hasColumn("bill_payments", name)) "`$name`" else "$fallback AS `$name`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bill_payments_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bill_id` INTEGER NOT NULL,
+                        `payment_mode` TEXT NOT NULL,
+                        `amount` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL DEFAULT 0,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `terminal_id` TEXT DEFAULT NULL,
+                        `bill_public_token` TEXT DEFAULT NULL,
+                        `operation_id` TEXT DEFAULT NULL,
+                        `sync_status` TEXT NOT NULL DEFAULT 'pending',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `server_id` INTEGER,
+                        `server_bill_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `gateway_txn_id` TEXT,
+                        `gateway_status` TEXT,
+                        `verified_by` TEXT NOT NULL DEFAULT 'manual',
+                        `version` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`bill_id`) REFERENCES `bills`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                val bpCols = listOf(
+                    "`id`", "`bill_id`", "`payment_mode`", "`amount`",
+                    bpCol("created_at", "0"), "`restaurant_id`", "`device_id`",
+                    bpCol("terminal_id", "NULL"),
+                    bpCol("bill_public_token", "NULL"),
+                    bpCol("operation_id", "NULL"),
+                    bpCol("sync_status", "'pending'"),
+                    "`is_synced`", "`updated_at`", "`is_deleted`",
+                    bpCol("server_id", "NULL"),
+                    bpCol("server_bill_id", "NULL"),
+                    bpCol("server_updated_at", "0"),
+                    bpCol("gateway_txn_id", "NULL"),
+                    bpCol("gateway_status", "NULL"),
+                    bpCol("verified_by", "'manual'"),
+                    bpCol("version", "0")
+                )
+                db.execSQL(
+                    "INSERT INTO `bill_payments_new` (`id`, `bill_id`, `payment_mode`, `amount`, " +
+                        "`created_at`, `restaurant_id`, `device_id`, `terminal_id`, " +
+                        "`bill_public_token`, `operation_id`, `sync_status`, `is_synced`, " +
+                        "`updated_at`, `is_deleted`, `server_id`, `server_bill_id`, " +
+                        "`server_updated_at`, `gateway_txn_id`, `gateway_status`, " +
+                        "`verified_by`, `version`) " +
+                        "SELECT " + bpCols.joinToString(", ") + " FROM `bill_payments`"
+                )
+                db.execSQL("DROP TABLE `bill_payments`")
+                db.execSQL("ALTER TABLE `bill_payments_new` RENAME TO `bill_payments`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_payments_bill_id` ON `bill_payments` (`bill_id`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `idx_bill_payments_restaurant_operation` ON `bill_payments` (`restaurant_id`, `operation_id`)")
+
+                // ── restaurant_profile ────────────────────────────────────
+                // v18 lacks collect_customer_number, easebuzz_enabled,
+                // kitchen_printer_*, order_payment_flow_mode, timezone,
+                // show_branding, mask_customer_phone, server_id,
+                // server_updated_at, changed_fields and others. The migration
+                // chain that should have added them is unreliable for early-start
+                // devices. Rebuild to exact 79.json DDL so every column is present.
+                fun rpCol(name: String, fallback: String): String =
+                    if (db.hasColumn("restaurant_profile", name)) "`$name`" else "$fallback AS `$name`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `restaurant_profile_new` (
+                        `id` INTEGER NOT NULL,
+                        `shop_name` TEXT,
+                        `shop_address` TEXT,
+                        `whatsapp_number` TEXT,
+                        `email` TEXT,
+                        `logo_path` TEXT,
+                        `logo_url` TEXT,
+                        `logo_version` INTEGER NOT NULL DEFAULT 0,
+                        `fssai_number` TEXT,
+                        `fssai_expiry_date` TEXT,
+                        `email_invoice_consent` INTEGER NOT NULL DEFAULT 0,
+                        `country` TEXT DEFAULT 'India',
+                        `gst_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `gstin` TEXT,
+                        `is_tax_inclusive` INTEGER NOT NULL DEFAULT 0,
+                        `gst_percentage` REAL NOT NULL DEFAULT 0.0,
+                        `custom_tax_name` TEXT,
+                        `custom_tax_number` TEXT,
+                        `custom_tax_percentage` REAL NOT NULL DEFAULT 0.0,
+                        `currency` TEXT DEFAULT 'INR',
+                        `upi_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `upi_qr_path` TEXT,
+                        `upi_qr_url` TEXT,
+                        `upi_qr_version` INTEGER NOT NULL DEFAULT 0,
+                        `upi_handle` TEXT,
+                        `upi_mobile` TEXT,
+                        `cash_enabled` INTEGER NOT NULL DEFAULT 1,
+                        `pos_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `easebuzz_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `printer_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `printer_name` TEXT,
+                        `printer_mac` TEXT,
+                        `paper_size` TEXT NOT NULL DEFAULT '58mm',
+                        `auto_print_on_success` INTEGER NOT NULL DEFAULT 0,
+                        `include_logo_in_print` INTEGER NOT NULL DEFAULT 1,
+                        `print_customer_whatsapp` INTEGER NOT NULL DEFAULT 1,
+                        `kitchen_printer_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `kitchen_printer_name` TEXT,
+                        `kitchen_printer_mac` TEXT,
+                        `kitchen_printer_paper_size` TEXT NOT NULL DEFAULT '58mm',
+                        `daily_order_counter` INTEGER NOT NULL DEFAULT 0,
+                        `lifetime_order_counter` INTEGER NOT NULL DEFAULT 0,
+                        `last_reset_date` TEXT,
+                        `session_timeout_minutes` INTEGER NOT NULL DEFAULT 30,
+                        `order_payment_flow_mode` TEXT NOT NULL DEFAULT 'pay_before_food',
+                        `collect_customer_number` INTEGER NOT NULL DEFAULT 1,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `timezone` TEXT DEFAULT 'Asia/Kolkata',
+                        `review_url` TEXT,
+                        `invoice_footer` TEXT,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `show_branding` INTEGER NOT NULL DEFAULT 1,
+                        `mask_customer_phone` INTEGER NOT NULL DEFAULT 1,
+                        `server_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `changed_fields` TEXT,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                val rpCols = listOf(
+                    "`id`",
+                    rpCol("shop_name", "NULL"),
+                    rpCol("shop_address", "NULL"),
+                    rpCol("whatsapp_number", "NULL"),
+                    rpCol("email", "NULL"),
+                    rpCol("logo_path", "NULL"),
+                    rpCol("logo_url", "NULL"),
+                    rpCol("logo_version", "0"),
+                    rpCol("fssai_number", "NULL"),
+                    rpCol("fssai_expiry_date", "NULL"),
+                    rpCol("email_invoice_consent", "0"),
+                    rpCol("country", "'India'"),
+                    rpCol("gst_enabled", "0"),
+                    rpCol("gstin", "NULL"),
+                    rpCol("is_tax_inclusive", "0"),
+                    rpCol("gst_percentage", "0.0"),
+                    rpCol("custom_tax_name", "NULL"),
+                    rpCol("custom_tax_number", "NULL"),
+                    rpCol("custom_tax_percentage", "0.0"),
+                    rpCol("currency", "'INR'"),
+                    rpCol("upi_enabled", "0"),
+                    rpCol("upi_qr_path", "NULL"),
+                    rpCol("upi_qr_url", "NULL"),
+                    rpCol("upi_qr_version", "0"),
+                    rpCol("upi_handle", "NULL"),
+                    rpCol("upi_mobile", "NULL"),
+                    rpCol("cash_enabled", "1"),
+                    rpCol("pos_enabled", "0"),
+                    rpCol("easebuzz_enabled", "0"),
+                    rpCol("printer_enabled", "0"),
+                    rpCol("printer_name", "NULL"),
+                    rpCol("printer_mac", "NULL"),
+                    rpCol("paper_size", "'58mm'"),
+                    rpCol("auto_print_on_success", "0"),
+                    rpCol("include_logo_in_print", "1"),
+                    rpCol("print_customer_whatsapp", "1"),
+                    rpCol("kitchen_printer_enabled", "0"),
+                    rpCol("kitchen_printer_name", "NULL"),
+                    rpCol("kitchen_printer_mac", "NULL"),
+                    rpCol("kitchen_printer_paper_size", "'58mm'"),
+                    rpCol("daily_order_counter", "0"),
+                    rpCol("lifetime_order_counter", "0"),
+                    rpCol("last_reset_date", "NULL"),
+                    rpCol("session_timeout_minutes", "30"),
+                    rpCol("order_payment_flow_mode", "'pay_before_food'"),
+                    rpCol("collect_customer_number", "1"),
+                    rpCol("restaurant_id", "0"),
+                    rpCol("device_id", "''"),
+                    rpCol("is_synced", "0"),
+                    rpCol("updated_at", "0"),
+                    rpCol("timezone", "'Asia/Kolkata'"),
+                    rpCol("review_url", "NULL"),
+                    rpCol("invoice_footer", "NULL"),
+                    rpCol("is_deleted", "0"),
+                    rpCol("show_branding", "1"),
+                    rpCol("mask_customer_phone", "1"),
+                    rpCol("server_id", "NULL"),
+                    rpCol("server_updated_at", "0"),
+                    rpCol("changed_fields", "NULL")
+                )
+                db.execSQL(
+                    "INSERT INTO `restaurant_profile_new` (`id`, `shop_name`, `shop_address`, " +
+                        "`whatsapp_number`, `email`, `logo_path`, `logo_url`, `logo_version`, " +
+                        "`fssai_number`, `fssai_expiry_date`, `email_invoice_consent`, `country`, " +
+                        "`gst_enabled`, `gstin`, `is_tax_inclusive`, `gst_percentage`, " +
+                        "`custom_tax_name`, `custom_tax_number`, `custom_tax_percentage`, " +
+                        "`currency`, `upi_enabled`, `upi_qr_path`, `upi_qr_url`, " +
+                        "`upi_qr_version`, `upi_handle`, `upi_mobile`, `cash_enabled`, " +
+                        "`pos_enabled`, `easebuzz_enabled`, `printer_enabled`, `printer_name`, " +
+                        "`printer_mac`, `paper_size`, `auto_print_on_success`, " +
+                        "`include_logo_in_print`, `print_customer_whatsapp`, " +
+                        "`kitchen_printer_enabled`, `kitchen_printer_name`, " +
+                        "`kitchen_printer_mac`, `kitchen_printer_paper_size`, " +
+                        "`daily_order_counter`, `lifetime_order_counter`, `last_reset_date`, " +
+                        "`session_timeout_minutes`, `order_payment_flow_mode`, " +
+                        "`collect_customer_number`, `restaurant_id`, `device_id`, " +
+                        "`is_synced`, `updated_at`, `timezone`, `review_url`, `invoice_footer`, " +
+                        "`is_deleted`, `show_branding`, `mask_customer_phone`, `server_id`, " +
+                        "`server_updated_at`, `changed_fields`) " +
+                        "SELECT " + rpCols.joinToString(", ") + " FROM `restaurant_profile`"
+                )
+                db.execSQL("DROP TABLE `restaurant_profile`")
+                db.execSQL("ALTER TABLE `restaurant_profile_new` RENAME TO `restaurant_profile`")
+
+                android.util.Log.i("AppDatabase", "MIGRATION_78_79 complete: users+bills+bill_items+bill_payments+restaurant_profile rebuilt to current spec")
             }
         }
 
