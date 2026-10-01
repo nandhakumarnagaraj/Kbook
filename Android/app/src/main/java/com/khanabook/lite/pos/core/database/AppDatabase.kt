@@ -47,7 +47,7 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 78,
+        version = 79,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -92,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
-            MIGRATION_77_78
+            MIGRATION_77_78, MIGRATION_78_79
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
@@ -240,14 +240,20 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-            val MIGRATION_39_40 = object : Migration(39, 40) {
-                override fun migrate(db: SupportSQLiteDatabase) {
-                    // Gateway tracking on bill_payments
-                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_txn_id` TEXT")
-                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_status` TEXT")
-                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `verified_by` TEXT NOT NULL DEFAULT 'manual'")
+        val MIGRATION_39_40 = object : Migration(39, 40) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // easebuzz_enabled is guarded: some v39-era devices received it
+                // out-of-band (background sync ALTER) and a duplicate ALTER here
+                // aborted the whole chain (SQLiteException: duplicate column).
+                if (!db.hasColumn("restaurant_profile", "easebuzz_enabled")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_enabled` INTEGER NOT NULL DEFAULT 0")
                 }
+                // Gateway tracking on bill_payments
+                db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_txn_id` TEXT")
+                db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_status` TEXT")
+                db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `verified_by` TEXT NOT NULL DEFAULT 'manual'")
             }
+        }
 
             val MIGRATION_38_39 = object : Migration(38, 39) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -1612,6 +1618,291 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 // they are menu configuration, still synced and still displayed.
                 db.execSQL("DROP TABLE IF EXISTS `stock_logs`")
                 android.util.Log.i("AppDatabase", "MIGRATION_77_78 complete: dropped stock_logs")
+            }
+        }
+
+        val MIGRATION_78_79 = object : Migration(78, 79) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // End-state repair (Crashlytics issue 9a3ca081, OnePlus CPH2423,
+                // app 1.0.33): real devices that MIGRATED to 78 carry legacy
+                // defects the fresh-install schema never has — explicit
+                // "DEFAULT NULL" from 27_28/32_33 ALTERs, a role default of
+                // 'owner' where the spec says 'OWNER', a pin_hash column no
+                // migration ever drops, and bills indices from dropped entity
+                // definitions. SQLite cannot alter defaults or drop constraints
+                // in place, so both tables are rebuilt to the exact current
+                // entity spec. Data is fully preserved; per-column hasColumn
+                // guards tolerate devices whose guarded historical ALTERs
+                // silently failed.
+
+                // Stale indices: old migrations created indices that later
+                // entity changes removed; no migration ever dropped them and
+                // schema validation requires an exact index set match.
+                db.execSQL("DROP INDEX IF EXISTS `index_terminal_daily_counter_restaurant_date`")
+                db.execSQL("DROP INDEX IF EXISTS `index_notifications_read`")
+                db.execSQL("DROP INDEX IF EXISTS `index_notifications_created_at`")
+
+                // ── users ───────────────────────────────────────────────
+                fun uCol(name: String, fallback: String): String =
+                    if (db.hasColumn("users", name)) "`$name`" else "$fallback AS `$name`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `users_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `login_id` TEXT,
+                        `google_email` TEXT,
+                        `auth_provider` TEXT NOT NULL DEFAULT 'PHONE',
+                        `phone_number` TEXT,
+                        `whatsapp_number` TEXT,
+                        `role` TEXT NOT NULL DEFAULT 'OWNER',
+                        `is_active` INTEGER NOT NULL DEFAULT 1,
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `token_invalidated_at` INTEGER,
+                        `server_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                val userCols = listOf(
+                    "`id`", "`name`", "`email`",
+                    uCol("login_id", "NULL"),
+                    uCol("google_email", "NULL"),
+                    uCol("auth_provider", "'PHONE'"),
+                    uCol("phone_number", "NULL"),
+                    "`whatsapp_number`",
+                    uCol("role", "'OWNER'"),
+                    uCol("is_active", "1"),
+                    uCol("created_at", "0"),
+                    uCol("restaurant_id", "0"),
+                    uCol("device_id", "''"),
+                    uCol("is_synced", "0"),
+                    uCol("updated_at", "0"),
+                    uCol("is_deleted", "0"),
+                    uCol("token_invalidated_at", "NULL"),
+                    uCol("server_id", "NULL"),
+                    uCol("server_updated_at", "0")
+                )
+                db.execSQL(
+                    "INSERT INTO `users_new` (`id`, `name`, `email`, `login_id`, `google_email`, " +
+                        "`auth_provider`, `phone_number`, `whatsapp_number`, `role`, `is_active`, " +
+                        "`created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, " +
+                        "`is_deleted`, `token_invalidated_at`, `server_id`, `server_updated_at`) " +
+                        "SELECT " + userCols.joinToString(", ") + " FROM `users`"
+                )
+                db.execSQL("DROP TABLE `users`")
+                db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
+
+                // ── bills ───────────────────────────────────────────────
+                fun bCol(name: String, fallback: String): String =
+                    if (db.hasColumn("bills", name)) "`$name`" else "$fallback AS `$name`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bills_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `terminal_id` TEXT DEFAULT NULL,
+                        `created_terminal_id` TEXT DEFAULT NULL,
+                        `created_device_id` TEXT DEFAULT NULL,
+                        `daily_order_id` INTEGER NOT NULL,
+                        `daily_order_display` TEXT NOT NULL,
+                        `lifetime_order_id` INTEGER,
+                        `order_type` TEXT NOT NULL DEFAULT 'order',
+                        `customer_name` TEXT,
+                        `customer_whatsapp` TEXT,
+                        `subtotal` TEXT NOT NULL,
+                        `gst_percentage` TEXT NOT NULL DEFAULT '0.0',
+                        `cgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `sgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `custom_tax_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `total_amount` TEXT NOT NULL,
+                        `payment_mode` TEXT NOT NULL,
+                        `source_channel` TEXT NOT NULL DEFAULT '',
+                        `part_amount_1` TEXT NOT NULL DEFAULT '0.0',
+                        `part_amount_2` TEXT NOT NULL DEFAULT '0.0',
+                        `payment_status` TEXT NOT NULL,
+                        `order_status` TEXT NOT NULL,
+                        `status_version` INTEGER NOT NULL DEFAULT 0,
+                        `created_by` INTEGER,
+                        `created_by_user_id` INTEGER DEFAULT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `paid_at` INTEGER,
+                        `last_reset_date` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `server_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `cancel_reason` TEXT NOT NULL DEFAULT '',
+                        `public_token` TEXT,
+                        `owner_user_id` INTEGER DEFAULT NULL,
+                        `owner_restaurant_id` INTEGER DEFAULT NULL,
+                        `sync_status` TEXT NOT NULL DEFAULT 'pending',
+                        `sync_failure_reason` TEXT,
+                        `sync_failed_at` INTEGER,
+                        `terminal_series` TEXT DEFAULT NULL,
+                        `financial_year` TEXT DEFAULT NULL,
+                        `invoice_series` TEXT DEFAULT NULL,
+                        `invoice_sequence` INTEGER DEFAULT NULL,
+                        `invoice_number` TEXT DEFAULT NULL,
+                        `refund_amount` TEXT DEFAULT NULL,
+                        `current_owner_terminal_id` TEXT DEFAULT NULL,
+                        `version` INTEGER NOT NULL DEFAULT 0,
+                        `lock_status` TEXT NOT NULL DEFAULT 'unlocked',
+                        `operation_id` TEXT DEFAULT NULL,
+                        `record_origin` TEXT NOT NULL DEFAULT 'local_created',
+                        `record_scope` TEXT NOT NULL DEFAULT 'terminal_operational',
+                        `payment_attempt_status` TEXT NOT NULL DEFAULT 'none',
+                        `payment_attempt_started_at` INTEGER DEFAULT NULL,
+                        FOREIGN KEY(`created_by`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                val billCols = listOf(
+                    "`id`", "`restaurant_id`", "`device_id`",
+                    bCol("terminal_id", "NULL"),
+                    bCol("created_terminal_id", "NULL"),
+                    bCol("created_device_id", "NULL"),
+                    bCol("daily_order_id", "0"),
+                    bCol("daily_order_display", "''"),
+                    bCol("lifetime_order_id", "NULL"),
+                    bCol("order_type", "'order'"),
+                    bCol("customer_name", "NULL"),
+                    bCol("customer_whatsapp", "NULL"),
+                    bCol("subtotal", "'0.0'"),
+                    bCol("gst_percentage", "'0.0'"),
+                    bCol("cgst_amount", "'0.0'"),
+                    bCol("sgst_amount", "'0.0'"),
+                    bCol("custom_tax_amount", "'0.0'"),
+                    bCol("total_amount", "'0.0'"),
+                    bCol("payment_mode", "'CASH'"),
+                    bCol("source_channel", "''"),
+                    bCol("part_amount_1", "'0.0'"),
+                    bCol("part_amount_2", "'0.0'"),
+                    bCol("payment_status", "'pending'"),
+                    bCol("order_status", "'pending'"),
+                    bCol("status_version", "0"),
+                    bCol("created_by", "NULL"),
+                    bCol("created_by_user_id", "NULL"),
+                    bCol("created_at", "0"),
+                    bCol("paid_at", "NULL"),
+                    bCol("last_reset_date", "''"),
+                    bCol("is_synced", "0"),
+                    bCol("updated_at", "0"),
+                    bCol("is_deleted", "0"),
+                    bCol("server_id", "NULL"),
+                    bCol("server_updated_at", "0"),
+                    bCol("cancel_reason", "''"),
+                    bCol("public_token", "NULL"),
+                    bCol("owner_user_id", "NULL"),
+                    bCol("owner_restaurant_id", "NULL"),
+                    bCol("sync_status", "'pending'"),
+                    bCol("sync_failure_reason", "NULL"),
+                    bCol("sync_failed_at", "NULL"),
+                    bCol("terminal_series", "NULL"),
+                    bCol("financial_year", "NULL"),
+                    bCol("invoice_series", "NULL"),
+                    bCol("invoice_sequence", "NULL"),
+                    bCol("invoice_number", "NULL"),
+                    bCol("refund_amount", "NULL"),
+                    bCol("current_owner_terminal_id", "NULL"),
+                    bCol("version", "0"),
+                    bCol("lock_status", "'unlocked'"),
+                    bCol("operation_id", "NULL"),
+                    bCol("record_origin", "'local_created'"),
+                    bCol("record_scope", "'terminal_operational'"),
+                    bCol("payment_attempt_status", "'none'"),
+                    bCol("payment_attempt_started_at", "NULL")
+                )
+                db.execSQL(
+                    "INSERT INTO `bills_new` (`id`, `restaurant_id`, `device_id`, `terminal_id`, " +
+                        "`created_terminal_id`, `created_device_id`, `daily_order_id`, " +
+                        "`daily_order_display`, `lifetime_order_id`, `order_type`, `customer_name`, " +
+                        "`customer_whatsapp`, `subtotal`, `gst_percentage`, `cgst_amount`, `sgst_amount`, " +
+                        "`custom_tax_amount`, `total_amount`, `payment_mode`, `source_channel`, " +
+                        "`part_amount_1`, `part_amount_2`, `payment_status`, `order_status`, " +
+                        "`status_version`, `created_by`, `created_by_user_id`, `created_at`, `paid_at`, " +
+                        "`last_reset_date`, `is_synced`, `updated_at`, `is_deleted`, `server_id`, " +
+                        "`server_updated_at`, `cancel_reason`, `public_token`, `owner_user_id`, " +
+                        "`owner_restaurant_id`, `sync_status`, `sync_failure_reason`, `sync_failed_at`, " +
+                        "`terminal_series`, `financial_year`, `invoice_series`, `invoice_sequence`, " +
+                        "`invoice_number`, `refund_amount`, `current_owner_terminal_id`, `version`, " +
+                        "`lock_status`, `operation_id`, `record_origin`, `record_scope`, " +
+                        "`payment_attempt_status`, `payment_attempt_started_at`) " +
+                        "SELECT " + billCols.joinToString(", ") + " FROM `bills`"
+                )
+                db.execSQL("DROP TABLE `bills`")
+                db.execSQL("ALTER TABLE `bills_new` RENAME TO `bills`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_by` ON `bills` (`created_by`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_order_status` ON `bills` (`order_status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_at` ON `bills` (`created_at`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_daily_order_id` ON `bills` (`daily_order_id`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bills_restaurant_public_token` ON `bills` (`restaurant_id`, `public_token`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_terminal_id_created_at` ON `bills` (`restaurant_id`, `terminal_id`, `created_at`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_financial_year_invoice_series_invoice_sequence` ON `bills` (`restaurant_id`, `financial_year`, `invoice_series`, `invoice_sequence`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_record_origin` ON `bills` (`record_origin`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_record_scope` ON `bills` (`record_scope`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_terminal_origin_scope` ON `bills` (`created_terminal_id`, `record_origin`, `record_scope`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_payment_attempt_status` ON `bills` (`payment_attempt_status`)")
+                // ── bill_items ─────────────────────────────────────────
+                fun iCol(name: String, fallback: String): String =
+                    if (db.hasColumn("bill_items", name)) "`$name`" else "$fallback AS `$name`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bill_items_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bill_id` INTEGER NOT NULL,
+                        `menu_item_id` INTEGER,
+                        `item_name` TEXT NOT NULL,
+                        `variant_id` INTEGER,
+                        `variant_name` TEXT,
+                        `price` TEXT NOT NULL,
+                        `quantity` INTEGER NOT NULL,
+                        `item_total` TEXT NOT NULL,
+                        `special_instruction` TEXT,
+                        `sent_to_kot` INTEGER NOT NULL DEFAULT 0,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `server_id` INTEGER,
+                        `server_bill_id` INTEGER,
+                        `server_menu_item_id` INTEGER,
+                        `server_variant_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`bill_id`) REFERENCES `bills`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`menu_item_id`) REFERENCES `menu_items`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`variant_id`) REFERENCES `item_variants`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `bill_items_new` (`id`, `bill_id`, `menu_item_id`, `item_name`, `variant_id`, " +
+                        "`variant_name`, `price`, `quantity`, `item_total`, `special_instruction`, `sent_to_kot`, " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`, `server_id`, " +
+                        "`server_bill_id`, `server_menu_item_id`, `server_variant_id`, `server_updated_at`) " +
+                        "SELECT `id`, `bill_id`, `menu_item_id`, `item_name`, `variant_id`, `variant_name`, " +
+                        "`price`, `quantity`, `item_total`, `special_instruction`, " +
+                        iCol("sent_to_kot", "0") + ", `restaurant_id`, `device_id`, `is_synced`, `updated_at`, " +
+                        "`is_deleted`, " + iCol("server_id", "NULL") + ", " + iCol("server_bill_id", "NULL") + ", " +
+                        iCol("server_menu_item_id", "NULL") + ", " + iCol("server_variant_id", "NULL") + ", " +
+                        iCol("server_updated_at", "0") + " FROM `bill_items`"
+                )
+                db.execSQL("DROP TABLE `bill_items`")
+                db.execSQL("ALTER TABLE `bill_items_new` RENAME TO `bill_items`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_bill_id` ON `bill_items` (`bill_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_menu_item_id` ON `bill_items` (`menu_item_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_variant_id` ON `bill_items` (`variant_id`)")
+
+                android.util.Log.i("AppDatabase", "MIGRATION_78_79 complete: users+bills+bill_items rebuilt to current spec")
             }
         }
 

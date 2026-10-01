@@ -1,0 +1,1 @@
+cat: /storage/emulated/0/Android/data/com.piquantservices.khanabooklite.debug/files/migration-sweep.txt: Permission denied
