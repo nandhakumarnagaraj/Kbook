@@ -76,7 +76,7 @@ class DatabaseProvider @Inject constructor(
         try {
             Log.i(
                 tag,
-                "Switching to database expectedRoomVersion=70 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Switching to database expectedRoomVersion=78 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
             )
@@ -86,7 +86,7 @@ class DatabaseProvider @Inject constructor(
         } catch (e: Exception) {
             Log.e(
                 tag,
-                "Database switch failed expectedRoomVersion=70 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Database switch failed expectedRoomVersion=78 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
                 e
@@ -115,13 +115,66 @@ class DatabaseProvider @Inject constructor(
     }
 
     fun warmUpDatabase() {
+        val database = getDatabase()
         try {
-            val database = getDatabase()
             database.openHelper.writableDatabase
-            Log.i(tag, "Database warm-up completed expectedRoomVersion=70")
+            Log.i(tag, "Database warm-up completed expectedRoomVersion=78")
         } catch (e: Exception) {
-            Log.e(tag, "Database warm-up failed expectedRoomVersion=70", e)
-            throw e
+            if (!isRecoverableDbOpenFailure(e)) {
+                Log.e(tag, "Database warm-up failed expectedRoomVersion=78", e)
+                throw e
+            }
+            // Recovery path: SQLCipher passphrase mismatch (Keystore reset) or a
+            // corrupt file. Quarantine (rename, never delete) the unreadable files
+            // and rebuild a fresh database. Unsynced local rows survive in the
+            // .corrupt-* copies for manual recovery; master sync repopulates the rest.
+            val dbName = currentDatabaseName()
+            val restaurantId = activeRestaurantId
+            Log.e(tag, "Database open failed with a recoverable cipher/corruption error; " +
+                "quarantining db=$dbName and rebuilding", e)
+            try {
+                database.close()
+            } catch (ignored: Exception) {
+            }
+            activeDatabase = null
+            databaseState.value = null
+            quarantineDatabaseFiles(dbName)
+            val recovered = switchToDatabase(restaurantId)
+            recovered.openHelper.writableDatabase
+            Log.w(tag, "Database rebuilt after quarantine. Unsynced local data was preserved " +
+                "in *.corrupt-* files; a full master re-sync is required. db=$dbName")
+        }
+    }
+
+    private fun currentDatabaseName(): String =
+        if (activeRestaurantId > 0) "khanabook_lite_db_$activeRestaurantId" else "khanabook_lite_db"
+
+    private fun isRecoverableDbOpenFailure(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            val message = current.message?.lowercase().orEmpty()
+            if (
+                "file is not a database" in message ||
+                "sqlite_master" in message ||
+                ("not an error" in message && "cipher" in message)
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun quarantineDatabaseFiles(dbName: String) {
+        val suffix = ".corrupt-${System.currentTimeMillis()}"
+        listOf(dbName, "$dbName-wal", "$dbName-shm", "$dbName-journal").forEach { name ->
+            val file = context.getDatabasePath(name)
+            if (file.exists()) {
+                val target = java.io.File(file.absolutePath + suffix)
+                if (file.renameTo(target)) {
+                    Log.w(tag, "Quarantined ${file.name} -> ${target.name}")
+                }
+            }
         }
     }
 
@@ -145,64 +198,7 @@ class DatabaseProvider @Inject constructor(
             dbName
         )
             .openHelperFactory(factory)
-            .addMigrations(
-                AppDatabase.MIGRATION_17_18,
-                AppDatabase.MIGRATION_18_19,
-                AppDatabase.MIGRATION_21_22,
-                AppDatabase.MIGRATION_23_24,
-                AppDatabase.MIGRATION_26_27,
-                AppDatabase.MIGRATION_27_28,
-                AppDatabase.MIGRATION_28_29,
-                AppDatabase.MIGRATION_29_30,
-                AppDatabase.MIGRATION_30_31,
-                AppDatabase.MIGRATION_31_32,
-                AppDatabase.MIGRATION_32_33,
-                AppDatabase.MIGRATION_33_34,
-                AppDatabase.MIGRATION_34_35,
-                AppDatabase.MIGRATION_35_36,
-                AppDatabase.MIGRATION_36_37,
-                AppDatabase.MIGRATION_37_38,
-                AppDatabase.MIGRATION_38_39,
-                AppDatabase.MIGRATION_39_40,
-                AppDatabase.MIGRATION_40_41,
-                AppDatabase.MIGRATION_41_42,
-                AppDatabase.MIGRATION_42_43,
-                AppDatabase.MIGRATION_43_44,
-                AppDatabase.MIGRATION_44_45,
-                AppDatabase.MIGRATION_45_46,
-                AppDatabase.MIGRATION_46_47,
-                AppDatabase.MIGRATION_47_48,
-                AppDatabase.MIGRATION_48_49,
-                AppDatabase.MIGRATION_49_50,
-                AppDatabase.MIGRATION_50_51,
-                AppDatabase.MIGRATION_51_52,
-                AppDatabase.MIGRATION_52_53,
-                AppDatabase.MIGRATION_53_54,
-                AppDatabase.MIGRATION_54_55,
-                AppDatabase.MIGRATION_55_56,
-                AppDatabase.MIGRATION_56_57,
-                AppDatabase.MIGRATION_57_58,
-                AppDatabase.MIGRATION_58_59,
-                AppDatabase.MIGRATION_59_60,
-                AppDatabase.MIGRATION_60_61,
-                AppDatabase.MIGRATION_61_62,
-                AppDatabase.MIGRATION_62_63,
-                AppDatabase.MIGRATION_63_64,
-                AppDatabase.MIGRATION_64_65,
-                AppDatabase.MIGRATION_65_66,
-                AppDatabase.MIGRATION_66_67,
-                AppDatabase.MIGRATION_67_68,
-                AppDatabase.MIGRATION_68_69,
-                AppDatabase.MIGRATION_69_70,
-                AppDatabase.MIGRATION_70_71,
-                AppDatabase.MIGRATION_71_72,
-                AppDatabase.MIGRATION_72_73,
-                AppDatabase.MIGRATION_73_74,
-                AppDatabase.MIGRATION_74_75,
-  AppDatabase.MIGRATION_75_76,
-  AppDatabase.MIGRATION_76_77,
-  AppDatabase.MIGRATION_77_78
-  )
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
             .build()
     }
 

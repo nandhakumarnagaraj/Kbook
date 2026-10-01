@@ -63,13 +63,33 @@ object DatabaseModule {
     private fun getSecureDbPrefs(context: Context): KeystoreBackedPreferences =
         KeystoreBackedPreferences(context, SECURE_DB_PREFS)
 
-    internal fun getOrCreateDbPassphrase(context: Context): ByteArray {
+    internal fun getOrCreateDbPassphrase(
+        context: Context,
+        allowKeyRegeneration: Boolean = true
+    ): ByteArray {
         try {
             val sharedPrefs = getSecureDbPrefs(context)
             migrateLegacyDbKeyIfNeeded(context, sharedPrefs)
 
-            var dbKey = sharedPrefs.getString(DB_KEY_PREF, null)
+            var dbKey = sharedPrefs.getString(DB_KEY_PREF, null, strict = true)
+            if (dbKey == null && sharedPrefs.contains(DB_KEY_PREF)) {
+                // Ciphertext exists but the Keystore could not decrypt it (device
+                // reset, OEM keystore wipe). Regenerating the key here would leave
+                // every existing database permanently unreadable
+                // ("file is not a database"). Fail loudly instead — callers that
+                // pass allowKeyRegeneration = false also have a quarantine-and-
+                // rebuild recovery path; minting a key silently has none.
+                throw IllegalStateException(
+                    "SQLCipher passphrase exists but could not be decrypted " +
+                        "(Keystore key lost or invalidated)"
+                )
+            }
             if (dbKey == null) {
+                if (!allowKeyRegeneration) {
+                    throw IllegalStateException(
+                        "No SQLCipher passphrase stored and key regeneration is disabled"
+                    )
+                }
                 val bytes = ByteArray(32)
                 java.security.SecureRandom().nextBytes(bytes)
                 dbKey = Base64.encodeToString(bytes, Base64.NO_WRAP)
@@ -90,107 +110,11 @@ object DatabaseModule {
         securePrefs.putString(DB_KEY_PREF, legacyDbKey)
     }
 
-    private fun shouldRecoverFromDbOpenFailure(error: Throwable): Boolean {
-        var current: Throwable? = error
-        while (current != null) {
-            val message = current.message?.lowercase().orEmpty()
-            if (
-                "file is not a database" in message ||
-                "sqlite_master" in message ||
-                ("not an error" in message && "cipher" in message)
-            ) {
-                return true
-            }
-            current = current.cause
-        }
-        return false
-    }
-
-    private fun quarantineDatabaseFiles(context: Context): List<String> {
-        val suffix = ".corrupt-${System.currentTimeMillis()}"
-        val paths = listOf(
-            context.getDatabasePath(AppDatabase.DATABASE_NAME),
-            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-wal"),
-            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-shm"),
-            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-journal")
-        )
-
-        return paths.mapNotNull { source ->
-            if (!source.exists()) return@mapNotNull null
-            val target = java.io.File(source.absolutePath + suffix)
-            if (source.renameTo(target)) target.absolutePath else null
-        }
-    }
-
-    private fun buildDatabase(context: Context, passphrase: ByteArray): AppDatabase {
-        val factory = SupportOpenHelperFactory(passphrase)
-
-        return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            AppDatabase.DATABASE_NAME
-        )
-            .openHelperFactory(factory)
-            .addMigrations(
-                AppDatabase.MIGRATION_17_18,
-                AppDatabase.MIGRATION_18_19,
-                AppDatabase.MIGRATION_21_22,
-                AppDatabase.MIGRATION_23_24,
-                AppDatabase.MIGRATION_26_27,
-                AppDatabase.MIGRATION_27_28,
-                AppDatabase.MIGRATION_28_29,
-                AppDatabase.MIGRATION_29_30,
-                AppDatabase.MIGRATION_30_31,
-                AppDatabase.MIGRATION_31_32,
-                AppDatabase.MIGRATION_32_33,
-                AppDatabase.MIGRATION_33_34,
-                AppDatabase.MIGRATION_34_35,
-                AppDatabase.MIGRATION_35_36,
-                AppDatabase.MIGRATION_36_37,
-                AppDatabase.MIGRATION_37_38,
-                AppDatabase.MIGRATION_38_39,
-                AppDatabase.MIGRATION_39_40,
-                AppDatabase.MIGRATION_40_41,
-                AppDatabase.MIGRATION_41_42,
-                AppDatabase.MIGRATION_42_43,
-                AppDatabase.MIGRATION_43_44,
-                AppDatabase.MIGRATION_44_45,
-                AppDatabase.MIGRATION_45_46,
-                AppDatabase.MIGRATION_46_47,
-                AppDatabase.MIGRATION_47_48,
-                AppDatabase.MIGRATION_48_49,
-                AppDatabase.MIGRATION_49_50,
-                AppDatabase.MIGRATION_50_51,
-                AppDatabase.MIGRATION_51_52,
-                AppDatabase.MIGRATION_52_53,
-                AppDatabase.MIGRATION_53_54,
-                AppDatabase.MIGRATION_54_55,
-                AppDatabase.MIGRATION_55_56,
-                AppDatabase.MIGRATION_56_57,
-                AppDatabase.MIGRATION_57_58,
-                AppDatabase.MIGRATION_58_59,
-                AppDatabase.MIGRATION_59_60,
-                AppDatabase.MIGRATION_60_61,
-                AppDatabase.MIGRATION_61_62,
-                AppDatabase.MIGRATION_62_63,
-                AppDatabase.MIGRATION_63_64,
-                AppDatabase.MIGRATION_64_65,
-                AppDatabase.MIGRATION_65_66,
-                AppDatabase.MIGRATION_66_67,
-                AppDatabase.MIGRATION_67_68,
-                AppDatabase.MIGRATION_68_69,
-                AppDatabase.MIGRATION_69_70,
-                AppDatabase.MIGRATION_70_71,
-                AppDatabase.MIGRATION_71_72,
-                AppDatabase.MIGRATION_72_73,
-                AppDatabase.MIGRATION_73_74,
-                AppDatabase.MIGRATION_74_75,
-  AppDatabase.MIGRATION_75_76,
-  AppDatabase.MIGRATION_76_77,
-  AppDatabase.MIGRATION_77_78
-  )
-            .build()
-    }
+    // NOTE: the previously duplicated buildDatabase() here (second Room builder
+    // with its own copy of the migration list) and the unused
+    // shouldRecoverFromDbOpenFailure()/quarantineDatabaseFiles() helpers were
+    // dead code — recovery now lives in DatabaseProvider.warmUpDatabase() and
+    // the migration list lives in AppDatabase.ALL_MIGRATIONS.
 
     @Provides
     fun provideDatabase(databaseProvider: DatabaseProvider): AppDatabase {

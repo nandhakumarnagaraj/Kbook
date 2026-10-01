@@ -65,6 +65,36 @@ abstract class AppDatabase : RoomDatabase() {
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
 
+        /**
+         * The complete, ordered migration chain. Both Room builders
+         * (DatabaseProvider and DatabaseModule) MUST reference this array —
+         * never register individual migrations again, so the lists can never
+         * drift apart (the drift hazard that lost 19→20…25→26 in the
+         * Sep 2026 restructure).
+         */
+        // Property getter (not a val initializer): the individual migrations are
+        // declared below, and a val initializer would snapshot them as null during
+        // companion-object construction.
+        val ALL_MIGRATIONS: Array<Migration>
+            get() = arrayOf(
+            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+            MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
+            MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29,
+            MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33,
+            MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
+            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
+            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45,
+            MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48, MIGRATION_48_49,
+            MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52, MIGRATION_52_53,
+            MIGRATION_53_54, MIGRATION_54_55, MIGRATION_55_56, MIGRATION_56_57,
+            MIGRATION_57_58, MIGRATION_58_59, MIGRATION_59_60, MIGRATION_60_61,
+            MIGRATION_61_62, MIGRATION_62_63, MIGRATION_63_64, MIGRATION_64_65,
+            MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
+            MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
+            MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
+            MIGRATION_77_78
+        )
+
             val MIGRATION_52_53 = object : Migration(52, 53) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     if (!db.hasColumn("restaurant_profile", "order_payment_flow_mode")) {
@@ -463,29 +493,395 @@ abstract class AppDatabase : RoomDatabase() {
         
         val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                
-                try {
+                // The old ALTER-only implementation could never produce the v19
+                // schema: a plain ADD COLUMN cannot clear a NOT NULL constraint,
+                // and Room's post-migration validation rejects NOT NULL drift on
+                // country/currency. Rebuild the table to guarantee the exact v19
+                // shape (country/currency nullable with 'India'/'INR' defaults).
+                if (!db.hasColumn("restaurant_profile", "country")) {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `country` TEXT DEFAULT 'India'")
-                } catch (e: android.database.sqlite.SQLiteException) {
-                    android.util.Log.w("AppDatabase", "MIGRATION_18_19: country may already exist: ${e.message}")
-                    db.execSQL("UPDATE `restaurant_profile` SET `country` = 'India' WHERE `country` IS NULL")
                 }
-
-                try {
+                if (!db.hasColumn("restaurant_profile", "currency")) {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `currency` TEXT DEFAULT 'INR'")
-                } catch (e: android.database.sqlite.SQLiteException) {
-                    android.util.Log.w("AppDatabase", "MIGRATION_18_19: currency may already exist: ${e.message}")
-                    db.execSQL("UPDATE `restaurant_profile` SET `currency` = 'INR' WHERE `currency` IS NULL")
                 }
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `restaurant_profile_new` (
+                        `id` INTEGER NOT NULL,
+                        `shop_name` TEXT,
+                        `shop_address` TEXT,
+                        `whatsapp_number` TEXT,
+                        `email` TEXT,
+                        `logo_path` TEXT,
+                        `fssai_number` TEXT,
+                        `email_invoice_consent` INTEGER NOT NULL DEFAULT 0,
+                        `country` TEXT DEFAULT 'India',
+                        `gst_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `gstin` TEXT,
+                        `is_tax_inclusive` INTEGER NOT NULL DEFAULT 0,
+                        `gst_percentage` REAL NOT NULL DEFAULT 0.0,
+                        `custom_tax_name` TEXT,
+                        `custom_tax_number` TEXT,
+                        `custom_tax_percentage` REAL NOT NULL DEFAULT 0.0,
+                        `currency` TEXT DEFAULT 'INR',
+                        `upi_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `upi_qr_path` TEXT,
+                        `upi_handle` TEXT,
+                        `upi_mobile` TEXT,
+                        `cash_enabled` INTEGER NOT NULL DEFAULT 1,
+                        `pos_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `zomato_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `swiggy_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `own_website_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `printer_enabled` INTEGER NOT NULL DEFAULT 0,
+                        `printer_name` TEXT,
+                        `printer_mac` TEXT,
+                        `paper_size` TEXT NOT NULL DEFAULT '58mm',
+                        `auto_print_on_success` INTEGER NOT NULL DEFAULT 0,
+                        `include_logo_in_print` INTEGER NOT NULL DEFAULT 1,
+                        `print_customer_whatsapp` INTEGER NOT NULL DEFAULT 1,
+                        `daily_order_counter` INTEGER NOT NULL DEFAULT 0,
+                        `lifetime_order_counter` INTEGER NOT NULL DEFAULT 0,
+                        `last_reset_date` TEXT,
+                        `session_timeout_minutes` INTEGER NOT NULL DEFAULT 30,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("INSERT INTO `restaurant_profile_new` SELECT * FROM `restaurant_profile`")
+                db.execSQL("DROP TABLE `restaurant_profile`")
+                db.execSQL("ALTER TABLE `restaurant_profile_new` RENAME TO `restaurant_profile`")
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Schema 19.json and 20.json are byte-identical apart from the
+                // version bump (verified by diff) — this step existed only as a
+                // release marker and was lost in the restructure.
+                android.util.Log.i("AppDatabase", "MIGRATION_19_20: no-op (schemas identical)")
+            }
+        }
+
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v21 also adds restaurant_profile.timezone (nullable, default
+                // 'Asia/Kolkata') — plain ADD COLUMN, no rebuild needed.
+                if (!db.hasColumn("restaurant_profile", "timezone")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `timezone` TEXT DEFAULT 'Asia/Kolkata'")
+                }
+                // v21 changes column affinities that ALTER TABLE cannot modify:
+                //   users/categories: created_at TEXT -> INTEGER NOT NULL
+                //   menu_items:       base_price REAL -> TEXT, current_stock/
+                //                     low_stock_threshold REAL -> TEXT, adds barcode
+                // Table rebuilds are required. created_at ISO strings cast to 0 —
+                // acceptable: local timestamps are display hints, refreshed by sync.
+
+                // 1. menu_items first (it holds the FK on categories).
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `menu_items_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `category_id` INTEGER NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `base_price` TEXT NOT NULL,
+                        `food_type` TEXT NOT NULL DEFAULT 'veg',
+                        `description` TEXT,
+                        `is_available` INTEGER NOT NULL DEFAULT 1,
+                        `current_stock` TEXT NOT NULL DEFAULT '0.0',
+                        `low_stock_threshold` TEXT NOT NULL DEFAULT '10.0',
+                        `created_at` INTEGER NOT NULL,
+                        `barcode` TEXT DEFAULT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `menu_items_new` (`id`, `category_id`, `name`, `base_price`, `food_type`, " +
+                        "`description`, `is_available`, `current_stock`, `low_stock_threshold`, `created_at`, " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `category_id`, `name`, `base_price`, `food_type`, `description`, " +
+                        "`is_available`, `current_stock`, `low_stock_threshold`, CAST(`created_at` AS INTEGER), " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted` FROM `menu_items`"
+                )
+                db.execSQL("DROP TABLE `menu_items`")
+                db.execSQL("ALTER TABLE `menu_items_new` RENAME TO `menu_items`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_menu_items_category_id` ON `menu_items` (`category_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_menu_items_is_available` ON `menu_items` (`is_available`)")
+
+                // 2. categories.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `categories_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `is_veg` INTEGER NOT NULL,
+                        `sort_order` INTEGER NOT NULL DEFAULT 0,
+                        `is_active` INTEGER NOT NULL DEFAULT 1,
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `categories_new` (`id`, `name`, `is_veg`, `sort_order`, `is_active`, " +
+                        "`created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `name`, `is_veg`, `sort_order`, `is_active`, CAST(`created_at` AS INTEGER), " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted` FROM `categories`"
+                )
+                db.execSQL("DROP TABLE `categories`")
+                db.execSQL("ALTER TABLE `categories_new` RENAME TO `categories`")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_categories_name` ON `categories` (`name`)")
+
+                // 3. users.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `users_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `password_hash` TEXT,
+                        `whatsapp_number` TEXT,
+                        `is_active` INTEGER NOT NULL DEFAULT 1,
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `users_new` (`id`, `name`, `email`, `password_hash`, `whatsapp_number`, " +
+                        "`is_active`, `created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, " +
+                        "`is_deleted`) SELECT `id`, `name`, `email`, `password_hash`, `whatsapp_number`, " +
+                        "`is_active`, CAST(`created_at` AS INTEGER), `restaurant_id`, `device_id`, `is_synced`, " +
+                        "`updated_at`, `is_deleted` FROM `users`"
+                )
+                db.execSQL("DROP TABLE `users`")
+                db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
+
+                // 4. stock_logs: delta REAL->TEXT, created_at TEXT->INTEGER.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `stock_logs_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `menu_item_id` INTEGER NOT NULL,
+                        `variant_id` INTEGER,
+                        `delta` TEXT NOT NULL,
+                        `reason` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`menu_item_id`) REFERENCES `menu_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `stock_logs_new` (`id`, `menu_item_id`, `variant_id`, `delta`, `reason`, " +
+                        "`created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `menu_item_id`, `variant_id`, CAST(`delta` AS TEXT), `reason`, " +
+                        "CAST(`created_at` AS INTEGER), `restaurant_id`, `device_id`, `is_synced`, " +
+                        "`updated_at`, `is_deleted` FROM `stock_logs`"
+                )
+                db.execSQL("DROP TABLE `stock_logs`")
+                db.execSQL("ALTER TABLE `stock_logs_new` RENAME TO `stock_logs`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_stock_logs_menu_item_id` ON `stock_logs` (`menu_item_id`)")
+
+                // 5. item_variants: price/current_stock/low_stock_threshold REAL->TEXT.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `item_variants_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `menu_item_id` INTEGER NOT NULL,
+                        `variant_name` TEXT NOT NULL,
+                        `price` TEXT NOT NULL,
+                        `is_available` INTEGER NOT NULL DEFAULT 1,
+                        `sort_order` INTEGER NOT NULL DEFAULT 0,
+                        `current_stock` TEXT NOT NULL DEFAULT '0.0',
+                        `low_stock_threshold` TEXT NOT NULL DEFAULT '10.0',
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`menu_item_id`) REFERENCES `menu_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `item_variants_new` (`id`, `menu_item_id`, `variant_name`, `price`, " +
+                        "`is_available`, `sort_order`, `current_stock`, `low_stock_threshold`, `restaurant_id`, " +
+                        "`device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `menu_item_id`, `variant_name`, CAST(`price` AS TEXT), `is_available`, " +
+                        "`sort_order`, CAST(`current_stock` AS TEXT), CAST(`low_stock_threshold` AS TEXT), " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted` FROM `item_variants`"
+                )
+                db.execSQL("DROP TABLE `item_variants`")
+                db.execSQL("ALTER TABLE `item_variants_new` RENAME TO `item_variants`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_item_variants_menu_item_id` ON `item_variants` (`menu_item_id`)")
+
+                // 6. bills: all money columns REAL->TEXT, created_at/paid_at TEXT->INTEGER.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bills_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `daily_order_id` INTEGER NOT NULL,
+                        `daily_order_display` TEXT NOT NULL,
+                        `lifetime_order_id` INTEGER NOT NULL,
+                        `order_type` TEXT NOT NULL DEFAULT 'order',
+                        `customer_name` TEXT,
+                        `customer_whatsapp` TEXT,
+                        `subtotal` TEXT NOT NULL,
+                        `gst_percentage` TEXT NOT NULL DEFAULT '0.0',
+                        `cgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `sgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `custom_tax_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `total_amount` TEXT NOT NULL,
+                        `payment_mode` TEXT NOT NULL,
+                        `part_amount_1` TEXT NOT NULL DEFAULT '0.0',
+                        `part_amount_2` TEXT NOT NULL DEFAULT '0.0',
+                        `payment_status` TEXT NOT NULL,
+                        `order_status` TEXT NOT NULL,
+                        `created_by` INTEGER,
+                        `created_at` INTEGER NOT NULL,
+                        `paid_at` INTEGER,
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`created_by`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `bills_new` (`id`, `restaurant_id`, `device_id`, `daily_order_id`, " +
+                        "`daily_order_display`, `lifetime_order_id`, `order_type`, `customer_name`, " +
+                        "`customer_whatsapp`, `subtotal`, `gst_percentage`, `cgst_amount`, `sgst_amount`, " +
+                        "`custom_tax_amount`, `total_amount`, `payment_mode`, `part_amount_1`, `part_amount_2`, " +
+                        "`payment_status`, `order_status`, `created_by`, `created_at`, `paid_at`, `is_synced`, " +
+                        "`updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `restaurant_id`, `device_id`, `daily_order_id`, `daily_order_display`, " +
+                        "`lifetime_order_id`, `order_type`, `customer_name`, `customer_whatsapp`, " +
+                        "CAST(`subtotal` AS TEXT), CAST(`gst_percentage` AS TEXT), CAST(`cgst_amount` AS TEXT), " +
+                        "CAST(`sgst_amount` AS TEXT), CAST(`custom_tax_amount` AS TEXT), CAST(`total_amount` AS TEXT), " +
+                        "`payment_mode`, CAST(`part_amount_1` AS TEXT), CAST(`part_amount_2` AS TEXT), " +
+                        "`payment_status`, `order_status`, `created_by`, CAST(`created_at` AS INTEGER), " +
+                        "CAST(`paid_at` AS INTEGER), `is_synced`, `updated_at`, `is_deleted` FROM `bills`"
+                )
+                db.execSQL("DROP TABLE `bills`")
+                db.execSQL("ALTER TABLE `bills_new` RENAME TO `bills`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_by` ON `bills` (`created_by`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_order_status` ON `bills` (`order_status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_at` ON `bills` (`created_at`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_daily_order_id` ON `bills` (`daily_order_id`)")
+
+                // 7. bill_items: price/item_total REAL->TEXT.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bill_items_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bill_id` INTEGER NOT NULL,
+                        `menu_item_id` INTEGER,
+                        `item_name` TEXT NOT NULL,
+                        `variant_id` INTEGER,
+                        `variant_name` TEXT,
+                        `price` TEXT NOT NULL,
+                        `quantity` INTEGER NOT NULL,
+                        `item_total` TEXT NOT NULL,
+                        `special_instruction` TEXT,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`bill_id`) REFERENCES `bills`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`menu_item_id`) REFERENCES `menu_items`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`variant_id`) REFERENCES `item_variants`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `bill_items_new` (`id`, `bill_id`, `menu_item_id`, `item_name`, `variant_id`, " +
+                        "`variant_name`, `price`, `quantity`, `item_total`, `special_instruction`, `restaurant_id`, " +
+                        "`device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `bill_id`, `menu_item_id`, `item_name`, `variant_id`, `variant_name`, " +
+                        "CAST(`price` AS TEXT), `quantity`, CAST(`item_total` AS TEXT), `special_instruction`, " +
+                        "`restaurant_id`, `device_id`, `is_synced`, `updated_at`, `is_deleted` FROM `bill_items`"
+                )
+                db.execSQL("DROP TABLE `bill_items`")
+                db.execSQL("ALTER TABLE `bill_items_new` RENAME TO `bill_items`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_bill_id` ON `bill_items` (`bill_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_menu_item_id` ON `bill_items` (`menu_item_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_items_variant_id` ON `bill_items` (`variant_id`)")
+
+                // 8. bill_payments: amount REAL->TEXT.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `bill_payments_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bill_id` INTEGER NOT NULL,
+                        `payment_mode` TEXT NOT NULL,
+                        `amount` TEXT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(`bill_id`) REFERENCES `bills`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `bill_payments_new` (`id`, `bill_id`, `payment_mode`, `amount`, `restaurant_id`, " +
+                        "`device_id`, `is_synced`, `updated_at`, `is_deleted`) " +
+                        "SELECT `id`, `bill_id`, `payment_mode`, CAST(`amount` AS TEXT), `restaurant_id`, " +
+                        "`device_id`, `is_synced`, `updated_at`, `is_deleted` FROM `bill_payments`"
+                )
+                db.execSQL("DROP TABLE `bill_payments`")
+                db.execSQL("ALTER TABLE `bill_payments_new` RENAME TO `bill_payments`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bill_payments_bill_id` ON `bill_payments` (`bill_id`)")
+            }
+        }
+
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 22.json and 23.json are identical apart from the version bump.
+                android.util.Log.i("AppDatabase", "MIGRATION_22_23: no-op (schemas identical)")
             }
         }
 
         val MIGRATION_21_22 = object : Migration(21, 22) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                try {
+                // v22 adds both role AND pin_hash. The original implementation only
+                // added role — a schema validation failure on every device that ran
+                // it (role was committed, pin_hash never was, leaving those devices
+                // stuck at v22 with a mismatched identity hash). MIGRATION_24_25
+                // tolerates both worlds via hasColumn guards.
+                if (!db.hasColumn("users", "role")) {
                     db.execSQL("ALTER TABLE `users` ADD COLUMN `role` TEXT NOT NULL DEFAULT 'owner'")
-                } catch (e: android.database.sqlite.SQLiteException) {
-                    android.util.Log.w("AppDatabase", "MIGRATION_21_22: role may already exist: ${e.message}")
+                }
+                if (!db.hasColumn("users", "pin_hash")) {
+                    db.execSQL("ALTER TABLE `users` ADD COLUMN `pin_hash` TEXT")
                 }
             }
         }
@@ -493,6 +889,66 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_23_24 = object : Migration(23, 24) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `show_branding` INTEGER NOT NULL DEFAULT 1")
+                // v24 also adds bills.last_reset_date (NOT NULL DEFAULT '').
+                if (!db.hasColumn("bills", "last_reset_date")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `last_reset_date` TEXT NOT NULL DEFAULT ''")
+                }
+                // v24 also renames the categories unique index to be
+                // restaurant-scoped (multi-tenant support). The original
+                // implementation never touched the index — validation gap.
+                db.execSQL("DROP INDEX IF EXISTS `index_categories_name`")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_categories_restaurant_id_name` " +
+                        "ON `categories` (`restaurant_id`, `name`)"
+                )
+            }
+        }
+
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v25 removes password_hash from users (device no longer stores
+                // passwords; auth moved to server-side tokens). DROP COLUMN is not
+                // available on older SQLite levels Room supports, so rebuild.
+                // Tolerates devices stuck mid-flight from the historically broken
+                // MIGRATION_21_22 (role present without pin_hash).
+                val roleSelect = if (db.hasColumn("users", "role")) "`role`" else "'owner' AS `role`"
+                val pinSelect = if (db.hasColumn("users", "pin_hash")) "`pin_hash`" else "NULL AS `pin_hash`"
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `users_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `whatsapp_number` TEXT,
+                        `role` TEXT NOT NULL DEFAULT 'owner',
+                        `pin_hash` TEXT,
+                        `is_active` INTEGER NOT NULL DEFAULT 1,
+                        `created_at` INTEGER NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "INSERT INTO `users_new` (`id`, `name`, `email`, `whatsapp_number`, `role`, `pin_hash`, " +
+                        "`is_active`, `created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, " +
+                        "`is_deleted`) SELECT `id`, `name`, `email`, `whatsapp_number`, $roleSelect, $pinSelect, " +
+                        "`is_active`, `created_at`, `restaurant_id`, `device_id`, `is_synced`, `updated_at`, " +
+                        "`is_deleted` FROM `users`"
+                )
+                db.execSQL("DROP TABLE `users`")
+                db.execSQL("ALTER TABLE `users_new` RENAME TO `users`")
+            }
+        }
+
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("restaurant_profile", "mask_customer_phone")) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `mask_customer_phone` INTEGER NOT NULL DEFAULT 1")
+                }
             }
         }
 

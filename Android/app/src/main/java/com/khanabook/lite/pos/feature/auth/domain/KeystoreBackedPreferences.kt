@@ -29,11 +29,21 @@ class KeystoreBackedPreferences(
     private val prefs: SharedPreferences =
         context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
 
-    fun getString(key: String, defaultValue: String? = null): String? {
+    /**
+     * Reads [key] and decrypts it. With strict = true, a decrypt failure rethrows
+     * instead of returning [defaultValue] — use this for secrets whose loss must
+     * be loud (e.g. the SQLCipher passphrase), because a silent null there would
+     * trigger fresh key generation and permanently orphan existing databases.
+     */
+    fun getString(key: String, defaultValue: String? = null, strict: Boolean = false): String? {
         val encoded = prefs.getString(key, null) ?: return defaultValue
-        return runCatching { decrypt(encoded) }
-            .onFailure { android.util.Log.e("KeystorePrefs", "Decryption failed for key: $key", it) }
-            .getOrNull() ?: defaultValue
+        return try {
+            decrypt(encoded)
+        } catch (e: Exception) {
+            android.util.Log.e("KeystorePrefs", "Decryption failed for key: $key", e)
+            if (strict) throw e
+            defaultValue
+        }
     }
 
     fun putString(key: String, value: String) {
