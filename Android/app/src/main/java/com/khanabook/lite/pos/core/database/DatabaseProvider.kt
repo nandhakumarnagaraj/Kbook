@@ -76,7 +76,7 @@ class DatabaseProvider @Inject constructor(
         try {
             Log.i(
                 tag,
-                "Switching to database expectedRoomVersion=78 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Switching to database expectedRoomVersion=79 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
             )
@@ -86,7 +86,7 @@ class DatabaseProvider @Inject constructor(
         } catch (e: Exception) {
             Log.e(
                 tag,
-                "Database switch failed expectedRoomVersion=78 appVersion=${BuildConfig.VERSION_NAME} " +
+                "Database switch failed expectedRoomVersion=79 appVersion=${BuildConfig.VERSION_NAME} " +
                     "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
                     "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
                 e
@@ -118,10 +118,10 @@ class DatabaseProvider @Inject constructor(
         val database = getDatabase()
         try {
             database.openHelper.writableDatabase
-            Log.i(tag, "Database warm-up completed expectedRoomVersion=78")
+            Log.i(tag, "Database warm-up completed expectedRoomVersion=79")
         } catch (e: Exception) {
             if (!isRecoverableDbOpenFailure(e)) {
-                Log.e(tag, "Database warm-up failed expectedRoomVersion=78", e)
+                Log.e(tag, "Database warm-up failed expectedRoomVersion=79", e)
                 throw e
             }
             // Recovery path: SQLCipher passphrase mismatch (Keystore reset) or a

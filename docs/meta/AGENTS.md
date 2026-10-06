@@ -89,12 +89,12 @@ If a task seems to require any out-of-scope feature, stop and ask — do not res
 
 ### Theming
 - **Material 3** exclusively — no Material 2 components
-- **Dark theme only** — single `darkColorScheme` in `ui/theme/`
+- **Dark theme only** — single `darkColorScheme` in `core/theme/`
 - **Custom theme tokens** via `CompositionLocal`:
   - `KhanaBookTheme.spacing` — never hardcode dp; use `spacing.small`, `spacing.medium`, etc.
   - `KhanaBookTheme.iconSize` — use `iconSize.small`, `iconSize.medium`, etc.
   - `KhanaBookTheme.layout` — responsive helpers: `isCompact`, `isMedium`, `isExpanded`, `menuGridColumns`, `contentPadding`, `dialogWidthFraction`
-- **Color palette** (`ui/theme/Color.kt`):
+- **Color palette** (`core/theme/Color.kt`):
   - `PrimaryGold` (#C8960C) for accents, headers, active states
   - `DarkBrown1` (#1A0A0A) for screen backgrounds
   - `DarkBrown2` (#2D1010) for surfaces/cards
@@ -144,7 +144,7 @@ Use these custom components from `ui/designsystem/`:
 
 ### Navigation
 - Jetpack Navigation Compose, animated transitions (`fadeIn + slideInHorizontally`, `tween(300)`, `FastOutSlowInEasing`)
-- Tabs via `NavigationBar` + `AnimatedContent` in MainScreen (Home/Reports/Orders/Profile)
+- Tabs via `NavigationSuiteScaffold` (rail >=600dp, else bar) + `AnimatedContent` in MainScreen (Home/Reports/Settings)
 - Double-back-to-exit on main tabs
 
 ### Lists & Grids
@@ -281,7 +281,7 @@ Every page follows this shell:
 - **Landscape**: Avoid fixed-height containers (`height(56.dp)` is fine for buttons, but avoid `.fillMaxHeight()` without scroll context)
 
 ## Key Paths
-- Android app: `Android/app/src/main/java/com/khanabook/pos/`
+- Android app: `Android/app/src/main/java/com/khanabook/lite/pos/`
 - Server source: `server/src/main/java/com/khanabook/saas/`
 - Web admin source: `web-admin/src/`
 - Android tests: `Android/app/src/test/` (unit), `Android/app/src/androidTest/` (instrumented)

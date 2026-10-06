@@ -9,6 +9,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -178,9 +179,10 @@ internal fun HomeActionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(
                     horizontal = layout.cardPaddingHorizontal,
-                    vertical = layout.cardPaddingVertical
+                    vertical = KhanaBookTheme.spacing.smallMedium
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.medium)
@@ -217,6 +219,95 @@ internal fun HomeActionCard(
                     )
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+internal fun BillingModeToggle(
+    isQuickMode: Boolean,
+    onModeSelected: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp),
+        shape = RoundedCornerShape(percent = 50),
+        color = CardBG,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBrown1)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(spacing.hairline),
+            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BillingModePill(
+                label = "Quick Bill",
+                icon = Icons.Default.Bolt,
+                isSelected = isQuickMode,
+                onClick = { onModeSelected(true) },
+                modifier = Modifier.weight(1f)
+            )
+            BillingModePill(
+                label = "Normal Bill",
+                icon = Icons.Default.FormatListBulleted,
+                isSelected = !isQuickMode,
+                onClick = { onModeSelected(false) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BillingModePill(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "pill_bg"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) DarkBrown1 else TextLight.copy(alpha = 0.85f),
+        animationSpec = tween(durationMillis = 200),
+        label = "pill_content"
+    )
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxHeight(),
+        shape = RoundedCornerShape(percent = 50),
+        color = backgroundColor
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+            )
+            Spacer(modifier = Modifier.width(spacing.small))
+            Text(
+                text = label,
+                color = contentColor,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+            )
         }
     }
 }

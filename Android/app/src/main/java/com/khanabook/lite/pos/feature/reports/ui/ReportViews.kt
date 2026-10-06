@@ -388,6 +388,13 @@ fun OrderRowItem(
     }
     val canEdit = !isCancelled && isSameDayAsTaken
 
+    // The dropdown is a "change to…" list, so the mode the bill already has is not a
+    // target: re-picking it ran a real write that returned the same value, which read as
+    // "the tap did nothing". Hide it and make the menu a no-op when nothing else is
+    // offered — otherwise a shop with a single enabled mode gets an empty dropdown and the
+    // chip stops opening anything at all.
+    val selectablePayModes = enabledModes.filter { it != row.paymentMode }
+
     // A previous-day row used to open nothing and say nothing, so the tap just
     // looked broken. Say why in plain words — "settled" is billing jargon a
     // restaurant owner will not parse.
@@ -440,6 +447,7 @@ fun OrderRowItem(
                         when {
                             isCancelled || !isSameDayAsTaken -> onEditBlocked()
                             isPayAfterFoodDraft -> Unit
+                            selectablePayModes.isEmpty() -> Unit
                             else -> payModeExpanded = true
                         }
                     },
@@ -461,7 +469,7 @@ fun OrderRowItem(
                     onDismissRequest = { payModeExpanded = false },
                     modifier = Modifier.background(DarkBrown2)
                 ) {
-                    enabledModes.forEach { mode ->
+                    selectablePayModes.forEach { mode ->
                         DropdownMenuItem(
                             text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }

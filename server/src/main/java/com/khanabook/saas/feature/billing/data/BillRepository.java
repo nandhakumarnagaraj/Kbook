@@ -146,7 +146,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             SELECT b FROM Bill b
             WHERE b.restaurantId = :restaurantId
               AND b.isDeleted = false
-              AND (:status IS NULL OR LOWER(b.orderStatus) = LOWER(:status))
+              AND (:status IS NULL OR LOWER(b.orderStatus) = :status)
               AND (:from IS NULL OR b.createdAt >= :from)
               AND (:to IS NULL OR b.createdAt < :to)
             ORDER BY b.createdAt DESC

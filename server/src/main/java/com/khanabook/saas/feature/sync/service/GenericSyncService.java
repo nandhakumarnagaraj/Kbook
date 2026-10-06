@@ -206,6 +206,44 @@ public class GenericSyncService {
 	}
 
 	/**
+	 * Priority-0 identity resolution for {@link RestaurantProfile}: a restaurant has
+	 * exactly one profile row, so its identity is {@code restaurant_id} alone.
+	 *
+	 * <p>Every other entity type is keyed on {@code (restaurant_id, device_id, local_id)},
+	 * where {@code local_id} is a per-device row number the device invents. That is wrong
+	 * for the profile: the two sides disagreed on what {@code local_id} means. The server
+	 * creates the signup stub under {@code local_id = 1} (AuthServiceImpl.signup), while
+	 * the app keys its single local profile row on the restaurant's server id and pushes
+	 * that as {@code local_id} (MasterSyncProcessor). The two tuples differ in {@code local_id},
+	 * so the composite unique key was satisfied and the push inserted a SECOND row for the
+	 * same restaurant — which then broke every single-row reader of this table with an HTTP
+	 * 500, starting with login (a wrong password returned a clean 400; the correct password
+	 * hit the duplicate row and 500'd).
+	 *
+	 * <p>Resolving by {@code restaurant_id} makes the push land on the row that is already
+	 * there, so the device's real values (currency, whatsapp number, logo) overwrite the
+	 * signup stub on that same row instead of forking a new one. It also converges: while
+	 * a legacy duplicate still exists, every device resolves to the same canonical row,
+	 * so the copies cannot drift apart again. {@code local_id} is left untouched — the
+	 * device keys its local row on the pushed value and acknowledges by it
+	 * ({@code markRestaurantProfilesAsSynced} / {@code updateServerIdByLocalId}), so
+	 * rewriting it here would leave the device unable to mark the profile as synced.
+	 *
+	 * @return the restaurant's profile row, or {@code null} for any other entity type or
+	 *         when the restaurant has no profile row yet (a genuine insert).
+	 */
+	@SuppressWarnings("unchecked")
+	private <T extends BaseSyncEntity> T findSingletonProfileByRestaurantId(Long targetTenantId,
+			T incomingRecord, SyncRepository<T, Long> repository) {
+		if (targetTenantId == null
+				|| !(incomingRecord instanceof RestaurantProfile)
+				|| !(repository instanceof RestaurantProfileRepository profileRepository)) {
+			return null;
+		}
+		return (T) profileRepository.findByRestaurantId(targetTenantId).orElse(null);
+	}
+
+	/**
 	 * True when a batch saveAll() failure is a per-record conflict class that the
 	 * per-record fallback can isolate (unique-constraint or optimistic-lock).
 	 *
@@ -546,8 +584,8 @@ public class GenericSyncService {
 					}
 					}
 
-				T existingRecord = null;
-				if (incomingRecord.getLocalId() != null) {
+				T existingRecord = findSingletonProfileByRestaurantId(targetTenantId, incomingRecord, repository);
+				if (existingRecord == null && incomingRecord.getLocalId() != null) {
 					if (incomingRecord.getId() != null) {
 						existingRecord = existingRecords.stream().filter(r -> incomingRecord.getId().equals(r.getId()))
 								.findFirst().orElse(null);

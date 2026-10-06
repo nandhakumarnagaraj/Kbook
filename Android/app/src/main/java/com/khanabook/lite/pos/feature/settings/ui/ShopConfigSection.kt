@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 package com.khanabook.lite.pos.feature.settings.ui
 import com.khanabook.lite.pos.feature.auth.ui.InlinePinEntry
 
@@ -21,6 +22,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -107,12 +116,10 @@ fun ShopConfigView(
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
-    var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
     var pendingLogoUri by remember { mutableStateOf<Uri?>(null) }
 
-    val profileLogoUrl by viewModel.profile.collectAsStateWithLifecycle()
-    val logoUrl = profileLogoUrl?.logoUrl
-    val logoPath = profileLogoUrl?.logoPath
+    val logoUrl = profile?.logoUrl
+    val logoPath = profile?.logoPath
 
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
@@ -127,16 +134,12 @@ fun ShopConfigView(
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
     val currentPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
-    var selectedPaymentFlowMode by remember(profile?.orderPaymentFlowMode) {
+    var selectedPaymentFlowMode by remember {
         mutableStateOf(currentPaymentFlowMode)
     }
     var pendingPaymentFlowMode by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
-
-    var collectCustomerNumber by remember(profile?.collectCustomerNumber) {
-        mutableStateOf(profile?.collectCustomerNumber ?: true)
-    }
 
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
         name != (profile?.shopName ?: "") ||
@@ -218,6 +221,7 @@ fun ShopConfigView(
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
             invoiceFooter = it.invoiceFooter ?: ""
+            selectedPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(it.orderPaymentFlowMode)
         }
     }
 
@@ -273,18 +277,14 @@ fun ShopConfigView(
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             pendingLogoUri = it
-            logoUpdateTrigger = System.currentTimeMillis()
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
             .verticalScroll(rememberScrollState())
-            // Single inset owner for this section: imePadding() spans the
-            // keyboard (and nav-bar region) when open. The parent SettingsScreen
-            // Box no longer applies imePadding, so this does not double-count.
-            .imePadding()
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
@@ -304,32 +304,65 @@ fun ShopConfigView(
                         .border(1.dp, Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    val logoModel = pendingLogoUri?.toString()
-                        ?: logoUrl?.takeIf { it.isNotBlank() }
-                        ?: AppAssetStore.resolveAssetPath(logoPath)
+                    // Same resilience contract as MenuItemThumbnail (dish
+                    // photos): pending pick -> remote logoUrl -> locally
+                    // stored logoPath, with a placeholder whenever nothing
+                    // can be resolved or every source fails to load.
+                    val pendingModel = pendingLogoUri?.toString()
+                    val remoteModel = logoUrl?.takeIf { it.isNotBlank() }
+                    val localModel = AppAssetStore.resolveAssetPath(logoPath)
+                    val logoModel = pendingModel ?: remoteModel ?: localModel
                     if (!logoModel.isNullOrBlank()) {
-                        var isLogoLoading by remember { mutableStateOf(true) }
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(logoModel)
-                                    .crossfade(true)
-                                    .memoryCacheKey("$logoModel:$logoUpdateTrigger")
-                                    .diskCachePolicy(CachePolicy.ENABLED)
-                                    .build(),
-                                contentDescription = "Logo",
-                                modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
-                                onLoading = { isLogoLoading = true },
-                                onSuccess = { isLogoLoading = false },
-                                onError = { isLogoLoading = false }
-                            )
-                            if (isLogoLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
-                                    color = PrimaryGold,
-                                    strokeWidth = 2.dp
+                        // Load stages: 0 = primary model, 1 = local fallback,
+                        // 2 = gave up (placeholder). Keyed to the model so a
+                        // new logo (upload/sync) restarts the whole sequence.
+                        var loadStage by remember(logoModel) { mutableIntStateOf(0) }
+                        var isLogoLoading by remember(logoModel) { mutableStateOf(true) }
+                        val canFallbackToLocal =
+                            pendingModel == null && remoteModel != null &&
+                                localModel != null && logoModel == remoteModel
+                        val effectiveModel = when (loadStage) {
+                            0 -> logoModel
+                            1 -> if (canFallbackToLocal) localModel else null
+                            else -> null
+                        }
+                        if (effectiveModel != null) {
+                            // Version in the cache keys so a replaced logo
+                            // served at the same URL invalidates immediately.
+                            val logoCacheKey = "$effectiveModel:${profile?.logoVersion ?: 0}"
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(effectiveModel)
+                                        .crossfade(true)
+                                        .memoryCacheKey(logoCacheKey)
+                                        .diskCacheKey(logoCacheKey)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .build(),
+                                    contentDescription = "Logo",
+                                    modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
+                                    onLoading = { isLogoLoading = true },
+                                    onSuccess = { isLogoLoading = false },
+                                    onError = {
+                                        isLogoLoading = false
+                                        // Remote logo failed (offline / stale
+                                        // CDN URL): retry with the locally
+                                        // stored copy before giving up.
+                                        loadStage =
+                                            if (loadStage == 0 && canFallbackToLocal) 1 else 2
+                                    }
                                 )
+                                if (isLogoLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
+                                        color = PrimaryGold,
+                                        strokeWidth = 2.dp
+                                    )
+                                }
                             }
+                        } else {
+                            Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
                         }
                     } else if (logoUploadLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
@@ -352,9 +385,9 @@ fun ShopConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
-            ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name", enabled = !readOnly)
+            ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address", enabled = !readOnly)
+            ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
             val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
             val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
 
@@ -378,6 +411,7 @@ fun ShopConfigView(
                 },
                 label = "Whatsapp Number",
                 enabled = !readOnly,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
                 isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
                 supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
                 trailingIcon = {
@@ -441,16 +475,17 @@ fun ShopConfigView(
                 value = email,
                 onValueChange = { if (!isGoogleAuth) email = it },
                 label = if (isGoogleAuth) "Email (Google account)" else "Email",
-                enabled = !isGoogleAuth && !readOnly
+                enabled = !isGoogleAuth && !readOnly,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
             )
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link", enabled = !readOnly)
+            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link", enabled = !readOnly, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly)
+            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done))
             Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
-                enabled = !readOnly,
+                enabled = !readOnly && profile != null,
                 onModeSelected = { mode ->
                     if (readOnly) return@RestaurantPaymentFlowSelector
                     if (mode == selectedPaymentFlowMode) return@RestaurantPaymentFlowSelector
@@ -465,15 +500,7 @@ fun ShopConfigView(
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(spacing.medium))
-            CustomerNumberCollectorSelector(
-                checked = collectCustomerNumber,
-                enabled = !readOnly,
-                onCheckedChange = { enabled ->
-                    collectCustomerNumber = enabled
-                    viewModel.updateCollectCustomerNumber(enabled)
-                }
-            )
+
             Spacer(modifier = Modifier.height(spacing.large))
 
             ConfigActionButtons(
@@ -488,8 +515,8 @@ fun ShopConfigView(
                                 shopAddress = address,
                                 whatsappNumber = whatsapp,
                                 email = email,
-                                logoPath = profileLogoUrl?.logoPath,
-                                logoUrl = profileLogoUrl?.logoUrl,
+                                logoPath = profile?.logoPath,
+                                logoUrl = profile?.logoUrl,
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
                                 invoiceFooter = invoiceFooter,
@@ -509,6 +536,8 @@ fun ShopConfigView(
                 isSaving = saveProfileLoading,
                 saveEnabled = !readOnly
             )
+            // Extra bottom clearance so lower fields and Save button comfortably scroll above keyboard
+            Spacer(modifier = Modifier.height(spacing.huge))
         }
     }
 

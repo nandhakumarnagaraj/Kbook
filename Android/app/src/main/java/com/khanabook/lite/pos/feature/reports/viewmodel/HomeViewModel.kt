@@ -173,6 +173,13 @@ class HomeViewModel @Inject constructor(
             initialValue = false
         )
 
+    fun setQuickMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile() ?: return@launch
+            restaurantRepository.saveProfile(current.copy(collectCustomerNumber = !enabled))
+        }
+    }
+
     /** Time-aware greeting: Good Morning / Afternoon / Evening. */
     val greeting: String
         get() = when (LocalTime.now().hour) {

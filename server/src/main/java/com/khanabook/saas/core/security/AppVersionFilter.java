@@ -37,8 +37,9 @@ public class AppVersionFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(AppVersionFilter.class);
 
-    /** Versions below this value will receive a deprecation warning header. */
-    private static final int SOFT_MIN_VERSION = 30;
+    /** Versions below this value will receive a deprecation warning header. Default 20 so Play Store builds (v21+) are not flagged. */
+    @Value("${app.version.soft-min:20}")
+    private int softMinVersion = 20;
 
     /**
      * Hard cutoff (Phase 3): versioned clients below this value receive 410 Gone
@@ -85,7 +86,7 @@ public class AppVersionFilter extends OncePerRequestFilter {
                     return; // do NOT continue the chain
                 }
 
-                if (versionCode < SOFT_MIN_VERSION) {
+                if (versionCode < softMinVersion) {
                     log.warn("Deprecated client detected: platform={} version={} path={}",
                             platform, versionCode, path);
                     response.setHeader(HEADER_DEPRECATION,

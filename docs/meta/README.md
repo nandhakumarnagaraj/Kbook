@@ -7,8 +7,8 @@ KhanaBook is an offline-first restaurant billing and operations system for small
 - Offline-first billing with background bidirectional sync.
 - Multi-device restaurant ordering with per-terminal invoice series.
 - Kitchen Order Ticket (KOT) event tracking for new, added, and voided items.
-- Menu, category, variant, inventory, and staff management with waiter, cashier,
-  manager, and shop-admin roles.
+- Menu, category, and variant management with OCR import, shop/payment/tax/printer
+  configuration, and role-based staff permissions (OWNER / SHOP_STAFF).
 - GST-aware billing, part payments, refunds, and order reports.
 - Bluetooth thermal printer support with ESC/POS output.
 - OCR menu import using CameraX and Google ML Kit.

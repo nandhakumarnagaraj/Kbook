@@ -114,124 +114,140 @@ fun HomeScreen(
     )
     val exitSpec = fadeOut(tween(200))
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
+        val isTablet = layout.typeScaleTier == TypeScaleTier.Tablet
+        val canFitWithoutScroll = maxHeight >= 640.dp && !layout.isLandscape
+        val scrollState = rememberScrollState()
+
+        val primaryActionLabel = when {
+            quickModeEnabled -> "Create Quick Bill"
+            orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD -> "Create New Order"
+            else -> "Create Normal Bill"
+        }
+
+        val activeSubtitle = when {
+            activeDraftBills.isEmpty() -> "No active orders"
+            else -> {
+                val dineIn = activeDraftBills.count { it.orderType == OrderType.DINE_IN }
+                val takeaway = activeDraftBills.count { it.orderType == OrderType.TAKEAWAY }
+                buildString {
+                    append("${activeDraftBills.size} order${if (activeDraftBills.size > 1) "s" else ""} waiting")
+                    val parts = mutableListOf<String>()
+                    if (dineIn > 0) parts.add("$dineIn Dine-in")
+                    if (takeaway > 0) parts.add("$takeaway Takeaway")
+                    if (parts.isNotEmpty()) append("   ${parts.joinToString("   ")}")
+                }
+            }
+        }
+
+        val hasPaymentWarning = pendingOnlinePayments.isNotEmpty()
+        val hasSyncWarning = viewModel.isOwner && quarantinedSyncCount > 0
+        val warningCount = (if (hasPaymentWarning) 1 else 0) + (if (hasSyncWarning) 1 else 0)
+        val hasClockDriftWarning = viewModel.isOwner && clockDriftWarning
+        var warningsExpanded by rememberSaveable { mutableStateOf(false) }
+        val showFullWarnings = !layout.compactHomeHeight || warningsExpanded
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = layout.maxContentWidth)
                 .align(Alignment.TopCenter)
-                .then(if (layout.compactHomeHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                .then(
+                    if (canFitWithoutScroll) Modifier
+                    else Modifier.verticalScroll(scrollState)
+                )
+                .padding(horizontal = layout.contentPadding)
                 .padding(
-                    horizontal = layout.contentPadding,
-                    vertical = if (layout.compactHomeHeight && layout.isLandscape) spacing.extraSmall else sectionSpacing
+                    top = if (layout.compactHomeHeight && layout.isLandscape) spacing.extraSmall else spacing.small,
+                    bottom = spacing.smallMedium
                 ),
-            // Distribute leftover height across section gaps — never stretches cards —
-            // but cap each gap so tall windows get rhythm, not 170dp voids.
-            verticalArrangement = remember(sectionSpacing, layout.maxSectionGap, layout.compactHomeHeight) {
-                if (layout.compactHomeHeight) Arrangement.spacedBy(sectionSpacing)
-                else BoundedVerticalSpaceBetween(sectionSpacing, layout.maxSectionGap)
+            verticalArrangement = remember(sectionSpacing, isTablet, canFitWithoutScroll) {
+                if (isTablet) BoundedVerticalSpaceBetween(sectionSpacing, layout.maxSectionGap)
+                else Arrangement.spacedBy(spacing.smallMedium)
             }
         ) {
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = if (layout.compactHomeHeight) spacing.small else spacing.medium),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing.hairline)) {
-                            if (!layout.compactHomeHeight) {
-                                Text(
-                                    text = greeting,
-                                    color = TextGold,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+            // 1. Header
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.small),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(spacing.hairline)) {
+                        if (!layout.compactHomeHeight) {
                             Text(
-                                text = shopName,
-                                color = PrimaryGold,
-                                style = MaterialTheme.typography.headlineSmall,
+                                text = greeting,
+                                color = TextGold,
+                                style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Box(modifier = Modifier.widthIn(max = (160 * LocalDensity.current.fontScale).dp)) {
-                            SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
-                        }
-                        NotificationBellIcon(
-                            unreadCount = unreadNotificationCount,
-                            onClick = onOpenNotifications
+                        Text(
+                            text = shopName,
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Box(modifier = Modifier.widthIn(max = (160 * LocalDensity.current.fontScale).dp)) {
+                        SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                    }
+                    NotificationBellIcon(
+                        unreadCount = unreadNotificationCount,
+                        onClick = onOpenNotifications
+                    )
                 }
             }
 
+            // 2. Today's Summary Card (Weight = 1.1f)
             if (!layout.compactHomeHeight) {
-                AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
-                    if (!statsReady) {
-                        // Skeleton placeholder while stats load
-                        SkeletonCard(modifier = Modifier.fillMaxWidth())
-                    } else {
-                        KhanaBookCard(
-                            modifier = Modifier.fillMaxWidth()
+                KhanaBookCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (canFitWithoutScroll) Modifier.weight(1.1f) else Modifier)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (canFitWithoutScroll) Modifier.fillMaxHeight() else Modifier)
+                            .padding(
+                                horizontal = layout.cardPaddingHorizontal,
+                                vertical = spacing.smallMedium
+                            ),
+                        verticalArrangement = if (canFitWithoutScroll) Arrangement.SpaceEvenly else Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Text(
+                            text = "Today's Summary",
+                            color = TextGold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small),
+                            maxItemsInEachRow = 3
                         ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = layout.cardPaddingHorizontal,
-                                            vertical = spacing.smallMedium
-                                        ),
-                                    verticalArrangement = Arrangement.spacedBy(spacing.small)
-                                ) {
-                                    Text(
-                                        text = "Today's Summary",
-                                        color = TextGold,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                    FlowRow(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                        verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                        maxItemsInEachRow = 3
-                                    ) {
-                                        val statMod = Modifier.weight(1f)
-                                        StatItem("Orders", stats.orderCount.toString(), statMod, large = true)
-                                        StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod, large = true)
-                                        StatItem("KOT Pending", stats.kdsPendingCount.toString(), statMod, large = true)
-                                    }
-                                }
+                            val statMod = Modifier.weight(1f)
+                            StatItem("Orders", stats.orderCount.toString(), statMod, large = true)
+                            StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod, large = true)
+                            StatItem("KOT Pending", stats.kdsPendingCount.toString(), statMod, large = true)
                         }
                     }
                 }
             }
 
-            val hasPaymentWarning = pendingOnlinePayments.isNotEmpty()
-            // Sync quarantine is a technical/owner concern — hidden from staff.
-            val hasSyncWarning = viewModel.isOwner && quarantinedSyncCount > 0
-            val warningCount = (if (hasPaymentWarning) 1 else 0) + (if (hasSyncWarning) 1 else 0)
-            val hasClockDriftWarning = viewModel.isOwner && clockDriftWarning
-            var warningsExpanded by rememberSaveable { mutableStateOf(false) }
-            val showFullWarnings = !layout.compactHomeHeight || warningsExpanded
-
+            // Warnings if present
             if (warningCount > 0 || hasClockDriftWarning) {
-                AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                    // smallMedium inside the alert group — sectionSpacing only belongs
-                    // BETWEEN sections, not between stacked warning cards.
-                    Column(verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)) {
-                    // Warning cards: on compact-height windows show a collapsed chip to
-                    // preserve the height budget for all 5 actions. Tap expands details.
-
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)) {
                     if (warningCount > 0 && !showFullWarnings) {
-                        // Compact collapsed chip
                         Surface(
                             onClick = { warningsExpanded = true },
                             color = WarningYellow.copy(alpha = 0.14f),
@@ -239,19 +255,11 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(
-                                    horizontal = spacing.medium,
-                                    vertical = spacing.small
-                                ),
+                                modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = WarningYellow,
-                                    modifier = Modifier.size(KhanaBookTheme.iconSize.small)
-                                )
+                                Icon(Icons.Default.Warning, null, tint = WarningYellow, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                                 Text(
                                     text = if (warningCount == 1 && hasPaymentWarning) "Unresolved payment"
                                         else if (warningCount == 1) "Sync issue"
@@ -260,11 +268,7 @@ fun HomeScreen(
                                     style = MaterialTheme.typography.labelMedium,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Text(
-                                    text = "Tap to expand",
-                                    color = TextGold,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
+                                Text("Tap to expand", color = TextGold, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -276,9 +280,7 @@ fun HomeScreen(
                             shape = KhanaRadii.lg
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(spacing.medium),
+                                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                                 verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 Row(
@@ -286,48 +288,15 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = WarningYellow,
-                                        modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                                    )
+                                    Icon(Icons.Default.Warning, null, tint = WarningYellow, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Unresolved Payment",
-                                            color = WarningYellow,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = "Order ${pendingPayment.dailyOrderDisplay} • ${CurrencyUtils.formatPrice(pendingPayment.totalAmount)}",
-                                            color = TextLight,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Text("Unresolved Payment", color = WarningYellow, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text("Order ${pendingPayment.dailyOrderDisplay} • ${CurrencyUtils.formatPrice(pendingPayment.totalAmount)}", color = TextLight, style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
-                                Text(
-                                    text = if (pendingOnlinePayments.size > 1) {
-                                        "${pendingOnlinePayments.size} pending payment attempts need review before retrying UPI."
-                                    } else {
-                                        "Resume or cancel this payment attempt before starting another UPI payment."
-                                    },
-                                    color = TextGold,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                KhanaButtonRow {
-                                    KhanaPrimaryButton(
-                                        text = "Resume",
-                                        onClick = onResumePendingPayment,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    KhanaDestructiveButton(
-                                        text = "Cancel",
-                                        onClick = { viewModel.cancelPendingOnlinePayment(pendingPayment.id) },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                                    KhanaPrimaryButton("Resume", onClick = onResumePendingPayment, modifier = Modifier.weight(1f))
+                                    KhanaDestructiveButton("Cancel", onClick = { viewModel.cancelPendingOnlinePayment(pendingPayment.id) }, modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -339,42 +308,22 @@ fun HomeScreen(
                             shape = KhanaRadii.lg
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(spacing.medium),
+                                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.SyncProblem,
-                                    contentDescription = null,
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                                )
+                                Icon(Icons.Default.SyncProblem, null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = if (quarantinedSyncCount == 1) {
-                                            "$quarantinedSyncCount item needs review before it can sync"
-                                        } else {
-                                            "$quarantinedSyncCount items need review before they can sync"
-                                        },
-                                        color = TextLight,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
+                                        text = if (quarantinedSyncCount == 1) "$quarantinedSyncCount item needs review before it can sync" else "$quarantinedSyncCount items need review before they can sync",
+                                        color = TextLight, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold
                                     )
-                                    Text(
-                                        text = "Open Sync Center to check and fix these items.",
-                                        color = TextGold,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    Text("Open Sync Center to check and fix these items.", color = TextGold, style = MaterialTheme.typography.bodySmall)
                                 }
-                                TextButton(onClick = onOpenSyncCenter) {
-                                    Text("Open")
-                                }
+                                TextButton(onClick = onOpenSyncCenter) { Text("Open") }
                             }
                         }
                     }
-
                     if (viewModel.isOwner && clockDriftWarning) {
                         KhanaBookCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -382,161 +331,170 @@ fun HomeScreen(
                             shape = KhanaRadii.lg
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(spacing.medium),
+                                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = WarningYellow,
-                                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                                )
+                                Icon(Icons.Default.Schedule, null, tint = WarningYellow, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Device Clock Time Drift Detected",
-                                        color = WarningYellow,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "This tablet's clock is off by more than 3 minutes. Turn on 'Set time automatically' in Android Settings so bills and invoices stay in order.",
-                                        color = TextLight,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    Text("Device Clock Time Drift Detected", color = WarningYellow, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    Text("This tablet's clock is off by more than 3 minutes. Turn on 'Set time automatically' in Android Settings so bills and invoices stay in order.", color = TextLight, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
                     }
-                    }
-                    }
                 }
+            }
 
-                AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                    val primaryActionLabel = when {
-                        quickModeEnabled -> "Create Quick Bill"
-                        orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD -> "Create New Order"
-                        else -> "Create New Bill"
-                    }
-                    KhanaBookCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onNewBill(quickModeResolved) },
-                        colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                        shape = KhanaRadii.xl
+            // 3. Billing Mode Toggle (Weight = 0.55f)
+            BillingModeToggle(
+                isQuickMode = quickModeEnabled,
+                onModeSelected = { isQuick -> viewModel.setQuickMode(isQuick) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (canFitWithoutScroll) Modifier.weight(0.55f) else Modifier)
+            )
+
+            // 4. Hero Primary CTA Card (Weight = 1.35f)
+            KhanaBookCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (canFitWithoutScroll) Modifier.weight(1.35f) else Modifier),
+                onClick = { onNewBill(quickModeResolved) },
+                colors = CardDefaults.cardColors(containerColor = PrimaryGold),
+                shape = KhanaRadii.xl
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (canFitWithoutScroll) Modifier.fillMaxHeight() else Modifier)
+                        .padding(
+                            horizontal = layout.cardPaddingHorizontal,
+                            vertical = if (canFitWithoutScroll) spacing.smallMedium else layout.primaryCardVertical
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(if (canFitWithoutScroll) 56.dp else layout.primaryIconContainerSize)
+                            .background(DarkBrown1, shape = RoundedCornerShape(50)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = layout.cardPaddingHorizontal,
-                                    vertical = if (layout.compactHomeHeight) spacing.smallMedium else layout.primaryCardVertical
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(layout.primaryIconContainerSize)
-                                    .background(DarkBrown1, shape = RoundedCornerShape(50)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(layout.primaryIconSize)
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = primaryActionLabel,
-                                    color = DarkBrown1,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                if (!(layout.compactHomeHeight && layout.isLandscape)) {
-                                    Text(
-                                        text = if (viewModel.isOwner) "Works offline. Sync runs in background." else "Start taking orders right away.",
-                                        color = DarkBrown1.copy(alpha = 0.85f),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.padding(top = spacing.extraSmall)
-                                    )
-                                }
-                            }
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(if (canFitWithoutScroll) 30.dp else layout.primaryIconSize)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = primaryActionLabel,
+                            color = DarkBrown1,
+                            style = if (canFitWithoutScroll) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (!(layout.compactHomeHeight && layout.isLandscape)) {
+                            Text(
+                                text = if (viewModel.isOwner) "Works offline. Sync runs in background." else "Start taking orders right away.",
+                                color = DarkBrown1.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(top = spacing.extraSmall)
+                            )
                         }
                     }
-
                 }
+            }
 
-                // Actions live as separate top-level children so BoundedVerticalSpaceBetween
-                // distributes remaining height evenly across ALL section gaps.
-                AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-                        val activeSubtitle = when {
-                            activeDraftBills.isEmpty() -> "No active orders"
-                            else -> {
-                                val dineIn = activeDraftBills.count { it.orderType == OrderType.DINE_IN }
-                                val takeaway = activeDraftBills.count { it.orderType == OrderType.TAKEAWAY }
-                                buildString {
-                                    append("${activeDraftBills.size} order${if (activeDraftBills.size > 1) "s" else ""} waiting")
-                                    val parts = mutableListOf<String>()
-                                    if (dineIn > 0) parts.add("$dineIn Dine-in")
-                                    if (takeaway > 0) parts.add("$takeaway Takeaway")
-                                    if (parts.isNotEmpty()) append(" • ${parts.joinToString(" • ")}")
-                                }
-                            }
-                        }
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            maxItemsInEachRow = layout.homeActionColumns,
-                            horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                            verticalArrangement = Arrangement.spacedBy(spacing.small)
-                        ) {
-                            val actionModifier = if (layout.homeActionColumns > 1) {
-                                Modifier.weight(1f)
-                            } else {
-                                Modifier.fillMaxWidth()
-                            }
-                            if (showActiveOrders) {
-                                HomeActionCard(
-                                    text = "Active Orders",
-                                    subtitle = activeSubtitle,
-                                    icon = Icons.Default.ShoppingCart,
-                                    backgroundColor = CardBG,
-                                    modifier = actionModifier,
-                                    onClick = onActiveOrder
-                                )
-                            }
-                            HomeActionCard(
-                                text = "Find Bill",
-                                subtitle = "Search previous invoices",
-                                icon = Icons.Default.Search,
-                                backgroundColor = CardBG,
-                                modifier = actionModifier,
-                                onClick = onSearchBill
-                            )
-                            HomeActionCard(
-                                text = "Reprint KOT",
-                                subtitle = "Kitchen Order Ticket",
-                                icon = Icons.Default.Restaurant,
-                                backgroundColor = CardBG,
-                                modifier = actionModifier,
-                                onClick = onReprintKds
-                            )
-                            if (!quickModeEnabled) {
-                                HomeActionCard(
-                                    text = "Call Customer",
-                                    subtitle = "Dial from saved customers",
-                                    icon = Icons.Default.Call,
-                                    backgroundColor = CardBG,
-                                    modifier = actionModifier,
-                                    onClick = onCallCustomer
-                                )
-                            }
-                        }
-                    } // end AnimatedVisibility(actionsVisible)
+            // 5. Action Cards (Each Weight = 0.85f)
+            if (canFitWithoutScroll && layout.homeActionColumns == 1) {
+                if (showActiveOrders) {
+                    HomeActionCard(
+                        text = "Active Orders",
+                        subtitle = activeSubtitle,
+                        icon = Icons.Default.ShoppingCart,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth().weight(0.85f),
+                        onClick = onActiveOrder
+                    )
+                }
+                HomeActionCard(
+                    text = "Find Bill",
+                    subtitle = "Search previous invoices",
+                    icon = Icons.Default.Search,
+                    backgroundColor = CardBG,
+                    modifier = Modifier.fillMaxWidth().weight(0.85f),
+                    onClick = onSearchBill
+                )
+                HomeActionCard(
+                    text = "Reprint KOT",
+                    subtitle = "Kitchen Order Ticket",
+                    icon = Icons.Default.Restaurant,
+                    backgroundColor = CardBG,
+                    modifier = Modifier.fillMaxWidth().weight(0.85f),
+                    onClick = onReprintKds
+                )
+                if (!quickModeEnabled) {
+                    HomeActionCard(
+                        text = "Call Customer",
+                        subtitle = "Dial from saved customers",
+                        icon = Icons.Default.Call,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth().weight(0.85f),
+                        onClick = onCallCustomer
+                    )
+                }
+            } else {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    maxItemsInEachRow = layout.homeActionColumns,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    val actionModifier = if (layout.homeActionColumns > 1) {
+                        Modifier.weight(1f)
+                    } else {
+                        Modifier.fillMaxWidth()
+                    }
+                    if (showActiveOrders) {
+                        HomeActionCard(
+                            text = "Active Orders",
+                            subtitle = activeSubtitle,
+                            icon = Icons.Default.ShoppingCart,
+                            backgroundColor = CardBG,
+                            modifier = actionModifier,
+                            onClick = onActiveOrder
+                        )
+                    }
+                    HomeActionCard(
+                        text = "Find Bill",
+                        subtitle = "Search previous invoices",
+                        icon = Icons.Default.Search,
+                        backgroundColor = CardBG,
+                        modifier = actionModifier,
+                        onClick = onSearchBill
+                    )
+                    HomeActionCard(
+                        text = "Reprint KOT",
+                        subtitle = "Kitchen Order Ticket",
+                        icon = Icons.Default.Restaurant,
+                        backgroundColor = CardBG,
+                        modifier = actionModifier,
+                        onClick = onReprintKds
+                    )
+                    if (!quickModeEnabled) {
+                        HomeActionCard(
+                            text = "Call Customer",
+                            subtitle = "Dial from saved customers",
+                            icon = Icons.Default.Call,
+                            backgroundColor = CardBG,
+                            modifier = actionModifier,
+                            onClick = onCallCustomer
+                        )
+                    }
+                }
+            }
         }
     }
 }
-
-

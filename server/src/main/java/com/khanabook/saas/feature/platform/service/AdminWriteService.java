@@ -138,13 +138,7 @@ public class AdminWriteService {
 
     @Transactional
     public void suspendBusiness(Long restaurantId) {
-        RestaurantProfile profile = profileRepository
-                .findByRestaurantId(restaurantId)
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
-
-        profile.setIsSuspended(true);
-        profile.setUpdatedAt(System.currentTimeMillis());
-        profileRepository.save(profile);
+        setSuspended(restaurantId, true);
         if (securityAuditService != null) {
             securityAuditService.record("BUSINESS_SUSPENDED", "success", "restaurant:" + restaurantId, null);
         }
@@ -153,16 +147,31 @@ public class AdminWriteService {
 
     @Transactional
     public void activateBusiness(Long restaurantId) {
-        RestaurantProfile profile = profileRepository
-                .findByRestaurantId(restaurantId)
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
-
-        profile.setIsSuspended(false);
-        profile.setUpdatedAt(System.currentTimeMillis());
-        profileRepository.save(profile);
+        setSuspended(restaurantId, false);
         if (securityAuditService != null) {
             securityAuditService.record("BUSINESS_ACTIVATED", "success", "restaurant:" + restaurantId, null);
         }
         log.info("Business activated: restaurantId={}", restaurantId);
+    }
+
+    /**
+     * Suspension is enforced fail-closed (AuthServiceImpl / JwtRequestFilter reject the
+     * business if ANY of its profile rows is suspended), so the write must cover every
+     * row: acting on only one row would leave a suspended duplicate in place and the
+     * business would stay locked out, or — on the unsuspend path — a stale duplicate
+     * would keep locking it out. Once V107's unique index is in place this is always
+     * the single canonical row.
+     */
+    private void setSuspended(Long restaurantId, boolean suspended) {
+        List<RestaurantProfile> profiles = profileRepository.findAllByRestaurantIdOrderByIdAsc(restaurantId);
+        if (profiles.isEmpty()) {
+            throw new IllegalArgumentException("Business not found");
+        }
+        long now = System.currentTimeMillis();
+        for (RestaurantProfile profile : profiles) {
+            profile.setIsSuspended(suspended);
+            profile.setUpdatedAt(now);
+            profileRepository.save(profile);
+        }
     }
 }

@@ -16,6 +16,7 @@ import com.khanabook.saas.core.utility.JwtUtility;
 import net.jqwik.api.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -71,7 +72,8 @@ class BusinessLifecycleProperties {
 
         RestaurantProfile profile = createProfile(restaurantId, false);
 
-        when(profileRepository.findByRestaurantId(restaurantId)).thenReturn(Optional.of(profile));
+        when(profileRepository.findAllByRestaurantIdOrderByIdAsc(restaurantId))
+                .thenReturn(List.of(profile));
         when(profileRepository.save(any(RestaurantProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Suspend the business
@@ -100,7 +102,8 @@ class BusinessLifecycleProperties {
 
         RestaurantProfile profile = createProfile(restaurantId, true);
 
-        when(profileRepository.findByRestaurantId(restaurantId)).thenReturn(Optional.of(profile));
+        when(profileRepository.findAllByRestaurantIdOrderByIdAsc(restaurantId))
+                .thenReturn(List.of(profile));
         when(profileRepository.save(any(RestaurantProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
         adminWriteService.activateBusiness(restaurantId);
@@ -131,7 +134,9 @@ class BusinessLifecycleProperties {
 
         when(userRepository.findByLoginIdIgnoreCase(phone)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(password, "hashed_" + password)).thenReturn(true);
-        when(profileRepository.findByRestaurantId(restaurantId)).thenReturn(Optional.of(profile));
+        // Suspension is now checked fail-closed across every profile row of the restaurant,
+        // not read off one row - see RestaurantProfileRepository.
+        when(profileRepository.existsByRestaurantIdAndIsSuspendedTrue(restaurantId)).thenReturn(true);
 
         LoginRequest request = new LoginRequest();
         request.setLoginId(phone);

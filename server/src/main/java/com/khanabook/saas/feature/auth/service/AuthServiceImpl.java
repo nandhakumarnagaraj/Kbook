@@ -561,14 +561,17 @@ public class AuthServiceImpl implements AuthService {
     /**
      * v1 fix (KB): reject authentication for a suspended business. Kept from the v1
      * core - the v2 branch dropped this check.
+     *
+     * <p>Fail-closed on purpose: this asks whether ANY profile row of the restaurant is
+     * suspended rather than reading one row. A restaurant used to be able to hold two
+     * profile rows (see RestaurantProfileRepository), and deciding suspension from
+     * whichever row came back would let a suspended business authenticate through the
+     * other one. Mirrors the same check in JwtRequestFilter.
      */
     private void checkBusinessNotSuspended(Long restaurantId) {
         if (restaurantId == null) return;
-        restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .ifPresent(profile -> {
-                    if (Boolean.TRUE.equals(profile.getIsSuspended())) {
-                        throw new BusinessSuspendedException();
-                    }
-                });
+        if (restaurantProfileRepository.existsByRestaurantIdAndIsSuspendedTrue(restaurantId)) {
+            throw new BusinessSuspendedException();
+        }
     }
 }

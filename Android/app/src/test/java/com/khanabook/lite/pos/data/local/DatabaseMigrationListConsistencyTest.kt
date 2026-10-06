@@ -1,45 +1,28 @@
 package com.khanabook.lite.pos.core.database
-import com.khanabook.lite.pos.core.database.AppDatabase
-import com.khanabook.lite.pos.core.database.DatabaseProvider
 
-import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DatabaseMigrationListConsistencyTest {
 
     @Test
-    fun bothMigrationLists_areIdentical() {
-        val provider = extractMigrationTokens(PROVIDER)
-        val module = extractMigrationTokens(MODULE)
+    fun allMigrations_formUnbrokenChainFrom17To79() {
+        val migrations = AppDatabase.ALL_MIGRATIONS
+        assertTrue("migration list must not be empty", migrations.isNotEmpty())
 
-        assertEquals(
-            "DatabaseProvider.buildDatabaseWithName migration list must equal DatabaseModule.buildDatabase migration list",
-            provider,
-            module
-        )
-        assertTrue("migration list must not be empty", provider.isNotEmpty())
-    }
+        val migrationMap = migrations.associateBy { it.startVersion to it.endVersion }
 
-    private fun extractMigrationTokens(file: File): List<String> =
-        file.readLines()
-            .map { it.trim() }
-            .filter { it.startsWith("AppDatabase.MIGRATION_") }
-            .map { it.removeSuffix(",") }
-
-    private companion object {
-        val PROVIDER = locateFile("app/src/main/java/com/khanabook/lite/pos/core/database/DatabaseProvider.kt")
-        val MODULE = locateFile("app/src/main/java/com/khanabook/lite/pos/core/di/DatabaseModule.kt")
-
-        private fun locateFile(relative: String): File {
-            var dir = File(System.getProperty("user.dir"))
-            while (dir != null) {
-                val candidate = File(dir, relative)
-                if (candidate.isFile) return candidate
-                dir = dir.parentFile
-            }
-            throw IllegalStateException("Unable to locate $relative from ${System.getProperty("user.dir")}")
+        // Verify every single step from version 17 up to 79 is present with no gaps
+        for (v in 17 until 79) {
+            val migration = migrationMap[v to (v + 1)]
+            assertNotNull(
+                "Missing migration from version $v to ${v + 1} in AppDatabase.ALL_MIGRATIONS",
+                migration
+            )
+            assertEquals(v, migration!!.startVersion)
+            assertEquals(v + 1, migration.endVersion)
         }
     }
-}
+}

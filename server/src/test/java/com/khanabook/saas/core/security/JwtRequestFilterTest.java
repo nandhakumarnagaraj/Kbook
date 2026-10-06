@@ -138,11 +138,9 @@ class JwtRequestFilterTest {
         user.setIsActive(true);
         when(userRepository.findByAnyIdentifier("owner@example.com")).thenReturn(java.util.Optional.of(user));
 
-        com.khanabook.saas.feature.restaurants.data.RestaurantProfile profile =
-                new com.khanabook.saas.feature.restaurants.data.RestaurantProfile();
-        profile.setRestaurantId(42L);
-        profile.setIsSuspended(true);
-        when(restaurantProfileRepository.findByRestaurantId(42L)).thenReturn(java.util.Optional.of(profile));
+        // Suspension is checked fail-closed across every profile row of the restaurant, so
+        // a duplicate legacy row cannot smuggle a suspended business through this filter.
+        when(restaurantProfileRepository.existsByRestaurantIdAndIsSuspendedTrue(42L)).thenReturn(true);
 
         filter.doFilterInternal(request, response, chain);
 

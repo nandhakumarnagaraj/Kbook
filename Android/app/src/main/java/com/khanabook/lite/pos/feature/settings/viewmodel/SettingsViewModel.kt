@@ -1232,14 +1232,24 @@ class SettingsViewModel @Inject constructor(
             _saveProfileError.value = null
             _saveProfileSuccess.value = false
             try {
-                val finalProfile = if (logoUri != null) {
-                    val part = withContext(Dispatchers.IO) {
-                        MultipartUtils.imageUriToPart(context.applicationContext, logoUri)
+                var finalProfile = profile
+                if (logoUri != null) {
+                    try {
+                        val part = withContext(Dispatchers.IO) {
+                            MultipartUtils.imageUriToPart(context.applicationContext, logoUri)
+                        }
+                        val url = restaurantRepository.uploadLogo(part)
+                        finalProfile = profile.copy(logoUrl = url)
+                    } catch (logoError: Exception) {
+                        // Logo upload is best-effort: keep the previous logo
+                        // and still save the rest of the profile so a flaky
+                        // upload can't block shop config changes (mirrors the
+                        // menu-item save-then-photo-upload split).
+                        Log.w("SettingsViewModel", "Logo upload failed; saving profile with existing logo", logoError)
+                        _logoUploadError.value = UserMessageSanitizer.sanitize(
+                            logoError, "Logo upload failed. Other changes saved."
+                        )
                     }
-                    val url = restaurantRepository.uploadLogo(part)
-                    profile.copy(logoUrl = url)
-                } else {
-                    profile
                 }
                 restaurantRepository.saveProfile(finalProfile)
                 val newNumber = finalProfile.whatsappNumber ?: ""

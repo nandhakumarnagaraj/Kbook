@@ -75,7 +75,9 @@ data class ResponsiveLayout(
         TypeScaleTier.MediumPhone -> 24.dp
         TypeScaleTier.LargePhone -> 28.dp
         TypeScaleTier.Tablet -> 28.dp
-    } + if (isTallScreen) 8.dp else 0.dp
+    } + if (isTallScreen) {
+        ((screenHeightDp - 750) * 0.18f).dp.coerceIn(8.dp, 44.dp)
+    } else 0.dp
 
     // Action card icon containers — larger touch visuals as space grows
     val actionIconContainerSize: Dp = when (typeScaleTier) {
@@ -95,7 +97,7 @@ data class ResponsiveLayout(
         TypeScaleTier.MediumPhone -> 48.dp
         TypeScaleTier.LargePhone -> 52.dp
         TypeScaleTier.Tablet -> 56.dp
-    }
+    } + if (isTallScreen) 8.dp else 0.dp
     val primaryIconSize: Dp = when (typeScaleTier) {
         TypeScaleTier.CompactPhone -> 24.dp
         TypeScaleTier.MediumPhone -> 24.dp

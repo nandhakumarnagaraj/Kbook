@@ -34,11 +34,11 @@ export function filterBusinessOrders(
   const search = filters.searchTerm.trim().toLowerCase();
   return orders.filter(order => {
     const matchesSearch = !search || [
-      order.orderCode,
+      order.orderCode ?? '',
       order.customerName ?? '',
       order.customerContact ?? '',
-      order.paymentMethod,
-      order.paymentStatus
+      order.paymentMethod ?? '',
+      order.paymentStatus ?? ''
     ].some(value => value.toLowerCase().includes(search));
     const matchesStatus = filters.statusFilter === 'ALL' || order.orderStatus === filters.statusFilter;
     const matchesSource = filters.sourceFilter === 'ALL' || order.sourceType === filters.sourceFilter;

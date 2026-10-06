@@ -114,10 +114,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
 
-							if (!"KBOOK_ADMIN".equals(role) && restaurantId != null
-									&& restaurantProfileRepository.findByRestaurantId(restaurantId)
-											.map(profile -> Boolean.TRUE.equals(profile.getIsSuspended()))
-											.orElse(false)) {
+						if (!"KBOOK_ADMIN".equals(role) && restaurantId != null
+								&& restaurantProfileRepository.existsByRestaurantIdAndIsSuspendedTrue(restaurantId)) {
 								response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 								response.setContentType("application/json");
 								response.getWriter().write(

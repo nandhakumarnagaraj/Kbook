@@ -13,7 +13,19 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "restaurantprofiles", uniqueConstraints = {
-		@UniqueConstraint(name = "restaurantprofiles_restaurant_id_device_id_local_id_key", columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
+		// A restaurant has exactly ONE profile row: restaurant_id is its identity. The
+		// generic (restaurant_id, device_id, local_id) key did not express that — the
+		// server's signup stub (local_id = 1) and the app's push (local_id = restaurant_id)
+		// are different tuples for the same restaurant, so both could exist and every
+		// single-row reader of this table threw IncorrectResultSizeDataAccessException (500
+		// on login, JWT auth, invoices, tax compliance, terminal approval).
+		//
+		// Enforced by V107__restaurant_profile_singleton_row.sql. Declared here as well so
+		// a future schema generation (ddl-auto=create / hbm2ddl in tests) keeps the same
+		// invariant; production runs ddl-auto=validate, where Hibernate only checks that
+		// the columns exist and ignores uniqueConstraints.
+		@UniqueConstraint(name = "restaurantprofiles_restaurant_id_device_id_local_id_key", columnNames = { "restaurant_id", "device_id", "local_id" }),
+		@UniqueConstraint(name = "uq_restaurantprofiles_restaurant_id", columnNames = { "restaurant_id" }) }, indexes = {
 				@Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
 				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id"),
 				@Index(name = "idx_restaurantprofiles_whatsapp_number", columnList = "whatsapp_number") })

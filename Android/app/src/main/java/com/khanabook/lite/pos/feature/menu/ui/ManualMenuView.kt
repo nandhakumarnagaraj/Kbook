@@ -313,7 +313,10 @@ fun ManualMenuView(
                     .fillMaxWidth()
                     .padding(horizontal = spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.small),
-                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
+                // The footer "Add New Item" bar is fixed in-layout (not a
+                // floating overlay), so the list needs only a regular section
+                // gap above it — not the 88dp FAB-era bottomListPadding.
+                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.extraLarge)
             ) {
                 if (visibleMenuItems.isEmpty()) {
                     item {

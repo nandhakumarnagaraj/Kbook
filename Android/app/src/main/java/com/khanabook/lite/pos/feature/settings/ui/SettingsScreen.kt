@@ -139,9 +139,9 @@ fun SettingsScreen(
         }
     }
     DisposableEffect(section) {
-        onBottomBarVisibilityChange(section != "menu_config")
+        onBottomBarVisibilityChange(section != "menu_config" && section != "shop")
         onDispose {
-            if (section == "menu_config") {
+            if (section == "menu_config" || section == "shop") {
                 onBottomBarVisibilityChange(true)
             }
         }

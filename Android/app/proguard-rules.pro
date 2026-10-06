@@ -60,6 +60,15 @@
 -keep class org.mindrot.jbcrypt.** { *; }
 
 # â”€â”€ SQLCipher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-keep class net.zetetic.** { *; }
+-dontwarn net.zetetic.**
+-keep class net.zetetic.database.** { *; }
+-keep class net.zetetic.database.sqlcipher.** { *; }
+-keepclassmembers class net.zetetic.database.sqlcipher.** {
+    native <methods>;
+    <fields>;
+    <init>(...);
+}
 -keep class net.sqlcipher.** { *; }
 -keep class net.sqlcipher.database.** { *; }
 
@@ -67,6 +76,16 @@
 -keep class * extends androidx.room.RoomDatabase { *; }
 -keep @androidx.room.Entity class *
 -keepclassmembers @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keepclassmembers @androidx.room.Dao interface * { *; }
+-keep class * extends androidx.room.migration.Migration { *; }
+-keepclassmembers class * extends androidx.room.migration.Migration { *; }
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+-keep class androidx.sqlite.db.** { *; }
+-dontwarn androidx.sqlite.db.**
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
 
 # â”€â”€ Hilt / Dagger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -keep class dagger.hilt.** { *; }

@@ -50,4 +50,6 @@ public interface RestaurantTerminalRepository extends JpaRepository<RestaurantTe
 	Optional<RestaurantTerminal> findByRestaurantIdAndIsPrimaryTrue(Long restaurantId);
 
 	List<RestaurantTerminal> findByRestaurantIdAndStatusOrderByIdAsc(Long restaurantId, String status);
+
+	boolean existsByDeviceIdAndStatus(String deviceId, String status);
 }

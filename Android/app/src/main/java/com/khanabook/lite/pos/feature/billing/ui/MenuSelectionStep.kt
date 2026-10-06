@@ -319,7 +319,12 @@ fun MenuSelectionStep(
                 }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(paneColumns),
-                    modifier = Modifier.fillMaxSize().padding(spacing.medium),
+                    // Bottom inset is owned by the trailing spacer below so
+                    // phones and wide screens share one consistent gap above
+                    // the bottom cart card (same rhythm as ManualMenuView).
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = spacing.medium, end = spacing.medium, top = spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.smallMedium),
                     horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
             ) {
@@ -465,7 +470,7 @@ fun MenuSelectionStep(
                 }
                 
                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(paneColumns) }) {
-                    Spacer(modifier = Modifier.height(if (isWideScreen) spacing.medium else spacing.bottomListPadding))
+                    Spacer(modifier = Modifier.height(spacing.extraLarge))
                 }
             }
             } // close BoxWithConstraints
@@ -608,7 +613,7 @@ fun MenuSelectionStep(
                     
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
+                        contentPadding = PaddingValues(bottom = spacing.extraLarge)
                     ) {
                         items(cartItems) { cartItem ->
                             var showNoteDialog by remember { mutableStateOf(false) }

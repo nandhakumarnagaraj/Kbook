@@ -583,6 +583,50 @@ public class TerminalManagementService {
         return restaurantProfileRepository.findAndLockByRestaurantId(restaurantId);
     }
 
+    /**
+     * Atomically auto-activates a terminal for an owner on a trusted device under the 5-terminal limit.
+     */
+    @Transactional
+    public RestaurantTerminal autoActivateTerminal(Long restaurantId, String deviceId, String deviceModel, String terminalType) {
+        restaurantProfileRepository.findAndLockByRestaurantId(restaurantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Restaurant not found"));
+
+        long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+        if (activeCount >= MAX_ACTIVE_TERMINALS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+        }
+
+        String series = allocateNextSeries(restaurantId);
+        long now = System.currentTimeMillis();
+
+        RestaurantTerminal terminal;
+        var existingBySeries = terminalRepository.findByRestaurantIdAndTerminalSeries(restaurantId, series);
+        if (existingBySeries.isPresent()) {
+            terminal = existingBySeries.get();
+            terminal.setDeviceId(deviceId);
+            terminal.setIsActive(true);
+            terminal.setStatus("ACTIVE");
+            terminal.setTerminalType(terminalType != null ? terminalType : "BILLING");
+            terminal.setCredentialVersion(terminal.getCredentialVersion() + 1);
+            terminal.setUpdatedAt(now);
+        } else {
+            terminal = new RestaurantTerminal();
+            terminal.setRestaurantId(restaurantId);
+            terminal.setTerminalSeries(series);
+            terminal.setTerminalName("Terminal " + series);
+            terminal.setDeviceId(deviceId);
+            terminal.setIsActive(true);
+            terminal.setStatus("ACTIVE");
+            terminal.setTerminalType(terminalType != null ? terminalType : "BILLING");
+            terminal.setCredentialVersion(1L);
+            terminal.setCreatedAt(now);
+            terminal.setUpdatedAt(now);
+        }
+        terminal = terminalRepository.save(terminal);
+        ensurePrimaryAssigned(restaurantId, terminal);
+        return terminal;
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
     private String allocateNextSeries(Long restaurantId) {

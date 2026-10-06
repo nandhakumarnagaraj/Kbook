@@ -86,6 +86,10 @@ fun OrderTableRow(
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
     val rowShape = KhanaRadii.sm
+
+    // See ReportViews.OrderRowItem: the current mode is not a "change to…" target, and
+    // hiding it must not leave the chip opening an empty menu on a single-mode shop.
+    val selectablePayModes = enabledModes.filter { it != row.payMode }
     val rowBackground = when {
         isHighlighted -> PrimaryGold.copy(alpha = 0.18f)
         isCancelled -> DarkBrown1.copy(alpha = 0.15f)
@@ -174,7 +178,7 @@ fun OrderTableRow(
             Box(modifier = Modifier.weight(if (compactLayout) 1f else COL_MODE), contentAlignment = if (compactLayout) Alignment.CenterStart else Alignment.Center) {
                 val color = getPayModeColor(row.payMode)
                 Surface(
-                    onClick = { if (canEdit) payModeExpanded = true },
+                    onClick = { if (canEdit && selectablePayModes.isNotEmpty()) payModeExpanded = true },
                     color = color,
                     shape = KhanaRadii.sm,
                     modifier = Modifier.padding(horizontal = spacing.hairline)
@@ -193,7 +197,7 @@ fun OrderTableRow(
                     onDismissRequest = { payModeExpanded = false },
                     modifier = Modifier.background(DarkBrown2)
                 ) {
-                    enabledModes.forEach { mode ->
+                    selectablePayModes.forEach { mode ->
                         DropdownMenuItem(
                             text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }
@@ -278,7 +282,7 @@ fun OrderTableRow(
 
 @Composable
 fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
+    val presetReasons = listOf("Wrong order", "Customer left", "Test bill", "Other")
     var selectedReason by remember { mutableStateOf("Customer left") }
     var customReason by remember { mutableStateOf("") }
 

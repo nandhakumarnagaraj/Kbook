@@ -278,6 +278,16 @@ public class TerminalController {
 			// prove they are the original installation. Treat as recovery candidate.
 			// This covers: reinstall (token lost), or another user who learned the deviceId.
 			//
+			// Exception: If caller is authenticated as OWNER and the terminal is ACTIVE,
+			// auto-reconnect directly without creating an unneeded recovery request.
+			if ("OWNER".equals(role) && "ACTIVE".equals(existing.getStatus())) {
+				existing.setUpdatedAt(System.currentTimeMillis());
+				terminalRepository.save(existing);
+				securityAuditService.record("TERMINAL_OWNER_RECONNECTED", "SUCCESS",
+						existing.getTerminalSeries(), deviceId);
+				return ResponseEntity.ok(toResponse(existing));
+			}
+
 			// Check if the most recent request for this device is APPROVED.
 			// If so, complete activation directly and return terminal credentials
 			// (the Android app expects TerminalActivationResponse, not a status message).
@@ -371,6 +381,22 @@ public class TerminalController {
 		// ── Valid terminal types: BILLING, KOT, ADMIN (up to 5 active terminals total) ──
 		// Multi-counter restaurants are allowed to run multiple BILLING stations (e.g. Counter 1 Dine-in,
 		// Counter 2 Takeaway). The central 5-terminal limit is strictly enforced on approval.
+
+		// ── Case 3: Trusted Device Auto-Activation for OWNER ──
+		// If caller is OWNER and this physical device already hosts an ACTIVE terminal
+		// in ANY restaurant on the platform, it is recognized POS hardware.
+		// Auto-activate a terminal in the current restaurant under the 5-terminal limit.
+		if ("OWNER".equals(role) && deviceId != null && !deviceId.isBlank()
+				&& terminalRepository.existsByDeviceIdAndStatus(deviceId, "ACTIVE")) {
+			long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+			if (activeCount < 5) {
+				RestaurantTerminal activated = terminalManagementService.autoActivateTerminal(
+						restaurantId, deviceId, deviceModel, terminalType);
+				securityAuditService.record("TERMINAL_AUTO_ACTIVATED", "SUCCESS",
+						activated.getTerminalSeries(), deviceId);
+				return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(activated));
+			}
+		}
 
 		// ── Case 2: Unknown physical device — always requires approval ──
 		// This applies regardless of how many terminals the restaurant has.

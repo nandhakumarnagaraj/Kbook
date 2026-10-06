@@ -154,12 +154,15 @@ public class BusinessReadService {
 
     @Transactional(readOnly = true)
     public PaginatedOrdersResponse getOrdersPaginated(Long restaurantId, int page, int size, String status, LocalDate from, LocalDate to) {
+        String normalizedStatus = (status != null && !status.trim().isEmpty())
+                ? status.trim().toLowerCase(java.util.Locale.ROOT)
+                : null;
         ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
         Long fromEpoch = from != null ? from.atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
         Long toEpoch = to != null ? to.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
 
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<Bill> billPage = billRepository.findOrdersPageable(restaurantId, status, fromEpoch, toEpoch, pageable);
+        org.springframework.data.domain.Page<Bill> billPage = billRepository.findOrdersPageable(restaurantId, normalizedStatus, fromEpoch, toEpoch, pageable);
 
         List<BusinessOrderListItemResponse> content = billPage.getContent().stream()
                 .map(this::toBillOrderResponse)

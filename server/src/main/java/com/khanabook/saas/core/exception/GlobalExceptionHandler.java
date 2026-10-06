@@ -10,8 +10,10 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
@@ -81,6 +83,30 @@ public class GlobalExceptionHandler {
 				"path", request.getRequestURI()
 		));
 	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<Map<String, Object>> handleMissingRequestParam(
+			MissingServletRequestParameterException e, HttpServletRequest request) {
+		log.warn("Missing required request parameter [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.badRequest().body(Map.of(
+				"error", "Required parameter '" + e.getParameterName() + "' is missing",
+				"parameter", e.getParameterName(),
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
+			MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+		log.warn("Parameter type mismatch [{}]: parameter '{}' value '{}'",
+				request.getRequestURI(), e.getName(), e.getValue());
+		return ResponseEntity.badRequest().body(Map.of(
+				"error", "Invalid value for parameter '" + e.getName() + "'",
+				"parameter", e.getName() != null ? e.getName() : "",
+				"path", request.getRequestURI()
+		));
+	}
+
 
 	@ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
 	public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
