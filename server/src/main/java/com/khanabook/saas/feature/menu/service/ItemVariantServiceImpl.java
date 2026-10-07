@@ -34,24 +34,8 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 
 		for (ItemVariant variant : payload) {
 			validateVariant(variant);
-			if (variant.getServerMenuItemId() == null && variant.getMenuItemId() != null) {
-				Optional<MenuItem> item = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
-						variant.getDeviceId(), variant.getMenuItemId());
-
-				if (item.isPresent()) {
-					variant.setServerMenuItemId(item.get().getId());
-				} else {
-					Optional<MenuItem> serverItem = menuItemRepository.findById(variant.getMenuItemId());
-					if (serverItem.isPresent() && serverItem.get().getRestaurantId().equals(tenantId)) {
-						variant.setServerMenuItemId(serverItem.get().getId());
-					} else {
-						menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(variant.getMenuItemId()))
-								.stream().findFirst()
-								.ifPresent(m -> variant.setServerMenuItemId(m.getId()));
-					}
-				}
-			}
-			if (variant.getServerMenuItemId() == null && variant.getMenuItemId() != null) {
+			resolveServerMenuItemId(tenantId, variant);
+			if (variant.getServerMenuItemId() == null) {
 				addFailure(failedLocalIds, failedReasons, variant.getLocalId(),
 						"Item variant menu item could not be resolved");
 				continue;
@@ -113,6 +97,76 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		if (variant.getPrice().compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
 			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
 		}
+	}
+
+	/**
+	 * Same resolution problem, same fix as
+	 * {@link MenuItemServiceImpl#resolveServerCategoryId}: the device names its parent item by
+	 * a Room row id that only maps to a server id when this device owns a {@code menuitems}
+	 * row with that local id, which it often does not. The extra {@code serverMenuItemId}
+	 * fallback reuses the association the server's own copy of the variant already holds, so a
+	 * variant price edit lands instead of the whole record being rejected over a foreign key
+	 * the edit never touched.
+	 */
+	private void resolveServerMenuItemId(Long tenantId, ItemVariant variant) {
+		Long localMenuItemId = variant.getMenuItemId();
+
+		if (variant.getServerMenuItemId() != null) {
+			boolean ours = menuItemRepository.findById(variant.getServerMenuItemId())
+					.filter(item -> tenantId.equals(item.getRestaurantId()))
+					.isPresent();
+			if (ours) {
+				variant.setMenuItemId(variant.getServerMenuItemId());
+				return;
+			}
+			variant.setServerMenuItemId(null);
+		}
+
+		if (localMenuItemId == null) {
+			reuseExistingVariantParent(tenantId, variant);
+			return;
+		}
+
+		Optional<MenuItem> resolved = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
+				variant.getDeviceId(), localMenuItemId);
+
+		if (resolved.isEmpty()) {
+			resolved = menuItemRepository.findById(localMenuItemId)
+					.filter(item -> tenantId.equals(item.getRestaurantId()));
+		}
+
+		if (resolved.isEmpty()) {
+			resolved = menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(localMenuItemId))
+					.stream().findFirst();
+		}
+
+		if (resolved.isEmpty()) {
+			resolved = existingVariantParent(tenantId, variant);
+		}
+
+		resolved.ifPresent(item -> {
+			variant.setServerMenuItemId(item.getId());
+			variant.setMenuItemId(item.getId());
+		});
+	}
+
+	private void reuseExistingVariantParent(Long tenantId, ItemVariant variant) {
+		existingVariantParent(tenantId, variant).ifPresent(item -> {
+			variant.setServerMenuItemId(item.getId());
+			variant.setMenuItemId(item.getId());
+		});
+	}
+
+	private Optional<MenuItem> existingVariantParent(Long tenantId, ItemVariant variant) {
+		if (variant.getId() == null) {
+			return Optional.empty();
+		}
+		return repository.findById(variant.getId())
+				.filter(existing -> tenantId.equals(existing.getRestaurantId()))
+				.map(ItemVariant::getServerMenuItemId)
+				.filter(java.util.Objects::nonNull)
+				.flatMap(menuItemRepository::findById)
+				.filter(item -> tenantId.equals(item.getRestaurantId()));
 	}
 
 	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {

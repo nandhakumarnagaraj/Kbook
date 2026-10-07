@@ -131,7 +131,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `canWritePrinterAndSettings is allowed for all POS roles`() {
+    fun `canWritePrinterConfig is owner or shop staff and canWritePrinterAndSettings follows it`() {
         val prefsField = SessionManager::class.java.getDeclaredField("prefs")
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
@@ -141,8 +141,8 @@ class SessionManagerTest {
             return sessionManager.canWritePrinterAndSettings()
         }
 
-        assertTrue("OWNER may write printer/settings", allowedFor("OWNER"))
-        assertTrue("SHOP_STAFF may write printer/settings", allowedFor("SHOP_STAFF"))
+        assertTrue("OWNER may write printer config", allowedFor("OWNER"))
+        assertTrue("SHOP_STAFF may write printer config", allowedFor("SHOP_STAFF"))
         assertFalse("SHOP_ADMIN is not a canonical role", allowedFor("SHOP_ADMIN"))
         assertFalse("MANAGER is not a canonical role", allowedFor("MANAGER"))
         assertFalse("CASHIER is not a canonical role", allowedFor("CASHIER"))

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
+import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuWithVariants
 import com.khanabook.lite.pos.core.designsystem.*
@@ -42,14 +43,84 @@ private data class PendingManualItemOverwrite(
     val name: String,
     val price: Double,
     val foodType: String,
-    val variants: List<Pair<String, Double>>,
+    val variants: List<EditableVariantDraft>,
     val photoUri: android.net.Uri? = null
 )
 
-internal data class EditableVariantDraft(
+/**
+ * A variant as edited in [ItemEditDialog].
+ *
+ * [id] is the Room id of the variant this draft edits, or null for one the user just added
+ * in the dialog. Carrying it is what lets the caller UPDATE an existing variant instead of
+ * deleting every variant and re-adding them - the old delete/re-add flow was the reason a
+ * rename produced a duplicate row: the old row was soft-deleted with one id while a brand
+ * new row was inserted under another, and the delete often never reached the server.
+ */
+data class EditableVariantDraft(
+    val id: Long? = null,
     val name: String,
     val price: Double
 )
+
+/** What a reconciled variant draft implies for the stored row it belongs to. */
+sealed interface VariantDraftOp {
+    data class Delete(val variant: ItemVariantEntity) : VariantDraftOp
+    data class Update(val variant: ItemVariantEntity) : VariantDraftOp
+    data class Add(val name: String, val price: Double) : VariantDraftOp
+}
+
+/**
+ * Reconciles the variants a user leaves in [ItemEditDialog] against the ones already stored.
+ *
+ * This replaces the old "soft-delete every variant, then re-add them all" flow, which was the
+ * direct cause of the duplicate-variant bug: a rename deleted the row under its old id and
+ * inserted a brand new one, the two halves could fail independently, and the server ended up
+ * with both. Matching on [EditableVariantDraft.id] means a rename edits the row in place, an
+ * untouched variant is not written at all, and only rows the user actually removed are deleted.
+ *
+ * Pure on purpose: the decision is made here rather than inside a Composable so it can be
+ * reasoned about and tested without a Room instance.
+ */
+object VariantDraftReconciler {
+
+    fun plan(
+        stored: List<ItemVariantEntity>,
+        drafts: List<EditableVariantDraft>,
+        now: Long = System.currentTimeMillis()
+    ): List<VariantDraftOp> {
+        val ops = mutableListOf<VariantDraftOp>()
+
+        val keptIds = drafts.mapNotNullTo(mutableSetOf()) { it.id }
+        stored.forEach { row ->
+            if (row.id !in keptIds) ops += VariantDraftOp.Delete(row)
+        }
+
+        drafts.forEach { draft ->
+            val storedId = draft.id
+            if (storedId == null) {
+                ops += VariantDraftOp.Add(draft.name, draft.price)
+                return@forEach
+            }
+            val row = stored.firstOrNull { it.id == storedId } ?: return@forEach
+            if (row.variantName != draft.name || !samePrice(row.price, draft.price)) {
+                ops += VariantDraftOp.Update(
+                    row.copy(
+                        variantName = draft.name,
+                        price = draft.price.toString(),
+                        isSynced = false,
+                        updatedAt = now
+                    )
+                )
+            }
+        }
+        return ops
+    }
+
+    private fun samePrice(storedPrice: String, draftPrice: Double): Boolean {
+        val parsed = storedPrice.toDoubleOrNull() ?: return false
+        return parsed == draftPrice
+    }
+}
 
 private fun normalizeMenuItemName(name: String): String =
     name.trim().replace(Regex("\\s+"), " ").lowercase(Locale.getDefault())
@@ -111,7 +182,26 @@ fun ManualMenuView(
     var pendingOverwrite by remember { mutableStateOf<PendingManualItemOverwrite?>(null) }
     val visibleMenuItems = menuItems
 
-    val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>, android.net.Uri?) -> Unit =
+    /**
+     * Applies [ItemEditDialog]'s variant drafts through [VariantDraftReconciler] — id-matched
+     * updates in place instead of the delete-all/re-add flow that produced duplicates.
+     */
+    val applyVariantDrafts: (MenuWithVariants, List<EditableVariantDraft>) -> Unit =
+        { existingItem, drafts ->
+            VariantDraftReconciler.plan(
+                stored = existingItem.variants,
+                drafts = drafts,
+                now = System.currentTimeMillis()
+            ).forEach { op ->
+                when (op) {
+                    is VariantDraftOp.Delete -> onDeleteVariant(op.variant)
+                    is VariantDraftOp.Update -> onUpdateVariant(op.variant)
+                    is VariantDraftOp.Add -> onAddVariant(existingItem.menuItem.id, op.name, op.price)
+                }
+            }
+        }
+
+    val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<EditableVariantDraft>, android.net.Uri?) -> Unit =
         { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants, photoUri ->
             val updatedEntity = existingItem.menuItem.copy(
                 name = updatedName.trim(),
@@ -124,10 +214,7 @@ fun ManualMenuView(
             } else {
                 onUpdateItem(updatedEntity)
             }
-            existingItem.variants.forEach { onDeleteVariant(it) }
-            updatedVariants.forEach { (variantName, variantPrice) ->
-                onAddVariant(existingItem.menuItem.id, variantName, variantPrice)
-            }
+            applyVariantDrafts(existingItem, updatedVariants)
         }
 
     Column(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
@@ -540,10 +627,11 @@ fun ManualMenuView(
                         photoUri = photoUri
                     )
                 } else {
+                    val pairs = draftVariants.map { it.name to it.price }
                     if (onAddItemWithPhoto != null) {
-                        onAddItemWithPhoto(name.trim(), price, type, draftVariants, photoUri)
+                        onAddItemWithPhoto(name.trim(), price, type, pairs, photoUri)
                     } else {
-                        onAddItem(name.trim(), price, type, draftVariants)
+                        onAddItem(name.trim(), price, type, pairs)
                     }
                 }
                 showAddItemDialog = false
@@ -572,10 +660,7 @@ fun ManualMenuView(
                 } else {
                     onUpdateItem(updatedEntity)
                 }
-                itemWithVariants.variants.forEach { onDeleteVariant(it) }
-                updatedVariants.forEach { (variantName, variantPrice) ->
-                    onAddVariant(itemWithVariants.menuItem.id, variantName, variantPrice)
-                }
+                applyVariantDrafts(itemWithVariants, updatedVariants)
                 showEditItemDialog = null
             }
         )

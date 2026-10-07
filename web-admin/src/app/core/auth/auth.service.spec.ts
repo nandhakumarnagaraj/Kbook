@@ -74,6 +74,9 @@ describe('AuthService', () => {
 
       const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/login`);
       expect(req.request.method).toBe('POST');
+      // G3: every web-admin login declares its surface so the server can reject
+      // SHOP_STAFF accounts before minting a token.
+      expect(req.request.body).toEqual(jasmine.objectContaining({ surface: 'web' }));
       req.flush(owner);
 
       expect(tokenStorage.save).toHaveBeenCalledWith(owner);

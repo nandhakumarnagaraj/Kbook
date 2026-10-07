@@ -170,14 +170,20 @@ public class PermissionService {
      * Configuration families that remain owner-only for SHOP_STAFF:
      * restaurant profile, payment (Easebuzz/bank), tax/GST, and menu edits
      * (add/delete/reprice/toggle availability). Menu *viewing* stays granted.
-     * Report *export* is owner-only too — staff read reports on the device but
-     * may not download/share the data off it.
+     *
+     * Report export is no longer owner-only config: staff may download reports
+     * locally from the device's own billing data. No server touch for the export
+     * action itself (the exporter reads local Room; the button only shares the
+     * resulting local file).
+     *
+     * Printer configuration is no longer owner-only: shop staff may now write
+     * printer settings (the owner still owns the initial setup and any terminal
+     * lifecycle changes; staff can reconfigure printing behavior on their device).
      */
     public static final Set<String> SHOP_STAFF_CONFIG_KEYS = Set.of(
             PermissionKey.SETTINGS_SHOP_PROFILE.getKey(),
             PermissionKey.SETTINGS_PAYMENT.getKey(),
             PermissionKey.SETTINGS_GST.getKey(),
-            PermissionKey.REPORTS_EXPORT.getKey(),
             PermissionKey.MENU_TOGGLE_AVAILABILITY.getKey(),
             PermissionKey.MENU_EDIT_PRICE.getKey(),
             PermissionKey.MENU_EDIT_FULL.getKey(),

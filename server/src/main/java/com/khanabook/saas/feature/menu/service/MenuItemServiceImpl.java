@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -60,25 +61,8 @@ public class MenuItemServiceImpl implements MenuItemService {
 				continue;
 			}
 
-			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
-				Optional<Category> category = categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
-						item.getDeviceId(), item.getCategoryId());
-
-				if (category.isPresent()) {
-					item.setServerCategoryId(category.get().getId());
-				} else {
-
-					Optional<Category> serverCategory = categoryRepository.findById(item.getCategoryId());
-					if (serverCategory.isPresent() && serverCategory.get().getRestaurantId().equals(tenantId)) {
-						item.setServerCategoryId(serverCategory.get().getId());
-					} else {
-						categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(item.getCategoryId()))
-								.stream().findFirst()
-								.ifPresent(c -> item.setServerCategoryId(c.getId()));
-					}
-				}
-			}
-			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
+			resolveServerCategoryId(tenantId, item);
+			if (item.getServerCategoryId() == null) {
 				addFailure(failedLocalIds, failedReasons, item.getLocalId(),
 						"Menu item category could not be resolved");
 				continue;
@@ -190,6 +174,100 @@ public class MenuItemServiceImpl implements MenuItemService {
 
 	private String normalizeMenuItemName(String value) {
 		return collapseWhitespace(value).toLowerCase(Locale.ROOT);
+	}
+
+	/**
+	 * Works out which server-side category a pushed menu item belongs to, leaving the answer
+	 * in {@code serverCategoryId} (and normalising {@code categoryId} to the same server id,
+	 * which is what the {@code menuitems.category_id} column actually stores).
+	 *
+	 * <p>The device identifies its category by the Room row id it happens to have, and that id
+	 * is only meaningful to the server when the device also owns a {@code categories} row with
+	 * the same local id. It routinely does not: device ids rotate on reinstall, a category may
+	 * have been created by a different device under the same local id, or the category's own
+	 * push may not have landed yet. The original lookup chain gave up after three id-only
+	 * guesses and rejected the whole record, so a perfectly valid name/price edit was thrown
+	 * away over a foreign key the edit never touched - and, because that rejection reads as
+	 * "all records failed", it also drove the client into a full re-pull that reverted the
+	 * very edit that was rejected.
+	 *
+	 * <p>Lookup order:
+	 * <ol>
+	 *   <li>the id the client already claims is a server category id, once verified as ours -
+	 *       a client that has already been through a pull knows the answer;</li>
+	 *   <li>same device + same local id (a category this device created);</li>
+	 *   <li>the id is a server id (a row adopted from a pull keeps both equal);</li>
+	 *   <li>same local id under any device of this restaurant (device ids rotate);</li>
+	 *   <li>the category the server row already points at, when this push is an edit - the
+	 *       stored association is known good, and reusing it lets the edit land instead of
+	 *       failing the record on a stale client-side id.</li>
+	 * </ol>
+	 */
+	private void resolveServerCategoryId(Long tenantId, MenuItem item) {
+		Long localCategoryId = item.getCategoryId();
+
+		// A server id the client already knows: trust it only after confirming it is ours,
+		// otherwise a client could point a menu item at another restaurant's category.
+		if (item.getServerCategoryId() != null) {
+			boolean ours = categoryRepository.findById(item.getServerCategoryId())
+					.filter(c -> tenantId.equals(c.getRestaurantId()))
+					.isPresent();
+			if (ours) {
+				item.setCategoryId(item.getServerCategoryId());
+				return;
+			}
+			item.setServerCategoryId(null);
+		}
+
+		if (localCategoryId == null) {
+			reuseExistingItemCategory(tenantId, item);
+			return;
+		}
+
+		Optional<Category> resolved = categoryRepository
+				.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, item.getDeviceId(), localCategoryId);
+
+		if (resolved.isEmpty()) {
+			resolved = categoryRepository.findById(localCategoryId)
+					.filter(c -> tenantId.equals(c.getRestaurantId()));
+		}
+
+		if (resolved.isEmpty()) {
+			resolved = categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(localCategoryId))
+					.stream().findFirst();
+		}
+
+		if (resolved.isEmpty()) {
+			resolved = existingItemCategory(tenantId, item);
+		}
+
+		if (resolved.isPresent()) {
+			item.setServerCategoryId(resolved.get().getId());
+			item.setCategoryId(resolved.get().getId());
+		}
+	}
+
+	private void reuseExistingItemCategory(Long tenantId, MenuItem item) {
+		existingItemCategory(tenantId, item).ifPresent(category -> {
+			item.setServerCategoryId(category.getId());
+			item.setCategoryId(category.getId());
+		});
+	}
+
+	/**
+	 * The category the server's own copy of this item already uses. Only meaningful for an
+	 * edit (the incoming record carries a server id); returns empty for a new item.
+	 */
+	private Optional<Category> existingItemCategory(Long tenantId, MenuItem item) {
+		if (item.getId() == null) {
+			return Optional.empty();
+		}
+		return repository.findById(item.getId())
+				.filter(existing -> tenantId.equals(existing.getRestaurantId()))
+				.map(MenuItem::getServerCategoryId)
+				.filter(Objects::nonNull)
+				.flatMap(categoryRepository::findById)
+				.filter(category -> tenantId.equals(category.getRestaurantId()));
 	}
 
 	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {

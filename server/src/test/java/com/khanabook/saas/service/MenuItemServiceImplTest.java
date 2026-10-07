@@ -76,6 +76,14 @@ class MenuItemServiceImplTest {
         service = new MenuItemServiceImpl(
             menuItemRepo, categoryRepo, genericSyncService,
             org.mockito.Mockito.mock(com.khanabook.saas.feature.notifications.service.PushNotificationService.class));
+
+        // A pre-resolved serverCategoryId is only trusted once we can see the category is
+        // ours, so every fixture that hands an item serverCategoryId = 10L needs category 10
+        // to exist for this tenant. Tests that exercise the miss path re-stub findById.
+        Category preResolved = new Category();
+        preResolved.setId(10L);
+        preResolved.setRestaurantId(TENANT_ID);
+        lenient().when(categoryRepo.findById(10L)).thenReturn(Optional.of(preResolved));
     }
 
     @AfterEach
@@ -211,6 +219,64 @@ class MenuItemServiceImplTest {
 
         assertThat(resp.getFailedLocalIds()).contains(6L);
         assertThat(resp.getFailedReasons().get(6L)).contains("unknown user");
+        verify(menuItemRepo, never()).saveAll(any());
+    }
+
+    // ── category resolution fallbacks ────────────────────────────────────────
+
+    /**
+     * The reported production bug: a device edits a menu item it already has on the server,
+     * but sends a categoryId the server cannot resolve (the device's local ids rotated on
+     * reinstall, or the category's own push has not landed). The edit used to be rejected
+     * outright over a foreign key the edit never touched, and that rejection then drove the
+     * client into a full re-pull which reverted the edit. The server row's own category is
+     * known good and must be reused.
+     */
+    @Test
+    void editReusesStoredCategory_whenDeviceCategoryIdIsUnresolvable() {
+        actAsOwner();
+        MenuItem existing = serverRow(503L, new BigDecimal("250"), true);
+        existing.setServerCategoryId(10L);
+        when(menuItemRepo.findById(503L)).thenReturn(Optional.of(existing));
+
+        MenuItem incoming = menuItem(4L, 999L); // stale local category id
+        incoming.setId(503L);
+        incoming.setBasePrice(new BigDecimal("300"));
+        incoming.setIsAvailable(false);
+
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).doesNotContain(4L);
+        assertThat(incoming.getServerCategoryId()).isEqualTo(10L);
+        assertThat(incoming.getCategoryId()).isEqualTo(10L);
+        verify(menuItemRepo).saveAll(any());
+    }
+
+    /**
+     * A client that sends serverCategoryId was previously trusted without a tenant check, so
+     * a tampered payload could point a menu item at another restaurant's category.
+     */
+    @Test
+    void clientSuppliedServerCategoryId_fromAnotherTenant_isNotTrusted() {
+        actAsOwner();
+        Category foreign = new Category();
+        foreign.setId(777L);
+        foreign.setRestaurantId(999L);
+        when(categoryRepo.findById(777L)).thenReturn(Optional.of(foreign));
+        // ...and no legitimate fallback exists for this payload either.
+        when(categoryRepo.findById(10L)).thenReturn(Optional.empty());
+
+        MenuItem incoming = menuItem(4L, 10L);
+        incoming.setServerCategoryId(777L);
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).contains(4L);
+        assertThat(resp.getFailedReasons().get(4L)).contains("category could not be resolved");
         verify(menuItemRepo, never()).saveAll(any());
     }
 

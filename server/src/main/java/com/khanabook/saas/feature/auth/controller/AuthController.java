@@ -327,6 +327,12 @@ public class AuthController {
 
 			@Size(max = 128)
 			private String deviceId;
+
+			/** Optional caller declaration: "web" from web-admin. The server rejects
+			 * SHOP_STAFF logins that declare a web surface (G3) — staff are POS-only.
+			 * Absent/unknown values keep the legacy behavior (Android never sends it). */
+			@Size(max = 32)
+			private String surface;
 		}
 
 	@Data

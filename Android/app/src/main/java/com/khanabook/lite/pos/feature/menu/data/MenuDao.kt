@@ -56,14 +56,43 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND restaurant_id = :restaurantId AND is_deleted = 0))")
     fun searchItems(query: String, restaurantId: Long): Flow<List<MenuItemEntity>>
 
-    @Query("UPDATE menu_items SET is_available = :isAvailable, changed_fields = 'isAvailable' WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long)
+    // Single-column writes below must APPEND to changed_fields, never replace it.
+    // Replacing dropped every other field this device had already edited but not yet pushed,
+    // so the server's field-mask merge restored its own value for those fields and the edit
+    // silently reverted - a rename followed by an availability toggle reproduced it. They
+    // also mark the row dirty (is_synced = 0), which these writes used to forget:
+    // getUnsyncedMenuItems filters on is_synced = 0, so an unflagged row was never pushed at
+    // all and the change looked saved locally while the server kept its own value.
+    //
+    // The append is done in SQL so it is atomic against a concurrent sync ack
+    // (markMenuItemsAsSynced sets is_synced = 1, changed_fields = NULL). A read-modify-write
+    // in Kotlin would let the ack land in between and re-introduce a lost mask. A wildcard or
+    // "all" on the row means the whole record is already this device's to write, so it wins
+    // outright; an already-present field is not duplicated because the server lower-cases the
+    // mask into a set anyway, but keeping it tidy makes the stored value readable.
+    @Query(
+        """UPDATE menu_items SET is_available = :isAvailable, is_synced = 0, updated_at = :updatedAt,
+        changed_fields = CASE
+            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'isAvailable'
+            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
+            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',isavailable,') > 0 THEN changed_fields
+            ELSE changed_fields || ',isAvailable'
+        END
+        WHERE id = :id AND restaurant_id = :restaurantId"""
+    )
+    suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long, updatedAt: Long)
 
-    @Query("UPDATE menu_items SET current_stock = current_stock + :delta, changed_fields = 'currentStock' WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun updateStock(id: Long, delta: Double, restaurantId: Long)
-
-    @Query("UPDATE menu_items SET low_stock_threshold = :threshold, changed_fields = 'lowStockThreshold' WHERE id = :id")
-    suspend fun updateLowStockThreshold(id: Long, threshold: Double)
+    @Query(
+        """UPDATE menu_items SET low_stock_threshold = :threshold, is_synced = 0, updated_at = :updatedAt,
+        changed_fields = CASE
+            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'lowStockThreshold'
+            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
+            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',lowstockthreshold,') > 0 THEN changed_fields
+            ELSE changed_fields || ',lowStockThreshold'
+        END
+        WHERE id = :id AND restaurant_id = :restaurantId"""
+    )
+    suspend fun updateLowStockThreshold(id: Long, threshold: Double, restaurantId: Long, updatedAt: Long)
 
     // is_synced/changed_fields are passed in rather than forced to 1: the caller acknowledges
     // the PHOTO, and forcing the row acked here would hide any field edit still pending in
@@ -81,12 +110,28 @@ interface MenuDao {
     )
 
     @Query(
-        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE id = :id AND restaurant_id = :restaurantId"
+        """UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt,
+        permission_revision_at_creation = :revision,
+        changed_fields = CASE
+            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'isDeleted'
+            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
+            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',isdeleted,') > 0 THEN changed_fields
+            ELSE changed_fields || ',isDeleted'
+        END
+        WHERE id = :id AND restaurant_id = :restaurantId"""
     )
     suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long, revision: Long? = null)
 
     @Query(
-        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE category_id = :categoryId AND restaurant_id = :restaurantId"
+        """UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt,
+        permission_revision_at_creation = :revision,
+        changed_fields = CASE
+            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'isDeleted'
+            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
+            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',isdeleted,') > 0 THEN changed_fields
+            ELSE changed_fields || ',isDeleted'
+        END
+        WHERE category_id = :categoryId AND restaurant_id = :restaurantId"""
     )
     suspend fun markItemsDeletedByCategory(categoryId: Long, updatedAt: Long, restaurantId: Long, revision: Long? = null)
 
@@ -102,9 +147,6 @@ interface MenuDao {
 
     @Query("SELECT * FROM item_variants WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getVariantById(id: Long, restaurantId: Long): ItemVariantEntity?
-
-    @Query("UPDATE item_variants SET current_stock = current_stock + :delta WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun updateVariantStock(id: Long, delta: Double, restaurantId: Long)
 
     @Query("UPDATE item_variants SET low_stock_threshold = :threshold WHERE id = :id")
     suspend fun updateVariantLowStockThreshold(id: Long, threshold: Double)
@@ -129,7 +171,14 @@ interface MenuDao {
      * table, so writing it must not roll back an unrelated field the user just edited.
      */
     @Query(
-        "UPDATE menu_items SET has_variants = :hasVariants, is_synced = 0, updated_at = :updatedAt, changed_fields = 'hasVariants' WHERE id = :itemId AND restaurant_id = :restaurantId"
+        """UPDATE menu_items SET has_variants = :hasVariants, is_synced = 0, updated_at = :updatedAt,
+        changed_fields = CASE
+            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'hasVariants'
+            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
+            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',hasvariants,') > 0 THEN changed_fields
+            ELSE changed_fields || ',hasVariants'
+        END
+        WHERE id = :itemId AND restaurant_id = :restaurantId"""
     )
     suspend fun updateItemHasVariantsFlag(
         itemId: Long,

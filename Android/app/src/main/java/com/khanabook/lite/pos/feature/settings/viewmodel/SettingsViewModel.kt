@@ -842,6 +842,10 @@ class SettingsViewModel @Inject constructor(
         label: String,
         paperSize: String
     ) {
+        if (!sessionManager.canWritePrinterConfig()) {
+            _printerEvents.emit(PrinterUiEvent.WifiSaveFailed)
+            return
+        }
         withContext(Dispatchers.IO) {
             try {
                 val existing = printerProfileRepository.getByRole(role.name)
@@ -948,6 +952,11 @@ class SettingsViewModel @Inject constructor(
             _printerEvents.tryEmit(PrinterUiEvent.InvalidWifiAddress)
             return
         }
+        // G2: printer configuration is owner-only (see SessionManager doc).
+        if (!sessionManager.canWritePrinterConfig()) {
+            _printerEvents.tryEmit(PrinterUiEvent.WifiSaveFailed)
+            return
+        }
         // Single-flight: a repeat tap while the save is in flight must not start
         // a second write that re-emits WifiSaved after the dialog already closed.
         if (_isSavingWifiPrinter.value) return
@@ -1015,6 +1024,8 @@ class SettingsViewModel @Inject constructor(
         paperSize: String,
         includeLogo: Boolean
     ) {
+        // G2: printer configuration is owner-only (see SessionManager doc).
+        if (!sessionManager.canWritePrinterConfig()) return
         viewModelScope.launch(Dispatchers.IO) {
             val existing = printerProfileRepository.getByRole(role.name)
             val profileToSave = if (existing != null) {
@@ -1060,6 +1071,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun removePrinter(role: PrinterRole) {
+        // G2: printer configuration is owner-only (see SessionManager doc).
+        if (!sessionManager.canWritePrinterConfig()) return
         viewModelScope.launch(Dispatchers.IO) {
             val existing = printerProfileRepository.getByRole(role.name)
             existing
@@ -1173,6 +1186,12 @@ class SettingsViewModel @Inject constructor(
         // Single-flight: same rationale as saveProfile — a double tap re-entering this
         // function resets the success flag mid-flight and swallows the navigation.
         if (_saveProfileLoading.value) return
+        // G2: printer settings (mac/paper/routing on the shop profile) are owner-only
+        // config writes; the guard mirrors saveProfile().
+        if (!sessionManager.canWritePrinterConfig()) {
+            _saveProfileError.value = "Only the owner can change printer settings."
+            return
+        }
         viewModelScope.launch {
             _saveProfileLoading.value = true
             _saveProfileError.value = null

@@ -82,12 +82,12 @@ fun ItemEditDialog(
     initialImageUrl: String? = null,
     variants: List<com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, String, List<Pair<String, Double>>) -> Unit = { _, _, _, _ -> },
+    onConfirm: (String, Double, String, List<EditableVariantDraft>) -> Unit = { _, _, _, _ -> },
     onConfirmWithPhoto: (
         name: String,
         price: Double,
         foodType: String,
-        variants: List<Pair<String, Double>>,
+        variants: List<EditableVariantDraft>,
         photoUri: Uri?,
         removePhoto: Boolean
     ) -> Unit = { name, price, type, vars, _, _ -> onConfirm(name, price, type, vars) }
@@ -107,6 +107,7 @@ fun ItemEditDialog(
         mutableStateOf(
             variants.map {
                 EditableVariantDraft(
+                    id = it.id,
                     name = it.variantName,
                     price = it.price.toDoubleOrNull() ?: 0.0
                 )
@@ -460,7 +461,7 @@ fun ItemEditDialog(
                         MenuPricingRules.resolveBasePrice(price, editableVariants.map { it.price })
                             .toDoubleOrNull() ?: 0.0,
                         foodType,
-                        editableVariants.map { it.name.trim() to it.price },
+                        editableVariants.map { it.copy(name = it.name.trim()) },
                         selectedPhotoUri,
                         isPhotoRemoved
                     )

@@ -116,38 +116,8 @@ class MenuRepositoryTest {
     }
 
     // The class of bug worth locking down is not "the validator throws" but "a caller
-    // that had no business touching a price blows up anyway". These assert the caller
-    // survives a stored price it never wrote, which is what silently blocked stock
-    // movements behind an invalid price.
-
-    @Test
-    fun `updateStock survives an out-of-band stored price`() = runTest {
-        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "0.50")
-        val saved = slot<MenuItemEntity>()
-        coEvery { menuDao.updateItem(capture(saved)) } just Runs
-
-        repository.updateStock(1L, "-3")
-
-        coVerify(exactly = 1) { menuDao.updateItem(any()) }
-        assertEquals("0.50", saved.captured.basePrice)
-    }
-
-    @Test
-    fun `updateVariantStock survives an out-of-band stored variant price`() = runTest {
-        coEvery { menuDao.getVariantById(7L, 0L) } returns ItemVariantEntity(
-            id = 7L,
-            menuItemId = 1L,
-            variantName = "Small",
-            price = "0.50"
-        )
-        val saved = slot<ItemVariantEntity>()
-        coEvery { menuDao.updateVariant(capture(saved)) } just Runs
-
-        repository.updateVariantStock(7L, "-3")
-
-        coVerify(exactly = 1) { menuDao.updateVariant(any()) }
-        assertEquals("0.50", saved.captured.price)
-    }
+    // that had no business touching a price blows up anyway". (The stock-movement
+    // variants of these tests were removed with the inventory feature, 2026-09-29.)
 
     // Counterweight: skipping normalization for untouched fields must not become skipping
     // validation for the field the caller actually changed.

@@ -313,11 +313,15 @@ open class SessionManager @Inject constructor(@ApplicationContext private val co
     /**
      * Configuration and settings write rights on the device:
      * - The owner writes everything (restaurant, menu, payment/Easebuzz, tax).
-     * - Staff read restaurant/menu/payment/tax configuration but may write
-     *   printer configuration and app settings (PIN, display, preferences).
+     * - Staff read restaurant/menu/payment/tax configuration and write app
+     *   settings (PIN, display, preferences) and printer configuration.
+     * - Printer configuration is writable by shop staff (the owner still owns
+     *   the initial setup and any terminal lifecycle changes; staff can
+     *   reconfigure printing behavior on their device).
      */
     fun canWriteConfig(): Boolean = isOwner()
-    fun canWritePrinterAndSettings(): Boolean = canUsePos()
+    fun canWritePrinterConfig(): Boolean = isOwner() || isShopStaff()
+    fun canWritePrinterAndSettings(): Boolean = canWritePrinterConfig()
 
     fun saveActiveUserRole(role: String) {
         val editor = prefs.edit()

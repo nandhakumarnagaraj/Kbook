@@ -18,7 +18,8 @@ export class AuthService {
   readonly session = signal<AuthSession | null>(this.tokenStorage.get());
 
   login(payload: LoginRequest) {
-    return this.http.post<AuthSession>(`${API_BASE_URL}/auth/login`, payload).pipe(
+    // surface: 'web' lets the server enforce the staff-no-web-admin boundary (G3).
+    return this.http.post<AuthSession>(`${API_BASE_URL}/auth/login`, { ...payload, surface: 'web' }).pipe(
       tap((session) => {
         this.tokenStorage.save(session);
         this.session.set(session);

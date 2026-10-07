@@ -233,7 +233,6 @@ class PermissionManager @Inject constructor(
         MENU_EDIT_FULL,
         MENU_ADD_ITEM,
         MENU_DELETE_ITEM,
-        REPORTS_EXPORT,
         SETTINGS_SHOP_PROFILE,
         SETTINGS_PAYMENT,
         SETTINGS_GST

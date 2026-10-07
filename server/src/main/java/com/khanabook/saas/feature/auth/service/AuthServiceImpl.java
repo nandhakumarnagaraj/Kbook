@@ -17,6 +17,8 @@ import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.service.AuthService;
 import com.khanabook.saas.core.utility.JwtUtility;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +88,18 @@ public class AuthServiceImpl implements AuthService {
 
         // v1 fix (KB): a suspended business cannot authenticate on any path.
         checkBusinessNotSuspended(user.getRestaurantId());
+
+        // G3: web-admin has no SHOP_STAFF surface (/business/** is OWNER-only, staff
+        // land on /limited-access with zero links). A SHOP_STAFF account presenting
+        // itself at the web surface is either misuse of the staff credential or a
+        // probing attempt — reject it before a token is minted. Android POS logins
+        // never declare the web surface and are unaffected.
+        if ("web".equalsIgnoreCase(request.getSurface())
+                && UserRole.SHOP_STAFF == user.getRole()) {
+            log.warn("Web-admin login rejected for staff account: restaurantId={}", user.getRestaurantId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Staff accounts cannot sign in to web admin.");
+        }
 
         backfillLoginIdIfMissing(user);
         log.info("User logged in: restaurantId={}", user.getRestaurantId());

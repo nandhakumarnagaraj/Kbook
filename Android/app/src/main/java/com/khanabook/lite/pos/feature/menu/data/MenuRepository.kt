@@ -205,20 +205,6 @@ class MenuRepository(
         return menuDao.getAllVariantsOnce(restaurantId)
     }
 
-    suspend fun updateStock(id: Long, delta: String) {
-        val restaurantId = sessionManager.getRestaurantId()
-        val current = menuDao.getItemById(id, restaurantId) ?: return
-        val newStock = try {
-            java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
-                .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
-                .toString()
-        } catch (e: NumberFormatException) {
-            android.util.Log.w("MenuRepository", "Invalid stock value: '${current.currentStock}' or delta: '$delta'", e)
-            "0.0"
-        }
-        updateItem(current.copy(currentStock = newStock), changedFields = "currentStock")
-    }
-
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
         return sessionManager.restaurantId.flatMapLatest { restaurantId ->
             menuDao.getItemsByCategoryFlow(categoryId, restaurantId)
@@ -323,20 +309,6 @@ class MenuRepository(
                 )
         menuDao.updateVariant(enriched)
         triggerBackgroundSync()
-    }
-
-    suspend fun updateVariantStock(id: Long, delta: String) {
-        val restaurantId = sessionManager.getRestaurantId()
-        val current = menuDao.getVariantById(id, restaurantId) ?: return
-        val newStock = try {
-            java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
-                .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
-                .toString()
-        } catch (e: NumberFormatException) {
-            android.util.Log.w("MenuRepository", "Invalid variant stock: '${current.currentStock}' or delta: '$delta'", e)
-            "0.0"
-        }
-        updateVariant(current.copy(currentStock = newStock), normalizePrice = false)
     }
 
     suspend fun deleteVariant(variant: ItemVariantEntity) {
