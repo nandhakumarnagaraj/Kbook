@@ -38,7 +38,9 @@ class MenuRepository(
     }
 
     suspend fun updateItem(item: MenuItemEntity, changedFields: String? = null) {
-        val fields = changedFields ?: computeChangedFields(item)
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getItemById(item.id, restaurantId)
+        val computed = changedFields ?: computeChangedFields(item, current)
 
         // A null/blank mask means "the whole record" to the server's field-mask merge,
         // so a no-op update must never be written. computeChangedFields returns null
@@ -48,7 +50,19 @@ class MenuRepository(
         // every field", so an accidental no-op edit would silently replace every
         // server-side value with this device's possibly-stale copy.
         // An explicit "all" is not blank, so callers that mean "full record" still work.
-        if (fields.isNullOrBlank()) return
+        if (computed.isNullOrBlank()) return
+
+        // The diff above is taken against the LOCAL row, which already carries this edit the
+        // moment it is written - so a second edit to a DIFFERENT field diffs clean for the
+        // first and the mask would name only the second field. The server then restores its
+        // own value for the first, and that earlier edit silently reverts: a rename followed
+        // by a price fix inside one sync debounce hit exactly that. Union in whatever the row
+        // still has unacknowledged, so a field this device edited stays owned by this device
+        // until a push is acknowledged (markMenuItemsAsSynced clears the mask).
+        val fields = mergeChangedFields(
+            pending = current?.takeIf { !it.isSynced }?.changedFields,
+            computed = computed
+        )
 
         val enriched = item.copy(
             basePrice = if (fields.changesField("basePrice")) {
@@ -71,27 +85,69 @@ class MenuRepository(
      * comma-separated list of the fields the device actually changed.
      */
     private fun String?.changesField(field: String): Boolean {
-        if (this == null) return true
-        val trimmed = trim()
-        if (trimmed.isEmpty() || trimmed.equals("all", true) || trimmed.contains("*")) return true
-        return split(",").any { it.trim().equals(field, ignoreCase = true) }
+        if (isWildcard()) return true
+        return orEmpty().split(",").any { it.trim().equals(field, ignoreCase = true) }
     }
 
     /**
-     * Updates photo URL and version directly from a successful server upload/delete.
-     * Marks the record as is_synced = true without triggering a background push,
-     * preventing clock-skew sync conflicts.
+     * Union of the mask this edit computed with the mask the row still has unacknowledged.
+     *
+     * Duplicates are dropped case-insensitively and order is kept. A wildcard on either side
+     * means the whole record and wins outright: the row is already the device's to overwrite,
+     * so narrowing it here would drop fields instead of preserving them.
+     */
+    private fun mergeChangedFields(pending: String?, computed: String): String {
+        if (pending.isNullOrBlank()) return computed
+        if (pending.isWildcard() || computed.isWildcard()) return "all"
+        val merged = LinkedHashMap<String, String>()
+        for (token in "$pending,$computed".split(",")) {
+            val field = token.trim()
+            if (field.isNotEmpty()) merged.putIfAbsent(field.lowercase(), field)
+        }
+        return merged.values.joinToString(",")
+    }
+
+    private fun String?.isWildcard(): Boolean {
+        val value = this?.trim() ?: return true
+        return value.isEmpty() || value.equals("all", true) || value.contains("*")
+    }
+
+    /**
+     * Updates photo URL and version directly from a successful server upload/delete, without
+     * triggering a background push: the upload already reached the server, so re-pushing it
+     * would only invite clock-skew conflicts.
+     *
+     * Deliberately does NOT force is_synced = true. is_synced is a ROW-level flag while this
+     * write only acknowledges one column, so forcing it hid every field edit still sitting in
+     * changed_fields from getUnsyncedMenuItems, whose push query filters on is_synced = 0 - a
+     * rename confirmed in the same dialog as a photo change stopped being pushable the moment
+     * the upload returned.
+     *
+     * The row's sync flags are carried through from one read and written back as a pair. Writing
+     * is_synced alone would let a push that acks the row during the upload - seconds long - leave
+     * it marked dirty with changed_fields already NULL, a state the server reads as "overwrite
+     * every field": the same hazard a stray no-op edit used to cause. Worst case here is one
+     * redundant push re-sending the edit the row still owns.
      */
     suspend fun updateItemPhotoMetadata(itemId: Long, imageUrl: String?, imageVersion: Int) {
         val restaurantId = sessionManager.getRestaurantId()
-        menuDao.updateImageMetadataLocally(itemId, restaurantId, imageUrl, imageVersion)
+        val current = menuDao.getItemById(itemId, restaurantId)
+        menuDao.updateImageMetadataLocally(
+            itemId,
+            restaurantId,
+            imageUrl,
+            imageVersion,
+            current?.isSynced ?: true,
+            current?.changedFields
+        )
     }
 
     /** Detect changed fields by diffing against the persisted row so server
      *  field-level merge only overwrites what was actually edited. */
-    private suspend fun computeChangedFields(newItem: MenuItemEntity): String? {
-        val restaurantId = sessionManager.getRestaurantId()
-        val current = menuDao.getItemById(newItem.id, restaurantId) ?: return "all"
+    private fun computeChangedFields(newItem: MenuItemEntity, current: MenuItemEntity?): String? {
+        // A row that is not in the local table yet is a brand-new record: the whole payload
+        // is the device's to write.
+        if (current == null) return "all"
         return buildList {
             if (current.name != newItem.name) add("name")
             if (current.description != newItem.description) add("description")

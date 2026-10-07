@@ -98,12 +98,17 @@ class MenuRepositoryTest {
 
     @Test
     fun `updateItemPhotoMetadata updates dao locally without queuing sync`() = runTest {
-        coEvery { menuDao.updateImageMetadataLocally(any(), any(), any(), any()) } just Runs
+        // The write now carries the row's own is_synced through, so the row read is part of the
+        // contract and has to be stated: no local row means nothing is pending, so the photo is
+        // written as acknowledged. (A relaxed mock would otherwise answer with a stub entity
+        // whose isSynced is false, which is a different case - see the pending-row test below.)
+        coEvery { menuDao.getItemById(1L, 0L) } returns null
+        coEvery { menuDao.updateImageMetadataLocally(any(), any(), any(), any(), any(), any()) } just Runs
 
         repository.updateItemPhotoMetadata(1L, "https://cdn.example.com/photo.jpg", 3)
 
         io.mockk.coVerify(exactly = 1) {
-            menuDao.updateImageMetadataLocally(1L, 0L, "https://cdn.example.com/photo.jpg", 3)
+            menuDao.updateImageMetadataLocally(1L, 0L, "https://cdn.example.com/photo.jpg", 3, true, null)
         }
         io.mockk.verify(exactly = 0) {
             workManager.enqueueUniqueWork(any(), any(), any<androidx.work.OneTimeWorkRequest>())
@@ -273,5 +278,80 @@ class MenuRepositoryTest {
 
         coVerify(exactly = 1) { menuDao.updateItem(any()) }
         assertEquals("hasVariants", saved.captured.changedFields)
+    }
+
+    // --- The mask only ever grows until a push is acknowledged --------------------
+    // computeChangedFields diffs against the LOCAL row, and edit #1 is already written there
+    // the moment it happens - so a later edit to another field diffs clean for the first. On
+    // its own the mask would name only the later field, the server would restore its own value
+    // for the first, and that edit would silently revert.
+
+    @Test
+    fun `a second edit keeps the field the first edit still owns`() = runTest {
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+            .copy(name = "Biryani Special", changedFields = "name", isSynced = false)
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "300").copy(name = "Biryani Special"))
+
+        coVerify(exactly = 1) { menuDao.updateItem(any()) }
+        assertEquals("name,basePrice", saved.captured.changedFields)
+    }
+
+    // Counterweight: the union is only for UNACKNOWLEDGED work. A mask left behind on a row the
+    // server has already acknowledged must not be carried forward, or a stale field would keep
+    // overwriting another device's newer value for it.
+    @Test
+    fun `an acknowledged row does not inherit a stale mask`() = runTest {
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+            .copy(changedFields = "name", isSynced = true)
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "300"))
+
+        assertEquals("basePrice", saved.captured.changedFields)
+    }
+
+    @Test
+    fun `a pending full-record mask absorbs the new mask`() = runTest {
+        val saved = slot<MenuItemEntity>()
+        coEvery { menuDao.getItemById(1L, 0L) } returns item(price = "250")
+            .copy(changedFields = "all", isSynced = false)
+        coEvery { menuDao.updateItem(capture(saved)) } just Runs
+
+        repository.updateItem(item(price = "300"))
+
+        assertEquals("all", saved.captured.changedFields)
+    }
+
+    // --- A photo upload acknowledges the photo, not the row -----------------------
+    // is_synced gates the menu push query, so forcing it true on a photo write dropped any
+    // field edit still waiting in changed_fields.
+
+    @Test
+    fun `photo metadata keeps a row with pending edits pushable`() = runTest {
+        coEvery { menuDao.getItemById(1L, 0L) } returns item()
+            .copy(changedFields = "name", isSynced = false)
+        coEvery { menuDao.updateImageMetadataLocally(any(), any(), any(), any(), any(), any()) } just Runs
+
+        repository.updateItemPhotoMetadata(1L, "https://cdn.example.com/photo.jpg", 3)
+
+        coVerify(exactly = 1) {
+            menuDao.updateImageMetadataLocally(1L, 0L, "https://cdn.example.com/photo.jpg", 3, false, "name")
+        }
+    }
+
+    @Test
+    fun `photo metadata leaves an acknowledged row acknowledged`() = runTest {
+        coEvery { menuDao.getItemById(1L, 0L) } returns item().copy(isSynced = true)
+        coEvery { menuDao.updateImageMetadataLocally(any(), any(), any(), any(), any(), any()) } just Runs
+
+        repository.updateItemPhotoMetadata(1L, "https://cdn.example.com/photo.jpg", 3)
+
+        coVerify(exactly = 1) {
+            menuDao.updateImageMetadataLocally(1L, 0L, "https://cdn.example.com/photo.jpg", 3, true, null)
+        }
     }
 }

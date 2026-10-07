@@ -319,8 +319,15 @@ class TenantMenuDao @Inject constructor(
         dao.updateLowStockThreshold(id, threshold)
     }
 
-    override suspend fun updateImageMetadataLocally(id: Long, restaurantId: Long, imageUrl: String?, imageVersion: Int) {
-        dao.updateImageMetadataLocally(id, restaurantId, imageUrl, imageVersion)
+    override suspend fun updateImageMetadataLocally(
+        id: Long,
+        restaurantId: Long,
+        imageUrl: String?,
+        imageVersion: Int,
+        isSynced: Boolean,
+        changedFields: String?
+    ) {
+        dao.updateImageMetadataLocally(id, restaurantId, imageUrl, imageVersion, isSynced, changedFields)
     }
 
     override suspend fun markItemDeleted(id: Long, updatedAt: Long, restaurantId: Long, revision: Long?) {

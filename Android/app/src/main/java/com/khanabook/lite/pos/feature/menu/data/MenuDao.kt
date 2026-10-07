@@ -65,8 +65,20 @@ interface MenuDao {
     @Query("UPDATE menu_items SET low_stock_threshold = :threshold, changed_fields = 'lowStockThreshold' WHERE id = :id")
     suspend fun updateLowStockThreshold(id: Long, threshold: Double)
 
-    @Query("UPDATE menu_items SET image_url = :imageUrl, image_version = :imageVersion, is_synced = 1 WHERE id = :id AND restaurant_id = :restaurantId")
-    suspend fun updateImageMetadataLocally(id: Long, restaurantId: Long, imageUrl: String?, imageVersion: Int)
+    // is_synced/changed_fields are passed in rather than forced to 1: the caller acknowledges
+    // the PHOTO, and forcing the row acked here would hide any field edit still pending in
+    // changed_fields from getUnsyncedMenuItems, which filters on is_synced = 0. Both flags are
+    // written together, from one caller read, so the row can never be left dirty with a NULL
+    // mask - which the server reads as "overwrite every field".
+    @Query("UPDATE menu_items SET image_url = :imageUrl, image_version = :imageVersion, is_synced = :isSynced, changed_fields = :changedFields WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun updateImageMetadataLocally(
+        id: Long,
+        restaurantId: Long,
+        imageUrl: String?,
+        imageVersion: Int,
+        isSynced: Boolean,
+        changedFields: String?
+    )
 
     @Query(
         "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt, permission_revision_at_creation = :revision, changed_fields = 'isDeleted' WHERE id = :id AND restaurant_id = :restaurantId"
@@ -170,7 +182,10 @@ interface MenuDao {
         for (item in items) {
             val existing = item.serverId?.let { findItemByServerId(it, item.restaurantId) }
             if (existing != null) {
-                updateItem(item.copy(id = existing.id, isDeleted = item.isDeleted))
+                // The pulled row is server-authoritative EXCEPT over a row still holding unpushed
+                // edits - overwriting that reverted the edit and acked it at the same time, so it
+                // vanished from both the device and the server. See MenuPullMergePolicy.
+                MenuPullMergePolicy.resolveMenuItem(item, existing)?.let { updateItem(it) }
             } else if (item.serverId != null) {
                 // No local row carries this serverId. Before inserting a shadow
                 // copy, ADOPT an unsynced local row with the same identity
@@ -180,7 +195,9 @@ interface MenuDao {
                 val adoptable = findUnsyncedItemByName(item.restaurantId, item.categoryId, item.name)
                 if (adoptable != null) {
                     updateMenuItemServerIdByLocalId(adoptable.id, item.serverId!!, item.restaurantId)
-                    updateItem(item.copy(id = adoptable.id, isDeleted = item.isDeleted))
+                    // The serverId link above is what completes the handshake; the adoption must
+                    // not also discard whatever the row still has pending.
+                    MenuPullMergePolicy.resolveMenuItem(item, adoptable)?.let { updateItem(it) }
                 } else {
                     val existingById = getItemById(item.id, item.restaurantId)
                     if (existingById != null) {
@@ -238,7 +255,7 @@ interface MenuDao {
             val existing = variant.serverId?.let { findVariantByServerId(it, variant.restaurantId) }
                 ?: getVariantById(variant.id, variant.restaurantId)
             if (existing != null) {
-                updateVariant(variant.copy(id = existing.id, isDeleted = variant.isDeleted))
+                MenuPullMergePolicy.resolveVariant(variant, existing)?.let { updateVariant(it) }
             } else {
                 insertVariant(variant)
             }

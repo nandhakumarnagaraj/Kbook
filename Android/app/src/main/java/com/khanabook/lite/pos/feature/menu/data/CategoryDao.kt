@@ -59,7 +59,7 @@ interface CategoryDao {
                 ?: getCategoryByName(category.name, category.restaurantId)
                 ?: getCategoryById(category.id, category.restaurantId)
             if (existing != null) {
-                updateCategory(category.copy(id = existing.id, isDeleted = category.isDeleted))
+                MenuPullMergePolicy.resolveCategory(category, existing)?.let { updateCategory(it) }
             } else {
                 insertCategory(category.copy(id = 0L))
             }
