@@ -100,12 +100,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Distributed state problems B2/B4: Permission revocation stale cache +
- * offline auth decider wiring.
- *
- * Real use case: Owner revokes SHOP_STAFF's "settings.gst" permission.
- * SHOP_STAFF's device is offline. SHOP_STAFF keeps editing config.
- * When device reconnects, the operation should be revalidated.
+ * Permission policy for SHOP_STAFF: access is a fixed, role-bound set
+ * (PermissionService.SHOP_STAFF_GRANTED_KEYS). Per-operation grant/revoke rows
+ * are intentionally NOT honored for staff — the owner can neither expand nor
+ * restrict staff beyond the role set. These tests pin that behavior: config-only
+ * keys stay denied for staff even if an explicit grant row exists, while the
+ * grant/revision machinery keeps working for record-keeping.
  */
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -231,25 +231,12 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
     }
 
     @Test
-    void offlineAuthDecider_revalidateFlow() {
+    void offlineAuthDecider_staffAccessIsRoleFixed() {
+        // Owner-only config key: even an explicit grant row must NOT grant staff access.
         permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
-
-        var revision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());
-        assertThat(revision).isPresent();
-        long createdRevision = revision.get().getRevision();
-
-        // Permission is currently granted
-        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "settings.gst")).isTrue();
-
-        // Revoke permission
-        permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
-
-        // Verify revocation
         assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "settings.gst")).isFalse();
 
-        // Check that the revision was bumped
-        var newRevision = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId());
-        assertThat(newRevision).isPresent();
-        assertThat(newRevision.get().getRevision()).isGreaterThan(createdRevision);
+        // A role-granted key is available without any grant row.
+        assertThat(permissionService.hasPermission(RESTAURANT, staff.getId(), "billing.create")).isTrue();
     }
 }

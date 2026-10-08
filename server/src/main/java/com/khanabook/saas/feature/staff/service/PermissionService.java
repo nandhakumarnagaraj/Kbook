@@ -112,7 +112,12 @@ public class PermissionService {
         var user = findTenantUser(restaurantId, userId);
         if (user == null) return false;
         if (UserRole.OWNER == user.getRole() || UserRole.KBOOK_ADMIN == user.getRole()) return true;
-        if (UserRole.SHOP_STAFF == user.getRole() && SHOP_STAFF_GRANTED_KEYS.contains(permissionKey)) return true;
+        // SHOP_STAFF access is a fixed, role-bound set ({@link #SHOP_STAFF_GRANTED_KEYS}).
+        // Per-operation grant/revoke rows are intentionally NOT honored for staff: the
+        // owner can neither expand nor restrict staff beyond the role set.
+        if (UserRole.SHOP_STAFF == user.getRole()) {
+            return SHOP_STAFF_GRANTED_KEYS.contains(permissionKey);
+        }
 
         return permissionRepo.findByRestaurantIdAndUserIdAndPermissionKey(restaurantId, userId, permissionKey)
                 .map(StaffPermission::getGranted)
@@ -133,10 +138,11 @@ public class PermissionService {
                         .stream()
                         .map(StaffPermission::getPermissionKey)
                         .collect(Collectors.toList()));
+        // SHOP_STAFF get exactly the fixed role set, never extras from grant rows.
+        // Explicit rows (e.g. the legacy DEFAULT_READONLY_KEYS baseline) are ignored
+        // so staff access stays constant and owner-only keys can never leak through.
         if (UserRole.SHOP_STAFF == user.getRole()) {
-            SHOP_STAFF_GRANTED_KEYS.stream()
-                    .filter(key -> !granted.contains(key))
-                    .forEach(granted::add);
+            return new ArrayList<>(SHOP_STAFF_GRANTED_KEYS);
         }
         return granted;
     }

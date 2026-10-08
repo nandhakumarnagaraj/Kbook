@@ -82,12 +82,14 @@ class PermissionManagerTest {
     }
 
     @Test
-    fun `shop staff explicit grants expand beyond the role auto-set`() {
+    fun `shop staff access is pinned to the fixed role set ignoring explicit grants`() {
         every { session.isOwner() } returns false
         every { session.isShopStaff() } returns true
-        manager.updateFromSync(listOf(PermissionManager.MENU_EDIT_FULL))
+        // Owner-only keys pushed via sync must NOT expand staff access.
+        manager.updateFromSync(listOf(PermissionManager.MENU_EDIT_FULL, PermissionManager.REPORTS_EXPORT))
 
-        assertTrue(manager.hasPermission(PermissionManager.MENU_EDIT_FULL))
+        assertFalse(manager.hasPermission(PermissionManager.MENU_EDIT_FULL))
+        assertFalse(manager.hasPermission(PermissionManager.REPORTS_EXPORT))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_CREATE))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
     }

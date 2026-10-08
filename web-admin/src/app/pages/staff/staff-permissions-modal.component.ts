@@ -42,7 +42,22 @@ import { BusinessStaffItem } from '../../core/models/api.models';
 
         <div *ngIf="permissionsLoading()" class="loading">Loading permissions...</div>
 
-        <div *ngIf="!permissionsLoading()">
+        <div *ngIf="!permissionsLoading() && isRoleFixed()" style="margin-bottom:1rem">
+          <p class="role-disabled-note" style="margin:0 0 0.75rem">
+            Staff permissions are fixed by the <strong>SHOP_STAFF</strong> role and cannot be changed per member.
+          </p>
+          <div *ngFor="let cat of permissionCategories; trackBy: trackByIndex" style="margin-bottom:0.6rem">
+            <div style="display:flex;flex-wrap:wrap;gap:0.25rem 0.5rem;align-items:baseline">
+              <strong style="font-size:0.75rem;color:var(--kb-color-primary);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.25rem">{{ cat.name }}:</strong>
+              <span *ngFor="let perm of cat.items; trackBy: trackByIndex">
+                <span class="chip" *ngIf="permissionsSet().has(perm.key)">{{ perm.displayName }}</span>
+                <span class="muted" *ngIf="!permissionsSet().has(perm.key)" style="text-decoration:line-through">{{ perm.displayName }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!permissionsLoading() && !isRoleFixed()">
           <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
             <button class="ghost-btn" (click)="applyCounterStaffTemplate()" style="font-size:0.8rem">Counter Staff</button>
             <button class="ghost-btn" (click)="applyManagerTemplate()" style="font-size:0.8rem">Manager</button>
@@ -84,8 +99,8 @@ import { BusinessStaffItem } from '../../core/models/api.models';
         </div>
 
         <div class="modal-actions" *ngIf="!permissionsLoading()">
-          <button class="ghost-btn" (click)="close.emit()">Cancel</button>
-          <button class="primary-btn" (click)="savePermissions()" [disabled]="permissionsSaving()">
+          <button class="ghost-btn" (click)="close.emit()">{{ isRoleFixed() ? 'Close' : 'Cancel' }}</button>
+          <button class="primary-btn" *ngIf="!isRoleFixed()" (click)="savePermissions()" [disabled]="permissionsSaving()">
             {{ permissionsSaving() ? 'Saving...' : 'Save Permissions' }}
           </button>
         </div>
@@ -124,6 +139,15 @@ export class StaffPermissionsModalComponent {
 
   close = output<void>();
   saved = output<void>();
+
+  /**
+   * SHOP_STAFF access is fixed by role (mirrors server PermissionService).
+   * The owner cannot grant or revoke individual permissions for staff members,
+   * so the editor is read-only for them.
+   */
+  isRoleFixed(): boolean {
+    return this.staff()?.role === 'SHOP_STAFF';
+  }
 
   permissionsLoading = signal(false);
   permissionsSaving = signal(false);

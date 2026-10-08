@@ -82,15 +82,17 @@ class PermissionManager @Inject constructor(
 
     /**
      * Check if the current user has a specific permission.
-     * OWNER always returns true; SHOP_STAFF auto-passes the core billing set by
-     * role. Other roles check the cached set.
+     * OWNER always returns true. SHOP_STAFF get exactly the fixed role set
+     * ({@link #SHOP_STAFF_GRANTED_KEYS}) — explicit granted rows are ignored so
+     * staff access stays constant and can never be expanded per member. Other
+     * roles check the cached set.
      *
      * Menu implication (mirrors server MenuChangeType.satisfies): holding
      * menu.edit_full satisfies menu.edit_price and menu.toggle_availability.
      */
     fun hasPermission(permissionKey: String): Boolean {
         if (sessionManager.isOwner()) return true
-        if (sessionManager.isShopStaff() && SHOP_STAFF_GRANTED_KEYS.contains(permissionKey)) return true
+        if (sessionManager.isShopStaff()) return SHOP_STAFF_GRANTED_KEYS.contains(permissionKey)
         val granted = _grantedPermissions.value
         if (granted.contains(permissionKey)) return true
         if ((permissionKey == MENU_EDIT_PRICE || permissionKey == MENU_TOGGLE_AVAILABILITY)
@@ -233,6 +235,7 @@ class PermissionManager @Inject constructor(
         MENU_EDIT_FULL,
         MENU_ADD_ITEM,
         MENU_DELETE_ITEM,
+        REPORTS_EXPORT,
         SETTINGS_SHOP_PROFILE,
         SETTINGS_PAYMENT,
         SETTINGS_GST
