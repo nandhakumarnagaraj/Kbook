@@ -283,8 +283,11 @@ class EasebuzzWebhookServiceTest {
     @DisplayName("Amount mismatch never marks the bill paid")
     void amountMismatch_doesNotMarkBillPaid() throws Exception {
         Map<String, String> payload = paymentPayload();
-        payload.put("hash", paymentHash(payload));
         payload.put("amount", "300.00"); // bill total is 250.00
+        // Sign over the FINAL payload: a hash signed before the amount tamper is
+        // rejected by hash verification (see tamperedHash_...) before the amount
+        // guard is ever reached. This test targets the amount-mismatch guard itself.
+        payload.put("hash", paymentHash(payload));
 
         Bill bill = bill("pending");
         when(webhookEventRepo.existsByTxnIdAndStatus(TXNID, "success")).thenReturn(false);
@@ -456,7 +459,7 @@ class EasebuzzWebhookServiceTest {
         verify(billRepo, never()).save(any(Bill.class));
         verify(pushNotificationService).pushToRestaurant(
                 eq(RESTAURANT_ID), eq("FSSAI Renewal Paid"), anyString(),
-                eq("system"), eq(FSSAI_NUMBER), eq("fssai"), any());
+                eq("payment_received"), eq(FSSAI_NUMBER), eq("fssai"), any());
     }
 
     // ── Refund webhook ────────────────────────────────────────────────────────

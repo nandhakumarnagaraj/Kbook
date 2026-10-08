@@ -93,6 +93,25 @@ class MasterSyncProcessorMenuRejectionTest {
         assertFalse(processor.isPermissionRejection(null))
     }
 
+    // ── deterministic (unresolvable FK) rejection ───────────────────────────────
+
+    @Test
+    fun `unresolvable foreign keys are classified as deterministic, not transient`() {
+        assertTrue(processor.isDeterministicRejection("Menu item category could not be resolved"))
+        assertTrue(processor.isDeterministicRejection("Item variant menu item could not be resolved"))
+        assertTrue(processor.isDeterministicRejection("Stock log menu item could not be resolved"))
+        assertTrue(processor.isDeterministicRejection("Bill item parent bill could not be resolved"))
+        assertTrue(processor.isDeterministicRejection("Bill payment parent bill could not be resolved"))
+    }
+
+    @Test
+    fun `LWW and permission reasons are NOT deterministic`() {
+        assertFalse(processor.isDeterministicRejection("Incoming record is older than the server record"))
+        assertFalse(processor.isDeterministicRejection("Not permitted to change the price of this item (PERMISSION_NOT_GRANTED)"))
+        assertFalse(processor.isDeterministicRejection(""))
+        assertFalse(processor.isDeterministicRejection(null))
+    }
+
     // ── quarantine handler ──────────────────────────────────────────────────────
 
     @Test
@@ -176,5 +195,41 @@ class MasterSyncProcessorMenuRejectionTest {
         // Not permanent → callback not invoked; the all-failed batch throws as before.
         assertTrue(threw)
         assertEquals(null, callbackReceived)
+    }
+
+    /**
+     * The reported data-loss bug: an edit the server refuses because it cannot resolve the
+     * item's category used to read as "every record failed", which threw SyncConflictException
+     * and sent the client into a full re-pull from epoch 0 — overwriting the very edit that
+     * had just been refused. It must now be deferred: no throw, no quarantine, no re-pull, and
+     * the row stays unsynced so it retries on the next normal cycle.
+     */
+    @Test
+    fun `unresolvable-category batch is deferred instead of escalating to a full re-pull`() = runTest {
+        val push: suspend (List<Long>) -> PushSyncResponse = {
+            PushSyncResponse(
+                successfulLocalIds = emptyList(),
+                failedLocalIds = listOf(9L),
+                failedReasons = mapOf(9L to "Menu item category could not be resolved")
+            )
+        }
+        var quarantineCallbackInvoked = false
+
+        val result = processor.pushBatches(
+            label = "menu items",
+            records = listOf(9L),
+            localId = { it },
+            transform = { it },
+            push = push,
+            // Nothing marks 9L synced: deferred rows must stay in the unsynced set.
+            markSynced = { },
+            onPermanentlyRejected = { quarantineCallbackInvoked = true }
+        )
+
+        assertTrue(result.isEmpty())
+        assertFalse(
+            "deterministic validation must not be quarantined - it heals when the reference lands",
+            quarantineCallbackInvoked
+        )
     }
 }

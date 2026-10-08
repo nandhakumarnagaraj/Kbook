@@ -139,6 +139,25 @@ class MasterSyncProcessor @Inject constructor(
             }
         }
 
+        // Deterministic validation rejections are not conflicts either, but they are NOT
+        // quarantined: the row is refused because something it references (a category, a
+        // parent item, a parent bill) is not resolvable on the server *yet*, which the next
+        // sync cycle can fix once that reference lands. Escalating them to a conflict is what
+        // caused the reported data loss — "all records failed" drove recoverFromSyncConflict
+        // into a full re-pull from epoch 0, and that pull overwrote the very edit the server
+        // had just refused. Dropping them from failedIds only means: keep the row unsynced so
+        // it retries on the normal cadence, and do not tear the local database down over it.
+        if (failedIds.isNotEmpty()) {
+            val deferred = failedIds.filter { isDeterministicRejection(failedReasons[it]) }.distinct()
+            if (deferred.isNotEmpty()) {
+                logWarn(
+                    "$label deferred by deterministic server rejection (not a conflict): " +
+                        deferred.joinToString(", ") { "$it=${failedReasons[it]}" }
+                )
+                failedIds.removeAll(deferred.toSet())
+            }
+        }
+
         if (failedIds.isNotEmpty()) {
             if (successfulIds.isEmpty()) {
                 // ALL records failed — this is a real conflict, throw
@@ -173,7 +192,33 @@ class MasterSyncProcessor @Inject constructor(
             r.contains("permission_not_granted") ||
             r.contains("revoked_after_creation") ||
             r.contains("cannot authorize") ||
+            // Same class as "cannot authorize": emitted one line below it when the actor
+            // is not a master-data writer. Both are authorization, not conflict.
+            r.contains("only the restaurant owner") ||
             r.contains("stale_push_conflict")
+    }
+
+    /**
+     * Classifies a server rejection reason as DETERMINISTIC VALIDATION: the payload can never
+     * be accepted as it stands, so re-sending it — or escalating it into conflict recovery —
+     * cannot change the outcome. These are deliberately NOT quarantined: unlike a permission
+     * failure, the missing reference (a category, a parent item, a parent bill) usually
+     * appears a cycle later once its own push lands, so the row stays unsynced and retries on
+     * the normal cadence.
+     *
+     * The distinguishing property of conflict reasons ("Incoming record is older than the
+     * server record", daily-order collisions, HTTP 409s) is that another mechanism — LWW,
+     * quarantine-with-repair, the conflict-recovery pull — is designed to settle them. These
+     * have no such mechanism, and the recovery they used to trigger was itself the bug: a full
+     * re-pull from epoch 0 that reverted the edit the server had refused.
+     *
+     * Matches the per-record strings emitted by MenuItemServiceImpl, ItemVariantServiceImpl,
+     * StockLogServiceImpl, BillItemServiceImpl and BillPaymentServiceImpl.
+     */
+    internal fun isDeterministicRejection(reason: String?): Boolean {
+        if (reason.isNullOrBlank()) return false
+        val r = reason.lowercase()
+        return r.contains("could not be resolved")
     }
 
     private data class BatchPushResult(

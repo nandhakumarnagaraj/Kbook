@@ -45,10 +45,22 @@ public interface RestaurantTerminalRepository extends JpaRepository<RestaurantTe
 
 	long countByRestaurantIdAndStatus(Long restaurantId, String status);
 
-	List<RestaurantTerminal> findByRestaurantIdAndStatus(Long restaurantId, String status);
+	List<RestaurantTerminal> findByRestaurantIdAndStatus(Long restaurantId, String status);    Optional<RestaurantTerminal> findByRestaurantIdAndIsPrimaryTrue(Long restaurantId);
 
-	Optional<RestaurantTerminal> findByRestaurantIdAndIsPrimaryTrue(Long restaurantId);
+    List<RestaurantTerminal> findByRestaurantIdAndStatusOrderByIdAsc(Long restaurantId, String status);
 
-	List<RestaurantTerminal> findByRestaurantIdAndStatusOrderByIdAsc(Long restaurantId, String status);
+    /**
+     * ACTIVE terminals whose token-authenticated sync heartbeat went quiet:
+     * last_seen_at before the cutoff, or never written. Backstop input for the
+     * stale-terminal sweeper; last_seen_at is written exclusively server-side
+     * (throttled SQL UPDATE from the sync controller), so liveness cannot be
+     * forged by a device.
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            SELECT t FROM RestaurantTerminal t
+            WHERE t.status = 'ACTIVE'
+              AND (t.lastSeenAt IS NULL OR t.lastSeenAt < :cutoff)
+            """)
+    List<RestaurantTerminal> findStaleActive(@Param("cutoff") Long cutoff);
 
 }

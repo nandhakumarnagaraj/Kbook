@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -641,5 +642,70 @@ public class TerminalManagementService {
         } catch (Exception e) {
             log.debug("Terminal heartbeat skipped: {}", e.getMessage());
         }
+    }
+
+    // ── Stale-terminal sweeper ───────────────────────────────────────────────
+
+    /**
+     * A terminal that has not performed a token-authenticated /sync/pull for this
+     * long is considered gone. Chosen to tolerate a plausibly-offline-but-real
+     * POS tablet: sync cycles in the field run every few minutes in-app plus a
+     * WorkManager backstop, so an idle-for-nearly-a-week terminal is lost,
+     * replaced, or benched — not merely closed for the night.
+     */
+    static final long STALE_TERMINAL_THRESHOLD_MS = 7L * 24 * 60 * 60 * 1000L;
+
+    /**
+     * Sweeps terminals whose last token-authenticated sync heartbeat is older
+     * than {@link #STALE_TERMINAL_THRESHOLD_MS} (or absent entirely) out of the
+     * ACTIVE state.
+     *
+     * <p>Why not trust a device-writable liveness column: {@code last_seen_at} is
+     * written exclusively server-side by the sync controller heartbeat, so a
+     * stolen token, a compromised tablet, or a simply-broken client cannot fake
+     * continued occupancy of one of the five ACTIVE slots.
+     *
+     * <p>Safety properties:
+     * <ul>
+     *   <li>The flap window is several hours wide on either side of the threshold,
+     *       so a flaky-network tablet re-heartbeating after a false sweep
+     *       re-activates with its existing credential (activate() path) rather
+     *       than creating a pending request, and the sweeper only re-sweeps after
+     *       another full threshold of silence.</li>
+     *   <li>Primary designation and the 5-terminal limit are preserved: the next
+     *       ACTIVE terminal is promoted to primary; freed slots are reclaimed.</li>
+     *   <li>Credential version is bumped so a swept terminal's outstanding token
+     *       no longer authorizes pushes (matches deactivateTerminal semantics); a
+     *       legitimate device re-activating gets a fresh one.</li>
+     *   <li>Every sweep is audited so the pattern "this device keeps going stale"
+     *       is diagnosable from the security log.</li>
+     * </ul>
+     */
+    @Scheduled(fixedDelay = 3_600_000)
+    @Transactional
+    public void sweepStaleTerminals() {
+        long cutoff = System.currentTimeMillis() - STALE_TERMINAL_THRESHOLD_MS;
+        List<RestaurantTerminal> stale = terminalRepository.findStaleActive(cutoff);
+        if (stale.isEmpty()) return;
+
+        Set<Long> sweptRestaurants = new HashSet<>();
+        for (RestaurantTerminal terminal : stale) {
+            terminal.setStatus("INACTIVE");
+            terminal.setIsActive(false);
+            if (Boolean.TRUE.equals(terminal.getIsPrimary())) {
+                terminal.setIsPrimary(false);
+            }
+            Long version = terminal.getCredentialVersion();
+            terminal.setCredentialVersion(version != null ? version + 1 : 1);
+            terminal.setUpdatedAt(System.currentTimeMillis());
+            terminalRepository.save(terminal);
+            sweptRestaurants.add(terminal.getRestaurantId());
+            securityAuditService.record("TERMINAL_SYNC", "TERMINAL_STALE_SWEPT",
+                    terminal.getTerminalSeries(), terminal.getDeviceId());
+        }
+
+        sweptRestaurants.forEach(this::promoteNextPrimary);
+        log.info("Terminal sweep: deactivated {} stale terminal(s) across {} restaurant(s)",
+                stale.size(), sweptRestaurants.size());
     }
 }

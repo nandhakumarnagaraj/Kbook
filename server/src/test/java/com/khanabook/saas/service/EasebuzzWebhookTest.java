@@ -458,7 +458,7 @@ class EasebuzzWebhookTest {
                 eq(9501L),
                 eq("FSSAI Renewal Paid"),
                 anyString(),
-                eq("system"),
+                eq("payment_received"),
                 eq("13023001000255"),
                 eq("fssai"),
                 eq(new java.math.BigDecimal("2000.00"))

@@ -307,16 +307,12 @@ class TenantMenuDao @Inject constructor(
     override suspend fun getItemsByCategoryOnce(categoryId: Long, restaurantId: Long): List<MenuItemEntity> = dao.getItemsByCategoryOnce(categoryId, restaurantId)
     override fun searchItems(query: String, restaurantId: Long): Flow<List<MenuItemEntity>> = runFlow { it.menuDao().searchItems(query, restaurantId) }
 
-    override suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long) {
-        dao.toggleItemAvailability(id, isAvailable, restaurantId)
+    override suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long, updatedAt: Long) {
+        dao.toggleItemAvailability(id, isAvailable, restaurantId, updatedAt)
     }
 
-    override suspend fun updateStock(id: Long, delta: Double, restaurantId: Long) {
-        dao.updateStock(id, delta, restaurantId)
-    }
-
-    override suspend fun updateLowStockThreshold(id: Long, threshold: Double) {
-        dao.updateLowStockThreshold(id, threshold)
+    override suspend fun updateLowStockThreshold(id: Long, threshold: Double, restaurantId: Long, updatedAt: Long) {
+        dao.updateLowStockThreshold(id, threshold, restaurantId, updatedAt)
     }
 
     override suspend fun updateImageMetadataLocally(
@@ -342,10 +338,6 @@ class TenantMenuDao @Inject constructor(
     override suspend fun insertVariant(variant: ItemVariantEntity): Long = dao.insertVariant(variant)
     override suspend fun updateVariant(variant: ItemVariantEntity) = dao.updateVariant(variant)
     override suspend fun getVariantById(id: Long, restaurantId: Long): ItemVariantEntity? = dao.getVariantById(id, restaurantId)
-
-    override suspend fun updateVariantStock(id: Long, delta: Double, restaurantId: Long) {
-        dao.updateVariantStock(id, delta, restaurantId)
-    }
 
     override suspend fun updateVariantLowStockThreshold(id: Long, threshold: Double) {
         dao.updateVariantLowStockThreshold(id, threshold)

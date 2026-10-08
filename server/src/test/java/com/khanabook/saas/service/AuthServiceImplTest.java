@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -153,6 +154,54 @@ class AuthServiceImplTest {
 
         // The new live user is created.
         verify(userRepository).saveAndFlush(any());
+    }
+
+    @Test
+    void login_webSurface_staffAccount_isRejectedBeforeTokenMint() {
+        User staff = activeUser("9876543210", "hashed", 100L);
+        staff.setRole(UserRole.SHOP_STAFF);
+        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.of(staff));
+        when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
+
+        LoginRequest req = loginRequest("9876543210", "pass123");
+        req.setSurface("web");
+
+        assertThatThrownBy(() -> authService.login(req))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("403");
+
+        verify(jwtUtility, never()).generateToken(anyString(), anyLong(), anyString(), any());
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void login_noSurface_staffAccount_stillAllowed_androidPos() {
+        // Android never declares a surface: the staff POS login stays legitimate.
+        User staff = activeUser("9876543210", "hashed", 100L);
+        staff.setRole(UserRole.SHOP_STAFF);
+        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.of(staff));
+        when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("jwt-token");
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        LoginRequest req = loginRequest("9876543210", "pass123");
+        AuthResponse resp = authService.login(req);
+
+        assertThat(resp.getToken()).isEqualTo("jwt-token");
+    }
+
+    @Test
+    void login_webSurface_owner_isAllowed() {
+        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.of(activeUser("9876543210", "hashed", 100L)));
+        when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("jwt-token");
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        LoginRequest req = loginRequest("9876543210", "pass123");
+        req.setSurface("web");
+        AuthResponse resp = authService.login(req);
+
+        assertThat(resp.getToken()).isEqualTo("jwt-token");
     }
 
     @Test

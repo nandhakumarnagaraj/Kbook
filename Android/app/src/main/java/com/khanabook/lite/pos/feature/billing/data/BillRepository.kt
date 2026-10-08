@@ -315,7 +315,9 @@ class BillRepository(
 
     suspend fun updateOrderStatus(id: Long, status: String) {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getBillById(id, restaurantId) ?: return
+        // Terminal ownership isolation: mutable workflows load through getOperationalBillById
+        // (BillDao contract) so another terminal's bill or history can never reach a write.
+        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
 
         val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
                           current.orderStatus.equals("paid", ignoreCase = true)
@@ -397,7 +399,8 @@ class BillRepository(
 
     suspend fun cancelOrder(id: Long, reason: String, scheduleDurableSync: Boolean = true) {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getBillById(id, restaurantId) ?: return
+        // Terminal ownership isolation: see getOperationalBillById contract.
+        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
         // Snapshot BEFORE the status flips to 'cancelled' — the CANCEL event must
         // capture the order exactly as the kitchen last knew it.
         val before = billDao.getBillWithItemsById(id, restaurantId)
@@ -452,7 +455,8 @@ class BillRepository(
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getBillById(id, restaurantId) ?: return
+        // Terminal ownership isolation: see getOperationalBillById contract.
+        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         val normalizedMode = mode.lowercase()
         billDao.updateBill(
@@ -486,7 +490,8 @@ class BillRepository(
 
     suspend fun updatePaymentStatus(id: Long, status: String) {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getBillById(id, restaurantId) ?: return
+        // Terminal ownership isolation: see getOperationalBillById contract.
+        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
         billDao.updateBill(
             current.copy(
                 paymentStatus = status.lowercase(),

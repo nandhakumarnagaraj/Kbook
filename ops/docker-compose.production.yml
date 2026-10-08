@@ -67,6 +67,9 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kbook.iadv.cloud}
       PAYMENT_CRYPTO_SECRET: ${PAYMENT_CRYPTO_SECRET}
       APP_BASE_URL: ${APP_BASE_URL}
+      # Terminal sync strict mode (server default true). Rollback without a rebuild:
+      # TERMINAL_SYNC_STRICT=false in .env, then docker compose up -d.
+      TERMINAL_SYNC_STRICT: ${TERMINAL_SYNC_STRICT:-true}
       # Easebuzz Payment Gateway
       EASEBUZZ_MERCHANT_KEY: ${EASEBUZZ_MERCHANT_KEY}
       EASEBUZZ_SALT: ${EASEBUZZ_SALT}
