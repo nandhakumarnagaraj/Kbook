@@ -1,54 +1,150 @@
-# Product
+# KhanaBook — About
 
-## Register
+> Canonical product + technical overview, mirroring the codebase as of the current
+> main branch. Covers: what it is, roles, platforms, role×platform access,
+> features/modules, sync architecture, and data residency.
 
-product
+## Two-liner
 
-## Users
+KhanaBook is an offline-first restaurant billing & operations SaaS: Android POS
+terminals that keep working with zero connectivity, a web-admin console for the
+owner, and a multi-tenant Spring Boot backend (`server/`) in production on
+PostgreSQL. Billing, payments, menu, inventory, reports, staff and notifications
+all flow through a batch-based, conflict-safe sync engine.
 
-- **Restaurant Owners (OWNER)**: Manage day-to-day operations from the web admin dashboard or Android POS — billing, orders, menu, staff, marketplace integrations (Zomato/Swiggy), and Easebuzz payment settlements. Context: busy restaurant environments, often offline, need reliable tools that sync when connectivity returns.
-- **Platform Administrators (KBOOK_ADMIN)**: Oversee the KhanaBook platform — onboard businesses, manage sub-merchant KYC lifecycles, track platform revenue, monitor transactions, configure commission rates, and handle settlements. Context: data-dense workflows, batch operations, compliance tracking.
+## Roles
 
-## Product Purpose
+Canonical source: `server/.../feature/auth/entity/UserRole.java`
+(`OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN`); Android mirrors the first two via
+`feature/auth/domain/SessionManager.kt`.
 
-KhanaBook is an offline-first restaurant billing and POS platform with integrated Easebuzz sub-merchant payment processing. It connects restaurant owners to their operations (billing, orders, menu, staff) and to third-party marketplaces (Zomato, Swiggy), while giving platform administrators visibility and control over the payment settlement pipeline (sub-merchant onboarding, KYC, split payments, commissions).
+| Role | Who | Notes |
+|---|---|---|
+| **OWNER** | Shop owner | All operations on every platform |
+| **SHOP_STAFF** | Waiters / cashiers / managers | Fixed role-bound set — access is constant and can neither be expanded nor restricted per member |
+| **KBOOK_ADMIN** | Platform operator | Server-side platform admin (feature flags, KYC, settlement, notifications) |
 
-Success means: a restaurant owner opens the POS, creates a bill in under 10 seconds even while offline, and payments flow through Easebuzz sub-merchant splits without manual intervention. The platform admin sees every transaction, every KYC status, and every settlement in a single dashboard.
+### Staff access is pinned (policy enforced in code)
 
-## Brand Personality
+- SHOP_STAFF get exactly `SHOP_STAFF_GRANTED_KEYS` — no per-operation grant/revoke
+  rows are honored, on either side:
+  - Server: `PermissionService.hasPermission` / `getGrantedPermissions` return the fixed
+    role set only for SHOP_STAFF (`server/.../staff/service/PermissionService.java`).
+  - Android: `PermissionManager.hasPermission` pins staff to the fixed set and ignores
+    synced explicit grants (`Android/.../staff/domain/PermissionManager.kt`).
+- Web-admin permission editor is read-only for SHOP_STAFF
+  (`web-admin/.../staff/staff-permissions-modal.component.ts`).
+- The owner CANNOT give a staff member "extra permissions". Role-set changes require
+  a code change + redeploy (editing the config/grant sets).
 
-**Warm, Professional, Grounded.**
+## Platforms
 
-- **Warm**: The saffron/amber palette feels culinary and inviting, not corporate-blue cold. Dark mode uses warm browns and creams, not harsh blacks and whites.
-- **Professional**: Dense data dashboards, precise financial numbers, clear status indicators. This is a serious tool for serious businesses.
-- **Grounded**: Earthy neutral tones (warm creams, deep browns, soft tans). No glassmorphism, no neon, no decorative flair that distracts from the task.
+| Platform | Stack | Purpose |
+|---|---|---|
+| **Android POS** (`Android/`) | Kotlin, Jetpack Compose, Room, Retrofit, WorkManager | On-device billing terminals; single-user POS; works offline |
+| **Web-admin** (`web-admin/`) | Angular | Owner console: staff, reports, business/KYC, permissions, templates, notifications |
+| **Backend** (`server/`) | Spring Boot, PostgreSQL, docker-compose (prod/staging) | Multi-tenant API + sync engine (source of truth) |
 
-## Anti-references
+### Access by role × platform
 
-- Generic SaaS dashboards: purple gradients on white backgrounds, hero-metric cards with big numbers and tiny labels, glassmorphism defaults, AI-generated aesthetic
-- Dark-mode-first developer tools: terminal-native aesthetic, neon-on-black, dense monospaced interfaces
-- Consumer food delivery apps: playful illustrations, excessive motion, gamification
-- Enterprise banking UIs: cold blues, rigid grids, no personality
+**Android POS:**
+- **OWNER** — full set of operations.
+- **SHOP_STAFF** — fixed set of 18 (app's role set):
+  - Billing: create, edit, void, discount, refund, settle
+  - Menu: view
+  - Orders: view
+  - Reports: day summary, full, GST
+  - Staff: view, add, edit, remove, manage permissions
+  - Settings: printer config, device management
+  - Owner-only (pinned): menu edits (toggle availability / change price / full edit / add / delete), export data, shop profile, payment settings, GST/FSSAI settings.
+  - First login: poller shows "pending owner approval" until the owner approves the
+    device (`TerminalPendingApprovalException`, `InitialSyncScreen.kt`).
+- **KBOOK_ADMIN** — not an app role; platform work happens server-side.
 
-## Design Principles
+**Web-admin:** owner console (staff CRUD + read-only permission view, reports,
+KYC/business, templates, notifications). SHOP_STAFF do not sign in here for
+management.
 
-1. **Offline confidence**: The interface must communicate sync state clearly (live dot, last-synced timestamps, unsynced counts) so users trust the tool even without connectivity.
+**Backend:** role checks server-side (source of truth); `KBOOK_ADMIN` for platform
+operations; explicit rows for SHOP_STAFF never change access (fixed role set).
 
-2. **Density with breath**: Data-dense tables and dashboards are the norm, but every row gets adequate padding, every card has clear separation, and whitespace is used intentionally to group related information.
+## Features / modules
 
-3. **Status at a glance**: Payment states, KYC statuses, sub-merchant lifecycles, and order statuses use consistent, scannable chips and badges. Color is always paired with text.
+| Module | Android | Server / web-admin |
+|---|---|---|
+| Billing | Bills, KOT/orders on bill items, split (part cash/UPI) payments, discounts, refunds, void, e-invoice | Bill sync/conflict engine, invoice HTML (`E000030` style), payment validation |
+| Menu | Categories, items, variants, availability, recipes | Menu sync, menu-edit authorization/stamping, extraction jobs |
+| Inventory | — | Raw materials, purchase orders, vendors, stock movements/logs |
+| Payments | Payment modes (cash/UPI/part), printed receipts | Easebuzz sub-merchants, hosted checkout, webhooks, refunds (durable), payouts, settlement, chargebacks |
+| Reports | Day summary, full, GST (export owner-only) | Admin dashboards, commission, settlement |
+| Staff | Permission cache + `PermissionManager` (role-pinned) | Staff CRUD, permission rows/templates, revision stamping |
+| Auth | OTP/login, device-terminal activation approval, refresh | JWT + refresh, roles, rate limits, security audit, OTP |
+| Sync | `SyncManager` + `MasterSyncProcessor`, paged push/pull | `/sync/*` push/pull endpoints, offline-auth decider |
+| Notifications | Local/remote + sync | Admin notification broadcasts (incl. permission_request type), KYC/FSSAI alerts |
+| Compliance | — | GST/FSSAI trackers, merchant KYC agreement/onboarding |
+| Settings/Printing | Shop profile, USB/Bluetooth/Ethernet printers, KOT | Restaurant profile (incl. printer flags) |
+| Platform | — | Feature flags, KBOOK_ADMIN dashboards |
 
-4. **Consistent affordance vocabulary**: The same button shape, the same form-control style, the same icon set, the same navigation pattern across web and Android. Users should never wonder "is this clickable?"
+## Design architecture — sync
 
-5. **Warm restraint**: The saffron accent appears on primary actions and active states only. Neutral creams and browns carry the rest. Decoration is saved for moments, not pages.
+**Offline-first:** Room is the local source of truth for transactions; all writes
+happen on-device and sync in the background. The POS never requires connectivity.
 
-## Accessibility & Inclusion
+**One serialized engine:** `SyncManager` runs on `Dispatchers.IO`; a single
+`syncMutex` serializes full sync cycles; the entire push+pull is wrapped in
+`withContext(NonCancellable)` — acknowledged work must never be lost to cancellation.
 
-- Target: WCAG 2.2 AA compliance
-- All interactive elements have visible `:focus-visible` rings (2px brand color, 2px offset)
-- Skip-to-content link present on all authenticated pages
-- Touch targets minimum 44px (web) / 48dp (Android)
-- `prefers-reduced-motion` respected globally: all animations, transforms, and transitions cut to near-zero duration
-- Color never the sole indicator: status chips always include text, icons accompany color-coded badges
-- `aria-label` on icon-only buttons, `aria-hidden="true"` on decorative icons
-- `tabular-nums` on all financial data, timestamps, and counts
+**Push = batch + paged:**
+- Master-data order follows FK dependencies (categories → menu → items → bills →
+  bill items → bill payments, ...), sequential per family.
+- Bills are pushed in **pages of 100**; bill items & bill payments in **pages of
+  200** — large unsynced backlogs drain incrementally, fixing multi-hour syncs and
+  push-time freezes (the old code loaded the whole backlog at once).
+- Each batch returns `PushSyncResponse { successfulLocalIds, failedLocalIds,
+  localToServerIdMap }`; only acknowledged ids are marked synced, and each gets its
+  server id mapped back.
+- Optimistic locking: an ack is honored only if the local row still matches what was
+  pushed; a row that changed mid-push is re-pushed. Stale `updatedAt` echoes → 409.
+- Conflict isolation: a 409 on one record does not discard the batch's other
+  acknowledged work. Bill-family conflicts are resolved by re-push; other families
+  escalate to a timestamp=0 recovery next cycle.
+- Guards: `restaurantId` filtering, tenant scoping, clock-skew tolerance under
+  offline grace, device/terminal registration before login.
+
+**Pull = paged, background:** server truth re-imported page by page; staff
+`grantedPermissions` + permission `revision` come down with pull and feed offline
+authorization revalidation (so a stripped-away permission cannot keep working
+offline forever). Permission cache survives process death (Room `permission_cache`).
+
+## Data residency
+
+### SQLite only (on-device, never written to Postgres)
+
+| Table | Holds |
+|---|---|
+| `printer_profiles` | Local printer device config (role→printer, name, MAC, connection type, host/port, paper size, auto-print, logo, copies). Printer flags are mirrored inside the synced restaurant profile, but the device binding is local. |
+| `kitchen_print_queue` | Pending KOT print jobs. Pure runtime queue. |
+| `kot_events` | Immutable KOT print/state event log (NEW/ADD/VOID/REPRINT/CANCEL, kotRevision, item snapshot JSON). Local audit for reprints. |
+| `terminal_daily_counter` | Per-terminal, per-day bill numbering. Rebuilt/seeded from synced bills. |
+| `sync_quarantine_records`, `permission_cache`, `notifications` | Sync sandbox, offline-authorization mirror, local notification log. |
+
+### PostgreSQL (production, `server/`)
+
+Bills, bill items & bill payments (**KOT state rides on bill items** as
+`kotState`/`kotStatus`), menu (categories/items/variants), restaurant profile,
+users/staff + permission rows & revision, stock logs + inventory, payments/Easebuzz
+records, tokens, rate-limit + security-audit events, terminals/devices, notification
+broadcasts, templates.
+
+### The KOT nuance
+
+- KOT **state on a bill item syncs** into Postgres (`BillItemDTO`) so reports and
+  reconciliation see kitchen progress.
+- KOT **printing runtime stays local** (`kitchen_print_queue` jobs, `kot_events`).
+
+## Brand & design (summary)
+
+Warm, professional, grounded. Saffron/amber palette, dark mode in warm browns and
+creams, dense but breathable dashboards, status-at-a-glance chips. Offline
+confidence is a first-class design principle (live sync state, last-synced stamps,
+unsynced counts). See `docs/design/DESIGN_SYSTEM.md` for the full design system.

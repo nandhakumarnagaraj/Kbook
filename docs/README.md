@@ -14,7 +14,7 @@ All project documentation lives under `docs/` — single parent folder.
 | `screenshots/` | `Screenshot_*.png`, `Splash Screen.png` |
 | `specs/` | `UX_SIMPLIFICATION.md`, `web-admin-v1-features.md`, `v2-third-party-integration-inventory.md` |
 | `android/` | Android checklists & audits |
-| `product/` | `PRODUCT.md`, `DESIGN.md`, feature suggestions, `competitor-uiux-analysis.md` |
+| `product/` | Canonical "About KhanaBook" overview: `PRODUCT.md`; `DESIGN.md`, feature suggestions, `competitor-uiux-analysis.md` |
 | `api/` | `api-docs.json` |
 | `baseline-provenance/` | Baseline commit & reconciliation docs |
 | `mcp/` | MCP install links |
