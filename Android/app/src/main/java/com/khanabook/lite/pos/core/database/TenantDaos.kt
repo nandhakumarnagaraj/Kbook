@@ -752,6 +752,10 @@ class TenantBillDao @Inject constructor(
     override fun getUnsyncedCount(restaurantId: Long): Flow<Int> = runFlow { it.billDao().getUnsyncedCount(restaurantId) }
     override suspend fun getUnsyncedBillItems(restaurantId: Long): List<BillItemEntity> = dao.getUnsyncedBillItems(restaurantId)
     override suspend fun getUnsyncedBillItemsWithSyncedParent(restaurantId: Long): List<BillItemEntity> = dao.getUnsyncedBillItemsWithSyncedParent(restaurantId)
+    override suspend fun getUnsyncedBillItemsWithSyncedParentPaged(
+        restaurantId: Long,
+        limit: Int
+    ): List<BillItemEntity> = dao.getUnsyncedBillItemsWithSyncedParentPaged(restaurantId, limit)
 
     override suspend fun markBillItemsAsSynced(ids: List<Long>, restaurantId: Long) {
         dao.markBillItemsAsSynced(ids, restaurantId)
@@ -802,6 +806,10 @@ class TenantBillDao @Inject constructor(
 
     override suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity> = dao.getUnsyncedBillPayments(restaurantId)
     override suspend fun getUnsyncedBillPaymentsWithSyncedParent(restaurantId: Long): List<BillPaymentEntity> = dao.getUnsyncedBillPaymentsWithSyncedParent(restaurantId)
+    override suspend fun getUnsyncedBillPaymentsWithSyncedParentPaged(
+        restaurantId: Long,
+        limit: Int
+    ): List<BillPaymentEntity> = dao.getUnsyncedBillPaymentsWithSyncedParentPaged(restaurantId, limit)
 
     override suspend fun markBillPaymentsAsSynced(ids: List<Long>, restaurantId: Long) {
         dao.markBillPaymentsAsSynced(ids, restaurantId)

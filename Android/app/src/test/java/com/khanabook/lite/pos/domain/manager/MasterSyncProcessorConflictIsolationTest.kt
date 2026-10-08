@@ -230,6 +230,7 @@ class MasterSyncProcessorConflictIsolationTest {
         val paymentPushes = mutableListOf<List<BillPaymentSyncDto>>()
         var acknowledgementCalls = 0
 
+        coEvery { billDao.getUnsyncedBillsPaged(RESTAURANT_ID, 100) } returns listOf(draft)
         coEvery { billDao.getUnsyncedBills(RESTAURANT_ID) } returns listOf(draft)
         coEvery { userDao.getAllUsersOnce() } returns emptyList()
         coEvery { billDao.getBillById(BILL_ID, RESTAURANT_ID) } returns completed
@@ -256,8 +257,14 @@ class MasterSyncProcessorConflictIsolationTest {
             )
         }
         coEvery {
+            billDao.getUnsyncedBillItemsWithSyncedParentPaged(RESTAURANT_ID, 200)
+        } returns emptyList()
+        coEvery {
             billDao.getUnsyncedBillItemsWithSyncedParent(RESTAURANT_ID)
         } returns emptyList()
+        coEvery {
+            billDao.getUnsyncedBillPaymentsWithSyncedParentPaged(RESTAURANT_ID, 200)
+        } returns payments
         coEvery {
             billDao.getUnsyncedBillPaymentsWithSyncedParent(RESTAURANT_ID)
         } returns payments

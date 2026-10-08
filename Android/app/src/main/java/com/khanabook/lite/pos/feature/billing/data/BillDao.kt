@@ -1029,6 +1029,34 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         terminalSeries: String?
     ): Long
 
+    @Query("""
+        SELECT bi.* FROM bill_items bi
+        INNER JOIN bills b ON bi.bill_id = b.id
+        WHERE bi.is_synced = 0
+          AND bi.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+        LIMIT :limit
+    """)
+    suspend fun getUnsyncedBillItemsWithSyncedParentPaged(
+        restaurantId: Long,
+        limit: Int
+    ): List<BillItemEntity>
+
+    @Query("""
+        SELECT bp.* FROM bill_payments bp
+        INNER JOIN bills b ON bp.bill_id = b.id
+        WHERE bp.is_synced = 0
+          AND bp.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+        LIMIT :limit
+    """)
+    suspend fun getUnsyncedBillPaymentsWithSyncedParentPaged(
+        restaurantId: Long,
+        limit: Int
+    ): List<BillPaymentEntity>
+
     @Transaction
     suspend fun repairFailedDailyOrderIdentity(
         billId: Long,

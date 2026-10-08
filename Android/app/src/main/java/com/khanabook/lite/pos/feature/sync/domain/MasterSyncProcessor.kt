@@ -583,46 +583,33 @@ class MasterSyncProcessor @Inject constructor(
         )
 
 
-        val unsyncedBills = billDao.getUnsyncedBills(restaurantId)
-        val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
-        val pushedBillsById = validBills.associateBy(BillEntity::id)
-        val skippedBills = unsyncedBills.size - validBills.size
-        if (skippedBills > 0) {
-            Log.w("MasterSyncProcessor", "Skipping $skippedBills bill(s) with mismatched restaurantId (expected=$restaurantId)")
-        }
         val userMap = userDao.getAllUsersOnce().associate { it.id to it.serverId }
         val isolatedConflicts = mutableListOf<SyncConflictException>()
-        val changedDuringBillPush = mutableSetOf<Long>()
-        try {
-            pushBatches(
-                label = "bills",
-                records = validBills,
-                localId = BillEntity::id,
-                transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
-                push = api::pushBills,
-                markSynced = { ids ->
-                    changedDuringBillPush += acknowledgeUnchangedBills(
-                        bills = ids.mapNotNull(pushedBillsById::get),
-                        successfulIds = ids,
-                        restaurantId = restaurantId
-                    )
-                },
-                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } },
-                isolateHttpConflicts = isolateHttpConflicts
-            )
-            val followUpBills = changedDuringBillPush
-                .mapNotNull { billDao.getBillById(it, restaurantId) }
-                .filterNot(BillEntity::isSynced)
-            if (followUpBills.isNotEmpty()) {
+        val billPageSize = 100
+        var hasMoreBills = true
+        while (hasMoreBills) {
+            val billPage = billDao.getUnsyncedBillsPaged(restaurantId, billPageSize)
+            if (billPage.isEmpty()) {
+                hasMoreBills = false
+                break
+            }
+            val validBillsPage = billPage.filter { it.restaurantId == restaurantId }
+            val pushedBillsById = validBillsPage.associateBy(BillEntity::id)
+            val skipped = billPage.size - validBillsPage.size
+            if (skipped > 0) {
+                logWarn("Skipping $skipped bill(s) with mismatched restaurantId (expected=$restaurantId)")
+            }
+            val changedDuringBillPush = mutableSetOf<Long>()
+            try {
                 pushBatches(
-                    label = "bills follow-up",
-                    records = followUpBills,
+                    label = "bills",
+                    records = validBillsPage,
                     localId = BillEntity::id,
                     transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
                     push = api::pushBills,
                     markSynced = { ids ->
-                        acknowledgeUnchangedBills(
-                            bills = followUpBills,
+                        changedDuringBillPush += acknowledgeUnchangedBills(
+                            bills = ids.mapNotNull(pushedBillsById::get),
                             successfulIds = ids,
                             restaurantId = restaurantId
                         )
@@ -634,45 +621,96 @@ class MasterSyncProcessor @Inject constructor(
                     },
                     isolateHttpConflicts = isolateHttpConflicts
                 )
+                val followUpBills = changedDuringBillPush
+                    .mapNotNull { billDao.getBillById(it, restaurantId) }
+                    .filterNot(BillEntity::isSynced)
+                if (followUpBills.isNotEmpty()) {
+                    pushBatches(
+                        label = "bills follow-up",
+                        records = followUpBills,
+                        localId = BillEntity::id,
+                        transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
+                        push = api::pushBills,
+                        markSynced = { ids ->
+                            acknowledgeUnchangedBills(
+                                bills = followUpBills,
+                                successfulIds = ids,
+                                restaurantId = restaurantId
+                            )
+                        },
+                        onServerIds = { map ->
+                            map.forEach { (localId, serverId) ->
+                                billDao.updateServerIdByLocalId(localId, serverId, restaurantId)
+                            }
+                        },
+                        isolateHttpConflicts = isolateHttpConflicts
+                    )
+                }
+            } catch (conflict: SyncConflictException) {
+                isolatedConflicts += conflict
+                logWarn("Bill failures isolated; continuing children for acknowledged parents", conflict)
             }
-        } catch (conflict: SyncConflictException) {
-            isolatedConflicts += conflict
-            logWarn("Bill failures isolated; continuing children for acknowledged parents", conflict)
+            hasMoreBills = (billPage.size == billPageSize)
         }
 
         backfillChildServerBillIds(restaurantId)
-        val unsyncedBillItems = billDao.getUnsyncedBillItemsWithSyncedParent(restaurantId)
-        try {
-            pushBatches(
-                label = "bill items",
-                records = unsyncedBillItems,
-                localId = BillItemEntity::id,
-                transform = BillItemEntity::toSyncDto,
-                push = api::pushBillItems,
-                markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) },
-                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillItemServerIdByLocalId(localId, serverId, restaurantId) } },
-                isolateHttpConflicts = isolateHttpConflicts
-            )
-        } catch (conflict: SyncConflictException) {
-            isolatedConflicts += conflict
-            logWarn("Bill item failures isolated; continuing unrelated payment work", conflict)
+        val childPageSize = 200
+        var hasMoreItems = true
+        while (hasMoreItems) {
+            val page = billDao.getUnsyncedBillItemsWithSyncedParentPaged(restaurantId, childPageSize)
+            if (page.isEmpty()) {
+                hasMoreItems = false
+                break
+            }
+            try {
+                pushBatches(
+                    label = "bill items",
+                    records = page,
+                    localId = BillItemEntity::id,
+                    transform = BillItemEntity::toSyncDto,
+                    push = api::pushBillItems,
+                    markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) },
+                    onServerIds = { map ->
+                        map.forEach { (localId, serverId) ->
+                            billDao.updateBillItemServerIdByLocalId(localId, serverId, restaurantId)
+                        }
+                    },
+                    isolateHttpConflicts = isolateHttpConflicts
+                )
+            } catch (conflict: SyncConflictException) {
+                isolatedConflicts += conflict
+                logWarn("Bill item failures isolated from other acknowledged work", conflict)
+            }
+            hasMoreItems = (page.size == childPageSize)
         }
 
-        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsWithSyncedParent(restaurantId)
-        try {
-            pushBatches(
-                label = "bill payments",
-                records = unsyncedBillPayments,
-                localId = BillPaymentEntity::id,
-                transform = BillPaymentEntity::toSyncDto,
-                push = api::pushBillPayments,
-                markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) },
-                onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillPaymentServerIdByLocalId(localId, serverId, restaurantId) } },
-                isolateHttpConflicts = isolateHttpConflicts
-            )
-        } catch (conflict: SyncConflictException) {
-            isolatedConflicts += conflict
-            logWarn("Bill payment failures isolated from other acknowledged work", conflict)
+        var hasMorePayments = true
+        while (hasMorePayments) {
+            val page = billDao.getUnsyncedBillPaymentsWithSyncedParentPaged(restaurantId, childPageSize)
+            if (page.isEmpty()) {
+                hasMorePayments = false
+                break
+            }
+            try {
+                pushBatches(
+                    label = "bill payments",
+                    records = page,
+                    localId = BillPaymentEntity::id,
+                    transform = BillPaymentEntity::toSyncDto,
+                    push = api::pushBillPayments,
+                    markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) },
+                    onServerIds = { map ->
+                        map.forEach { (localId, serverId) ->
+                            billDao.updateBillPaymentServerIdByLocalId(localId, serverId, restaurantId)
+                        }
+                    },
+                    isolateHttpConflicts = isolateHttpConflicts
+                )
+            } catch (conflict: SyncConflictException) {
+                isolatedConflicts += conflict
+                logWarn("Bill payment failures isolated from other acknowledged work", conflict)
+            }
+            hasMorePayments = (page.size == childPageSize)
         }
 
         // Bill-family 409s (stale optimistic-lock re-push of an already-synced bill)
