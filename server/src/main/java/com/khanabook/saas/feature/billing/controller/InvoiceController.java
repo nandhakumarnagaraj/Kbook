@@ -125,7 +125,8 @@ public class InvoiceController {
 
         String dailyOrderDisplay = (bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank())
                 ? bill.getDailyOrderDisplay() : "";
-        String orderCode = dailyOrderDisplay.isEmpty() ? "ORD" + bill.getLifetimeOrderId() : dailyOrderDisplay;
+        String invoiceNumber = resolveInvoiceNumber(bill, dailyOrderDisplay);
+        String orderCode = resolveOrderCode(bill, dailyOrderDisplay, invoiceNumber);
         String date = bill.getCreatedAt() != null
                 ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_DATE_FMT) : "";
         String time = bill.getCreatedAt() != null
@@ -171,7 +172,7 @@ public class InvoiceController {
         String publicUrl = ServletUriComponentsBuilder.fromCurrentRequestUri().build().toUriString();
         String canonicalPublicUrl = publicUrl.replace("/pending", "");
         String invoiceRef = bill.getPublicToken() != null ? bill.getPublicToken().toString() : "";
-        String shareText = "Invoice " + "INV" + bill.getLifetimeOrderId() + " from " + shopName + ": " + canonicalPublicUrl;
+        String shareText = "Invoice " + invoiceNumber + " from " + shopName + ": " + canonicalPublicUrl;
         String whatsappShareUrl = "https://wa.me/?text=" + java.net.URLEncoder.encode(shareText, java.nio.charset.StandardCharsets.UTF_8);
 
         List<Map<String, Object>> itemList = new java.util.ArrayList<>();
@@ -200,6 +201,7 @@ public class InvoiceController {
         ctx.setVariable("customTaxName", customTaxName.isEmpty() ? "Custom Tax" : customTaxName);
         ctx.setVariable("orderCode", orderCode);
         ctx.setVariable("invoiceLabel", invoiceLabel);
+        ctx.setVariable("invoiceNumber", invoiceNumber);
         ctx.setVariable("lifetimeOrderId", bill.getLifetimeOrderId());
         ctx.setVariable("date", date);
         ctx.setVariable("time", time);
@@ -232,6 +234,49 @@ public class InvoiceController {
         ctx.setVariable("items", itemList);
 
         return templateEngine.process("invoice", ctx);
+    }
+
+    /**
+     * Resolves the printed invoice number, mirroring the Android display logic
+     * (BillEntity.getInvoiceNumberDisplay) so device prints and the web invoice
+     * always show the same number:
+     *
+     * <ol>
+     *   <li>structured {@code invoice_number} (e.g. "E000030")</li>
+     *   <li>derived from terminal series + sequence (e.g. "E30")</li>
+     *   <li>legacy {@code INV} + lifetime order id</li>
+     *   <li>daily order display (e.g. "E02")</li>
+     *   <li>deterministic fallback — never renders "INVnull"</li>
+     * </ol>
+     */
+    String resolveInvoiceNumber(Bill bill, String dailyOrderDisplay) {
+        if (bill.getInvoiceNumber() != null && !bill.getInvoiceNumber().isBlank()) {
+            return bill.getInvoiceNumber().strip();
+        }
+        if (bill.getTerminalSeries() != null && !bill.getTerminalSeries().isBlank()
+                && bill.getInvoiceSequence() != null) {
+            return Character.toUpperCase(bill.getTerminalSeries().charAt(0))
+                    + String.format("%02d", bill.getInvoiceSequence());
+        }
+        if (bill.getLifetimeOrderId() != null && bill.getLifetimeOrderId() > 0) {
+            return "INV" + bill.getLifetimeOrderId();
+        }
+        if (!dailyOrderDisplay.isEmpty()) {
+            return dailyOrderDisplay;
+        }
+        return "INV-" + bill.getId();
+    }
+
+    /**
+     * Order ID display: daily order display first (legacy behaviour), then the
+     * legacy lifetime id, then the resolved invoice number — never "ORDnull".
+     */
+    String resolveOrderCode(Bill bill, String dailyOrderDisplay, String invoiceNumber) {
+        if (!dailyOrderDisplay.isEmpty()) return dailyOrderDisplay;
+        if (bill.getLifetimeOrderId() != null && bill.getLifetimeOrderId() > 0) {
+            return "ORD" + bill.getLifetimeOrderId();
+        }
+        return invoiceNumber;
     }
 
     private String paymentIcon(String mode) {

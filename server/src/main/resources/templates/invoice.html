@@ -279,7 +279,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
     </div>
     <div class="meta-row">
       <span class="mk" th:text="${invoiceLabel}">Tax Invoice No</span>
-      <span class="mv" th:text="'INV' + ${lifetimeOrderId}">INV1</span>
+      <span class="mv" th:text="${invoiceNumber}">INV1</span>
     </div>
     <div class="meta-row">
       <span class="mk">Date &amp; Time</span>
@@ -400,7 +400,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 
     <div class="powered">
       Powered by
-      <a href="https://khanabook.com"
+      <a href="https://khanabook.in"
          target="_blank"
          rel="noopener noreferrer">KhanaBook</a>
     </div>
