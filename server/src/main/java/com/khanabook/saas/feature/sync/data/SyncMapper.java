@@ -189,6 +189,9 @@ public class SyncMapper {
                 if (dto.getIsAvailable() == null) {
                     entity.setIsAvailable(true);
                 }
+                if (dto.getFoodType() == null || dto.getFoodType().isBlank()) {
+                    entity.setFoodType("veg");
+                }
                 if (dto.getImageVersion() == null) {
                     entity.setImageVersion(0);
                 }
