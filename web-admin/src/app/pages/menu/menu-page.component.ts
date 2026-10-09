@@ -291,6 +291,38 @@ import { environment } from '../../../environments/environment';
           <p class="muted" *ngIf="editingItem">Editing: {{ editingItem.name }}</p>
 
           <div class="field">
+            <label>Photo</label>
+            <div class="photo-picker">
+              <div class="thumb" [class.thumb--empty]="!formPhotoPreview">
+                <img *ngIf="formPhotoPreview" [src]="formPhotoPreview" [alt]="formName + ' photo'" />
+                <span *ngIf="!formPhotoPreview" class="photo-picker__placeholder">No photo</span>
+              </div>
+              <div class="photo-picker__actions">
+                <label class="ghost-btn" [class.ghost-btn--disabled]="formSaving || formPhotoBusy">
+                  {{ formPhotoPreview ? 'Replace Photo' : 'Upload Photo' }}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    [disabled]="formSaving || formPhotoBusy"
+                    (change)="onPhotoSelected($event)"
+                    hidden
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="ghost-btn"
+                  [class.ghost-btn--danger]="formPhotoRemoving"
+                  [disabled]="formSaving || formPhotoBusy || !formPhotoPreview"
+                  (click)="onPhotoRemove()"
+                >
+                  Remove Photo
+                </button>
+              </div>
+            </div>
+            <p class="muted" *ngIf="formPhotoRemoving">Photo will be removed when you save.</p>
+          </div>
+
+          <div class="field">
             <label>Name *</label>
             <input
               type="text"
@@ -387,6 +419,30 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .photo-picker {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .photo-picker .thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--r-lg, 12px);
+    }
+    .photo-picker__placeholder {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 0 0.25rem;
+      line-height: 1.3;
+    }
+    .photo-picker__actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .ghost-btn--disabled { opacity: 0.5; cursor: not-allowed; }
+    .ghost-btn--danger { color: var(--danger); border-color: var(--danger); }
     .operational-menu-header {
       display: flex;
       justify-content: space-between;
@@ -585,6 +641,12 @@ export class MenuPageComponent implements OnDestroy {
   formError = '';
   formSaving = false;
 
+  // Dish photo state inside the Add/Edit modal
+  formPhotoFile: File | null = null;
+  formPhotoPreview: string | null = null;
+  formPhotoRemoving = false;
+  formPhotoBusy = false;
+
   // New category inline creation
   showNewCategoryInput = false;
   newCategoryName = '';
@@ -734,6 +796,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formDescription = '';
     this.formError = '';
     this.formSaving = false;
+    this.resetFormPhoto();
     this.showFormModal = true;
   }
 
@@ -746,6 +809,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formDescription = item.description || '';
     this.formError = '';
     this.formSaving = false;
+    this.resetFormPhoto(item.imageUrl?.trim() || null);
     this.showFormModal = true;
   }
 
@@ -753,6 +817,50 @@ export class MenuPageComponent implements OnDestroy {
     this.showFormModal = false;
     this.editingItem = null;
     this.formError = '';
+    this.resetFormPhoto();
+  }
+
+  private resetFormPhoto(preview?: string | null): void {
+    this.formPhotoFile = null;
+    this.formPhotoPreview = preview ?? null;
+    this.formPhotoRemoving = false;
+    this.formPhotoBusy = false;
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      this.formError = 'Please choose a PNG, JPEG, or WebP image.';
+      this.cdr.markForCheck();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.formError = 'Image must be under 5 MB.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.formError = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.formPhotoPreview = String(reader.result);
+      this.formPhotoFile = file;
+      this.formPhotoRemoving = false;
+      this.cdr.markForCheck();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  onPhotoRemove(): void {
+    if (!this.formPhotoPreview) return;
+    this.formPhotoFile = null;
+    this.formPhotoPreview = null;
+    this.formPhotoRemoving = true;
+    this.cdr.markForCheck();
   }
 
   isFormValid(): boolean {
@@ -782,9 +890,7 @@ export class MenuPageComponent implements OnDestroy {
         next: (updated) => {
           const idx = this.items.findIndex(i => i.menuItemId === updated.menuItemId);
           if (idx >= 0) this.items[idx] = updated;
-          this.formSaving = false;
-          this.closeFormModal();
-          this.showToast('Menu item updated');
+          this.persistFormPhoto(updated, 'Menu item updated');
         },
         error: (err) => {
           this.formSaving = false;
@@ -803,9 +909,7 @@ export class MenuPageComponent implements OnDestroy {
       this.api.createMenuItem(payload).subscribe({
         next: (created) => {
           this.items = [created, ...this.items];
-          this.formSaving = false;
-          this.closeFormModal();
-          this.showToast('Menu item added');
+          this.persistFormPhoto(created, 'Menu item added');
         },
         error: (err) => {
           this.formSaving = false;
@@ -813,6 +917,41 @@ export class MenuPageComponent implements OnDestroy {
         }
       });
     }
+  }
+
+  private persistFormPhoto(target: BusinessMenuItem, successMessage: string): void {
+    if (this.formPhotoRemoving) {
+      this.formPhotoBusy = true;
+      this.api.deleteMenuItemImage(target.menuItemId).subscribe({
+        next: () => { this.applyPhotoToItem(target.menuItemId, null, 0); this.finishForm(successMessage); },
+        error: () => { this.formPhotoBusy = false; this.formSaving = false; this.formError = 'Item saved, but the photo could not be removed. Try again.'; }
+      });
+      return;
+    }
+    if (this.formPhotoFile) {
+      this.formPhotoBusy = true;
+      this.api.uploadMenuItemImage(target.menuItemId, this.formPhotoFile).subscribe({
+        next: (res) => { this.applyPhotoToItem(target.menuItemId, res.imageUrl, res.imageVersion); this.finishForm(successMessage); },
+        error: () => { this.formPhotoBusy = false; this.formSaving = false; this.formError = 'Item saved, but the photo could not be uploaded. Try again.'; }
+      });
+      return;
+    }
+    this.finishForm(successMessage);
+  }
+
+  private applyPhotoToItem(menuItemId: number, imageUrl: string | null, imageVersion: number): void {
+    const idx = this.items.findIndex(i => i.menuItemId === menuItemId);
+    if (idx >= 0) {
+      this.items[idx] = { ...this.items[idx], imageUrl: imageUrl ?? null, imageVersion };
+      this.cdr.markForCheck();
+    }
+  }
+
+  private finishForm(successMessage: string): void {
+    this.formSaving = false;
+    this.formPhotoBusy = false;
+    this.closeFormModal();
+    this.showToast(successMessage);
   }
 
   // --- Delete ---
