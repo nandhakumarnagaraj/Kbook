@@ -389,6 +389,22 @@ import { environment } from '../../../environments/environment';
               placeholder="Optional description"
             />
           </div>
+          <div class="field">
+            <label>Availability</label>
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+              <button
+                type="button"
+                class="toggle-btn"
+                [class.toggle-btn--on]="formAvailable"
+                [class.toggle-btn--off]="!formAvailable"
+                [disabled]="formSaving"
+                (click)="formAvailable = !formAvailable"
+              >
+                {{ formAvailable ? 'Available' : 'Unavailable' }}
+              </button>
+              <span class="muted">Controls whether customers can order this dish.</span>
+            </div>
+          </div>
 
           <p class="error-text" *ngIf="formError">{{ formError }}</p>
 
@@ -640,6 +656,7 @@ export class MenuPageComponent implements OnDestroy {
   formDescription = '';
   formError = '';
   formSaving = false;
+  formAvailable = true;
 
   // Dish photo state inside the Add/Edit modal
   formPhotoFile: File | null = null;
@@ -796,6 +813,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formDescription = '';
     this.formError = '';
     this.formSaving = false;
+    this.formAvailable = true;
     this.resetFormPhoto();
     this.showFormModal = true;
   }
@@ -809,6 +827,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formDescription = item.description || '';
     this.formError = '';
     this.formSaving = false;
+    this.formAvailable = item.available ?? true;
     this.resetFormPhoto(item.imageUrl?.trim() || null);
     this.showFormModal = true;
   }
@@ -923,7 +942,7 @@ export class MenuPageComponent implements OnDestroy {
     if (this.formPhotoRemoving) {
       this.formPhotoBusy = true;
       this.api.deleteMenuItemImage(target.menuItemId).subscribe({
-        next: () => { this.applyPhotoToItem(target.menuItemId, null, 0); this.finishForm(successMessage); },
+        next: () => { this.applyPhotoToItem(target.menuItemId, null, 0); this.persistAvailability(target, successMessage); },
         error: () => { this.formPhotoBusy = false; this.formSaving = false; this.formError = 'Item saved, but the photo could not be removed. Try again.'; }
       });
       return;
@@ -931,12 +950,35 @@ export class MenuPageComponent implements OnDestroy {
     if (this.formPhotoFile) {
       this.formPhotoBusy = true;
       this.api.uploadMenuItemImage(target.menuItemId, this.formPhotoFile).subscribe({
-        next: (res) => { this.applyPhotoToItem(target.menuItemId, res.imageUrl, res.imageVersion); this.finishForm(successMessage); },
+        next: (res) => { this.applyPhotoToItem(target.menuItemId, res.imageUrl, res.imageVersion); this.persistAvailability(target, successMessage); },
         error: () => { this.formPhotoBusy = false; this.formSaving = false; this.formError = 'Item saved, but the photo could not be uploaded. Try again.'; }
       });
       return;
     }
-    this.finishForm(successMessage);
+    this.persistAvailability(target, successMessage);
+  }
+
+  private persistAvailability(target: BusinessMenuItem, successMessage: string): void {
+    if (this.formAvailable === target.available) {
+      this.finishForm(successMessage);
+      return;
+    }
+    this.formPhotoBusy = true;
+    this.api.toggleMenuItemAvailability(target.menuItemId).subscribe({
+      next: (toggled) => {
+        const idx = this.items.findIndex(i => i.menuItemId === target.menuItemId);
+        if (idx >= 0) {
+          this.items[idx] = { ...this.items[idx], available: toggled.available };
+          this.cdr.markForCheck();
+        }
+        this.finishForm(successMessage);
+      },
+      error: () => {
+        this.formPhotoBusy = false;
+        this.formSaving = false;
+        this.formError = 'Item saved, but availability could not be updated. Try again.';
+      }
+    });
   }
 
   private applyPhotoToItem(menuItemId: number, imageUrl: string | null, imageVersion: number): void {
