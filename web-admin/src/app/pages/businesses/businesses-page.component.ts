@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -338,6 +338,7 @@ export class BusinessesPageComponent {
 
   businesses: AdminBusinessListItem[] = [];
   loaded = false;
+  private readonly cdr = inject(ChangeDetectorRef);
   loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
   readonly suspendTarget = signal<AdminBusinessListItem | null>(null);
@@ -445,12 +446,15 @@ export class BusinessesPageComponent {
       next: (data) => {
         this.businesses = data;
         this.loaded = true;
+        this.loadError = '';
         this.currentPage = 1;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.businesses = [];
         this.loadError = 'Unable to load businesses.';
         this.loaded = true;
+        this.cdr.markForCheck();
       }
     });
   }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -660,6 +660,7 @@ export class OrdersPageComponent implements OnDestroy {
   orders: BusinessOrder[] = [];
   ordersLoaded = false;
   ordersError = '';
+  private readonly cdr = inject(ChangeDetectorRef);
 
   refundTarget: BusinessOrder | null = null;
   refundAmountInput: number | null = null;
@@ -763,6 +764,8 @@ export class OrdersPageComponent implements OnDestroy {
         this.serverTotalElements = data.totalElements;
         this.serverTotalPages = data.totalPages;
         this.ordersLoaded = true;
+        this.ordersError = '';
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.orders = [];
@@ -777,6 +780,7 @@ export class OrdersPageComponent implements OnDestroy {
           this.ordersError = 'Unable to load orders. Check your connection and try again.';
         }
         this.ordersLoaded = true;
+        this.cdr.markForCheck();
       }
     });
   }

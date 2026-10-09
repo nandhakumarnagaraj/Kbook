@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
@@ -348,6 +348,7 @@ import { ToastService } from '../../core/services/toast.service';
 export class InventoryPageComponent implements OnInit {
   private api = inject(BusinessApiService);
   private toast = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
 
   loading = true;
   error: string | null = null;
@@ -391,9 +392,10 @@ export class InventoryPageComponent implements OnInit {
 
   loadMaterials(): void {
     this.loading = true;
+    this.error = null;
     this.api.getInventoryMaterials().subscribe({
-      next: (data) => { this.materials = data; this.loading = false; },
-      error: (err) => { this.error = err?.error?.error || 'Failed to load materials'; this.loading = false; }
+      next: (data) => { this.materials = data; this.loading = false; this.cdr.markForCheck(); },
+      error: (err) => { this.error = err?.error?.error || 'Failed to load materials'; this.loading = false; this.cdr.markForCheck(); }
     });
   }
 
@@ -512,16 +514,16 @@ export class InventoryPageComponent implements OnInit {
   loadMovements(): void {
     if (!this.selectedMaterialId) { this.movements = []; return; }
     this.api.getStockMovements(this.selectedMaterialId).subscribe({
-      next: (data) => { this.movements = data; },
-      error: () => { this.movements = []; }
+      next: (data) => { this.movements = data; this.cdr.markForCheck(); },
+      error: () => { this.movements = []; this.cdr.markForCheck(); }
     });
   }
 
   loadVariance(): void {
     if (!this.varianceFrom || !this.varianceTo) return;
     this.api.getInventoryVariance(this.varianceFrom, this.varianceTo).subscribe({
-      next: (data) => { this.varianceData = Array.isArray(data) ? data : []; },
-      error: () => { this.varianceData = []; }
+      next: (data) => { this.varianceData = Array.isArray(data) ? data : []; this.cdr.markForCheck(); },
+      error: () => { this.varianceData = []; this.cdr.markForCheck(); }
     });
   }
 

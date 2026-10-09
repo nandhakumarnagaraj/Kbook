@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
@@ -566,6 +566,7 @@ export class MenuPageComponent implements OnDestroy {
   categories: BusinessCategory[] = [];
   loaded = false;
   loadError = '';
+  private readonly cdr = inject(ChangeDetectorRef);
 
   searchTerm = '';
   stockFilter = 'ALL';
@@ -669,13 +670,16 @@ export class MenuPageComponent implements OnDestroy {
         this.items = items;
         this.categories = categories;
         this.loaded = true;
+        this.loadError = '';
         this.currentPage = 1;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.items = [];
         this.categories = [];
         this.loadError = 'Unable to load the menu. Check your connection and try again.';
         this.loaded = true;
+        this.cdr.markForCheck();
       }
     });
   }

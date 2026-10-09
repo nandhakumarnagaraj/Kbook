@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -277,6 +277,7 @@ export class PaymentMethodsSectionComponent {
 
   easebuzzConfig: any = null;
   easebuzzLoading = false;
+  private readonly cdr = inject(ChangeDetectorRef);
   easebuzzError = '';
   easebuzzEnabled = false;
 
@@ -340,10 +341,12 @@ export class PaymentMethodsSectionComponent {
         this.easebuzzConfig = config;
         this.easebuzzEnabled = config.easebuzzEnabled || false;
         this.easebuzzLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.easebuzzLoading = false;
         this.easebuzzError = 'Unable to reach the payments service.';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -356,10 +359,12 @@ export class PaymentMethodsSectionComponent {
           this.easebuzzEnabled ? 'Easebuzz enabled' : 'Easebuzz disabled',
           'success'
         );
+        this.cdr.markForCheck();
       },
       error: () => {
         this.easebuzzEnabled = !this.easebuzzEnabled;
         this.toast.show('Failed to update payment config', 'error');
+        this.cdr.markForCheck();
       }
     });
   }

@@ -594,6 +594,32 @@ function getTodayIsoDate(): string {
       margin-bottom: 1.75rem;
     }
 
+    @media (max-width: 760px) {
+      .pos-topbar {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      .pos-search-pill {
+        order: 3;
+        width: 100%;
+      }
+    }
+    @media (max-width: 480px) {
+      .pos-topbar {
+        gap: 0.5rem;
+      }
+      .channel-selector-btn {
+        padding: 0.55rem 0.85rem;
+      }
+      .terminal-pulse-pill .pulse-text {
+        display: none;
+      }
+      .terminal-pulse-pill {
+        padding: 0.5rem 0.6rem;
+      }
+    }
+
     .channel-dropdown-wrapper {
       position: relative;
     }
@@ -890,7 +916,7 @@ function getTodayIsoDate(): string {
 
     @media (max-width: 1080px) {
       .pos-dashboard-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
