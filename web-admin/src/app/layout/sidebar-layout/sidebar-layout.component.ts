@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
 import { AuthService } from '../../core/auth/auth.service';
+import { BusinessApiService } from '../../core/services/business-api.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -83,6 +84,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
               <!-- Orders -->
               <svg *ngSwitchCase="'orders'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <!-- Active Orders / Kitchen -->
+              <svg *ngSwitchCase="'kitchen'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589a5 5 0 0 0-9.186 0a4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1ZM6 17h12"/>
               </svg>
               <!-- Menu -->
               <svg *ngSwitchCase="'menu'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -427,6 +432,7 @@ export class SidebarLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
+  private readonly businessApi = inject(BusinessApiService);
   @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 
@@ -451,6 +457,7 @@ export class SidebarLayoutComponent implements OnInit {
     const items: NavLink[] = [
       { label: 'Dashboard', path: '/business/dashboard', icon: '◉', iconKey: 'dashboard' },
       { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
+      { label: 'Active Orders', path: '/business/active-orders', icon: '👨‍🍳', iconKey: 'kitchen' },
       { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
       { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
       { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Preview' },
@@ -463,17 +470,13 @@ export class SidebarLayoutComponent implements OnInit {
   });
 
   readonly bottomActionItems = computed<BottomActionBarItem[]>(() => {
-    const items: BottomActionBarItem[] = [
+    return [
       { label: 'Dashboard', iconKey: 'dashboard', route: '/business/dashboard' },
       { label: 'Orders', iconKey: 'orders', route: '/business/orders' },
+      { label: 'Active', iconKey: 'kitchen', route: '/business/active-orders' },
       { label: 'Payments', iconKey: 'payments', route: '/business/daily-closing' },
-      { label: 'Reports', iconKey: 'reports', route: '/business/reports' },
       { label: 'Settings', iconKey: 'settings', route: '/business/settings' }
     ];
-    if (this.orderPaymentFlowMode() === 'pay_after_food') {
-      items.splice(2, 0, { label: 'KDS', iconKey: 'kitchen', route: '/business/active-orders' });
-    }
-    return items;
   });
 
   readonly isMobileView = signal(typeof window !== 'undefined' && window.innerWidth < 1024);
@@ -484,22 +487,16 @@ export class SidebarLayoutComponent implements OnInit {
     this.isMobileView.set(window.innerWidth < 1024);
     const role = this.session()?.role;
     if (role === 'OWNER') {
-      // API audit 2026-09-16: GET /business/profile does not exist on the server
-      // (404). The profile (incl. orderPaymentFlowMode) is served by the
-      // restaurant-profile sync pull endpoint — the same one the settings page
-      // uses. Response is an array; take the first profile.
-      this.http
-        .get<any[]>(`${API}/sync/restaurantprofile/pull?lastSyncTimestamp=0&deviceId=web-admin&ignoreDeviceId=true`)
-        .subscribe({
-          next: (profiles) => {
-            const mode = profiles?.[0]?.orderPaymentFlowMode;
-            this.orderPaymentFlowMode.set(mode === 'pay_after_food' ? 'pay_after_food' : 'pay_before_food');
-          },
-          error: () => {
-            // Keep the default; KDS tab simply won't show for pay-after-food
-            // until settings load succeeds elsewhere.
-          }
-        });
+      this.businessApi.getProfile().subscribe({
+        next: (profile) => {
+          const mode = profile?.orderPaymentFlowMode;
+          this.orderPaymentFlowMode.set(mode === 'pay_after_food' ? 'pay_after_food' : 'pay_before_food');
+        },
+        error: () => {
+          // Keep the default; KDS tab simply won't show for pay-after-food
+          // until settings load succeeds elsewhere.
+        }
+      });
     }
   }
 

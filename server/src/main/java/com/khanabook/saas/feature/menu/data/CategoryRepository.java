@@ -13,4 +13,6 @@ public interface CategoryRepository extends SyncRepository<Category, Long> {
 	Optional<Category> findByIdAndRestaurantIdAndIsDeletedFalse(Long id, Long restaurantId);
 
 	List<Category> findByRestaurantIdAndIsDeletedFalseAndIsActiveTrueOrderByNameAsc(Long restaurantId);
+
+	long countByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 }

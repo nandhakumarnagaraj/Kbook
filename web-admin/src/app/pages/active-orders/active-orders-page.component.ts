@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
@@ -9,7 +11,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
   selector: 'app-active-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, OrderDetailModalComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent],
   template: `
     <div class="page-shell">
       <!-- Operational Header (navbar.gallery standard) -->
@@ -104,6 +106,42 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               </span>
             </div>
           </div>
+
+          <div class="card-actions-row">
+            <button
+              type="button"
+              class="card-action-btn card-action-btn--primary"
+              (click)="openOrderDetail(order.orderId); $event.stopPropagation()"
+              title="View full order details and KOTs"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              Details
+            </button>
+            <button
+              type="button"
+              class="card-action-btn"
+              (click)="copyInvoiceLink(order, $event)"
+              title="Copy invoice/order reference"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </button>
+            <button
+              type="button"
+              class="card-action-btn card-action-btn--danger"
+              (click)="openCancelModal(order, $event)"
+              title="Void or cancel this order"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              Void
+            </button>
+          </div>
         </article>
       </div>
 
@@ -130,6 +168,54 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         [order]="selectedOrderDetail()"
         (closed)="closeOrderDetail()">
       </app-order-detail-modal>
+
+      <!-- Order Cancellation Modal (Accessible Design-System Dialog) -->
+      <div class="modal-backdrop" *ngIf="orderToCancel()" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
+        <section class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div>
+              <span class="chip danger">Void / Cancel Order</span>
+              <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel()?.orderCode }}</h3>
+              <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
+                Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} · {{ orderToCancel()?.customerName || 'Walk-in customer' }}
+              </p>
+            </div>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
+          </div>
+
+          <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
+            <div class="field">
+              <label for="cancel-preset">Cancellation Reason</label>
+              <select id="cancel-preset" class="field-select" [(ngModel)]="cancelReasonPreset" [disabled]="cancelSubmitting()">
+                <option value="Customer requested cancellation">Customer requested cancellation</option>
+                <option value="Kitchen unable to fulfill / Item out of stock">Kitchen unable to fulfill / Item out of stock</option>
+                <option value="Duplicate order entry">Duplicate order entry</option>
+                <option value="Entered by mistake / Billing error">Entered by mistake / Billing error</option>
+                <option value="Other reason">Other reason</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="cancel-custom-note">Additional Note (Optional)</label>
+              <input
+                id="cancel-custom-note"
+                type="text"
+                class="field-control"
+                [(ngModel)]="cancelReasonCustom"
+                [disabled]="cancelSubmitting()"
+                placeholder="Optional explanation or reference note..."
+              />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()">Keep Order</button>
+            <button type="button" class="primary-btn-tactile danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting()">
+              {{ cancelSubmitting() ? 'Cancelling...' : 'Confirm Cancellation' }}
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   `,
   styles: [`
@@ -403,15 +489,173 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       max-width: 420px;
       line-height: 1.5;
     }
+
+    /* ── Card Actions Row ── */
+    .card-actions-row {
+      display: flex;
+      gap: 0.5rem;
+      border-top: 1px solid #F1F5F9;
+      padding-top: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .card-action-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.5rem;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      border: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #334155;
+      cursor: pointer;
+      min-height: 36px;
+      transition: all 120ms ease;
+    }
+    .card-action-btn:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+      color: #0F172A;
+    }
+    .card-action-btn:active {
+      transform: scale(0.97);
+    }
+    .card-action-btn--primary {
+      background: #EEF2FF;
+      border-color: #C7D2FE;
+      color: #4F46E5;
+    }
+    .card-action-btn--primary:hover {
+      background: #E0E7FF;
+      border-color: #A5B4FC;
+    }
+    .card-action-btn--danger {
+      background: #FEF2F2;
+      border-color: #FECACA;
+      color: #DC2626;
+    }
+    .card-action-btn--danger:hover {
+      background: #FEE2E2;
+      border-color: #FCA5A5;
+    }
+
+    /* ── Modal Layout ── */
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.15rem;
+      color: #64748B;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .chip {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 999px;
+      background: #F1F5F9;
+      color: #475569;
+    }
+    .chip.danger {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .field-select, .field-control {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      min-height: 40px;
+      background: #FFFFFF;
+      color: #0F172A;
+      outline: none;
+    }
+    .field-select:focus, .field-control:focus {
+      border-color: #5D45FD;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+    .ghost-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #CBD5E1;
+      background: #FFFFFF;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #334155;
+      min-height: 40px;
+    }
+    .ghost-btn:hover:not(:disabled) {
+      background: #F8FAFC;
+    }
+    .primary-btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      background: #5D45FD;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .primary-btn-tactile:hover:not(:disabled) {
+      background: #4D37E6;
+    }
+    .danger-btn {
+      background: #DC2626 !important;
+      color: #FFFFFF !important;
+      border: none !important;
+    }
+    .danger-btn:hover:not(:disabled) {
+      background: #B91C1C !important;
+    }
   `]
 })
 export class ActiveOrdersPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
+  private readonly toast = inject(ToastService);
 
   loading = signal(false);
   error = signal('');
   activeOrders = signal<BusinessOrder[]>([]);
   selectedOrderDetail = signal<OrderDetailResponse | null>(null);
+
+  // Cancel order modal state
+  orderToCancel = signal<BusinessOrder | null>(null);
+  cancelReasonPreset = 'Customer requested cancellation';
+  cancelReasonCustom = '';
+  cancelSubmitting = signal(false);
+
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly fmt = formatCurrency;
@@ -470,4 +714,60 @@ export class ActiveOrdersPageComponent implements OnDestroy {
   }
 
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;
+
+  openCancelModal(order: BusinessOrder, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    this.orderToCancel.set(order);
+    this.cancelReasonPreset = 'Customer requested cancellation';
+    this.cancelReasonCustom = '';
+    this.cancelSubmitting.set(false);
+  }
+
+  closeCancelModal(): void {
+    if (this.cancelSubmitting()) return;
+    this.orderToCancel.set(null);
+  }
+
+  confirmCancelOrder(): void {
+    const target = this.orderToCancel();
+    if (!target) return;
+    const base = this.cancelReasonPreset === 'Other reason' ? '' : this.cancelReasonPreset;
+    const custom = this.cancelReasonCustom.trim();
+    let reason = 'Cancelled from KDS/Active Orders';
+    if (base && custom) {
+      reason = `${base}: ${custom}`;
+    } else if (base) {
+      reason = base;
+    } else if (custom) {
+      reason = custom;
+    }
+
+    this.cancelSubmitting.set(true);
+    this.api.voidBill(target.orderId, reason).subscribe({
+      next: () => {
+        this.cancelSubmitting.set(false);
+        this.toast.show('Order cancelled and voided successfully.', 'success');
+        this.closeCancelModal();
+        this.load();
+      },
+      error: (err: any) => {
+        this.cancelSubmitting.set(false);
+        const msg = err?.error?.message || err?.error?.error || 'Failed to cancel order.';
+        this.toast.show(msg, 'error');
+      }
+    });
+  }
+
+  copyInvoiceLink(order: BusinessOrder, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    const textToCopy = `Order #${order.orderCode} - ${order.customerName || 'Walk-in'} (Total: ${this.fmt(order.totalAmount)})`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(
+        () => this.toast.show(`Order #${order.orderCode} details copied to clipboard!`, 'success'),
+        () => this.toast.show(`Order #${order.orderCode}`, 'info')
+      );
+    } else {
+      this.toast.show(`Order #${order.orderCode}`, 'info');
+    }
+  }
 }

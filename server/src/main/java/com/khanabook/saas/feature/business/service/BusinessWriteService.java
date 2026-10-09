@@ -20,6 +20,8 @@ import com.khanabook.saas.feature.inventory.data.StockLog;
 import com.khanabook.saas.feature.inventory.data.Vendor;
 import com.khanabook.saas.feature.inventory.data.CustomerProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
+import com.khanabook.saas.feature.sync.data.SyncMapper;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
@@ -47,6 +49,7 @@ import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.core.exception.DuplicateStaffPhoneException;
 import com.khanabook.saas.feature.menu.data.CategoryRepository;
 import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
@@ -109,6 +112,7 @@ public class BusinessWriteService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final MenuItemRepository menuItemRepository;
+    private final ItemVariantRepository itemVariantRepository;
     private final RestaurantTerminalRepository terminalRepository;
     private final RestaurantProfileRepository profileRepository;
     private final PermissionService permissionService;
@@ -123,9 +127,23 @@ public class BusinessWriteService {
                                 PermissionService permissionService,
                                 com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService,
                                 com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository) {
+        this(userRepository, categoryRepository, menuItemRepository, null, terminalRepository, profileRepository, permissionService, passwordResetOtpService, refreshTokenRepository);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public BusinessWriteService(UserRepository userRepository,
+                                CategoryRepository categoryRepository,
+                                MenuItemRepository menuItemRepository,
+                                ItemVariantRepository itemVariantRepository,
+                                RestaurantTerminalRepository terminalRepository,
+                                RestaurantProfileRepository profileRepository,
+                                PermissionService permissionService,
+                                com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService,
+                                com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
+        this.itemVariantRepository = itemVariantRepository;
         this.terminalRepository = terminalRepository;
         this.profileRepository = profileRepository;
         this.permissionService = permissionService;
@@ -435,6 +453,108 @@ public class BusinessWriteService {
         return menuItemRepository.save(item);
     }
 
+    // ─── Category CRUD ──────────────────────────────────────────────────────────
+
+    @Transactional
+    public Category createCategory(Long restaurantId, String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name is required");
+        }
+        long now = System.currentTimeMillis();
+        Category category = new Category();
+        category.setName(name.trim());
+        category.setRestaurantId(restaurantId);
+        category.setIsVeg(false);
+        category.setIsActive(true);
+        category.setIsDeleted(false);
+        category.setDeviceId("web-admin");
+        category.setLocalId(now);
+        category.setCreatedAt(now);
+        category.setUpdatedAt(now);
+        category.setServerUpdatedAt(now);
+        category.setSortOrder((int) categoryRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId));
+        return categoryRepository.save(category);
+    }
+
+    @Transactional
+    public Category updateCategory(Long restaurantId, Long categoryId, String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name is required");
+        }
+        Category category = categoryRepository.findByIdAndRestaurantIdAndIsDeletedFalse(categoryId, restaurantId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        long now = System.currentTimeMillis();
+        category.setName(name.trim());
+        category.setUpdatedAt(now);
+        category.setServerUpdatedAt(now);
+        return categoryRepository.save(category);
+    }
+
+    @Transactional
+    public void deleteCategory(Long restaurantId, Long categoryId) {
+        Category category = categoryRepository.findByIdAndRestaurantIdAndIsDeletedFalse(categoryId, restaurantId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        boolean hasItems = menuItemRepository.existsByRestaurantIdAndCategoryIdAndIsDeletedFalse(restaurantId, categoryId);
+        if (hasItems) {
+            throw new IllegalStateException("Cannot delete category containing active menu items. Reassign or delete the items first.");
+        }
+        long now = System.currentTimeMillis();
+        category.setIsDeleted(true);
+        category.setUpdatedAt(now);
+        category.setServerUpdatedAt(now);
+        categoryRepository.save(category);
+    }
+
+    // ─── Variant CRUD ───────────────────────────────────────────────────────────
+
+    @Transactional
+    public ItemVariant createVariant(Long restaurantId, Long menuItemId, String variantName, java.math.BigDecimal price) {
+        if (variantName == null || variantName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Variant name is required");
+        }
+        if (price == null || price.compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Valid price is required");
+        }
+        MenuItem item = menuItemRepository.findById(menuItemId)
+                .filter(m -> restaurantId.equals(m.getRestaurantId()) && !Boolean.TRUE.equals(m.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
+
+        long now = System.currentTimeMillis();
+        ItemVariant variant = new ItemVariant();
+        variant.setRestaurantId(restaurantId);
+        variant.setMenuItemId(menuItemId);
+        variant.setServerMenuItemId(menuItemId);
+        variant.setVariantName(variantName.trim());
+        variant.setPrice(price);
+        variant.setIsAvailable(true);
+        variant.setIsDeleted(false);
+        variant.setDeviceId("web-admin");
+        variant.setLocalId(now);
+        variant.setCreatedAt(now);
+        variant.setUpdatedAt(now);
+        variant.setServerUpdatedAt(now);
+        variant.setSortOrder((int) (itemVariantRepository != null ? itemVariantRepository.countByMenuItemIdAndIsDeletedFalse(menuItemId) : 0));
+
+        ItemVariant saved = itemVariantRepository != null ? itemVariantRepository.save(variant) : variant;
+        menuItemRepository.recomputeHasVariantsFlag(java.util.List.of(menuItemId), restaurantId, now);
+        return saved;
+    }
+
+    @Transactional
+    public void deleteVariant(Long restaurantId, Long menuItemId, Long variantId) {
+        if (itemVariantRepository == null) return;
+        ItemVariant variant = itemVariantRepository.findById(variantId)
+                .filter(v -> restaurantId.equals(v.getRestaurantId()) && !Boolean.TRUE.equals(v.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Variant not found"));
+
+        long now = System.currentTimeMillis();
+        variant.setIsDeleted(true);
+        variant.setUpdatedAt(now);
+        variant.setServerUpdatedAt(now);
+        itemVariantRepository.save(variant);
+        menuItemRepository.recomputeHasVariantsFlag(java.util.List.of(menuItemId), restaurantId, now);
+    }
+
     // ─── Terminal Reactivation ────────────────────────────────────────────────────
 
     @Transactional
@@ -544,5 +664,41 @@ public class BusinessWriteService {
         long timestamp = Math.max(requestedTime, previous + 1);
         entity.setUpdatedAt(timestamp);
         entity.setServerUpdatedAt(timestamp);
+    }
+
+    @Transactional
+    public RestaurantProfileDTO updateProfile(Long restaurantId, RestaurantProfileDTO updateDto) {
+        RestaurantProfile profile = profileRepository.findByRestaurantId(restaurantId)
+                .orElseGet(() -> {
+                    RestaurantProfile p = new RestaurantProfile();
+                    p.setRestaurantId(restaurantId);
+                    p.setCreatedAt(System.currentTimeMillis());
+                    return p;
+                });
+
+        if (updateDto.getShopName() != null) profile.setShopName(updateDto.getShopName());
+        if (updateDto.getShopAddress() != null) profile.setShopAddress(updateDto.getShopAddress());
+        if (updateDto.getWhatsappNumber() != null) profile.setWhatsappNumber(updateDto.getWhatsappNumber());
+        if (updateDto.getEmail() != null) profile.setEmail(updateDto.getEmail());
+        if (updateDto.getGstEnabled() != null) profile.setGstEnabled(updateDto.getGstEnabled());
+        if (updateDto.getGstin() != null) profile.setGstin(updateDto.getGstin());
+        if (updateDto.getGstPercentage() != null) profile.setGstPercentage(updateDto.getGstPercentage());
+        if (updateDto.getCustomTaxName() != null) profile.setCustomTaxName(updateDto.getCustomTaxName());
+        if (updateDto.getCustomTaxPercentage() != null) profile.setCustomTaxPercentage(updateDto.getCustomTaxPercentage());
+        if (updateDto.getUpiEnabled() != null) profile.setUpiEnabled(updateDto.getUpiEnabled());
+        if (updateDto.getUpiHandle() != null) profile.setUpiHandle(updateDto.getUpiHandle());
+        if (updateDto.getUpiMobile() != null) profile.setUpiMobile(updateDto.getUpiMobile());
+        if (updateDto.getCashEnabled() != null) profile.setCashEnabled(updateDto.getCashEnabled());
+        if (updateDto.getPosEnabled() != null) profile.setPosEnabled(updateDto.getPosEnabled());
+        if (updateDto.getOrderPaymentFlowMode() != null) profile.setOrderPaymentFlowMode(updateDto.getOrderPaymentFlowMode());
+        if (updateDto.getInvoiceFooter() != null) profile.setInvoiceFooter(updateDto.getInvoiceFooter());
+        if (updateDto.getReviewUrl() != null) profile.setReviewUrl(updateDto.getReviewUrl());
+        if (updateDto.getFssaiNumber() != null) profile.setFssaiNumber(updateDto.getFssaiNumber());
+
+        long now = System.currentTimeMillis();
+        profile.setUpdatedAt(now);
+        profile.setServerUpdatedAt(now);
+        RestaurantProfile saved = profileRepository.save(profile);
+        return SyncMapper.map(saved, RestaurantProfileDTO.class);
     }
 }

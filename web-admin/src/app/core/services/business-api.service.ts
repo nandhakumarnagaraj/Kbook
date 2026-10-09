@@ -4,6 +4,7 @@ import {
   BusinessDashboard,
   BusinessMenuItem,
   BusinessCategory,
+  BusinessItemVariant,
   BusinessOrder,
   BusinessStaffItem,
   BusinessTerminal,
@@ -26,7 +27,9 @@ import {
   HourlySalesRow,
   ItemSalesRow,
   SyncTerminalItem,
-  NotificationItem
+  NotificationItem,
+  GstLedgerResponse,
+  GstLedgerEntry
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 import { Observable, of } from 'rxjs';
@@ -52,11 +55,12 @@ export class BusinessApiService {
     return this.http.get<BusinessOrder[]>(`${API_BASE_URL}/business/orders`);
   }
 
-  getOrdersPaginated(page: number, size: number, status?: string, from?: string, to?: string) {
+  getOrdersPaginated(page: number, size: number, status?: string, from?: string, to?: string, search?: string) {
     let params = new HttpParams().set('page', page).set('size', size);
     if (status) params = params.set('status', status);
     if (from) params = params.set('from', from);
     if (to) params = params.set('to', to);
+    if (search) params = params.set('search', search);
     return this.http.get<PaginatedOrdersResponse>(`${API_BASE_URL}/business/orders/page`, { params });
   }
 
@@ -210,6 +214,32 @@ export class BusinessApiService {
     );
   }
 
+  // Categories
+  createCategory(name: string): Observable<BusinessCategory> {
+    return this.http.post<BusinessCategory>(`${API_BASE_URL}/business/menu/categories`, { name });
+  }
+
+  updateCategory(categoryId: number, name: string): Observable<BusinessCategory> {
+    return this.http.put<BusinessCategory>(`${API_BASE_URL}/business/menu/categories/${categoryId}`, { name });
+  }
+
+  deleteCategory(categoryId: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/business/menu/categories/${categoryId}`);
+  }
+
+  // Variants
+  getItemVariants(menuItemId: number): Observable<BusinessItemVariant[]> {
+    return this.http.get<BusinessItemVariant[]>(`${API_BASE_URL}/business/menu/${menuItemId}/variants`);
+  }
+
+  createVariant(menuItemId: number, variantName: string, price: number): Observable<BusinessItemVariant> {
+    return this.http.post<BusinessItemVariant>(`${API_BASE_URL}/business/menu/${menuItemId}/variants`, { variantName, price });
+  }
+
+  deleteVariant(menuItemId: number, variantId: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/business/menu/${menuItemId}/variants/${variantId}`);
+  }
+
   // Terminal
   reactivateTerminal(terminalId: number) {
     return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/reactivate`, {});
@@ -220,16 +250,47 @@ export class BusinessApiService {
     return this.http.get<OrderDetailResponse>(`${API_BASE_URL}/business/orders/${billId}`);
   }
 
-  // ── Restaurant settings stub methods ──────────────────────────────────────
-  requestUpdateMobileOtp(...args: any[]): Observable<any> { return of(null); }
-  confirmUpdateMobile(...args: any[]): Observable<any> { return of(null); }
-  uploadLogo(file: File): Observable<any> { return of(null); }
-  deleteLogo(): Observable<any> { return of(null); }
-  lookupFssai(number: string): Observable<any> { return of(null); }
-  lookupGst(number: string): Observable<any> { return of(null); }
-  lookupBoth(fssai: string, gst: string): Observable<any> { return of(null); }
-  getProfile(): Observable<any> { return of(null); }
-  updateProfile(payload: any): Observable<any> { return of(null); }
+  // ── Restaurant settings & compliance ─────────────────────────────────────
+  requestUpdateMobileOtp(newMobileNumber: string): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/sync/config/users/update-mobile/request`, { newMobileNumber });
+  }
+
+  confirmUpdateMobile(newMobileNumber: string, otp: string): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/sync/config/users/update-mobile`, { newMobileNumber, otp });
+  }
+
+  uploadLogo(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${API_BASE_URL}/business/profile/logo`, formData);
+  }
+
+  deleteLogo(): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/business/profile/logo`);
+  }
+
+  lookupFssai(fssaiNo: string): Observable<any> {
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/fssai`, { params: { fssaiNo } });
+  }
+
+  lookupGst(gstin: string): Observable<any> {
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/gst`, { params: { gstin } });
+  }
+
+  lookupBoth(gstin?: string, fssaiNo?: string): Observable<any> {
+    const params: Record<string, string> = {};
+    if (gstin) params['gstin'] = gstin;
+    if (fssaiNo) params['fssaiNo'] = fssaiNo;
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/both`, { params });
+  }
+
+  getProfile(): Observable<any> {
+    return this.http.get<any>(`${API_BASE_URL}/business/profile`);
+  }
+
+  updateProfile(payload: any): Observable<any> {
+    return this.http.put<any>(`${API_BASE_URL}/business/profile`, payload);
+  }
 
   getUserPermissions(userId: number): Observable<any> {
     return this.http.get(`${API_BASE_URL}/permissions/users/${userId}`);
@@ -341,6 +402,10 @@ export class BusinessApiService {
 
   getItemSales(from: string, to: string): Observable<ItemSalesRow[]> {
     return this.http.get<ItemSalesRow[]>(`${API_BASE_URL}/analytics/item-sales`, { params: { from, to } });
+  }
+
+  getGstLedger(from: string, to: string): Observable<GstLedgerResponse> {
+    return this.http.get<GstLedgerResponse>(`${API_BASE_URL}/analytics/gst-ledger`, { params: { from, to } });
   }
 
   // ── Terminal Fleet List ───────────────────────────────────────────────────

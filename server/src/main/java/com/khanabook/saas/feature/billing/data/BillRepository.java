@@ -149,6 +149,14 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
               AND (:status IS NULL OR LOWER(b.orderStatus) = :status)
               AND (:from IS NULL OR b.createdAt >= :from)
               AND (:to IS NULL OR b.createdAt < :to)
+              AND (:search IS NULL OR :search = '' OR (
+                    LOWER(COALESCE(b.dailyOrderDisplay, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.invoiceNumber, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.customerName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.customerWhatsapp, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR CAST(b.dailyOrderId AS string) LIKE CONCAT('%', :search, '%')
+                 OR (b.lifetimeOrderId IS NOT NULL AND CAST(b.lifetimeOrderId AS string) LIKE CONCAT('%', :search, '%'))
+              ))
             ORDER BY b.createdAt DESC
             """)
     Page<Bill> findOrdersPageable(
@@ -156,6 +164,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("status") String status,
             @Param("from") Long from,
             @Param("to") Long to,
+            @Param("search") String search,
             Pageable pageable);
 
     @Query("""
@@ -289,4 +298,6 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     java.util.List<Bill> findByPaymentStatusAndPaidAtBetween(String paymentStatus, Long paidAtStart, Long paidAtEnd);
 
     java.util.List<Bill> findBySettledAtBetween(Long settledAtStart, Long settledAtEnd);
+
+    java.util.List<Bill> findByRestaurantIdAndCreatedAtBetweenAndIsDeletedFalse(Long restaurantId, Long from, Long to);
 }

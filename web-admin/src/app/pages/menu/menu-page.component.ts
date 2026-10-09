@@ -6,7 +6,7 @@ import { forkJoin } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { BusinessCategory, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
+import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -30,6 +30,12 @@ import { environment } from '../../../environments/environment';
           <p class="header-sub">Manage dish descriptions, variant pricing, and real-time counter stock availability.</p>
         </div>
         <div class="header-right">
+          <button type="button" class="ghost-btn-tactile" *ngIf="isOwner" (click)="openCategoriesModal()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h16M4 12h16M4 18h7"/>
+            </svg>
+            Categories
+          </button>
           <button type="button" class="primary-btn-tactile" *ngIf="isOwner" (click)="openAddModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -406,6 +412,64 @@ import { environment } from '../../../environments/environment';
             </div>
           </div>
 
+          <!-- Portion / Size Variants Section (Available for existing dishes) -->
+          <div class="field" *ngIf="editingItem" style="margin-top: 1rem; border-top: 1px solid var(--kb-color-border); padding-top: 1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+              <label style="margin:0; font-weight:700;">Portion / Size Variants</label>
+              <span class="muted" style="font-size:0.75rem;">(e.g., Half, Full, 250ml, 500ml)</span>
+            </div>
+
+            <!-- Existing Variants List -->
+            <div *ngIf="loadingVariants" class="panel loading" style="padding:0.75rem; font-size:0.82rem;">Loading variants...</div>
+            <div *ngIf="!loadingVariants && itemVariants.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom: 0.75rem;">
+              <div *ngFor="let variant of itemVariants; trackBy: trackByVariantId" style="display:flex; align-items:center; justify-content:space-between; padding: 0.45rem 0.75rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 8px;">
+                <div>
+                  <strong style="font-size:0.88rem;">{{ variant.variantName }}</strong>
+                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">₹{{ variant.price }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="ghost-btn danger-btn"
+                  style="padding: 0.2rem 0.5rem; font-size: 0.75rem; min-height: 28px;"
+                  [disabled]="deletingVariantId === variant.id"
+                  (click)="deleteVariant(variant)"
+                >
+                  {{ deletingVariantId === variant.id ? 'Deleting...' : 'Remove' }}
+                </button>
+              </div>
+            </div>
+            <p class="muted" *ngIf="!loadingVariants && !itemVariants.length" style="font-size:0.82rem; margin:0 0 0.5rem;">No portion variants defined for this item yet. Base price applies.</p>
+
+            <!-- Add Variant Form -->
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+              <input
+                type="text"
+                class="field-control"
+                [(ngModel)]="newVariantName"
+                placeholder="Variant name (e.g. Full)"
+                style="flex: 2; min-height:36px; font-size:0.85rem;"
+              />
+              <input
+                type="number"
+                class="field-control"
+                [(ngModel)]="newVariantPrice"
+                placeholder="Price (₹)"
+                min="0.01"
+                step="0.01"
+                style="flex: 1; min-height:36px; font-size:0.85rem;"
+              />
+              <button
+                type="button"
+                class="ghost-btn-tactile"
+                [disabled]="!newVariantName.trim() || !newVariantPrice || newVariantPrice <= 0 || addingVariant"
+                (click)="addVariant()"
+                style="min-height:36px; padding: 0 0.85rem; font-size:0.82rem;"
+              >
+                {{ addingVariant ? 'Adding...' : '+ Add Variant' }}
+              </button>
+            </div>
+          </div>
+
           <p class="error-text" *ngIf="formError">{{ formError }}</p>
 
           <div class="modal-actions">
@@ -417,6 +481,70 @@ import { environment } from '../../../environments/environment';
             >
               {{ formSaving ? 'Saving...' : (editingItem ? 'Update' : 'Add Item') }}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manage Categories Modal -->
+      <div class="modal-backdrop" *ngIf="showCategoriesModal" (click)="closeCategoriesModal()">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+            <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
+            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
+          </div>
+          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted.</p>
+
+          <!-- Add new category inline -->
+          <div style="display:flex; gap:0.5rem; margin-bottom: 1.25rem;">
+            <input
+              type="text"
+              class="field-control"
+              [(ngModel)]="newCategoryModalName"
+              placeholder="New category name (e.g. Starters, Beverages)"
+              style="flex:1;"
+              (keydown.enter)="createCategoryFromModal()"
+            />
+            <button
+              type="button"
+              class="primary-btn-tactile"
+              [disabled]="!newCategoryModalName.trim() || creatingCategory"
+              (click)="createCategoryFromModal()"
+            >
+              {{ creatingCategory ? 'Adding...' : 'Add' }}
+            </button>
+          </div>
+
+          <!-- Category List -->
+          <div class="cat-list-wrap" style="max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+            <div *ngFor="let cat of categories; trackBy: trackByCategoryId" class="cat-list-row" style="display:flex; align-items:center; justify-content:space-between; padding: 0.6rem 0.85rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 10px;">
+              <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:0;">
+                <strong style="font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ cat.name }}</strong>
+                <span class="chip" style="font-size:0.7rem;">{{ getItemsCountInCategory(cat.categoryId) }} items</span>
+              </div>
+              <div *ngIf="renamingCategoryId === cat.categoryId" style="display:flex; gap:0.4rem; flex:1; margin-right: 0.5rem;">
+                <input
+                  type="text"
+                  class="field-control"
+                  [(ngModel)]="renamingCategoryName"
+                  style="flex:1; min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.85rem;"
+                  (keydown.enter)="saveRenameCategory(cat)"
+                />
+                <button type="button" class="primary-btn-tactile" style="min-height:34px; padding: 0.3rem 0.65rem; font-size: 0.78rem;" (click)="saveRenameCategory(cat)">Save</button>
+                <button type="button" class="ghost-btn" style="min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.78rem;" (click)="cancelRenameCategory()">Cancel</button>
+              </div>
+
+              <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; gap:0.35rem;">
+                <button type="button" class="ghost-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="startRenameCategory(cat)">Rename</button>
+                <button type="button" class="ghost-btn danger-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="deleteCategoryPrompt(cat)" [disabled]="getItemsCountInCategory(cat.categoryId) > 0" [title]="getItemsCountInCategory(cat.categoryId) > 0 ? 'Cannot delete category containing dishes' : 'Delete category'">Delete</button>
+              </div>
+            </div>
+            <div *ngIf="!categories.length" style="text-align:center; padding:1.5rem; color: var(--kb-color-muted-foreground); font-size: 0.88rem;">
+              No categories configured yet.
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 1.25rem;">
+            <button type="button" class="ghost-btn" (click)="closeCategoriesModal()">Done</button>
           </div>
         </div>
       </div>
@@ -669,6 +797,20 @@ export class MenuPageComponent implements OnDestroy {
   newCategoryName = '';
   creatingCategory = false;
 
+  // Manage Categories modal state
+  showCategoriesModal = false;
+  newCategoryModalName = '';
+  renamingCategoryId: number | null = null;
+  renamingCategoryName = '';
+
+  // Portion variants state inside edit modal
+  itemVariants: BusinessItemVariant[] = [];
+  loadingVariants = false;
+  newVariantName = '';
+  newVariantPrice: number | null = null;
+  addingVariant = false;
+  deletingVariantId: number | null = null;
+
   // Delete state
   deleteTarget: BusinessMenuItem | null = null;
 
@@ -763,44 +905,208 @@ export class MenuPageComponent implements OnDestroy {
     });
   }
 
-  // --- Category Creation ---
+  // --- Category Creation (REST API) ---
 
   createCategory(): void {
     const name = this.newCategoryName.trim();
     if (!name || this.creatingCategory) return;
     this.creatingCategory = true;
-    // Use the sync push endpoint to create a category
-    const now = Date.now();
-    const payload = [{
-      name,
-      isVeg: null,
-      sortOrder: this.categories.length,
-      isActive: true,
-      localId: now,
-      deviceId: 'web-admin',
-      restaurantId: 0,
-      updatedAt: now,
-      createdAt: now,
-      isDeleted: false,
-      serverUpdatedAt: 0
-    }];
-    this.http.post<any>(`${this.apiBaseUrl}/sync/menu/categories/push`, payload).subscribe({
-      next: () => {
+    this.api.createCategory(name).subscribe({
+      next: (cat) => {
         this.creatingCategory = false;
         this.newCategoryName = '';
         this.showNewCategoryInput = false;
         this.toast.show('Category created successfully', 'success');
-        // Reload categories
         this.api.getMenuCategories().subscribe({
-          next: (cats) => { this.categories = cats; }
+          next: (cats) => {
+            this.categories = cats;
+            this.formCategoryId = cat.categoryId;
+            this.cdr.markForCheck();
+          }
         });
       },
-      error: () => {
+      error: (err) => {
         this.creatingCategory = false;
-        this.toast.show('Failed to create category. Try again.', 'error');
+        const msg = err?.error?.message || 'Failed to create category. Try again.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
       }
     });
   }
+
+  // --- Manage Categories Modal Handlers ---
+
+  openCategoriesModal(): void {
+    this.showCategoriesModal = true;
+    this.newCategoryModalName = '';
+    this.renamingCategoryId = null;
+    this.renamingCategoryName = '';
+  }
+
+  closeCategoriesModal(): void {
+    this.showCategoriesModal = false;
+    this.renamingCategoryId = null;
+    this.renamingCategoryName = '';
+  }
+
+  getItemsCountInCategory(categoryId: number): number {
+    return this.items.filter(i => i.categoryId === categoryId).length;
+  }
+
+  createCategoryFromModal(): void {
+    const name = this.newCategoryModalName.trim();
+    if (!name || this.creatingCategory) return;
+    this.creatingCategory = true;
+    this.api.createCategory(name).subscribe({
+      next: (cat) => {
+        this.creatingCategory = false;
+        this.newCategoryModalName = '';
+        this.toast.show(`Category '${cat.name}' created`, 'success');
+        this.api.getMenuCategories().subscribe({
+          next: (cats) => {
+            this.categories = cats;
+            this.cdr.markForCheck();
+          }
+        });
+      },
+      error: (err) => {
+        this.creatingCategory = false;
+        const msg = err?.error?.message || 'Failed to create category.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  startRenameCategory(cat: BusinessCategory): void {
+    this.renamingCategoryId = cat.categoryId;
+    this.renamingCategoryName = cat.name;
+  }
+
+  cancelRenameCategory(): void {
+    this.renamingCategoryId = null;
+    this.renamingCategoryName = '';
+  }
+
+  saveRenameCategory(cat: BusinessCategory): void {
+    const newName = this.renamingCategoryName.trim();
+    if (!newName || newName === cat.name) {
+      this.cancelRenameCategory();
+      return;
+    }
+    this.api.updateCategory(cat.categoryId, newName).subscribe({
+      next: (updated) => {
+        cat.name = updated.name;
+        for (const it of this.items) {
+          if (it.categoryId === cat.categoryId) {
+            it.categoryName = updated.name;
+          }
+        }
+        this.cancelRenameCategory();
+        this.toast.show(`Category renamed to '${updated.name}'`, 'success');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Failed to rename category.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  deleteCategoryPrompt(cat: BusinessCategory): void {
+    const count = this.getItemsCountInCategory(cat.categoryId);
+    if (count > 0) {
+      this.toast.show(`Cannot delete '${cat.name}' because it contains ${count} dish(es). Move or delete the dishes first.`, 'error');
+      return;
+    }
+    this.api.deleteCategory(cat.categoryId).subscribe({
+      next: () => {
+        this.categories = this.categories.filter(c => c.categoryId !== cat.categoryId);
+        this.toast.show(`Category '${cat.name}' deleted`, 'success');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Failed to delete category.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  // --- Variants Management Handlers ---
+
+  loadVariants(menuItemId: number): void {
+    this.loadingVariants = true;
+    this.api.getItemVariants(menuItemId).subscribe({
+      next: (variants) => {
+        this.itemVariants = variants;
+        this.loadingVariants = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.itemVariants = [];
+        this.loadingVariants = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  addVariant(): void {
+    if (!this.editingItem || !this.newVariantName.trim() || !this.newVariantPrice || this.newVariantPrice <= 0) return;
+    this.addingVariant = true;
+    this.api.createVariant(this.editingItem.menuItemId, this.newVariantName.trim(), Number(this.newVariantPrice)).subscribe({
+      next: (variant) => {
+        this.addingVariant = false;
+        this.newVariantName = '';
+        this.newVariantPrice = null;
+        this.toast.show(`Variant ${variant.variantName} added`, 'success');
+        this.loadVariants(this.editingItem!.menuItemId);
+        if (this.editingItem) {
+          this.editingItem.variantCount = (this.editingItem.variantCount || 0) + 1;
+        }
+        const idx = this.items.findIndex(i => i.menuItemId === this.editingItem?.menuItemId);
+        if (idx >= 0) {
+          this.items[idx].variantCount = (this.items[idx].variantCount || 0) + 1;
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.addingVariant = false;
+        const msg = err?.error?.message || 'Failed to add variant.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  deleteVariant(variant: BusinessItemVariant): void {
+    if (!this.editingItem) return;
+    this.deletingVariantId = variant.id;
+    this.api.deleteVariant(this.editingItem.menuItemId, variant.id).subscribe({
+      next: () => {
+        this.deletingVariantId = null;
+        this.toast.show(`Variant ${variant.variantName} removed`, 'success');
+        this.loadVariants(this.editingItem!.menuItemId);
+        if (this.editingItem) {
+          this.editingItem.variantCount = Math.max(0, (this.editingItem.variantCount || 1) - 1);
+        }
+        const idx = this.items.findIndex(i => i.menuItemId === this.editingItem?.menuItemId);
+        if (idx >= 0) {
+          this.items[idx].variantCount = Math.max(0, (this.items[idx].variantCount || 1) - 1);
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.deletingVariantId = null;
+        const msg = err?.error?.message || 'Failed to delete variant.';
+        this.toast.show(msg, 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  trackByVariantId = (_: number, variant: BusinessItemVariant) => variant.id;
 
   // --- Add/Edit Modal ---
 
@@ -814,6 +1120,9 @@ export class MenuPageComponent implements OnDestroy {
     this.formError = '';
     this.formSaving = false;
     this.formAvailable = true;
+    this.itemVariants = [];
+    this.newVariantName = '';
+    this.newVariantPrice = null;
     this.resetFormPhoto();
     this.showFormModal = true;
   }
@@ -828,13 +1137,18 @@ export class MenuPageComponent implements OnDestroy {
     this.formError = '';
     this.formSaving = false;
     this.formAvailable = item.available ?? true;
+    this.itemVariants = [];
+    this.newVariantName = '';
+    this.newVariantPrice = null;
     this.resetFormPhoto(item.imageUrl?.trim() || null);
     this.showFormModal = true;
+    this.loadVariants(item.menuItemId);
   }
 
   closeFormModal(): void {
     this.showFormModal = false;
     this.editingItem = null;
+    this.itemVariants = [];
     this.formError = '';
     this.resetFormPhoto();
   }

@@ -126,7 +126,7 @@
   --kb-z-topbar: 30; --kb-z-backdrop: 40; --kb-z-modal: 50; --kb-z-toast: 60;
   --kb-sidebar-width: 240px; --kb-topbar-height: 56px;
   --kb-content-max-width: 1400px;
-  --kb-touch-min: 40px; --kb-touch-primary: 44px;
+  --kb-touch-min: 44px; --kb-touch-primary: 48px;
 
   /* POS Command Center Theme Tokens */
   --pos-sidebar-bg:         #181B34;
@@ -332,6 +332,10 @@ td { color: var(--ink-2); font-size: 0.88rem; }
 tr:last-child td { border-bottom: none; }
 tbody tr { transition: background 0.12s ease; }
 tbody tr:hover { background: var(--panel-2); }
+.num-cell, .tabular-num, .tabular-nums, td.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
 
 /* ============ Toolbar ============ */
 .toolbar {
@@ -413,7 +417,7 @@ tbody tr:hover { background: var(--panel-2); }
 /* ============ Form fields ============ */
 .field-control, .field-select {
   width: 100%;
-  min-height: 40px;
+  min-height: var(--kb-touch-min, 44px);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
@@ -425,6 +429,12 @@ tbody tr:hover { background: var(--panel-2); }
 .field-control::placeholder { color: var(--muted); }
 .field-control:focus, .field-select:focus {
   outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+.field-control:focus-visible, .field-select:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-ring);
 }
@@ -778,7 +788,8 @@ td.price,
   .modal-actions button { width: 100%; }
 }
 @media (max-width: 767px) {
-  .table-wrap > .data-table { display: none; }
+  .table-wrap:has(.mobile-data-list) > .data-table { display: none; }
+  .table-wrap:not(:has(.mobile-data-list)) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .mobile-data-list { display: grid; gap: 0.75rem; padding: 0.75rem; }
 }
 @keyframes sheetUp {

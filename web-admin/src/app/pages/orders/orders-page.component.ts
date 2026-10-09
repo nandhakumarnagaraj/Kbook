@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
@@ -165,6 +166,54 @@ export function filterBusinessOrders(
         Loading order details...
       </div>
 
+      <!-- Order Cancellation Modal (Accessible Design-System Dialog) -->
+      <div class="modal-backdrop" *ngIf="orderToCancel" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
+        <section class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div>
+              <span class="chip danger">Void / Cancel Order</span>
+              <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel.orderCode }}</h3>
+              <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
+                Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} · {{ orderToCancel.customerName || 'Walk-in customer' }}
+              </p>
+            </div>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
+          </div>
+
+          <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
+            <div class="field">
+              <label for="cancel-preset">Cancellation Reason</label>
+              <select id="cancel-preset" class="field-select" [(ngModel)]="cancelReasonPreset" [disabled]="cancelSubmitting">
+                <option value="Customer requested cancellation">Customer requested cancellation</option>
+                <option value="Kitchen unable to fulfill / Item out of stock">Kitchen unable to fulfill / Item out of stock</option>
+                <option value="Duplicate order entry">Duplicate order entry</option>
+                <option value="Entered by mistake / Billing error">Entered by mistake / Billing error</option>
+                <option value="Other reason">Other reason</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="cancel-custom-note">Additional Note (Optional)</label>
+              <input
+                id="cancel-custom-note"
+                type="text"
+                class="field-control"
+                [(ngModel)]="cancelReasonCustom"
+                [disabled]="cancelSubmitting"
+                placeholder="Optional explanation or reference note..."
+              />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting">Keep Order</button>
+            <button type="button" class="primary-btn-tactile danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting">
+              {{ cancelSubmitting ? 'Cancelling...' : 'Confirm Cancellation' }}
+            </button>
+          </div>
+        </section>
+      </div>
+
       <!-- Bento KPI Strip (bentogrids.com standard) -->
       <section class="orders-bento-grid" *ngIf="ordersLoaded && filteredOrders.length" aria-label="Orders Analytics Overview">
         <article class="bento-tile bento-tile--hero">
@@ -209,6 +258,7 @@ export function filterBusinessOrders(
               class="field-control"
               type="text"
               [(ngModel)]="orderSearchTerm"
+              (ngModelChange)="onSearchChange($event)"
               placeholder="Search by order code, customer, or invoice number"
             />
           </div>
@@ -260,8 +310,8 @@ export function filterBusinessOrders(
               <th>Customer</th>
               <th>Status</th>
               <th>Payment</th>
-              <th>Total</th>
-              <th>Refund</th>
+              <th class="num-cell tabular-num">Total</th>
+              <th class="num-cell tabular-num">Refund</th>
               <th>Created</th>
               <th>Action</th>
             </tr>
@@ -292,8 +342,8 @@ export function filterBusinessOrders(
                   {{ order.paymentStatus }}
                 </span>
               </td>
-              <td>{{ formatCurrencyValue(order.totalAmount) }}</td>
-              <td>
+              <td class="num-cell tabular-num">{{ formatCurrencyValue(order.totalAmount) }}</td>
+              <td class="num-cell tabular-num">
                 <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">
                   -{{ formatCurrencyValue(order.refundAmount) }}<br />
                   <span class="refund-meta">
@@ -316,7 +366,7 @@ export function filterBusinessOrders(
                   <button
                     *ngIf="order.orderStatus === 'draft' || order.orderStatus === 'completed'"
                     class="ghost-btn danger-btn"
-                    (click)="cancelOrder(order); $event.stopPropagation()"
+                    (click)="openCancelModal(order); $event.stopPropagation()"
                   >
                     Cancel
                   </button>
@@ -336,9 +386,12 @@ export function filterBusinessOrders(
               <span class="mobile-order-card__amount">{{ formatCurrencyValue(order.totalAmount) }}</span>
               <span class="mobile-order-card__meta">{{ order.sourceType }} · {{ order.paymentMethod }} · {{ formatDateValue(order.createdAt) }}</span>
             </button>
-            <div class="mobile-order-card__footer" *ngIf="order.manualRefundAllowed || (order.refundAmount && order.refundAmount > 0)">
+            <div class="mobile-order-card__footer" *ngIf="order.manualRefundAllowed || (order.refundAmount && order.refundAmount > 0) || order.orderStatus === 'draft' || order.orderStatus === 'completed'">
               <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">Refunded {{ formatCurrencyValue(order.refundAmount) }}</span>
-              <button *ngIf="order.manualRefundAllowed" type="button" class="ghost-btn danger-btn" (click)="openManualRefund(order)">Manual Refund</button>
+              <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+                <button *ngIf="order.orderStatus === 'draft' || order.orderStatus === 'completed'" type="button" class="ghost-btn danger-btn" (click)="openCancelModal(order)">Cancel</button>
+                <button *ngIf="order.manualRefundAllowed" type="button" class="ghost-btn danger-btn" (click)="openManualRefund(order)">Manual Refund</button>
+              </div>
             </div>
           </article>
         </div>
@@ -689,8 +742,28 @@ export class OrdersPageComponent implements OnDestroy {
   selectedOrderDetail: OrderDetailResponse | null = null;
   orderDetailLoading = false;
 
+  // Cancel order modal state
+  orderToCancel: BusinessOrder | null = null;
+  cancelReasonPreset = 'Customer requested cancellation';
+  cancelReasonCustom = '';
+  cancelSubmitting = false;
+
+  private readonly searchSubject = new Subject<string>();
+  private searchSub?: Subscription;
+
   constructor() {
+    this.searchSub = this.searchSubject.pipe(
+      debounceTime(350),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      this.orderCurrentPage = 1;
+      this.loadOrders();
+    });
     this.loadOrders();
+  }
+
+  onSearchChange(value: string): void {
+    this.searchSubject.next(value);
   }
 
   get businessOrderStatuses(): string[] {
@@ -702,13 +775,10 @@ export class OrdersPageComponent implements OnDestroy {
   }
 
   get filteredOrders(): BusinessOrder[] {
-    return filterBusinessOrders(this.orders, {
-      searchTerm: this.orderSearchTerm,
-      statusFilter: 'ALL',
-      sourceFilter: this.orderSourceFilter,
-      dateFrom: null,
-      dateTo: null
-    });
+    if (this.orderSourceFilter !== 'ALL') {
+      return this.orders.filter(order => order.sourceType === this.orderSourceFilter);
+    }
+    return this.orders;
   }
 
   get pagedOrders(): BusinessOrder[] {
@@ -758,7 +828,8 @@ export class OrdersPageComponent implements OnDestroy {
     const serverStatus = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
-    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, serverStatus, from, to).subscribe({
+    const search = this.orderSearchTerm?.trim() || undefined;
+    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, serverStatus, from, to, search).subscribe({
       next: (data: PaginatedOrdersResponse) => {
         this.orders = data.content;
         this.serverTotalElements = data.totalElements;
@@ -817,17 +888,43 @@ export class OrdersPageComponent implements OnDestroy {
     this.loadOrders();
   }
 
-  // --- Cancel Order ---
+  // --- Cancel Order Modal Handlers ---
 
-  cancelOrder(order: BusinessOrder): void {
-    const reason = prompt('Enter cancellation reason:');
-    if (reason === null) return; // user clicked Cancel
-    this.api.voidBill(order.orderId, reason || 'Cancelled by admin').subscribe({
+  openCancelModal(order: BusinessOrder): void {
+    this.orderToCancel = order;
+    this.cancelReasonPreset = 'Customer requested cancellation';
+    this.cancelReasonCustom = '';
+    this.cancelSubmitting = false;
+  }
+
+  closeCancelModal(): void {
+    if (this.cancelSubmitting) return;
+    this.orderToCancel = null;
+  }
+
+  confirmCancelOrder(): void {
+    if (!this.orderToCancel) return;
+    const base = this.cancelReasonPreset === 'Other reason' ? '' : this.cancelReasonPreset;
+    const custom = this.cancelReasonCustom.trim();
+    let reason = 'Cancelled by admin';
+    if (base && custom) {
+      reason = `${base}: ${custom}`;
+    } else if (base) {
+      reason = base;
+    } else if (custom) {
+      reason = custom;
+    }
+
+    this.cancelSubmitting = true;
+    this.api.voidBill(this.orderToCancel.orderId, reason).subscribe({
       next: () => {
+        this.cancelSubmitting = false;
         this.toast.show('Order cancelled.', 'success');
+        this.closeCancelModal();
         this.loadOrders();
       },
       error: (err: any) => {
+        this.cancelSubmitting = false;
         const msg = err?.error?.message || err?.error?.error || 'Failed to cancel order.';
         this.toast.show(msg, 'error');
       }
@@ -931,6 +1028,7 @@ export class OrdersPageComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
     // Release the refund dialog's body scroll-lock when navigating away mid-dialog.
     document.body.style.overflow = '';
   }

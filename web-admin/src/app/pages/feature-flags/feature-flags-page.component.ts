@@ -79,6 +79,46 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </tbody>
         </table>
+        <div class="mobile-data-list" aria-label="Feature flags" *ngIf="!error() && flags().length">
+          <article class="mobile-data-card" *ngFor="let flag of flags(); trackBy: trackByFlagKey">
+            <div class="mobile-data-card__head">
+              <strong>{{ flag.flagKey }}</strong>
+              <span class="chip" [class.success]="flag.effectiveState" [class.danger]="!flag.effectiveState">
+                {{ flag.effectiveState ? 'ENABLED' : 'DISABLED' }}
+              </span>
+            </div>
+            <p>{{ flag.description }}</p>
+            <dl>
+              <div>
+                <dt>Kill Switch</dt>
+                <dd>
+                  <label class="switch-label">
+                    <input type="checkbox" [checked]="flag.killSwitched" (change)="toggleKillSwitch(flag, $event)" [disabled]="saving()" />
+                    <span class="switch-track"></span>
+                  </label>
+                  <span class="muted" [class.danger-text]="flag.killSwitched">{{ flag.killSwitched ? 'On' : 'Off' }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Default</dt>
+                <dd>
+                  <label class="switch-label">
+                    <input type="checkbox" [checked]="flag.defaultEnabled" (change)="toggleDefault(flag, $event)" [disabled]="saving()" />
+                    <span class="switch-track"></span>
+                  </label>
+                  <span class="muted">{{ flag.defaultEnabled ? 'On' : 'Off' }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Updated</dt>
+                <dd class="tabular-num">{{ formatDateValue(flag.updatedAt) }}</dd>
+              </div>
+            </dl>
+            <div class="mobile-data-card__actions">
+              <button class="ghost-btn" [disabled]="saving()" (click)="loadAudit(flag)">History</button>
+            </div>
+          </article>
+        </div>
         <ng-template #emptyBlock>
           <div class="empty-state">
             <p>No feature flags configured.</p>
@@ -126,6 +166,22 @@ import { formatDate } from '../../shared/formatters';
             </tr>
           </tbody>
         </table>
+        <div class="mobile-data-list" aria-label="Audit history" *ngIf="audit().length">
+          <article class="mobile-data-card" *ngFor="let row of audit(); trackBy: trackByIndex">
+            <div class="mobile-data-card__head">
+              <span class="chip">{{ row.scope }}</span>
+              <span class="chip" [class.success]="row.newState === 'ENABLED'" [class.danger]="row.newState === 'DISABLED'">
+                {{ row.newState }}
+              </span>
+            </div>
+            <dl>
+              <div><dt>When</dt><dd class="tabular-num">{{ formatDateValue(row.changedAt) }}</dd></div>
+              <div><dt>Restaurant</dt><dd>{{ row.restaurantId ?? '-' }}</dd></div>
+              <div><dt>Previous</dt><dd class="muted">{{ row.previousState ?? '-' }}</dd></div>
+              <div><dt>Actor</dt><dd>{{ row.actorUsername || (row.actorUserId !== null ? 'user#' + row.actorUserId : '-') }}</dd></div>
+            </dl>
+          </article>
+        </div>
         <ng-template #noAuditRows>
           <div class="empty-state"><p>No changes recorded for this flag yet.</p></div>
         </ng-template>

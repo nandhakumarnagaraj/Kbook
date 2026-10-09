@@ -256,6 +256,60 @@ public class AnalyticsController {
         return ResponseEntity.ok(result);
     }
 
+    /** GST compliance ledger: taxable turnover, CGST, SGST, total tax, invoice breakdown */
+    @GetMapping("/gst-ledger")
+    public ResponseEntity<Map<String, Object>> gstLedger(
+            @RequestParam String from, @RequestParam String to) {
+        requirePermission("reports.day_summary");
+        Long restaurantId = requireTenant();
+        Range range = range(from, to);
+
+        List<com.khanabook.saas.feature.billing.data.Bill> bills =
+                billRepository.findByRestaurantIdAndCreatedAtBetweenAndIsDeletedFalse(restaurantId, range.from(), range.to());
+
+        BigDecimal totalTaxable = BigDecimal.ZERO;
+        BigDecimal totalCgst = BigDecimal.ZERO;
+        BigDecimal totalSgst = BigDecimal.ZERO;
+        BigDecimal totalTax = BigDecimal.ZERO;
+        List<Map<String, Object>> entries = new ArrayList<>();
+
+        for (var b : bills) {
+            if ("cancelled".equalsIgnoreCase(b.getOrderStatus())) continue;
+            BigDecimal cgst = b.getCgstAmount() != null ? b.getCgstAmount() : BigDecimal.ZERO;
+            BigDecimal sgst = b.getSgstAmount() != null ? b.getSgstAmount() : BigDecimal.ZERO;
+            BigDecimal tax = cgst.add(sgst);
+            BigDecimal subtotal = b.getSubtotal() != null ? b.getSubtotal() : b.getTotalAmount();
+            if (subtotal == null) subtotal = BigDecimal.ZERO;
+
+            totalTaxable = totalTaxable.add(subtotal);
+            totalCgst = totalCgst.add(cgst);
+            totalSgst = totalSgst.add(sgst);
+            totalTax = totalTax.add(tax);
+
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("billId", b.getId());
+            entry.put("invoiceNumber", b.getInvoiceNumber() != null ? b.getInvoiceNumber() : (b.getDailyOrderDisplay() != null ? b.getDailyOrderDisplay() : String.valueOf(b.getDailyOrderId())));
+            entry.put("customerName", b.getCustomerName());
+            entry.put("subtotal", subtotal);
+            entry.put("gstRate", b.getGstPercentage() != null ? b.getGstPercentage() : BigDecimal.ZERO);
+            entry.put("cgst", cgst);
+            entry.put("sgst", sgst);
+            entry.put("totalTax", tax);
+            entry.put("totalAmount", b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO);
+            entry.put("createdAt", b.getCreatedAt());
+            entries.add(entry);
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("totalTaxable", totalTaxable);
+        out.put("totalCgst", totalCgst);
+        out.put("totalSgst", totalSgst);
+        out.put("totalTax", totalTax);
+        out.put("invoiceCount", entries.size());
+        out.put("entries", entries);
+        return ResponseEntity.ok(out);
+    }
+
     private static Range range(String from, String to) {
         LocalDate f = LocalDate.parse(from);
         LocalDate t = LocalDate.parse(to).plusDays(1); // exclusive end

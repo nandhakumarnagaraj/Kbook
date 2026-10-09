@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.khanabook.saas.feature.menu.service.AssetStorageService;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -53,9 +54,10 @@ public class BusinessAdminController {
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String search) {
         size = Math.min(size, 100);
-        return ResponseEntity.ok(businessReadService.getOrdersPaginated(requireTenant(), page, size, status, from, to));
+        return ResponseEntity.ok(businessReadService.getOrdersPaginated(requireTenant(), page, size, status, from, to, search));
     }
 
     @GetMapping("/orders/{billId}")
@@ -199,12 +201,90 @@ public class BusinessAdminController {
         return ResponseEntity.ok().build();
     }
 
+    // ─── Category Write Endpoints ────────────────────────────────────────────────
+
+    @PostMapping("/menu/categories")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessCategoryResponse> createCategory(@RequestBody java.util.Map<String, String> body) {
+        String name = body != null ? body.get("name") : null;
+        var cat = businessWriteService.createCategory(requireTenant(), name);
+        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName()));
+    }
+
+    @PutMapping("/menu/categories/{categoryId}")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessCategoryResponse> updateCategory(
+            @PathVariable Long categoryId, @RequestBody java.util.Map<String, String> body) {
+        String name = body != null ? body.get("name") : null;
+        var cat = businessWriteService.updateCategory(requireTenant(), categoryId, name);
+        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName()));
+    }
+
+    @DeleteMapping("/menu/categories/{categoryId}")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long categoryId) {
+        businessWriteService.deleteCategory(requireTenant(), categoryId);
+        return ResponseEntity.ok().build();
+    }
+
+    // ─── Variant Endpoints ──────────────────────────────────────────────────────
+
+    @GetMapping("/menu/{menuItemId}/variants")
+    public ResponseEntity<List<BusinessItemVariantResponse>> getItemVariants(@PathVariable Long menuItemId) {
+        return ResponseEntity.ok(businessReadService.getItemVariants(requireTenant(), menuItemId));
+    }
+
+    @PostMapping("/menu/{menuItemId}/variants")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessItemVariantResponse> createVariant(
+            @PathVariable Long menuItemId, @RequestBody java.util.Map<String, Object> body) {
+        String name = body != null && body.get("variantName") != null ? body.get("variantName").toString() : null;
+        java.math.BigDecimal price = body != null && body.get("price") != null ? new java.math.BigDecimal(body.get("price").toString()) : null;
+        var variant = businessWriteService.createVariant(requireTenant(), menuItemId, name, price);
+        return ResponseEntity.ok(new BusinessItemVariantResponse(
+                variant.getId(), variant.getMenuItemId(), variant.getVariantName(), variant.getPrice(), variant.getIsAvailable(), variant.getSortOrder()));
+    }
+
+    @DeleteMapping("/menu/{menuItemId}/variants/{variantId}")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> deleteVariant(@PathVariable Long menuItemId, @PathVariable Long variantId) {
+        businessWriteService.deleteVariant(requireTenant(), menuItemId, variantId);
+        return ResponseEntity.ok().build();
+    }
+
     // ─── Terminal Write Endpoints ────────────────────────────────────────────────
 
     @PostMapping("/terminals/{terminalId}/reactivate")
     @RequireRole(UserRole.OWNER)
     public ResponseEntity<Void> reactivateTerminal(@PathVariable Long terminalId) {
         businessWriteService.reactivateTerminal(requireTenant(), terminalId);
+        return ResponseEntity.ok().build();
+    }
+
+    // ─── Profile & Logo Endpoints ───────────────────────────────────────────────
+
+    @GetMapping("/profile")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<RestaurantProfileDTO> getProfile() {
+        return ResponseEntity.ok(businessReadService.getProfile(requireTenant()));
+    }
+
+    @PutMapping("/profile")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<RestaurantProfileDTO> updateProfile(@RequestBody RestaurantProfileDTO dto) {
+        return ResponseEntity.ok(businessWriteService.updateProfile(requireTenant(), dto));
+    }
+
+    @PostMapping(value = "/profile/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<AssetStorageService.AssetUploadResult> uploadLogo(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(assetStorageService.uploadLogo(requireTenant(), file));
+    }
+
+    @DeleteMapping("/profile/logo")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> deleteLogo() {
+        assetStorageService.deleteLogo(requireTenant());
         return ResponseEntity.ok().build();
     }
 

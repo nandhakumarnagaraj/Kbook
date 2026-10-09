@@ -16,11 +16,16 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.menu.data.MenuItemRepository;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
+import com.khanabook.saas.feature.sync.data.SyncMapper;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.business.dto.BusinessDashboardResponse;
 import com.khanabook.saas.feature.business.dto.BusinessCategoryResponse;
+import com.khanabook.saas.feature.business.dto.BusinessItemVariantResponse;
 import com.khanabook.saas.feature.business.dto.BusinessMenuListItemResponse;
+import com.khanabook.saas.feature.menu.data.ItemVariant;
 import com.khanabook.saas.feature.business.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.feature.business.dto.BusinessStaffListItemResponse;
 import com.khanabook.saas.feature.reports.dto.DashboardTrendsResponse;
@@ -154,15 +159,23 @@ public class BusinessReadService {
 
     @Transactional(readOnly = true)
     public PaginatedOrdersResponse getOrdersPaginated(Long restaurantId, int page, int size, String status, LocalDate from, LocalDate to) {
+        return getOrdersPaginated(restaurantId, page, size, status, from, to, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PaginatedOrdersResponse getOrdersPaginated(Long restaurantId, int page, int size, String status, LocalDate from, LocalDate to, String search) {
         String normalizedStatus = (status != null && !status.trim().isEmpty())
                 ? status.trim().toLowerCase(java.util.Locale.ROOT)
+                : null;
+        String normalizedSearch = (search != null && !search.trim().isEmpty())
+                ? search.trim().toLowerCase(java.util.Locale.ROOT)
                 : null;
         ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
         Long fromEpoch = from != null ? from.atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
         Long toEpoch = to != null ? to.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() : null;
 
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<Bill> billPage = billRepository.findOrdersPageable(restaurantId, normalizedStatus, fromEpoch, toEpoch, pageable);
+        org.springframework.data.domain.Page<Bill> billPage = billRepository.findOrdersPageable(restaurantId, normalizedStatus, fromEpoch, toEpoch, normalizedSearch, pageable);
 
         List<BusinessOrderListItemResponse> content = billPage.getContent().stream()
                 .map(this::toBillOrderResponse)
@@ -500,5 +513,21 @@ public class BusinessReadService {
                 .imageVersion(item.getImageVersion())
                 .updatedAt(item.getUpdatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BusinessItemVariantResponse> getItemVariants(Long restaurantId, Long menuItemId) {
+        return itemVariantRepository.findByRestaurantIdAndServerUpdatedAtGreaterThan(restaurantId, 0L).stream()
+                .filter(v -> !Boolean.TRUE.equals(v.getIsDeleted()) && menuItemId.equals(v.getMenuItemId()))
+                .sorted(Comparator.comparing(ItemVariant::getSortOrder, Comparator.nullsLast(Integer::compareTo)))
+                .map(v -> new BusinessItemVariantResponse(
+                        v.getId(), v.getMenuItemId(), v.getVariantName(), v.getPrice(), v.getIsAvailable(), v.getSortOrder()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public RestaurantProfileDTO getProfile(Long restaurantId) {
+        RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(restaurantId).orElse(null);
+        return SyncMapper.map(profile, RestaurantProfileDTO.class);
     }
 }

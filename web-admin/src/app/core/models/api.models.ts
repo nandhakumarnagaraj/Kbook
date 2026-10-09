@@ -150,6 +150,15 @@ export interface BusinessCategory {
   name: string;
 }
 
+export interface BusinessItemVariant {
+  id: number;
+  menuItemId: number;
+  variantName: string;
+  price: number;
+  isAvailable: boolean;
+  sortOrder: number;
+}
+
 export interface BusinessStaffItem {
   userId: number;
   name: string;
@@ -302,20 +311,28 @@ export interface AdminTransaction {
   restaurantId: number;
   amount: number;
   status: string;
-  paymentMethod: string;
-  gatewayTransactionId: string | null;
-  createdAt: number;
+  paymentMethod?: string;
+  gatewayTransactionId?: string | null;
+  shopName?: string | null;
+  txnId?: string;
+  easebuzzId?: string;
+  receivedAt?: number;
+  createdAt?: number;
 }
 
 export interface AdminSettlement {
-  id: number;
+  id?: number;
   restaurantId: number;
-  amount: number;
-  status: string;
-  settledAt: number | null;
-  utr: string | null;
-  shopName: string | null;
-  createdAt: number | null;
+  shopName?: string | null;
+  amount?: number;
+  totalSettled?: number;
+  totalCommission?: number;
+  orderCount?: number;
+  lastSettledAt?: number | null;
+  status?: string;
+  settledAt?: number | null;
+  utr?: string | null;
+  createdAt?: number | null;
 }
 
 export interface AdminCommission {
@@ -431,5 +448,27 @@ export interface NotificationItem {
   eventType: string;
   isRead: boolean;
   createdAt: number;
+}
+
+export interface GstLedgerEntry {
+  billId: number;
+  invoiceNumber: string;
+  customerName: string | null;
+  subtotal: number;
+  gstRate: number;
+  cgst: number;
+  sgst: number;
+  totalTax: number;
+  totalAmount: number;
+  createdAt: number;
+}
+
+export interface GstLedgerResponse {
+  totalTaxable: number;
+  totalCgst: number;
+  totalSgst: number;
+  totalTax: number;
+  invoiceCount: number;
+  entries: GstLedgerEntry[];
 }
 

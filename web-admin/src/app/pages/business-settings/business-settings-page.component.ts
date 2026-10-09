@@ -23,6 +23,9 @@ interface RestaurantProfile {
   gstPercentage: number;
   customTaxName: string;
   customTaxPercentage: number;
+  fssaiNumber: string;
+  fssaiExpiryDate: string;
+  gstExpiryDate: string;
   upiEnabled: boolean;
   upiHandle: string;
   upiMobile: string;
@@ -95,6 +98,43 @@ interface RestaurantProfile {
             </div>
           </div>
 
+          <!-- Logo Management -->
+          <div class="logo-uploader-card">
+            <div class="logo-preview-box">
+              <img *ngIf="p.logoUrl" [src]="p.logoUrl" alt="Restaurant logo" class="logo-preview-img" />
+              <div *ngIf="!p.logoUrl" class="logo-empty-box">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span>No Logo</span>
+              </div>
+            </div>
+            <div class="logo-meta">
+              <h4>Storefront &amp; Thermal Receipt Logo</h4>
+              <p class="muted">Upload your brand mark. Displayed on bills, printed thermal receipts, and digital menus (PNG, JPG, max 2MB).</p>
+              <div class="logo-actions">
+                <label class="ghost-btn-tactile file-picker-label">
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" />
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  {{ logoBusy() ? 'Uploading...' : (p.logoUrl ? 'Change Logo' : 'Upload Logo') }}
+                </label>
+                <button *ngIf="p.logoUrl" type="button" class="ghost-btn-tactile danger-btn" [disabled]="logoBusy()" (click)="removeLogo()">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                  Remove Logo
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="form-grid">
             <div class="field">
               <label>Shop Name *</label>
@@ -125,7 +165,16 @@ interface RestaurantProfile {
 
         <!-- Tax Configuration -->
         <app-tax-settings-section
-          [tax]="{ gstEnabled: p.gstEnabled, gstin: p.gstin, gstPercentage: p.gstPercentage, customTaxName: p.customTaxName, customTaxPercentage: p.customTaxPercentage }"
+          [tax]="{
+            gstEnabled: p.gstEnabled,
+            gstin: p.gstin,
+            gstPercentage: p.gstPercentage,
+            customTaxName: p.customTaxName,
+            customTaxPercentage: p.customTaxPercentage,
+            fssaiNumber: p.fssaiNumber,
+            fssaiExpiryDate: p.fssaiExpiryDate,
+            gstExpiryDate: p.gstExpiryDate
+          }"
           (taxChange)="applyTaxSettings($event)"
         />
 
@@ -401,6 +450,72 @@ interface RestaurantProfile {
       align-items: flex-end;
       max-width: 700px;
     }
+    .logo-uploader-card {
+      display: flex;
+      gap: var(--kb-space-4);
+      align-items: center;
+      padding: var(--kb-space-3);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      margin-bottom: var(--kb-space-4);
+      flex-wrap: wrap;
+    }
+    .logo-preview-box {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--kb-radius-md);
+      overflow: hidden;
+      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .logo-empty-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.72rem;
+      gap: 4px;
+    }
+    .logo-meta {
+      flex: 1;
+      min-width: 220px;
+    }
+    .logo-meta h4 {
+      margin: 0 0 2px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .logo-meta p {
+      margin: 0 0 var(--kb-space-2);
+      font-size: 0.82rem;
+    }
+    .logo-actions {
+      display: flex;
+      gap: var(--kb-space-2);
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .file-picker-label {
+      cursor: pointer;
+    }
+    .danger-btn {
+      color: var(--kb-color-error, #dc2626);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .danger-btn:hover {
+      background: rgba(239, 68, 68, 0.08);
+    }
     .field-btn {
       display: flex;
       align-items: flex-end;
@@ -417,6 +532,7 @@ export class BusinessSettingsPageComponent {
   loading = signal(true);
   loadError = signal('');
   saving = signal(false);
+  logoBusy = signal(false);
   profile = signal<RestaurantProfile | null>(null);
 
   agreement = signal<MerchantAgreementStatus | null>(null);
@@ -430,9 +546,8 @@ export class BusinessSettingsPageComponent {
   load(): void {
     this.loading.set(true);
     this.loadError.set('');
-    this.http.get<any[]>(`${API}/sync/restaurantprofile/pull?lastSyncTimestamp=0&deviceId=web-admin&ignoreDeviceId=true`).subscribe({
-      next: (profiles) => {
-        const p = profiles?.[0];
+    this.businessApi.getProfile().subscribe({
+      next: (p) => {
         if (p) {
           this.profile.set({
             shopName: p.shopName ?? '',
@@ -445,6 +560,9 @@ export class BusinessSettingsPageComponent {
             gstPercentage: p.gstPercentage ?? 5,
             customTaxName: p.customTaxName ?? '',
             customTaxPercentage: p.customTaxPercentage ?? 0,
+            fssaiNumber: p.fssaiNumber ?? '',
+            fssaiExpiryDate: p.fssaiExpiryDate ?? '',
+            gstExpiryDate: p.gstExpiryDate ?? '',
             upiEnabled: p.upiEnabled ?? false,
             upiHandle: p.upiHandle ?? '',
             upiMobile: p.upiMobile ?? '',
@@ -458,8 +576,9 @@ export class BusinessSettingsPageComponent {
           this.profile.set({
             shopName: '', shopAddress: '', whatsappNumber: '', email: '',
             logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
-            customTaxPercentage: 0, upiEnabled: false, upiHandle: '', upiMobile: '',
-            cashEnabled: true, posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
+            customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
+            upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
+            posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
             invoiceFooter: '', reviewUrl: ''
           });
         }
@@ -491,25 +610,67 @@ export class BusinessSettingsPageComponent {
       return;
     }
     this.saving.set(true);
-    const now = Date.now();
-    const payload = [{
-      ...p,
-      localId: 1,
-      deviceId: 'web-admin',
-      restaurantId: 0,
-      updatedAt: now,
-      createdAt: now,
-      isDeleted: false,
-      serverUpdatedAt: 0
-    }];
-    this.http.post<any>(`${API}/sync/restaurantprofile/push`, payload).subscribe({
-      next: () => {
+    this.businessApi.updateProfile(p).subscribe({
+      next: (saved) => {
         this.saving.set(false);
-        this.toast.show('Settings saved successfully.', 'success');
+        this.toast.show('Restaurant settings saved successfully.', 'success');
+        if (saved) {
+          this.profile.set({
+            ...p,
+            ...saved
+          });
+        }
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.toast.show('Failed to save. Try again.', 'error');
+        this.toast.show(err?.error?.message ?? 'Failed to save settings. Try again.', 'error');
+      }
+    });
+  }
+
+  onLogoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      this.toast.show('Logo file size must be less than 2MB.', 'error');
+      input.value = '';
+      return;
+    }
+    this.logoBusy.set(true);
+    this.businessApi.uploadLogo(file).subscribe({
+      next: (res) => {
+        const logoUrl = res?.url || res?.logoUrl || '';
+        const p = this.profile();
+        if (p) {
+          this.profile.set({ ...p, logoUrl });
+        }
+        this.logoBusy.set(false);
+        this.toast.show('Logo uploaded successfully.', 'success');
+        input.value = '';
+      },
+      error: (err) => {
+        this.logoBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'Failed to upload logo. Try again.', 'error');
+        input.value = '';
+      }
+    });
+  }
+
+  removeLogo(): void {
+    this.logoBusy.set(true);
+    this.businessApi.deleteLogo().subscribe({
+      next: () => {
+        const p = this.profile();
+        if (p) {
+          this.profile.set({ ...p, logoUrl: '' });
+        }
+        this.logoBusy.set(false);
+        this.toast.show('Logo removed.', 'success');
+      },
+      error: (err) => {
+        this.logoBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'Failed to remove logo.', 'error');
       }
     });
   }
@@ -570,3 +731,4 @@ export class BusinessSettingsPageComponent {
     });
   }
 }
+

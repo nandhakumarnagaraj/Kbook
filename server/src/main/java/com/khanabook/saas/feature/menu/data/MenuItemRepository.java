@@ -39,6 +39,8 @@ public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 
 	java.util.List<MenuItem> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 
+	boolean existsByRestaurantIdAndCategoryIdAndIsDeletedFalse(Long restaurantId, Long categoryId);
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("UPDATE MenuItem m SET m.isAvailable = false, m.updatedAt = :updatedAt WHERE m.id = :id AND m.restaurantId = :restaurantId")
 	int markAsUnavailable(@Param("id") Long id, @Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
