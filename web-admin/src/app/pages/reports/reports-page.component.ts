@@ -437,6 +437,7 @@ export class ReportsPageComponent {
     const range = this.selectedRange();
     return this.api.getDashboard(range?.from, range?.to).pipe(
       map(data => {
+        this.refreshing.set(false);
         const totalRev = Number(data.totalRevenue) || 0;
         const refunded = Number(data.refundedAmount) || 0;
         const net = Math.max(0, totalRev - refunded);

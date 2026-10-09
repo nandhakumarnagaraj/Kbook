@@ -113,7 +113,7 @@ function getTodayIsoDate(): string {
             *ngIf="lowStockMaterials().length > 0"
             (click)="toggleLowStockModal()"
             [title]="lowStockMaterials().length + ' raw materials below threshold'">
-            <span class="alert-icon">⚠️</span>
+            <span class="alert-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg></span>
             <span class="alert-text">{{ lowStockMaterials().length }} Low Stock</span>
           </div>
 
@@ -221,7 +221,8 @@ function getTodayIsoDate(): string {
                 </p>
                 <div class="order-quick-actions" (click)="$event.stopPropagation()">
                   <button type="button" class="btn-micro" (click)="copyInvoice(order)" title="Copy public invoice preview link">
-                    📄 Invoice
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8"/></svg>
+                    Invoice
                   </button>
                   <button type="button" class="btn-micro" (click)="openOrderDetail(order.orderId)">
                     View
@@ -510,7 +511,7 @@ function getTodayIsoDate(): string {
       <div class="pos-modal-card" (click)="$event.stopPropagation()">
         <div class="modal-head">
           <div class="modal-head-title">
-            <span class="alert-icon">⚠️</span>
+            <span class="alert-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg></span>
             <h3>Low Stock Ingredients</h3>
           </div>
           <button type="button" class="close-btn" (click)="toggleLowStockModal()">✕</button>

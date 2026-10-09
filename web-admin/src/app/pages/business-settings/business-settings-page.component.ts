@@ -343,12 +343,15 @@ interface RestaurantProfile {
     .field label { display: block; font-size: 0.82rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
     .tabular-num { font-variant-numeric: tabular-nums; }
     .sticky-save-dock {
+      position: sticky;
+      bottom: var(--kb-space-4);
+      z-index: var(--kb-z-topbar, 30);
       margin: var(--kb-space-4) 0;
       padding: var(--kb-space-3) var(--kb-space-4);
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.06);
     }
     .save-dock-inner {
       display: flex;

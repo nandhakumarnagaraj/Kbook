@@ -120,6 +120,14 @@ export interface PaymentMethodsSettings {
         Enable online payment collection via UPI, cards, and net banking through Easebuzz gateway.
       </p>
       <div *ngIf="easebuzzLoading" class="loading">Loading payment config...</div>
+      <div *ngIf="!easebuzzLoading && easebuzzError" class="config-error">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong>Couldn't load payment config</strong>
+          <p class="muted" style="margin:2px 0 0">You can still retry or configure this later from the Android app.</p>
+        </div>
+        <button type="button" class="ghost-btn" (click)="loadEasebuzzConfig()">Retry</button>
+      </div>
       <div *ngIf="!easebuzzLoading && easebuzzConfig">
         <div class="form-grid">
           <div class="field">
@@ -156,6 +164,31 @@ export interface PaymentMethodsSettings {
   styles: [`
     .settings-section { margin-bottom: var(--kb-space-3); }
     .settings-section h3 { margin: 0 0 var(--kb-space-2); color: var(--kb-color-foreground); }
+    .loading { font-size: 0.85rem; color: var(--kb-color-muted-foreground); padding: var(--kb-space-2) 0; }
+    .config-error {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-3);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.05);
+      border-radius: var(--kb-radius-md);
+      color: var(--kb-color-error, #ef4444);
+      font-size: 0.85rem;
+    }
+    .config-error > div { flex: 1; }
+    .config-error button {
+      background: none;
+      border: 1px solid currentColor;
+      color: inherit;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 36px;
+    }
+    .config-error button:hover { background: rgba(239, 68, 68, 0.08); }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
@@ -244,6 +277,7 @@ export class PaymentMethodsSectionComponent {
 
   easebuzzConfig: any = null;
   easebuzzLoading = false;
+  easebuzzError = '';
   easebuzzEnabled = false;
 
   constructor() {
@@ -300,6 +334,7 @@ export class PaymentMethodsSectionComponent {
 
   loadEasebuzzConfig(): void {
     this.easebuzzLoading = true;
+    this.easebuzzError = '';
     this.businessApi.getPaymentConfig().subscribe({
       next: (config) => {
         this.easebuzzConfig = config;
@@ -308,6 +343,7 @@ export class PaymentMethodsSectionComponent {
       },
       error: () => {
         this.easebuzzLoading = false;
+        this.easebuzzError = 'Unable to reach the payments service.';
       }
     });
   }

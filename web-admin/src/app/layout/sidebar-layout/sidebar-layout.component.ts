@@ -4,14 +4,13 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
 import { AuthService } from '../../core/auth/auth.service';
-import { BottomActionBarModule } from '../bottom-action-bar/bottom-action-bar.module';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
 
 type NavLink = { label: string; path: string; icon: string; iconKey: string; badge?: string };
 
-type BottomActionBarItem = { label: string; icon: string; route: string; badge?: string };
+type BottomActionBarItem = { label: string; iconKey: string; route: string; badge?: string };
 
 @Component({
   selector: 'app-sidebar-layout',
@@ -155,10 +154,8 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
 
       <!-- Mobile bottom action bar -->
       <kb-bottom-action-bar
-        *ngIf="isMobileView"
+        *ngIf="showBottomBar()"
         [items]="bottomActionItems()"
-        [selectedIndex]="selectedBottomTab()"
-        (indexChange)="onBottomTabChange($event)"
       />
     </div>
   `,
@@ -263,9 +260,9 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
       text-transform: uppercase;
       letter-spacing: 0.04em;
       border-radius: 999px;
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.22);
     }
     .nav-link.active-link .nav-link__badge {
       background: rgba(255, 255, 255, 0.25);
@@ -418,6 +415,8 @@ type BottomActionBarItem = { label: string; icon: string; route: string; badge?:
         background: rgba(26, 26, 26, 0.5);
         backdrop-filter: blur(2px);
       }
+      /* Clear space for the fixed mobile bottom action bar */
+      .workspace { padding-bottom: 76px; }
     }
     @media (min-width: 1025px) {
       .sidebar-backdrop { display: none !important; }
@@ -454,7 +453,7 @@ export class SidebarLayoutComponent implements OnInit {
       { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
       { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
       { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
-      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Soon' },
+      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Preview' },
       { label: 'Terminals', path: '/business/terminals', icon: '📱', iconKey: 'terminals' },
       { label: 'Payments', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
       { label: 'Reports', path: '/business/reports', icon: '◔', iconKey: 'reports' },
@@ -465,21 +464,24 @@ export class SidebarLayoutComponent implements OnInit {
 
   readonly bottomActionItems = computed<BottomActionBarItem[]>(() => {
     const items: BottomActionBarItem[] = [
-      { label: 'Orders', icon: 'shop', route: '/business/orders', badge: '24' },
-      { label: 'Reports', icon: 'chart', route: '/business/reports' },
-      { label: 'Settings', icon: 'settings', route: '/business/settings' }
+      { label: 'Dashboard', iconKey: 'dashboard', route: '/business/dashboard' },
+      { label: 'Orders', iconKey: 'orders', route: '/business/orders' },
+      { label: 'Payments', iconKey: 'payments', route: '/business/daily-closing' },
+      { label: 'Reports', iconKey: 'reports', route: '/business/reports' },
+      { label: 'Settings', iconKey: 'settings', route: '/business/settings' }
     ];
     if (this.orderPaymentFlowMode() === 'pay_after_food') {
-      items.push({ label: 'KDS', icon: 'kitchen', route: '/business/active-orders' });
+      items.splice(2, 0, { label: 'KDS', iconKey: 'kitchen', route: '/business/active-orders' });
     }
     return items;
   });
 
-  readonly selectedBottomTab = signal(0);
+  readonly isMobileView = signal(typeof window !== 'undefined' && window.innerWidth < 1024);
 
-  readonly isMobileView = computed(() => window.innerWidth < 1024);
+  readonly showBottomBar = computed(() => this.session()?.role === 'OWNER' && this.isMobileView());
 
   ngOnInit(): void {
+    this.isMobileView.set(window.innerWidth < 1024);
     const role = this.session()?.role;
     if (role === 'OWNER') {
       // API audit 2026-09-16: GET /business/profile does not exist on the server
@@ -520,12 +522,9 @@ export class SidebarLayoutComponent implements OnInit {
     void this.router.navigate(['/business/orders']);
   }
 
-  onBottomTabChange(index: number): void {
-    this.selectedBottomTab.set(index);
-    const route = this.bottomActionItems()[index]?.route;
-    if (route) {
-      void this.router.navigate([route]);
-    }
+  @HostListener('window:resize')
+  onResize(): void {
+    this.isMobileView.set(window.innerWidth < 1024);
   }
 
   @HostListener('document:keydown.control.k', ['$event'])

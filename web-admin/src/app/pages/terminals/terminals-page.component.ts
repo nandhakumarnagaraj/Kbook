@@ -43,8 +43,8 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Bento Terminal Stat Summary (bentogrids.com standard) -->
       <section class="terminals-bento-grid" aria-label="Terminal fleet overview">
-        <article class="bento-tile bento-tile--fleet">
-          <div class="tile-icon-wrap">
+        <article class="bento-tile bento-tile--fleet" [class.bento-tile--alert]="fleetOverLimit()">
+          <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="fleetOverLimit()">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
               <line x1="8" y1="21" x2="16" y2="21"/>
@@ -53,7 +53,7 @@ import { formatDate } from '../../shared/formatters';
           </div>
           <div class="tile-body">
             <span class="tile-label">Registered Fleet</span>
-            <span class="tile-metric tabular-num">{{ terminals().length }} <small>/ 5 Active Max</small></span>
+            <span class="tile-metric tabular-num" [class.tile-metric--amber]="fleetOverLimit()">{{ terminals().length }} <small>/ {{ maxActiveTerminals }} Active Max</small></span>
           </div>
         </article>
 
@@ -84,6 +84,11 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </article>
       </section>
+
+      <div *ngIf="fleetOverLimit()" class="fleet-limit-banner" role="status">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
+        <span>You have more registered terminals ({{ terminals().length }}) than your plan allows ({{ maxActiveTerminals }}). Deactivate unused devices or upgrade your plan to avoid disruptions.</span>
+      </div>
 
       <!-- Registered Terminals Section -->
       <section class="panel terminals-panel">
@@ -218,7 +223,7 @@ import { formatDate } from '../../shared/formatters';
                 {{ terminal.terminalSeries || 'No series' }} ·
                 <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
                   <code>{{ formatDeviceId(terminal.deviceId) }}</code>
-                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">📋</button>
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
                 </span>
                 <ng-template #noCardDev>No device assigned</ng-template>
               </p>
@@ -356,7 +361,7 @@ import { formatDate } from '../../shared/formatters';
                 {{ req.deviceModel || 'Unknown model' }} ·
                 <span class="device-pill" *ngIf="req.deviceId; else noReqCardDev" [title]="req.deviceId">
                   <code>{{ formatDeviceId(req.deviceId) }}</code>
-                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">📋</button>
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
                 </span>
                 <ng-template #noReqCardDev>No device ID</ng-template>
               </p>
@@ -633,6 +638,20 @@ import { formatDate } from '../../shared/formatters';
     .bento-tile--alert {
       border-color: rgba(245, 158, 11, 0.4);
       background: rgba(245, 158, 11, 0.03);
+    }
+    .fleet-limit-banner {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      margin-top: var(--kb-space-2);
+      border-radius: var(--kb-radius-md);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.08);
+      color: #b45309;
+      font-size: 0.82rem;
+      font-weight: 500;
+      line-height: 1.4;
     }
     .tile-icon-wrap {
       width: 40px;
@@ -912,6 +931,8 @@ export class TerminalsPageComponent implements OnDestroy {
 
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly requests = signal<TerminalRequest[]>([]);
+  readonly maxActiveTerminals = 5;
+  readonly fleetOverLimit = computed(() => this.terminals().length > this.maxActiveTerminals);
   readonly terminalsLoading = signal(true);
   readonly requestsLoading = signal(true);
   readonly terminalsError = signal('');

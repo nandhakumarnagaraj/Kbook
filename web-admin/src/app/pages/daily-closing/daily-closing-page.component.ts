@@ -424,6 +424,12 @@ interface DailyClosingData {
       font-size: 0.75rem;
       color: #94A3B8;
     }
+    .recon-card--match { border-color: #A7F3D0; background: #F0FDF4; }
+    .recon-card--match .recon-value { color: #059669; }
+    .recon-card--overage { border-color: #FDE68A; background: #FFFBEB; }
+    .recon-card--overage .recon-value { color: #D97706; }
+    .recon-card--shortage { border-color: #FECACA; background: #FEF2F2; }
+    .recon-card--shortage .recon-value { color: #DC2626; }
 
     .input-with-currency {
       position: relative;
@@ -466,7 +472,7 @@ interface DailyClosingData {
       letter-spacing: 0.04em;
     }
     .variance-badge--match { background: #ECFDF5; color: #059669; }
-    .variance-badge--over { background: #EFF6FF; color: #2563EB; }
+    .variance-badge--over { background: #FFFBEB; color: #D97706; }
     .variance-badge--short { background: #FEF2F2; color: #DC2626; }
 
     /* ── Payment Splits Grid ── */
