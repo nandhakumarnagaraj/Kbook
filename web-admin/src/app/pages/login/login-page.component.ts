@@ -280,7 +280,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .auth-brand {
       padding: clamp(2rem, 4vw, 3.5rem) clamp(1.5rem, 3.5vw, 3rem);
-      background-image: linear-gradient(145deg, rgba(20, 17, 14, 0.82) 0%, rgba(138, 54, 15, 0.86) 100%), var(--gradient-hero);
+      background-image: linear-gradient(145deg, rgba(24, 27, 52, 0.94) 0%, rgba(79, 53, 245, 0.88) 100%), var(--gradient-hero);
       background-size: cover;
       background-position: center;
       color: #FFFFFF;
@@ -338,7 +338,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .point-num {
       width: 26px; height: 26px; border-radius: var(--kb-radius-sm);
       background: #FFFFFF; display: grid; place-items: center;
-      font-size: 0.75rem; font-weight: 800; color: #1C1A17; flex-shrink: 0;
+      font-size: 0.75rem; font-weight: 800; color: #5D45FD; flex-shrink: 0;
     }
     .brand-foot { font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); margin: 0; }
     .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-3); }
@@ -364,7 +364,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex; align-items: center; gap: var(--kb-space-3); text-decoration: none;
     }
     .mobile-brand-meta { display: flex; flex-direction: column; }
-    .brand-subtitle { font-size: 0.72rem; color: #78716C; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+    .brand-subtitle { font-size: 0.72rem; color: #6C27D9; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
 
     .auth-head h2 { margin: 0 0 var(--kb-space-1); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
     .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.92rem; }
@@ -388,8 +388,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: 0.76rem; color: #78716C; margin-top: var(--kb-space-2);
       justify-content: center; gap: 6px;
     }
-    .mobile-foot-link { color: #9A3412; font-weight: 600; text-decoration: none; }
-    .mobile-foot-link:hover { text-decoration: underline; }
+    .mobile-foot-link { color: #6C27D9; font-weight: 600; text-decoration: none; }
+    .mobile-foot-link:hover { text-decoration: underline; color: #4E37EB; }
 
     .field { display: grid; gap: var(--kb-space-1); }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
@@ -408,8 +408,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .field-input:focus {
       outline: none;
-      border-color: #B45309;
-      box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+      border-color: #6C27D9;
+      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.18);
     }
 
     .divider {
@@ -431,9 +431,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       padding: var(--kb-space-2) 0;
     }
 
-    /* WCAG AA (5.38:1+ contrast) compliant text link color */
+    /* KhanaBook Logo Royal Violet: 7.17:1 on white (WCAG AAA compliant) */
     .link-right {
-      color: #9A3412;
+      color: #6C27D9;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
@@ -447,8 +447,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex;
       align-items: center;
     }
-    .link-right:hover { color: #7C2D12; text-decoration: underline; }
-    .link-right:focus-visible { outline: 2px solid #9A3412; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+    .link-right:hover { color: #4E37EB; text-decoration: underline; }
+    .link-right:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
 
     .back-link {
       color: #57534E;
@@ -466,30 +466,30 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex;
       align-items: center;
     }
-    .back-link:hover { color: #9A3412; text-decoration: underline; }
-    .back-link:focus-visible { outline: 2px solid #9A3412; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+    .back-link:hover { color: #6C27D9; text-decoration: underline; }
+    .back-link:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
 
     .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.9rem; }
-    /* Primary action button: WCAG AA contrast compliant (White on #B45309 is 5.02:1, on #9A3412 is 7.31:1) */
+    /* Primary button: KhanaBook Logo Palette (POS Indigo #5D45FD to Royal Violet #6C27D9, 6.5:1 WCAG AAA) */
     .primary-btn--hero {
-      background: linear-gradient(135deg, #B45309 0%, #9A3412 100%);
+      background: linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
       color: #FFFFFF;
       font-weight: 600;
       letter-spacing: 0.01em;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      box-shadow: 0 4px 14px rgba(154, 52, 18, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 14px rgba(93, 69, 253, 0.35);
       border-radius: var(--kb-radius-lg);
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .primary-btn--hero:hover:not(:disabled) {
-      background: linear-gradient(135deg, #A14607 0%, #882B0E 100%);
+      background: linear-gradient(135deg, #4E37EB 0%, #5B21B6 100%);
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(154, 52, 18, 0.36);
+      box-shadow: 0 6px 20px rgba(93, 69, 253, 0.45);
     }
     .primary-btn--hero:active:not(:disabled) {
       transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(154, 52, 18, 0.22);
+      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
     }
     .primary-btn--hero:disabled {
       background: #E5E0D8;
@@ -526,7 +526,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .toggle-pwd-btn:hover { opacity: 1; }
     .pwd-icon { display: block; }
-    .toggle-pwd-btn:focus-visible { outline: 2px solid #9A3412; outline-offset: -2px; border-radius: var(--kb-radius-sm); opacity: 1; }
+    .toggle-pwd-btn:focus-visible { outline: 2px solid #6C27D9; outline-offset: -2px; border-radius: var(--kb-radius-sm); opacity: 1; }
     .alert-box { border-radius: var(--kb-radius-md); padding: var(--kb-space-3) var(--kb-space-4); font-size: 0.85rem; }
     .alert-box.error { color: var(--kb-color-error); background: var(--kb-color-surface-2); border: 1px solid rgba(239, 68, 68, 0.2); }
     .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-surface-2); border: 1px solid rgba(16, 185, 129, 0.2); }
@@ -534,8 +534,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     @media (prefers-contrast: more) {
       .field-input { border-color: #1C1A17; border-width: 2px; }
       .field-label { color: #000000; font-weight: 700; }
-      .link-right, .back-link, .mobile-foot-link { color: #7C2D12; text-decoration: underline; font-weight: 700; }
-      .primary-btn--hero { background: #9A3412; color: #FFFFFF; border: 2px solid #000000; }
+      .link-right, .back-link, .mobile-foot-link { color: #4321A9; text-decoration: underline; font-weight: 700; }
+      .primary-btn--hero { background: #4321A9; color: #FFFFFF; border: 2px solid #000000; }
       .divider { color: #000000; font-weight: 700; }
       .divider::before, .divider::after { background: #1C1A17; height: 2px; }
     }

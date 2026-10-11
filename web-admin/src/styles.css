@@ -19,15 +19,15 @@
   --line-strong:   #E1D9CA;
 
   /* ---------------------------------------------------------------------- */
-  /* Brand — warm saffron/espresso (Kitchen Command Center palette)          */
+  /* Brand — KhanaBook Logo Palette (Royal Violet & POS Indigo)             */
   /* ---------------------------------------------------------------------- */
-  --brand:         #E87A1E;
-  --brand-deep:    #D66A18;
-  --brand-soft:    #FDF0E0;
-  --brand-ring:    rgba(232, 122, 30, 0.40);
+  --brand:         #6C27D9;
+  --brand-deep:    #5B21B6;
+  --brand-soft:    #F5F3FF;
+  --brand-ring:    rgba(108, 39, 217, 0.35);
 
-  --gradient-primary: linear-gradient(135deg, #E87A1E 0%, #D2643A 100%);
-  --gradient-hero:    linear-gradient(135deg, #D2643A 0%, #E87A1E 100%);
+  --gradient-primary: linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
+  --gradient-hero:    linear-gradient(135deg, #181B34 0%, #4F35F5 50%, #6C27D9 100%);
 
   /* ---------------------------------------------------------------------- */
   /* Semantic colours                                                        */
@@ -90,10 +90,10 @@
   --kb-color-saffron:           #E87A1E;
   --kb-color-turmeric:          #E4B233;
   --kb-color-burnt:             #D2643A;
-  --kb-color-primary:           #E87A1E;
+  --kb-color-primary:           #6C27D9;
   --kb-color-primary-foreground:#FFFFFF;
-  --kb-color-primary-hover:     #D66A18;
-  --kb-color-primary-soft:      #FDF0E0;
+  --kb-color-primary-hover:     #5B21B6;
+  --kb-color-primary-soft:      #F5F3FF;
   --kb-color-success:           #2F855A;
   --kb-color-success-soft:      #E7F4EC;
   --kb-color-warning:           #B7791F;
@@ -102,15 +102,15 @@
   --kb-color-danger-soft:       #F9E7E3;
   --kb-color-info:              #2B6CB0;
   --kb-color-info-soft:         #E5EEF7;
-  --kb-gradient-hero:           linear-gradient(135deg, #E87A1E 0%, #D2643A 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
   --kb-gradient-cream:          linear-gradient(180deg, #FBF8F1 0%, #F5EFE3 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Instrument Serif", serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
   --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
   --kb-font-size-h1:            1.75rem;
-  --kb-color-link:              #9A3412;
-  --kb-color-link-hover:        #7C2D12;
+  --kb-color-link:              #6C27D9;
+  --kb-color-link-hover:        #4E37EB;
   --kb-space-1: 4px;  --kb-space-2: 8px;  --kb-space-3: 12px;
   --kb-space-4: 16px; --kb-space-5: 20px; --kb-space-6: 24px;
   --kb-space-8: 32px; --kb-space-10: 40px; --kb-space-12: 48px; --kb-space-16: 64px;
