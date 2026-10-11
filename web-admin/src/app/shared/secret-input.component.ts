@@ -15,7 +15,7 @@ type SecretState = 'stored' | 'replacing' | 'revealed' | 'error';
         <div class="secret-display">
           <code class="masked-value">{{ maskedValue() }}</code>
           <div class="secret-actions">
-            <button type="button" class="kb-btn kb-btn--ghost" (click)="reveal()">
+            <button type="button" class="kb-btn kb-btn--ghost" (click)="doReveal()">
               <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M2 10l6-6 6 6M2 10l6 6 6-6"/>
               </svg>
@@ -36,13 +36,13 @@ type SecretState = 'stored' | 'replacing' | 'revealed' | 'error';
               type="password"
               class="kb-field-input"
               [(ngModel)]="newValue"
-              (keydown.enter)="save()"
+              (keydown.enter)="doSave()"
               placeholder="Enter new value"
               autocomplete="new-password"
             />
           </label>
           <div class="secret-actions">
-            <button type="button" class="kb-btn kb-btn--primary" (click)="save()" [disabled]="!newValue().trim()">
+            <button type="button" class="kb-btn kb-btn--primary" (click)="doSave()" [disabled]="!newValue().trim()">
               Save
             </button>
             <button type="button" class="kb-btn kb-btn--ghost" (click)="cancelReplace()">
@@ -56,7 +56,7 @@ type SecretState = 'stored' | 'replacing' | 'revealed' | 'error';
         <div class="secret-display">
           <code class="revealed-value">{{ storedValue() }}</code>
           <div class="secret-actions">
-            <button type="button" class="kb-btn kb-btn--ghost" (click)="hide()">
+            <button type="button" class="kb-btn kb-btn--ghost" (click)="doHide()">
               <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M10 7.5l6 6M10 7.5l-6 6M10 7.5v-15"/>
               </svg>
@@ -65,7 +65,7 @@ type SecretState = 'stored' | 'replacing' | 'revealed' | 'error';
             <button type="button" class="kb-btn kb-btn--outline" (click)="startReplace()">
               Replace
             </button>
-            <button type="button" class="kb-btn kb-btn--ghost" (click)="copy()">
+            <button type="button" class="kb-btn kb-btn--ghost" (click)="doCopy()">
               <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M8 3v14M8 3h8a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V5a2 2 0 012-2h8M16 3H8"/>
               </svg>
@@ -152,11 +152,4 @@ export class SecretInputComponent {
     navigator.clipboard.writeText(this.storedValue());
     this.copied.emit();
   }
-
-  reveal() { this.doReveal(); }
-  hide() { this.doHide(); }
-  startReplace() { this.startReplace(); }
-  cancelReplace() { this.cancelReplace(); }
-  save() { this.doSave(); }
-  copy() { this.doCopy(); }
 }

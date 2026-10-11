@@ -21,9 +21,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="auth-shell">
-      <aside class="auth-brand" style="background-image: linear-gradient(rgba(0,0,0,.30), rgba(0,0,0,.30)), var(--gradient-hero);">
+      <aside class="auth-brand" aria-label="KhanaBook Restaurant Platform Overview">
         <div class="brand-top">
-          <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website">
+          <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
             <div class="brand-logo">
               <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
             </div>
@@ -59,14 +59,19 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
       <main class="auth-main">
         <div class="auth-card">
-          <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website">
-            <div class="brand-logo brand-logo--sm">
-              <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
-            </div>
-            <span class="brand-title brand-title--dark">KhanaBook</span>
-          </a>
+          <div class="mobile-brand-container">
+            <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
+              <div class="brand-logo brand-logo--sm">
+                <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
+              </div>
+              <div class="mobile-brand-meta">
+                <span class="brand-title brand-title--dark">KhanaBook</span>
+                <span class="brand-subtitle">Restaurant Owner Workspace</span>
+              </div>
+            </a>
+          </div>
 
-          <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
+          <div *ngIf="loginSuccessMessage" class="alert-box success" role="status">{{ loginSuccessMessage }}</div>
 
           <ng-container *ngIf="forgotStep === 'none'">
             <header class="auth-head">
@@ -77,24 +82,40 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <div class="google-wrap">
               <div id="google-btn"></div>
               <div *ngIf="googleLoading" class="google-loading">Signing in with Google...</div>
-              <div *ngIf="googleError" class="alert-box error">{{ googleError }}</div>
+              <div *ngIf="googleError" class="alert-box error" role="alert">{{ googleError }}</div>
             </div>
 
             <div class="divider"><span>or with password</span></div>
 
-            <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
-              <label class="field">
-                <span class="field-label">Login ID</span>
-                <input class="field-input" formControlName="loginId" placeholder="Phone number or email" autocomplete="username">
-              </label>
+            <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
+              <div class="field">
+                <label for="login-id" class="field-label">Phone number or email</label>
+                <input
+                  id="login-id"
+                  class="field-input"
+                  formControlName="loginId"
+                  placeholder="e.g. 98765 43210 or owner@restaurant.com"
+                  autocomplete="username"
+                  inputmode="text"
+                  autocorrect="off"
+                  autocapitalize="none"
+                />
+              </div>
 
-              <label class="field">
+              <div class="field">
                 <div class="field-row">
-                  <span class="field-label">Password</span>
-                  <button type="button" class="link-right" (click)="startForgotPassword()">Forgot password?</button>
+                  <label for="login-password" class="field-label">Password</label>
+                  <a
+                    href="#forgot"
+                    class="link-right"
+                    (click)="startForgotPassword($event)"
+                    role="button"
+                    aria-haspopup="dialog"
+                  >Forgot password?</a>
                 </div>
                 <div class="input-with-action">
                   <input
+                    id="login-password"
                     class="field-input"
                     [type]="showPassword() ? 'text' : 'password'"
                     formControlName="password"
@@ -112,9 +133,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/><circle fill="currentColor" cx="12" cy="12" r="3"/></g></svg>
                   </button>
                 </div>
-              </label>
+              </div>
 
-              <div *ngIf="error" class="alert-box error">{{ error }}</div>
+              <div *ngIf="error" class="alert-box error" role="alert">{{ error }}</div>
 
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading">
                 {{ loading ? 'Signing in…' : 'Sign in' }}
@@ -122,12 +143,20 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </form>
 
             <div class="auth-card-footer">
-              <p class="muted">
+              <p class="footer-links muted">
                 New to KhanaBook?
-                <a href="https://khanabook.in/get-started" class="link-right">Get started</a>
+                <a href="https://khanabook.in/get-started" class="link-right" target="_blank" rel="noopener">Get started</a>
                 or
-                <a href="https://khanabook.in" class="link-right">learn more</a>
+                <a href="https://khanabook.in" class="link-right" target="_blank" rel="noopener">learn more</a>
               </p>
+              <div class="trust-badge-row">
+                <span class="trust-icon" aria-hidden="true">🔒</span>
+                <span>256-bit SSL encrypted • Restaurant Cloud</span>
+              </div>
+              <div class="mobile-foot-row">
+                <span>© {{ year }} KhanaBook.</span>
+                <a href="https://khanabook.in" target="_blank" rel="noopener" class="mobile-foot-link">khanabook.in ↗</a>
+              </div>
             </div>
           </ng-container>
 
@@ -136,17 +165,25 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Forgot password</h2>
               <p class="muted">Enter your registered phone number to receive an OTP.</p>
             </header>
-            <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()" class="auth-form">
-              <label class="field">
-                <span class="field-label">Phone number</span>
-                <input class="field-input" formControlName="phone" placeholder="10-digit phone number" maxlength="10" inputmode="numeric">
-              </label>
-              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+            <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()" class="auth-form" novalidate>
+              <div class="field">
+                <label for="forgot-phone" class="field-label">Phone number</label>
+                <input
+                  id="forgot-phone"
+                  class="field-input"
+                  formControlName="phone"
+                  placeholder="10-digit mobile number"
+                  maxlength="10"
+                  autocomplete="tel"
+                  inputmode="tel"
+                />
+              </div>
+              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading">
                 {{ forgotLoading ? 'Sending OTP…' : 'Send OTP' }}
               </button>
             </form>
-            <button type="button" class="back-link" (click)="backToLogin()">← Back to sign in</button>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'otp'">
@@ -154,17 +191,25 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Enter OTP</h2>
               <p class="muted">If this number is registered, you'll receive a 6-digit code shortly.</p>
             </header>
-            <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form">
-              <label class="field">
-                <span class="field-label">OTP code</span>
-                <input class="field-input" formControlName="otp" placeholder="6-digit OTP" maxlength="6" inputmode="numeric">
-              </label>
-              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+            <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form" novalidate>
+              <div class="field">
+                <label for="forgot-otp" class="field-label">OTP code</label>
+                <input
+                  id="forgot-otp"
+                  class="field-input"
+                  formControlName="otp"
+                  placeholder="6-digit OTP"
+                  maxlength="6"
+                  autocomplete="one-time-code"
+                  inputmode="numeric"
+                />
+              </div>
+              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading">
                 {{ forgotLoading ? 'Verifying…' : 'Verify OTP' }}
               </button>
             </form>
-            <button type="button" class="back-link" (click)="backToLogin()">← Back to sign in</button>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'password'">
@@ -172,24 +217,38 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Reset password</h2>
               <p class="muted">Enter a new password (minimum 6 characters).</p>
             </header>
-            <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()" class="auth-form">
-              <label class="field">
-                <span class="field-label">New password</span>
-                <input class="field-input" type="password" formControlName="newPassword" placeholder="Min 6 characters" autocomplete="new-password">
-              </label>
-              <label class="field">
-                <span class="field-label">Confirm password</span>
-                <input class="field-input" type="password" formControlName="confirmPassword" placeholder="Re-enter password" autocomplete="new-password">
-              </label>
-              <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error">
+            <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()" class="auth-form" novalidate>
+              <div class="field">
+                <label for="reset-new-password" class="field-label">New password</label>
+                <input
+                  id="reset-new-password"
+                  class="field-input"
+                  type="password"
+                  formControlName="newPassword"
+                  placeholder="Min 6 characters"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="field">
+                <label for="reset-confirm-password" class="field-label">Confirm password</label>
+                <input
+                  id="reset-confirm-password"
+                  class="field-input"
+                  type="password"
+                  formControlName="confirmPassword"
+                  placeholder="Re-enter password"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error" role="alert">
                 Passwords do not match.
               </div>
-              <div *ngIf="forgotError" class="alert-box error">{{ forgotError }}</div>
+              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
                 {{ forgotLoading ? 'Resetting…' : 'Reset password' }}
               </button>
             </form>
-            <button type="button" class="back-link" (click)="backToLogin()">← Back to sign in</button>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'success'">
@@ -197,7 +256,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Password reset</h2>
               <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
             </header>
-            <button type="button" class="back-link" (click)="backToLogin()">← Back to sign in</button>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
         </div>
       </main>
@@ -209,16 +268,22 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 100vh;
       min-height: 100dvh;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1.15fr 1fr;
       background: var(--kb-color-surface);
+      overflow-x: hidden;
     }
     @media (max-width: 960px) {
       .auth-shell { grid-template-columns: 1fr; }
-      .auth-brand { display: none; }
+      .auth-brand { display: none !important; }
+      .mobile-brand-container { display: block !important; }
+      .mobile-foot-row { display: flex !important; }
     }
     .auth-brand {
-      padding: var(--kb-space-6) var(--kb-space-5);
-      color: var(--kb-color-foreground);
+      padding: clamp(2rem, 4vw, 3.5rem) clamp(1.5rem, 3.5vw, 3rem);
+      background-image: linear-gradient(145deg, rgba(20, 17, 14, 0.82) 0%, rgba(138, 54, 15, 0.86) 100%), var(--gradient-hero);
+      background-size: cover;
+      background-position: center;
+      color: #FFFFFF;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -226,66 +291,85 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .brand-top { display: flex; align-items: center; justify-content: space-between; }
     .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); text-decoration: none; }
-    .brand-mark:hover .brand-title { opacity: 0.92; }
+    .brand-mark:hover .brand-title { opacity: 0.95; }
     .brand-logo {
       width: 44px; height: 44px; border-radius: var(--kb-radius-md);
       background: #FFFFFF;
       display: grid; place-items: center;
       padding: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     .brand-logo--sm {
-      width: 38px; height: 38px; border-radius: var(--kb-radius-sm);
+      width: 40px; height: 40px; border-radius: var(--kb-radius-md);
       padding: 3px;
     }
-    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--kb-color-primary-foreground); }
-    .brand-title--dark { color: var(--kb-color-foreground); }
-    .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); }
+    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: #FFFFFF; }
+    .brand-title--dark { color: var(--kb-color-foreground); font-size: 1.2rem; }
+    .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); margin: var(--kb-space-6) 0; }
     .brand-copy h1 {
-      font-size: clamp(2rem, 3.2vw, 2.75rem);
+      font-size: var(--kb-font-size-display, clamp(2rem, 3.2vw, 2.75rem));
       line-height: 1.15;
       font-weight: 800;
-      color: var(--kb-color-primary-foreground);
+      color: #FFFFFF;
       margin: 0;
       letter-spacing: -0.02em;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
     .brand-copy p {
-      color: rgba(255, 255, 255, 0.92);
+      color: rgba(255, 255, 255, 0.94);
       line-height: 1.55;
       margin: 0;
-      font-size: 0.98rem;
+      font-size: 1rem;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
     }
     .brand-points {
-      list-style: none; padding: 0; margin: var(--kb-space-3) 0 0; display: grid; gap: var(--kb-space-2);
+      list-style: none; padding: 0; margin: var(--kb-space-3) 0 0; display: grid; gap: var(--kb-space-3);
     }
     .brand-points li {
-      display: flex; align-items: center; gap: var(--kb-space-2);
-      font-size: 0.9rem; color: #FFFFFF;
+      display: flex; align-items: center; gap: var(--kb-space-3);
+      font-size: 0.92rem; color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 10px 14px;
+      border-radius: var(--kb-radius-lg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .point-num {
-      width: 28px; height: 28px; border-radius: var(--kb-radius-sm);
+      width: 26px; height: 26px; border-radius: var(--kb-radius-sm);
       background: #FFFFFF; display: grid; place-items: center;
-      font-size: 0.75rem; font-weight: 700; color: var(--kb-color-foreground); flex-shrink: 0;
+      font-size: 0.75rem; font-weight: 800; color: #1C1A17; flex-shrink: 0;
     }
-    .brand-foot { font-size: 0.78rem; color: rgba(255, 255, 255, 0.92); margin: 0; }
+    .brand-foot { font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); margin: 0; }
     .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-3); }
-    .brand-link { color: rgba(255, 255, 255, 0.92); font-size: 0.8rem; font-weight: 600; text-decoration: none; }
+    .brand-link { color: rgba(255, 255, 255, 0.92); font-size: 0.82rem; font-weight: 600; text-decoration: none; }
     .brand-link:hover { color: #FFFFFF; text-decoration: underline; }
 
     .auth-main {
-      display: grid; place-items: center; padding: var(--kb-space-6) var(--kb-space-5);
+      display: grid; place-items: center; padding: clamp(1.5rem, 3vw, 2.5rem);
+      overflow-x: hidden;
+      width: 100%;
+      box-sizing: border-box;
     }
     .auth-card {
       width: min(420px, 100%);
       display: grid; gap: var(--kb-space-4);
+      box-sizing: border-box;
+    }
+    .mobile-brand-container {
+      display: none;
+      margin-bottom: var(--kb-space-2);
     }
     .mobile-brand {
-      display: none; align-items: center; gap: var(--kb-space-2); margin-bottom: var(--kb-space-2); text-decoration: none;
+      display: inline-flex; align-items: center; gap: var(--kb-space-3); text-decoration: none;
     }
-    @media (max-width: 960px) { .mobile-brand { display: flex; } }
-    .auth-head h2 { margin: 0 0 var(--kb-space-2); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
-    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); }
+    .mobile-brand-meta { display: flex; flex-direction: column; }
+    .brand-subtitle { font-size: 0.72rem; color: #78716C; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+
+    .auth-head h2 { margin: 0 0 var(--kb-space-1); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
+    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.92rem; }
     .auth-form { display: grid; gap: var(--kb-space-4); }
+
     .auth-card-footer {
       margin-top: var(--kb-space-2);
       padding-top: var(--kb-space-3);
@@ -293,11 +377,23 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       text-align: center;
       font-size: 0.85rem;
     }
-    .auth-card-footer p { margin: 0; }
-    .auth-card-footer .link-right { display: inline; }
-    .field { display: grid; gap: var(--kb-space-2); }
+    .footer-links { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.86rem; }
+    .trust-badge-row {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-size: 0.76rem; color: #78716C; margin-top: var(--kb-space-3);
+    }
+    .trust-icon { font-size: 0.85rem; }
+    .mobile-foot-row {
+      display: none;
+      font-size: 0.76rem; color: #78716C; margin-top: var(--kb-space-2);
+      justify-content: center; gap: 6px;
+    }
+    .mobile-foot-link { color: #9A3412; font-weight: 600; text-decoration: none; }
+    .mobile-foot-link:hover { text-decoration: underline; }
+
+    .field { display: grid; gap: var(--kb-space-1); }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
-    .field-label { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground); }
+    .field-label { font-weight: 600; font-size: 0.84rem; color: var(--kb-color-foreground); }
     .field-input {
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
@@ -306,13 +402,16 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: 0.92rem;
       color: var(--kb-color-foreground);
       height: 44px;
+      box-sizing: border-box;
+      width: 100%;
       transition: border-color .15s ease, box-shadow .15s ease;
     }
     .field-input:focus {
       outline: none;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px var(--kb-color-primary-soft);
+      border-color: #B45309;
+      box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
     }
+
     .divider {
       display: flex; align-items: center; gap: var(--kb-space-3);
       color: var(--kb-color-muted-foreground); font-size: 0.78rem; margin: var(--kb-space-2) 0;
@@ -320,33 +419,44 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .divider::before, .divider::after {
       content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
     }
-    .google-wrap { display: grid; gap: var(--kb-space-3); }
-    #google-btn { display: flex; justify-content: center; }
+
+    .google-wrap { display: grid; gap: var(--kb-space-3); width: 100%; }
+    #google-btn {
+      display: flex; justify-content: center; width: 100%; max-width: 100%;
+      min-height: 44px; overflow: hidden;
+    }
+    #google-btn > div, #google-btn iframe { max-width: 100% !important; }
     .google-loading {
       text-align: center; font-size: 0.82rem; color: var(--kb-color-muted-foreground);
       padding: var(--kb-space-2) 0;
     }
+
+    /* WCAG AA (5.38:1+ contrast) compliant text link color */
     .link-right {
-      color: var(--kb-color-primary);
-      font-size: 0.8rem;
+      color: #9A3412;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
+      text-underline-offset: 3px;
       background: none;
       border: none;
       padding: 0;
       margin: 0;
       font-family: inherit;
-      text-align: right;
+      display: inline-flex;
+      align-items: center;
     }
-    .link-right:hover { text-decoration: underline; }
-    .link-right:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+    .link-right:hover { color: #7C2D12; text-decoration: underline; }
+    .link-right:focus-visible { outline: 2px solid #9A3412; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+
     .back-link {
-      color: var(--kb-color-muted-foreground);
+      color: #57534E;
       font-size: 0.84rem;
+      font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      justify-self: start;
+      text-underline-offset: 3px;
       background: none;
       border: none;
       padding: 0;
@@ -356,17 +466,40 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex;
       align-items: center;
     }
-    .back-link:hover { color: var(--kb-color-primary); text-decoration: underline; }
-    .back-link:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: var(--kb-radius-sm); }
-    .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.88rem; }
+    .back-link:hover { color: #9A3412; text-decoration: underline; }
+    .back-link:focus-visible { outline: 2px solid #9A3412; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+
+    .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.9rem; }
+    /* Primary action button: WCAG AA contrast compliant (White on #B45309 is 5.02:1, on #9A3412 is 7.31:1) */
     .primary-btn--hero {
-      background: var(--kb-gradient-hero);
-      border: none;
-      box-shadow: var(--kb-shadow-lg);
+      background: linear-gradient(135deg, #B45309 0%, #9A3412 100%);
+      color: #FFFFFF;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 14px rgba(154, 52, 18, 0.28);
+      border-radius: var(--kb-radius-lg);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .primary-btn--hero:hover {
+    .primary-btn--hero:hover:not(:disabled) {
+      background: linear-gradient(135deg, #A14607 0%, #882B0E 100%);
       transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(154, 52, 18, 0.36);
     }
+    .primary-btn--hero:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(154, 52, 18, 0.22);
+    }
+    .primary-btn--hero:disabled {
+      background: #E5E0D8;
+      color: #78716C;
+      box-shadow: none;
+      border: 1px solid #D6D0C5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .input-with-action {
       position: relative;
       display: flex;
@@ -393,10 +526,19 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .toggle-pwd-btn:hover { opacity: 1; }
     .pwd-icon { display: block; }
-    .toggle-pwd-btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; border-radius: var(--kb-radius-sm); opacity: 1; }
+    .toggle-pwd-btn:focus-visible { outline: 2px solid #9A3412; outline-offset: -2px; border-radius: var(--kb-radius-sm); opacity: 1; }
     .alert-box { border-radius: var(--kb-radius-md); padding: var(--kb-space-3) var(--kb-space-4); font-size: 0.85rem; }
-    .alert-box.error { color: var(--kb-color-error); background: var(--kb-color-surface-2); border: 1px solid rgba(239, 68, 68, 0.15); }
-    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-surface-2); border: 1px solid rgba(16, 185, 129, 0.15); }
+    .alert-box.error { color: var(--kb-color-error); background: var(--kb-color-surface-2); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-surface-2); border: 1px solid rgba(16, 185, 129, 0.2); }
+
+    @media (prefers-contrast: more) {
+      .field-input { border-color: #1C1A17; border-width: 2px; }
+      .field-label { color: #000000; font-weight: 700; }
+      .link-right, .back-link, .mobile-foot-link { color: #7C2D12; text-decoration: underline; font-weight: 700; }
+      .primary-btn--hero { background: #9A3412; color: #FFFFFF; border: 2px solid #000000; }
+      .divider { color: #000000; font-weight: 700; }
+      .divider::before, .divider::after { background: #1C1A17; height: 2px; }
+    }
   `]
 })
 export class LoginPageComponent implements OnInit, OnDestroy {
@@ -469,15 +611,15 @@ export class LoginPageComponent implements OnInit, OnDestroy {
             this.ngZone.run(() => this.handleGoogleCredential(response.credential));
           }
         });
-        // GIS renders a fixed-width iframe. Hard-coding 380px overflows the
-        // card (min(420px, 100%)) on phones — 360px viewport leaves 320px —
-        // so clamp to the space the container actually has.
-        const available = Math.round(
-          target.getBoundingClientRect().width || target.parentElement?.getBoundingClientRect().width || 380
+        // GIS renders an iframe. Clamping width to actual container width prevents
+        // horizontal overflow on small mobile screens (<400px down to 320px).
+        const containerWidth = Math.round(
+          target.clientWidth || target.parentElement?.clientWidth || (window.innerWidth - 48)
         );
+        const targetWidth = Math.max(200, Math.min(380, containerWidth));
         google.accounts.id.renderButton(
           target,
-          { theme: 'outline', size: 'large', width: Math.max(180, Math.min(380, available)), text: 'signin_with' }
+          { theme: 'outline', size: 'large', width: targetWidth, text: 'signin_with' }
         );
         return;
       }
@@ -521,7 +663,8 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  startForgotPassword(): void {
+  startForgotPassword(event?: Event): void {
+    if (event) event.preventDefault();
     this.forgotStep = 'phone';
     this.forgotError = '';
     this.forgotLoading = false;
@@ -531,7 +674,8 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     this.passwordForm.reset();
   }
 
-  backToLogin(): void {
+  backToLogin(event?: Event): void {
+    if (event) event.preventDefault();
     this.forgotStep = 'none';
     this.forgotError = '';
     this.forgotLoading = false;
