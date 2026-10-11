@@ -23,52 +23,55 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     <section class="auth-shell">
       <aside class="auth-brand" style="background-image: linear-gradient(rgba(0,0,0,.30), rgba(0,0,0,.30)), var(--gradient-hero);">
         <div class="brand-top">
-          <div class="brand-mark">
+          <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website">
             <div class="brand-logo">
               <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
             </div>
             <span class="brand-title">KhanaBook</span>
-          </div>
+          </a>
         </div>
 
         <div class="brand-copy">
-          <h1>Run your kitchen<br/>with confidence.</h1>
-          <p>One workspace for menu, orders, staff, and payments — built for busy owners and managers.</p>
+          <h1>Run your restaurant<br/>with confidence.</h1>
+          <p>One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
 
           <ul class="brand-points">
             <li>
               <span class="point-num">01</span>
-              <span>Live orders across POS &amp; online channels</span>
+              <span>Consolidated live sales across all POS terminals</span>
             </li>
             <li>
               <span class="point-num">02</span>
-              <span>Menu &amp; stock control in seconds</span>
+              <span>Menu &amp; recipe stock control in seconds</span>
             </li>
             <li>
               <span class="point-num">03</span>
-              <span>Daily revenue &amp; refund insights</span>
+              <span>Daily revenue, settlements &amp; CA-ready tax reports</span>
             </li>
           </ul>
         </div>
 
-        <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
+        <div class="brand-foot-row">
+          <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
+          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in ↗</a>
+        </div>
       </aside>
 
       <main class="auth-main">
         <div class="auth-card">
-          <div class="mobile-brand">
+          <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website">
             <div class="brand-logo brand-logo--sm">
               <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
             </div>
-            <span class="brand-title">KhanaBook</span>
-          </div>
+            <span class="brand-title brand-title--dark">KhanaBook</span>
+          </a>
 
           <div *ngIf="loginSuccessMessage" class="alert-box success">{{ loginSuccessMessage }}</div>
 
           <ng-container *ngIf="forgotStep === 'none'">
             <header class="auth-head">
               <h2>Welcome back</h2>
-              <p class="muted">Sign in to your admin workspace.</p>
+              <p class="muted">Sign in to your restaurant owner workspace.</p>
             </header>
 
             <div class="google-wrap">
@@ -117,6 +120,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 {{ loading ? 'Signing in…' : 'Sign in' }}
               </button>
             </form>
+
+            <div class="auth-card-footer">
+              <p class="muted">
+                New to KhanaBook?
+                <a href="https://khanabook.in/get-started" class="link-right">Get started</a>
+                or
+                <a href="https://khanabook.in" class="link-right">learn more</a>
+              </p>
+            </div>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'phone'">
@@ -213,7 +225,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       position: relative;
     }
     .brand-top { display: flex; align-items: center; justify-content: space-between; }
-    .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); }
+    .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); text-decoration: none; }
+    .brand-mark:hover .brand-title { opacity: 0.92; }
     .brand-logo {
       width: 44px; height: 44px; border-radius: var(--kb-radius-md);
       background: #FFFFFF;
@@ -226,6 +239,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       padding: 3px;
     }
     .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; color: var(--kb-color-primary-foreground); }
+    .brand-title--dark { color: var(--kb-color-foreground); }
     .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); }
     .brand-copy h1 {
       font-size: clamp(2rem, 3.2vw, 2.75rem);
@@ -254,6 +268,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: 0.75rem; font-weight: 700; color: var(--kb-color-foreground); flex-shrink: 0;
     }
     .brand-foot { font-size: 0.78rem; color: rgba(255, 255, 255, 0.92); margin: 0; }
+    .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-3); }
+    .brand-link { color: rgba(255, 255, 255, 0.92); font-size: 0.8rem; font-weight: 600; text-decoration: none; }
+    .brand-link:hover { color: #FFFFFF; text-decoration: underline; }
 
     .auth-main {
       display: grid; place-items: center; padding: var(--kb-space-6) var(--kb-space-5);
@@ -263,12 +280,21 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: grid; gap: var(--kb-space-4);
     }
     .mobile-brand {
-      display: none; align-items: center; gap: var(--kb-space-2); margin-bottom: var(--kb-space-2);
+      display: none; align-items: center; gap: var(--kb-space-2); margin-bottom: var(--kb-space-2); text-decoration: none;
     }
     @media (max-width: 960px) { .mobile-brand { display: flex; } }
     .auth-head h2 { margin: 0 0 var(--kb-space-2); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
     .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); }
     .auth-form { display: grid; gap: var(--kb-space-4); }
+    .auth-card-footer {
+      margin-top: var(--kb-space-2);
+      padding-top: var(--kb-space-3);
+      border-top: 1px solid var(--kb-color-border);
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    .auth-card-footer p { margin: 0; }
+    .auth-card-footer .link-right { display: inline; }
     .field { display: grid; gap: var(--kb-space-2); }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
     .field-label { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground); }
