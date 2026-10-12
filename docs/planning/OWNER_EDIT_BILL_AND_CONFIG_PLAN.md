@@ -243,11 +243,23 @@ general "any status to any status" rule.
 ### 9.4 §8.2 Edit note — recommendation: **audit-only first, no schema change**
 
 Put `reason` in the audit detail and reuse `cancelReason` **only** when the target status is
-`cancelled`. Why not reuse it generally: `cancelReason` is rendered wherever a voided bill is
-shown (refund/void dialogs, slips via `InvoiceController.java:149-151`), so an unrelated
-"fixed mode" note would read as a cancellation. If you want the note visible in the table, the
-follow-up is a small migration — `last_edit_note`, `last_edited_by`, `last_edited_at` — which
-is the only option that also gives the UI something to display.
+`cancelled` or the bill is being refunded/voided — which is what it already means today: the
+server writes it in `voidBill` (`BusinessReadService.java:311`) and in `markManualRefund`
+(`:275`), and the only places it is displayed are cancel-gated (`OrderDetailsDialog.kt:179-181`
+and `OrderTableComponents.kt:285-287` both render it only when the bill is cancelled).
+
+Two corrections worth stating precisely, because an earlier draft of this plan got them
+wrong: the invoice does **not** render `cancelReason` — `InvoiceController.java:149-151`
+builds its status line from `orderStatus`/`paymentStatus`, which is the *other* consequence of
+this feature: an owner's status edit changes what a reprinted invoice shows, so that is a
+reason to keep the audit trail strict, not a reason to touch `cancelReason`. The exposure of a
+mis-used `cancelReason` is therefore narrower than "it reads as a cancellation on slips": a
+stale note would sit invisibly on a live bill and then surface if that bill is cancelled later
+(or if the cancel-gated display guard ever changes).
+
+If you want the edit note visible in the table, the follow-up is a small migration —
+`last_edit_note`, `last_edited_by`, `last_edited_at` — which is the only option that also gives
+the UI something to display.
 
 ### 9.5 §8.3 Which configs — recommendation: **start with two**
 
