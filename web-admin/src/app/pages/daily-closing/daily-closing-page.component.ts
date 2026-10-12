@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 function todayStr(): string {
   const d = new Date();
@@ -41,7 +42,7 @@ interface DailyClosingData {
   selector: 'app-daily-closing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EmptyStateComponent],
   template: `
     <div class="page-shell">
       <!-- Operational Topbar (navbar.gallery standard) -->
@@ -50,13 +51,13 @@ interface DailyClosingData {
           <div class="header-title-row">
             <h2>Daily Closing &amp; Settlement</h2>
             <span class="settle-badge" [class.settle-badge--live]="isToday()" [class.settle-badge--closed]="!isToday()">
-              {{ isToday() ? 'â— Live Session (Today)' : 'âœ“ Closed Business Day (' + selectedDate() + ')' }}
+              {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
             </span>
           </div>
           <p class="header-sub">Count physical cash, audit payment splits, and verify recognized revenues.</p>
         </div>
         <div class="header-right">
-          <div class="day-selector-group">
+          <div class="day-selector-group" role="group" aria-label="Closing date range">
             <button
               type="button"
               class="day-pill"
@@ -85,12 +86,13 @@ interface DailyClosingData {
                 [ngModel]="selectedDate()"
                 (ngModelChange)="selectCustomDate($event)"
                 [max]="today"
+                aria-label="Closing date"
                 title="Select custom closing date"
               />
             </div>
           </div>
           <button type="button" class="refresh-btn" [disabled]="loading()" (click)="load()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
@@ -99,7 +101,7 @@ interface DailyClosingData {
             Refresh
           </button>
           <button type="button" class="ghost-btn" (click)="printSlip()" *ngIf="data()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 6 2 18 2 18 9"/>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <rect x="6" y="14" width="12" height="8"/>
@@ -107,7 +109,7 @@ interface DailyClosingData {
             Print Slip
           </button>
           <button type="button" class="ghost-btn" (click)="exportClosing()" *ngIf="data()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
@@ -119,7 +121,7 @@ interface DailyClosingData {
 
       <!-- Alert if Draft Orders are Open -->
       <div class="draft-warning-banner no-print" *ngIf="data() && data()!.draftOrders > 0">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/>
         </svg>
         <span>
@@ -131,6 +133,16 @@ interface DailyClosingData {
       <div class="alert error" *ngIf="error()">{{ error() }} <button type="button" class="ghost-btn" (click)="load()">Retry</button></div>
 
       <ng-container *ngIf="data() as d">
+        <app-empty-state
+          *ngIf="!loading() && !error() && d.totalOrders === 0"
+          icon="🧾"
+          title="No sales recorded for this date"
+          text="Closing figures appear once POS orders for the selected day are settled. Pick another date or refresh to try again."
+          actionLabel="Refresh"
+          (action)="load()"
+        ></app-empty-state>
+
+        <ng-container *ngIf="d.totalOrders > 0">
 
         <!-- Revenue Bento KPI Row (bentogrids.com standard) -->
         <section class="closing-bento-grid" aria-label="Closing summary">
@@ -176,9 +188,9 @@ interface DailyClosingData {
             </div>
 
             <div class="recon-card recon-card--input">
-              <span class="recon-label">Counted Drawer Cash (â‚¹)</span>
+              <span class="recon-label">Counted Drawer Cash (₹)</span>
               <div class="input-with-currency">
-                <span class="currency-prefix">â‚¹</span>
+                <span class="currency-prefix" aria-hidden="true">₹</span>
                 <input
                   type="number"
                   class="cash-count-field"
@@ -210,16 +222,16 @@ interface DailyClosingData {
           <div class="payment-splits-grid">
             <article class="split-card" *ngFor="let split of d.paymentSplits; trackBy: trackByIndex">
               <div class="split-icon-box" [ngClass]="'split-icon--' + split.mode">
-                <svg *ngIf="split.mode.includes('cash')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg *ngIf="split.mode.includes('cash')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect width="20" height="12" x="2" y="6" rx="2"/>
                   <circle cx="12" cy="12" r="2"/>
                   <path d="M6 12h.01M18 12h.01"/>
                 </svg>
-                <svg *ngIf="split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg *ngIf="split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
                   <path d="M12 18h.01"/>
                 </svg>
-                <svg *ngIf="!split.mode.includes('cash') && !split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg *ngIf="!split.mode.includes('cash') && !split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect width="20" height="14" x="2" y="5" rx="2"/>
                   <line x1="2" x2="22" y1="10" y2="10"/>
                 </svg>
@@ -257,6 +269,7 @@ interface DailyClosingData {
           </div>
         </section>
 
+        </ng-container>
       </ng-container>
     </div>
   `,
@@ -275,7 +288,7 @@ interface DailyClosingData {
       margin: 0 auto;
     }
 
-    /* â”€â”€ Header (navbar.gallery standard) â”€â”€ */
+    /* ── Header (navbar.gallery standard) ── */
     .closing-header {
       display: flex;
       align-items: center;
@@ -420,7 +433,7 @@ interface DailyClosingData {
     
     
 
-    /* â”€â”€ Bento KPI Row (bentogrids.com standard) â”€â”€ */
+    /* ── Bento KPI Row (bentogrids.com standard) ── */
     .closing-bento-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -485,7 +498,7 @@ interface DailyClosingData {
     }
     .bento-kpi--warn .bento-kpi__value { color: var(--kb-color-warning); }
 
-    /* â”€â”€ Cash Reconciliation Panel â”€â”€ */
+    /* ── Cash Reconciliation Panel ── */
     .reconciliation-panel {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-surface-2);
@@ -597,7 +610,7 @@ interface DailyClosingData {
     .variance-badge--over { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .variance-badge--short { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
 
-    /* â”€â”€ Payment Splits Grid â”€â”€ */
+    /* ── Payment Splits Grid ── */
     .payment-splits-panel {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-surface-2);
@@ -655,7 +668,7 @@ interface DailyClosingData {
       color: var(--kb-color-muted-foreground);
     }
 
-    /* â”€â”€ Order Status Audit Row â”€â”€ */
+    /* ── Order Status Audit Row ── */
     .order-dist-panel {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-surface-2);
@@ -844,9 +857,9 @@ export class DailyClosingPageComponent {
 
   getVarianceFormatted(expectedCash: number): string {
     const counted = this.countedCash();
-    if (counted === null || isNaN(counted)) return 'â€”';
+    if (counted === null || isNaN(counted)) return '—';
     const delta = counted - expectedCash;
-    if (Math.abs(delta) < 0.01) return 'â‚¹ 0.00';
+    if (Math.abs(delta) < 0.01) return '₹ 0.00';
     return (delta > 0 ? '+' : '') + this.fmt(delta);
   }
 

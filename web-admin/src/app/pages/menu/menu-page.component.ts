@@ -68,21 +68,21 @@ import { environment } from '../../../environments/environment';
           class="stock-tab-pill stock-tab-pill--green"
           [class.stock-tab-pill--active]="stockFilter === 'IN_STOCK'"
           (click)="setStockFilter('IN_STOCK')">
-          â— In Stock ({{ inStockCount }})
+          ● In Stock ({{ inStockCount }})
         </button>
         <button
           type="button"
           class="stock-tab-pill stock-tab-pill--amber"
           [class.stock-tab-pill--active]="stockFilter === 'RUNNING_LOW'"
           (click)="setStockFilter('RUNNING_LOW')">
-          â— Running Low ({{ runningLowCount }})
+          ● Running Low ({{ runningLowCount }})
         </button>
         <button
           type="button"
           class="stock-tab-pill stock-tab-pill--red"
           [class.stock-tab-pill--active]="stockFilter === 'OUT_OF_STOCK'"
           (click)="setStockFilter('OUT_OF_STOCK')">
-          â— Out of Stock ({{ outOfStockCount }})
+          ● Out of Stock ({{ outOfStockCount }})
         </button>
       </nav>
 
@@ -375,7 +375,7 @@ import { environment } from '../../../environments/environment';
             </select>
           </div>
           <div class="field">
-            <label>Base Price (â‚¹) *</label>
+            <label>Base Price (₹) *</label>
             <input
               type="number"
               class="field-control"
@@ -424,7 +424,7 @@ import { environment } from '../../../environments/environment';
               <div *ngFor="let variant of itemVariants; trackBy: trackByVariantId" style="display:flex; align-items:center; justify-content:space-between; padding: 0.45rem 0.75rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 8px;">
                 <div>
                   <strong style="font-size:0.88rem;">{{ variant.variantName }}</strong>
-                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">â‚¹{{ variant.price }}</span>
+                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">₹{{ variant.price }}</span>
                 </div>
                 <button
                   type="button"
@@ -452,7 +452,7 @@ import { environment } from '../../../environments/environment';
                 type="number"
                 class="field-control"
                 [(ngModel)]="newVariantPrice"
-                placeholder="Price (â‚¹)"
+                placeholder="Price (₹)"
                 min="0.01"
                 step="0.01"
                 style="flex: 1; min-height:36px; font-size:0.85rem;"
@@ -489,7 +489,7 @@ import { environment } from '../../../environments/environment';
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
-            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">âœ•</button>
+            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
           </div>
           <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted.</p>
 
@@ -1347,7 +1347,7 @@ export class MenuPageComponent implements OnDestroy {
     return formatCurrency(value);
   }
 
-  // â”€â”€â”€ Dish photo thumbnail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Dish photo thumbnail ──────────────────────────────────────────────────
   // Items without a photo (or whose photo fails to load) fall back to a veg /
   // non-veg FSSAI dot on a neutral tile, matching the Android MenuItemThumbnail.
   private readonly failedImages = new Set<number>();

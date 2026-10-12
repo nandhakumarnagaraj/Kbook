@@ -35,7 +35,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           <h1 class="brand-hero-title">
             Run your restaurant<br/>with <span class="brand-accent-text">confidence.</span>
           </h1>
-          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments â€” built for restaurant owners.</p>
+          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
 
           <div class="brand-feature-stack">
             <div class="brand-feature-card">
@@ -87,8 +87,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         </div>
 
         <div class="brand-foot-row">
-          <p class="brand-foot">Â© {{ year }} KhanaBook. All rights reserved.</p>
-          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in â†—</a>
+          <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
+          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in ↗</a>
         </div>
       </aside>
 
@@ -186,7 +186,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!loading">Sign in &rarr;</span>
                 <span *ngIf="loading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Signing inâ€¦
+                  Signing in…
                 </span>
               </button>
             </form>
@@ -199,12 +199,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <a href="https://khanabook.in" class="link-right" target="_blank" rel="noopener">learn more</a>
               </p>
               <div class="trust-badge-row">
-                <span class="trust-icon" aria-hidden="true">ðŸ”’</span>
-                <span>256-bit SSL encrypted â€¢ Restaurant Cloud</span>
+                <span class="trust-icon" aria-hidden="true">🔒</span>
+                <span>256-bit SSL encrypted • Restaurant Cloud</span>
               </div>
               <div class="mobile-foot-row">
-                <span>Â© {{ year }} KhanaBook.</span>
-                <a href="https://khanabook.in" target="_blank" rel="noopener" class="mobile-foot-link">khanabook.in â†—</a>
+                <span>© {{ year }} KhanaBook.</span>
+                <a href="https://khanabook.in" target="_blank" rel="noopener" class="mobile-foot-link">khanabook.in ↗</a>
               </div>
             </div>
           </ng-container>
@@ -237,11 +237,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Send OTP &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Sending OTPâ€¦
+                  Sending OTP…
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'otp'">
@@ -273,11 +273,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Verify OTP &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Verifyingâ€¦
+                  Verifying…
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'password'">
@@ -327,11 +327,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Reset password &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Resettingâ€¦
+                  Resetting…
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'success'">
@@ -339,7 +339,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Password reset</h2>
               <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
             </header>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
         </div>
       </main>
@@ -749,7 +749,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
       const gsiReady = typeof google !== 'undefined' && google?.accounts?.id;
       // Render only once BOTH the GIS script is ready AND the target element
       // exists in the DOM. The #google-btn div lives inside *ngIf="forgotStep
-      // === 'none'", so it may not be present on the first tick â€” calling
+      // === 'none'", so it may not be present on the first tick — calling
       // renderButton(null, ...) makes GIS log "no parent" and draw nothing.
       if (gsiReady && target) {
         google.accounts.id.initialize({
@@ -844,7 +844,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         // Server always returns 200 to prevent user enumeration.
-        // Move to OTP step regardless â€” if the number isn't registered, no OTP arrives.
+        // Move to OTP step regardless — if the number isn't registered, no OTP arrives.
         this.forgotLoading = false;
         this.forgotStep = 'otp';
         this.forgotError = '';

@@ -440,7 +440,7 @@ export class SidebarLayoutComponent implements OnInit {
       { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
       { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Preview' },
       { label: 'Terminals', path: '/business/terminals', icon: '📱', iconKey: 'terminals' },
-      { label: 'Payments', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
+      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
       { label: 'Reports', path: '/business/reports', icon: '◔', iconKey: 'reports' },
       { label: 'Settings', path: '/business/settings', icon: '⚙', iconKey: 'settings' }
     ];
@@ -452,7 +452,7 @@ export class SidebarLayoutComponent implements OnInit {
       { label: 'Dashboard', iconKey: 'dashboard', route: '/business/dashboard' },
       { label: 'Orders', iconKey: 'orders', route: '/business/orders' },
       { label: 'Active', iconKey: 'kitchen', route: '/business/active-orders' },
-      { label: 'Payments', iconKey: 'payments', route: '/business/daily-closing' },
+      { label: 'Closing', iconKey: 'payments', route: '/business/daily-closing' },
       { label: 'Settings', iconKey: 'settings', route: '/business/settings' }
     ];
   });

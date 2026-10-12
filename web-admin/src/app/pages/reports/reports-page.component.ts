@@ -6,6 +6,7 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { formatCurrency } from '../../shared/formatters';
+import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
 
 function formatLocalDate(d: Date): string {
@@ -379,7 +380,7 @@ function formatLocalDate(d: Date): string {
       margin: 0 auto;
     }
 
-    /* â”€â”€ Header (navbar.gallery standard) â”€â”€ */
+    /* ── Header (navbar.gallery standard) ── */
     .reports-header {
       display: flex;
       align-items: center;
@@ -420,7 +421,7 @@ function formatLocalDate(d: Date): string {
     
     
 
-    /* â”€â”€ Bento Analytics Grid (bentogrids.com standard) â”€â”€ */
+    /* ── Bento Analytics Grid (bentogrids.com standard) ── */
     .reports-bento-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -512,7 +513,7 @@ function formatLocalDate(d: Date): string {
       font-size: 0.76rem;
     }
 
-    /* â”€â”€ Secondary Financial Strip â”€â”€ */
+    /* ── Secondary Financial Strip ── */
     .financial-strip-card {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -556,7 +557,7 @@ function formatLocalDate(d: Date): string {
     .text-danger { color: var(--kb-color-danger) !important; }
     .text-warn { color: var(--kb-color-warning) !important; }
 
-    /* â”€â”€ Audit Note Card (unsection.com aesthetic) â”€â”€ */
+    /* ── Audit Note Card (unsection.com aesthetic) ── */
     .audit-note-card {
       display: flex;
       align-items: flex-start;
@@ -591,7 +592,7 @@ function formatLocalDate(d: Date): string {
       line-height: 1.5;
     }
 
-    /* â”€â”€ Tab Navigation â”€â”€ */
+    /* ── Tab Navigation ── */
     .report-tabs-nav {
       display: flex;
       gap: 0.5rem;
@@ -630,7 +631,7 @@ function formatLocalDate(d: Date): string {
       color: #FFFFFF;
     }
 
-    /* â”€â”€ Tables & Cards â”€â”€ */
+    /* ── Tables & Cards ── */
     .table-card {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-surface-2);
@@ -861,9 +862,7 @@ export class ReportsPageComponent {
 
   getInvoiceUrl(row: GstLedgerEntry): string {
     const session = this.auth.session();
-    const restaurantId = session?.restaurantId || 1;
-    const token = row.publicToken || 'preview';
-    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${row.billId}/${token}`;
+    return buildInvoiceLink(session?.restaurantId, row.billId, row.publicToken);
   }
 
   private readRange(): { from: string; to: string } {

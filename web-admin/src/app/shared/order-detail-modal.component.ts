@@ -16,6 +16,7 @@ import { CommonModule } from '@angular/common';
 import { OrderDetailResponse } from '../core/models/api.models';
 import { formatCurrency, formatDate } from './formatters';
 import { AuthService } from '../core/auth/auth.service';
+import { buildInvoiceLink } from '../core/utils/invoice-link.util';
 import { ToastService } from '../core/services/toast.service';
 
 @Component({
@@ -36,7 +37,7 @@ import { ToastService } from '../core/services/toast.service';
       >
         <div class="order-modal__header">
           <h3 id="order-detail-title" class="order-modal__title">Order #{{ order.order.orderCode }}</h3>
-          <button #closeButton type="button" class="order-modal__close" (click)="close()" aria-label="Close order details">âœ•</button>
+          <button #closeButton type="button" class="order-modal__close" (click)="close()" aria-label="Close order details">✕</button>
         </div>
 
         <div class="order-modal__details">
@@ -54,11 +55,11 @@ import { ToastService } from '../core/services/toast.service';
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Customer</span>
-            <span class="order-modal__value">{{ order.order.customerName || 'â€”' }}</span>
+            <span class="order-modal__value">{{ order.order.customerName || '—' }}</span>
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Contact</span>
-            <span class="order-modal__value">{{ order.order.customerContact || 'â€”' }}</span>
+            <span class="order-modal__value">{{ order.order.customerContact || '—' }}</span>
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Status</span>
@@ -413,9 +414,7 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   getInvoiceUrl(): string | null {
     if (!this.order?.order) return null;
     const session = this.auth.session();
-    const restaurantId = session?.restaurantId || 1;
-    const token = this.order.order.publicToken || 'preview';
-    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${this.order.order.orderId}/${token}`;
+    return buildInvoiceLink(session?.restaurantId, this.order.order.orderId, this.order.order.publicToken);
   }
 
   copyInvoiceLink(): void {

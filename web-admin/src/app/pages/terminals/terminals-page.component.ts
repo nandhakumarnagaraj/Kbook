@@ -220,7 +220,7 @@ import { formatDate } from '../../shared/formatters';
                 </span>
               </div>
               <p>
-                {{ terminal.terminalSeries || 'No series' }} Â·
+                {{ terminal.terminalSeries || 'No series' }} ·
                 <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
                   <code>{{ formatDeviceId(terminal.deviceId) }}</code>
                   <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
@@ -358,7 +358,7 @@ import { formatDate } from '../../shared/formatters';
                 </span>
               </div>
               <p>
-                {{ req.deviceModel || 'Unknown model' }} Â·
+                {{ req.deviceModel || 'Unknown model' }} ·
                 <span class="device-pill" *ngIf="req.deviceId; else noReqCardDev" [title]="req.deviceId">
                   <code>{{ formatDeviceId(req.deviceId) }}</code>
                   <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
@@ -1181,7 +1181,7 @@ export class TerminalsPageComponent implements OnDestroy {
     if (!req) return;
     const code = this.challengeCode.trim();
     if (!/^\d{1,2}$/.test(code)) {
-      this.challengeError.set('Enter the 1â€“2 digit number shown on the device.');
+      this.challengeError.set('Enter the 1–2 digit number shown on the device.');
       return;
     }
     this.sendApprove(req, code.padStart(2, '0'));

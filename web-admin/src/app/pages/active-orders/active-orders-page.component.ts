@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 
 @Component({
@@ -64,7 +65,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
             <span class="telemetry-mini-pill">{{ dineInCount() }} Dine-in</span>
           </div>
           <strong class="telemetry-val">{{ activeTableCount() }} Tables Occupied</strong>
-          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway Â· {{ dineInCount() }} Dine-in</span>
+          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway · {{ dineInCount() }} Dine-in</span>
         </article>
 
         <article class="telemetry-card" [class.telemetry-card--alert]="urgentCount() > 0">
@@ -133,7 +134,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
             </div>
             <div class="elapsed-col">
               <span class="elapsed-pill" [class.elapsed-pill--urgent]="isUrgent(order)">
-                â± {{ getElapsed(order) }}
+                ⏱ {{ getElapsed(order) }}
               </span>
             </div>
           </div>
@@ -208,10 +209,10 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               <span class="chip danger">Void / Cancel Order</span>
               <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel()?.orderCode }}</h3>
               <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
-                Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} Â· {{ orderToCancel()?.customerName || 'Walk-in customer' }}
+                Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} · {{ orderToCancel()?.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">âœ•</button>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -264,7 +265,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       margin: 0 auto;
     }
 
-    /* â”€â”€ Operational Topbar (navbar.gallery standard) â”€â”€ */
+    /* ── Operational Topbar (navbar.gallery standard) ── */
     .operational-header {
       display: flex;
       align-items: center;
@@ -304,7 +305,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       to { transform: rotate(360deg); }
     }
 
-    /* â”€â”€ Floor Telemetry Grid â”€â”€ */
+    /* ── Floor Telemetry Grid ── */
     .floor-telemetry-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr;
@@ -388,7 +389,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       color: var(--kb-color-danger) !important;
     }
 
-    /* â”€â”€ Bento Active Cards Grid (bentogrids.com standard) â”€â”€ */
+    /* ── Bento Active Cards Grid (bentogrids.com standard) ── */
     .active-orders-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
@@ -533,7 +534,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       font-weight: 700;
     }
 
-    /* â”€â”€ All Clear Dignified Empty State (404s.design standard) â”€â”€ */
+    /* ── All Clear Dignified Empty State (404s.design standard) ── */
     .all-clear-card {
       background: #FFFFFF;
       border: 1.5px dashed var(--kb-color-border-strong);
@@ -573,7 +574,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       line-height: 1.5;
     }
 
-    /* â”€â”€ Card Actions Row â”€â”€ */
+    /* ── Card Actions Row ── */
     .card-actions-row {
       display: flex;
       gap: 0.5rem;
@@ -625,7 +626,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       border-color: var(--kb-color-danger-soft);
     }
 
-    /* â”€â”€ Modal Layout â”€â”€ */
+    /* ── Modal Layout ── */
     .modal-header {
       display: flex;
       align-items: flex-start;
@@ -757,7 +758,7 @@ export class ActiveOrdersPageComponent implements OnDestroy {
 
   readonly oldestWaitFormatted = computed(() => {
     const orders = this.activeOrders();
-    if (!orders.length) return 'â€”';
+    if (!orders.length) return '—';
     const now = Date.now();
     let maxElapsed = 0;
     for (const o of orders) {
@@ -894,9 +895,7 @@ export class ActiveOrdersPageComponent implements OnDestroy {
   copyInvoiceLink(order: BusinessOrder, event?: MouseEvent): void {
     if (event) event.stopPropagation();
     const session = this.auth.session();
-    const restaurantId = session?.restaurantId || 1;
-    const token = order.publicToken || 'preview';
-    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
+    const link = buildInvoiceLink(session?.restaurantId, order.orderId, order.publicToken);
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(link).then(
         () => this.toast.show(`Invoice link for Order #${order.orderCode} copied!`, 'success'),

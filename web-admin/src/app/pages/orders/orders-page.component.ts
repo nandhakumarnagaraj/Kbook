@@ -9,8 +9,8 @@ import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
-import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 
 export function escapeCsvField(value: string): string {
   const spreadsheetSafe = /^[=+\-@]/.test(value) ? `'${value}` : value;
@@ -64,7 +64,7 @@ export function filterBusinessOrders(
   selector: 'app-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, EmptyStateComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <header class="operational-orders-header">
@@ -109,7 +109,7 @@ export function filterBusinessOrders(
           (click)="$event.stopPropagation()"
         >
           <h3 id="refund-dialog-title">Record Manual Refund</h3>
-          <p class="muted">Order {{ refundTarget.orderCode }} Â· Total {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
+          <p class="muted">Order {{ refundTarget.orderCode }} · Total {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
           <p class="hint-text">
             Use this only after the money has been returned outside KhanaBook. This action records the refund; it does not contact a payment gateway.
           </p>
@@ -181,10 +181,10 @@ export function filterBusinessOrders(
               <span class="chip danger">Void / Cancel Order</span>
               <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel.orderCode }}</h3>
               <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
-                Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} Â· {{ orderToCancel.customerName || 'Walk-in customer' }}
+                Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} · {{ orderToCancel.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">âœ•</button>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -233,7 +233,7 @@ export function filterBusinessOrders(
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <!-- â”€â”€ Live Orders & Recent Transactions Section â”€â”€ -->
+      <!-- ── Live Orders & Recent Transactions Section ── -->
       <section class="bento-orders-container" aria-label="Recent Orders and Transactions">
         <div class="orders-head-bar">
           <div class="orders-head-left">
@@ -326,7 +326,7 @@ export function filterBusinessOrders(
                 <td>
                   <div class="order-guest-desc">
                     <span class="guest-title">{{ order.customerName ? 'Guest: ' + order.customerName : (isTakeaway(order) ? 'Takeaway Order' : 'Dine In Order') }}</span>
-                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} Â· {{ order.paymentMethod || 'Cash' }}</span>
+                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} · {{ order.paymentMethod || 'Cash' }}</span>
                   </div>
                 </td>
                 <td>
@@ -1043,9 +1043,7 @@ export class OrdersPageComponent implements OnDestroy {
 
   getInvoiceUrl(order: BusinessOrder): string {
     const session = this.auth.session();
-    const restaurantId = session?.restaurantId || 1;
-    const token = order.publicToken || 'preview';
-    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
+    return buildInvoiceLink(session?.restaurantId, order.orderId, order.publicToken);
   }
 
   get filteredOrders(): BusinessOrder[] {

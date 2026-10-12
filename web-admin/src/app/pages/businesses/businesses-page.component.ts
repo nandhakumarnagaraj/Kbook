@@ -121,7 +121,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
           <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
             <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
-              <span>{{ business.ownerName || 'No owner name' }} Â· #{{ business.restaurantId }}</span>
+              <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
             </button>
             <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div></dl>
             <div class="mobile-data-card__actions">

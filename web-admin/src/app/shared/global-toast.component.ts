@@ -18,7 +18,7 @@ import { ToastService } from '../core/services/toast.service';
       aria-atomic="true"
     >
       <span class="global-toast__mark" aria-hidden="true">
-        {{ msg.type === 'error' ? '!' : (msg.type === 'success' ? 'âœ“' : 'i') }}
+        {{ msg.type === 'error' ? '!' : (msg.type === 'success' ? '✓' : 'i') }}
       </span>
       <span class="global-toast__message">{{ msg.text }}</span>
       <button
@@ -26,7 +26,7 @@ import { ToastService } from '../core/services/toast.service';
         class="global-toast__close"
         aria-label="Dismiss notification"
         (click)="toast.dismiss()"
-      >Ã—</button>
+      >×</button>
     </aside>
   `,
   styles: [`

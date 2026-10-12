@@ -45,46 +45,46 @@ export interface PaymentMethodsSettings {
         </div>
         <div class="field" *ngIf="settings().upiEnabled">
           <label>UPI Handle</label>
-          <input class="field-control" [ngModel]="settings().upiHandle" (ngModelChange)="onUpiHandleChange($event)" placeholder="yourname@upi" />
-          <div *ngIf="upiValidation" class="upi-feedback">
-            <div *ngIf="upiValidation.isValid && upiValidation.isKnownBank" class="feedback-success">
-              <span class="icon">&#10003;</span> Verified Bank Handle (&#64;{{ upiValidation.suffix }})
+          <input class="field-control" [ngModel]="settings().upiHandle" (ngModelChange)="onUpiHandleChange($event)" placeholder="yourname@upi" aria-label="UPI handle" aria-describedby="upi-feedback" />
+          <div *ngIf="upiValidation" class="upi-feedback" id="upi-feedback">
+            <div *ngIf="upiValidation.isValid && upiValidation.isKnownBank" class="feedback-success" role="status">
+              <span class="icon" aria-hidden="true">&#10003;</span> Verified Bank Handle (&#64;{{ upiValidation.suffix }})
             </div>
-            <div *ngIf="upiValidation.suggestion" class="feedback-warning">
+            <div *ngIf="upiValidation.suggestion" class="feedback-warning" role="status">
               <span>&#9888; Unrecognized handle &#64;{{ upiValidation.suffix }}. Did you mean:</span>
-              <button type="button" class="suggestion-btn" (click)="applyUpiSuggestion(upiValidation.suggestion)">
+              <button type="button" class="suggestion-btn" (click)="applyUpiSuggestion(upiValidation.suggestion)" aria-label="Use this suggested UPI handle">
                 {{ upiValidation.suggestion }}
               </button>
             </div>
-            <div *ngIf="!upiValidation.isValid && settings().upiHandle" class="feedback-error">
-              <span>&#10007;</span> {{ upiValidation.message }}
+            <div *ngIf="!upiValidation.isValid && settings().upiHandle" class="feedback-error" role="alert">
+              <span aria-hidden="true">&#10007;</span> {{ upiValidation.message }}
             </div>
           </div>
         </div>
         <div class="field" *ngIf="settings().upiEnabled">
           <label>UPI Mobile</label>
-          <input class="field-control" [ngModel]="settings().upiMobile" (ngModelChange)="updateField('upiMobile', $event)" placeholder="Linked mobile number" maxlength="10" />
+          <input class="field-control" [ngModel]="settings().upiMobile" (ngModelChange)="updateField('upiMobile', $event)" placeholder="Linked mobile number" maxlength="10" aria-label="UPI linked mobile number" />
         </div>
         <div class="field">
           <label>Order Payment Flow</label>
-          <select class="field-select" [ngModel]="settings().orderPaymentFlowMode" (ngModelChange)="updateField('orderPaymentFlowMode', $event)">
+          <select class="field-select" [ngModel]="settings().orderPaymentFlowMode" (ngModelChange)="updateField('orderPaymentFlowMode', $event)" aria-label="Order payment flow">
             <option value="pay_before_food">Pay before food (Fast Counter / QSR)</option>
             <option value="pay_after_food">Pay after food (Dine-in Table Service)</option>
           </select>
         </div>
       </div>
 
-      <div class="flow-mode-cards">
-        <div class="flow-mode-card" [class.active]="settings().orderPaymentFlowMode === 'pay_before_food'" (click)="updateField('orderPaymentFlowMode', 'pay_before_food')">
+      <div class="flow-mode-cards" role="radiogroup" aria-label="Order payment flow mode">
+        <div class="flow-mode-card" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_before_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_before_food'" (click)="updateField('orderPaymentFlowMode', 'pay_before_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_before_food')">
           <div class="mode-header">
-            <span class="mode-radio"></span>
+            <span class="mode-radio" aria-hidden="true"></span>
             <strong>Pay Before Food (Fast Counter / QSR)</strong>
           </div>
           <p class="muted">Customers settle payment at billing counter. Receipts print immediately upon payment success.</p>
         </div>
-        <div class="flow-mode-card" [class.active]="settings().orderPaymentFlowMode === 'pay_after_food'" (click)="updateField('orderPaymentFlowMode', 'pay_after_food')">
+        <div class="flow-mode-card" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_after_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_after_food'" (click)="updateField('orderPaymentFlowMode', 'pay_after_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_after_food')">
           <div class="mode-header">
-            <span class="mode-radio"></span>
+            <span class="mode-radio" aria-hidden="true"></span>
             <strong>Pay After Food (Dine-In Table Service)</strong>
           </div>
           <p class="muted">Orders start as open tabs. Tables remain open in Active Orders and are settled at checkout.</p>
@@ -119,8 +119,8 @@ export interface PaymentMethodsSettings {
       <p class="muted" style="margin:0 0 1rem;font-size:0.85rem">
         Enable online payment collection via UPI, cards, and net banking through Easebuzz gateway.
       </p>
-      <div *ngIf="easebuzzLoading" class="loading">Loading payment config...</div>
-      <div *ngIf="!easebuzzLoading && easebuzzError" class="config-error">
+      <div *ngIf="easebuzzLoading" class="loading" role="status">Loading payment config...</div>
+      <div *ngIf="!easebuzzLoading && easebuzzError" class="config-error" role="alert">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
           <strong>Couldn't load payment config</strong>

@@ -31,7 +31,7 @@ interface VerificationState {
     <section class="panel settings-section">
       <div class="section-title-wrap">
         <div class="section-icon">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
           </svg>
         </div>
@@ -70,13 +70,13 @@ interface VerificationState {
               </button>
             </div>
             <!-- GST Verification Result -->
-            <div *ngIf="gstState().valid === true || (gstState().valid === null && tax().gstExpiryDate && tax().gstin?.length === 15)" class="verify-badge verify-badge--success">
-              <span class="badge-icon">âœ“</span>
+            <div *ngIf="gstState().valid === true || (gstState().valid === null && tax().gstExpiryDate && tax().gstin?.length === 15)" class="verify-badge verify-badge--success" role="status">
+              <span class="badge-icon" aria-hidden="true">✓</span>
               <span><strong>Verified:</strong> {{ gstState().businessName || 'Active GSTIN' }}</span>
               <span class="badge-sub">(Valid to: {{ gstState().expiryDate || tax().gstExpiryDate }})</span>
             </div>
-            <div *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger">
-              <span class="badge-icon">âœ•</span>
+            <div *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger" role="alert">
+              <span class="badge-icon" aria-hidden="true">✕</span>
               <span>{{ gstState().message || 'GSTIN verification failed.' }}</span>
             </div>
           </div>
@@ -141,13 +141,13 @@ interface VerificationState {
             </button>
           </div>
           <!-- FSSAI Verification Result -->
-          <div *ngIf="fssaiState().valid === true || (fssaiState().valid === null && tax().fssaiExpiryDate && tax().fssaiNumber?.length === 14)" class="verify-badge verify-badge--success">
-            <span class="badge-icon">âœ“</span>
+          <div *ngIf="fssaiState().valid === true || (fssaiState().valid === null && tax().fssaiExpiryDate && tax().fssaiNumber?.length === 14)" class="verify-badge verify-badge--success" role="status">
+            <span class="badge-icon" aria-hidden="true">✓</span>
             <span><strong>Verified:</strong> {{ fssaiState().businessName || 'Active FSSAI License' }}</span>
             <span class="badge-sub">(Expiry: {{ fssaiState().expiryDate || tax().fssaiExpiryDate }})</span>
           </div>
-          <div *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger">
-            <span class="badge-icon">âœ•</span>
+          <div *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger" role="alert">
+            <span class="badge-icon" aria-hidden="true">✕</span>
             <span>{{ fssaiState().message || 'FSSAI verification failed.' }}</span>
           </div>
           <span class="field-hint">Mandatory for all food establishments under FSSAI regulations. Printed on receipts.</span>

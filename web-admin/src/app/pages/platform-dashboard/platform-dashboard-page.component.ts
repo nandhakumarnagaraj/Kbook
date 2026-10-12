@@ -260,7 +260,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
                   <td>{{ sm.businessName || sm.beneficiaryName || '-' }}</td>
                   <td class="tabular-num">{{ (sm.pan || '-') + ' / ' + (sm.gst || '-') }}</td>
                   <td class="tabular-num muted">
-                    {{ sm.bankAccountNo ? ('â€¢â€¢â€¢â€¢' + sm.bankAccountNo.slice(-4)) : '-' }}
+                    {{ sm.bankAccountNo ? ('••••' + sm.bankAccountNo.slice(-4)) : '-' }}
                     <span *ngIf="sm.ifsc">({{ sm.ifsc }})</span>
                   </td>
                   <td class="muted">{{ sm.createdAt ? (sm.createdAt | date:'shortDate') : '-' }}</td>
@@ -350,7 +350,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
     .header-actions { display: flex; align-items: center; gap: var(--kb-space-2); }
 
-    /* â”€â”€ Tab Navigation â”€â”€ */
+    /* ── Tab Navigation ── */
     .operator-tabs-nav {
       display: flex;
       gap: 0.5rem;
@@ -387,7 +387,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       color: var(--kb-color-primary-foreground);
     }
 
-    /* â”€â”€ KPI Grid â”€â”€ */
+    /* ── KPI Grid ── */
     .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-4); }
     @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px)  { .kpi-row { grid-template-columns: 1fr; } }
@@ -475,7 +475,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .focus-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
     .focus-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
-    /* â”€â”€ Table Card & Responsive Tables â”€â”€ */
+    /* ── Table Card & Responsive Tables ── */
     .table-card {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);

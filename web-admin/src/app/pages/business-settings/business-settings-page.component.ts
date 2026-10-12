@@ -49,23 +49,23 @@ interface RestaurantProfile {
           <div class="header-title-row">
             <h2>Business &amp; Restaurant Configuration</h2>
             <span class="sync-state-badge" *ngIf="!loading()">
-              <span class="status-pulse-dot"></span>
+              <span class="status-pulse-dot" aria-hidden="true"></span>
               Live Sync Ready
             </span>
           </div>
           <p class="header-sub">Configure restaurant identity, automated GST compliance, and payment settlement channels.</p>
         </div>
         <div class="header-right">
-          <button type="button" class="primary-btn" [disabled]="saving() || loading()" (click)="saveProfile()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="primary-btn" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save all business settings">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
               <polyline points="7 3 7 8 15 8"/>
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-          <button type="button" class="ghost-btn" (click)="load()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="ghost-btn" (click)="load()" aria-label="Reload settings from server">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
@@ -76,8 +76,8 @@ interface RestaurantProfile {
         </div>
       </header>
 
-      <div class="panel loading" *ngIf="loading()">Loading settings...</div>
-      <div class="panel loading" *ngIf="!loading() && loadError() && !profile()">
+      <div class="panel loading" *ngIf="loading()" role="status">Loading settings...</div>
+      <div class="panel loading" *ngIf="!loading() && loadError() && !profile()" role="alert">
         {{ loadError() }} <button class="ghost-btn" (click)="load()">Retry</button>
       </div>
 
@@ -87,7 +87,7 @@ interface RestaurantProfile {
         <section class="panel settings-section">
           <div class="section-title-wrap">
             <div class="section-icon">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
@@ -103,7 +103,7 @@ interface RestaurantProfile {
             <div class="logo-preview-box">
               <img *ngIf="p.logoUrl" [src]="p.logoUrl" alt="Restaurant logo" class="logo-preview-img" />
               <div *ngIf="!p.logoUrl" class="logo-empty-box">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <polyline points="21 15 16 10 5 21"/>
@@ -116,8 +116,8 @@ interface RestaurantProfile {
               <p class="muted">Upload your brand mark. Displayed on bills, printed thermal receipts, and digital menus (PNG, JPG, max 2MB).</p>
               <div class="logo-actions">
                 <label class="ghost-btn file-picker-label">
-                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" />
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" aria-label="Choose restaurant logo file" />
+                  <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
@@ -125,7 +125,7 @@ interface RestaurantProfile {
                   {{ logoBusy() ? 'Uploading...' : (p.logoUrl ? 'Change Logo' : 'Upload Logo') }}
                 </label>
                 <button *ngIf="p.logoUrl" type="button" class="ghost-btn danger-btn" [disabled]="logoBusy()" (click)="removeLogo()">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -138,27 +138,27 @@ interface RestaurantProfile {
           <div class="form-grid">
             <div class="field">
               <label>Shop Name *</label>
-              <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" />
+              <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" aria-label="Shop name (required)" />
             </div>
             <div class="field">
               <label>Shop Address</label>
-              <input class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" />
+              <input class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" />
             </div>
             <div class="field">
               <label>WhatsApp Contact Number</label>
-              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" />
+              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" aria-label="WhatsApp contact number" />
             </div>
             <div class="field">
               <label>Official Email</label>
-              <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" />
+              <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" aria-label="Official business email" />
             </div>
             <div class="field">
               <label>Thermal Receipt Footer Note</label>
-              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" />
+              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" aria-label="Thermal receipt footer note" />
             </div>
             <div class="field">
               <label>Google Maps Review URL</label>
-              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" />
+              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" aria-label="Google Maps review URL" />
             </div>
           </div>
         </section>
@@ -187,8 +187,8 @@ interface RestaurantProfile {
         <div class="sticky-save-dock">
           <div class="save-dock-inner">
             <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
-            <button class="primary-btn" [disabled]="saving()" (click)="saveProfile()">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save all business settings">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
               {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}

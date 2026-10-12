@@ -85,7 +85,7 @@ import { ToastService } from '../../core/services/toast.service';
       <!-- Feature Preview Banner -->
       <div class="preview-notice-banner">
         <div class="banner-icon-wrap">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -103,16 +103,16 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab" [class.active]="activeTab === 'materials'" (click)="activeTab='materials'">Materials</button>
-        <button class="tab" [class.active]="activeTab === 'movements'" (click)="activeTab='movements'">Stock Movements</button>
-        <button class="tab" [class.active]="activeTab === 'variance'" (click)="activeTab='variance'">Variance Report</button>
+      <div class="tabs" role="tablist" aria-label="Inventory sections">
+        <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'materials'" [class.active]="activeTab === 'materials'" (click)="activeTab='materials'">Materials</button>
+        <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'movements'" [class.active]="activeTab === 'movements'" (click)="activeTab='movements'">Stock Movements</button>
+        <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'variance'" [class.active]="activeTab === 'variance'" (click)="activeTab='variance'">Variance Report</button>
       </div>
 
-      <app-api-state [loading]="loading" [error]="error"></app-api-state>
+      <app-api-state [loading]="loading" [error]="error" [attr.aria-busy]="loading"></app-api-state>
 
       <!-- Materials Tab -->
-      <div *ngIf="activeTab === 'materials' && !loading && !error">
+      <div role="tabpanel" aria-label="Materials" *ngIf="activeTab === 'materials' && !loading && !error">
         <div *ngIf="materials.length === 0">
           <app-empty-state
             title="No materials"
@@ -125,8 +125,12 @@ import { ToastService } from '../../core/services/toast.service';
         <div *ngIf="materials.length > 0" class="materials-grid">
           <div *ngFor="let m of materials; trackBy: trackByMaterialId"
                class="material-card"
+               role="button"
+               tabindex="0"
+               [attr.aria-label]="'Open stock actions for ' + m.name"
                [class.low-stock]="isLowStock(m)"
-               (click)="openMaterialDetail(m)">
+               (click)="openMaterialDetail(m)"
+               (keydown.enter)="openMaterialDetail(m)">
             <div style="display:flex;justify-content:space-between;align-items:start">
               <span class="material-name">{{ m.name }}</span>
               <span *ngIf="isLowStock(m)" class="low-label">LOW</span>
@@ -145,9 +149,9 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- Movements Tab -->
-      <div *ngIf="activeTab === 'movements' && !loading && !error">
+      <div role="tabpanel" aria-label="Stock movements" *ngIf="activeTab === 'movements' && !loading && !error">
         <div style="margin-bottom:1rem">
-          <select class="field-select" [(ngModel)]="selectedMaterialId" (change)="loadMovements()" style="max-width:300px">
+          <select class="field-select" aria-label="Select material for stock movements" [(ngModel)]="selectedMaterialId" (change)="loadMovements()" style="max-width:300px">
             <option [ngValue]="null">Select a material...</option>
             <option *ngFor="let m of materials; trackBy: trackByMaterialId" [ngValue]="m.id">{{ m.name }}</option>
           </select>
@@ -165,7 +169,7 @@ import { ToastService } from '../../core/services/toast.service';
                 {{ mv.createdAt | date:'short' }}
               </span>
               <span *ngIf="mv.reason" style="margin-left:0.5rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
-                â€” {{ mv.reason }}
+                — {{ mv.reason }}
               </span>
             </div>
             <span class="movement-qty" [class.positive]="mv.quantity > 0" [class.negative]="mv.quantity < 0">
@@ -180,16 +184,16 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- Variance Tab -->
-      <div *ngIf="activeTab === 'variance' && !loading && !error">
+      <div role="tabpanel" aria-label="Variance report" *ngIf="activeTab === 'variance' && !loading && !error">
         <div class="card">
           <div style="display:flex;gap:1rem;align-items:end;margin-bottom:1rem;flex-wrap:wrap">
             <div class="form-group" style="margin:0">
-              <label>From</label>
-              <input class="field-control" type="date" [(ngModel)]="varianceFrom" />
+              <label for="varianceFrom">From</label>
+              <input id="varianceFrom" class="field-control" type="date" [(ngModel)]="varianceFrom" />
             </div>
             <div class="form-group" style="margin:0">
-              <label>To</label>
-              <input class="field-control" type="date" [(ngModel)]="varianceTo" />
+              <label for="varianceTo">To</label>
+              <input id="varianceTo" class="field-control" type="date" [(ngModel)]="varianceTo" />
             </div>
             <button class="primary-btn" (click)="loadVariance()" [disabled]="!varianceFrom || !varianceTo">Run Report</button>
           </div>
@@ -198,11 +202,11 @@ import { ToastService } from '../../core/services/toast.service';
             <table class="styled">
               <thead>
                 <tr>
-                  <th>Material</th>
-                  <th>System Stock</th>
-                  <th>Physical Count</th>
-                  <th>Variance</th>
-                  <th>Variance %</th>
+                  <th scope="col">Material</th>
+                  <th scope="col">System Stock</th>
+                  <th scope="col">Physical Count</th>
+                  <th scope="col">Variance</th>
+                  <th scope="col">Variance %</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,8 +227,8 @@ import { ToastService } from '../../core/services/toast.service';
 
       <!-- Add/Edit Material Modal -->
       <div class="modal-backdrop" *ngIf="showMaterialModal" (click)="closeMaterialModal()">
-        <div class="modal-box modal-content" (click)="$event.stopPropagation()">
-          <h3>{{ editingMaterial ? 'Edit Material' : 'Add Material' }}</h3>
+        <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="material-modal-title" (click)="$event.stopPropagation()">
+          <h3 id="material-modal-title">{{ editingMaterial ? 'Edit Material' : 'Add Material' }}</h3>
 
           <div class="form-group">
             <label>Name *</label>
@@ -255,7 +259,7 @@ import { ToastService } from '../../core/services/toast.service';
               <input class="field-control" type="number" [(ngModel)]="materialForm.lowStockThreshold" min="0" step="0.01" />
             </div>
             <div class="form-group">
-              <label>Cost per Unit (â‚¹)</label>
+              <label>Cost per Unit (₹)</label>
               <input class="field-control" type="number" [(ngModel)]="materialForm.costPerUnit" min="0" step="0.01" />
             </div>
           </div>
@@ -271,29 +275,29 @@ import { ToastService } from '../../core/services/toast.service';
 
       <!-- Material Detail Modal (stock actions) -->
       <div class="modal-backdrop" *ngIf="showDetailModal" (click)="closeDetailModal()">
-        <div class="modal-box modal-content" style="max-width:520px" (click)="$event.stopPropagation()">
-          <h3>{{ selectedMaterial?.name }}</h3>
+        <div class="modal-box modal-content" style="max-width:520px" role="dialog" aria-modal="true" aria-labelledby="material-detail-title" (click)="$event.stopPropagation()">
+          <h3 id="material-detail-title">{{ selectedMaterial?.name }}</h3>
           <p style="margin:0 0 1rem;color:var(--kb-color-muted-foreground)">
             Current stock: <strong style="font-variant-numeric:tabular-nums">{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
-            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> Â· Cost: â‚¹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
+            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
           </p>
 
           <!-- Action sub-tabs -->
-          <div class="tabs" style="margin-bottom:1rem">
-            <button class="tab" [class.active]="detailTab === 'purchase'" (click)="detailTab='purchase'">Stock In</button>
-            <button class="tab" [class.active]="detailTab === 'wastage'" (click)="detailTab='wastage'">Wastage</button>
-            <button class="tab" [class.active]="detailTab === 'count'" (click)="detailTab='count'">Physical Count</button>
+          <div class="tabs" style="margin-bottom:1rem" role="tablist" aria-label="Stock actions">
+            <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'purchase'" [class.active]="detailTab === 'purchase'" (click)="detailTab='purchase'">Stock In</button>
+            <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'wastage'" [class.active]="detailTab === 'wastage'" (click)="detailTab='wastage'">Wastage</button>
+            <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'count'" [class.active]="detailTab === 'count'" (click)="detailTab='count'">Physical Count</button>
           </div>
 
           <!-- Purchase / Stock In -->
-          <div *ngIf="detailTab === 'purchase'">
+          <div role="tabpanel" aria-label="Stock in" *ngIf="detailTab === 'purchase'">
             <div class="form-row">
               <div class="form-group">
                 <label>Quantity *</label>
                 <input class="field-control" type="number" [(ngModel)]="purchaseForm.quantity" min="0.01" step="0.01" />
               </div>
               <div class="form-group">
-                <label>Unit Cost (â‚¹)</label>
+                <label>Unit Cost (₹)</label>
                 <input class="field-control" type="number" [(ngModel)]="purchaseForm.unitCost" min="0" step="0.01" />
               </div>
             </div>
@@ -301,7 +305,7 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <!-- Wastage -->
-          <div *ngIf="detailTab === 'wastage'">
+          <div role="tabpanel" aria-label="Wastage" *ngIf="detailTab === 'wastage'">
             <div class="form-group">
               <label>Quantity *</label>
               <input class="field-control" type="number" [(ngModel)]="wastageForm.quantity" min="0.01" step="0.01" />
@@ -314,7 +318,7 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <!-- Physical Count -->
-          <div *ngIf="detailTab === 'count'">
+          <div role="tabpanel" aria-label="Physical count" *ngIf="detailTab === 'count'">
             <div class="form-group">
               <label>Counted Quantity *</label>
               <input class="field-control" type="number" [(ngModel)]="countForm.countedQty" min="0" step="0.01" />

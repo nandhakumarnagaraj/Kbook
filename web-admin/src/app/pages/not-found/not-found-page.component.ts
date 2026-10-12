@@ -55,7 +55,7 @@ import { AuthService } from '../../core/auth/auth.service';
 
             <div class="bill-line">
               <span class="line-name">1x Requested URI</span>
-              <span class="line-price tabular-num">â‚¹ 0.00</span>
+              <span class="line-price tabular-num">₹ 0.00</span>
             </div>
             <div class="bill-line bill-line--secondary">
               <span class="line-sub">{{ currentUrl }}</span>
@@ -121,7 +121,7 @@ import { AuthService } from '../../core/auth/auth.service';
       background: radial-gradient(circle at 50% 20%, var(--kb-color-primary-soft) 0%, var(--kb-color-surface-2) 60%);
     }
 
-    /* â”€â”€ The Physical Thermal Receipt Card (Tactile Craft) â”€â”€ */
+    /* ── The Physical Thermal Receipt Card (Tactile Craft) ── */
     .receipt-card {
       position: relative;
       width: 100%;

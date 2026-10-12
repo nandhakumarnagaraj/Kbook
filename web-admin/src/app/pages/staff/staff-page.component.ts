@@ -315,7 +315,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       <app-confirm-dialog
         *ngIf="staffToRevoke"
         title="Sign out of all devices"
-        [message]="'Sign ' + staffToRevoke.name + ' out of every device? Their account stays active â€” they can sign in again straight away. Use this if a device was lost.'"
+        [message]="'Sign ' + staffToRevoke.name + ' out of every device? Their account stays active — they can sign in again straight away. Use this if a device was lost.'"
         confirmLabel="Sign out"
         cancelLabel="Cancel"
         [confirmDanger]="true"
@@ -455,7 +455,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                 {{ item.active ? 'Active' : 'Inactive' }}
               </span>
             </div>
-            <p><code>{{ item.loginId }}</code> Â· {{ item.whatsappNumber || item.email || 'No contact' }}</p>
+            <p><code>{{ item.loginId }}</code> · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
             <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
               <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>

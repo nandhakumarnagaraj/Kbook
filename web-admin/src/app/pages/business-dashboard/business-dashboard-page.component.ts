@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { combineLatest, of, Subject } from 'rxjs';
@@ -16,6 +16,7 @@ import {
   NotificationItem
 } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 
 export interface PosActiveOrder {
@@ -65,7 +66,7 @@ function getTodayIsoDate(): string {
   imports: [CommonModule, FormsModule, OrderDetailModalComponent],
   template: `
     <div class="dash-shell" *ngIf="dashboard() as data; else loading">
-      <!-- â”€â”€ Top Cockpit Header Bar â”€â”€ -->
+      <!-- ── Top Cockpit Header Bar ── -->
       <header class="dash-header">
         <div class="dash-header__left">
           <h1 class="dash-header__title">{{ data.shopName || 'KhanaBook Restaurant' }}</h1>
@@ -155,17 +156,18 @@ function getTodayIsoDate(): string {
             </svg>
             <span>Refresh</span>
           </button>
+          <span class="freshness-stamp" *ngIf="freshnessLabel()" role="status">{{ freshnessLabel() }}</span>
         </div>
       </header>
 
-      <!-- â”€â”€ Bento KPI Row (4 Key Metrics) â”€â”€ -->
+      <!-- ── Bento KPI Row (4 Key Metrics) ── -->
       <section class="bento-kpi-grid" aria-label="Key Performance Indicators">
         <!-- 1. Revenue Tile (Hero Tile) -->
         <article class="bento-tile bento-tile--hero">
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Today's Revenue</span>
             <span class="trend-badge" *ngIf="data.deltaToday !== 0" [class.trend-badge--down]="data.deltaToday < 0">
-              {{ data.deltaToday > 0 ? 'â†‘' : 'â†“' }} {{ Math.abs(data.deltaToday) }}% vs yest.
+              {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ Math.abs(data.deltaToday) }}% vs yest.
             </span>
             <span class="trend-badge trend-badge--neutral" *ngIf="data.deltaToday === 0">
               Live Intake
@@ -255,7 +257,7 @@ function getTodayIsoDate(): string {
         </article>
       </section>
 
-      <!-- â”€â”€ Middle Bento Grid: Service Velocity & Bestsellers â”€â”€ -->
+      <!-- ── Middle Bento Grid: Service Velocity & Bestsellers ── -->
       <section class="bento-intel-grid" aria-label="Operational Intelligence">
         <!-- Peak Hour Velocity Curve -->
         <article class="intel-card intel-card--chart">
@@ -337,15 +339,79 @@ function getTodayIsoDate(): string {
         </article>
       </section>
 
+      <!-- ── Live Floor Activity ── -->
+      <section class="floor-strip" aria-label="Live floor activity">
+        <div class="floor-strip__head">
+          <div class="floor-strip__title-group">
+            <span class="intel-card__eyebrow">Live Floor</span>
+            <h3 class="intel-card__title">Recent Orders</h3>
+            <span class="floor-strip__count">{{ filteredActiveOrders().length }} of {{ activeOrders().length }} shown</span>
+          </div>
 
+          <div class="floor-strip__controls">
+            <div class="channel-toggle" role="group" aria-label="Filter orders by channel">
+              <button
+                type="button"
+                class="channel-chip"
+                *ngFor="let c of channels"
+                [class.channel-chip--active]="selectedChannel() === c.value"
+                [attr.aria-pressed]="selectedChannel() === c.value"
+                (click)="setChannel(c.value)">
+                {{ c.label }}
+              </button>
+            </div>
+            <label class="floor-search">
+              <span class="visually-hidden">Search live orders</span>
+              <input
+                type="search"
+                class="floor-search__input"
+                placeholder="Search order #"
+                [ngModel]="searchQuery"
+                (ngModelChange)="onSearchChange($event)"
+                aria-label="Search live orders" />
+            </label>
+            <button type="button" class="link-btn-text" (click)="resetFilters()" *ngIf="selectedChannel() !== 'all' || searchQuery">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="floor-list" *ngIf="filteredActiveOrders().length > 0; else noLiveOrders">
+          <button
+            type="button"
+            class="floor-row"
+            *ngFor="let order of visibleActiveOrders(); trackBy: trackByOrderCode"
+            (click)="openOrderDetail(order.orderId)">
+            <span class="floor-row__code">{{ order.orderCode }}</span>
+            <span class="floor-row__summary">{{ order.itemsSummary }}</span>
+            <span class="floor-row__channel">{{ order.tableAndChannel }}</span>
+            <span class="status-chip" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+            <strong class="floor-row__amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
+          </button>
+          <button type="button" class="tile-action-link floor-more" (click)="navigateToActiveOrders()">
+            View all on Active Orders
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+        <ng-template #noLiveOrders>
+          <div class="intel-empty-box">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+            </svg>
+            <h4>No orders match this view</h4>
+            <p>Clear the search or channel filter to see recent orders from your POS terminals.</p>
+          </div>
+        </ng-template>
+      </section>
     </div>
 
-    <!-- â”€â”€ Terminal Fleet Status Modal â”€â”€ -->
+    <!-- ── Terminal Fleet Status Modal ── -->
     <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" (click)="toggleTerminalsModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <h3>POS Hardware Terminals</h3>
-          <button type="button" class="modal-close-icon" (click)="toggleTerminalsModal()">âœ•</button>
+          <button type="button" class="modal-close-icon" (click)="toggleTerminalsModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
           <div class="terminal-item-row" *ngFor="let t of terminals()">
@@ -373,7 +439,7 @@ function getTodayIsoDate(): string {
       </div>
     </div>
 
-    <!-- â”€â”€ Low Stock Alert Modal â”€â”€ -->
+    <!-- ── Low Stock Alert Modal ── -->
     <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" (click)="toggleLowStockModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
@@ -383,7 +449,7 @@ function getTodayIsoDate(): string {
             </span>
             <h3>Low Stock Raw Ingredients</h3>
           </div>
-          <button type="button" class="modal-close-icon" (click)="toggleLowStockModal()">âœ•</button>
+          <button type="button" class="modal-close-icon" (click)="toggleLowStockModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
           <p class="modal-lead-note">The following raw materials are currently below their minimum kitchen reserve threshold.</p>
@@ -462,7 +528,7 @@ function getTodayIsoDate(): string {
       gap: 1.5rem;
     }
 
-    /* â”€â”€ Header Bar â”€â”€ */
+    /* ── Header Bar ── */
     .dash-header {
       display: flex;
       align-items: center;
@@ -626,7 +692,7 @@ function getTodayIsoDate(): string {
     .spinning { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* â”€â”€ Bento KPI Grid â”€â”€ */
+    /* ── Bento KPI Grid ── */
     .bento-kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -814,7 +880,7 @@ function getTodayIsoDate(): string {
     }
     .tile-action-link:hover { color: var(--kb-color-primary-hover); }
 
-    /* â”€â”€ Middle Bento Grid â”€â”€ */
+    /* ── Middle Bento Grid ── */
     .bento-intel-grid {
       display: grid;
       grid-template-columns: 1.55fr 1fr;
@@ -822,6 +888,168 @@ function getTodayIsoDate(): string {
     }
     @media (max-width: 960px) {
       .bento-intel-grid { grid-template-columns: 1fr; }
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .freshness-stamp {
+      font-size: 0.76rem;
+      color: var(--kb-color-muted-foreground);
+      white-space: nowrap;
+    }
+
+    /* ── Live Floor strip ── */
+    .floor-strip {
+      background: #FFFFFF;
+      border: 1px solid var(--kb-color-border);
+      border-radius: 18px;
+      padding: 1.2rem 1.5rem 1.35rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
+    }
+
+    .floor-strip__head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem;
+    }
+
+    .floor-strip__title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .floor-strip__count {
+      font-size: 0.78rem;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .floor-strip__controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .channel-toggle {
+      display: inline-flex;
+      gap: 0.25rem;
+      padding: 0.15rem;
+      background: var(--kb-color-surface-2);
+      border-radius: 10px;
+    }
+
+    .channel-chip {
+      border: none;
+      background: transparent;
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .channel-chip--active {
+      background: #FFFFFF;
+      color: var(--kb-color-primary);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .floor-search__input {
+      min-height: 34px;
+      padding: 0.3rem 0.6rem;
+      border: 1px solid var(--kb-color-border-strong);
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: var(--kb-color-foreground);
+      font-size: 0.82rem;
+    }
+
+    .floor-search__input:focus {
+      outline: none;
+      border-color: var(--kb-color-primary);
+      box-shadow: 0 0 0 2px rgba(108, 39, 217, 0.15);
+    }
+
+    .floor-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .floor-row {
+      display: grid;
+      grid-template-columns: 84px 1.4fr 1fr auto auto;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .floor-row:hover {
+      background: var(--kb-color-surface-2);
+      border-color: var(--kb-color-border);
+    }
+
+    .floor-row__code {
+      font-weight: 700;
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .floor-row__summary {
+      font-size: 0.82rem;
+      color: var(--kb-color-foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .floor-row__channel {
+      font-size: 0.76rem;
+      color: var(--kb-color-muted-foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .floor-row__amount {
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .floor-more {
+      align-self: flex-start;
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 860px) {
+      .floor-row {
+        grid-template-columns: 72px 1fr auto;
+        row-gap: 0.2rem;
+      }
+      .floor-row__channel { display: none; }
     }
 
     .intel-card {
@@ -1010,7 +1238,7 @@ function getTodayIsoDate(): string {
     .intel-empty-box h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--kb-color-foreground); }
     .intel-empty-box p { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
 
-    /* â”€â”€ Bottom Bento Card: Live Stream & Orders â”€â”€ */
+    /* ── Bottom Bento Card: Live Stream & Orders ── */
     .bento-orders-container {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-border);
@@ -1268,7 +1496,7 @@ function getTodayIsoDate(): string {
       margin-top: 0.75rem;
     }
 
-    /* â”€â”€ Notifications Flyout â”€â”€ */
+    /* ── Notifications Flyout ── */
     .notif-wrapper { position: relative; }
     .notif-flyout {
       position: absolute;
@@ -1326,7 +1554,7 @@ function getTodayIsoDate(): string {
     .notif-time { font-size: 0.68rem; color: var(--kb-color-muted-foreground); }
     .notif-empty { padding: 2rem 1rem; text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
 
-    /* â”€â”€ Modals Overlay â”€â”€ */
+    /* ── Modals Overlay ── */
     .tactile-modal-overlay {
       position: fixed;
       inset: 0;
@@ -1421,7 +1649,7 @@ function getTodayIsoDate(): string {
     }
   `]
 })
-export class BusinessDashboardPageComponent implements OnInit {
+export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -1432,6 +1660,24 @@ export class BusinessDashboardPageComponent implements OnInit {
   // State Signals
   readonly isRefreshing = signal(false);
   readonly dashboardError = signal('');
+
+  /** Wall-clock of the last successful dashboard load, and a coarse ticker that
+   *  drives the relative "updated Xs ago" label. */
+  private readonly lastUpdatedAt = signal<number | null>(null);
+  private readonly nowTick = signal(Date.now());
+
+  private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private freshnessTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Auto-refresh cadence. The dashboard aggregates ~9 endpoints, so it polls
+   *  slower than the Active Orders board (30s) and skips hidden tabs. */
+  private static readonly AUTO_REFRESH_MS = 60_000;
+
+  readonly channels: ReadonlyArray<{ label: string; value: 'all' | 'dine_in' | 'takeaway' }> = [
+    { label: 'All', value: 'all' },
+    { label: 'Dine In', value: 'dine_in' },
+    { label: 'Takeaway', value: 'takeaway' }
+  ];
   readonly selectedChannel = signal<'all' | 'dine_in' | 'takeaway'>('all');
   searchQuery = '';
 
@@ -1457,6 +1703,42 @@ export class BusinessDashboardPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSupplementaryData();
+
+    // Poll for fresh numbers, but stand down while the tab is hidden so a
+    // dashboard left open overnight is not hammering the API.
+    this.autoRefreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.refresh();
+      }
+    }, BusinessDashboardPageComponent.AUTO_REFRESH_MS);
+
+    this.freshnessTimer = setInterval(() => this.nowTick.set(Date.now()), 15_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
+    if (this.freshnessTimer) clearInterval(this.freshnessTimer);
+    this.autoRefreshTimer = null;
+    this.freshnessTimer = null;
+  }
+
+  readonly freshnessLabel = computed(() => {
+    const stamp = this.lastUpdatedAt();
+    if (!stamp) return '';
+    const seconds = Math.max(0, Math.floor((this.nowTick() - stamp) / 1000));
+    if (seconds < 10) return 'Updated just now';
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Updated ${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `Updated ${hours}h ago`;
+  });
+
+  /** Only the first few orders are rendered; the full list lives on Active Orders. */
+  readonly visibleActiveOrders = computed(() => this.filteredActiveOrders().slice(0, 5));
+
+  onSearchChange(value: string): void {
+    this.searchQuery = value ?? '';
   }
 
   // Primary Dashboard Data Stream
@@ -1507,7 +1789,7 @@ export class BusinessDashboardPageComponent implements OnInit {
                     sourceType: typeLabel,
                     dishImg: undefined,
                     itemsSummary: o.customerName ? `Guest: ${o.customerName}` : `${typeLabel} Order`,
-                    tableAndChannel: `${typeLabel} Â· ${payment}`,
+                    tableAndChannel: `${typeLabel} · ${payment}`,
                     totalAmount: Number(o.totalAmount) || 0,
                     createdAt: o.createdAt
                   };
@@ -1517,6 +1799,8 @@ export class BusinessDashboardPageComponent implements OnInit {
             } else {
               this.activeOrders.set([]);
             }
+
+            this.lastUpdatedAt.set(Date.now());
 
             const todayRev = Number(trends.todayRevenue) || Number(data.todayRevenue) || 0;
             const yestRev = Number(trends.yesterdayRevenue) || 0;
@@ -1824,9 +2108,7 @@ export class BusinessDashboardPageComponent implements OnInit {
 
   copyInvoice(order: PosActiveOrder): void {
     const session = this.auth.session();
-    const restaurantId = session?.restaurantId || 1;
-    const token = order.publicToken || 'preview';
-    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
+    const link = buildInvoiceLink(session?.restaurantId, order.orderId, order.publicToken);
     if (navigator.clipboard) {
       navigator.clipboard.writeText(link).then(() => {
         this.toast.show(`Invoice link copied for Order #${order.orderCode}`, 'success');

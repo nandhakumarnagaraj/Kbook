@@ -19,7 +19,7 @@ const API = environment.apiBaseUrl;
       <div class="form-grid" style="max-width:400px;">
         <div class="field">
           <label>Phone Number</label>
-          <input class="field-control" [(ngModel)]="pwPhone" placeholder="Registered phone" maxlength="10" />
+          <input class="field-control" [(ngModel)]="pwPhone" placeholder="Registered phone" maxlength="10" aria-label="Registered phone number" />
         </div>
         <div class="field" *ngIf="!pwOtpSent">
           <button class="primary-btn" [disabled]="!pwPhone || pwPhone.length !== 10 || pwLoading" (click)="requestPasswordOtp()">
@@ -29,11 +29,11 @@ const API = environment.apiBaseUrl;
         <ng-container *ngIf="pwOtpSent">
           <div class="field">
             <label>OTP</label>
-            <input class="field-control" [(ngModel)]="pwOtp" placeholder="6-digit OTP" maxlength="6" />
+            <input class="field-control" [(ngModel)]="pwOtp" placeholder="6-digit OTP" maxlength="6" aria-label="One-time password" autocomplete="one-time-code" />
           </div>
           <div class="field">
             <label>New Password</label>
-            <input class="field-control" type="password" [(ngModel)]="pwNew" placeholder="Min 6 characters" />
+            <input class="field-control" type="password" [(ngModel)]="pwNew" placeholder="Min 6 characters" aria-label="New password" autocomplete="new-password" />
           </div>
           <div class="field">
             <button class="primary-btn" [disabled]="!pwOtp || pwOtp.length !== 6 || !pwNew || pwNew.length < 6 || pwLoading" (click)="resetPassword()">
@@ -41,8 +41,8 @@ const API = environment.apiBaseUrl;
             </button>
           </div>
         </ng-container>
-        <p class="error-text" *ngIf="pwError">{{ pwError }}</p>
-        <p class="success-text" *ngIf="pwSuccess">{{ pwSuccess }}</p>
+        <p class="error-text" id="pw-error" role="alert" *ngIf="pwError">{{ pwError }}</p>
+        <p class="success-text" role="status" *ngIf="pwSuccess">{{ pwSuccess }}</p>
       </div>
     </section>
   `,

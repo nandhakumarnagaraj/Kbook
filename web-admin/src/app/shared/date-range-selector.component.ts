@@ -234,11 +234,11 @@ export class DateRangeSelectorComponent {
     if (preset === 'custom') {
       const from = this.customFrom();
       const to = this.customTo();
-      if (from && to) return `${from} â†’ ${to}`;
+      if (from && to) return `${from} → ${to}`;
       return '';
     }
     const { from, to } = getPresetDateRange(preset);
-    return `${from} â†’ ${to}`;
+    return `${from} → ${to}`;
   });
 
   trackByIndex = (_: number, __: unknown) => _;
