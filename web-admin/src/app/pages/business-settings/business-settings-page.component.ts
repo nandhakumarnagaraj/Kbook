@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { BusinessApiService, MerchantAgreementStatus } from '../../core/services/business-api.service';
+import { BusinessApiService } from '../../core/services/business-api.service';
 import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section.component';
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
@@ -53,7 +53,7 @@ interface RestaurantProfile {
               Live Sync Ready
             </span>
           </div>
-          <p class="header-sub">Configure restaurant identity, automated GST compliance, payment settlement channels, and merchant agreements.</p>
+          <p class="header-sub">Configure restaurant identity, automated GST compliance, and payment settlement channels.</p>
         </div>
         <div class="header-right">
           <button type="button" class="primary-btn-tactile" [disabled]="saving() || loading()" (click)="saveProfile()">
@@ -64,7 +64,7 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="load(); loadAgreement()">
+          <button type="button" class="ghost-btn-tactile" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -200,69 +200,6 @@ interface RestaurantProfile {
 
       <!-- Change Password -->
       <app-password-change-section />
-
-      <!-- Merchant Agreement -->
-      <section class="panel settings-section">
-        <div class="section-title-wrap">
-          <div class="section-icon">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-          </div>
-          <div>
-            <h3>Merchant Service Agreement</h3>
-            <p class="muted">Upload and review the signed KhanaBook service contract (PDF). Encrypted at rest; accessible only to shop owners.</p>
-          </div>
-        </div>
-
-        <div class="panel loading" *ngIf="agreementLoading()">Loading agreement status...</div>
-
-        <ng-container *ngIf="!agreementLoading()">
-          <div class="agreement-status-card" *ngIf="agreement()?.hasAgreement">
-            <div class="status-card-left">
-              <span class="signed-badge">
-                <span class="status-pulse-dot"></span>
-                Signed Contract on File
-              </span>
-              <span class="muted tabular-num" *ngIf="agreement()?.signedAt as ts">
-                Signed on {{ ts | date:'medium' }}
-              </span>
-            </div>
-            <div class="agreement-actions">
-              <button class="ghost-btn-tactile" [disabled]="agreementBusy()" (click)="downloadAgreement()">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                {{ agreementBusy() ? 'Downloading...' : 'Download PDF' }}
-              </button>
-            </div>
-          </div>
-
-          <p class="muted" *ngIf="!agreement()?.hasAgreement" style="margin: var(--kb-space-3) 0;">No active service agreement has been uploaded yet.</p>
-
-          <div class="agreement-upload-box">
-            <div class="field">
-              <label>Signatory Full Name</label>
-              <input class="field-control" [(ngModel)]="agreementSigner" placeholder="Name of the person who signed" />
-            </div>
-            <div class="field">
-              <label>Signed Contract PDF *</label>
-              <input class="field-control" type="file" accept="application/pdf" (change)="onAgreementFileSelected($event)" />
-            </div>
-            <div class="field-btn">
-              <button class="primary-btn-tactile" [disabled]="!agreementFile || agreementBusy()" (click)="uploadAgreement()">
-                {{ agreementBusy() ? 'Uploading...' : (agreement()?.hasAgreement ? 'Replace Agreement' : 'Upload Agreement') }}
-              </button>
-            </div>
-          </div>
-        </ng-container>
-      </section>
     </div>
   `,
   styles: [`
@@ -413,43 +350,6 @@ interface RestaurantProfile {
       font-size: 0.82rem;
       color: var(--kb-color-muted-foreground);
     }
-    .agreement-status-card {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-md);
-      margin-bottom: var(--kb-space-4);
-      flex-wrap: wrap;
-      gap: var(--kb-space-3);
-    }
-    .status-card-left {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .signed-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      font-size: 0.76rem;
-      font-weight: 600;
-      background: rgba(34, 197, 94, 0.1);
-      color: #16a34a;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
-    .agreement-upload-box {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-      gap: var(--kb-space-3);
-      align-items: flex-end;
-      max-width: 700px;
-    }
     .logo-uploader-card {
       display: flex;
       gap: var(--kb-space-4);
@@ -535,13 +435,7 @@ export class BusinessSettingsPageComponent {
   logoBusy = signal(false);
   profile = signal<RestaurantProfile | null>(null);
 
-  agreement = signal<MerchantAgreementStatus | null>(null);
-  agreementLoading = signal(true);
-  agreementBusy = signal(false);
-  agreementSigner = '';
-  agreementFile: File | null = null;
-
-  constructor() { this.load(); this.loadAgreement(); }
+  constructor() { this.load(); }
 
   load(): void {
     this.loading.set(true);
@@ -674,61 +568,6 @@ export class BusinessSettingsPageComponent {
       }
     });
   }
-
-  loadAgreement(): void {
-    this.agreementLoading.set(true);
-    this.businessApi.getMerchantAgreementStatus().subscribe({
-      next: (status) => { this.agreement.set(status); this.agreementLoading.set(false); },
-      error: () => { this.agreement.set({ hasAgreement: false }); this.agreementLoading.set(false); }
-    });
-  }
-
-  onAgreementFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    if (file && file.type !== 'application/pdf') {
-      this.toast.show('Only PDF files are allowed for the agreement.', 'error');
-      this.agreementFile = null;
-      input.value = '';
-      return;
-    }
-    this.agreementFile = file;
-  }
-
-  uploadAgreement(): void {
-    if (!this.agreementFile) return;
-    this.agreementBusy.set(true);
-    this.businessApi.uploadMerchantAgreement(this.agreementFile, this.agreementSigner.trim() || undefined).subscribe({
-      next: () => {
-        this.toast.show('Agreement uploaded successfully.', 'success');
-        this.agreementFile = null;
-        this.agreementBusy.set(false);
-        this.loadAgreement();
-      },
-      error: (err) => {
-        this.toast.show(err?.error?.message ?? 'Failed to upload agreement. Try again.', 'error');
-        this.agreementBusy.set(false);
-      }
-    });
-  }
-
-  downloadAgreement(): void {
-    this.agreementBusy.set(true);
-    this.businessApi.downloadMerchantAgreement().subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = this.agreement()?.originalFilename ?? 'merchant-agreement.pdf';
-        a.click();
-        URL.revokeObjectURL(url);
-        this.agreementBusy.set(false);
-      },
-      error: () => {
-        this.toast.show('Failed to download agreement.', 'error');
-        this.agreementBusy.set(false);
-      }
-    });
-  }
 }
+
 
