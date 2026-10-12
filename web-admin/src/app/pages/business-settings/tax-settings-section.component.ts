@@ -70,10 +70,10 @@ interface VerificationState {
               </button>
             </div>
             <!-- GST Verification Result -->
-            <div *ngIf="gstState().valid === true" class="verify-badge verify-badge--success">
+            <div *ngIf="gstState().valid === true || (gstState().valid === null && tax().gstExpiryDate && tax().gstin?.length === 15)" class="verify-badge verify-badge--success">
               <span class="badge-icon">✓</span>
               <span><strong>Verified:</strong> {{ gstState().businessName || 'Active GSTIN' }}</span>
-              <span *ngIf="gstState().expiryDate as exp" class="badge-sub">(Valid to: {{ exp }})</span>
+              <span class="badge-sub">(Valid to: {{ gstState().expiryDate || tax().gstExpiryDate }})</span>
             </div>
             <div *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger">
               <span class="badge-icon">✕</span>
@@ -141,10 +141,10 @@ interface VerificationState {
             </button>
           </div>
           <!-- FSSAI Verification Result -->
-          <div *ngIf="fssaiState().valid === true" class="verify-badge verify-badge--success">
+          <div *ngIf="fssaiState().valid === true || (fssaiState().valid === null && tax().fssaiExpiryDate && tax().fssaiNumber?.length === 14)" class="verify-badge verify-badge--success">
             <span class="badge-icon">✓</span>
             <span><strong>Verified:</strong> {{ fssaiState().businessName || 'Active FSSAI License' }}</span>
-            <span *ngIf="fssaiState().expiryDate as exp" class="badge-sub">(Expiry: {{ exp }})</span>
+            <span class="badge-sub">(Expiry: {{ fssaiState().expiryDate || tax().fssaiExpiryDate }})</span>
           </div>
           <div *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger">
             <span class="badge-icon">✕</span>

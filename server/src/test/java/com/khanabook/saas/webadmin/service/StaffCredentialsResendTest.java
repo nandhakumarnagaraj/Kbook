@@ -54,6 +54,7 @@ class StaffCredentialsResendTest {
                 userRepository,
                 mock(CategoryRepository.class),
                 mock(MenuItemRepository.class),
+                mock(com.khanabook.saas.feature.menu.data.ItemVariantRepository.class),
                 mock(RestaurantTerminalRepository.class),
                 mock(RestaurantProfileRepository.class),
                 mock(PermissionService.class),

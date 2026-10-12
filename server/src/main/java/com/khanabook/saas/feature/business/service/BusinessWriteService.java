@@ -119,17 +119,6 @@ public class BusinessWriteService {
     private final com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
     private final com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository;
 
-    public BusinessWriteService(UserRepository userRepository,
-                                CategoryRepository categoryRepository,
-                                MenuItemRepository menuItemRepository,
-                                RestaurantTerminalRepository terminalRepository,
-                                RestaurantProfileRepository profileRepository,
-                                PermissionService permissionService,
-                                com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService,
-                                com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository) {
-        this(userRepository, categoryRepository, menuItemRepository, null, terminalRepository, profileRepository, permissionService, passwordResetOtpService, refreshTokenRepository);
-    }
-
     @org.springframework.beans.factory.annotation.Autowired
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
@@ -533,16 +522,15 @@ public class BusinessWriteService {
         variant.setCreatedAt(now);
         variant.setUpdatedAt(now);
         variant.setServerUpdatedAt(now);
-        variant.setSortOrder((int) (itemVariantRepository != null ? itemVariantRepository.countByMenuItemIdAndIsDeletedFalse(menuItemId) : 0));
+        variant.setSortOrder((int) itemVariantRepository.countByMenuItemIdAndIsDeletedFalse(menuItemId));
 
-        ItemVariant saved = itemVariantRepository != null ? itemVariantRepository.save(variant) : variant;
+        ItemVariant saved = itemVariantRepository.save(variant);
         menuItemRepository.recomputeHasVariantsFlag(java.util.List.of(menuItemId), restaurantId, now);
         return saved;
     }
 
     @Transactional
     public void deleteVariant(Long restaurantId, Long menuItemId, Long variantId) {
-        if (itemVariantRepository == null) return;
         ItemVariant variant = itemVariantRepository.findById(variantId)
                 .filter(v -> restaurantId.equals(v.getRestaurantId()) && !Boolean.TRUE.equals(v.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Variant not found"));
@@ -694,6 +682,20 @@ public class BusinessWriteService {
         if (updateDto.getInvoiceFooter() != null) profile.setInvoiceFooter(updateDto.getInvoiceFooter());
         if (updateDto.getReviewUrl() != null) profile.setReviewUrl(updateDto.getReviewUrl());
         if (updateDto.getFssaiNumber() != null) profile.setFssaiNumber(updateDto.getFssaiNumber());
+        if (updateDto.getFssaiExpiryDate() != null) {
+            try {
+                profile.setFssaiExpiryDate(updateDto.getFssaiExpiryDate().isBlank() ? null : java.time.LocalDate.parse(updateDto.getFssaiExpiryDate().trim()));
+            } catch (Exception e) {
+                log.warn("Invalid fssaiExpiryDate format '{}' for restaurant {}: {}", updateDto.getFssaiExpiryDate(), restaurantId, e.getMessage());
+            }
+        }
+        if (updateDto.getGstExpiryDate() != null) {
+            try {
+                profile.setGstExpiryDate(updateDto.getGstExpiryDate().isBlank() ? null : java.time.LocalDate.parse(updateDto.getGstExpiryDate().trim()));
+            } catch (Exception e) {
+                log.warn("Invalid gstExpiryDate format '{}' for restaurant {}: {}", updateDto.getGstExpiryDate(), restaurantId, e.getMessage());
+            }
+        }
 
         long now = System.currentTimeMillis();
         profile.setUpdatedAt(now);

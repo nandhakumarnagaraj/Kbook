@@ -35,6 +35,7 @@ class StaffEditProperties {
         RestaurantTerminalRepository terminalRepository = mock(RestaurantTerminalRepository.class);
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
+                mock(com.khanabook.saas.feature.menu.data.ItemVariantRepository.class),
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
                 mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class),
                 mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));

@@ -54,6 +54,7 @@ class MenuTerminalProperties {
         RestaurantProfile profile = new RestaurantProfile();
         when(profileRepository.findAndLockByRestaurantId(anyLong())).thenReturn(Optional.of(profile));
         service = new BusinessWriteService(userRepository, categoryRepository, menuItemRepository,
+                mock(com.khanabook.saas.feature.menu.data.ItemVariantRepository.class),
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
                 mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class),
                 mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));

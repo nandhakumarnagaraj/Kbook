@@ -36,6 +36,7 @@ class StaffCreationProperties {
         RestaurantProfileRepository profileRepository = mock(RestaurantProfileRepository.class);
         passwordResetOtpService = mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class);
         service = new BusinessWriteService(userRepository, mock(CategoryRepository.class), menuItemRepository,
+                mock(com.khanabook.saas.feature.menu.data.ItemVariantRepository.class),
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
                 passwordResetOtpService, mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));
         // Tombstone-aware staff create: only a LIVE account blocks the phone, and any

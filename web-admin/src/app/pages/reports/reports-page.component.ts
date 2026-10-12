@@ -7,6 +7,13 @@ import { DateRangeSelectorComponent } from '../../shared/date-range-selector.com
 import { formatCurrency } from '../../shared/formatters';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 @Component({
   selector: 'app-reports-page',
   standalone: true,
@@ -760,13 +767,13 @@ export class ReportsPageComponent {
     this.refreshing.set(true); this.error.set('');
     const range = this.selectedRange();
     const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const today = formatLocalDate(now);
+    const firstDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
     const fromDate = range?.from || firstDayOfMonth;
     const toDate = range?.to || today;
 
     return forkJoin({
-      dashboard: this.api.getDashboard(range?.from, range?.to),
+      dashboard: this.api.getDashboard(fromDate, toDate),
       itemSales: this.api.getItemSales(fromDate, toDate).pipe(catchError(() => of([]))),
       gstLedger: this.api.getGstLedger(fromDate, toDate).pipe(catchError(() => of(null)))
     }).pipe(
@@ -899,7 +906,7 @@ export class ReportsPageComponent {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `khanabook-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `khanabook-report-${formatLocalDate(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
