@@ -409,7 +409,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .table-identifier {
       font-size: 0.78rem;
       font-weight: 700;
-      color: #5D45FD;
+      color: #6C27D9;
       background: #F3F0FF;
       padding: 0.15rem 0.55rem;
       border-radius: 6px;
@@ -592,7 +592,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       outline: none;
     }
     .field-select:focus, .field-control:focus {
-      border-color: #5D45FD;
+      border-color: #6C27D9;
     }
     .modal-actions {
       display: flex;
@@ -619,7 +619,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       align-items: center;
       justify-content: center;
       padding: 0.5rem 1rem;
-      background: #5D45FD;
+      background: #6C27D9;
       color: #FFFFFF;
       border: none;
       border-radius: 8px;
@@ -629,7 +629,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       min-height: 40px;
     }
     .primary-btn-tactile:hover:not(:disabled) {
-      background: #4D37E6;
+      background: #5B21B6;
     }
     .danger-btn {
       background: #DC2626 !important;

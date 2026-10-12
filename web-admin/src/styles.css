@@ -135,10 +135,10 @@
   --pos-sidebar-bg:         #181B34;
   --pos-sidebar-hover:      #22274A;
   --pos-sidebar-text:       #8E95A9;
-  --pos-purple:             #5D45FD;
-  --pos-purple-hover:       #4E37EB;
-  --pos-purple-soft:        rgba(93, 69, 253, 0.12);
-  --pos-purple-gradient:    linear-gradient(135deg, #4F35F5 0%, #6842F7 100%);
+  --pos-purple:             #6C27D9;
+  --pos-purple-hover:       #5B21B6;
+  --pos-purple-soft:        rgba(108, 39, 217, 0.12);
+  --pos-purple-gradient:    linear-gradient(135deg, #5B21B6 0%, #6C27D9 100%);
   --pos-bg-body:            #F6F8FD;
   --pos-card-bg:            #FFFFFF;
   --pos-card-border:        #EEF0F7;

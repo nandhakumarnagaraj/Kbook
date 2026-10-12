@@ -620,19 +620,19 @@ export function filterBusinessOrders(
       align-items: center;
       gap: 0.45rem;
       padding: 0.55rem 1rem;
-      background: #5D45FD;
+      background: #6C27D9;
       color: #FFFFFF;
       border: none;
       border-radius: 10px;
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.22);
+      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
       transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .primary-btn-tactile:hover {
-      background: #4D37E6;
-      box-shadow: 0 4px 12px rgba(93, 69, 253, 0.3);
+      background: #5B21B6;
+      box-shadow: 0 4px 12px rgba(108, 39, 217, 0.3);
     }
     .primary-btn-tactile:active {
       transform: scale(0.97);

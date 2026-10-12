@@ -248,11 +248,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .nav-link:hover { background: var(--pos-sidebar-hover, #22274A); color: #FFFFFF; }
     .nav-link:active { transform: scale(0.97); }
     .nav-link.active-link {
-      background: var(--pos-purple, #5D45FD);
+      background: var(--pos-purple, #6C27D9);
       color: #FFFFFF;
       font-weight: 600;
       border: none;
-      box-shadow: 0 4px 14px rgba(93, 69, 253, 0.35);
+      box-shadow: 0 4px 14px rgba(108, 39, 217, 0.35);
     }
     .nav-link.active-link .nav-link__icon {
       color: #FFFFFF;
