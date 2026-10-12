@@ -67,11 +67,15 @@ be corrected, not acted on.
    "every key except the configuration families" (`PermissionService.java:189-211`). Net
    effect: today a staff member can already change status and mode on the tablet, while the
    owner cannot do the same on the web.
-4. **One real revert bug to fix while we are here:** `updatePaymentStatus`
-   (`BillRepository.kt:492-505`) writes `paymentStatus` **without bumping `statusVersion`**.
-   That is exactly the shape that produced the 2026-09-29 "status change not persistent"
-   defect: the server cannot tell it from a stale push, so `protectBillState` restores the
-   old value. The other three mutators all bump the version.
+4. **A latent parity gap, not a live defect:** `BillRepository.updatePaymentStatus`
+   (`BillRepository.kt:491-505`) writes `paymentStatus` **without bumping `statusVersion`**,
+   unlike the other three mutators. That is the shape that produced the 2026-09-29 "status
+   change not persistent" defect, because `protectBillState` cannot tell such a write from a
+   stale push and restores the old value. **However the method is unreferenced**: a
+   repo-wide grep finds no caller (the only near-hits are the KSP-generated `BillDao_Impl`
+   for the *DAO-level* `updatePaymentStatus`, whose sole caller is the `TenantDaos`
+   pass-through). So nothing reverts today. Treat it as a decision — delete the dead method,
+   or bring it to parity before anyone wires it up — rather than an urgent bug.
 5. **Configurations:** the owner is already all-powerful by role — the server keeps
    `settings.shop_profile`, `settings.payment`, `settings.gst` and all four menu-edit keys
    owner-only (`PermissionService.java:181-197`), and `/business/**` is OWNER-only. Web-admin
@@ -155,9 +159,18 @@ this area got hard to reason about):
   emitted, paid-bill refusal, inventory not double-deducted, and a following stale device
   push losing to the server. Existing property tests in `server/src/test/.../webadmin/`
   show the house style.
-- **Android**: extend `BillingLogicTest` (it already covers the `updateOrderStatus`
-  completion guard) with: owner-vs-staff edit window, `BILLING_EDIT`/`BILLING_VOID`
-  enforcement, and the `updatePaymentStatus` version bump.
+- **Android — harness reality check.** The pure-JUnit tests here are *logic simulations*:
+  `BillingLogicTest` re-implements the guards with local variables (e.g. it asserts a
+  simulated settlement flag, not `BillDao.settleDraftBill`), and `BillRepositoryTest` is
+  **`@Ignore`d** with the reason "Requires Robolectric or instrumented test — SessionManager
+  cannot be mocked in pure JUnit". So the repository-level edit paths (version bumps,
+  terminal-ownership guard, owner-vs-staff window) **cannot be regression-tested by the
+  unit suite** — the plan must not promise tests that silently do not run. Two honest
+  options: (a) extend the instrumented suite (`app/src/androidTest`, alongside the existing
+  `BillDaoIsolationTest`, which runs with a real Context) and accept it needs a device, or
+  (b) extract the pure decision — the owner-vs-staff edit predicate and the
+  `statusVersion`/`paymentStatus` mapping — into a plain function that ordinary JUnit can
+  test, mirroring how `BillingLogicTest` tests extracted logic.
 - **Web-admin**: shell/component spec for the edit panel (mirrors the six new
   `orders-page.component.spec.ts` tests just added for the tab shell).
 - **Manual E2E**: edit a completed bill on the web → confirm the tablet shows it after a
@@ -178,9 +191,13 @@ this area got hard to reason about):
 
 ## 9. Suggested order
 
-1. Fix the `updatePaymentStatus` version bump (small, real bug, independent).
-2. Server edit endpoints + audit + tests (A).
-3. Web-admin edit panel in the order-detail modal for both tabs (A).
-4. Android owner window + permission enforcement + server-first path for synced bills (B).
-5. Config parity (C) once the list is agreed.
-6. Correct the two stale notes (`KNOWN_ISSUES.md`, `UI_IMPROVEMENT_FINDINGS.md`).
+1. Server edit endpoints + audit + tests (A) — the seam both surfaces need, and the only
+   step that needs no product decision beyond §8.1/§8.2.
+2. Web-admin edit panel in the order-detail modal for both tabs (A).
+3. Android owner window + permission enforcement + server-first path for synced bills (B),
+   with the extracted pure predicate from §7 so the decision logic is actually testable.
+4. Config parity (C) once the list is agreed (§8.3).
+5. Decide the `updatePaymentStatus` dead method (delete vs parity) — independent cleanup,
+   no longer a prerequisite for anything above.
+6. Correct the two stale notes (`KNOWN_ISSUES.md`, `UI_IMPROVEMENT_FINDINGS.md`) —
+   **already done**, see the commit that added this plan.

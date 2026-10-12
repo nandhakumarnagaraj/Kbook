@@ -216,7 +216,7 @@ Still open (the write-path latent defects from the root-cause list above):
 
 - Same-mode selection is now unreachable from the UI, but `ReportsViewModel.updatePaymentMode` still performs the full write (status_version bump + sync trigger) for any selected mode; skipping the write when `current.paymentMode == normalizedMode` would remove the last no-op write path.
 - ~~Load through `getOperationalBillById` (or add the `isLocallyOwned` guard) in `updatePaymentMode`/`cancelOrder`/`updatePaymentStatus` to match the `updateBill()` contract.~~ **Done** — verified 2026-10-13 (see root-cause item 2).
-- **Instead:** `updatePaymentStatus` (`BillRepository.kt:492-505`) writes `payment_status` without bumping `status_version`, so `BillSyncService.protectBillState` can treat it as stale and revert it. It is the only one of the four mutators missing the bump.
+- **Instead (latent, unreachable today):** `updatePaymentStatus` (`BillRepository.kt:491-505`) writes `payment_status` without bumping `status_version`, so `BillSyncService.protectBillState` could treat it as stale and revert it. It is the only one of the four mutators missing the bump — but it is also **unreferenced** (no callers anywhere), so this is a cleanup/parity decision, not a live defect.
 - Sync `bill_payments` for the 0/≥2-record cases (or delete+reinsert the payment set) so the two tables cannot diverge.
 - Only write `partAmount1/2` when the target mode is a part-payment mode.
 - Remove the dead `BillDao.updatePaymentMode` (`BillDao.kt:397-403`) or route the repository through it.
