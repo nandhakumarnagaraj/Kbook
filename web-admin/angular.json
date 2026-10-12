@@ -28,7 +28,8 @@
             "styles": [
               "src/styles.css",
               "src/styles/wave-c.css",
-              "src/styles/wave-de.css"
+              "src/styles/wave-de.css",
+              "src/styles/bento.css"
             ]
           },
           "configurations": {
@@ -79,7 +80,8 @@
             "styles": [
               "src/styles.css",
               "src/styles/wave-c.css",
-              "src/styles/wave-de.css"
+              "src/styles/wave-de.css",
+              "src/styles/bento.css"
             ]
           }
         }

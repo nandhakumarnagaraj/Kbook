@@ -163,15 +163,17 @@ Use these custom components from `ui/designsystem/`:
 
 ### Theming & CSS
 - **Plain CSS** with CSS Custom Properties (no SCSS, Tailwind, or frameworks)
-- **Warm earthy palette** in `src/styles.css`:
-  - `--bg: #f6f1e8` page background
-  - `--panel: #fffdf8` card/panel background
-  - `--ink: #24170f` text color
-  - `--muted: #7d6b5f` secondary text
-  - `--line: #e9dcc9` borders
-  - `--brand: #b56a2d` primary brand (warm brown/orange)
-  - `--accent: #1d7b5f` accent teal/green
-  - `--danger: #a6372f` error red
+- **Purple palette** in `src/styles.css` (canonical — see `docs/design/DESIGN_SYSTEM_FREEZE.md`):
+  - `--kb-color-bg-app: #FAF7F2` page background
+  - `--kb-color-surface: #FFFFFF` card/panel background
+  - `--kb-color-surface-2: #F8F5EF` recessed surface
+  - `--kb-color-foreground: #1C1A17` text color
+  - `--kb-color-muted-foreground: #6B655C` secondary text
+  - `--kb-color-border: #EFE9DE` borders
+  - `--kb-color-primary: #6C27D9` primary brand (purple)
+  - `--accent: #0F766E` accent teal/green
+  - `--kb-color-success: #2F855A` / `--kb-color-warning: #B7791F` / `--kb-color-danger: #C0392B`
+  - Prefer the `--kb-color-*` aliases in new work; the short names (`--bg`, `--brand`, …) are legacy aliases of the same values.
 - **No CSS framework or UI library** — hand-rolled components only
 - **No icon library** — use emoji/unicode icons (⚠️, 🙈, 👁️, 📋) or simple styled elements
 - **BEM-like class naming**: `.page-shell`, `.page-hero`, `.hero-meta`, `.stat-card`, `.filter-group`
@@ -182,37 +184,56 @@ Use these custom components from `ui/designsystem/`:
 - **Standalone components** with inline template + inline styles (single `.ts` file per component)
 - **Lazy-loaded** via `loadComponent` in routes
 - **Page folder per route** under `pages/`
-- No child/feature sub-components — each page is one flat component
+- **Shared UI lives in `src/app/shared/`** and page-local child components are allowed when a page owns more than one view — e.g. `pages/orders/` holds the routed tab shell (`orders-page.component.ts`) plus `live-orders-tab.component.ts` / `order-history-tab.component.ts`. Prefer a small shared component over copying markup between pages.
 
 ### Page Layout Pattern
-Every page follows this shell:
+Every page follows this shell. The header is always the shared
+`PageHeaderComponent` — never hand-rolled header markup, and never a local
+`.page-shell` override of the shared padding/max-width:
 ```html
 <div class="page-shell">
-  <section class="panel page-hero">
-    <h2>Title</h2>
-    <p class="muted">Description</p>
-    <div class="hero-meta">
-      <span class="chip">Tag</span>
-    </div>
-  </section>
+  <app-page-header title="Title" subtitle="Description">
+    <span kbHeaderBadge class="kpi-tag">Tag</span>
+    <button class="header-action-btn header-action-btn--primary">Primary action</button>
+  </app-page-header>
   <section class="panel filter-panel">...</section>
+  <section class="intel-card">...or .bento-tile for KPI tiles...</section>
   <div class="panel table-wrap">
-    <table class="data-table">...</table>
+    <table class="orders-tactile-table">...</table>
     <div class="pagination-bar">...</div>
   </div>
 </div>
 ```
 
+`import { PageHeaderComponent } from '../../shared/page-header.component';` and
+add it to the component's `imports` array.
+
 ### Key CSS Utility Classes
-- `.page-shell` — grid container for page
+- `.page-shell` — grid container for page (single definition in `styles.css`)
 - `.panel` — card with border-radius, border, shadow
-- `.page-hero` — page header with gradient
 - `.muted` — secondary text
 - `.chip` / `.chip.success` / `.chip.warn` / `.chip.danger` — pill badges
 - `.stats-grid` / `.stat-card` — dashboard stats
 - `.table-wrap` / `.data-table` — scrollable tables
 - `.filter-panel` / `.filter-grid` / `.filter-group` — filter forms
-- `.primary-btn` / `.ghost-btn` — buttons
+- `.primary-btn` / `.ghost-btn` — legacy buttons; prefer the canonical
+  `.header-action-btn` (and `--primary`) / `.btn-micro` from `styles/bento.css`
+
+### Shared Bento Vocabulary (`src/styles/bento.css`, loaded last)
+The business dashboard is the reference implementation; its page-agnostic CSS was
+extracted verbatim into `styles/bento.css` and is loaded globally after
+`styles.css` and the `wave-*.css` sheets, so it wins everywhere. Use it instead
+of inventing page-local equivalents:
+- Cards: `.bento-tile` (`--hero`), `.bento-kpi-grid`, `.bento-intel-grid`, `.intel-card`
+- Buttons: `.header-action-btn` (`--primary`), `.header-pill-btn` (`--alert`), `.icon-action-btn`, `.btn-micro`, `.tile-action-link`
+- Chips: `.kpi-tag` (`--green`/`--amber`/`--warn`/`--neutral`), `.status-chip`, `.badge-*`, `.channel-chip` (table badge), `.trend-badge`
+- Tables: `.orders-tactile-table`, `.orders-head-bar`, `.order-row-interactive`
+- Modals: `.tactile-modal-overlay/-box/-head/-body/-foot`, `.modal-close-icon`, `.modal-lead-note`
+- Helpers: `.visually-hidden`, `.skeleton-shimmer`, `.spinning`, `.sub-caption`, `.freshness-stamp`
+
+A class name must mean exactly one thing app-wide: if two components need
+visually different elements, give them different class names (the dashboard's
+Live Floor filter buttons are `.floor-chip`, not `.channel-chip`).
 - `.field-control` / `.field-select` — form inputs
 - `.pagination-bar` / `.pagination-controls` — pagination
 - `.loading` — loading/empty state block

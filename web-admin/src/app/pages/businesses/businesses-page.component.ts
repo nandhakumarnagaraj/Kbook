@@ -8,22 +8,22 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Businesses</h2>
-        <p class="muted">Platform directory with cleaner drill-down detail panel.</p>
-        <div class="hero-meta">
-          <span class="chip">Directory View</span>
-          <span class="chip">Business Details</span>
-        </div>
-      </section>
+      <app-page-header
+        title="Businesses"
+        subtitle="Platform directory with cleaner drill-down detail panel."
+      >
+        <span kbHeaderBadge class="chip">Directory View</span>
+        <span kbHeaderBadge class="chip">Business Details</span>
+      </app-page-header>
 
       <div class="toolbar">
         <div>
@@ -31,8 +31,8 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
           <p class="muted">Select a row to inspect revenue and business details.</p>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button class="primary-btn" (click)="openCreateModal()">+ Add Restaurant</button>
-          <button class="refresh-btn" (click)="loadBusinesses()">Refresh</button>
+          <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">+ Add Restaurant</button>
+          <button class="header-action-btn" (click)="loadBusinesses()">Refresh</button>
         </div>
       </div>
 

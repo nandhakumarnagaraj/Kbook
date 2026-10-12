@@ -4,7 +4,7 @@ import { formatDate } from '../../shared/formatters';
 import {
   escapeCsvField as escapeCsvFieldProduction,
   filterBusinessOrders
-} from './orders-page.component';
+} from './order-history-tab.component';
 import { getPresetDateRange } from '../../shared/date-range-selector.component';
 
 // --- Extracted pure filter logic (mirrors OrdersPageComponent) ---

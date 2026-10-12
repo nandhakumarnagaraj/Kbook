@@ -180,13 +180,15 @@ a { color: var(--brand); text-decoration: none; }
 a:hover { color: var(--brand-deep); }
 
 /* ============ Page shell ============ */
+/* Canonical page geometry — single source of truth, matching the business
+   dashboard bento layout. Pages must NOT override padding/max-width/gap. */
 .page-shell {
   width: 100%;
-  max-width: 1600px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.75rem 2rem 3.5rem;
   display: grid;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .panel {

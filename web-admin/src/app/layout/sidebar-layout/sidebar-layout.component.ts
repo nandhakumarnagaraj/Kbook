@@ -435,7 +435,6 @@ export class SidebarLayoutComponent implements OnInit {
     const items: NavLink[] = [
       { label: 'Dashboard', path: '/business/dashboard', icon: '◉', iconKey: 'dashboard' },
       { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
-      { label: 'Active Orders', path: '/business/active-orders', icon: '👨‍🍳', iconKey: 'kitchen' },
       { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
       { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
       { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Preview' },
@@ -450,8 +449,9 @@ export class SidebarLayoutComponent implements OnInit {
   readonly bottomActionItems = computed<BottomActionBarItem[]>(() => {
     return [
       { label: 'Dashboard', iconKey: 'dashboard', route: '/business/dashboard' },
-      { label: 'Orders', iconKey: 'orders', route: '/business/orders' },
-      { label: 'Active', iconKey: 'kitchen', route: '/business/active-orders' },
+      // Orders opens on the Live Floor tab, so the mobile bar no longer needs
+      // a separate "Active" destination for the live board.
+      { label: 'Orders', iconKey: 'kitchen', route: '/business/orders' },
       { label: 'Closing', iconKey: 'payments', route: '/business/daily-closing' },
       { label: 'Settings', iconKey: 'settings', route: '/business/settings' }
     ];

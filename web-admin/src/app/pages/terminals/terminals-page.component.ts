@@ -7,39 +7,36 @@ import { ToastService } from '../../core/services/toast.service';
 import { BusinessTerminal, RecoverTerminalResponse, TerminalRequest } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <!-- Operational Header (navbar.gallery standard) -->
-      <header class="operational-terminals-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>POS Devices &amp; Terminals</h2>
-            <span class="active-badge" *ngIf="!terminalsLoading()">
-              <span class="pulse-dot"></span>
-              {{ activeTerminalsCount }} Online
-            </span>
-          </div>
-          <p class="header-sub">Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens.</p>
-        </div>
-        <div class="header-right">
-          <button type="button" class="refresh-btn" (click)="reload()" [disabled]="terminalsLoading() || requestsLoading()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
-        </div>
-      </header>
+      <!-- Operational Header (unified PageHeaderComponent) -->
+      <app-page-header
+        title="POS Devices &amp; Terminals"
+        subtitle="Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens."
+      >
+        <span kbHeaderBadge class="active-badge" *ngIf="!terminalsLoading()">
+          <span class="pulse-dot"></span>
+          {{ activeTerminalsCount }} Online
+        </span>
+
+        <button type="button" class="header-action-btn" (click)="reload()" [disabled]="terminalsLoading() || requestsLoading()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+          Refresh
+        </button>
+      </app-page-header>
 
       <!-- Bento Terminal Stat Summary (bentogrids.com standard) -->
       <section class="terminals-bento-grid" aria-label="Terminal fleet overview">
@@ -510,28 +507,6 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .operational-terminals-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-      flex-wrap: wrap;
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
     .active-badge {
       display: inline-flex;
       align-items: center;
@@ -558,20 +533,6 @@ import { formatDate } from '../../shared/formatters';
       70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(47, 133, 90, 0); }
       100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
     }
-    .header-sub {
-      margin: 4px 0 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-    }
-    
-    
-    
-    
     .small-btn {
       padding: 4px 10px;
       font-size: 0.76rem;

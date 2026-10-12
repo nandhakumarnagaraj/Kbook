@@ -6,27 +6,25 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, EmptyStateComponent],
+  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <section class="page-header">
-        <div>
-          <span class="eyebrow">Admin Platform Operations</span>
-          <h2>Platform Dashboard</h2>
-          <p class="muted">Cross-business snapshot of revenue, settlements, merchant onboarding, and gateway health.</p>
-        </div>
-        <div class="header-actions">
-          <button class="ghost-btn" (click)="refreshActiveTab()">
-            Refresh
-          </button>
-        </div>
-      </section>
+      <app-page-header
+        eyebrow="Admin Platform Operations"
+        title="Platform Dashboard"
+        subtitle="Cross-business snapshot of revenue, settlements, merchant onboarding, and gateway health."
+      >
+        <button class="header-action-btn" (click)="refreshActiveTab()" aria-label="Refresh platform dashboard">
+          Refresh
+        </button>
+      </app-page-header>
 
       <!-- Operator Navigation Tabs -->
       <nav class="operator-tabs-nav" aria-label="Platform Sections">
@@ -339,16 +337,6 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
   `,
   styles: [`
     :host { display: block; }
-    .page-shell { display: grid; gap: calc(var(--kb-space-6)); }
-
-    .page-header { display: flex; justify-content: space-between; align-items: end; gap: var(--kb-space-4); flex-wrap: wrap; }
-    .page-header h2 { margin: 0.25rem 0 0.35rem; font-size: 1.75rem; letter-spacing: -0.01em; }
-    .page-header p { margin: 0; }
-    .eyebrow {
-      text-transform: uppercase; letter-spacing: 0.08em;
-      font-size: 0.72rem; font-weight: 700; color: var(--kb-color-primary);
-    }
-    .header-actions { display: flex; align-items: center; gap: var(--kb-space-2); }
 
     /* ── Tab Navigation ── */
     .operator-tabs-nav {

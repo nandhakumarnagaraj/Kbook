@@ -18,6 +18,7 @@ import {
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 
 export interface PosActiveOrder {
   orderId: number;
@@ -63,17 +64,15 @@ function getTodayIsoDate(): string {
   selector: 'app-business-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, PageHeaderComponent],
   template: `
-    <div class="dash-shell" *ngIf="dashboard() as data; else loading">
-      <!-- ── Top Cockpit Header Bar ── -->
-      <header class="dash-header">
-        <div class="dash-header__left">
-          <h1 class="dash-header__title">{{ data.shopName || 'KhanaBook Restaurant' }}</h1>
-          <p class="dash-header__sub">Real-time sales, order settlements, and terminal activity.</p>
-        </div>
-
-        <div class="dash-header__right">
+    <div class="page-shell" *ngIf="dashboard() as data; else loading">
+      <!-- ── Top Cockpit Header Bar (shared PageHeaderComponent) ── -->
+      <app-page-header
+        [title]="data.shopName || 'KhanaBook Restaurant'"
+        subtitle="Real-time sales, order settlements, and terminal activity."
+        eyebrow="Live Operations"
+        [live]="true">
           <!-- Terminal Fleet Pill -->
           <button
             type="button"
@@ -157,8 +156,7 @@ function getTodayIsoDate(): string {
             <span>Refresh</span>
           </button>
           <span class="freshness-stamp" *ngIf="freshnessLabel()" role="status">{{ freshnessLabel() }}</span>
-        </div>
-      </header>
+      </app-page-header>
 
       <!-- ── Bento KPI Row (4 Key Metrics) ── -->
       <section class="bento-kpi-grid" aria-label="Key Performance Indicators">
@@ -349,12 +347,12 @@ function getTodayIsoDate(): string {
           </div>
 
           <div class="floor-strip__controls">
-            <div class="channel-toggle" role="group" aria-label="Filter orders by channel">
+            <div class="floor-chip-group" role="group" aria-label="Filter orders by channel">
               <button
                 type="button"
-                class="channel-chip"
+                class="floor-chip"
                 *ngFor="let c of channels"
-                [class.channel-chip--active]="selectedChannel() === c.value"
+                [class.floor-chip--active]="selectedChannel() === c.value"
                 [attr.aria-pressed]="selectedChannel() === c.value"
                 (click)="setChannel(c.value)">
                 {{ c.label }}
@@ -482,7 +480,7 @@ function getTodayIsoDate(): string {
 
     <!-- Loading / Skeleton State -->
     <ng-template #loading>
-      <div class="dash-shell" *ngIf="dashboardError(); else posSkeleton">
+      <div class="page-shell" *ngIf="dashboardError(); else posSkeleton">
         <div class="intel-empty-box" style="margin-top: 3rem;">
           <h4>Unable to Load Dashboard</h4>
           <p>{{ dashboardError() }}</p>
@@ -490,7 +488,7 @@ function getTodayIsoDate(): string {
         </div>
       </div>
       <ng-template #posSkeleton>
-        <div class="dash-shell">
+        <div class="page-shell">
           <div class="skeleton-shimmer" style="height: 60px; border-radius: 16px; margin-bottom: 1.5rem;"></div>
           <div class="bento-kpi-grid">
             <div class="skeleton-shimmer" style="height: 140px; border-radius: 16px;" *ngFor="let i of [1,2,3,4]"></div>
@@ -519,128 +517,6 @@ function getTodayIsoDate(): string {
       font-family: var(--kb-font-sans);
     }
 
-    .dash-shell {
-      padding: 1.75rem 2rem 3.5rem;
-      max-width: 1440px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    /* ── Header Bar ── */
-    .dash-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-    }
-    .dash-header__eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.76rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kb-color-muted-foreground);
-      margin-bottom: 0.25rem;
-    }
-    .pulse-indicator {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--kb-color-success);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-    }
-    .pill-divider { color: var(--kb-color-border-strong); }
-    .live-date-pill {
-      color: var(--kb-color-primary);
-      background: var(--kb-color-primary-soft);
-      padding: 0.1rem 0.5rem;
-      border-radius: 999px;
-      font-weight: 600;
-    }
-    .dash-header__title {
-      margin: 0;
-      font-size: 1.65rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.03em;
-    }
-    .dash-header__sub {
-      margin: 0.2rem 0 0;
-      font-size: 0.88rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .dash-header__right {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      flex-wrap: wrap;
-    }
-
-    /* Tactical Header Buttons */
-    .header-pill-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.55rem 0.85rem;
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--kb-color-foreground);
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .header-pill-btn:hover {
-      border-color: var(--kb-color-border-strong);
-      background: var(--kb-color-bg-app);
-    }
-    .header-pill-btn:active { transform: scale(0.98); }
-    .header-pill-btn--alert {
-      background: var(--kb-color-warning-soft);
-      border-color: var(--kb-color-warning-soft);
-      color: var(--kb-color-warning);
-    }
-    .header-pill-btn--alert:hover {
-      background: var(--kb-color-warning-soft);
-      border-color: var(--kb-color-warning-soft);
-    }
-
-    .dot-beacon {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--kb-color-muted-foreground);
-    }
-    .dot-beacon--active {
-      background: var(--kb-color-success);
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
-    }
-
-    .icon-action-btn {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms ease;
-    }
-    .icon-action-btn:hover { background: var(--kb-color-bg-app); border-color: var(--kb-color-border-strong); }
-    .icon-action-btn:active { transform: scale(0.96); }
-
     .notif-badge {
       position: absolute;
       top: -3px;
@@ -656,150 +532,6 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .header-action-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 0.95rem;
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--kb-color-foreground);
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .header-action-btn:hover {
-      background: var(--kb-color-bg-app);
-      border-color: var(--kb-color-border-strong);
-    }
-    .header-action-btn:active { transform: scale(0.98); }
-    .header-action-btn--primary {
-      background: var(--kb-color-primary);
-      border-color: var(--kb-color-primary);
-      color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
-    }
-    .header-action-btn--primary:hover {
-      background: var(--kb-color-primary-hover);
-      border-color: var(--kb-color-primary-hover);
-    }
-
-    .spinning { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-    /* ── Bento KPI Grid ── */
-    .bento-kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1.15rem;
-    }
-    @media (max-width: 1100px) {
-      .bento-kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 600px) {
-      .bento-kpi-grid { grid-template-columns: 1fr; }
-    }
-
-    .bento-tile {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.25rem 1.35rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 0.5rem;
-      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-    }
-    .bento-tile:hover {
-      border-color: var(--kb-color-border-strong);
-      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
-    }
-
-    .bento-tile--hero {
-      background: linear-gradient(145deg, var(--kb-color-foreground) 0%, var(--kb-color-espresso) 100%);
-      border: 1px solid var(--kb-color-foreground);
-      color: #FFFFFF;
-      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
-    }
-    .bento-tile--hero .bento-tile__eyebrow { color: var(--kb-color-muted-foreground); }
-    .bento-tile--hero .bento-tile__main-metric { color: #FFFFFF; }
-
-    .bento-tile__head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
-    .bento-tile__eyebrow {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .trend-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--kb-color-success);
-      font-variant-numeric: tabular-nums;
-    }
-    .trend-badge--down {
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--kb-color-danger);
-    }
-    .trend-badge--neutral {
-      background: rgba(148, 163, 184, 0.15);
-      color: var(--kb-color-border-strong);
-    }
-
-    .kpi-tag {
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .kpi-tag--green { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-    .kpi-tag--amber { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .kpi-tag--warn { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
-    .kpi-tag--neutral { background: var(--kb-color-bg-app); color: var(--kb-color-muted-foreground); }
-
-    .bento-tile__main-metric {
-      font-size: 1.85rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: var(--kb-color-foreground);
-      font-variant-numeric: tabular-nums;
-      display: flex;
-      align-items: baseline;
-      gap: 0.35rem;
-    }
-    .metric-total-sub {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      letter-spacing: normal;
-    }
-    .metric-unit-sub {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      letter-spacing: normal;
     }
 
     /* Revenue Split Bar */
@@ -822,91 +554,6 @@ function getTodayIsoDate(): string {
     .split-legend--upi { background: var(--kb-color-primary); }
     .split-val { color: #FFFFFF; font-weight: 600; }
     .split-divider { color: var(--kb-color-muted-foreground); }
-
-    /* Progress Meter */
-    .progress-meter-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      padding-top: 0.2rem;
-    }
-    .progress-meter-track {
-      width: 100%;
-      height: 6px;
-      background: var(--kb-color-surface-2);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .progress-meter-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--kb-color-success) 0%, var(--kb-color-success) 100%);
-      border-radius: 999px;
-      transition: width 240ms ease;
-    }
-    .progress-meter-legend {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.74rem;
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .text-amber { color: var(--kb-color-warning) !important; font-weight: 600; }
-    .text-rose { color: var(--kb-color-danger) !important; }
-
-    .bento-tile__footer-action {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 0.25rem;
-    }
-    .sub-caption {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-      font-weight: 500;
-    }
-    .tile-action-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.2rem;
-      background: transparent;
-      border: none;
-      color: var(--kb-color-primary);
-      font-size: 0.76rem;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
-      transition: color 140ms ease;
-    }
-    .tile-action-link:hover { color: var(--kb-color-primary-hover); }
-
-    /* ── Middle Bento Grid ── */
-    .bento-intel-grid {
-      display: grid;
-      grid-template-columns: 1.55fr 1fr;
-      gap: 1.15rem;
-    }
-    @media (max-width: 960px) {
-      .bento-intel-grid { grid-template-columns: 1fr; }
-    }
-
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .freshness-stamp {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-      white-space: nowrap;
-    }
 
     /* ── Live Floor strip ── */
     .floor-strip {
@@ -945,7 +592,11 @@ function getTodayIsoDate(): string {
       flex-wrap: wrap;
     }
 
-    .channel-toggle {
+    /* Channel filter buttons for the Live Floor strip. These were previously
+       called .channel-chip, which collided with the .channel-chip table badge
+       (same class name, different element) — the badge rule silently overrode
+       the button padding. Renamed so each name means exactly one thing. */
+    .floor-chip-group {
       display: inline-flex;
       gap: 0.25rem;
       padding: 0.15rem;
@@ -953,7 +604,7 @@ function getTodayIsoDate(): string {
       border-radius: 10px;
     }
 
-    .channel-chip {
+    .floor-chip {
       border: none;
       background: transparent;
       color: var(--kb-color-muted-foreground);
@@ -964,7 +615,7 @@ function getTodayIsoDate(): string {
       cursor: pointer;
     }
 
-    .channel-chip--active {
+    .floor-chip--active {
       background: #FFFFFF;
       color: var(--kb-color-primary);
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
@@ -1051,60 +702,6 @@ function getTodayIsoDate(): string {
       }
       .floor-row__channel { display: none; }
     }
-
-    .intel-card {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.35rem 1.5rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
-      display: flex;
-      flex-direction: column;
-    }
-    .intel-card__head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
-    .intel-card__eyebrow {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kb-color-muted-foreground);
-      display: block;
-      margin-bottom: 0.15rem;
-    }
-    .intel-card__title {
-      margin: 0;
-      font-size: 1.12rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-    .rush-badge {
-      padding: 0.2rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
-      border: 1px solid var(--kb-color-primary-soft);
-      font-variant-numeric: tabular-nums;
-    }
-    .link-btn-text {
-      background: none;
-      border: none;
-      color: var(--kb-color-primary);
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
-      transition: color 140ms ease;
-    }
-    .link-btn-text:hover { color: var(--kb-color-primary-hover); text-decoration: underline; }
 
     /* Hourly Chart */
     .hourly-chart-wrapper {
@@ -1225,276 +822,8 @@ function getTodayIsoDate(): string {
       flex-shrink: 0;
     }
 
-    .intel-empty-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2.25rem 1.5rem;
-      text-align: center;
-      gap: 0.45rem;
-    }
-    .empty-icon-glyph { color: var(--kb-color-border-strong); margin-bottom: 0.25rem; }
-    .intel-empty-box h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--kb-color-foreground); }
-    .intel-empty-box p { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
-
-    /* ── Bottom Bento Card: Live Stream & Orders ── */
-    .bento-orders-container {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
-    }
-    .orders-head-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
-      flex-wrap: wrap;
-    }
-    .orders-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-    .orders-title {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-    .counter-badge {
-      display: inline-block;
-      padding: 0.18rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .orders-sub {
-      margin: 0.2rem 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .orders-head-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .channel-filter-tabs {
-      display: inline-flex;
-      background: var(--kb-color-surface-2);
-      padding: 3px;
-      border-radius: 10px;
-      gap: 2px;
-    }
-    .channel-tab-btn {
-      padding: 0.4rem 0.75rem;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      transition: all 120ms ease;
-    }
-    .channel-tab-btn:hover { color: var(--kb-color-foreground); }
-    .channel-tab-btn--active {
-      background: #FFFFFF;
-      color: var(--kb-color-foreground);
-      font-weight: 700;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-    }
-
-    .order-search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border);
-      border-radius: 10px;
-      padding: 0.45rem 0.75rem;
-      width: 220px;
-      transition: all 140ms ease;
-    }
-    .order-search-box:focus-within {
-      background: #FFFFFF;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
-    }
-    .order-search-box svg { color: var(--kb-color-muted-foreground); }
-    .order-search-box input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      font-size: 0.82rem;
-      color: var(--kb-color-foreground);
-    }
-
-    /* Tactile Orders Table */
-    .orders-table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 12px;
-    }
-    .orders-tactile-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.84rem;
-      text-align: left;
-    }
-    .orders-tactile-table th {
-      padding: 0.75rem 1rem;
-      background: var(--kb-color-bg-app);
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--kb-color-muted-foreground);
-      border-bottom: 1px solid var(--kb-color-border);
-    }
-    .orders-tactile-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      color: var(--kb-color-foreground);
-      vertical-align: middle;
-    }
-    .order-row-interactive {
-      cursor: pointer;
-      transition: background 120ms ease;
-    }
-    .order-row-interactive:hover {
-      background: var(--kb-color-bg-app);
-    }
-    .order-row-interactive:last-child td { border-bottom: none; }
-
-    .order-hash-code {
-      font-family: var(--kb-font-mono);
-      font-weight: 700;
-      color: var(--kb-color-foreground);
-      background: var(--kb-color-surface-2);
-      padding: 0.2rem 0.45rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-    }
-
-    .channel-chip {
-      display: inline-block;
-      padding: 0.18rem 0.55rem;
-      border-radius: 6px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
-    .channel-chip--takeaway { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .channel-chip--delivery { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-
-    .order-guest-desc {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-    .guest-title {
-      font-weight: 600;
-      color: var(--kb-color-foreground);
-      font-size: 0.84rem;
-    }
-    .guest-meta {
-      font-size: 0.74rem;
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .order-table-amount {
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .status-chip {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-    }
-    .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-burnt); }
-    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary-hover); }
-    .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-
-    .time-stamp-label {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .action-btn-group {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 0.45rem;
-    }
-    .btn-micro {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 8px;
-      border: 1px solid var(--kb-color-border);
-      background: #FFFFFF;
-      color: var(--kb-color-foreground);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 120ms ease;
-    }
-    .btn-micro:hover { background: var(--kb-color-surface-2); border-color: var(--kb-color-border-strong); }
-    .btn-micro--primary {
-      background: var(--kb-color-primary);
-      border-color: var(--kb-color-primary);
-      color: #FFFFFF;
-    }
-    .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
-
-    .empty-orders-view {
-      padding: 3rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 0.5rem;
-    }
-    .empty-icon-circle {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-surface-2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--kb-color-muted-foreground);
-      margin-bottom: 0.25rem;
-    }
-    .empty-orders-view h4 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); }
-    .empty-orders-view p { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); max-width: 440px; }
-    .empty-actions-row {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      margin-top: 0.75rem;
-    }
+    /* .channel-chip table badge + its channel modifiers now live in the global
+       styles/bento.css (identical values) so every page shares one definition. */
 
     /* ── Notifications Flyout ── */
     .notif-wrapper { position: relative; }
@@ -1555,67 +884,6 @@ function getTodayIsoDate(): string {
     .notif-empty { padding: 2rem 1rem; text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
 
     /* ── Modals Overlay ── */
-    .tactile-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .tactile-modal-box {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
-      overflow: hidden;
-    }
-    .tactile-modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.15rem 1.4rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      background: var(--kb-color-bg-app);
-    }
-    .tactile-modal-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--kb-color-foreground); }
-    .tactile-head-with-icon { display: flex; align-items: center; gap: 0.65rem; }
-    .warning-icon-badge {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--kb-color-warning-soft);
-      color: var(--kb-color-warning);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-close-icon {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      padding: 0;
-      line-height: 1;
-    }
-    .modal-close-icon:hover { color: var(--kb-color-foreground); }
-    .tactile-modal-body {
-      padding: 1.25rem 1.4rem;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 0.85rem;
-    }
-    .modal-lead-note { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
     .terminal-item-row {
       display: flex;
       align-items: center;
@@ -1628,25 +896,6 @@ function getTodayIsoDate(): string {
     .terminal-core-info { display: flex; align-items: center; gap: 0.75rem; }
     .terminal-tag { display: block; font-size: 0.72rem; color: var(--kb-color-muted-foreground); }
     .terminal-meta-info { text-align: right; }
-    .time-sub { display: block; font-size: 0.7rem; color: var(--kb-color-muted-foreground); margin-top: 0.15rem; }
-    .tactile-empty-sub { text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.85rem; padding: 1.5rem 0; }
-    .tactile-modal-foot {
-      padding: 1rem 1.4rem;
-      border-top: 1px solid var(--kb-color-surface-2);
-      display: flex;
-      justify-content: flex-end;
-      background: var(--kb-color-bg-app);
-    }
-
-    .skeleton-shimmer {
-      background: linear-gradient(90deg, var(--kb-color-surface-2) 25%, var(--kb-color-border) 50%, var(--kb-color-surface-2) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
   `]
 })
 export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
@@ -2133,7 +1382,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   navigateToActiveOrders(): void {
-    void this.router.navigate(['/business/active-orders']);
+    void this.router.navigate(['/business/orders'], { queryParams: { tab: 'live' } });
   }
 
   navigateToKot(): void {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -11,12 +12,8 @@ import { ToastService } from '../../core/services/toast.service';
   selector: 'app-inventory-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent],
   styles: [`
-    .page-header {
-      display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
-    }
-    .page-header h2 { margin: 0; }
     .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
     .materials-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;
@@ -74,13 +71,10 @@ import { ToastService } from '../../core/services/toast.service';
   `],
   template: `
     <div class="page-shell">
-      <div class="page-header">
-        <h2>Inventory</h2>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-          <button class="ghost-btn" (click)="loadMaterials()" [disabled]="loading">Refresh</button>
-          <button class="primary-btn" (click)="openAddMaterial()">+ Add Material</button>
-        </div>
-      </div>
+      <app-page-header title="Inventory" subtitle="Track raw materials, stock levels and low-stock alerts.">
+        <button type="button" class="header-action-btn" (click)="loadMaterials()" [disabled]="loading">Refresh</button>
+        <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">+ Add Material</button>
+      </app-page-header>
 
       <!-- Feature Preview Banner -->
       <div class="preview-notice-banner">

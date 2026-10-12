@@ -10,24 +10,17 @@ import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 
 @Component({
-  selector: 'app-active-orders-page',
+  selector: 'app-live-orders-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, OrderDetailModalComponent],
   template: `
-    <div class="page-shell">
-      <!-- Operational Header (navbar.gallery standard) -->
-      <header class="operational-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Active Orders &amp; Live Tables</h2>
-          </div>
-          <p class="header-sub">Unsettled tables, open orders, and pending bills. Auto-refreshes every 30 seconds.</p>
-        </div>
-        <div class="header-right">
+    <div class="tab-panel">
+      <div class="tab-toolbar">
+        <div class="tab-toolbar__actions">
           <button
             type="button"
-            class="refresh-btn"
+            class="header-action-btn"
             [disabled]="loading()"
             (click)="load()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()">
@@ -39,7 +32,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
             Refresh
           </button>
         </div>
-      </header>
+      </div>
 
       <!-- Loading and Error States -->
       <div class="panel loading" *ngIf="loading() && !activeOrders().length">
@@ -254,44 +247,25 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     :host {
       display: block;
       width: 100%;
-      min-height: 100vh;
-      background: var(--pos-bg-body, var(--kb-color-surface-2));
       font-family: var(--kb-font-sans);
     }
 
-    .page-shell {
-      padding: 1.5rem 2rem;
-      max-width: 1600px;
-      margin: 0 auto;
-    }
-
-    /* ── Operational Topbar (navbar.gallery standard) ── */
-    .operational-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* Tab body — the routed shell owns the page header and outer geometry. */
+    .tab-panel {
+      display: grid;
       gap: 1.5rem;
-      margin-bottom: 1.75rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
     }
-    .header-title-row {
+    .tab-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .tab-toolbar__actions {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
-      margin-bottom: 0.25rem;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-    .header-sub {
-      margin: 0;
-      font-size: 0.88rem;
-      color: var(--kb-color-muted-foreground);
+      gap: 0.65rem;
+      flex-wrap: wrap;
     }
 
     
@@ -710,7 +684,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     }
   `]
 })
-export class ActiveOrdersPageComponent implements OnDestroy {
+export class LiveOrdersTabComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);

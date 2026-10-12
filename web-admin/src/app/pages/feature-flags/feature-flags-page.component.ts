@@ -5,23 +5,23 @@ import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { FeatureFlagAdminItem, FeatureFlagAuditItem } from '../../core/models/api.models';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-feature-flags-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Feature Flags</h2>
-        <p class="muted">Control rollout of ported v2 features. The kill switch dominates every override (first rollback step).</p>
-        <div class="hero-meta">
-          <span class="chip">{{ flags().length }} Flags</span>
-          <span class="chip success">{{ enabledCount() }} Globally Effective</span>
-        </div>
-      </section>
+      <app-page-header
+        title="Feature Flags"
+        subtitle="Control rollout of ported v2 features. The kill switch dominates every override (first rollback step)."
+      >
+        <span kbHeaderBadge class="chip">{{ flags().length }} Flags</span>
+        <span kbHeaderBadge class="chip success">{{ enabledCount() }} Globally Effective</span>
+      </app-page-header>
 
       <div class="toolbar">
         <div>

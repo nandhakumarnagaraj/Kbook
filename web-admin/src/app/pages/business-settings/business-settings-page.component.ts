@@ -8,6 +8,7 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section.component';
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -40,23 +41,19 @@ interface RestaurantProfile {
   selector: 'app-business-settings-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TaxSettingsSectionComponent, PaymentMethodsSectionComponent, PasswordChangeSectionComponent],
+  imports: [CommonModule, FormsModule, TaxSettingsSectionComponent, PaymentMethodsSectionComponent, PasswordChangeSectionComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <!-- Operational Header (navbar.gallery standard) -->
-      <header class="operational-settings-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Business &amp; Restaurant Configuration</h2>
-            <span class="sync-state-badge" *ngIf="!loading()">
-              <span class="status-pulse-dot" aria-hidden="true"></span>
-              Live Sync Ready
-            </span>
-          </div>
-          <p class="header-sub">Configure restaurant identity, automated GST compliance, and payment settlement channels.</p>
-        </div>
-        <div class="header-right">
-          <button type="button" class="primary-btn" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save all business settings">
+      <app-page-header
+        title="Business &amp; Restaurant Configuration"
+        subtitle="Configure restaurant identity, automated GST compliance, and payment settlement channels."
+      >
+        <span kbHeaderBadge class="sync-state-badge" *ngIf="!loading()">
+          <span class="status-pulse-dot" aria-hidden="true"></span>
+          Live Sync Ready
+        </span>
+
+        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save all business settings">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
@@ -64,17 +61,16 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-          <button type="button" class="ghost-btn" (click)="load()" aria-label="Reload settings from server">
+        <button type="button" class="header-action-btn" (click)="load()" aria-label="Reload settings from server">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            Refresh
-          </button>
-        </div>
-      </header>
+          Refresh
+        </button>
+      </app-page-header>
 
       <div class="panel loading" *ngIf="loading()" role="status">Loading settings...</div>
       <div class="panel loading" *ngIf="!loading() && loadError() && !profile()" role="alert">
@@ -203,28 +199,6 @@ interface RestaurantProfile {
     </div>
   `,
   styles: [`
-    .operational-settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-      flex-wrap: wrap;
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
     .sync-state-badge {
       display: inline-flex;
       align-items: center;
@@ -249,17 +223,6 @@ interface RestaurantProfile {
       0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7); }
       70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(47, 133, 90, 0); }
       100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
-    }
-    .header-sub {
-      margin: 4px 0 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      flex-wrap: wrap;
     }
     .section-title-wrap {
       display: flex;

@@ -5,6 +5,7 @@ import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rx
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { formatCurrency } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
@@ -20,38 +21,33 @@ function formatLocalDate(d: Date): string {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DateRangeSelectorComponent],
+  imports: [CommonModule, DateRangeSelectorComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <!-- Operational Header (navbar.gallery standard) -->
-      <header class="reports-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Financial &amp; Sales Reports</h2>
-          </div>
-          <p class="header-sub">Recognized revenues, billing volume, refund impact, and gateway reconciliation.</p>
-        </div>
-        <div class="header-right">
-          <app-date-range-selector [initialRange]="selectedRange()" (rangeChanged)="setRange($event)"/>
-          <button type="button" class="refresh-btn" [disabled]="refreshing()" (click)="refresh()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
-          <button type="button" class="ghost-btn" (click)="exportCsv()" *ngIf="report()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export CSV
-          </button>
-        </div>
-      </header>
+      <!-- Canonical page header (shared design system) -->
+      <app-page-header
+        title="Financial &amp; Sales Reports"
+        subtitle="Recognized revenues, billing volume, refund impact, and gateway reconciliation."
+      >
+        <app-date-range-selector [initialRange]="selectedRange()" (rangeChanged)="setRange($event)" />
+        <button type="button" class="header-action-btn" [disabled]="refreshing()" (click)="refresh()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+          Refresh
+        </button>
+        <button type="button" class="header-action-btn" (click)="exportCsv()" *ngIf="report()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+      </app-page-header>
 
       <!-- Report View Navigation Tabs -->
       <nav class="report-tabs-nav" aria-label="Report Views">
@@ -374,52 +370,8 @@ function formatLocalDate(d: Date): string {
       font-family: var(--kb-font-sans);
     }
 
-    .page-shell {
-      padding: 1.5rem 2rem;
-      max-width: 1600px;
-      margin: 0 auto;
-    }
-
-    /* ── Header (navbar.gallery standard) ── */
-    .reports-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      margin-bottom: 1.75rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      margin-bottom: 0.25rem;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-    .header-sub {
-      margin: 0;
-      font-size: 0.88rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    
-    
-    
-
-    
-    
+    /* Page geometry + page header now come from the shared design system
+       (styles.css .page-shell + shared/page-header.component). */
 
     /* ── Bento Analytics Grid (bentogrids.com standard) ── */
     .reports-bento-grid {

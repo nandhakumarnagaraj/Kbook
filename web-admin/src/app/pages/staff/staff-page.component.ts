@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { BusinessStaffItem } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 import { formatDate } from '../../shared/formatters';
@@ -16,30 +17,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   selector: 'app-staff-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
   styles: [`
-    .operational-staff-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-      flex-wrap: wrap;
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
     .staff-count-badge {
       font-size: 0.75rem;
       font-weight: 600;
@@ -49,17 +28,6 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       border: 1px solid var(--kb-color-border);
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
-    }
-    .header-sub {
-      margin: 4px 0 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      flex-wrap: wrap;
     }
     
     
@@ -219,19 +187,14 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   `],
   template: `
     <div class="page-shell">
-      <!-- Operational Header (navbar.gallery standard) -->
-      <header class="operational-staff-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Staff &amp; Team Directory</h2>
-            <span class="staff-count-badge" *ngIf="loaded()">
-              {{ activeCount }}/{{ staff().length }} Active Accounts
-            </span>
-          </div>
-          <p class="header-sub">Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.</p>
-        </div>
-        <div class="header-right">
-          <button type="button" class="primary-btn" *ngIf="isOwner" (click)="openCreateModal()">
+      <!-- Canonical page header (shared design system) -->
+      <app-page-header
+        title="Staff &amp; Team Directory"
+        subtitle="Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.">
+        <span kbHeaderBadge class="staff-count-badge" *ngIf="loaded()">
+          {{ activeCount }}/{{ staff().length }} Active Accounts
+        </span>
+          <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openCreateModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
@@ -240,7 +203,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           </button>
           <button
             type="button"
-            class="ghost-btn danger-btn"
+            class="header-action-btn danger-btn"
             *ngIf="isOwner"
             (click)="requestRevokeAll()"
             title="Emergency sign out of all devices"
@@ -251,7 +214,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             </svg>
             Sign Out All Devices
           </button>
-          <button type="button" class="refresh-btn" (click)="loadStaff()">
+          <button type="button" class="header-action-btn" (click)="loadStaff()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -260,8 +223,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             </svg>
             Refresh
           </button>
-        </div>
-      </header>
+      </app-page-header>
 
       <!-- Role Quick Filter Strip (bentogrids.com standard) -->
       <nav class="role-filter-strip" *ngIf="loaded() && staff().length" aria-label="Staff role filters">

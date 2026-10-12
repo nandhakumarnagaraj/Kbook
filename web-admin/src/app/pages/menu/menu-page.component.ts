@@ -9,6 +9,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { environment } from '../../../environments/environment';
@@ -17,32 +18,27 @@ import { environment } from '../../../environments/environment';
   selector: 'app-menu-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
-      <!-- Operational Menu Header (navbar.gallery standard) -->
-      <header class="operational-menu-header">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Menu &amp; Dishes Catalog</h2>
-          </div>
-          <p class="header-sub">Manage dish descriptions, variant pricing, and real-time counter stock availability.</p>
-        </div>
-        <div class="header-right">
-          <button type="button" class="ghost-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
+      <!-- Canonical page header (shared design system) -->
+      <app-page-header
+        title="Menu &amp; Dishes Catalog"
+        subtitle="Manage dish descriptions, variant pricing, and real-time counter stock availability.">
+          <button type="button" class="header-action-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h7"/>
             </svg>
             Categories
           </button>
-          <button type="button" class="primary-btn" *ngIf="isOwner" (click)="openAddModal()">
+          <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openAddModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Add New Dish
           </button>
-          <button type="button" class="refresh-btn" (click)="loadMenu()">
+          <button type="button" class="header-action-btn" (click)="loadMenu()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -51,8 +47,7 @@ import { environment } from '../../../environments/environment';
             </svg>
             Refresh
           </button>
-        </div>
-      </header>
+      </app-page-header>
 
       <!-- Stock Quick Filter Strip (bentogrids.com standard) -->
       <nav class="stock-status-strip" *ngIf="loaded && items.length" aria-label="Stock status quick filters">
@@ -586,39 +581,6 @@ import { environment } from '../../../environments/environment';
     }
     .ghost-btn--disabled { opacity: 0.5; cursor: not-allowed; }
     .ghost-btn--danger { color: var(--danger); border-color: var(--danger); }
-    .operational-menu-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-      flex-wrap: wrap;
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .header-sub {
-      margin: 4px 0 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      flex-wrap: wrap;
-    }
     
     
     

@@ -61,10 +61,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/orders/orders-page.component').then(m => m.OrdersPageComponent)
       },
       {
+        // Active Orders is now the "Live Floor" tab of /business/orders.
+        // Kept as a redirect so sidebar bookmarks, dashboard deep links and
+        // notification links keep working.
         path: 'business/active-orders',
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] },
-        loadComponent: () => import('./pages/active-orders/active-orders-page.component').then(m => m.ActiveOrdersPageComponent)
+        redirectTo: 'business/orders',
+        pathMatch: 'full'
       },
       {
         path: 'business/menu',

@@ -5,6 +5,7 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 
 function todayStr(): string {
   const d = new Date();
@@ -42,21 +43,23 @@ interface DailyClosingData {
   selector: 'app-daily-closing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent],
   template: `
     <div class="page-shell">
-      <!-- Operational Topbar (navbar.gallery standard) -->
-      <header class="closing-header no-print">
-        <div class="header-left">
-          <div class="header-title-row">
-            <h2>Daily Closing &amp; Settlement</h2>
-            <span class="settle-badge" [class.settle-badge--live]="isToday()" [class.settle-badge--closed]="!isToday()">
-              {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
-            </span>
-          </div>
-          <p class="header-sub">Count physical cash, audit payment splits, and verify recognized revenues.</p>
-        </div>
-        <div class="header-right">
+      <!-- Operational Topbar (shared design system) -->
+      <app-page-header
+        class="no-print"
+        title="Daily Closing &amp; Settlement"
+        subtitle="Count physical cash, audit payment splits, and verify recognized revenues.">
+        <span
+          kbHeaderBadge
+          class="settle-badge"
+          [class.settle-badge--live]="isToday()"
+          [class.settle-badge--closed]="!isToday()">
+          {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
+        </span>
+
+        <ng-container>
           <div class="day-selector-group" role="group" aria-label="Closing date range">
             <button
               type="button"
@@ -91,7 +94,7 @@ interface DailyClosingData {
               />
             </div>
           </div>
-          <button type="button" class="refresh-btn" [disabled]="loading()" (click)="load()">
+          <button type="button" class="header-action-btn" [disabled]="loading()" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -100,7 +103,7 @@ interface DailyClosingData {
             </svg>
             Refresh
           </button>
-          <button type="button" class="ghost-btn" (click)="printSlip()" *ngIf="data()">
+          <button type="button" class="header-action-btn" (click)="printSlip()" *ngIf="data()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="6 9 6 2 18 2 18 9"/>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -108,7 +111,7 @@ interface DailyClosingData {
             </svg>
             Print Slip
           </button>
-          <button type="button" class="ghost-btn" (click)="exportClosing()" *ngIf="data()">
+          <button type="button" class="header-action-btn" (click)="exportClosing()" *ngIf="data()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
@@ -116,8 +119,8 @@ interface DailyClosingData {
             </svg>
             Export CSV
           </button>
-        </div>
-      </header>
+        </ng-container>
+      </app-page-header>
 
       <!-- Alert if Draft Orders are Open -->
       <div class="draft-warning-banner no-print" *ngIf="data() && data()!.draftOrders > 0">
@@ -282,35 +285,8 @@ interface DailyClosingData {
       font-family: var(--kb-font-sans);
     }
 
-    .page-shell {
-      padding: 1.5rem 2rem;
-      max-width: 1600px;
-      margin: 0 auto;
-    }
-
-    /* ── Header (navbar.gallery standard) ── */
-    .closing-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      margin-bottom: 1.75rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-    }
-    .header-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      margin-bottom: 0.25rem;
-    }
-    .header-title-row h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
+    /* Header layout comes from the shared <app-page-header>; page keeps no
+       page-shell override so it inherits the canonical geometry. */
     .settle-badge {
       display: inline-flex;
       align-items: center;
@@ -332,17 +308,6 @@ interface DailyClosingData {
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
       border-color: var(--kb-color-border-strong);
-    }
-    .header-sub {
-      margin: 0;
-      font-size: 0.88rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
     }
 
     /* Day Selector Group */

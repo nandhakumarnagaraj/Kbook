@@ -39,16 +39,59 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 ## Current Locked Palette (Web Admin)
 
+> **Palette revision (2026-10-13):** the ship palette is **purple `#6C27D9`**, not the
+> warm brown `#b56a2d` this table previously listed. The brown entry was stale — the
+> code (`web-admin/src/styles.css`, `index.html` favicon) had already moved to purple
+> and the doc had not been updated. Purple is canonical; the brown values below are
+> recorded only for the migration history.
+>
+> Also note the source of truth is now a two-tier token set: the legacy short names
+> (`--bg`, `--brand`, …) and the semantic `--kb-color-*` aliases. New work should use
+> `--kb-color-*`.
+
 | Variable | Hex | Usage |
 |---|---|---|
-| `--bg` | #f6f1e8 | Page background |
-| `--panel` | #fffdf8 | Card/panel background |
-| `--ink` | #24170f | Text color |
-| `--muted` | #7d6b5f | Secondary text |
-| `--line` | #e9dcc9 | Borders |
-| `--brand` | #b56a2d | Primary brand |
-| `--accent` | #1d7b5f | Accent teal/green |
-| `--danger` | #a6372f | Error red |
+| `--bg` / `--kb-color-bg-app` | #FAF7F2 | Page background |
+| `--panel` / `--kb-color-surface` | #FFFFFF | Card/panel background |
+| `--kb-color-surface-2` | #F8F5EF | Recessed surface / tab rail |
+| `--ink` / `--kb-color-foreground` | #1C1A17 | Text color |
+| `--muted` / `--kb-color-muted-foreground` | #6B655C | Secondary text |
+| `--line` / `--kb-color-border` | #EFE9DE | Borders |
+| `--brand` / `--kb-color-primary` | **#6C27D9** | Primary brand (purple, canonical) |
+| `--accent` | #0F766E | Accent teal/green |
+| `--kb-color-success` | #2F855A | Success states |
+| `--kb-color-warning` | #B7791F | Warning states |
+| `--danger` / `--kb-color-danger` | #C0392B | Error red |
+
+### Superseded (do not use)
+
+| Variable | Hex | Note |
+|---|---|---|
+| `--brand` (brown) | #b56a2d | Replaced by #6C27D9 |
+| `--bg` (brown) | #f6f1e8 | Replaced by #FAF7F2 |
+| `--ink` (brown) | #24170f | Replaced by #1C1A17 |
+| `--muted` (brown) | #7d6b5f | Replaced by #6B655C |
+| `--line` (brown) | #e9dcc9 | Replaced by #EFE9DE |
+| `--accent` (teal) | #1d7b5f | Replaced by #0F766E |
+| `--danger` (red) | #a6372f | Replaced by #C0392B |
+
+## Web Admin Layout Rules
+
+These are locked alongside the palette so pages cannot drift apart again:
+
+1. **One page shell.** Every routed page wraps its content in `.page-shell`
+   (defined once in `web-admin/src/styles.css`: max-width 1440px, padding
+   `1.75rem 2rem 3.5rem`, grid gap `1.5rem`). Pages must **not** override it.
+2. **One page header.** Use the shared `PageHeaderComponent`
+   (`app-page-header`). Do not hand-roll `.header-left` / `.header-title-row` /
+   `.header-sub` / `.header-right` markup or the `.dash-header*` variant.
+3. **One shared vocabulary.** Card/button/chip/table styles live in
+   `web-admin/src/styles/bento.css`, loaded last so it wins everywhere.
+   Use `.bento-tile`, `.intel-card`, `.header-action-btn`, `.btn-micro`,
+   `.kpi-tag`, `.status-chip`, `.orders-tactile-table`, `.tactile-modal-*`
+   instead of page-local equivalents. A class name must mean exactly one thing
+   across the app (for example `.channel-chip` is a table badge; the dashboard's
+   Live Floor filter buttons are `.floor-chip`).
 
 ---
 
