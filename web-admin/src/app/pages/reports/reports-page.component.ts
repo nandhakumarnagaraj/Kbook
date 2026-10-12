@@ -105,9 +105,7 @@ function formatLocalDate(d: Date): string {
             <article class="bento-card bento-card--hero">
               <div class="bento-head">
                 <span class="bento-label">Net Realized Revenue</span>
-                <svg width="68" height="22" viewBox="0 0 64 20" class="bento-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" [attr.points]="data.sparkNet"/>
-                </svg>
+                <span class="bento-tag bento-tag--hero">Net Realized</span>
               </div>
               <strong class="bento-value">{{ data.netRevenue }}</strong>
               <div class="bento-foot">
@@ -120,9 +118,7 @@ function formatLocalDate(d: Date): string {
             <article class="bento-card">
               <div class="bento-head">
                 <span class="bento-label">Gross Billed</span>
-                <svg width="64" height="20" viewBox="0 0 64 20" class="bento-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="#5D45FD" stroke-width="1.75" [attr.points]="data.sparkRevenue"/>
-                </svg>
+                <span class="bento-tag bento-tag--brand">Gross Volume</span>
               </div>
               <strong class="bento-value">{{ data.revenue }}</strong>
               <div class="bento-foot">
@@ -134,9 +130,7 @@ function formatLocalDate(d: Date): string {
             <article class="bento-card">
               <div class="bento-head">
                 <span class="bento-label">Bills Minted</span>
-                <svg width="64" height="20" viewBox="0 0 64 20" class="bento-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="#10B981" stroke-width="1.75" [attr.points]="data.sparkBills"/>
-                </svg>
+                <span class="bento-tag bento-tag--success">POS Tickets</span>
               </div>
               <strong class="bento-value">{{ data.billCount }}</strong>
               <div class="bento-foot">
@@ -148,9 +142,8 @@ function formatLocalDate(d: Date): string {
             <article class="bento-card" [class.bento-card--warn]="data.pendingPayments > 0">
               <div class="bento-head">
                 <span class="bento-label">Unsettled / Pending</span>
-                <svg width="64" height="20" viewBox="0 0 64 20" class="bento-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="#D97706" stroke-width="1.75" [attr.points]="data.sparkPending"/>
-                </svg>
+                <span class="bento-tag bento-tag--amber" *ngIf="data.pendingPayments > 0">{{ data.pendingPayments }} Pending</span>
+                <span class="bento-tag" *ngIf="data.pendingPayments === 0">All Cleared</span>
               </div>
               <strong class="bento-value">{{ data.pendingPayments }}</strong>
               <div class="bento-foot">
@@ -522,9 +515,19 @@ function formatLocalDate(d: Date): string {
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    .bento-spark {
-      opacity: 0.8;
+    .bento-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: #F1F5F9;
+      color: #64748B;
     }
+    .bento-tag--hero { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
+    .bento-tag--brand { background: #EEF2FF; color: #4F46E5; }
+    .bento-tag--success { background: #ECFDF5; color: #059669; }
+    .bento-tag--amber { background: #FFFBEB; color: #D97706; }
     .bento-value {
       font-size: 1.65rem;
       font-weight: 800;
@@ -785,20 +788,9 @@ export class ReportsPageComponent {
         const billCount = Number(dashboard.posOrderCount) || 0;
         const pending = Number(dashboard.pendingPosPayments) || 0;
 
-        function sp(v: number): string {
-          if (v <= 0) return '0,20 64,20';
-          const pts = Array.from({length:6}, (_,i) => v * (0.85 + (i * 0.05)));
-          const mx=Math.max(...pts), mn=Math.min(...pts), rn=mx-mn||1;
-          return pts.map((p,i)=>{const x=(i/5)*64,y=20-((p-mn)/rn)*20;return `${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
-        }
-
         const sortedItems = [...(itemSales || [])].sort((a, b) => (Number(b.quantitySold) || 0) - (Number(a.quantitySold) || 0));
 
         return {
-          sparkRevenue: sp(totalRev),
-          sparkBills: sp(billCount),
-          sparkPending: sp(pending),
-          sparkNet: sp(net),
           revenue: formatCurrency(totalRev),
           revenueRaw: totalRev,
           billCount: billCount,

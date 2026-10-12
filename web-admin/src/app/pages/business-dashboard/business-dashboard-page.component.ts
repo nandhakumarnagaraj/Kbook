@@ -319,35 +319,26 @@ function getTodayIsoDate(): string {
             </article>
           </div>
 
-          <!-- 3. Completed Trend Card with Wave Sparkline -->
+          <!-- 3. Settled Orders Card with Real Progress Metric (Anti-Slop Craft) -->
           <article class="completed-trend-card">
             <div class="completed-card-head">
-              <span class="kpi-mini-label">Completed</span>
-              <h3 class="kpi-mini-value">{{ completedCount() }}</h3>
-              <span class="delta-indicator delta-green">
+              <div class="settled-head-left">
+                <span class="kpi-mini-label">Settled Orders</span>
+                <div class="settled-count-row">
+                  <h3 class="kpi-mini-value">{{ completedCount() }}</h3>
+                  <span class="settled-total-sub">/ {{ data.posOrderCount }}</span>
+                </div>
+              </div>
+              <span class="delta-indicator" [class.delta-green]="completedRate() >= 80" [class.delta-amber]="completedRate() < 80">
                 {{ completedRate() }}% Settled
               </span>
             </div>
-            <div class="completed-chart-wrap" aria-hidden="true">
-              <svg viewBox="0 0 320 70" class="completed-svg-wave" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="purpleAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#5D45FD" stop-opacity="0.32"/>
-                    <stop offset="100%" stop-color="#5D45FD" stop-opacity="0.0"/>
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M 0 50 C 40 50, 60 62, 90 38 C 120 16, 150 48, 190 30 C 230 12, 260 42, 300 18 L 320 22 L 320 70 L 0 70 Z"
-                  fill="url(#purpleAreaGrad)"
-                />
-                <path
-                  d="M 0 50 C 40 50, 60 62, 90 38 C 120 16, 150 48, 190 30 C 230 12, 260 42, 300 18 L 320 22"
-                  fill="none"
-                  stroke="#5D45FD"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                />
-              </svg>
+            <div class="settled-progress-track" role="progressbar" [attr.aria-valuenow]="completedRate()" aria-valuemin="0" aria-valuemax="100">
+              <div class="settled-progress-fill" [style.width.%]="completedRate()"></div>
+            </div>
+            <div class="settled-footer-row">
+              <span class="settled-foot-item"><span class="status-dot-sm status-dot--green"></span> <strong>{{ completedCount() }}</strong> Settled</span>
+              <span class="settled-foot-item" [class.text-warn]="pendingKotCount() > 0"><span class="status-dot-sm" [class.status-dot--amber]="pendingKotCount() > 0" [class.status-dot--gray]="pendingKotCount() === 0"></span> <strong>{{ pendingKotCount() }}</strong> Pending</span>
             </div>
           </article>
 
@@ -1309,24 +1300,70 @@ function getTodayIsoDate(): string {
       border-radius: 18px;
       padding: 1.15rem 1.25rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
     }
     .completed-card-head {
       display: flex;
-      align-items: baseline;
+      align-items: flex-start;
+      justify-content: space-between;
       gap: 0.75rem;
-      margin-bottom: 0.35rem;
     }
-    .completed-chart-wrap {
-      margin-top: 0.25rem;
-      width: 100%;
-      height: 50px;
+    .settled-head-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
     }
-    .completed-svg-wave {
+    .settled-count-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+    .settled-total-sub {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #8F95B2;
+      font-variant-numeric: tabular-nums;
+    }
+    .settled-progress-track {
       width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: #EEF0F7;
+      overflow: hidden;
+      margin-top: 0.15rem;
+    }
+    .settled-progress-fill {
       height: 100%;
-      display: block;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #5D45FD 0%, #10B981 100%);
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .settled-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      color: #64748B;
+      padding-top: 0.2rem;
+    }
+    .settled-foot-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .status-dot-sm {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot--green { background: #10B981; }
+    .status-dot--amber { background: #D97706; }
+    .status-dot--gray { background: #CBD5E1; }
+    .text-warn { color: #D97706; }
 
     /* 4. Hourly Traffic Heatmap Card */
     .hourly-traffic-card {

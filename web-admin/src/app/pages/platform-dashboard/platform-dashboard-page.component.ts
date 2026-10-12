@@ -8,21 +8,6 @@ import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../core/models/api.models';
 
-// Deterministic sparkline from a value — produces a stable upward-sloping path.
-// Replace with real time-series data when the API supports it.
-function sparkPath(value: number): string {
-  if (!value || value <= 0) {
-    return '0,24 72,24';
-  }
-  const base = value;
-  const pts = Array.from({length: 7}, (_, i) => base * (0.85 + (i * 0.03)));
-  const max = Math.max(...pts), min = Math.min(...pts), range = max - min || 1;
-  return pts.map((v, i) => {
-    const x = (i / 6) * 72, y = 24 - ((v - min) / range) * 24;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-}
-
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
@@ -82,33 +67,27 @@ function sparkPath(value: number): string {
             <article class="kpi-card kpi-card--hero" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
               <div class="kpi-head">
                 <span class="kpi-label">Total Revenue</span>
-                <svg width="72" height="24" viewBox="0 0 72 24" class="kpi-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="rgba(124,45,18,0.5)" stroke-width="1.5" [attr.points]="data.sparkRevenue" />
-                </svg>
+                <span class="kpi-tag kpi-tag--hero">All Businesses</span>
               </div>
               <strong class="kpi-value">{{ data.totalRevenueFormatted }}</strong>
               <div class="kpi-delta">
-                <span class="kpi-compare">All-time</span>
+                <span class="kpi-compare">Recognized lifetime sales</span>
               </div>
             </article>
             <article class="kpi-card">
               <div class="kpi-head">
                 <span class="kpi-label">Total Businesses</span>
-                <svg width="72" height="24" viewBox="0 0 72 24" class="kpi-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="var(--success)" stroke-width="1.5" [attr.points]="data.sparkBusinesses" />
-                </svg>
+                <span class="kpi-tag kpi-tag--success">{{ data.liveBusinesses }} Live</span>
               </div>
               <strong class="kpi-value">{{ data.totalBusinesses }}</strong>
               <div class="kpi-delta">
-                <span class="kpi-compare">All-time</span>
+                <span class="kpi-compare">Onboarded merchants</span>
               </div>
             </article>
             <article class="kpi-card">
               <div class="kpi-head">
                 <span class="kpi-label">Total Orders</span>
-                <svg width="72" height="24" viewBox="0 0 72 24" class="kpi-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="var(--brand)" stroke-width="1.5" [attr.points]="data.sparkOrders" />
-                </svg>
+                <span class="kpi-tag kpi-tag--brand">POS + Online</span>
               </div>
               <strong class="kpi-value">{{ data.totalOrders }}</strong>
               <div class="kpi-delta">
@@ -118,13 +97,11 @@ function sparkPath(value: number): string {
             <article class="kpi-card" [class.kpi-card--warn]="data.refundedOrders > 0">
               <div class="kpi-head">
                 <span class="kpi-label">Refunds</span>
-                <svg width="72" height="24" viewBox="0 0 72 24" class="kpi-spark" aria-hidden="true">
-                  <polyline fill="none" stroke="var(--danger)" stroke-width="1.5" [attr.points]="data.sparkRefunds" />
-                </svg>
+                <span class="kpi-tag" [class.kpi-tag--danger]="data.refundedOrders > 0">{{ data.refundedOrders }} Reversals</span>
               </div>
               <strong class="kpi-value">{{ data.refundedAmountFormatted }}</strong>
               <div class="kpi-delta">
-                <span class="kpi-compare">{{ data.refundedOrders }} orders</span>
+                <span class="kpi-compare">Reversed settle value</span>
               </div>
             </article>
           </section>
@@ -431,8 +408,16 @@ function sparkPath(value: number): string {
       background: linear-gradient(160deg, var(--kb-color-error-soft) 0%, var(--kb-color-surface) 60%);
     }
 
-    .kpi-head { display: flex; justify-content: space-between; align-items: flex-start; }
-    .kpi-spark { flex-shrink: 0; opacity: 0.6; }
+    .kpi-head { display: flex; justify-content: space-between; align-items: center; }
+    .kpi-tag {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+      padding: 0.2rem 0.55rem; border-radius: var(--kb-radius-full);
+      background: var(--kb-color-surface-2); color: var(--kb-color-muted-foreground);
+    }
+    .kpi-tag--hero { background: rgba(255, 255, 255, 0.2); color: var(--kb-color-primary-foreground); }
+    .kpi-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
+    .kpi-tag--brand { background: rgba(93, 69, 253, 0.1); color: #5D45FD; }
+    .kpi-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
 
     .kpi-label {
       font-size: 0.78rem; color: var(--kb-color-muted-foreground);
@@ -631,10 +616,6 @@ export class PlatformDashboardPageComponent {
             ...summary,
             totalRevenueFormatted: formatCurrency(summary.totalRevenue),
             refundedAmountFormatted: formatCurrency(summary.refundedAmount),
-            sparkRevenue: sparkPath(summary.totalRevenue ?? 0),
-            sparkBusinesses: sparkPath(summary.totalBusinesses ?? 0),
-            sparkOrders: sparkPath(summary.totalOrders ?? 0),
-            sparkRefunds: sparkPath(summary.refundedAmount ?? 0),
             liveBusinesses: summary.liveBusinesses ?? summary.totalBusinesses ?? 0,
           })),
           catchError((error: unknown) => {
