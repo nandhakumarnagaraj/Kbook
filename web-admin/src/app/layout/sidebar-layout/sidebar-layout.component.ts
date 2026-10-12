@@ -139,7 +139,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
           </div>
 
           <button class="logout-btn" (click)="logout()" type="button" aria-label="Sign out">
-            <span aria-hidden="true">↩</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
             <span>Sign out</span>
           </button>
         </div>
@@ -308,24 +312,31 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
-    /* Logout */
+    /* Logout (Red Danger Accent) */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: var(--kb-space-2);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      background: transparent;
-      color: var(--kb-color-muted-foreground);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: var(--kb-radius-card);
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.82rem;
-      transition: background-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
+      font-size: 0.85rem;
+      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .logout-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--kb-color-foreground-contrast); border-color: rgba(255, 255, 255, 0.2); }
-    .logout-btn:active { transform: scale(0.97); }
+    .logout-btn:hover {
+      background: #DC2626;
+      color: #FFFFFF;
+      border-color: #DC2626;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+    }
+    .logout-btn:active {
+      transform: scale(0.97);
+    }
 
     /* Content */
     .content-shell { min-width: 0; width: 100%; flex: 1; }
