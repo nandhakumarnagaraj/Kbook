@@ -95,7 +95,7 @@ import { formatDate } from '../../shared/formatters';
         <div class="section-topbar">
           <div class="topbar-heading">
             <h3>Assigned Register Hardware</h3>
-            <p class="muted">Active and deactivated Android POS billing &amp; KOT stations.</p>
+            <p class="muted">Active and deactivated Android POS billing registers.</p>
           </div>
         </div>
 

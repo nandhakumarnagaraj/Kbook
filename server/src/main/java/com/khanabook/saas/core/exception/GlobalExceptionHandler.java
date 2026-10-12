@@ -213,6 +213,16 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	@ExceptionHandler(org.springframework.web.servlet.NoHandlerFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleNoHandlerFound(
+			org.springframework.web.servlet.NoHandlerFoundException e, HttpServletRequest request) {
+		log.warn("No handler found [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+				"error", "Resource not found",
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Map<String, Object>> handleGeneralException(
 			Exception e, HttpServletRequest request) {

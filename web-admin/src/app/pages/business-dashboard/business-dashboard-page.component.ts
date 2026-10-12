@@ -21,6 +21,9 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 export interface PosActiveOrder {
   orderId: number;
   orderCode: string;
+  invoiceNumber?: string;
+  publicToken?: string;
+  orderType?: string;
   status: 'Preparing' | 'Cooking' | 'Served' | 'Completed';
   sourceType: string;
   dishImg?: string;
@@ -65,14 +68,8 @@ function getTodayIsoDate(): string {
       <!-- ── Top Cockpit Header Bar ── -->
       <header class="dash-header">
         <div class="dash-header__left">
-          <div class="dash-header__eyebrow">
-            <span class="pulse-indicator"></span>
-            <span>Operations Cockpit</span>
-            <span class="pill-divider">/</span>
-            <span class="live-date-pill">Today's Live Session</span>
-          </div>
           <h1 class="dash-header__title">{{ data.shopName || 'KhanaBook Restaurant' }}</h1>
-          <p class="dash-header__sub">Real-time floor velocity, revenue settlement, and kitchen telemetry.</p>
+          <p class="dash-header__sub">Real-time sales, order settlements, and terminal activity.</p>
         </div>
 
         <div class="dash-header__right">
@@ -208,27 +205,27 @@ function getTodayIsoDate(): string {
             </div>
             <div class="progress-meter-legend">
               <span><strong>{{ completedCount() }}</strong> Paid</span>
-              <span [class.text-amber]="pendingKotCount() > 0"><strong>{{ pendingKotCount() }}</strong> Unsettled</span>
+              <span [class.text-amber]="unsettledOrdersCount() > 0"><strong>{{ unsettledOrdersCount() }}</strong> Unsettled</span>
             </div>
           </div>
         </article>
 
-        <!-- 3. Active Dining & KOT -->
+        <!-- 3. Active & Unsettled Orders -->
         <article class="bento-tile">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Kitchen &amp; Floor</span>
-            <span class="kpi-tag" [class.kpi-tag--warn]="pendingKotCount() > 0" [class.kpi-tag--neutral]="pendingKotCount() === 0">
-              {{ pendingKotCount() > 0 ? 'Cooking in Progress' : 'KDS Clear' }}
+            <span class="bento-tile__eyebrow">Active Orders</span>
+            <span class="kpi-tag" [class.kpi-tag--warn]="unsettledOrdersCount() > 0" [class.kpi-tag--neutral]="unsettledOrdersCount() === 0">
+              {{ unsettledOrdersCount() > 0 ? 'Pending Settlement' : 'All Clear' }}
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            {{ pendingKotCount() }}
-            <span class="metric-unit-sub">Open Tickets</span>
+            {{ unsettledOrdersCount() }}
+            <span class="metric-unit-sub">Unsettled</span>
           </div>
           <div class="bento-tile__footer-action">
-            <span class="sub-caption">{{ filteredActiveOrders().length }} in-flight tables</span>
-            <button type="button" class="tile-action-link" (click)="navigateToKot()">
-              Open KDS
+            <span class="sub-caption">{{ filteredActiveOrders().length }} live orders</span>
+            <button type="button" class="tile-action-link" (click)="navigateToActiveOrders()">
+              View Active
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
             </button>
           </div>
@@ -340,155 +337,7 @@ function getTodayIsoDate(): string {
         </article>
       </section>
 
-      <!-- ── Bottom Bento Card: Live Stream & Recent Orders ── -->
-      <section class="bento-orders-container" aria-label="Recent Orders and Live Stream">
-        <div class="orders-head-bar">
-          <div class="orders-head-left">
-            <div class="orders-title-row">
-              <h3 class="orders-title">Live Orders &amp; Recent Transactions</h3>
-              <span class="counter-badge">{{ filteredActiveOrders().length }} Orders</span>
-            </div>
-            <p class="orders-sub">Active dining tickets, takeaway pickups, and today's latest POS settlements.</p>
-          </div>
 
-          <!-- Channel Filter Tabs & Universal Search -->
-          <div class="orders-head-controls">
-            <div class="channel-filter-tabs" role="tablist">
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="selectedChannel() === 'all'"
-                (click)="setChannel('all')">
-                All
-              </button>
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="selectedChannel() === 'dine_in'"
-                (click)="setChannel('dine_in')">
-                Dine In
-              </button>
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="selectedChannel() === 'takeaway'"
-                (click)="setChannel('takeaway')">
-                Takeaway
-              </button>
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="selectedChannel() === 'delivery'"
-                (click)="setChannel('delivery')">
-                Delivery
-              </button>
-            </div>
-
-            <div class="order-search-box">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                type="text"
-                placeholder="Search order #, items, guest..."
-                [(ngModel)]="searchQuery"
-                aria-label="Filter recent orders"
-              />
-            </div>
-
-            <button type="button" class="header-action-btn" (click)="navigateToOrders()">
-              <span>All Orders</span>
-              <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Orders Table / Grid -->
-        <div class="orders-table-wrapper" *ngIf="filteredActiveOrders().length > 0; else emptyOrdersTable">
-          <table class="orders-tactile-table">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Channel &amp; Table</th>
-                <th>Guest &amp; Summary</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Time</th>
-                <th class="text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let order of filteredActiveOrders(); trackBy: trackByOrderCode"
-                class="order-row-interactive"
-                (click)="openOrderDetail(order.orderId)">
-                <td>
-                  <span class="order-hash-code">#{{ order.orderCode }}</span>
-                </td>
-                <td>
-                  <span class="channel-chip channel-chip--{{ (order.sourceType || 'dine_in').toLowerCase() }}">
-                    {{ order.sourceType || 'DINE_IN' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="order-guest-desc">
-                    <span class="guest-title">{{ order.itemsSummary }}</span>
-                    <span class="guest-meta">{{ order.tableAndChannel }}</span>
-                  </div>
-                </td>
-                <td>
-                  <strong class="order-table-amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
-                </td>
-                <td>
-                  <span class="status-chip" [ngClass]="getStatusClass(order.status)">
-                    {{ order.status }}
-                  </span>
-                </td>
-                <td>
-                  <span class="time-stamp-label">{{ formatDateValue(order.createdAt) }}</span>
-                </td>
-                <td class="text-right" (click)="$event.stopPropagation()">
-                  <div class="action-btn-group">
-                    <button
-                      type="button"
-                      class="btn-micro"
-                      (click)="copyInvoice(order)"
-                      title="Copy public invoice preview link">
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8"/></svg>
-                      Invoice
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-micro btn-micro--primary"
-                      (click)="openOrderDetail(order.orderId)">
-                      Details
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <ng-template #emptyOrdersTable>
-          <div class="empty-orders-view">
-            <div class="empty-icon-circle">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                <rect x="9" y="3" width="6" height="4" rx="1"/>
-                <path d="m9 14 2 2 4-4"/>
-              </svg>
-            </div>
-            <h4>Kitchen &amp; Floor Counter Clear</h4>
-            <p>No active orders matching the filter. New transactions generated from POS terminals stream here instantly.</p>
-            <div class="empty-actions-row">
-              <button type="button" class="header-action-btn" (click)="resetFilters()" *ngIf="selectedChannel() !== 'all' || searchQuery">Clear Filters</button>
-              <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToOrders()">Go to Orders Ledger</button>
-            </div>
-          </div>
-        </ng-template>
-      </section>
     </div>
 
     <!-- ── Terminal Fleet Status Modal ── -->
@@ -1583,7 +1432,7 @@ export class BusinessDashboardPageComponent implements OnInit {
   // State Signals
   readonly isRefreshing = signal(false);
   readonly dashboardError = signal('');
-  readonly selectedChannel = signal<'all' | 'dine_in' | 'takeaway' | 'delivery'>('all');
+  readonly selectedChannel = signal<'all' | 'dine_in' | 'takeaway'>('all');
   searchQuery = '';
 
   readonly activeOrders = signal<PosActiveOrder[]>([]);
@@ -1642,14 +1491,23 @@ export class BusinessDashboardPageComponent implements OnInit {
                   else if (st === 'SERVED') status = 'Served';
                   else if (st === 'COOKING') status = 'Cooking';
 
+                  const rawType = (o.orderType || o.sourceType || '').toLowerCase();
+                  const isTakeaway = rawType.includes('takeaway') || rawType.includes('parcel');
+                  const orderType = isTakeaway ? 'takeaway' : 'dine_in';
+                  const typeLabel = isTakeaway ? 'Takeaway' : 'Dine In';
+                  const payment = o.paymentMethod || 'Cash';
+
                   return {
                     orderId: o.orderId,
                     orderCode: o.orderCode || String(o.orderId),
+                    invoiceNumber: o.invoiceNumber || undefined,
+                    publicToken: o.publicToken || undefined,
+                    orderType,
                     status,
-                    sourceType: o.sourceType || 'DINE_IN',
+                    sourceType: typeLabel,
                     dishImg: undefined,
-                    itemsSummary: o.customerName ? `Guest: ${o.customerName}` : 'Dine In Order',
-                    tableAndChannel: `${o.sourceType || 'Dine In'} · ${o.paymentMethod || 'Cash'}`,
+                    itemsSummary: o.customerName ? `Guest: ${o.customerName}` : `${typeLabel} Order`,
+                    tableAndChannel: `${typeLabel} · ${payment}`,
                     totalAmount: Number(o.totalAmount) || 0,
                     createdAt: o.createdAt
                   };
@@ -1748,8 +1606,7 @@ export class BusinessDashboardPageComponent implements OnInit {
     switch (this.selectedChannel()) {
       case 'dine_in': return 'Dine In';
       case 'takeaway': return 'Takeaway';
-      case 'delivery': return 'Delivery';
-      default: return 'All Channels';
+      default: return 'All Orders';
     }
   });
 
@@ -1761,16 +1618,16 @@ export class BusinessDashboardPageComponent implements OnInit {
 
     return orders.filter(order => {
       if (channel !== 'all') {
-        const chanText = (order.tableAndChannel || '').toLowerCase();
-        if (channel === 'dine_in' && !chanText.includes('dine in')) return false;
-        if (channel === 'takeaway' && !chanText.includes('takeaway')) return false;
-        if (channel === 'delivery' && !chanText.includes('delivery')) return false;
+        const orderType = (order.orderType || '').toLowerCase();
+        if (channel === 'dine_in' && orderType !== 'dine_in') return false;
+        if (channel === 'takeaway' && orderType !== 'takeaway') return false;
       }
 
       if (!query) return true;
       return (order.orderCode || '').toLowerCase().includes(query)
         || (order.itemsSummary || '').toLowerCase().includes(query)
         || (order.tableAndChannel || '').toLowerCase().includes(query)
+        || (order.sourceType || '').toLowerCase().includes(query)
         || (order.status || '').toLowerCase().includes(query);
     });
   });
@@ -1860,10 +1717,11 @@ export class BusinessDashboardPageComponent implements OnInit {
   });
 
   // Computed KPIs
-  readonly pendingKotCount = computed(() => {
+  readonly unsettledOrdersCount = computed(() => {
     const data = this.dashboard();
     return Number(data?.pendingPosPayments) || 0;
   });
+  readonly pendingKotCount = this.unsettledOrdersCount;
 
   readonly completedCount = computed(() => {
     const c = this.dailyClosingData();
@@ -1886,7 +1744,7 @@ export class BusinessDashboardPageComponent implements OnInit {
     return Math.min(100, Math.round((completed / total) * 100));
   });
 
-  setChannel(channel: 'all' | 'dine_in' | 'takeaway' | 'delivery'): void {
+  setChannel(channel: 'all' | 'dine_in' | 'takeaway'): void {
     this.selectedChannel.set(channel);
   }
 
@@ -1967,7 +1825,8 @@ export class BusinessDashboardPageComponent implements OnInit {
   copyInvoice(order: PosActiveOrder): void {
     const session = this.auth.session();
     const restaurantId = session?.restaurantId || 1;
-    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/preview`;
+    const token = order.publicToken || 'preview';
+    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(link).then(() => {
         this.toast.show(`Invoice link copied for Order #${order.orderCode}`, 'success');
@@ -1991,8 +1850,12 @@ export class BusinessDashboardPageComponent implements OnInit {
     void this.router.navigate(['/business/menu']);
   }
 
-  navigateToKot(): void {
+  navigateToActiveOrders(): void {
     void this.router.navigate(['/business/active-orders']);
+  }
+
+  navigateToKot(): void {
+    this.navigateToActiveOrders();
   }
 
   navigateToTerminals(): void {

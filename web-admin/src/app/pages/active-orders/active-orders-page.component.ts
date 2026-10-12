@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -19,9 +20,9 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         <div class="header-left">
           <div class="header-title-row">
             <h2>Active Orders &amp; Live Tables</h2>
-            <span class="live-pulse-badge">● Live Kitchen Stream</span>
+            <span class="live-pulse-badge">● Live Order Stream</span>
           </div>
-          <p class="header-sub">Unsettled tables, cooking KOTs, and draft bills. Auto-refreshes every 30 seconds.</p>
+          <p class="header-sub">Unsettled tables, open orders, and pending bills. Auto-refreshes every 30 seconds.</p>
         </div>
         <div class="header-right">
           <button
@@ -48,6 +49,38 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       </div>
       <div class="alert error" *ngIf="error()">{{ error() }}</div>
 
+      <!-- In-Flight Floor Telemetry Strip for Restaurant Owner -->
+      <section class="floor-telemetry-grid" *ngIf="activeOrders().length" aria-label="Floor load overview">
+        <article class="telemetry-card telemetry-card--hero">
+          <div class="telemetry-head">
+            <span class="telemetry-label">Running Floor Value</span>
+            <span class="pulse-live-tag">● Live Floor</span>
+          </div>
+          <strong class="telemetry-val">{{ fmt(totalFloorValue()) }}</strong>
+          <span class="telemetry-sub">{{ activeOrders().length }} active bills awaiting final settlement</span>
+        </article>
+
+        <article class="telemetry-card">
+          <div class="telemetry-head">
+            <span class="telemetry-label">Occupied Tables &amp; Orders</span>
+            <span class="telemetry-mini-pill">{{ dineInCount() }} Dine-in</span>
+          </div>
+          <strong class="telemetry-val">{{ activeTableCount() }} Tables Occupied</strong>
+          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway · {{ dineInCount() }} Dine-in</span>
+        </article>
+
+        <article class="telemetry-card" [class.telemetry-card--alert]="urgentCount() > 0">
+          <div class="telemetry-head">
+            <span class="telemetry-label">Oldest Waiting Ticket</span>
+            <span class="telemetry-mini-pill" [class.telemetry-mini-pill--red]="urgentCount() > 0">
+              {{ urgentCount() > 0 ? (urgentCount() + ' Overdue (>25m)') : 'On Pace' }}
+            </span>
+          </div>
+          <strong class="telemetry-val" [class.text-alert]="urgentCount() > 0">{{ oldestWaitFormatted() }}</strong>
+          <span class="telemetry-sub">{{ urgentCount() > 0 ? 'Orders exceeding 25m turnaround' : 'All floor orders progressing smoothly' }}</span>
+        </article>
+      </section>
+
       <!-- Bento Cards Grid (bentogrids.com standard) -->
       <div class="active-orders-grid" *ngIf="activeOrders().length">
         <article
@@ -62,18 +95,18 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
           
           <div class="card-top-row">
             <div class="channel-avatar" [ngClass]="'channel-avatar--' + (order.orderStatus || 'draft').toLowerCase()">
-              <svg *ngIf="order.sourceType === 'TAKEAWAY'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg *ngIf="isTakeaway(order)" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
                 <path d="M3 6h18"/>
                 <path d="M16 10a4 4 0 0 1-8 0"/>
               </svg>
-              <svg *ngIf="order.sourceType === 'DELIVERY'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg *ngIf="isDelivery(order)" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="1" y="3" width="15" height="13"/>
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
                 <circle cx="5.5" cy="18.5" r="2.5"/>
                 <circle cx="18.5" cy="18.5" r="2.5"/>
               </svg>
-              <svg *ngIf="order.sourceType !== 'TAKEAWAY' && order.sourceType !== 'DELIVERY'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg *ngIf="!isTakeaway(order) && !isDelivery(order)" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
                 <path d="M15 2v19"/>
                 <path d="M5 2c1.5 2 1.5 5 0 7v12"/>
@@ -82,7 +115,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 
             <div class="order-id-meta">
               <span class="order-code">#{{ order.orderCode }}</span>
-              <span class="channel-tag">{{ order.sourceType || 'DINE_IN' }}</span>
+              <span class="channel-tag" [class.channel-tag--takeaway]="isTakeaway(order)">{{ formatOrderType(order) }}</span>
             </div>
 
             <span class="status-pill" [class.status-pill--warn]="order.orderStatus === 'draft'" [class.status-pill--pending]="order.paymentStatus === 'pending'">
@@ -112,7 +145,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               type="button"
               class="card-action-btn card-action-btn--primary"
               (click)="openOrderDetail(order.orderId); $event.stopPropagation()"
-              title="View full order details and KOTs"
+              title="View full order details"
             >
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -128,7 +161,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
-              Copy
+              Invoice
             </button>
             <button
               type="button"
@@ -156,7 +189,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         </div>
         <h3>All Tables &amp; Orders Settled</h3>
         <p class="all-clear-sub">
-          There are no pending KOTs or open tables right now. New orders taken from counter POS or floor tablets will stream here in real time.
+          There are no active unsettled orders right now. New orders taken from counter POS will stream here in real time.
         </p>
         <button type="button" class="refresh-btn-tactile" (click)="load()">
           Check for New Orders
@@ -303,6 +336,98 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    /* ── Floor Telemetry Grid ── */
+    .floor-telemetry-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .floor-telemetry-grid { grid-template-columns: 1fr; }
+    }
+    .telemetry-card {
+      background: #FFFFFF;
+      border: 1px solid #EEF0F7;
+      border-radius: 18px;
+      padding: 1.25rem 1.4rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+    .telemetry-card:hover {
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    }
+    .telemetry-card--hero {
+      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+      color: #FFFFFF;
+      border: none;
+      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
+    }
+    .telemetry-card--hero .telemetry-label {
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .telemetry-card--hero .telemetry-val {
+      color: #FFFFFF;
+    }
+    .telemetry-card--hero .telemetry-sub {
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .telemetry-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .telemetry-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #8F95B2;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pulse-live-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+    }
+    .telemetry-val {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .telemetry-sub {
+      font-size: 0.78rem;
+      color: #64748B;
+      font-weight: 500;
+    }
+    .telemetry-mini-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #F1F5F9;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+    .telemetry-mini-pill--red {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+    .telemetry-card--alert {
+      border-color: #FECACA;
+      background: #FFFBFB;
+    }
+    .text-alert {
+      color: #DC2626 !important;
     }
 
     /* ── Bento Active Cards Grid (bentogrids.com standard) ── */
@@ -643,6 +768,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 })
 export class ActiveOrdersPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
   loading = signal(false);
@@ -659,6 +785,49 @@ export class ActiveOrdersPageComponent implements OnDestroy {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly fmt = formatCurrency;
+
+  readonly totalFloorValue = computed(() => {
+    return this.activeOrders().reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  });
+
+  readonly dineInCount = computed(() => {
+    return this.activeOrders().filter(o => this.isDineIn(o)).length;
+  });
+
+  readonly takeawayCount = computed(() => {
+    return this.activeOrders().filter(o => this.isTakeaway(o)).length;
+  });
+
+  readonly deliveryCount = computed(() => {
+    return this.activeOrders().filter(o => this.isDelivery(o)).length;
+  });
+
+  readonly activeTableCount = computed(() => {
+    const tableOrders = this.activeOrders().filter(o => o.tableNumber != null && o.tableNumber !== '');
+    const uniqueTables = new Set(tableOrders.map(o => String(o.tableNumber)));
+    return uniqueTables.size || this.dineInCount();
+  });
+
+  readonly urgentCount = computed(() => {
+    return this.activeOrders().filter(o => this.isUrgent(o)).length;
+  });
+
+  readonly oldestWaitFormatted = computed(() => {
+    const orders = this.activeOrders();
+    if (!orders.length) return '—';
+    const now = Date.now();
+    let maxElapsed = 0;
+    for (const o of orders) {
+      if (o.createdAt) {
+        const elapsed = now - o.createdAt;
+        if (elapsed > maxElapsed) maxElapsed = elapsed;
+      }
+    }
+    const mins = Math.floor(maxElapsed / 60000);
+    if (mins < 1) return 'Just started';
+    if (mins < 60) return `${mins}m max wait`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  });
 
   constructor() {
     this.load();
@@ -713,6 +882,27 @@ export class ActiveOrdersPageComponent implements OnDestroy {
     return (Date.now() - order.createdAt) > 25 * 60 * 1000;
   }
 
+  isDineIn(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('dine') || (!t.includes('takeaway') && !t.includes('delivery') && !t.includes('parcel'));
+  }
+
+  isTakeaway(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('takeaway') || t.includes('parcel');
+  }
+
+  isDelivery(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('delivery');
+  }
+
+  formatOrderType(order: BusinessOrder): string {
+    if (this.isTakeaway(order)) return 'Takeaway';
+    if (this.isDelivery(order)) return 'Delivery';
+    return 'Dine-In';
+  }
+
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;
 
   openCancelModal(order: BusinessOrder, event?: MouseEvent): void {
@@ -760,14 +950,17 @@ export class ActiveOrdersPageComponent implements OnDestroy {
 
   copyInvoiceLink(order: BusinessOrder, event?: MouseEvent): void {
     if (event) event.stopPropagation();
-    const textToCopy = `Order #${order.orderCode} - ${order.customerName || 'Walk-in'} (Total: ${this.fmt(order.totalAmount)})`;
+    const session = this.auth.session();
+    const restaurantId = session?.restaurantId || 1;
+    const token = order.publicToken || 'preview';
+    const link = `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(textToCopy).then(
-        () => this.toast.show(`Order #${order.orderCode} details copied to clipboard!`, 'success'),
-        () => this.toast.show(`Order #${order.orderCode}`, 'info')
+      navigator.clipboard.writeText(link).then(
+        () => this.toast.show(`Invoice link for Order #${order.orderCode} copied!`, 'success'),
+        () => this.toast.show(`Order #${order.orderCode} link ready`, 'info')
       );
     } else {
-      this.toast.show(`Order #${order.orderCode}`, 'info');
+      this.toast.show(`Order #${order.orderCode} link ready`, 'info');
     }
   }
 }

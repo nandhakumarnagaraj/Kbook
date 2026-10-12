@@ -67,8 +67,11 @@ export interface AdminCreateBusinessRequest {
 
 export interface BusinessOrder {
   sourceType: string;
+  orderType?: string;
   orderId: number;
   orderCode: string;
+  invoiceNumber?: string | null;
+  publicToken?: string | null;
   customerName: string | null;
   customerContact: string | null;
   tableNumber?: string | number | null;
@@ -453,6 +456,7 @@ export interface NotificationItem {
 export interface GstLedgerEntry {
   billId: number;
   invoiceNumber: string;
+  publicToken?: string | null;
   customerName: string | null;
   subtotal: number;
   gstRate: number;

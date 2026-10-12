@@ -80,20 +80,28 @@ public class InvoiceController {
             @PathVariable Long billId,
             @PathVariable String token) {
 
-        java.util.UUID uuid;
-        try {
-            uuid = java.util.UUID.fromString(token);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        java.util.UUID uuid = null;
+        boolean isPreview = "preview".equalsIgnoreCase(token);
+        if (!isPreview) {
+            try {
+                uuid = java.util.UUID.fromString(token);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         Bill bill = billRepository.findById(billId).orElse(null);
         if (bill == null || !bill.getRestaurantId().equals(restaurantId)
-                || !java.security.MessageDigest.isEqual(
-                        uuid.toString().getBytes(),
-                        (bill.getPublicToken() != null ? bill.getPublicToken().toString() : "").getBytes())
                 || Boolean.TRUE.equals(bill.getIsDeleted())) {
             return ResponseEntity.notFound().build();
+        }
+
+        if (!isPreview) {
+            if (!java.security.MessageDigest.isEqual(
+                    uuid.toString().getBytes(),
+                    (bill.getPublicToken() != null ? bill.getPublicToken().toString() : "").getBytes())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(restaurantId).orElse(null);
@@ -170,8 +178,11 @@ public class InvoiceController {
         String footerMessage = footer.isEmpty() ? "Thank you for your business!" : footer;
         String halfGstPct = hasGst ? DF.format(gstPct.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)) : "";
         String publicUrl = ServletUriComponentsBuilder.fromCurrentRequestUri().build().toUriString();
-        String canonicalPublicUrl = publicUrl.replace("/pending", "");
         String invoiceRef = bill.getPublicToken() != null ? bill.getPublicToken().toString() : "";
+        String canonicalPublicUrl = publicUrl.replace("/pending", "");
+        if (!invoiceRef.isEmpty() && canonicalPublicUrl.endsWith("/preview")) {
+            canonicalPublicUrl = canonicalPublicUrl.substring(0, canonicalPublicUrl.length() - "/preview".length()) + "/" + invoiceRef;
+        }
         String shareText = "Invoice " + invoiceNumber + " from " + shopName + ": " + canonicalPublicUrl;
         String whatsappShareUrl = "https://wa.me/?text=" + java.net.URLEncoder.encode(shareText, java.nio.charset.StandardCharsets.UTF_8);
 

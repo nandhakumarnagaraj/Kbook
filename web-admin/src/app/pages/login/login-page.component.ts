@@ -32,23 +32,58 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         </div>
 
         <div class="brand-copy">
-          <h1>Run your restaurant<br/>with confidence.</h1>
-          <p>One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
+          <h1 class="brand-hero-title">
+            Run your restaurant<br/>with <span class="brand-accent-text">confidence.</span>
+          </h1>
+          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
 
-          <ul class="brand-points">
-            <li>
-              <span class="point-num">01</span>
-              <span>Consolidated live sales across all POS terminals</span>
-            </li>
-            <li>
-              <span class="point-num">02</span>
-              <span>Menu &amp; recipe stock control in seconds</span>
-            </li>
-            <li>
-              <span class="point-num">03</span>
-              <span>Daily revenue, settlements &amp; CA-ready tax reports</span>
-            </li>
-          </ul>
+          <div class="brand-feature-stack">
+            <div class="brand-feature-card">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 20V10"/>
+                  <path d="M12 20V4"/>
+                  <path d="M6 20v-6"/>
+                </svg>
+              </div>
+              <div class="feature-text">
+                <strong class="feature-heading">Consolidated live sales across all POS terminals</strong>
+                <span class="feature-sub">Real-time insights for better decisions.</span>
+              </div>
+            </div>
+
+            <div class="brand-feature-card">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <line x1="10" y1="9" x2="8" y2="9"/>
+                </svg>
+              </div>
+              <div class="feature-text">
+                <strong class="feature-heading">Menu &amp; recipe stock control in seconds</strong>
+                <span class="feature-sub">Keep your kitchen and inventory in sync.</span>
+              </div>
+            </div>
+
+            <div class="brand-feature-card">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <div class="feature-text">
+                <strong class="feature-heading">Daily revenue, settlements &amp; CA-ready tax reports</strong>
+                <span class="feature-sub">Save time. Stay compliant.</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="brand-foot-row">
@@ -89,22 +124,28 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
             <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
               <div class="field">
-                <label for="login-id" class="field-label">Phone number or email</label>
-                <input
-                  id="login-id"
-                  class="field-input"
-                  formControlName="loginId"
-                  placeholder="e.g. 98765 43210 or owner@restaurant.com"
-                  autocomplete="username"
-                  inputmode="text"
-                  autocorrect="off"
-                  autocapitalize="none"
-                />
+                <label for="login-id" class="field-label">PHONE NUMBER OR EMAIL</label>
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                  </svg>
+                  <input
+                    id="login-id"
+                    class="field-input field-input--with-icon"
+                    formControlName="loginId"
+                    placeholder="e.g. 98765 43210 or owner@restaurant.com"
+                    autocomplete="username"
+                    inputmode="text"
+                    autocorrect="off"
+                    autocapitalize="none"
+                  />
+                </div>
               </div>
 
               <div class="field">
                 <div class="field-row">
-                  <label for="login-password" class="field-label">Password</label>
+                  <label for="login-password" class="field-label">PASSWORD</label>
                   <a
                     href="#forgot"
                     class="link-right"
@@ -113,10 +154,14 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     aria-haspopup="dialog"
                   >Forgot password?</a>
                 </div>
-                <div class="input-with-action">
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
                   <input
                     id="login-password"
-                    class="field-input"
+                    class="field-input field-input--with-icon field-input--with-trailing"
                     [type]="showPassword() ? 'text' : 'password'"
                     formControlName="password"
                     placeholder="Enter password"
@@ -129,8 +174,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
                     [attr.aria-pressed]="showPassword()"
                   >
-                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575a1 1 0 0 1 0 .696a10.8 10.8 0 0 1-1.444 2.49m-6.41-.679a3 3 0 0 1-4.242-4.242"/><path fill="currentColor" d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 4.446-5.143M2 2l20 20"/></g></svg>
-                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/><circle fill="currentColor" cx="12" cy="12" r="3"/></g></svg>
+                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575a1 1 0 0 1 0 .696a10.8 10.8 0 0 1-1.444 2.49m-6.41-.679a3 3 0 0 1-4.242-4.242"/><path fill="currentColor" d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 4.446-5.143M2 2l20 20"/></g></svg>
+                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/><circle fill="currentColor" cx="12" cy="12" r="3"/></g></svg>
                   </button>
                 </div>
               </div>
@@ -138,7 +183,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <div *ngIf="error" class="alert-box error" role="alert">{{ error }}</div>
 
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading">
-                {{ loading ? 'Signing in…' : 'Sign in' }}
+                <span *ngIf="!loading">Sign in &rarr;</span>
+                <span *ngIf="loading" class="btn-spinner-row">
+                  <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Signing in…
+                </span>
               </button>
             </form>
 
@@ -167,20 +216,29 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </header>
             <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()" class="auth-form" novalidate>
               <div class="field">
-                <label for="forgot-phone" class="field-label">Phone number</label>
-                <input
-                  id="forgot-phone"
-                  class="field-input"
-                  formControlName="phone"
-                  placeholder="10-digit mobile number"
-                  maxlength="10"
-                  autocomplete="tel"
-                  inputmode="tel"
-                />
+                <label for="forgot-phone" class="field-label">PHONE NUMBER</label>
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <input
+                    id="forgot-phone"
+                    class="field-input field-input--with-icon"
+                    formControlName="phone"
+                    placeholder="10-digit mobile number"
+                    maxlength="10"
+                    autocomplete="tel"
+                    inputmode="tel"
+                  />
+                </div>
               </div>
               <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading">
-                {{ forgotLoading ? 'Sending OTP…' : 'Send OTP' }}
+                <span *ngIf="!forgotLoading">Send OTP &rarr;</span>
+                <span *ngIf="forgotLoading" class="btn-spinner-row">
+                  <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Sending OTP…
+                </span>
               </button>
             </form>
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
@@ -193,20 +251,30 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </header>
             <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form" novalidate>
               <div class="field">
-                <label for="forgot-otp" class="field-label">OTP code</label>
-                <input
-                  id="forgot-otp"
-                  class="field-input"
-                  formControlName="otp"
-                  placeholder="6-digit OTP"
-                  maxlength="6"
-                  autocomplete="one-time-code"
-                  inputmode="numeric"
-                />
+                <label for="forgot-otp" class="field-label">OTP CODE</label>
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  <input
+                    id="forgot-otp"
+                    class="field-input field-input--with-icon"
+                    formControlName="otp"
+                    placeholder="6-digit OTP"
+                    maxlength="6"
+                    autocomplete="one-time-code"
+                    inputmode="numeric"
+                  />
+                </div>
               </div>
               <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading">
-                {{ forgotLoading ? 'Verifying…' : 'Verify OTP' }}
+                <span *ngIf="!forgotLoading">Verify OTP &rarr;</span>
+                <span *ngIf="forgotLoading" class="btn-spinner-row">
+                  <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Verifying…
+                </span>
               </button>
             </form>
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
@@ -219,33 +287,48 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </header>
             <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()" class="auth-form" novalidate>
               <div class="field">
-                <label for="reset-new-password" class="field-label">New password</label>
-                <input
-                  id="reset-new-password"
-                  class="field-input"
-                  type="password"
-                  formControlName="newPassword"
-                  placeholder="Min 6 characters"
-                  autocomplete="new-password"
-                />
+                <label for="reset-new-password" class="field-label">NEW PASSWORD</label>
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  <input
+                    id="reset-new-password"
+                    class="field-input field-input--with-icon"
+                    type="password"
+                    formControlName="newPassword"
+                    placeholder="Min 6 characters"
+                    autocomplete="new-password"
+                  />
+                </div>
               </div>
               <div class="field">
-                <label for="reset-confirm-password" class="field-label">Confirm password</label>
-                <input
-                  id="reset-confirm-password"
-                  class="field-input"
-                  type="password"
-                  formControlName="confirmPassword"
-                  placeholder="Re-enter password"
-                  autocomplete="new-password"
-                />
+                <label for="reset-confirm-password" class="field-label">CONFIRM PASSWORD</label>
+                <div class="input-icon-wrap">
+                  <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <input
+                    id="reset-confirm-password"
+                    class="field-input field-input--with-icon"
+                    type="password"
+                    formControlName="confirmPassword"
+                    placeholder="Re-enter password"
+                    autocomplete="new-password"
+                  />
+                </div>
               </div>
               <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error" role="alert">
                 Passwords do not match.
               </div>
               <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
               <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
-                {{ forgotLoading ? 'Resetting…' : 'Reset password' }}
+                <span *ngIf="!forgotLoading">Reset password &rarr;</span>
+                <span *ngIf="forgotLoading" class="btn-spinner-row">
+                  <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Resetting…
+                </span>
               </button>
             </form>
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
@@ -268,8 +351,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 100vh;
       min-height: 100dvh;
       display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      background: var(--kb-color-surface);
+      grid-template-columns: 1.1fr 1fr;
+      background: #FFFFFF;
       overflow-x: hidden;
     }
     @media (max-width: 960px) {
@@ -279,10 +362,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       .mobile-foot-row { display: flex !important; }
     }
     .auth-brand {
-      padding: clamp(2rem, 4vw, 3.5rem) clamp(1.5rem, 3.5vw, 3rem);
-      background-image: linear-gradient(145deg, rgba(24, 27, 52, 0.94) 0%, rgba(79, 53, 245, 0.88) 100%), var(--gradient-hero);
-      background-size: cover;
-      background-position: center;
+      padding: clamp(2rem, 4vw, 3.5rem) clamp(2rem, 3.8vw, 3.2rem);
+      background: linear-gradient(145deg, #181B34 0%, #2E1065 40%, #4C1D95 75%, #5B21B6 100%);
       color: #FFFFFF;
       display: flex;
       flex-direction: column;
@@ -290,155 +371,211 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       position: relative;
     }
     .brand-top { display: flex; align-items: center; justify-content: space-between; }
-    .brand-mark { display: flex; align-items: center; gap: var(--kb-space-3); text-decoration: none; }
+    .brand-mark { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
     .brand-mark:hover .brand-title { opacity: 0.95; }
     .brand-logo {
-      width: 44px; height: 44px; border-radius: var(--kb-radius-md);
+      width: 42px; height: 42px; border-radius: 10px;
       background: #FFFFFF;
       display: grid; place-items: center;
       padding: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     .brand-logo--sm {
-      width: 40px; height: 40px; border-radius: var(--kb-radius-md);
+      width: 38px; height: 38px; border-radius: 8px;
       padding: 3px;
     }
-    .brand-title { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: #FFFFFF; }
-    .brand-title--dark { color: var(--kb-color-foreground); font-size: 1.2rem; }
-    .brand-copy { max-width: none; display: grid; gap: var(--kb-space-4); margin: var(--kb-space-6) 0; }
-    .brand-copy h1 {
-      font-size: var(--kb-font-size-display, clamp(2rem, 3.2vw, 2.75rem));
+    .brand-title {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #FFFFFF;
+    }
+    .brand-title--dark { color: #0F172A; font-size: 1.2rem; }
+    .brand-copy { max-width: none; display: grid; gap: 1rem; margin: clamp(1.5rem, 3vh, 3rem) 0; }
+    .brand-hero-title {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: clamp(2rem, 3.2vw, 2.75rem);
       line-height: 1.15;
       font-weight: 800;
       color: #FFFFFF;
       margin: 0;
-      letter-spacing: -0.02em;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      letter-spacing: -0.025em;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
-    .brand-copy p {
-      color: rgba(255, 255, 255, 0.94);
+    .brand-accent-text {
+      font-style: italic;
+      background: linear-gradient(135deg, #E9D5FF 0%, #C084FC 50%, #A855F7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-hero-sub {
+      color: rgba(255, 255, 255, 0.88);
       line-height: 1.55;
       margin: 0;
       font-size: 1rem;
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
     }
-    .brand-points {
-      list-style: none; padding: 0; margin: var(--kb-space-3) 0 0; display: grid; gap: var(--kb-space-3);
+    .brand-feature-stack {
+      display: grid; gap: 0.85rem; margin-top: 1rem;
     }
-    .brand-points li {
-      display: flex; align-items: center; gap: var(--kb-space-3);
-      font-size: 0.92rem; color: #FFFFFF;
-      background: rgba(255, 255, 255, 0.10);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 10px 14px;
-      border-radius: var(--kb-radius-lg);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+    .brand-feature-card {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 12px 16px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.15s ease, transform 0.15s ease;
     }
-    .point-num {
-      width: 26px; height: 26px; border-radius: var(--kb-radius-sm);
-      background: #FFFFFF; display: grid; place-items: center;
-      font-size: 0.75rem; font-weight: 800; color: #5D45FD; flex-shrink: 0;
+    .brand-feature-card:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
     }
-    .brand-foot { font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); margin: 0; }
-    .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-3); }
+    .feature-icon-badge {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #FFFFFF; color: #6C27D9;
+      display: grid; place-items: center; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .feature-text {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .feature-heading {
+      font-size: 0.88rem; font-weight: 700; color: #FFFFFF; line-height: 1.35;
+    }
+    .feature-sub {
+      font-size: 0.78rem; color: rgba(255, 255, 255, 0.82); line-height: 1.3;
+    }
+    .brand-foot { font-size: 0.82rem; color: rgba(255, 255, 255, 0.85); margin: 0; }
+    .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
     .brand-link { color: rgba(255, 255, 255, 0.92); font-size: 0.82rem; font-weight: 600; text-decoration: none; }
     .brand-link:hover { color: #FFFFFF; text-decoration: underline; }
 
     .auth-main {
-      display: grid; place-items: center; padding: clamp(1.5rem, 3vw, 2.5rem);
+      display: grid; place-items: center; padding: clamp(1.5rem, 3.5vw, 3rem);
       overflow-x: hidden;
       width: 100%;
       box-sizing: border-box;
+      background: #FFFFFF;
     }
     .auth-card {
       width: min(420px, 100%);
-      display: grid; gap: var(--kb-space-4);
+      display: grid; gap: 1.25rem;
       box-sizing: border-box;
     }
     .mobile-brand-container {
       display: none;
-      margin-bottom: var(--kb-space-2);
+      margin-bottom: 0.5rem;
     }
     .mobile-brand {
-      display: inline-flex; align-items: center; gap: var(--kb-space-3); text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none;
     }
     .mobile-brand-meta { display: flex; flex-direction: column; }
-    .brand-subtitle { font-size: 0.72rem; color: #6C27D9; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+    .brand-subtitle { font-size: 0.72rem; color: #6C27D9; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 
-    .auth-head h2 { margin: 0 0 var(--kb-space-1); font-size: calc(1.4rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground); }
-    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.92rem; }
-    .auth-form { display: grid; gap: var(--kb-space-4); }
+    .auth-head h2 {
+      margin: 0 0 0.35rem;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: clamp(1.6rem, 2.2vw, 1.85rem);
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.025em;
+    }
+    .auth-head p { margin: 0; color: #64748B; font-size: 0.92rem; }
+    .auth-form { display: grid; gap: 1.15rem; }
 
     .auth-card-footer {
-      margin-top: var(--kb-space-2);
-      padding-top: var(--kb-space-3);
-      border-top: 1px solid var(--kb-color-border);
+      margin-top: 0.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #F1F5F9;
       text-align: center;
       font-size: 0.85rem;
     }
-    .footer-links { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.86rem; }
+    .footer-links { margin: 0; color: #64748B; font-size: 0.86rem; }
     .trust-badge-row {
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 0.76rem; color: #78716C; margin-top: var(--kb-space-3);
+      font-size: 0.76rem; color: #64748B; margin-top: 0.75rem;
     }
     .trust-icon { font-size: 0.85rem; }
     .mobile-foot-row {
       display: none;
-      font-size: 0.76rem; color: #78716C; margin-top: var(--kb-space-2);
+      font-size: 0.76rem; color: #64748B; margin-top: 0.5rem;
       justify-content: center; gap: 6px;
     }
     .mobile-foot-link { color: #6C27D9; font-weight: 600; text-decoration: none; }
     .mobile-foot-link:hover { text-decoration: underline; color: #4E37EB; }
 
-    .field { display: grid; gap: var(--kb-space-1); }
+    .field { display: grid; gap: 0.35rem; }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
-    .field-label { font-weight: 600; font-size: 0.84rem; color: var(--kb-color-foreground); }
+    .field-label {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #475569;
+    }
+    .input-icon-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .leading-icon {
+      position: absolute;
+      left: 14px;
+      color: #94A3B8;
+      pointer-events: none;
+      z-index: 1;
+      flex-shrink: 0;
+    }
     .field-input {
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      background: var(--kb-color-surface);
-      font-size: 0.92rem;
-      color: var(--kb-color-foreground);
-      height: 44px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      background: #FFFFFF;
+      font-size: 0.93rem;
+      color: #0F172A;
+      height: 46px;
       box-sizing: border-box;
       width: 100%;
       transition: border-color .15s ease, box-shadow .15s ease;
     }
+    .field-input--with-icon {
+      padding-left: 42px;
+    }
+    .field-input--with-trailing {
+      padding-right: 48px;
+    }
     .field-input:focus {
       outline: none;
       border-color: #6C27D9;
-      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.18);
+      box-shadow: 0 0 0 3.5px rgba(108, 39, 217, 0.14);
+    }
+    .field-input::placeholder {
+      color: #94A3B8;
     }
 
     .divider {
-      display: flex; align-items: center; gap: var(--kb-space-3);
-      color: var(--kb-color-muted-foreground); font-size: 0.78rem; margin: var(--kb-space-2) 0;
+      display: flex; align-items: center; gap: 0.75rem;
+      color: #94A3B8; font-size: 0.78rem; font-weight: 500; margin: 0.25rem 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
+      content: ''; flex: 1; height: 1px; background: #E2E8F0;
     }
 
-    .google-wrap { display: grid; gap: var(--kb-space-3); width: 100%; }
+    .google-wrap { display: grid; gap: 0.5rem; width: 100%; }
     #google-btn {
       display: flex; justify-content: center; width: 100%; max-width: 100%;
       min-height: 44px; overflow: hidden;
     }
     #google-btn > div, #google-btn iframe { max-width: 100% !important; }
     .google-loading {
-      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted-foreground);
-      padding: var(--kb-space-2) 0;
+      text-align: center; font-size: 0.82rem; color: #64748B;
+      padding: 0.25rem 0;
     }
 
-    /* KhanaBook Logo Royal Violet: 7.17:1 on white (WCAG AAA compliant) */
     .link-right {
       color: #6C27D9;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      text-underline-offset: 3px;
       background: none;
       border: none;
       padding: 0;
@@ -446,17 +583,17 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-family: inherit;
       display: inline-flex;
       align-items: center;
+      transition: color 0.15s ease;
     }
     .link-right:hover { color: #4E37EB; text-decoration: underline; }
-    .link-right:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+    .link-right:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: 4px; }
 
     .back-link {
-      color: #57534E;
+      color: #64748B;
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      text-underline-offset: 3px;
       background: none;
       border: none;
       padding: 0;
@@ -467,19 +604,22 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
     }
     .back-link:hover { color: #6C27D9; text-decoration: underline; }
-    .back-link:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: var(--kb-radius-sm); }
+    .back-link:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: 4px; }
 
-    .primary-btn--block { width: 100%; justify-content: center; padding: var(--kb-space-2) var(--kb-space-3); height: 44px; font-size: 0.9rem; }
-    /* Primary button: KhanaBook Logo Palette (POS Indigo #5D45FD to Royal Violet #6C27D9, 6.5:1 WCAG AAA) */
+    .primary-btn--block { width: 100%; justify-content: center; height: 48px; font-size: 0.95rem; }
     .primary-btn--hero {
       background: linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
       color: #FFFFFF;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.01em;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: none;
       box-shadow: 0 4px 14px rgba(93, 69, 253, 0.35);
-      border-radius: var(--kb-radius-lg);
+      border-radius: 10px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
       transition: all 0.15s ease;
     }
     .primary-btn--hero:hover:not(:disabled) {
@@ -492,25 +632,31 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
     }
     .primary-btn--hero:disabled {
-      background: #E5E0D8;
-      color: #78716C;
+      background: #EDE9FE;
+      color: #8B5CF6;
+      border: 1px solid #DDD6FE;
       box-shadow: none;
-      border: 1px solid #D6D0C5;
       cursor: not-allowed;
       transform: none;
     }
 
-    .input-with-action {
-      position: relative;
-      display: flex;
+    .btn-spinner-row {
+      display: inline-flex;
       align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
     }
-    .input-with-action .field-input {
-      padding-right: 48px;
+    .spinning {
+      animation: spin 1s linear infinite;
     }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .toggle-pwd-btn {
       position: absolute;
-      right: var(--kb-space-1);
+      right: 4px;
       background: none;
       border: none;
       cursor: pointer;
@@ -518,18 +664,19 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       line-height: 1;
       min-width: 40px;
       min-height: 40px;
-      padding: var(--kb-space-2);
-      opacity: 0.7;
-      transition: opacity 0.15s ease;
+      padding: 8px;
+      color: #94A3B8;
+      transition: color 0.15s ease;
       display: grid;
       place-items: center;
+      z-index: 1;
     }
-    .toggle-pwd-btn:hover { opacity: 1; }
+    .toggle-pwd-btn:hover { color: #475569; }
     .pwd-icon { display: block; }
-    .toggle-pwd-btn:focus-visible { outline: 2px solid #6C27D9; outline-offset: -2px; border-radius: var(--kb-radius-sm); opacity: 1; }
-    .alert-box { border-radius: var(--kb-radius-md); padding: var(--kb-space-3) var(--kb-space-4); font-size: 0.85rem; }
-    .alert-box.error { color: var(--kb-color-error); background: var(--kb-color-surface-2); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-surface-2); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .toggle-pwd-btn:focus-visible { outline: 2px solid #6C27D9; outline-offset: -2px; border-radius: 4px; color: #475569; }
+    .alert-box { border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; }
+    .alert-box.error { color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA; }
+    .alert-box.success { color: #059669; background: #ECFDF5; border: 1px solid #A7F3D0; }
 
     @media (prefers-contrast: more) {
       .field-input { border-color: #1C1A17; border-width: 2px; }

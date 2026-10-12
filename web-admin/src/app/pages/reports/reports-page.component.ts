@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { formatCurrency } from '../../shared/formatters';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
@@ -259,7 +260,11 @@ function formatLocalDate(d: Date): string {
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of ledger.entries; trackBy: trackByBillId">
-                      <td class="font-bold">{{ row.invoiceNumber }}</td>
+                      <td class="font-bold">
+                        <a [href]="getInvoiceUrl(row)" target="_blank" rel="noopener noreferrer" style="color: var(--brand, #c85a00); text-decoration: underline;" title="View tax invoice">
+                          {{ row.invoiceNumber }}
+                        </a>
+                      </td>
                       <td class="muted">{{ row.createdAt | date:'short' }}</td>
                       <td>{{ row.customerName || 'Walk-in' }}</td>
                       <td class="num-cell tabular-num">{{ formatMoney(row.subtotal) }}</td>
@@ -761,6 +766,7 @@ function formatLocalDate(d: Date): string {
 export class ReportsPageComponent {
   private static readonly RANGE_KEY = 'business-reports-date-range';
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
   private readonly trigger$ = new Subject<void>();
   readonly selectedRange = signal<{ from: string; to: string } | null>(this.readRange());
   readonly activeTab = signal<'overview' | 'gst' | 'items'>('overview');
@@ -771,8 +777,7 @@ export class ReportsPageComponent {
     const range = this.selectedRange();
     const now = new Date();
     const today = formatLocalDate(now);
-    const firstDayOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    const fromDate = range?.from || firstDayOfMonth;
+    const fromDate = range?.from || today;
     const toDate = range?.to || today;
 
     return forkJoin({
@@ -903,13 +908,24 @@ export class ReportsPageComponent {
     URL.revokeObjectURL(url);
   }
 
-  private readRange(): { from: string; to: string } | null {
+  getInvoiceUrl(row: GstLedgerEntry): string {
+    const session = this.auth.session();
+    const restaurantId = session?.restaurantId || 1;
+    const token = row.publicToken || 'preview';
+    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${row.billId}/${token}`;
+  }
+
+  private readRange(): { from: string; to: string } {
     try {
       const raw = sessionStorage.getItem(ReportsPageComponent.RANGE_KEY);
-      if (!raw) return null;
-      const range = JSON.parse(raw) as { from?: string; to?: string };
-      return /^\d{4}-\d{2}-\d{2}$/.test(range.from ?? '') && /^\d{4}-\d{2}-\d{2}$/.test(range.to ?? '')
-        ? { from: range.from!, to: range.to! } : null;
-    } catch { return null; }
+      if (raw) {
+        const range = JSON.parse(raw) as { from?: string; to?: string };
+        if (/^\d{4}-\d{2}-\d{2}$/.test(range.from ?? '') && /^\d{4}-\d{2}-\d{2}$/.test(range.to ?? '')) {
+          return { from: range.from!, to: range.to! };
+        }
+      }
+    } catch { /* ignore error and fall back */ }
+    const todayStr = formatLocalDate(new Date());
+    return { from: todayStr, to: todayStr };
   }
 }

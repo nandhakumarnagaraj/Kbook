@@ -7,8 +7,11 @@ import java.math.BigDecimal;
 @Builder
 public record BusinessOrderListItemResponse(
         String sourceType,
+        String orderType,
         Long orderId,
         String orderCode,
+        String invoiceNumber,
+        String publicToken,
         String customerName,
         String customerContact,
         String orderStatus,

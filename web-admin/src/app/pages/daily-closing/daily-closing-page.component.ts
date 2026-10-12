@@ -4,10 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
-import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 
 function todayStr(): string {
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function yesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -36,20 +41,54 @@ interface DailyClosingData {
   selector: 'app-daily-closing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DateRangeSelectorComponent],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-shell">
       <!-- Operational Topbar (navbar.gallery standard) -->
-      <header class="closing-header">
+      <header class="closing-header no-print">
         <div class="header-left">
           <div class="header-title-row">
             <h2>Daily Closing &amp; Settlement</h2>
-            <span class="settle-badge">● End-of-Day Reconciliation</span>
+            <span class="settle-badge" [class.settle-badge--live]="isToday()" [class.settle-badge--closed]="!isToday()">
+              {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
+            </span>
           </div>
           <p class="header-sub">Count physical cash, audit payment splits, and verify recognized revenues.</p>
         </div>
         <div class="header-right">
-          <app-date-range-selector (rangeChanged)="setRange($event)"/>
+          <div class="day-selector-group">
+            <button
+              type="button"
+              class="day-pill"
+              [class.day-pill--active]="selectedDate() === today && !isCustomDate"
+              (click)="selectToday()">
+              Today
+            </button>
+            <button
+              type="button"
+              class="day-pill"
+              [class.day-pill--active]="selectedDate() === yesterday && !isCustomDate"
+              (click)="selectYesterday()">
+              Yesterday
+            </button>
+            <button
+              type="button"
+              class="day-pill"
+              [class.day-pill--active]="isCustomDate"
+              (click)="toggleCustomDate()">
+              Custom
+            </button>
+            <div class="date-picker-wrap" *ngIf="isCustomDate">
+              <input
+                type="date"
+                class="tactile-date-field"
+                [ngModel]="selectedDate()"
+                (ngModelChange)="selectCustomDate($event)"
+                [max]="today"
+                title="Select custom closing date"
+              />
+            </div>
+          </div>
           <button type="button" class="ghost-btn-tactile" [disabled]="loading()" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -58,6 +97,14 @@ interface DailyClosingData {
               <path d="M16 21h5v-5"/>
             </svg>
             {{ loading() ? 'Calculating...' : 'Refresh' }}
+          </button>
+          <button type="button" class="ghost-btn-tactile" (click)="printSlip()" *ngIf="data()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Print Slip
           </button>
           <button type="button" class="ghost-btn-tactile" (click)="exportClosing()" *ngIf="data()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -69,6 +116,16 @@ interface DailyClosingData {
           </button>
         </div>
       </header>
+
+      <!-- Alert if Draft Orders are Open -->
+      <div class="draft-warning-banner no-print" *ngIf="data() && data()!.draftOrders > 0">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/>
+        </svg>
+        <span>
+          <strong>Action Required:</strong> {{ data()!.draftOrders }} draft/open table order(s) remain unbilled for {{ selectedDate() }}. Please settle or void them in Active Orders to finalize drawer reconciliation.
+        </span>
+      </div>
 
       <div class="panel loading" *ngIf="loading()">Calculating settlement figures...</div>
       <div class="alert error" *ngIf="error()">{{ error() }} <button type="button" class="ghost-btn-tactile" (click)="load()">Retry</button></div>
@@ -246,13 +303,23 @@ interface DailyClosingData {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.2rem 0.65rem;
+      padding: 0.25rem 0.75rem;
       border-radius: 999px;
-      font-size: 0.74rem;
+      font-size: 0.76rem;
       font-weight: 700;
       background: #F5F3FF;
       color: #5D45FD;
       border: 1px solid #DDD6FE;
+    }
+    .settle-badge--live {
+      background: #ECFDF5;
+      color: #059669;
+      border-color: #A7F3D0;
+    }
+    .settle-badge--closed {
+      background: #F1F5F9;
+      color: #475569;
+      border-color: #CBD5E1;
     }
     .header-sub {
       margin: 0;
@@ -263,6 +330,91 @@ interface DailyClosingData {
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Day Selector Group */
+    .day-selector-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #EEF2F6;
+      padding: 3px;
+      border-radius: 12px;
+    }
+    .day-pill {
+      padding: 0.4rem 0.85rem;
+      border: none;
+      background: transparent;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748B;
+      cursor: pointer;
+      transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .day-pill:hover {
+      color: #0F172A;
+    }
+    .day-pill--active {
+      background: #FFFFFF;
+      color: #5D45FD;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+    .date-picker-wrap {
+      display: inline-flex;
+      align-items: center;
+    }
+    .tactile-date-field {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      background: #FFFFFF;
+      color: #334155;
+      font-size: 0.8rem;
+      font-weight: 500;
+      min-height: 28px;
+    }
+    .tactile-date-field:focus {
+      outline: none;
+      border-color: #5D45FD;
+      box-shadow: 0 0 0 2px rgba(93, 69, 253, 0.15);
+    }
+
+    /* Draft warning banner */
+    .draft-warning-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.25rem;
+      border-radius: 12px;
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: #B45309;
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+    .draft-warning-banner svg {
+      flex-shrink: 0;
+      color: #D97706;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body, .page-shell { background: #FFFFFF !important; padding: 0 !important; }
+      .closing-bento-grid, .reconciliation-panel, .payment-splits-panel, .order-dist-panel {
+        box-shadow: none !important;
+        border: 1px solid #E2E8F0 !important;
+      }
+      .bento-kpi--hero {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 2px solid #0F172A !important;
+        box-shadow: none !important;
+      }
+      .bento-kpi--hero .bento-kpi__value { color: #0F172A !important; }
+      .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub { color: #475569 !important; }
     }
 
     .ghost-btn-tactile {
@@ -582,8 +734,10 @@ export class DailyClosingPageComponent {
   data = signal<DailyClosingData | null>(null);
   countedCash = signal<number | null>(null);
 
-  private dateFrom = todayStr();
-  private dateTo = todayStr();
+  readonly today = todayStr();
+  readonly yesterday = yesterdayStr();
+  readonly selectedDate = signal<string>(todayStr());
+  readonly isToday = computed(() => this.selectedDate() === this.today);
 
   readonly fmt = formatCurrency;
 
@@ -591,20 +745,46 @@ export class DailyClosingPageComponent {
 
   trackByIndex = (_: number, __: unknown) => _;
 
-  setRange(range: { from: string; to: string }): void {
-    this.dateFrom = range.from;
-    this.dateTo = range.to;
+  isCustomDate = false;
+
+  selectToday(): void {
+    this.isCustomDate = false;
+    this.selectDate(this.today);
+  }
+
+  selectYesterday(): void {
+    this.isCustomDate = false;
+    this.selectDate(this.yesterday);
+  }
+
+  toggleCustomDate(): void {
+    this.isCustomDate = true;
+  }
+
+  selectCustomDate(d: string): void {
+    this.isCustomDate = true;
+    this.selectDate(d);
+  }
+
+  selectDate(d: string): void {
+    if (!d || d === this.selectedDate()) return;
+    this.selectedDate.set(d);
     this.load();
+  }
+
+  printSlip(): void {
+    window.print();
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getDailyClosing(this.dateFrom).subscribe({
+    const d = this.selectedDate();
+    this.api.getDailyClosing(d).subscribe({
       next: (res: any) => {
         this.loading.set(false);
         this.data.set({
-          date: res.date || this.dateFrom,
+          date: res.date || d,
           totalOrders: res.totalOrders || 0,
           completedOrders: res.completedOrders || 0,
           cancelledOrders: res.cancelledOrders || 0,
@@ -620,10 +800,10 @@ export class DailyClosingPageComponent {
         });
       },
       error: () => {
-        this.api.getOrdersPaginated(0, 500, undefined, this.dateFrom, this.dateTo).subscribe({
+        this.api.getOrdersPaginated(0, 500, undefined, d, d).subscribe({
           next: (res: PaginatedOrdersResponse) => {
             this.loading.set(false);
-            this.data.set(this.computeClosing(res.content, this.dateFrom));
+            this.data.set(this.computeClosing(res.content, d));
           },
           error: () => {
             this.loading.set(false);

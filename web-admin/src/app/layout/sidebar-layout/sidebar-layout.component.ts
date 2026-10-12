@@ -312,27 +312,27 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
-    /* Logout (Red Danger Accent) */
+    /* Logout (Full Solid Red) */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
-      background: rgba(239, 68, 68, 0.1);
-      color: #F87171;
-      border: 1px solid rgba(239, 68, 68, 0.25);
+      background: #DC2626;
+      color: #FFFFFF;
+      border: 1px solid #DC2626;
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
       transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .logout-btn:hover {
-      background: #DC2626;
-      color: #FFFFFF;
-      border-color: #DC2626;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+      background: #B91C1C;
+      border-color: #B91C1C;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
     }
     .logout-btn:active {
       transform: scale(0.97);

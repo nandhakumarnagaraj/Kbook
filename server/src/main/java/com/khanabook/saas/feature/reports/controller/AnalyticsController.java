@@ -289,6 +289,7 @@ public class AnalyticsController {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("billId", b.getId());
             entry.put("invoiceNumber", b.getInvoiceNumber() != null ? b.getInvoiceNumber() : (b.getDailyOrderDisplay() != null ? b.getDailyOrderDisplay() : String.valueOf(b.getDailyOrderId())));
+            entry.put("publicToken", b.getPublicToken() != null ? b.getPublicToken().toString() : null);
             entry.put("customerName", b.getCustomerName());
             entry.put("subtotal", subtotal);
             entry.put("gstRate", b.getGstPercentage() != null ? b.getGstPercentage() : BigDecimal.ZERO);

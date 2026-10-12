@@ -80,14 +80,14 @@ export interface PaymentMethodsSettings {
             <span class="mode-radio"></span>
             <strong>Pay Before Food (Fast Counter / QSR)</strong>
           </div>
-          <p class="muted">Customers settle payment at billing counter. KOTs and receipts print immediately upon payment success.</p>
+          <p class="muted">Customers settle payment at billing counter. Receipts print immediately upon payment success.</p>
         </div>
         <div class="flow-mode-card" [class.active]="settings().orderPaymentFlowMode === 'pay_after_food'" (click)="updateField('orderPaymentFlowMode', 'pay_after_food')">
           <div class="mode-header">
             <span class="mode-radio"></span>
             <strong>Pay After Food (Dine-In Table Service)</strong>
           </div>
-          <p class="muted">Orders fire straight to kitchen KDS. Tables remain open in Active Orders and are settled at checkout.</p>
+          <p class="muted">Orders start as open tabs. Tables remain open in Active Orders and are settled at checkout.</p>
         </div>
       </div>
 

@@ -9,11 +9,14 @@ import {
   OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrderDetailResponse } from '../core/models/api.models';
 import { formatCurrency, formatDate } from './formatters';
+import { AuthService } from '../core/auth/auth.service';
+import { ToastService } from '../core/services/toast.service';
 
 @Component({
   selector: 'app-order-detail-modal',
@@ -37,6 +40,18 @@ import { formatCurrency, formatDate } from './formatters';
         </div>
 
         <div class="order-modal__details">
+          <div class="order-modal__row" *ngIf="order.order.orderType">
+            <span class="order-modal__label">Order Type</span>
+            <span class="order-modal__value">
+              <span class="chip" [class.chip--dine-in]="(order.order.orderType || '').toLowerCase().includes('dine')" [class.chip--takeaway]="(order.order.orderType || '').toLowerCase().includes('take')">
+                {{ formatOrderType(order.order.orderType) }}
+              </span>
+            </span>
+          </div>
+          <div class="order-modal__row" *ngIf="order.order.invoiceNumber">
+            <span class="order-modal__label">Invoice #</span>
+            <span class="order-modal__value font-mono" style="font-weight: 700;">{{ order.order.invoiceNumber }}</span>
+          </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Customer</span>
             <span class="order-modal__value">{{ order.order.customerName || '—' }}</span>
@@ -106,7 +121,31 @@ import { formatCurrency, formatDate } from './formatters';
         </div>
 
         <div class="order-modal__footer">
-          <button type="button" class="ghost-btn" (click)="copyInvoiceLink()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy Invoice Link</button>
+          <a
+            *ngIf="getInvoiceUrl()"
+            [href]="getInvoiceUrl()"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="action-btn-link primary-action"
+            title="Open printable tax invoice in a new tab"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            View Invoice
+          </a>
+          <button type="button" class="ghost-btn" (click)="copyInvoiceLink()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copy Link
+          </button>
+          <button
+            *ngIf="order.order.customerContact"
+            type="button"
+            class="wa-btn"
+            (click)="shareOnWhatsApp()"
+            title="Share invoice link on WhatsApp"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+            WhatsApp
+          </button>
           <button type="button" class="ghost-btn" (click)="close()">Close</button>
         </div>
       </section>
@@ -285,9 +324,61 @@ import { formatCurrency, formatDate } from './formatters';
     .order-modal__footer {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
       gap: 0.5rem;
       padding: 0.75rem 1.5rem 1.25rem;
       border-top: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+
+    .action-btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .action-btn-link.primary-action {
+      background: var(--brand, #c85a00);
+      color: #fff;
+    }
+
+    .action-btn-link.primary-action:hover {
+      opacity: 0.92;
+    }
+
+    .wa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(37, 211, 102, 0.12);
+      color: #128c7e;
+      border: 1px solid rgba(37, 211, 102, 0.3);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .wa-btn:hover {
+      background: rgba(37, 211, 102, 0.2);
+    }
+
+    .chip--dine-in {
+      background: rgba(59, 130, 246, 0.12);
+      color: #2563eb;
+    }
+
+    .chip--takeaway {
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
     }
 
     @media (max-width: 480px) {
@@ -311,10 +402,53 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   @ViewChild('dialogCard') private dialogCard?: ElementRef<HTMLElement>;
   @ViewChild('closeButton') private closeButton?: ElementRef<HTMLButtonElement>;
 
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+
   readonly fmtCurrency = formatCurrency;
   readonly fmtDate = formatDate;
   private previouslyFocused: HTMLElement | null = null;
   private previousBodyOverflow = '';
+
+  getInvoiceUrl(): string | null {
+    if (!this.order?.order) return null;
+    const session = this.auth.session();
+    const restaurantId = session?.restaurantId || 1;
+    const token = this.order.order.publicToken || 'preview';
+    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${this.order.order.orderId}/${token}`;
+  }
+
+  copyInvoiceLink(): void {
+    const url = this.getInvoiceUrl();
+    if (!url) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.toast.show(`Invoice link copied for Order #${this.order?.order.orderCode}`, 'success');
+      }).catch(() => {
+        prompt('Copy invoice link:', url);
+      });
+    } else {
+      prompt('Copy invoice link:', url);
+    }
+  }
+
+  shareOnWhatsApp(): void {
+    const url = this.getInvoiceUrl();
+    if (!url || !this.order) return;
+    const phone = (this.order.order.customerContact || '').replace(/\D/g, '');
+    const text = encodeURIComponent(`Invoice for Order #${this.order.order.orderCode}: ${url}`);
+    const waUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  formatOrderType(type?: string): string {
+    if (!type) return 'Dine-In';
+    const lower = type.toLowerCase();
+    if (lower.includes('dine')) return 'Dine-In';
+    if (lower.includes('take') || lower.includes('parcel')) return 'Takeaway';
+    if (lower.includes('deliv')) return 'Delivery';
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['order']) return;
@@ -371,16 +505,4 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   }
 
   trackByIndex = (_: number, __: unknown) => _;
-
-  copyInvoiceLink(): void {
-    if (!this.order) return;
-    // Public invoice links require restaurantId + publicToken which aren't in the
-    // order detail response yet. For now, copy the order code as reference.
-    const text = `Order ${this.order.order.orderCode} — Total: ${this.fmtCurrency(this.order.order.totalAmount)}`;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Order info copied! Full invoice links will be available in a future update.');
-    }).catch(() => {
-      prompt('Copy this:', text);
-    });
-  }
 }

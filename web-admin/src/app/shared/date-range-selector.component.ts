@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, signal
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-export type DatePreset = 'today' | 'this-week' | 'this-month' | 'custom';
+export type DatePreset = 'today' | 'yesterday' | 'last-7-days' | 'this-month' | 'custom';
 
 export function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
@@ -16,10 +16,15 @@ export function getPresetDateRange(
   today = new Date()
 ): { from: string; to: string } {
   switch (preset) {
-    case 'this-week': {
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-      return { from: formatLocalDate(monday), to: formatLocalDate(today) };
+    case 'yesterday': {
+      const y = new Date(today);
+      y.setDate(today.getDate() - 1);
+      return { from: formatLocalDate(y), to: formatLocalDate(y) };
+    }
+    case 'last-7-days': {
+      const d7 = new Date(today);
+      d7.setDate(today.getDate() - 6);
+      return { from: formatLocalDate(d7), to: formatLocalDate(today) };
     }
     case 'this-month': {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -40,6 +45,7 @@ export function getPresetDateRange(
       <div class="date-range__presets">
         <button
           *ngFor="let preset of presets; trackBy: trackByIndex"
+          type="button"
           class="date-range__preset-btn"
           [class.date-range__preset-btn--active]="activePreset() === preset.value"
           (click)="selectPreset(preset.value)">
@@ -75,73 +81,80 @@ export function getPresetDateRange(
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.75rem;
-    }
-
-    .date-range__presets {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(max-content, 1fr));
       gap: 0.5rem;
     }
 
+    .date-range__presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
     .date-range__preset-btn {
-      min-height: 42px;
-      min-width: 5.5rem;
-      padding: 0.55rem 0.9rem;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--ink);
-      font-size: 0.85rem;
+      min-height: 36px;
+      padding: 0.45rem 0.85rem;
+      border-radius: 9px;
+      border: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #334155;
+      font-size: 0.82rem;
       font-weight: 600;
       white-space: nowrap;
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .date-range__preset-btn:hover {
-      border-color: var(--brand);
+      border-color: #6C27D9;
+      color: #6C27D9;
+      background: #FAF8FF;
     }
 
     .date-range__preset-btn--active {
-      background: var(--brand);
-      color: #fff;
-      border-color: var(--brand);
+      background: #6C27D9;
+      color: #FFFFFF;
+      border-color: #6C27D9;
+      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.25);
     }
 
     .date-range__custom {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      gap: 0.4rem;
+      background: #FFFFFF;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9px;
+      border: 1px solid #E2E8F0;
     }
 
     .date-range__input {
-      padding: 0.4rem 0.6rem;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      color: var(--ink);
-      font-size: 0.85rem;
-      min-height: 36px;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      background: #FFFFFF;
+      color: #1E293B;
+      font-size: 0.82rem;
+      min-height: 32px;
     }
 
     .date-range__input:focus {
       outline: none;
-      border-color: var(--brand);
-      box-shadow: 0 0 0 2px rgba(232, 122, 30, 0.15);
+      border-color: #6C27D9;
+      box-shadow: 0 0 0 2px rgba(108, 39, 217, 0.15);
     }
 
     .date-range__separator {
-      color: var(--muted);
-      font-size: 0.85rem;
+      color: #64748B;
+      font-size: 0.8rem;
+      font-weight: 500;
     }
 
     .date-range__label {
-      font-size: 0.8rem;
-      color: var(--muted);
-      background: var(--bg);
-      padding: 0.25rem 0.6rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748B;
+      background: #F1F5F9;
+      padding: 0.3rem 0.65rem;
       border-radius: 6px;
     }
 
@@ -152,12 +165,12 @@ export function getPresetDateRange(
       }
 
       .date-range__presets {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-wrap: wrap;
       }
 
       .date-range__preset-btn {
-        width: 100%;
+        flex: 1 1 calc(50% - 0.35rem);
         text-align: center;
       }
 
@@ -180,11 +193,25 @@ export class DateRangeSelectorComponent {
     if (!value) return;
     this.customFrom.set(value.from);
     this.customTo.set(value.to);
-    this.activePreset.set('custom');
+    // Check if matches known presets
+    const today = new Date();
+    const todayRange = getPresetDateRange('today', today);
+    const yestRange = getPresetDateRange('yesterday', today);
+    const weekRange = getPresetDateRange('last-7-days', today);
+    const monthRange = getPresetDateRange('this-month', today);
+
+    if (value.from === todayRange.from && value.to === todayRange.to) {
+      this.activePreset.set('today');
+    } else if (value.from === yestRange.from && value.to === yestRange.to) {
+      this.activePreset.set('yesterday');
+    } else {
+      this.activePreset.set('custom');
+    }
   }
 
   presets = [
     { label: 'Today', value: 'today' as DatePreset },
+    { label: 'Yesterday', value: 'yesterday' as DatePreset },
     { label: 'Custom', value: 'custom' as DatePreset }
   ];
 
@@ -213,6 +240,9 @@ export class DateRangeSelectorComponent {
       const range = getPresetDateRange(preset);
       this.rangeChanged.emit(range);
     } else {
+      const today = formatLocalDate(new Date());
+      if (!this.customFrom()) this.customFrom.set(today);
+      if (!this.customTo()) this.customTo.set(today);
       const from = this.customFrom();
       const to = this.customTo();
       if (from && to) {

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, On
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -18,6 +19,13 @@ export function escapeCsvField(value: string): string {
     return `"${spreadsheetSafe.replace(/"/g, '""')}"`;
   }
   return spreadsheetSafe;
+}
+
+export function formatIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export interface BusinessOrderFilters {
@@ -214,31 +222,48 @@ export function filterBusinessOrders(
         </section>
       </div>
 
-      <!-- Bento KPI Strip (bentogrids.com standard) -->
-      <section class="orders-bento-grid" *ngIf="ordersLoaded && filteredOrders.length" aria-label="Orders Analytics Overview">
+      <!-- Period Filter for Owner: Today, Yesterday, Custom -->
+      <div class="period-presets-bar" *ngIf="ordersLoaded">
+        <app-date-range-selector [initialRange]="currentDateRange" (rangeChanged)="onDateRangeChange($event)"></app-date-range-selector>
+      </div>
+
+      <!-- Bento KPI Strip (True Aggregates for Owner) -->
+      <section class="orders-bento-grid" *ngIf="ordersLoaded" aria-label="Orders Analytics Overview">
         <article class="bento-tile bento-tile--hero">
           <div class="bento-tile__head">
-            <span class="bento-tile__label">Filtered Gross Revenue</span>
-            <span class="bento-pulse-tag">● Live</span>
+            <span class="bento-tile__label">{{ summaryTitle }}</span>
+            <span class="bento-pulse-tag" *ngIf="activePreset === 'today'">● Live Session</span>
+            <span class="bento-pulse-tag bento-pulse-tag--neutral" *ngIf="activePreset !== 'today'">{{ dateRangeLabel }}</span>
           </div>
-          <strong class="bento-tile__value">{{ formatCurrencyValue(filteredTotalRevenue) }}</strong>
+          <strong class="bento-tile__value">{{ formatCurrencyValue(summaryRevenue) }}</strong>
           <div class="bento-split-bar">
-            <span class="split-sub">Cash: {{ formatCurrencyValue(cashVolume) }}</span>
+            <span class="split-sub">Cash: {{ formatCurrencyValue(summaryCashVolume) }}</span>
             <span class="split-dot">&bull;</span>
-            <span class="split-sub">Digital / UPI: {{ formatCurrencyValue(digitalVolume) }}</span>
+            <span class="split-sub">Digital / UPI: {{ formatCurrencyValue(summaryDigitalVolume) }}</span>
           </div>
         </article>
 
         <article class="bento-tile">
-          <span class="bento-tile__label">Settlement Rate</span>
-          <strong class="bento-tile__value">{{ settlementRate }}%</strong>
-          <span class="bento-tile__sub">{{ filteredCompletedCount }} of {{ filteredOrders.length }} orders completed</span>
+          <div class="bento-tile__head">
+            <span class="bento-tile__label">Orders &amp; Settlement</span>
+            <span class="kpi-mini-pill" *ngIf="summaryAov > 0">AOV: {{ formatCurrencyValue(summaryAov) }}</span>
+          </div>
+          <strong class="bento-tile__value">
+            {{ summaryOrderCount }}
+            <span class="bento-sub-metric">({{ summarySettlementRate }}% Settled)</span>
+          </strong>
+          <span class="bento-tile__sub">{{ summaryCompletedCount }} Paid · {{ summaryPendingCount }} Pending bills</span>
         </article>
 
-        <article class="bento-tile" [class.bento-tile--alert]="filteredRefundedTotal > 0">
-          <span class="bento-tile__label">Manual Refunds</span>
-          <strong class="bento-tile__value">{{ formatCurrencyValue(filteredRefundedTotal) }}</strong>
-          <span class="bento-tile__sub">{{ refundedOrdersCount }} orders refunded</span>
+        <article class="bento-tile" [class.bento-tile--alert]="summaryRefundedTotal > 0">
+          <div class="bento-tile__head">
+            <span class="bento-tile__label">Refunds &amp; Deductions</span>
+            <span class="kpi-mini-pill" [class.kpi-mini-pill--red]="summaryRefundedTotal > 0">
+              {{ summaryRefundedCount > 0 ? (summaryRefundedCount + ' Refunded') : 'Clean' }}
+            </span>
+          </div>
+          <strong class="bento-tile__value">{{ formatCurrencyValue(summaryRefundedTotal) }}</strong>
+          <span class="bento-tile__sub">{{ summaryRefundedCount }} orders refunded / voided</span>
         </article>
       </section>
 
@@ -249,183 +274,190 @@ export function filterBusinessOrders(
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <section class="panel filter-panel" *ngIf="ordersLoaded">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="order-search">Search</label>
-            <input
-              id="order-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="orderSearchTerm"
-              (ngModelChange)="onSearchChange($event)"
-              placeholder="Search by order code, customer, or invoice number"
-            />
+      <!-- ── Live Orders & Recent Transactions Section ── -->
+      <section class="bento-orders-container" aria-label="Recent Orders and Transactions">
+        <div class="orders-head-bar">
+          <div class="orders-head-left">
+            <div class="orders-title-row">
+              <h3 class="orders-title">Live Orders &amp; Recent Transactions</h3>
+              <span class="counter-badge">{{ serverTotalElements || pagedOrders.length }} Orders</span>
+            </div>
+            <p class="orders-sub">Active dining tickets, takeaway pickups, and today's latest POS settlements.</p>
           </div>
-          <div class="filter-group">
-            <label for="order-status">Status</label>
-            <select id="order-status" class="field-select" [(ngModel)]="orderStatusFilter" (ngModelChange)="resetOrderPage()">
-              <option value="ALL">All statuses</option>
-              <option *ngFor="let status of businessOrderStatuses; trackBy: trackByIndex" [value]="status">{{ status }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="order-source">Source</label>
-            <select id="order-source" class="field-select" [(ngModel)]="orderSourceFilter" (ngModelChange)="resetOrderPage()">
-              <option value="ALL">All sources</option>
-              <option *ngFor="let source of businessOrderSources; trackBy: trackByIndex" [value]="source">{{ source }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="order-size">Rows</label>
-            <select id="order-size" class="field-select" [(ngModel)]="orderPageSize" (ngModelChange)="resetOrderPage()">
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-              <option [ngValue]="50">50</option>
-            </select>
+
+          <!-- Channel Filter Tabs, Search & Status -->
+          <div class="orders-head-controls">
+            <div class="channel-filter-tabs" role="tablist">
+              <button
+                type="button"
+                class="channel-tab-btn"
+                [class.channel-tab-btn--active]="orderSourceFilter === 'ALL'"
+                (click)="setSourceFilter('ALL')">
+                All
+              </button>
+              <button
+                type="button"
+                class="channel-tab-btn"
+                [class.channel-tab-btn--active]="orderSourceFilter === 'DINE_IN'"
+                (click)="setSourceFilter('DINE_IN')">
+                Dine In
+              </button>
+              <button
+                type="button"
+                class="channel-tab-btn"
+                [class.channel-tab-btn--active]="orderSourceFilter === 'TAKEAWAY'"
+                (click)="setSourceFilter('TAKEAWAY')">
+                Takeaway
+              </button>
+            </div>
+
+            <div class="order-search-box">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                placeholder="Search order #, items, guest..."
+                [(ngModel)]="orderSearchTerm"
+                (ngModelChange)="onSearchChange($event)"
+                aria-label="Filter recent orders"
+              />
+            </div>
+
+            <div class="order-status-select-wrap">
+              <select class="field-select-compact" [(ngModel)]="orderStatusFilter" (ngModelChange)="resetOrderPage()" aria-label="Filter by status">
+                <option value="ALL">All Statuses</option>
+                <option *ngFor="let s of businessOrderStatuses; trackBy: trackByIndex" [value]="s">{{ s }}</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Date Range Filter -->
-        <div class="filter-group filter-group--full">
-          <label>Date Range</label>
-          <app-date-range-selector (rangeChanged)="onDateRangeChange($event)"></app-date-range-selector>
+        <!-- Orders Tactile Table -->
+        <div class="orders-table-wrapper" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
+          <table class="orders-tactile-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Channel &amp; Table</th>
+                <th>Guest &amp; Summary</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let order of pagedOrders; trackBy: trackByOrderId"
+                class="order-row-interactive"
+                (click)="openOrderDetail(order)">
+                <td>
+                  <span class="order-hash-code">#{{ order.orderCode }}</span>
+                  <div *ngIf="order.invoiceNumber && order.invoiceNumber !== order.orderCode" class="invoice-sub-badge font-mono">
+                    {{ order.invoiceNumber }}
+                  </div>
+                </td>
+                <td>
+                  <span class="channel-chip channel-chip--{{ isTakeaway(order) ? 'takeaway' : 'dine_in' }}">
+                    {{ isTakeaway(order) ? 'Takeaway' : 'Dine In' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="order-guest-desc">
+                    <span class="guest-title">{{ order.customerName ? 'Guest: ' + order.customerName : (isTakeaway(order) ? 'Takeaway Order' : 'Dine In Order') }}</span>
+                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} · {{ order.paymentMethod || 'Cash' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <strong class="order-table-amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
+                  <div *ngIf="order.refundAmount && order.refundAmount > 0" class="refund-sub-badge">
+                    -{{ formatCurrencyValue(order.refundAmount) }}
+                  </div>
+                </td>
+                <td>
+                  <span class="status-chip" [ngClass]="getOrderStatusClass(order.orderStatus)">
+                    {{ order.orderStatus }}
+                  </span>
+                </td>
+                <td>
+                  <span class="time-stamp-label">{{ formatDateValue(order.createdAt) }}</span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <div class="action-btn-group">
+                    <a
+                      [href]="getInvoiceUrl(order)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn-micro"
+                      (click)="$event.stopPropagation()"
+                      title="View printable tax invoice">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8"/></svg>
+                      Invoice
+                    </a>
+                    <button
+                      type="button"
+                      class="btn-micro btn-micro--primary"
+                      (click)="openOrderDetail(order)">
+                      Details
+                    </button>
+                    <button
+                      *ngIf="order.manualRefundAllowed"
+                      type="button"
+                      class="btn-micro btn-micro--danger"
+                      (click)="openManualRefund(order)"
+                      title="Issue refund">
+                      Refund
+                    </button>
+                    <button
+                      *ngIf="order.orderStatus.toLowerCase() === 'draft' || order.orderStatus.toLowerCase() === 'completed'"
+                      type="button"
+                      class="btn-micro btn-micro--danger"
+                      (click)="openCancelModal(order)"
+                      title="Cancel / Void order">
+                      Cancel
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div class="filter-summary">
-          <p class="muted">
-            {{ filteredOrders.length }} of {{ serverTotalElements }} orders
-            <span *ngIf="dateRangeLabel" class="date-range-active">&#x1f4c5; {{ dateRangeLabel }}</span>
-          </p>
-          <button class="ghost-btn" (click)="clearOrderFilters()">Clear filters</button>
-        </div>
-      </section>
-
-      <div class="panel table-wrap" *ngIf="ordersLoaded && pagedOrders.length; else posLoading">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Source</th>
-              <th>Order</th>
-              <th>Customer</th>
-              <th>Status</th>
-              <th>Payment</th>
-              <th class="num-cell tabular-num">Total</th>
-              <th class="num-cell tabular-num">Refund</th>
-              <th>Created</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-             <tr *ngFor="let order of pagedOrders; trackBy: trackByOrderId" class="clickable-row" tabindex="0" role="button" [attr.aria-label]="'View order ' + order.orderCode" (click)="openOrderDetail(order)" (keydown.enter)="openOrderDetail(order)">
-              <td><span class="chip">{{ order.sourceType }}</span></td>
-              <td>{{ order.orderCode }}</td>
-              <td>
-                <div class="stacked-meta">
-                  <strong>{{ order.customerName || '-' }}</strong>
-                  <span class="muted">{{ order.customerContact || 'No contact provided' }}</span>
-                </div>
-              </td>
-              <td>
-                <span
-                  class="chip"
-                  [class.success]="order.orderStatus.toLowerCase() === 'completed'"
-                  [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'"
-                  [class.warn]="order.orderStatus.toLowerCase() === 'draft'"
-                >
-                  {{ order.orderStatus }}
-                </span>
-              </td>
-              <td>
-                {{ order.paymentMethod }} /
-                <span [class.refunded-label]="order.paymentStatus.toLowerCase() === 'refunded'">
-                  {{ order.paymentStatus }}
-                </span>
-              </td>
-              <td class="num-cell tabular-num">{{ formatCurrencyValue(order.totalAmount) }}</td>
-              <td class="num-cell tabular-num">
-                <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">
-                  -{{ formatCurrencyValue(order.refundAmount) }}<br />
-                  <span class="refund-meta">
-                    {{ order.refundStatus }}<span *ngIf="order.refundMode"> / {{ order.refundMode }}</span>
-                  </span><br />
-                  <span class="muted" style="font-size: 0.75rem;">{{ order.cancelReason }}</span>
-                </span>
-                <span *ngIf="!order.refundAmount || order.refundAmount === 0" class="muted">{{ order.refundStatus || '-' }}</span>
-              </td>
-              <td>{{ formatDateValue(order.createdAt) }}</td>
-              <td>
-                <div class="action-stack">
-                  <button
-                    *ngIf="order.manualRefundAllowed"
-                    class="ghost-btn danger-btn"
-                    (click)="openManualRefund(order); $event.stopPropagation()"
-                  >
-                    Manual Refund
-                  </button>
-                  <button
-                    *ngIf="order.orderStatus === 'draft' || order.orderStatus === 'completed'"
-                    class="ghost-btn danger-btn"
-                    (click)="openCancelModal(order); $event.stopPropagation()"
-                  >
-                    Cancel
-                  </button>
-                  <span *ngIf="!order.manualRefundAllowed && order.orderStatus !== 'draft'" class="muted">-</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="mobile-order-list" aria-label="Orders">
-          <article *ngFor="let order of pagedOrders; trackBy: trackByOrderId" class="mobile-order-card" [class.mobile-order-card--refunded]="order.refundAmount && order.refundAmount > 0">
-            <button type="button" class="mobile-order-card__main" (click)="openOrderDetail(order)" [attr.aria-label]="'View order ' + order.orderCode">
-              <span class="mobile-order-card__title">{{ order.orderCode }}</span>
-              <span class="chip" [class.success]="order.orderStatus.toLowerCase() === 'completed'" [class.danger]="order.orderStatus.toLowerCase() === 'cancelled'" [class.warn]="order.orderStatus.toLowerCase() === 'draft'">{{ order.orderStatus }}</span>
-              <span class="mobile-order-card__customer">{{ order.customerName || 'Walk-in customer' }}</span>
-              <span class="mobile-order-card__amount">{{ formatCurrencyValue(order.totalAmount) }}</span>
-              <span class="mobile-order-card__meta">{{ order.sourceType }} · {{ order.paymentMethod }} · {{ formatDateValue(order.createdAt) }}</span>
-            </button>
-            <div class="mobile-order-card__footer" *ngIf="order.manualRefundAllowed || (order.refundAmount && order.refundAmount > 0) || order.orderStatus === 'draft' || order.orderStatus === 'completed'">
-              <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">Refunded {{ formatCurrencyValue(order.refundAmount) }}</span>
-              <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-                <button *ngIf="order.orderStatus === 'draft' || order.orderStatus === 'completed'" type="button" class="ghost-btn danger-btn" (click)="openCancelModal(order)">Cancel</button>
-                <button *ngIf="order.manualRefundAllowed" type="button" class="ghost-btn danger-btn" (click)="openManualRefund(order)">Manual Refund</button>
+        <ng-template #emptyOrLoadingOrders>
+          <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable">
+            <div class="skeleton-stack">
+              <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+            </div>
+          </div>
+          <ng-template #emptyOrdersTable>
+            <div class="empty-orders-view">
+              <div class="empty-icon-circle">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                  <rect x="9" y="3" width="6" height="4" rx="1"/>
+                  <path d="m9 14 2 2 4-4"/>
+                </svg>
+              </div>
+              <h4>Kitchen &amp; Floor Counter Clear</h4>
+              <p>No orders matching the filter or date window. Transactions generated from POS terminals appear here instantly.</p>
+              <div class="empty-actions-row">
+                <button type="button" class="header-action-btn" (click)="clearOrderFilters()">Clear Filters</button>
               </div>
             </div>
-          </article>
-        </div>
+          </ng-template>
+        </ng-template>
 
-        <div class="pagination-bar" *ngIf="serverTotalPages > 1">
-          <p class="muted">Page {{ orderCurrentPage }} of {{ orderTotalPages }} ({{ serverTotalElements }} total orders)</p>
+        <!-- Pagination Bar -->
+        <div class="orders-pagination-bar" *ngIf="serverTotalPages > 1">
+          <p class="muted font-mono" style="margin: 0; font-size: 0.82rem;">Page {{ orderCurrentPage }} of {{ orderTotalPages }} ({{ serverTotalElements }} total orders)</p>
           <div class="pagination-controls">
             <button class="ghost-btn" [disabled]="orderCurrentPage === 1" (click)="goToOrderPage(orderCurrentPage - 1)">Previous</button>
             <button class="ghost-btn" [disabled]="orderCurrentPage === orderTotalPages" (click)="goToOrderPage(orderCurrentPage + 1)">Next</button>
           </div>
         </div>
-      </div>
-      <ng-template #posLoading>
-        <div class="panel loading" *ngIf="!ordersLoaded; else ordersEmpty">
-          <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
-          </div>
-        </div>
-        <ng-template #ordersEmpty>
-          <div class="receipt-empty-state" *ngIf="!ordersError">
-            <div class="receipt-empty-halo">
-              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </div>
-            <h3 class="receipt-empty-title">No Orders Match Current Filters</h3>
-            <p class="receipt-empty-sub">Adjust your search query, status selector, or date window to inspect more records.</p>
-            <button type="button" class="ghost-btn-tactile" (click)="clearOrderFilters()">Reset Filters</button>
-          </div>
-        </ng-template>
-      </ng-template>
+      </section>
     </div>
   `,
   styles: [`
@@ -524,6 +556,78 @@ export function filterBusinessOrders(
       display: flex;
       align-items: center;
       gap: 0.75rem;
+    }
+
+    /* Period Presets Bar */
+    .period-presets-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1.15rem;
+      flex-wrap: wrap;
+    }
+    .preset-pill-group {
+      display: inline-flex;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 3px;
+      gap: 3px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    }
+    .preset-pill {
+      padding: 0.45rem 0.85rem;
+      border: none;
+      background: transparent;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748B;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .preset-pill:hover { color: #0F172A; background: #F8FAFC; }
+    .preset-pill--active {
+      background: #6C27D9 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 6px rgba(108, 39, 217, 0.25);
+    }
+    .preset-pill--outline {
+      border: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .custom-date-picker-drawer {
+      margin-bottom: 1.25rem;
+      padding: 1rem;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .bento-sub-metric {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #64748B;
+      margin-left: 0.35rem;
+    }
+    .kpi-mini-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #F1F5F9;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-mini-pill--red {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+    .bento-pulse-tag--neutral {
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: #E2E8F0 !important;
     }
 
     /* Bento KPI Grid (bentogrids.com standard) */
@@ -704,10 +808,321 @@ export function filterBusinessOrders(
       max-width: 380px;
       line-height: 1.45;
     }
+
+    .chip--dine-in {
+      background: #EEF2FF;
+      color: #4F46E5;
+      border: 1px solid #C7D2FE;
+    }
+    .chip--takeaway {
+      background: #FFFBEB;
+      color: #D97706;
+      border: 1px solid #FDE68A;
+    }
+    .chip--delivery {
+      background: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+    }
+
+    /* Bento Orders Container & Tactile Table */
+    .bento-orders-container {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 18px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
+    }
+    .orders-head-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .orders-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .orders-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+    }
+    .counter-badge {
+      display: inline-block;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #F1F5F9;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+    .orders-sub {
+      margin: 0.2rem 0 0;
+      font-size: 0.85rem;
+      color: #64748B;
+    }
+    .orders-head-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .channel-filter-tabs {
+      display: inline-flex;
+      background: #F1F5F9;
+      padding: 3px;
+      border-radius: 10px;
+      gap: 2px;
+    }
+    .channel-tab-btn {
+      padding: 0.4rem 0.75rem;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748B;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .channel-tab-btn:hover { color: #1E293B; }
+    .channel-tab-btn--active {
+      background: #FFFFFF;
+      color: #0F172A;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .order-search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 0.45rem 0.75rem;
+      width: 220px;
+      transition: all 140ms ease;
+    }
+    .order-search-box:focus-within {
+      background: #FFFFFF;
+      border-color: #6C27D9;
+      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
+    }
+    .order-search-box svg { color: #94A3B8; }
+    .order-search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 100%;
+      font-size: 0.82rem;
+      color: #0F172A;
+    }
+    .order-status-select-wrap {
+      display: inline-flex;
+      align-items: center;
+    }
+    .field-select-compact {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      background: #F8FAFC;
+      color: #334155;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      min-height: 36px;
+    }
+    .field-select-compact:focus {
+      border-color: #6C27D9;
+      background: #FFFFFF;
+    }
+    .orders-table-wrapper {
+      overflow-x: auto;
+      border: 1px solid #F1F5F9;
+      border-radius: 12px;
+    }
+    .orders-tactile-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      text-align: left;
+    }
+    .orders-tactile-table th {
+      padding: 0.75rem 1rem;
+      background: #F8FAFC;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748B;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .orders-tactile-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #F1F5F9;
+      color: #334155;
+      vertical-align: middle;
+    }
+    .order-row-interactive {
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+    .order-row-interactive:hover { background: #F8FAFC; }
+    .order-row-interactive:last-child td { border-bottom: none; }
+    .order-hash-code {
+      font-family: monospace;
+      font-weight: 700;
+      color: #0F172A;
+      background: #F1F5F9;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .invoice-sub-badge {
+      font-size: 0.72rem;
+      color: #64748B;
+      margin-top: 0.15rem;
+    }
+    .channel-chip {
+      display: inline-block;
+      padding: 0.18rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .channel-chip--dine_in { background: #EEF2FF; color: #4F46E5; }
+    .channel-chip--takeaway { background: #FEF3C7; color: #B45309; }
+    .order-guest-desc {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .guest-title {
+      font-weight: 600;
+      color: #1E293B;
+      font-size: 0.84rem;
+    }
+    .guest-meta {
+      font-size: 0.74rem;
+      color: #94A3B8;
+    }
+    .order-table-amount {
+      font-weight: 800;
+      color: #0F172A;
+      font-variant-numeric: tabular-nums;
+    }
+    .refund-sub-badge {
+      font-size: 0.72rem;
+      color: #DC2626;
+      font-weight: 600;
+      margin-top: 0.1rem;
+    }
+    .status-chip {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge-preparing { background: #FEF3C7; color: #92400E; }
+    .badge-cooking { background: #FFEDD5; color: #C2410C; }
+    .badge-served { background: #E0E7FF; color: #3730A3; }
+    .badge-completed { background: #ECFDF5; color: #065F46; }
+    .badge-cancelled { background: #FEE2E2; color: #991B1B; }
+    .time-stamp-label {
+      font-size: 0.76rem;
+      color: #64748B;
+      font-variant-numeric: tabular-nums;
+    }
+    .action-btn-group {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.45rem;
+    }
+    .btn-micro {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #334155;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 120ms ease;
+    }
+    .btn-micro:hover { background: #F1F5F9; border-color: #CBD5E1; }
+    .btn-micro--primary {
+      background: #6C27D9;
+      border-color: #6C27D9;
+      color: #FFFFFF;
+    }
+    .btn-micro--primary:hover { background: #5B21B6; }
+    .btn-micro--danger {
+      color: #DC2626;
+      border-color: #FECACA;
+      background: #FEF2F2;
+    }
+    .btn-micro--danger:hover {
+      background: #FEE2E2;
+      border-color: #F87171;
+    }
+    .empty-orders-view {
+      padding: 3rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.5rem;
+    }
+    .empty-icon-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: #F8FAFC;
+      border: 1px solid #EEF2F6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94A3B8;
+      margin-bottom: 0.25rem;
+    }
+    .empty-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+    .orders-pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-top: 1rem;
+      margin-top: 1rem;
+      border-top: 1px solid #F1F5F9;
+      flex-wrap: wrap;
+    }
   `]
 })
 export class OrdersPageComponent implements OnDestroy {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
   orders: BusinessOrder[] = [];
@@ -726,8 +1141,40 @@ export class OrdersPageComponent implements OnDestroy {
   orderSearchTerm = '';
   orderStatusFilter = 'ALL';
   orderSourceFilter = 'ALL';
-  orderPageSize = 10;
+  orderPageSize = 15;
   orderCurrentPage = 1;
+
+  // Period Preset & Summary State for Owner
+  activePreset: 'today' | 'yesterday' | 'custom' = 'today';
+  showCustomRange = false;
+
+  get currentDateRange(): { from: string; to: string } {
+    const today = formatIsoDate(new Date());
+    return {
+      from: this.dateFrom || today,
+      to: this.dateTo || today
+    };
+  }
+
+  summaryRevenue = 0;
+  summaryOrderCount = 0;
+  summaryCompletedCount = 0;
+  summaryPendingCount = 0;
+  summaryRefundedTotal = 0;
+  summaryRefundedCount = 0;
+  summaryCashVolume = 0;
+  summaryDigitalVolume = 0;
+  summaryAov = 0;
+  summarySettlementRate = 0;
+
+  get summaryTitle(): string {
+    switch (this.activePreset) {
+      case 'today': return "Today's Gross Sales";
+      case 'yesterday': return "Yesterday's Gross Sales";
+      case 'custom': return "Period Gross Sales";
+      default: return "Orders Revenue";
+    }
+  }
 
   // Server-side pagination state
   serverTotalElements = 0;
@@ -736,7 +1183,7 @@ export class OrdersPageComponent implements OnDestroy {
   // Date range filter state
   dateFrom: string | null = null;
   dateTo: string | null = null;
-  dateRangeLabel = '';
+  dateRangeLabel = 'Today';
 
   // Order detail modal state
   selectedOrderDetail: OrderDetailResponse | null = null;
@@ -759,7 +1206,7 @@ export class OrdersPageComponent implements OnDestroy {
       this.orderCurrentPage = 1;
       this.loadOrders();
     });
-    this.loadOrders();
+    this.setPreset('today');
   }
 
   onSearchChange(value: string): void {
@@ -771,12 +1218,69 @@ export class OrdersPageComponent implements OnDestroy {
   }
 
   get businessOrderSources(): string[] {
-    return [...new Set(this.orders.map((order) => order.sourceType))].sort();
+    return [...new Set(this.orders.map((order) => this.formatOrderType(order)))].sort();
+  }
+
+  isDineIn(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('dine') || (!t.includes('takeaway') && !t.includes('delivery') && !t.includes('parcel'));
+  }
+
+  isTakeaway(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('takeaway') || t.includes('parcel');
+  }
+
+  isDelivery(order: BusinessOrder): boolean {
+    const t = (order.orderType || order.sourceType || '').toLowerCase();
+    return t.includes('delivery');
+  }
+
+  formatOrderType(order: BusinessOrder): string {
+    if (this.isTakeaway(order)) return 'Takeaway';
+    if (this.isDelivery(order)) return 'Delivery';
+    return 'Dine-In';
+  }
+
+  setSourceFilter(channel: 'ALL' | 'DINE_IN' | 'TAKEAWAY'): void {
+    this.orderSourceFilter = channel;
+  }
+
+  getOrderStatusClass(status: string): string {
+    const s = (status || '').toLowerCase();
+    switch (s) {
+      case 'preparing':
+      case 'draft':
+        return 'badge-preparing';
+      case 'cooking':
+        return 'badge-cooking';
+      case 'served':
+        return 'badge-served';
+      case 'completed':
+      case 'paid':
+        return 'badge-completed';
+      case 'cancelled':
+      case 'voided':
+        return 'badge-cancelled';
+      default:
+        return 'badge-preparing';
+    }
+  }
+
+  getInvoiceUrl(order: BusinessOrder): string {
+    const session = this.auth.session();
+    const restaurantId = session?.restaurantId || 1;
+    const token = order.publicToken || 'preview';
+    return `https://kbook.iadv.cloud/api/v1/public/invoice/${restaurantId}/${order.orderId}/${token}`;
   }
 
   get filteredOrders(): BusinessOrder[] {
     if (this.orderSourceFilter !== 'ALL') {
-      return this.orders.filter(order => order.sourceType === this.orderSourceFilter);
+      return this.orders.filter(order => {
+        if (this.orderSourceFilter === 'DINE_IN') return this.isDineIn(order);
+        if (this.orderSourceFilter === 'TAKEAWAY') return this.isTakeaway(order);
+        return true;
+      });
     }
     return this.orders;
   }
@@ -822,9 +1326,91 @@ export class OrdersPageComponent implements OnDestroy {
     return Math.max(1, this.serverTotalPages);
   }
 
+  setPreset(preset: 'today' | 'yesterday' | 'custom'): void {
+    this.activePreset = preset;
+    this.showCustomRange = preset === 'custom';
+    const now = new Date();
+
+    if (preset === 'today') {
+      const todayStr = formatIsoDate(now);
+      this.dateFrom = todayStr;
+      this.dateTo = todayStr;
+      this.dateRangeLabel = 'Today';
+    } else if (preset === 'yesterday') {
+      const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yStr = formatIsoDate(y);
+      this.dateFrom = yStr;
+      this.dateTo = yStr;
+      this.dateRangeLabel = 'Yesterday';
+    }
+
+    this.orderCurrentPage = 1;
+    this.loadOrders();
+  }
+
+  loadPeriodSummary(): void {
+    const from = this.dateFrom ?? undefined;
+    const to = this.dateTo ?? undefined;
+    this.api.getDashboard(from, to).subscribe({
+      next: (data) => {
+        if (!data) return;
+        this.summaryRevenue = data.totalRevenue ?? (this.activePreset === 'today' ? data.todayRevenue : 0);
+        this.summaryOrderCount = data.posOrderCount ?? 0;
+        this.summaryPendingCount = data.pendingPosPayments ?? 0;
+        this.summaryCompletedCount = Math.max(0, this.summaryOrderCount - this.summaryPendingCount);
+        this.summaryRefundedTotal = data.refundedAmount ?? 0;
+        this.summaryRefundedCount = data.refundedOrders ?? 0;
+        this.summarySettlementRate = this.summaryOrderCount > 0
+          ? Math.round((this.summaryCompletedCount / this.summaryOrderCount) * 100)
+          : 0;
+        this.summaryAov = this.summaryCompletedCount > 0
+          ? Math.round(this.summaryRevenue / this.summaryCompletedCount)
+          : (this.summaryOrderCount > 0 ? Math.round(this.summaryRevenue / this.summaryOrderCount) : 0);
+
+        if (from && from === to) {
+          this.api.getDailyClosing(from).subscribe({
+            next: (closing: any) => {
+              if (closing) {
+                this.summaryCashVolume = closing.expectedCash ?? 0;
+                const net = closing.totalRevenue ?? this.summaryRevenue;
+                this.summaryDigitalVolume = Math.max(0, net - this.summaryCashVolume);
+                this.cdr.markForCheck();
+              }
+            },
+            error: () => {
+              this.recalcSplitsFromCurrentOrders();
+            }
+          });
+        } else {
+          this.recalcSplitsFromCurrentOrders();
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.recalcSplitsFromCurrentOrders();
+      }
+    });
+  }
+
+  private recalcSplitsFromCurrentOrders(): void {
+    const cash = this.orders.filter(o => (o.paymentMethod || '').toLowerCase().includes('cash')).reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+    const digital = this.orders.filter(o => !(o.paymentMethod || '').toLowerCase().includes('cash')).reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+    const totalSample = cash + digital;
+    if (totalSample > 0 && this.summaryRevenue > 0) {
+      const cashRatio = cash / totalSample;
+      this.summaryCashVolume = Math.round(this.summaryRevenue * cashRatio);
+      this.summaryDigitalVolume = Math.max(0, this.summaryRevenue - this.summaryCashVolume);
+    } else {
+      this.summaryCashVolume = cash;
+      this.summaryDigitalVolume = digital;
+    }
+    this.cdr.markForCheck();
+  }
+
   loadOrders(): void {
     this.ordersLoaded = false;
     this.ordersError = '';
+    this.loadPeriodSummary();
     const serverStatus = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
@@ -836,6 +1422,7 @@ export class OrdersPageComponent implements OnDestroy {
         this.serverTotalPages = data.totalPages;
         this.ordersLoaded = true;
         this.ordersError = '';
+        this.recalcSplitsFromCurrentOrders();
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -865,12 +1452,9 @@ export class OrdersPageComponent implements OnDestroy {
     this.orderSearchTerm = '';
     this.orderStatusFilter = 'ALL';
     this.orderSourceFilter = 'ALL';
-    this.orderPageSize = 10;
+    this.orderPageSize = 15;
     this.orderCurrentPage = 1;
-    this.dateFrom = null;
-    this.dateTo = null;
-    this.dateRangeLabel = '';
-    this.loadOrders();
+    this.setPreset('today');
   }
 
   goToOrderPage(page: number): void {
@@ -881,9 +1465,23 @@ export class OrdersPageComponent implements OnDestroy {
   // --- Date range filtering ---
 
   onDateRangeChange(range: { from: string; to: string }): void {
+    const now = new Date();
+    const today = formatIsoDate(now);
+    const yest = formatIsoDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+
+    if (range.from === today && range.to === today) {
+      this.activePreset = 'today';
+      this.dateRangeLabel = 'Today';
+    } else if (range.from === yest && range.to === yest) {
+      this.activePreset = 'yesterday';
+      this.dateRangeLabel = 'Yesterday';
+    } else {
+      this.activePreset = 'custom';
+      this.dateRangeLabel = `${range.from} → ${range.to}`;
+    }
+
     this.dateFrom = range.from;
     this.dateTo = range.to;
-    this.dateRangeLabel = `${range.from} → ${range.to}`;
     this.orderCurrentPage = 1;
     this.loadOrders();
   }
