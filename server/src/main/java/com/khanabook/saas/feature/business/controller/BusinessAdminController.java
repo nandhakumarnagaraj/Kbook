@@ -5,6 +5,7 @@ import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.business.dto.*;
+import com.khanabook.saas.feature.business.service.BillEditService;
 import com.khanabook.saas.feature.business.service.BusinessReadService;
 import com.khanabook.saas.feature.business.service.BusinessWriteService;
 import jakarta.validation.Valid;
@@ -29,6 +30,7 @@ public class BusinessAdminController {
 
     private final BusinessReadService businessReadService;
     private final BusinessWriteService businessWriteService;
+    private final BillEditService billEditService;
     private final AssetStorageService assetStorageService;
 
     @GetMapping("/dashboard")
@@ -95,6 +97,31 @@ public class BusinessAdminController {
             @RequestBody(required = false) java.util.Map<String, String> body) {
         String reason = body != null ? body.get("reason") : null;
         businessReadService.voidBill(requireTenant(), billId, reason);
+        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
+    }
+
+    /**
+     * Owner correction of a bill's order status. Refusals (already in that state, a
+     * gateway-settled bill, an unsupported transition) are answered 400 with a message the
+     * UI can show verbatim.
+     */
+    @PostMapping("/bills/{billId}/status")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessOrderListItemResponse> updateBillStatus(
+            @PathVariable Long billId,
+            @Valid @RequestBody UpdateBillStatusRequest request) {
+        billEditService.updateOrderStatus(requireTenant(), billId, request.orderStatus(), request.reason());
+        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
+    }
+
+    /** Owner correction of a bill's payment mode, with the split amounts for part-payment modes. */
+    @PostMapping("/bills/{billId}/payment-mode")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessOrderListItemResponse> updateBillPaymentMode(
+            @PathVariable Long billId,
+            @Valid @RequestBody UpdateBillPaymentModeRequest request) {
+        billEditService.updatePaymentMode(requireTenant(), billId, request.paymentMode(),
+                request.partAmount1(), request.partAmount2(), request.reason());
         return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
     }
 

@@ -10,20 +10,25 @@
   Output,
   SimpleChanges,
   ViewChild,
-  inject
+  computed,
+  inject,
+  signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Observable, forkJoin } from 'rxjs';
 import { OrderDetailResponse } from '../core/models/api.models';
 import { formatCurrency, formatDate } from './formatters';
 import { AuthService } from '../core/auth/auth.service';
 import { buildInvoiceLink } from '../core/utils/invoice-link.util';
 import { ToastService } from '../core/services/toast.service';
+import { BusinessApiService } from '../core/services/business-api.service';
 
 @Component({
   selector: 'app-order-detail-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="order-modal__overlay" *ngIf="order" (click)="close()">
       <section
@@ -64,9 +69,9 @@ import { ToastService } from '../core/services/toast.service';
           <div class="order-modal__row">
             <span class="order-modal__label">Status</span>
             <span class="order-modal__value">
-              <span class="chip" [class.chip--success]="order.order.orderStatus === 'COMPLETED'"
-                                  [class.chip--warn]="order.order.orderStatus === 'PENDING'"
-                                  [class.chip--danger]="order.order.orderStatus === 'CANCELLED'">
+              <span class="chip" [class.chip--success]="isStatus(order.order.orderStatus, 'completed')"
+                                  [class.chip--warn]="isStatus(order.order.orderStatus, 'draft')"
+                                  [class.chip--danger]="isStatus(order.order.orderStatus, 'cancelled')">
                 {{ order.order.orderStatus }}
               </span>
             </span>
@@ -86,6 +91,74 @@ import { ToastService } from '../core/services/toast.service';
           <div class="order-modal__row order-modal__row--total">
             <span class="order-modal__label">Total</span>
             <span class="order-modal__value order-modal__value--total">{{ fmtCurrency(order.order.totalAmount) }}</span>
+          </div>
+        </div>
+
+        <!-- Owner-only correction. Deliberately last-word-on-the-server: the form submits
+             what changed and shows the server's refusal message verbatim. -->
+        <div class="order-modal__correction" *ngIf="isOwner()">
+          <button
+            type="button"
+            class="correction__toggle"
+            [attr.aria-expanded]="editOpen()"
+            (click)="toggleCorrection()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+            {{ editOpen() ? 'Close correction' : 'Correct this bill' }}
+          </button>
+
+          <div class="correction__form" *ngIf="editOpen()">
+            <div class="correction__grid">
+              <label class="correction__field">
+                <span>Order status</span>
+                <select id="correction-status" [ngModel]="statusDraft()" (ngModelChange)="statusDraft.set($event)">
+                  <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+
+              <label class="correction__field">
+                <span>Payment mode</span>
+                <select id="correction-mode" [ngModel]="modeDraft()" (ngModelChange)="modeDraft.set($event)">
+                  <option *ngFor="let option of modeOptions" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+
+              <label class="correction__field" *ngIf="isPartMode(modeDraft())">
+                <span>First split amount</span>
+                <input id="correction-part-1" type="number" min="0" step="0.01"
+                       [ngModel]="part1()" (ngModelChange)="part1.set($event)" />
+              </label>
+
+              <label class="correction__field" *ngIf="isPartMode(modeDraft())">
+                <span>Second split amount</span>
+                <input id="correction-part-2" type="number" min="0" step="0.01"
+                       [ngModel]="part2()" (ngModelChange)="part2.set($event)" />
+              </label>
+            </div>
+
+            <label class="correction__field correction__field--wide">
+              <span>Reason (kept in the audit log)</span>
+              <input id="correction-reason" type="text" maxlength="500"
+                     placeholder="For example: cashier selected UPI by mistake"
+                     [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+            </label>
+
+            <p class="correction__note">
+              Saving this changes the order's recognised revenue and the day's closing figures.
+              A completed bill cannot be reopened because the stock it consumed cannot be returned.
+            </p>
+
+            <p class="correction__error" role="alert" *ngIf="editError()">{{ editError() }}</p>
+
+            <div class="correction__actions">
+              <button type="button" class="ghost-btn" (click)="toggleCorrection()" [disabled]="editSubmitting()">
+                Cancel
+              </button>
+              <button type="button" class="action-btn-link primary-action" (click)="saveCorrection()" [disabled]="editSubmitting()">
+                {{ editSubmitting() ? 'Saving…' : 'Save correction' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -268,6 +341,62 @@ import { ToastService } from '../core/services/toast.service';
       color: var(--danger);
     }
 
+    .order-modal__correction {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--line);
+      background: var(--kb-color-surface-2, #f8f5ef);
+    }
+
+    .correction__toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--kb-color-foreground);
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .correction__toggle:hover { border-color: var(--brand); color: var(--brand); }
+
+    .correction__form { margin-top: 0.85rem; display: grid; gap: 0.7rem; }
+
+    .correction__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+      gap: 0.6rem;
+    }
+
+    .correction__field { display: grid; gap: 0.25rem; }
+    .correction__field > span { font-size: 0.74rem; font-weight: 700; color: var(--kb-color-muted-foreground); }
+
+    .correction__field select,
+    .correction__field input {
+      min-height: 36px;
+      padding: 0.35rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--kb-color-foreground);
+      font-family: inherit;
+      font-size: 0.84rem;
+    }
+
+    .correction__note { margin: 0; font-size: 0.74rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
+
+    .correction__error {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--kb-color-danger);
+    }
+
+    .correction__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
     .order-modal__items {
       padding: 1rem 1.5rem 1.5rem;
       border-top: 1px solid var(--line);
@@ -400,11 +529,142 @@ import { ToastService } from '../core/services/toast.service';
 export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   @Input() order: OrderDetailResponse | null = null;
   @Output() closed = new EventEmitter<void>();
+  /** Emitted after a successful correction so the list behind the modal can refetch. */
+  @Output() billUpdated = new EventEmitter<void>();
   @ViewChild('dialogCard') private dialogCard?: ElementRef<HTMLElement>;
   @ViewChild('closeButton') private closeButton?: ElementRef<HTMLButtonElement>;
 
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly api = inject(BusinessApiService);
+
+  /** Only the owner may correct a recorded bill; the server enforces this too. */
+  readonly isOwner = computed(() => this.auth.session()?.role === 'OWNER');
+
+  readonly editOpen = signal(false);
+  readonly editSubmitting = signal(false);
+  readonly editError = signal('');
+  readonly statusDraft = signal('draft');
+  readonly modeDraft = signal('');
+  readonly part1 = signal<string>('');
+  readonly part2 = signal<string>('');
+  readonly reason = signal('');
+
+  readonly statusOptions = [
+    { value: 'draft', label: 'Pending (open bill)' },
+    { value: 'completed', label: 'Completed / paid' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
+
+  readonly modeOptions = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'upi', label: 'UPI' },
+    { value: 'pos', label: 'Card / POS' },
+    { value: 'part_payment_upi_cash', label: 'Split — UPI + Cash' },
+    { value: 'part_payment_cash_pos', label: 'Split — Cash + Card' },
+    { value: 'part_payment_upi_pos', label: 'Split — UPI + Card' },
+  ];
+
+  /** Status labels arrive title-cased from the API ("Completed"), never uppercased. */
+  isStatus(value: string | null | undefined, expected: string): boolean {
+    return (value || '').trim().toLowerCase() === expected;
+  }
+
+  isPartMode(mode: string): boolean {
+    return (mode || '').startsWith('part');
+  }
+
+  toggleCorrection(): void {
+    if (this.editOpen()) {
+      this.editOpen.set(false);
+      this.editError.set('');
+      return;
+    }
+    const current = this.order?.order;
+    if (!current) return;
+    this.statusDraft.set(this.normalizeStatus(current.orderStatus));
+    this.modeDraft.set(this.normalizeMode(current.paymentMethod));
+    this.part1.set('');
+    this.part2.set('');
+    this.reason.set('');
+    this.editError.set('');
+    this.editOpen.set(true);
+  }
+
+  saveCorrection(): void {
+    const current = this.order?.order;
+    if (!current || this.editSubmitting()) return;
+
+    const reason = this.reason().trim();
+    const statusChanged = this.statusDraft() !== this.normalizeStatus(current.orderStatus);
+    const modeChanged = this.modeDraft() !== '' && this.modeDraft() !== this.normalizeMode(current.paymentMethod);
+
+    this.editError.set('');
+    if (!statusChanged && !modeChanged) {
+      this.editError.set('Change the order status or the payment mode before saving.');
+      return;
+    }
+    if (reason.length < 5) {
+      this.editError.set('Give a short reason (at least 5 characters) — it is recorded in the audit log.');
+      return;
+    }
+
+    const calls: Observable<unknown>[] = [];
+
+    if (statusChanged) {
+      calls.push(this.api.updateBillStatus(current.orderId, {
+        orderStatus: this.statusDraft() as 'draft' | 'completed' | 'cancelled',
+        reason,
+      }));
+    }
+
+    if (modeChanged) {
+      const partMode = this.isPartMode(this.modeDraft());
+      const first = Number(this.part1());
+      const second = Number(this.part2());
+      if (partMode && !(first > 0) ) {
+        this.editError.set('Enter the first split amount.');
+        return;
+      }
+      if (partMode && !(second > 0)) {
+        this.editError.set('Enter the second split amount.');
+        return;
+      }
+      calls.push(this.api.updateBillPaymentMode(current.orderId, {
+        paymentMode: this.modeDraft(),
+        partAmount1: partMode ? first : null,
+        partAmount2: partMode ? second : null,
+        reason,
+      }));
+    }
+
+    this.editSubmitting.set(true);
+    forkJoin(calls).subscribe({
+      next: () => {
+        this.editSubmitting.set(false);
+        this.editOpen.set(false);
+        this.toast.show(`Order #${current.orderCode} corrected`, 'success');
+        this.billUpdated.emit();
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.editSubmitting.set(false);
+        // The server's refusals are written for the user; show them as-is.
+        this.editError.set(err?.error?.error || 'The correction could not be saved.');
+      },
+    });
+  }
+
+  private normalizeStatus(value: string | null | undefined): string {
+    const normalized = (value || '').trim().toLowerCase();
+    if (normalized === 'completed' || normalized === 'paid') return 'completed';
+    if (normalized === 'cancelled') return 'cancelled';
+    return 'draft';
+  }
+
+  private normalizeMode(value: string | null | undefined): string {
+    const normalized = (value || '').trim().toLowerCase().replace(/\s+/g, '_');
+    return this.modeOptions.some((option) => option.value === normalized) ? normalized : '';
+  }
 
   readonly fmtCurrency = formatCurrency;
   readonly fmtDate = formatDate;

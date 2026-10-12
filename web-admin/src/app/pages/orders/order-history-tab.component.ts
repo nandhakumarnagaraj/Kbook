@@ -161,6 +161,7 @@ export function filterBusinessOrders(
       <!-- Order Detail Modal -->
       <app-order-detail-modal
         [order]="selectedOrderDetail"
+        (billUpdated)="loadOrders()"
         (closed)="closeOrderDetail()">
       </app-order-detail-modal>
       <div class="panel loading" *ngIf="orderDetailLoading" role="status" aria-live="polite">

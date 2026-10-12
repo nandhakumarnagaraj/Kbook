@@ -22,6 +22,8 @@ import {
   StaffCreatedResponse,
   StaffCredentialsResponse,
   TerminalRequest,
+  UpdateBillPaymentModeRequest,
+  UpdateBillStatusRequest,
   UpdateMenuItemRequest,
   UpdateStaffRequest,
   HourlySalesRow,
@@ -393,6 +395,25 @@ export class BusinessApiService {
   // ── Bill Void ─────────────────────────────────────────────────────────────
   voidBill(billId: number, reason?: string): Observable<any> {
     return this.http.post(`${API_BASE_URL}/business/bills/${billId}/void`, reason ? { reason } : {});
+  }
+
+  // ── Owner bill corrections ────────────────────────────────────────────────
+  /**
+   * Owner-only. Order status values: `draft` | `completed` | `cancelled`.
+   * The server refuses transitions it cannot make safe (a gateway-settled bill,
+   * reopening a completed bill, an unsupported status) with 400 and a message
+   * meant to be shown to the user verbatim.
+   */
+  updateBillStatus(billId: number, payload: UpdateBillStatusRequest): Observable<BusinessOrder> {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/status`, payload);
+  }
+
+  /**
+   * Owner-only. Also carries the split amounts when the target mode is a part-payment
+   * mode; the server ignores them for single modes and clears a previous split.
+   */
+  updateBillPaymentMode(billId: number, payload: UpdateBillPaymentModeRequest): Observable<BusinessOrder> {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/payment-mode`, payload);
   }
 
   // ── Analytics ────────────────────────────────────────────────────────────

@@ -102,6 +102,19 @@ export interface RefundOrderRequest {
   reason: string;
 }
 
+/** Owner-only bill correction. `reason` is mandatory and goes to the audit log. */
+export interface UpdateBillStatusRequest {
+  orderStatus: 'draft' | 'completed' | 'cancelled';
+  reason: string;
+}
+
+export interface UpdateBillPaymentModeRequest {
+  paymentMode: string;
+  partAmount1?: number | null;
+  partAmount2?: number | null;
+  reason: string;
+}
+
 export interface BusinessDashboard {
   restaurantId: number;
   shopName: string | null;

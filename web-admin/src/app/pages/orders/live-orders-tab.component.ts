@@ -191,6 +191,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       <!-- Order Detail Modal -->
       <app-order-detail-modal
         [order]="selectedOrderDetail()"
+        (billUpdated)="load()"
         (closed)="closeOrderDetail()">
       </app-order-detail-modal>
 
