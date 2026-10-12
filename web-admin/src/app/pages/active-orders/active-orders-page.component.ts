@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -20,14 +20,13 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         <div class="header-left">
           <div class="header-title-row">
             <h2>Active Orders &amp; Live Tables</h2>
-            <span class="live-pulse-badge">● Live Order Stream</span>
           </div>
           <p class="header-sub">Unsettled tables, open orders, and pending bills. Auto-refreshes every 30 seconds.</p>
         </div>
         <div class="header-right">
           <button
             type="button"
-            class="refresh-btn-tactile"
+            class="refresh-btn"
             [disabled]="loading()"
             (click)="load()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()">
@@ -36,7 +35,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            {{ loading() ? 'Updating...' : 'Refresh Feed' }}
+            Refresh
           </button>
         </div>
       </header>
@@ -54,7 +53,6 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         <article class="telemetry-card telemetry-card--hero">
           <div class="telemetry-head">
             <span class="telemetry-label">Running Floor Value</span>
-            <span class="pulse-live-tag">● Live Floor</span>
           </div>
           <strong class="telemetry-val">{{ fmt(totalFloorValue()) }}</strong>
           <span class="telemetry-sub">{{ activeOrders().length }} active bills awaiting final settlement</span>
@@ -66,7 +64,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
             <span class="telemetry-mini-pill">{{ dineInCount() }} Dine-in</span>
           </div>
           <strong class="telemetry-val">{{ activeTableCount() }} Tables Occupied</strong>
-          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway · {{ dineInCount() }} Dine-in</span>
+          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway Â· {{ dineInCount() }} Dine-in</span>
         </article>
 
         <article class="telemetry-card" [class.telemetry-card--alert]="urgentCount() > 0">
@@ -135,7 +133,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
             </div>
             <div class="elapsed-col">
               <span class="elapsed-pill" [class.elapsed-pill--urgent]="isUrgent(order)">
-                ⏱ {{ getElapsed(order) }}
+                â± {{ getElapsed(order) }}
               </span>
             </div>
           </div>
@@ -191,7 +189,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
         <p class="all-clear-sub">
           There are no active unsettled orders right now. New orders taken from counter POS will stream here in real time.
         </p>
-        <button type="button" class="refresh-btn-tactile" (click)="load()">
+        <button type="button" class="refresh-btn" (click)="load()">
           Check for New Orders
         </button>
       </div>
@@ -210,10 +208,10 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
               <span class="chip danger">Void / Cancel Order</span>
               <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel()?.orderCode }}</h3>
               <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
-                Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} · {{ orderToCancel()?.customerName || 'Walk-in customer' }}
+                Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} Â· {{ orderToCancel()?.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">âœ•</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -243,7 +241,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 
           <div class="modal-actions">
             <button type="button" class="ghost-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()">Keep Order</button>
-            <button type="button" class="primary-btn-tactile danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting()">
+            <button type="button" class="primary-btn danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting()">
               {{ cancelSubmitting() ? 'Cancelling...' : 'Confirm Cancellation' }}
             </button>
           </div>
@@ -256,17 +254,17 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: var(--pos-bg-body, #F6F8FD);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background: var(--pos-bg-body, var(--kb-color-surface-2));
+      font-family: var(--kb-font-sans);
     }
 
     .page-shell {
       padding: 1.5rem 2rem;
-      max-width: 1440px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
-    /* ── Operational Topbar (navbar.gallery standard) ── */
+    /* â”€â”€ Operational Topbar (navbar.gallery standard) â”€â”€ */
     .operational-header {
       display: flex;
       align-items: center;
@@ -274,7 +272,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       gap: 1.5rem;
       margin-bottom: 1.75rem;
       padding-bottom: 1.25rem;
-      border-bottom: 1px solid #EEF0F7;
+      border-bottom: 1px solid var(--kb-color-surface-2);
     }
     .header-title-row {
       display: flex;
@@ -286,50 +284,18 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       margin: 0;
       font-size: 1.45rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
-    }
-    .live-pulse-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.2rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      background: #F0FDF4;
-      color: #10B981;
-      border: 1px solid #BBF7D0;
     }
     .header-sub {
       margin: 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
 
-    .refresh-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.55rem 1.15rem;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #334155;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .refresh-btn-tactile:hover:not(:disabled) {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
-    }
-    .refresh-btn-tactile:active:not(:disabled) {
-      transform: scale(0.97);
-    }
+    
+    
+    
     .spinning {
       animation: spin 800ms linear infinite;
     }
@@ -338,7 +304,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       to { transform: rotate(360deg); }
     }
 
-    /* ── Floor Telemetry Grid ── */
+    /* â”€â”€ Floor Telemetry Grid â”€â”€ */
     .floor-telemetry-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr;
@@ -350,7 +316,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     }
     .telemetry-card {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.4rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -363,7 +329,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
     }
     .telemetry-card--hero {
-      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 100%);
       color: #FFFFFF;
       border: none;
       box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
@@ -385,28 +351,20 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .telemetry-label {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #8F95B2;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-    }
-    .pulse-live-tag {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #34D399;
-      background: rgba(16, 185, 129, 0.15);
-      padding: 0.15rem 0.45rem;
-      border-radius: 999px;
     }
     .telemetry-val {
       font-size: 1.65rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
     .telemetry-sub {
       font-size: 0.78rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-weight: 500;
     }
     .telemetry-mini-pill {
@@ -414,23 +372,23 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       font-weight: 700;
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .telemetry-mini-pill--red {
-      background: #FEE2E2;
-      color: #DC2626;
+      background: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
     }
     .telemetry-card--alert {
-      border-color: #FECACA;
-      background: #FFFBFB;
+      border-color: var(--kb-color-danger-soft);
+      background: var(--kb-color-surface);
     }
     .text-alert {
-      color: #DC2626 !important;
+      color: var(--kb-color-danger) !important;
     }
 
-    /* ── Bento Active Cards Grid (bentogrids.com standard) ── */
+    /* â”€â”€ Bento Active Cards Grid (bentogrids.com standard) â”€â”€ */
     .active-orders-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
@@ -439,7 +397,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 
     .pos-card-tactile {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.35rem;
       display: flex;
@@ -451,15 +409,15 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     }
     .pos-card-tactile:hover {
       transform: translateY(-2px);
-      border-color: #DDD6FE;
+      border-color: var(--kb-color-primary-soft);
       box-shadow: 0 8px 24px rgba(93, 69, 253, 0.08);
     }
     .pos-card-tactile:active {
       transform: scale(0.98);
     }
     .pos-card--urgent {
-      border-color: #FDE68A;
-      background: #FFFDF7;
+      border-color: var(--kb-color-warning-soft);
+      background: var(--kb-color-surface);
     }
 
     .card-top-row {
@@ -474,15 +432,15 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #F1F5F9;
-      color: #475569;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      border: 1px solid var(--kb-color-border);
       flex-shrink: 0;
     }
     .channel-avatar--draft {
-      background: #FFFBEB;
-      color: #D97706;
-      border-color: #FDE68A;
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
+      border-color: var(--kb-color-warning-soft);
     }
 
     .order-id-meta {
@@ -493,12 +451,12 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .order-code {
       font-size: 1.05rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .channel-tag {
       font-size: 0.72rem;
       font-weight: 600;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -508,16 +466,16 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       font-weight: 700;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
     }
     .status-pill--warn {
-      background: #FFFBEB;
-      color: #D97706;
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
     }
     .status-pill--pending {
-      background: #ECFDF5;
-      color: #10B981;
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
     }
 
     .card-customer-row {
@@ -529,13 +487,13 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .customer-name {
       font-size: 0.88rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--kb-color-foreground);
     }
     .table-identifier {
       font-size: 0.78rem;
       font-weight: 700;
-      color: #6C27D9;
-      background: #F3F0FF;
+      color: var(--kb-color-primary);
+      background: var(--kb-color-surface);
       padding: 0.15rem 0.55rem;
       border-radius: 6px;
     }
@@ -544,7 +502,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
-      border-top: 1px solid #F8FAFC;
+      border-top: 1px solid var(--kb-color-bg-app);
       padding-top: 0.75rem;
     }
     .amount-col {
@@ -553,32 +511,32 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     }
     .amount-label {
       font-size: 0.7rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       font-weight: 600;
       text-transform: uppercase;
     }
     .amount-val {
       font-size: 1.2rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
 
     .elapsed-pill {
       font-size: 0.74rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .elapsed-pill--urgent {
-      color: #D97706;
+      color: var(--kb-color-warning);
       font-weight: 700;
     }
 
-    /* ── All Clear Dignified Empty State (404s.design standard) ── */
+    /* â”€â”€ All Clear Dignified Empty State (404s.design standard) â”€â”€ */
     .all-clear-card {
       background: #FFFFFF;
-      border: 1.5px dashed #CBD5E1;
+      border: 1.5px dashed var(--kb-color-border-strong);
       border-radius: 20px;
       padding: 3.5rem 1.5rem;
       text-align: center;
@@ -593,9 +551,9 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       width: 60px;
       height: 60px;
       border-radius: 18px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      color: #10B981;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border);
+      color: var(--kb-color-success);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -605,21 +563,21 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       margin: 0;
       font-size: 1.15rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .all-clear-sub {
       margin: 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       max-width: 420px;
       line-height: 1.5;
     }
 
-    /* ── Card Actions Row ── */
+    /* â”€â”€ Card Actions Row â”€â”€ */
     .card-actions-row {
       display: flex;
       gap: 0.5rem;
-      border-top: 1px solid #F1F5F9;
+      border-top: 1px solid var(--kb-color-surface-2);
       padding-top: 0.75rem;
       margin-top: 0.25rem;
     }
@@ -633,41 +591,41 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       border-radius: 8px;
       font-size: 0.76rem;
       font-weight: 600;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       background: #FFFFFF;
-      color: #334155;
+      color: var(--kb-color-foreground);
       cursor: pointer;
       min-height: 36px;
       transition: all 120ms ease;
     }
     .card-action-btn:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
+      background: var(--kb-color-bg-app);
+      border-color: var(--kb-color-border-strong);
+      color: var(--kb-color-foreground);
     }
     .card-action-btn:active {
       transform: scale(0.97);
     }
     .card-action-btn--primary {
-      background: #EEF2FF;
-      border-color: #C7D2FE;
-      color: #4F46E5;
+      background: var(--kb-color-primary-soft);
+      border-color: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
     }
     .card-action-btn--primary:hover {
-      background: #E0E7FF;
-      border-color: #A5B4FC;
+      background: var(--kb-color-primary-soft);
+      border-color: var(--kb-color-primary-soft);
     }
     .card-action-btn--danger {
-      background: #FEF2F2;
-      border-color: #FECACA;
-      color: #DC2626;
+      background: var(--kb-color-danger-soft);
+      border-color: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
     }
     .card-action-btn--danger:hover {
-      background: #FEE2E2;
-      border-color: #FCA5A5;
+      background: var(--kb-color-danger-soft);
+      border-color: var(--kb-color-danger-soft);
     }
 
-    /* ── Modal Layout ── */
+    /* â”€â”€ Modal Layout â”€â”€ */
     .modal-header {
       display: flex;
       align-items: flex-start;
@@ -679,7 +637,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       background: transparent;
       border: none;
       font-size: 1.15rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       padding: 0.25rem;
     }
@@ -689,12 +647,12 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       font-size: 0.72rem;
       font-weight: 700;
       border-radius: 999px;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
     }
     .chip.danger {
-      background: #FEE2E2;
-      color: #DC2626;
+      background: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
     }
     .field {
       display: flex;
@@ -704,20 +662,20 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .field label {
       font-size: 0.82rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--kb-color-foreground);
     }
     .field-select, .field-control {
       padding: 0.5rem 0.75rem;
-      border: 1px solid #CBD5E1;
+      border: 1px solid var(--kb-color-border-strong);
       border-radius: 8px;
       font-size: 0.88rem;
       min-height: 40px;
       background: #FFFFFF;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       outline: none;
     }
     .field-select:focus, .field-control:focus {
-      border-color: #6C27D9;
+      border-color: var(--kb-color-primary);
     }
     .modal-actions {
       display: flex;
@@ -728,41 +686,26 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
     .ghost-btn {
       padding: 0.5rem 1rem;
       border-radius: 8px;
-      border: 1px solid #CBD5E1;
+      border: 1px solid var(--kb-color-border-strong);
       background: #FFFFFF;
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
-      color: #334155;
+      color: var(--kb-color-foreground);
       min-height: 40px;
     }
     .ghost-btn:hover:not(:disabled) {
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
     }
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.5rem 1rem;
-      background: #6C27D9;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      min-height: 40px;
-    }
-    .primary-btn-tactile:hover:not(:disabled) {
-      background: #5B21B6;
-    }
+    
+    
     .danger-btn {
-      background: #DC2626 !important;
+      background: var(--kb-color-danger) !important;
       color: #FFFFFF !important;
       border: none !important;
     }
     .danger-btn:hover:not(:disabled) {
-      background: #B91C1C !important;
+      background: var(--kb-color-danger) !important;
     }
   `]
 })
@@ -814,7 +757,7 @@ export class ActiveOrdersPageComponent implements OnDestroy {
 
   readonly oldestWaitFormatted = computed(() => {
     const orders = this.activeOrders();
-    if (!orders.length) return '—';
+    if (!orders.length) return 'â€”';
     const now = Date.now();
     let maxElapsed = 0;
     for (const o of orders) {

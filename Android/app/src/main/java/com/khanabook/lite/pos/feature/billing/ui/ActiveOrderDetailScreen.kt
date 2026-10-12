@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
 import com.khanabook.lite.pos.core.theme.DangerRed
 import com.khanabook.lite.pos.core.theme.DarkBrown1
@@ -79,6 +81,7 @@ fun ActiveOrderDetailScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { event ->
@@ -126,7 +129,8 @@ fun ActiveOrderDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
-                .horizontalNavigationSwipe(onSwipeRight = onBack)
+                .horizontalNavigationSwipe(onSwipeRight = onBack),
+            contentAlignment = Alignment.TopCenter
         ) {
             val detail = billWithItems
             if (detail == null) {
@@ -137,7 +141,10 @@ fun ActiveOrderDetailScreen(
                 val listState = rememberLazyListState()
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = layout.maxContentWidth)
+                        .verticalScrollbar(listState),
                     contentPadding = PaddingValues(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {

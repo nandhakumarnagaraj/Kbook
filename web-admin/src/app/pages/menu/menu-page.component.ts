@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -30,20 +30,20 @@ import { environment } from '../../../environments/environment';
           <p class="header-sub">Manage dish descriptions, variant pricing, and real-time counter stock availability.</p>
         </div>
         <div class="header-right">
-          <button type="button" class="ghost-btn-tactile" *ngIf="isOwner" (click)="openCategoriesModal()">
+          <button type="button" class="ghost-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h7"/>
             </svg>
             Categories
           </button>
-          <button type="button" class="primary-btn-tactile" *ngIf="isOwner" (click)="openAddModal()">
+          <button type="button" class="primary-btn" *ngIf="isOwner" (click)="openAddModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Add New Dish
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="loadMenu()">
+          <button type="button" class="refresh-btn" (click)="loadMenu()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -69,21 +69,21 @@ import { environment } from '../../../environments/environment';
           class="stock-tab-pill stock-tab-pill--green"
           [class.stock-tab-pill--active]="stockFilter === 'IN_STOCK'"
           (click)="setStockFilter('IN_STOCK')">
-          ● In Stock ({{ inStockCount }})
+          â— In Stock ({{ inStockCount }})
         </button>
         <button
           type="button"
           class="stock-tab-pill stock-tab-pill--amber"
           [class.stock-tab-pill--active]="stockFilter === 'RUNNING_LOW'"
           (click)="setStockFilter('RUNNING_LOW')">
-          ● Running Low ({{ runningLowCount }})
+          â— Running Low ({{ runningLowCount }})
         </button>
         <button
           type="button"
           class="stock-tab-pill stock-tab-pill--red"
           [class.stock-tab-pill--active]="stockFilter === 'OUT_OF_STOCK'"
           (click)="setStockFilter('OUT_OF_STOCK')">
-          ● Out of Stock ({{ outOfStockCount }})
+          â— Out of Stock ({{ outOfStockCount }})
         </button>
       </nav>
 
@@ -281,7 +281,7 @@ import { environment } from '../../../environments/environment';
         <ng-template #menuEmpty>
           <app-empty-state
             *ngIf="!loadError"
-            icon="🍽️"
+            icon="ðŸ½ï¸"
             title="No menu items match the current filters"
             text="Try a different search or clear the filters. Owners can also add a new item."
             [actionLabel]="isOwner ? 'Add Item' : ''"
@@ -376,7 +376,7 @@ import { environment } from '../../../environments/environment';
             </select>
           </div>
           <div class="field">
-            <label>Base Price (₹) *</label>
+            <label>Base Price (â‚¹) *</label>
             <input
               type="number"
               class="field-control"
@@ -425,7 +425,7 @@ import { environment } from '../../../environments/environment';
               <div *ngFor="let variant of itemVariants; trackBy: trackByVariantId" style="display:flex; align-items:center; justify-content:space-between; padding: 0.45rem 0.75rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 8px;">
                 <div>
                   <strong style="font-size:0.88rem;">{{ variant.variantName }}</strong>
-                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">₹{{ variant.price }}</span>
+                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">â‚¹{{ variant.price }}</span>
                 </div>
                 <button
                   type="button"
@@ -453,14 +453,14 @@ import { environment } from '../../../environments/environment';
                 type="number"
                 class="field-control"
                 [(ngModel)]="newVariantPrice"
-                placeholder="Price (₹)"
+                placeholder="Price (â‚¹)"
                 min="0.01"
                 step="0.01"
                 style="flex: 1; min-height:36px; font-size:0.85rem;"
               />
               <button
                 type="button"
-                class="ghost-btn-tactile"
+                class="ghost-btn"
                 [disabled]="!newVariantName.trim() || !newVariantPrice || newVariantPrice <= 0 || addingVariant"
                 (click)="addVariant()"
                 style="min-height:36px; padding: 0 0.85rem; font-size:0.82rem;"
@@ -490,7 +490,7 @@ import { environment } from '../../../environments/environment';
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
-            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
+            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">âœ•</button>
           </div>
           <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted.</p>
 
@@ -506,7 +506,7 @@ import { environment } from '../../../environments/environment';
             />
             <button
               type="button"
-              class="primary-btn-tactile"
+              class="primary-btn"
               [disabled]="!newCategoryModalName.trim() || creatingCategory"
               (click)="createCategoryFromModal()"
             >
@@ -529,7 +529,7 @@ import { environment } from '../../../environments/environment';
                   style="flex:1; min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.85rem;"
                   (keydown.enter)="saveRenameCategory(cat)"
                 />
-                <button type="button" class="primary-btn-tactile" style="min-height:34px; padding: 0.3rem 0.65rem; font-size: 0.78rem;" (click)="saveRenameCategory(cat)">Save</button>
+                <button type="button" class="primary-btn" style="min-height:34px; padding: 0.3rem 0.65rem; font-size: 0.78rem;" (click)="saveRenameCategory(cat)">Save</button>
                 <button type="button" class="ghost-btn" style="min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.78rem;" (click)="cancelRenameCategory()">Cancel</button>
               </div>
 
@@ -630,40 +630,10 @@ import { environment } from '../../../environments/environment';
       gap: var(--kb-space-2);
       flex-wrap: wrap;
     }
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground, #ffffff);
-      border: none;
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: transform 120ms ease, opacity 120ms ease;
-    }
-    .primary-btn-tactile:active {
-      transform: scale(0.97);
-    }
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-surface);
-      color: var(--kb-color-foreground);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 8px 14px;
-      cursor: pointer;
-      transition: transform 120ms ease, background-color 150ms ease;
-    }
-    .ghost-btn-tactile:active {
-      transform: scale(0.97);
-    }
+    
+    
+    
+    
     .stock-status-strip {
       display: flex;
       gap: var(--kb-space-2);
@@ -703,17 +673,17 @@ import { environment } from '../../../environments/environment';
     .stock-tab-pill--green.stock-tab-pill--active {
       border-color: rgba(34, 197, 94, 0.4);
       background: rgba(34, 197, 94, 0.08);
-      color: #16a34a;
+      color: var(--kb-color-success);
     }
     .stock-tab-pill--amber.stock-tab-pill--active {
       border-color: rgba(245, 158, 11, 0.4);
       background: rgba(245, 158, 11, 0.08);
-      color: #d97706;
+      color: var(--kb-color-warning);
     }
     .stock-tab-pill--red.stock-tab-pill--active {
       border-color: rgba(239, 68, 68, 0.4);
       background: rgba(239, 68, 68, 0.08);
-      color: #dc2626;
+      color: var(--kb-color-danger);
     }
     .data-table td {
       font-variant-numeric: tabular-nums;
@@ -1388,7 +1358,7 @@ export class MenuPageComponent implements OnDestroy {
     return formatCurrency(value);
   }
 
-  // ─── Dish photo thumbnail ──────────────────────────────────────────────────
+  // â”€â”€â”€ Dish photo thumbnail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Items without a photo (or whose photo fails to load) fall back to a veg /
   // non-veg FSSAI dot on a neutral tile, matching the Android MenuItemThumbnail.
   private readonly failedImages = new Set<number>();

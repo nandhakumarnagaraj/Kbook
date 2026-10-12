@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
- * FIX #10 — Shared loading / error state wrapper.
+ * FIX #10 â€” Shared loading / error state wrapper.
  *
  * Usage in any page template:
  *
@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
  *     [loading]="isLoading"
  *     [error]="errorMessage"
  *     (retry)="loadData()">
- *     <!-- page content goes here — only shown when not loading and no error -->
+ *     <!-- page content goes here â€” only shown when not loading and no error -->
  *     <div>...</div>
  *   </app-api-state>
  *
@@ -77,7 +77,7 @@ import { CommonModule } from '@angular/common';
       place-items: center;
       width: 2.25rem;
       height: 2.25rem;
-      color: #fff;
+      color: var(--kb-color-on-primary);
       background: var(--danger);
       border-radius: 999px;
       font-weight: 800;
@@ -87,7 +87,7 @@ import { CommonModule } from '@angular/common';
     .retry-btn {
       min-height: 42px;
       padding: 0.55rem 1rem;
-      color: #fff;
+      color: var(--kb-color-on-primary);
       background: var(--danger);
       border: 0;
       border-radius: 10px;
@@ -104,7 +104,7 @@ import { CommonModule } from '@angular/common';
 export class ApiStateComponent {
   @Input() loading = false;
   @Input() error: string | null = null;
-  @Input() loadingText = 'Loading…';
+  @Input() loadingText = 'Loadingâ€¦';
   @Input() showRetry = true;
   @Output() retry = new EventEmitter<void>();
 }

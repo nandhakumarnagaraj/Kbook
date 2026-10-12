@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
@@ -35,7 +35,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           <h1 class="brand-hero-title">
             Run your restaurant<br/>with <span class="brand-accent-text">confidence.</span>
           </h1>
-          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
+          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments â€” built for restaurant owners.</p>
 
           <div class="brand-feature-stack">
             <div class="brand-feature-card">
@@ -87,8 +87,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         </div>
 
         <div class="brand-foot-row">
-          <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
-          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in ↗</a>
+          <p class="brand-foot">Â© {{ year }} KhanaBook. All rights reserved.</p>
+          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in â†—</a>
         </div>
       </aside>
 
@@ -186,7 +186,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!loading">Sign in &rarr;</span>
                 <span *ngIf="loading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Signing in…
+                  Signing inâ€¦
                 </span>
               </button>
             </form>
@@ -199,12 +199,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <a href="https://khanabook.in" class="link-right" target="_blank" rel="noopener">learn more</a>
               </p>
               <div class="trust-badge-row">
-                <span class="trust-icon" aria-hidden="true">🔒</span>
-                <span>256-bit SSL encrypted • Restaurant Cloud</span>
+                <span class="trust-icon" aria-hidden="true">ðŸ”’</span>
+                <span>256-bit SSL encrypted â€¢ Restaurant Cloud</span>
               </div>
               <div class="mobile-foot-row">
-                <span>© {{ year }} KhanaBook.</span>
-                <a href="https://khanabook.in" target="_blank" rel="noopener" class="mobile-foot-link">khanabook.in ↗</a>
+                <span>Â© {{ year }} KhanaBook.</span>
+                <a href="https://khanabook.in" target="_blank" rel="noopener" class="mobile-foot-link">khanabook.in â†—</a>
               </div>
             </div>
           </ng-container>
@@ -237,11 +237,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Send OTP &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Sending OTP…
+                  Sending OTPâ€¦
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'otp'">
@@ -273,11 +273,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Verify OTP &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Verifying…
+                  Verifyingâ€¦
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'password'">
@@ -327,11 +327,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 <span *ngIf="!forgotLoading">Reset password &rarr;</span>
                 <span *ngIf="forgotLoading" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                  Resetting…
+                  Resettingâ€¦
                 </span>
               </button>
             </form>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
           </ng-container>
 
           <ng-container *ngIf="forgotStep === 'success'">
@@ -339,7 +339,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2>Password reset</h2>
               <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
             </header>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
+            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">â† Back to sign in</a>
           </ng-container>
         </div>
       </main>
@@ -363,7 +363,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .auth-brand {
       padding: clamp(2rem, 4vw, 3.5rem) clamp(2rem, 3.8vw, 3.2rem);
-      background: linear-gradient(145deg, #181B34 0%, #2E1065 40%, #4C1D95 75%, #5B21B6 100%);
+      background: linear-gradient(145deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 40%, var(--kb-color-primary-hover) 75%, var(--kb-color-primary-hover) 100%);
       color: #FFFFFF;
       display: flex;
       flex-direction: column;
@@ -385,13 +385,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       padding: 3px;
     }
     .brand-title {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: var(--kb-font-display);
       font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #FFFFFF;
     }
-    .brand-title--dark { color: #0F172A; font-size: 1.2rem; }
+    .brand-title--dark { color: var(--kb-color-foreground); font-size: 1.2rem; }
     .brand-copy { max-width: none; display: grid; gap: 1rem; margin: clamp(1.5rem, 3vh, 3rem) 0; }
     .brand-hero-title {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: var(--kb-font-display);
       font-size: clamp(2rem, 3.2vw, 2.75rem);
       line-height: 1.15;
       font-weight: 800;
@@ -402,7 +402,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .brand-accent-text {
       font-style: italic;
-      background: linear-gradient(135deg, #E9D5FF 0%, #C084FC 50%, #A855F7 100%);
+      background: linear-gradient(135deg, var(--kb-color-primary-soft) 0%, var(--kb-color-primary) 50%, var(--kb-color-primary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -432,7 +432,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .feature-icon-badge {
       width: 36px; height: 36px; border-radius: 10px;
-      background: #FFFFFF; color: #6C27D9;
+      background: #FFFFFF; color: var(--kb-color-primary);
       display: grid; place-items: center; flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
     }
@@ -470,45 +470,45 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none;
     }
     .mobile-brand-meta { display: flex; flex-direction: column; }
-    .brand-subtitle { font-size: 0.72rem; color: #6C27D9; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .brand-subtitle { font-size: 0.72rem; color: var(--kb-color-primary); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 
     .auth-head h2 {
       margin: 0 0 0.35rem;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: var(--kb-font-display);
       font-size: clamp(1.6rem, 2.2vw, 1.85rem);
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.025em;
     }
-    .auth-head p { margin: 0; color: #64748B; font-size: 0.92rem; }
+    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.92rem; }
     .auth-form { display: grid; gap: 1.15rem; }
 
     .auth-card-footer {
       margin-top: 0.5rem;
       padding-top: 1rem;
-      border-top: 1px solid #F1F5F9;
+      border-top: 1px solid var(--kb-color-surface-2);
       text-align: center;
       font-size: 0.85rem;
     }
-    .footer-links { margin: 0; color: #64748B; font-size: 0.86rem; }
+    .footer-links { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.86rem; }
     .trust-badge-row {
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 0.76rem; color: #64748B; margin-top: 0.75rem;
+      font-size: 0.76rem; color: var(--kb-color-muted-foreground); margin-top: 0.75rem;
     }
     .trust-icon { font-size: 0.85rem; }
     .mobile-foot-row {
       display: none;
-      font-size: 0.76rem; color: #64748B; margin-top: 0.5rem;
+      font-size: 0.76rem; color: var(--kb-color-muted-foreground); margin-top: 0.5rem;
       justify-content: center; gap: 6px;
     }
-    .mobile-foot-link { color: #6C27D9; font-weight: 600; text-decoration: none; }
-    .mobile-foot-link:hover { text-decoration: underline; color: #4E37EB; }
+    .mobile-foot-link { color: var(--kb-color-primary); font-weight: 600; text-decoration: none; }
+    .mobile-foot-link:hover { text-decoration: underline; color: var(--kb-color-primary-hover); }
 
     .field { display: grid; gap: 0.35rem; }
     .field-row { display: flex; justify-content: space-between; align-items: center; }
     .field-label {
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
-      text-transform: uppercase; color: #475569;
+      text-transform: uppercase; color: var(--kb-color-muted-foreground);
     }
     .input-icon-wrap {
       position: relative;
@@ -519,18 +519,18 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .leading-icon {
       position: absolute;
       left: 14px;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       pointer-events: none;
       z-index: 1;
       flex-shrink: 0;
     }
     .field-input {
-      border: 1.5px solid #E2E8F0;
+      border: 1.5px solid var(--kb-color-border);
       border-radius: 10px;
       padding: 0.65rem 1rem;
       background: #FFFFFF;
       font-size: 0.93rem;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       height: 46px;
       box-sizing: border-box;
       width: 100%;
@@ -544,19 +544,19 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .field-input:focus {
       outline: none;
-      border-color: #6C27D9;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 3.5px rgba(108, 39, 217, 0.14);
     }
     .field-input::placeholder {
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
 
     .divider {
       display: flex; align-items: center; gap: 0.75rem;
-      color: #94A3B8; font-size: 0.78rem; font-weight: 500; margin: 0.25rem 0;
+      color: var(--kb-color-muted-foreground); font-size: 0.78rem; font-weight: 500; margin: 0.25rem 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: #E2E8F0;
+      content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
     }
 
     .google-wrap { display: grid; gap: 0.5rem; width: 100%; }
@@ -566,12 +566,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     #google-btn > div, #google-btn iframe { max-width: 100% !important; }
     .google-loading {
-      text-align: center; font-size: 0.82rem; color: #64748B;
+      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted-foreground);
       padding: 0.25rem 0;
     }
 
     .link-right {
-      color: #6C27D9;
+      color: var(--kb-color-primary);
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
@@ -585,11 +585,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
       transition: color 0.15s ease;
     }
-    .link-right:hover { color: #4E37EB; text-decoration: underline; }
-    .link-right:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: 4px; }
+    .link-right:hover { color: var(--kb-color-primary-hover); text-decoration: underline; }
+    .link-right:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: 4px; }
 
     .back-link {
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
@@ -603,12 +603,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex;
       align-items: center;
     }
-    .back-link:hover { color: #6C27D9; text-decoration: underline; }
-    .back-link:focus-visible { outline: 2px solid #6C27D9; outline-offset: 2px; border-radius: 4px; }
+    .back-link:hover { color: var(--kb-color-primary); text-decoration: underline; }
+    .back-link:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: 4px; }
 
     .primary-btn--block { width: 100%; justify-content: center; height: 48px; font-size: 0.95rem; }
     .primary-btn--hero {
-      background: linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
       color: #FFFFFF;
       font-weight: 700;
       letter-spacing: 0.01em;
@@ -623,7 +623,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: all 0.15s ease;
     }
     .primary-btn--hero:hover:not(:disabled) {
-      background: linear-gradient(135deg, #4E37EB 0%, #5B21B6 100%);
+      background: linear-gradient(135deg, var(--kb-color-primary-hover) 0%, var(--kb-color-primary-hover) 100%);
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(93, 69, 253, 0.45);
     }
@@ -632,9 +632,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
     }
     .primary-btn--hero:disabled {
-      background: #EDE9FE;
-      color: #8B5CF6;
-      border: 1px solid #DDD6FE;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
+      border: 1px solid var(--kb-color-primary-soft);
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -665,26 +665,26 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-width: 40px;
       min-height: 40px;
       padding: 8px;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       transition: color 0.15s ease;
       display: grid;
       place-items: center;
       z-index: 1;
     }
-    .toggle-pwd-btn:hover { color: #475569; }
+    .toggle-pwd-btn:hover { color: var(--kb-color-muted-foreground); }
     .pwd-icon { display: block; }
-    .toggle-pwd-btn:focus-visible { outline: 2px solid #6C27D9; outline-offset: -2px; border-radius: 4px; color: #475569; }
+    .toggle-pwd-btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; border-radius: 4px; color: var(--kb-color-muted-foreground); }
     .alert-box { border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; }
-    .alert-box.error { color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA; }
-    .alert-box.success { color: #059669; background: #ECFDF5; border: 1px solid #A7F3D0; }
+    .alert-box.error { color: var(--kb-color-danger); background: var(--kb-color-danger-soft); border: 1px solid var(--kb-color-danger-soft); }
+    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-success-soft); border: 1px solid var(--kb-color-success-soft); }
 
     @media (prefers-contrast: more) {
-      .field-input { border-color: #1C1A17; border-width: 2px; }
+      .field-input { border-color: var(--kb-color-foreground); border-width: 2px; }
       .field-label { color: #000000; font-weight: 700; }
-      .link-right, .back-link, .mobile-foot-link { color: #4321A9; text-decoration: underline; font-weight: 700; }
-      .primary-btn--hero { background: #4321A9; color: #FFFFFF; border: 2px solid #000000; }
+      .link-right, .back-link, .mobile-foot-link { color: var(--kb-color-primary-hover); text-decoration: underline; font-weight: 700; }
+      .primary-btn--hero { background: var(--kb-color-primary-hover); color: #FFFFFF; border: 2px solid #000000; }
       .divider { color: #000000; font-weight: 700; }
-      .divider::before, .divider::after { background: #1C1A17; height: 2px; }
+      .divider::before, .divider::after { background: var(--kb-color-foreground); height: 2px; }
     }
   `]
 })
@@ -749,7 +749,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
       const gsiReady = typeof google !== 'undefined' && google?.accounts?.id;
       // Render only once BOTH the GIS script is ready AND the target element
       // exists in the DOM. The #google-btn div lives inside *ngIf="forgotStep
-      // === 'none'", so it may not be present on the first tick — calling
+      // === 'none'", so it may not be present on the first tick â€” calling
       // renderButton(null, ...) makes GIS log "no parent" and draw nothing.
       if (gsiReady && target) {
         google.accounts.id.initialize({
@@ -844,7 +844,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         // Server always returns 200 to prevent user enumeration.
-        // Move to OTP step regardless — if the number isn't registered, no OTP arrives.
+        // Move to OTP step regardless â€” if the number isn't registered, no OTP arrives.
         this.forgotLoading = false;
         this.forgotStep = 'otp';
         this.forgotError = '';

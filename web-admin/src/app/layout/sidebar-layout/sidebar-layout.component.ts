@@ -319,20 +319,20 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
-      background: #DC2626;
-      color: #FFFFFF;
-      border: 1px solid #DC2626;
+      background: var(--kb-color-danger);
+      color: var(--kb-color-on-primary);
+      border: 1px solid var(--kb-color-danger);
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
-      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
       transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .logout-btn:hover {
-      background: #B91C1C;
-      border-color: #B91C1C;
-      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+      background: var(--kb-color-danger);
+      border-color: var(--kb-color-danger);
+      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
     .logout-btn:active {
       transform: scale(0.97);

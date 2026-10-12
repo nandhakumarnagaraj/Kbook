@@ -681,9 +681,11 @@ fun PaymentStep(
             }
         }
     ) {
+    val scrollState = rememberScrollState()
     Column(
             modifier = Modifier.fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScrollbar(scrollState)
+                    .verticalScroll(scrollState)
                     .padding(horizontal = layout.contentPadding, vertical = spacing.medium),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {

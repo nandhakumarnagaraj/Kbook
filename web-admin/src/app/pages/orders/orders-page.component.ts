@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -78,7 +78,7 @@ export function filterBusinessOrders(
         <div class="header-right">
           <button
             type="button"
-            class="ghost-btn-tactile"
+            class="ghost-btn"
             [disabled]="filteredOrders.length === 0"
             (click)="exportCsv()"
             title="Export filtered orders as CSV">
@@ -89,7 +89,7 @@ export function filterBusinessOrders(
             </svg>
             Export CSV
           </button>
-          <button type="button" class="primary-btn-tactile" (click)="loadOrders()">
+          <button type="button" class="refresh-btn" (click)="loadOrders()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -110,7 +110,7 @@ export function filterBusinessOrders(
           (click)="$event.stopPropagation()"
         >
           <h3 id="refund-dialog-title">Record Manual Refund</h3>
-          <p class="muted">Order {{ refundTarget.orderCode }} · Total {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
+          <p class="muted">Order {{ refundTarget.orderCode }} Â· Total {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
           <p class="hint-text">
             Use this only after the money has been returned outside KhanaBook. This action records the refund; it does not contact a payment gateway.
           </p>
@@ -182,10 +182,10 @@ export function filterBusinessOrders(
               <span class="chip danger">Void / Cancel Order</span>
               <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel.orderCode }}</h3>
               <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
-                Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} · {{ orderToCancel.customerName || 'Walk-in customer' }}
+                Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} Â· {{ orderToCancel.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
+            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">âœ•</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -215,7 +215,7 @@ export function filterBusinessOrders(
 
           <div class="modal-actions">
             <button type="button" class="ghost-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting">Keep Order</button>
-            <button type="button" class="primary-btn-tactile danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting">
+            <button type="button" class="primary-btn danger-btn" (click)="confirmCancelOrder()" [disabled]="cancelSubmitting">
               {{ cancelSubmitting ? 'Cancelling...' : 'Confirm Cancellation' }}
             </button>
           </div>
@@ -227,46 +227,6 @@ export function filterBusinessOrders(
         <app-date-range-selector [initialRange]="currentDateRange" (rangeChanged)="onDateRangeChange($event)"></app-date-range-selector>
       </div>
 
-      <!-- Bento KPI Strip (True Aggregates for Owner) -->
-      <section class="orders-bento-grid" *ngIf="ordersLoaded" aria-label="Orders Analytics Overview">
-        <article class="bento-tile bento-tile--hero">
-          <div class="bento-tile__head">
-            <span class="bento-tile__label">{{ summaryTitle }}</span>
-            <span class="bento-pulse-tag" *ngIf="activePreset === 'today'">● Live Session</span>
-            <span class="bento-pulse-tag bento-pulse-tag--neutral" *ngIf="activePreset !== 'today'">{{ dateRangeLabel }}</span>
-          </div>
-          <strong class="bento-tile__value">{{ formatCurrencyValue(summaryRevenue) }}</strong>
-          <div class="bento-split-bar">
-            <span class="split-sub">Cash: {{ formatCurrencyValue(summaryCashVolume) }}</span>
-            <span class="split-dot">&bull;</span>
-            <span class="split-sub">Digital / UPI: {{ formatCurrencyValue(summaryDigitalVolume) }}</span>
-          </div>
-        </article>
-
-        <article class="bento-tile">
-          <div class="bento-tile__head">
-            <span class="bento-tile__label">Orders &amp; Settlement</span>
-            <span class="kpi-mini-pill" *ngIf="summaryAov > 0">AOV: {{ formatCurrencyValue(summaryAov) }}</span>
-          </div>
-          <strong class="bento-tile__value">
-            {{ summaryOrderCount }}
-            <span class="bento-sub-metric">({{ summarySettlementRate }}% Settled)</span>
-          </strong>
-          <span class="bento-tile__sub">{{ summaryCompletedCount }} Paid · {{ summaryPendingCount }} Pending bills</span>
-        </article>
-
-        <article class="bento-tile" [class.bento-tile--alert]="summaryRefundedTotal > 0">
-          <div class="bento-tile__head">
-            <span class="bento-tile__label">Refunds &amp; Deductions</span>
-            <span class="kpi-mini-pill" [class.kpi-mini-pill--red]="summaryRefundedTotal > 0">
-              {{ summaryRefundedCount > 0 ? (summaryRefundedCount + ' Refunded') : 'Clean' }}
-            </span>
-          </div>
-          <strong class="bento-tile__value">{{ formatCurrencyValue(summaryRefundedTotal) }}</strong>
-          <span class="bento-tile__sub">{{ summaryRefundedCount }} orders refunded / voided</span>
-        </article>
-      </section>
-
       <app-api-state
         *ngIf="ordersError"
         [loading]="false"
@@ -274,7 +234,7 @@ export function filterBusinessOrders(
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <!-- ── Live Orders & Recent Transactions Section ── -->
+      <!-- â”€â”€ Live Orders & Recent Transactions Section â”€â”€ -->
       <section class="bento-orders-container" aria-label="Recent Orders and Transactions">
         <div class="orders-head-bar">
           <div class="orders-head-left">
@@ -367,7 +327,7 @@ export function filterBusinessOrders(
                 <td>
                   <div class="order-guest-desc">
                     <span class="guest-title">{{ order.customerName ? 'Guest: ' + order.customerName : (isTakeaway(order) ? 'Takeaway Order' : 'Dine In Order') }}</span>
-                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} · {{ order.paymentMethod || 'Cash' }}</span>
+                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} Â· {{ order.paymentMethod || 'Cash' }}</span>
                   </div>
                 </td>
                 <td>
@@ -521,7 +481,7 @@ export function filterBusinessOrders(
       gap: 1.5rem;
       margin-bottom: 1.5rem;
       padding-bottom: 1.25rem;
-      border-bottom: 1px solid #EEF0F7;
+      border-bottom: 1px solid var(--kb-color-border);
     }
     .header-title-row {
       display: flex;
@@ -533,7 +493,7 @@ export function filterBusinessOrders(
       margin: 0;
       font-size: 1.45rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
     }
     .record-counter-pill {
@@ -542,15 +502,15 @@ export function filterBusinessOrders(
       border-radius: 999px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #F1F5F9;
-      color: #475569;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      border: 1px solid var(--kb-color-border);
       font-variant-numeric: tabular-nums;
     }
     .header-sub {
       margin: 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .header-right {
       display: flex;
@@ -569,12 +529,12 @@ export function filterBusinessOrders(
     }
     .preset-pill-group {
       display: inline-flex;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
       padding: 3px;
       gap: 3px;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+      box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03);
     }
     .preset-pill {
       padding: 0.45rem 0.85rem;
@@ -583,196 +543,43 @@ export function filterBusinessOrders(
       border-radius: 9px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       transition: all 120ms ease;
     }
-    .preset-pill:hover { color: #0F172A; background: #F8FAFC; }
+    .preset-pill:hover { color: var(--kb-color-foreground); background: var(--kb-color-bg-app); }
     .preset-pill--active {
-      background: #6C27D9 !important;
-      color: #FFFFFF !important;
+      background: var(--kb-color-primary) !important;
+      color: var(--kb-color-surface) !important;
       box-shadow: 0 2px 6px rgba(108, 39, 217, 0.25);
     }
     .preset-pill--outline {
-      border: 1px solid #E2E8F0;
-      background: #FFFFFF;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface);
+      box-shadow: 0 1px 2px rgba(28, 26, 23, 0.04);
     }
     .custom-date-picker-drawer {
       margin-bottom: 1.25rem;
       padding: 1rem;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
       border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 2px 8px rgba(28, 26, 23, 0.04);
     }
-    .bento-sub-metric {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: #64748B;
-      margin-left: 0.35rem;
-    }
-    .kpi-mini-pill {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      background: #F1F5F9;
-      color: #475569;
-      font-variant-numeric: tabular-nums;
-    }
-    .kpi-mini-pill--red {
-      background: #FEE2E2;
-      color: #DC2626;
-    }
-    .bento-pulse-tag--neutral {
-      background: rgba(255, 255, 255, 0.15) !important;
-      color: #E2E8F0 !important;
-    }
-
-    /* Bento KPI Grid (bentogrids.com standard) */
-    .orders-bento-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    @media (max-width: 900px) {
-      .orders-bento-grid { grid-template-columns: 1fr; }
-    }
-    .bento-tile {
-      background: #FFFFFF;
-      border: 1px solid #EEF0F7;
-      border-radius: 18px;
-      padding: 1.25rem 1.4rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      transition: transform 140ms ease, box-shadow 140ms ease;
-    }
-    .bento-tile:hover {
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-    }
-    .bento-tile--hero {
-      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
-      color: #FFFFFF;
-      border: none;
-      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
-    }
-    .bento-tile--hero .bento-tile__label {
-      color: rgba(255, 255, 255, 0.75);
-    }
-    .bento-tile--hero .bento-tile__value {
-      color: #FFFFFF;
-    }
-    .bento-tile__head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .bento-tile__label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #8F95B2;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .bento-pulse-tag {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #34D399;
-      background: rgba(16, 185, 129, 0.15);
-      padding: 0.15rem 0.45rem;
-      border-radius: 999px;
-    }
-    .bento-tile__value {
-      font-size: 1.65rem;
-      font-weight: 800;
-      color: #0F172A;
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .bento-split-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.25rem;
-      font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.75);
-      font-variant-numeric: tabular-nums;
-    }
-    .split-dot {
-      color: rgba(255, 255, 255, 0.4);
-    }
-    .bento-tile__sub {
-      font-size: 0.78rem;
-      color: #64748B;
-      font-weight: 500;
-    }
-    .bento-tile--alert {
-      border-color: #FECACA;
-      background: #FFFBFB;
-    }
-    .bento-tile--alert .bento-tile__value {
-      color: #DC2626;
-    }
-
     /* Tactile CTA Buttons (cta.gallery & 60fps.design) */
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1rem;
-      background: #6C27D9;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .primary-btn-tactile:hover {
-      background: #5B21B6;
-      box-shadow: 0 4px 12px rgba(108, 39, 217, 0.3);
-    }
-    .primary-btn-tactile:active {
-      transform: scale(0.97);
-    }
+    
+    
+    
 
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1rem;
-      background: #FFFFFF;
-      color: #334155;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .ghost-btn-tactile:hover:not(:disabled) {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
-    }
-    .ghost-btn-tactile:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .ghost-btn-tactile:active:not(:disabled) {
-      transform: scale(0.97);
-    }
+    
+    
+    
+    
 
     /* Thermal Receipt Empty State (404s.design) */
     .receipt-empty-state {
-      background: #FFFFFF;
-      border: 1.5px dashed #CBD5E1;
+      background: var(--kb-color-surface);
+      border: 1.5px dashed var(--kb-color-border-strong);
       border-radius: 20px;
       padding: 3.5rem 1.5rem;
       text-align: center;
@@ -787,9 +594,9 @@ export function filterBusinessOrders(
       width: 60px;
       height: 60px;
       border-radius: 18px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      color: #94A3B8;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border);
+      color: var(--kb-color-muted-foreground);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -799,40 +606,40 @@ export function filterBusinessOrders(
       margin: 0;
       font-size: 1.1rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .receipt-empty-sub {
       margin: 0;
       font-size: 0.86rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       max-width: 380px;
       line-height: 1.45;
     }
 
     .chip--dine-in {
-      background: #EEF2FF;
-      color: #4F46E5;
-      border: 1px solid #C7D2FE;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
+      border: 1px solid var(--kb-color-primary-soft);
     }
     .chip--takeaway {
-      background: #FFFBEB;
-      color: #D97706;
-      border: 1px solid #FDE68A;
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
+      border: 1px solid var(--kb-color-warning-soft);
     }
     .chip--delivery {
-      background: #ECFDF5;
-      color: #059669;
-      border: 1px solid #A7F3D0;
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
+      border: 1px solid var(--kb-color-success-soft);
     }
 
     /* Bento Orders Container & Tactile Table */
     .bento-orders-container {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
       border-radius: 18px;
       padding: 1.5rem;
       margin-top: 1.5rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
+      box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03), 0 4px 12px rgba(28, 26, 23, 0.02);
     }
     .orders-head-bar {
       display: flex;
@@ -851,7 +658,7 @@ export function filterBusinessOrders(
       margin: 0;
       font-size: 1.2rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
     }
     .counter-badge {
@@ -860,14 +667,14 @@ export function filterBusinessOrders(
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .orders-sub {
       margin: 0.2rem 0 0;
       font-size: 0.85rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .orders-head-controls {
       display: flex;
@@ -877,7 +684,7 @@ export function filterBusinessOrders(
     }
     .channel-filter-tabs {
       display: inline-flex;
-      background: #F1F5F9;
+      background: var(--kb-color-surface-2);
       padding: 3px;
       border-radius: 10px;
       gap: 2px;
@@ -889,41 +696,41 @@ export function filterBusinessOrders(
       border-radius: 8px;
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       transition: all 120ms ease;
     }
-    .channel-tab-btn:hover { color: #1E293B; }
+    .channel-tab-btn:hover { color: var(--kb-color-foreground); }
     .channel-tab-btn--active {
-      background: #FFFFFF;
-      color: #0F172A;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
       font-weight: 700;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 1px 3px rgba(28, 26, 23, 0.08);
     }
     .order-search-box {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border);
       border-radius: 10px;
       padding: 0.45rem 0.75rem;
       width: 220px;
       transition: all 140ms ease;
     }
     .order-search-box:focus-within {
-      background: #FFFFFF;
-      border-color: #6C27D9;
+      background: var(--kb-color-surface);
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
     }
-    .order-search-box svg { color: #94A3B8; }
+    .order-search-box svg { color: var(--kb-color-muted-foreground); }
     .order-search-box input {
       border: none;
       background: transparent;
       outline: none;
       width: 100%;
       font-size: 0.82rem;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .order-status-select-wrap {
       display: inline-flex;
@@ -931,10 +738,10 @@ export function filterBusinessOrders(
     }
     .field-select-compact {
       padding: 0.45rem 0.75rem;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 10px;
-      background: #F8FAFC;
-      color: #334155;
+      background: var(--kb-color-bg-app);
+      color: var(--kb-color-muted-foreground);
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
@@ -942,12 +749,12 @@ export function filterBusinessOrders(
       min-height: 36px;
     }
     .field-select-compact:focus {
-      border-color: #6C27D9;
-      background: #FFFFFF;
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-surface);
     }
     .orders-table-wrapper {
       overflow-x: auto;
-      border: 1px solid #F1F5F9;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 12px;
     }
     .orders-tactile-table {
@@ -958,31 +765,31 @@ export function filterBusinessOrders(
     }
     .orders-tactile-table th {
       padding: 0.75rem 1rem;
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #64748B;
-      border-bottom: 1px solid #E2E8F0;
+      color: var(--kb-color-muted-foreground);
+      border-bottom: 1px solid var(--kb-color-border);
     }
     .orders-tactile-table td {
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #F1F5F9;
-      color: #334155;
+      border-bottom: 1px solid var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       vertical-align: middle;
     }
     .order-row-interactive {
       cursor: pointer;
       transition: background 120ms ease;
     }
-    .order-row-interactive:hover { background: #F8FAFC; }
+    .order-row-interactive:hover { background: var(--kb-color-bg-app); }
     .order-row-interactive:last-child td { border-bottom: none; }
     .order-hash-code {
-      font-family: monospace;
+      font-family: var(--kb-font-mono);
       font-weight: 700;
-      color: #0F172A;
-      background: #F1F5F9;
+      color: var(--kb-color-foreground);
+      background: var(--kb-color-surface-2);
       padding: 0.2rem 0.45rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -990,7 +797,7 @@ export function filterBusinessOrders(
     }
     .invoice-sub-badge {
       font-size: 0.72rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       margin-top: 0.15rem;
     }
     .channel-chip {
@@ -1001,8 +808,8 @@ export function filterBusinessOrders(
       font-weight: 700;
       letter-spacing: 0.02em;
     }
-    .channel-chip--dine_in { background: #EEF2FF; color: #4F46E5; }
-    .channel-chip--takeaway { background: #FEF3C7; color: #B45309; }
+    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .channel-chip--takeaway { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .order-guest-desc {
       display: flex;
       flex-direction: column;
@@ -1010,21 +817,21 @@ export function filterBusinessOrders(
     }
     .guest-title {
       font-weight: 600;
-      color: #1E293B;
+      color: var(--kb-color-foreground);
       font-size: 0.84rem;
     }
     .guest-meta {
       font-size: 0.74rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
     .order-table-amount {
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
     .refund-sub-badge {
       font-size: 0.72rem;
-      color: #DC2626;
+      color: var(--kb-color-danger);
       font-weight: 600;
       margin-top: 0.1rem;
     }
@@ -1035,14 +842,14 @@ export function filterBusinessOrders(
       font-size: 0.72rem;
       font-weight: 700;
     }
-    .badge-preparing { background: #FEF3C7; color: #92400E; }
-    .badge-cooking { background: #FFEDD5; color: #C2410C; }
-    .badge-served { background: #E0E7FF; color: #3730A3; }
-    .badge-completed { background: #ECFDF5; color: #065F46; }
-    .badge-cancelled { background: #FEE2E2; color: #991B1B; }
+    .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
+    .badge-cancelled { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
     .time-stamp-label {
       font-size: 0.76rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .action-btn-group {
@@ -1057,30 +864,30 @@ export function filterBusinessOrders(
       gap: 0.3rem;
       padding: 0.35rem 0.65rem;
       border-radius: 8px;
-      border: 1px solid #E2E8F0;
-      background: #FFFFFF;
-      color: #334155;
+      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-muted-foreground);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
       transition: all 120ms ease;
     }
-    .btn-micro:hover { background: #F1F5F9; border-color: #CBD5E1; }
+    .btn-micro:hover { background: var(--kb-color-surface-2); border-color: var(--kb-color-border-strong); }
     .btn-micro--primary {
-      background: #6C27D9;
-      border-color: #6C27D9;
-      color: #FFFFFF;
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-surface);
     }
-    .btn-micro--primary:hover { background: #5B21B6; }
+    .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
     .btn-micro--danger {
-      color: #DC2626;
-      border-color: #FECACA;
-      background: #FEF2F2;
+      color: var(--kb-color-danger);
+      border-color: var(--kb-color-danger-soft);
+      background: var(--kb-color-danger-soft);
     }
     .btn-micro--danger:hover {
-      background: #FEE2E2;
-      border-color: #F87171;
+      background: var(--kb-color-danger-soft);
+      border-color: var(--kb-color-danger);
     }
     .empty-orders-view {
       padding: 3rem 1.5rem;
@@ -1094,12 +901,12 @@ export function filterBusinessOrders(
       width: 56px;
       height: 56px;
       border-radius: 16px;
-      background: #F8FAFC;
-      border: 1px solid #EEF2F6;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border-strong);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       margin-bottom: 0.25rem;
     }
     .empty-actions-row {
@@ -1115,7 +922,7 @@ export function filterBusinessOrders(
       gap: 1rem;
       padding-top: 1rem;
       margin-top: 1rem;
-      border-top: 1px solid #F1F5F9;
+      border-top: 1px solid var(--kb-color-surface-2);
       flex-wrap: wrap;
     }
   `]
@@ -1156,26 +963,6 @@ export class OrdersPageComponent implements OnDestroy {
     };
   }
 
-  summaryRevenue = 0;
-  summaryOrderCount = 0;
-  summaryCompletedCount = 0;
-  summaryPendingCount = 0;
-  summaryRefundedTotal = 0;
-  summaryRefundedCount = 0;
-  summaryCashVolume = 0;
-  summaryDigitalVolume = 0;
-  summaryAov = 0;
-  summarySettlementRate = 0;
-
-  get summaryTitle(): string {
-    switch (this.activePreset) {
-      case 'today': return "Today's Gross Sales";
-      case 'yesterday': return "Yesterday's Gross Sales";
-      case 'custom': return "Period Gross Sales";
-      default: return "Orders Revenue";
-    }
-  }
-
   // Server-side pagination state
   serverTotalElements = 0;
   serverTotalPages = 1;
@@ -1183,7 +970,6 @@ export class OrdersPageComponent implements OnDestroy {
   // Date range filter state
   dateFrom: string | null = null;
   dateTo: string | null = null;
-  dateRangeLabel = 'Today';
 
   // Order detail modal state
   selectedOrderDetail: OrderDetailResponse | null = null;
@@ -1335,82 +1121,20 @@ export class OrdersPageComponent implements OnDestroy {
       const todayStr = formatIsoDate(now);
       this.dateFrom = todayStr;
       this.dateTo = todayStr;
-      this.dateRangeLabel = 'Today';
     } else if (preset === 'yesterday') {
       const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const yStr = formatIsoDate(y);
       this.dateFrom = yStr;
       this.dateTo = yStr;
-      this.dateRangeLabel = 'Yesterday';
     }
 
     this.orderCurrentPage = 1;
     this.loadOrders();
   }
 
-  loadPeriodSummary(): void {
-    const from = this.dateFrom ?? undefined;
-    const to = this.dateTo ?? undefined;
-    this.api.getDashboard(from, to).subscribe({
-      next: (data) => {
-        if (!data) return;
-        this.summaryRevenue = data.totalRevenue ?? (this.activePreset === 'today' ? data.todayRevenue : 0);
-        this.summaryOrderCount = data.posOrderCount ?? 0;
-        this.summaryPendingCount = data.pendingPosPayments ?? 0;
-        this.summaryCompletedCount = Math.max(0, this.summaryOrderCount - this.summaryPendingCount);
-        this.summaryRefundedTotal = data.refundedAmount ?? 0;
-        this.summaryRefundedCount = data.refundedOrders ?? 0;
-        this.summarySettlementRate = this.summaryOrderCount > 0
-          ? Math.round((this.summaryCompletedCount / this.summaryOrderCount) * 100)
-          : 0;
-        this.summaryAov = this.summaryCompletedCount > 0
-          ? Math.round(this.summaryRevenue / this.summaryCompletedCount)
-          : (this.summaryOrderCount > 0 ? Math.round(this.summaryRevenue / this.summaryOrderCount) : 0);
-
-        if (from && from === to) {
-          this.api.getDailyClosing(from).subscribe({
-            next: (closing: any) => {
-              if (closing) {
-                this.summaryCashVolume = closing.expectedCash ?? 0;
-                const net = closing.totalRevenue ?? this.summaryRevenue;
-                this.summaryDigitalVolume = Math.max(0, net - this.summaryCashVolume);
-                this.cdr.markForCheck();
-              }
-            },
-            error: () => {
-              this.recalcSplitsFromCurrentOrders();
-            }
-          });
-        } else {
-          this.recalcSplitsFromCurrentOrders();
-        }
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.recalcSplitsFromCurrentOrders();
-      }
-    });
-  }
-
-  private recalcSplitsFromCurrentOrders(): void {
-    const cash = this.orders.filter(o => (o.paymentMethod || '').toLowerCase().includes('cash')).reduce((acc, o) => acc + (o.totalAmount || 0), 0);
-    const digital = this.orders.filter(o => !(o.paymentMethod || '').toLowerCase().includes('cash')).reduce((acc, o) => acc + (o.totalAmount || 0), 0);
-    const totalSample = cash + digital;
-    if (totalSample > 0 && this.summaryRevenue > 0) {
-      const cashRatio = cash / totalSample;
-      this.summaryCashVolume = Math.round(this.summaryRevenue * cashRatio);
-      this.summaryDigitalVolume = Math.max(0, this.summaryRevenue - this.summaryCashVolume);
-    } else {
-      this.summaryCashVolume = cash;
-      this.summaryDigitalVolume = digital;
-    }
-    this.cdr.markForCheck();
-  }
-
   loadOrders(): void {
     this.ordersLoaded = false;
     this.ordersError = '';
-    this.loadPeriodSummary();
     const serverStatus = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
@@ -1422,7 +1146,6 @@ export class OrdersPageComponent implements OnDestroy {
         this.serverTotalPages = data.totalPages;
         this.ordersLoaded = true;
         this.ordersError = '';
-        this.recalcSplitsFromCurrentOrders();
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -1471,13 +1194,10 @@ export class OrdersPageComponent implements OnDestroy {
 
     if (range.from === today && range.to === today) {
       this.activePreset = 'today';
-      this.dateRangeLabel = 'Today';
     } else if (range.from === yest && range.to === yest) {
       this.activePreset = 'yesterday';
-      this.dateRangeLabel = 'Yesterday';
     } else {
       this.activePreset = 'custom';
-      this.dateRangeLabel = `${range.from} → ${range.to}`;
     }
 
     this.dateFrom = range.from;

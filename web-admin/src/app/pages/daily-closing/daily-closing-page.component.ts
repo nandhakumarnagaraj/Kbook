@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -50,7 +50,7 @@ interface DailyClosingData {
           <div class="header-title-row">
             <h2>Daily Closing &amp; Settlement</h2>
             <span class="settle-badge" [class.settle-badge--live]="isToday()" [class.settle-badge--closed]="!isToday()">
-              {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
+              {{ isToday() ? 'â— Live Session (Today)' : 'âœ“ Closed Business Day (' + selectedDate() + ')' }}
             </span>
           </div>
           <p class="header-sub">Count physical cash, audit payment splits, and verify recognized revenues.</p>
@@ -89,16 +89,16 @@ interface DailyClosingData {
               />
             </div>
           </div>
-          <button type="button" class="ghost-btn-tactile" [disabled]="loading()" (click)="load()">
+          <button type="button" class="refresh-btn" [disabled]="loading()" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            {{ loading() ? 'Calculating...' : 'Refresh' }}
+            Refresh
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="printSlip()" *ngIf="data()">
+          <button type="button" class="ghost-btn" (click)="printSlip()" *ngIf="data()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 6 2 18 2 18 9"/>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -106,7 +106,7 @@ interface DailyClosingData {
             </svg>
             Print Slip
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="exportClosing()" *ngIf="data()">
+          <button type="button" class="ghost-btn" (click)="exportClosing()" *ngIf="data()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
@@ -128,7 +128,7 @@ interface DailyClosingData {
       </div>
 
       <div class="panel loading" *ngIf="loading()">Calculating settlement figures...</div>
-      <div class="alert error" *ngIf="error()">{{ error() }} <button type="button" class="ghost-btn-tactile" (click)="load()">Retry</button></div>
+      <div class="alert error" *ngIf="error()">{{ error() }} <button type="button" class="ghost-btn" (click)="load()">Retry</button></div>
 
       <ng-container *ngIf="data() as d">
 
@@ -166,7 +166,6 @@ interface DailyClosingData {
               <h3 class="panel-heading">Physical Cash Drawer Reconciliation</h3>
               <p class="panel-sub">Compare physical counted cash against system recorded cash receipts.</p>
             </div>
-            <span class="status-chip-live">● Audit Mode</span>
           </div>
 
           <div class="reconciliation-grid">
@@ -177,9 +176,9 @@ interface DailyClosingData {
             </div>
 
             <div class="recon-card recon-card--input">
-              <span class="recon-label">Counted Drawer Cash (₹)</span>
+              <span class="recon-label">Counted Drawer Cash (â‚¹)</span>
               <div class="input-with-currency">
-                <span class="currency-prefix">₹</span>
+                <span class="currency-prefix">â‚¹</span>
                 <input
                   type="number"
                   class="cash-count-field"
@@ -266,17 +265,17 @@ interface DailyClosingData {
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: var(--pos-bg-body, #F6F8FD);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background: var(--pos-bg-body, var(--kb-color-surface-2));
+      font-family: var(--kb-font-sans);
     }
 
     .page-shell {
       padding: 1.5rem 2rem;
-      max-width: 1440px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
-    /* ── Header (navbar.gallery standard) ── */
+    /* â”€â”€ Header (navbar.gallery standard) â”€â”€ */
     .closing-header {
       display: flex;
       align-items: center;
@@ -284,7 +283,7 @@ interface DailyClosingData {
       gap: 1.5rem;
       margin-bottom: 1.75rem;
       padding-bottom: 1.25rem;
-      border-bottom: 1px solid #EEF0F7;
+      border-bottom: 1px solid var(--kb-color-surface-2);
     }
     .header-title-row {
       display: flex;
@@ -296,7 +295,7 @@ interface DailyClosingData {
       margin: 0;
       font-size: 1.45rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
     }
     .settle-badge {
@@ -307,24 +306,24 @@ interface DailyClosingData {
       border-radius: 999px;
       font-size: 0.76rem;
       font-weight: 700;
-      background: #F5F3FF;
-      color: #5D45FD;
-      border: 1px solid #DDD6FE;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
+      border: 1px solid var(--kb-color-primary-soft);
     }
     .settle-badge--live {
-      background: #ECFDF5;
-      color: #059669;
-      border-color: #A7F3D0;
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
+      border-color: var(--kb-color-success-soft);
     }
     .settle-badge--closed {
-      background: #F1F5F9;
-      color: #475569;
-      border-color: #CBD5E1;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      border-color: var(--kb-color-border-strong);
     }
     .header-sub {
       margin: 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .header-right {
       display: flex;
@@ -338,7 +337,7 @@ interface DailyClosingData {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      background: #EEF2F6;
+      background: var(--kb-color-surface-2);
       padding: 3px;
       border-radius: 12px;
     }
@@ -349,16 +348,16 @@ interface DailyClosingData {
       border-radius: 9px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .day-pill:hover {
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .day-pill--active {
       background: #FFFFFF;
-      color: #5D45FD;
+      color: var(--kb-color-primary);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     }
     .date-picker-wrap {
@@ -367,17 +366,17 @@ interface DailyClosingData {
     }
     .tactile-date-field {
       padding: 0.3rem 0.5rem;
-      border: 1px solid #CBD5E1;
+      border: 1px solid var(--kb-color-border-strong);
       border-radius: 8px;
       background: #FFFFFF;
-      color: #334155;
+      color: var(--kb-color-foreground);
       font-size: 0.8rem;
       font-weight: 500;
       min-height: 28px;
     }
     .tactile-date-field:focus {
       outline: none;
-      border-color: #5D45FD;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 2px rgba(93, 69, 253, 0.15);
     }
 
@@ -389,15 +388,15 @@ interface DailyClosingData {
       padding: 0.85rem 1.25rem;
       margin-bottom: 1.25rem;
       border-radius: 12px;
-      background: #FFFBEB;
-      border: 1px solid #FDE68A;
-      color: #B45309;
+      background: var(--kb-color-warning-soft);
+      border: 1px solid var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
       font-size: 0.86rem;
       line-height: 1.4;
     }
     .draft-warning-banner svg {
       flex-shrink: 0;
-      color: #D97706;
+      color: var(--kb-color-warning);
     }
 
     @media print {
@@ -405,43 +404,23 @@ interface DailyClosingData {
       body, .page-shell { background: #FFFFFF !important; padding: 0 !important; }
       .closing-bento-grid, .reconciliation-panel, .payment-splits-panel, .order-dist-panel {
         box-shadow: none !important;
-        border: 1px solid #E2E8F0 !important;
+        border: 1px solid var(--kb-color-border) !important;
       }
       .bento-kpi--hero {
         background: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 2px solid #0F172A !important;
+        color: var(--kb-color-foreground) !important;
+        border: 2px solid var(--kb-color-foreground) !important;
         box-shadow: none !important;
       }
-      .bento-kpi--hero .bento-kpi__value { color: #0F172A !important; }
-      .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub { color: #475569 !important; }
+      .bento-kpi--hero .bento-kpi__value { color: var(--kb-color-foreground) !important; }
+      .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub { color: var(--kb-color-muted-foreground) !important; }
     }
 
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1rem;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      color: #334155;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .ghost-btn-tactile:hover:not(:disabled) {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
-    }
-    .ghost-btn-tactile:active:not(:disabled) {
-      transform: scale(0.97);
-    }
+    
+    
+    
 
-    /* ── Bento KPI Row (bentogrids.com standard) ── */
+    /* â”€â”€ Bento KPI Row (bentogrids.com standard) â”€â”€ */
     .closing-bento-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -457,7 +436,7 @@ interface DailyClosingData {
 
     .bento-kpi {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.4rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -466,7 +445,7 @@ interface DailyClosingData {
       gap: 0.35rem;
     }
     .bento-kpi--hero {
-      background: linear-gradient(135deg, #5D45FD 0%, #4328E0 100%);
+      background: linear-gradient(135deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
       color: #FFFFFF;
       border: none;
       box-shadow: 0 8px 24px rgba(93, 69, 253, 0.28);
@@ -480,36 +459,36 @@ interface DailyClosingData {
     .bento-kpi__label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #8F95B2;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .bento-kpi__value {
       font-size: 1.65rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
     .bento-kpi__sub {
       font-size: 0.76rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .bento-kpi--alert {
-      border-color: #FECACA;
-      background: #FFFDFD;
+      border-color: var(--kb-color-danger-soft);
+      background: var(--kb-color-surface);
     }
-    .bento-kpi--alert .bento-kpi__value { color: #DC2626; }
+    .bento-kpi--alert .bento-kpi__value { color: var(--kb-color-danger); }
     .bento-kpi--warn {
-      border-color: #FDE68A;
-      background: #FFFDF7;
+      border-color: var(--kb-color-warning-soft);
+      background: var(--kb-color-surface);
     }
-    .bento-kpi--warn .bento-kpi__value { color: #D97706; }
+    .bento-kpi--warn .bento-kpi__value { color: var(--kb-color-warning); }
 
-    /* ── Cash Reconciliation Panel ── */
+    /* â”€â”€ Cash Reconciliation Panel â”€â”€ */
     .reconciliation-panel {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 20px;
       padding: 1.5rem 1.75rem;
       margin-bottom: 1.5rem;
@@ -525,22 +504,13 @@ interface DailyClosingData {
       margin: 0 0 0.2rem;
       font-size: 1.1rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .panel-sub {
       margin: 0;
       font-size: 0.84rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
-    .status-chip-live {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #059669;
-      background: #ECFDF5;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-    }
-
     .reconciliation-grid {
       display: grid;
       grid-template-columns: 1fr 1.2fr 1fr;
@@ -551,8 +521,8 @@ interface DailyClosingData {
     }
 
     .recon-card {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border);
       border-radius: 16px;
       padding: 1.25rem 1.4rem;
       display: flex;
@@ -562,26 +532,26 @@ interface DailyClosingData {
     .recon-label {
       font-size: 0.76rem;
       font-weight: 700;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .recon-value {
       font-size: 1.55rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
     .recon-hint {
       font-size: 0.75rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
-    .recon-card--match { border-color: #A7F3D0; background: #F0FDF4; }
-    .recon-card--match .recon-value { color: #059669; }
-    .recon-card--overage { border-color: #FDE68A; background: #FFFBEB; }
-    .recon-card--overage .recon-value { color: #D97706; }
-    .recon-card--shortage { border-color: #FECACA; background: #FEF2F2; }
-    .recon-card--shortage .recon-value { color: #DC2626; }
+    .recon-card--match { border-color: var(--kb-color-success-soft); background: var(--kb-color-success-soft); }
+    .recon-card--match .recon-value { color: var(--kb-color-success); }
+    .recon-card--overage { border-color: var(--kb-color-warning-soft); background: var(--kb-color-warning-soft); }
+    .recon-card--overage .recon-value { color: var(--kb-color-warning); }
+    .recon-card--shortage { border-color: var(--kb-color-danger-soft); background: var(--kb-color-danger-soft); }
+    .recon-card--shortage .recon-value { color: var(--kb-color-danger); }
 
     .input-with-currency {
       position: relative;
@@ -593,7 +563,7 @@ interface DailyClosingData {
       position: absolute;
       left: 1rem;
       font-weight: 700;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-size: 1.1rem;
     }
     .cash-count-field {
@@ -601,8 +571,8 @@ interface DailyClosingData {
       padding: 0.65rem 1rem 0.65rem 2.2rem;
       font-size: 1.25rem;
       font-weight: 800;
-      color: #0F172A;
-      border: 2px solid #CBD5E1;
+      color: var(--kb-color-foreground);
+      border: 2px solid var(--kb-color-border-strong);
       border-radius: 12px;
       background: #FFFFFF;
       font-variant-numeric: tabular-nums;
@@ -610,7 +580,7 @@ interface DailyClosingData {
       transition: border-color 140ms ease;
     }
     .cash-count-field:focus {
-      border-color: #5D45FD;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 3px rgba(93, 69, 253, 0.12);
     }
 
@@ -623,14 +593,14 @@ interface DailyClosingData {
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    .variance-badge--match { background: #ECFDF5; color: #059669; }
-    .variance-badge--over { background: #FFFBEB; color: #D97706; }
-    .variance-badge--short { background: #FEF2F2; color: #DC2626; }
+    .variance-badge--match { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
+    .variance-badge--over { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .variance-badge--short { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
 
-    /* ── Payment Splits Grid ── */
+    /* â”€â”€ Payment Splits Grid â”€â”€ */
     .payment-splits-panel {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 20px;
       padding: 1.5rem 1.75rem;
       margin-bottom: 1.5rem;
@@ -643,8 +613,8 @@ interface DailyClosingData {
       margin-top: 1rem;
     }
     .split-card {
-      background: #F8FAFC;
-      border: 1px solid #EEF0F7;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 14px;
       padding: 1.15rem 1.25rem;
       display: flex;
@@ -659,12 +629,12 @@ interface DailyClosingData {
       align-items: center;
       justify-content: center;
       background: #FFFFFF;
-      color: #5D45FD;
-      border: 1px solid #E2E8F0;
+      color: var(--kb-color-primary);
+      border: 1px solid var(--kb-color-border);
       flex-shrink: 0;
     }
-    .split-icon--cash { color: #D97706; background: #FFFDF7; }
-    .split-icon--upi { color: #059669; background: #F0FDF4; }
+    .split-icon--cash { color: var(--kb-color-warning); background: var(--kb-color-surface); }
+    .split-icon--upi { color: var(--kb-color-success); background: var(--kb-color-success-soft); }
     .split-meta {
       display: flex;
       flex-direction: column;
@@ -672,23 +642,23 @@ interface DailyClosingData {
     .split-label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .split-amount {
       font-size: 1.15rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
     .split-count {
       font-size: 0.72rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
 
-    /* ── Order Status Audit Row ── */
+    /* â”€â”€ Order Status Audit Row â”€â”€ */
     .order-dist-panel {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 20px;
       padding: 1.5rem 1.75rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -703,7 +673,7 @@ interface DailyClosingData {
       .audit-row-grid { grid-template-columns: 1fr 1fr; }
     }
     .audit-stat {
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
       border-radius: 12px;
       padding: 1rem 1.2rem;
       display: flex;
@@ -713,17 +683,17 @@ interface DailyClosingData {
     .stat-name {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .stat-digit {
       font-size: 1.4rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
-    .stat--success .stat-digit { color: #059669; }
-    .stat--danger .stat-digit { color: #DC2626; }
-    .stat--warn .stat-digit { color: #D97706; }
+    .stat--success .stat-digit { color: var(--kb-color-success); }
+    .stat--danger .stat-digit { color: var(--kb-color-danger); }
+    .stat--warn .stat-digit { color: var(--kb-color-warning); }
   `]
 })
 export class DailyClosingPageComponent {
@@ -874,9 +844,9 @@ export class DailyClosingPageComponent {
 
   getVarianceFormatted(expectedCash: number): string {
     const counted = this.countedCash();
-    if (counted === null || isNaN(counted)) return '—';
+    if (counted === null || isNaN(counted)) return 'â€”';
     const delta = counted - expectedCash;
-    if (Math.abs(delta) < 0.01) return '₹ 0.00';
+    if (Math.abs(delta) < 0.01) return 'â‚¹ 0.00';
     return (delta > 0 ? '+' : '') + this.fmt(delta);
   }
 

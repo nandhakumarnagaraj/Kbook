@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -124,7 +125,7 @@ internal fun ScanControls(
         Card(
             colors = CardDefaults.cardColors(containerColor = CardBG),
             shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().widthIn(max = KhanaBookTheme.layout.maxContentWidth)
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(KhanaBookTheme.spacing.medium)) {
                 Text(

@@ -49,6 +49,7 @@ Android/app/google-services.json
 Android/app/build/
 Android/app/*.apk
 Android/app/*.aab
+Android/*.aab
 
 # Python scripts (one-time utilities)
 *.py

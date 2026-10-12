@@ -230,7 +230,7 @@ fun NewBillScreen(
 
     val navigateToHome: () -> Unit = {
         if (navController != null) {
-            navController.navigate(Routes.main(0)) {
+            navController.navigate(Routes.main(NavigationTabs.TAB_HOME)) {
                 popUpTo(Routes.NEW_BILL_PATTERN) {
                     inclusive = true
                 }

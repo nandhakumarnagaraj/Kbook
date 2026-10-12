@@ -1,8 +1,10 @@
 package com.khanabook.lite.pos.feature.payments.ui
 import com.khanabook.lite.pos.feature.settings.ui.ConfigActionButtons
 import com.khanabook.lite.pos.feature.settings.ui.ConfigCard
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -153,14 +156,21 @@ fun PaymentConfigView(
         } else null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .imePadding()
-            .navigationBarsPadding()
-            .padding(layout.contentPadding)
+    val scrollState = rememberScrollState()
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScrollbar(scrollState)
+                .verticalScroll(scrollState)
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(layout.contentPadding)
+        ) {
         ConfigCard {
             if (readOnly) {
                 com.khanabook.lite.pos.feature.settings.ui.ReadOnlyConfigNotice(
@@ -381,6 +391,7 @@ fun PaymentConfigView(
             )
         }
     }
+}
 }
 
 @Composable

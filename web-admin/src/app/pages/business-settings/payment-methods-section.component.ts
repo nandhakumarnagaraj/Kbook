@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -155,7 +155,7 @@ export interface PaymentMethodsSettings {
             </span>
           </div>
         </div>
-        <div *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled" style="margin-top:1rem;padding:0.75rem;background:rgba(245,158,11,0.08);border:1px solid var(--kb-color-warning,#f59e0b);border-radius:8px;font-size:0.85rem">
+        <div *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled" style="margin-top:1rem;padding:0.75rem;background:rgba(183,121,31,0.08);border:1px solid var(--kb-color-warning);border-radius:8px;font-size:0.85rem">
           Sub-merchant onboarding required. Use the Android app to complete Easebuzz onboarding.
         </div>
       </div>
@@ -170,10 +170,10 @@ export interface PaymentMethodsSettings {
       align-items: center;
       gap: var(--kb-space-2);
       padding: var(--kb-space-3);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(192, 57, 43, 0.3);
+      background: rgba(192, 57, 43, 0.05);
       border-radius: var(--kb-radius-md);
-      color: var(--kb-color-error, #ef4444);
+      color: var(--kb-color-error);
       font-size: 0.85rem;
     }
     .config-error > div { flex: 1; }
@@ -188,7 +188,7 @@ export interface PaymentMethodsSettings {
       cursor: pointer;
       min-height: 36px;
     }
-    .config-error button:hover { background: rgba(239, 68, 68, 0.08); }
+    .config-error button:hover { background: rgba(192, 57, 43, 0.08); }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
@@ -201,28 +201,28 @@ export interface PaymentMethodsSettings {
     }
     .toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--kb-color-primary); }
     .upi-feedback { margin-top: 6px; font-size: 0.8rem; }
-    .feedback-success { color: var(--kb-color-success, #10b981); display: flex; align-items: center; gap: 4px; font-weight: 500; }
-    .feedback-warning { color: var(--kb-color-warning, #d97706); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .feedback-error { color: var(--kb-color-error, #ef4444); font-weight: 500; }
+    .feedback-success { color: var(--kb-color-success); display: flex; align-items: center; gap: 4px; font-weight: 500; }
+    .feedback-warning { color: var(--kb-color-warning); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .feedback-error { color: var(--kb-color-error); font-weight: 500; }
     .suggestion-btn {
-      background: none; border: 1px solid var(--kb-color-primary, #e59500);
-      color: var(--kb-color-primary, #e59500); border-radius: 4px;
+      background: none; border: 1px solid var(--kb-color-primary);
+      color: var(--kb-color-primary); border-radius: 4px;
       padding: 2px 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
     }
-    .suggestion-btn:hover { background: rgba(229, 149, 0, 0.1); }
+    .suggestion-btn:hover { background: rgba(232, 122, 30, 0.1); }
     .flow-mode-cards {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: var(--kb-space-3); margin-top: var(--kb-space-3);
     }
     .flow-mode-card {
       border: 1px solid var(--kb-color-border); border-radius: 8px;
-      padding: 0.85rem; background: var(--kb-color-surface-2, #f9fafb);
+      padding: 0.85rem; background: var(--kb-color-surface-2);
       cursor: pointer; transition: border-color 0.15s, background 0.15s;
     }
-    .flow-mode-card:hover { border-color: var(--kb-color-primary, #e59500); }
+    .flow-mode-card:hover { border-color: var(--kb-color-primary); }
     .flow-mode-card.active {
-      border-color: var(--kb-color-primary, #e59500);
-      background: rgba(229, 149, 0, 0.05);
+      border-color: var(--kb-color-primary);
+      background: rgba(232, 122, 30, 0.05);
     }
     .mode-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
     .mode-radio {
@@ -230,19 +230,19 @@ export interface PaymentMethodsSettings {
       display: inline-block; box-sizing: border-box;
     }
     .flow-mode-card.active .mode-radio {
-      border-color: var(--kb-color-primary, #e59500);
-      background: var(--kb-color-primary, #e59500);
-      box-shadow: inset 0 0 0 2px #fff;
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary);
+      box-shadow: inset 0 0 0 2px var(--kb-color-primary-foreground);
     }
     .flow-mode-card p { margin: 0; font-size: 0.8rem; line-height: 1.4; }
     .upi-test-panel { margin-top: var(--kb-space-3); }
     .test-qr-card {
       display: flex; gap: var(--kb-space-3); align-items: center;
-      background: var(--kb-color-surface-2, #f9fafb); border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
       border-radius: 10px; padding: 1rem; flex-wrap: wrap;
     }
     .test-qr-media {
-      width: 140px; height: 140px; background: #ffffff; border-radius: 8px;
+      width: 140px; height: 140px; background: var(--kb-color-surface); border-radius: 8px;
       padding: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex;
       align-items: center; justify-content: center; flex-shrink: 0;
     }
@@ -251,14 +251,14 @@ export interface PaymentMethodsSettings {
     .test-qr-content { flex: 1; min-width: 240px; }
     .test-qr-badge {
       display: inline-block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success, #10b981);
+      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success);
       padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
     }
     .test-qr-content h4 { margin: 0 0 4px; font-size: 1rem; color: var(--kb-color-foreground); }
     .test-qr-content p { margin: 0 0 8px; font-size: 0.82rem; }
     .test-qr-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.78rem; }
     .meta-tag {
-      background: var(--kb-color-surface-1, #ffffff); border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-surface-1); border: 1px solid var(--kb-color-border);
       padding: 3px 8px; border-radius: 4px;
     }
   `]

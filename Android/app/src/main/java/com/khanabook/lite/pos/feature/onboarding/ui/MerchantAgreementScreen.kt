@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -165,11 +166,13 @@ fun MerchantAgreementScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentAlignment = Alignment.TopCenter
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = modifier
                     .fillMaxSize()
                     .widthIn(max = layout.maxContentWidth)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScrollbar(scrollState)
+                    .verticalScroll(scrollState)
                     .padding(horizontal = spacing.large, vertical = spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.WindowInsets
@@ -43,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.AlertDialog
@@ -280,13 +282,20 @@ fun ShopConfigView(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
-            .verticalScroll(rememberScrollState())
-            .padding(layout.contentPadding)
+    val scrollState = rememberScrollState()
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
+                .verticalScrollbar(scrollState)
+                .verticalScroll(scrollState)
+                .padding(layout.contentPadding)
+        ) {
         ConfigCard {
             Text("Shop Profile", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -536,10 +545,9 @@ fun ShopConfigView(
                 isSaving = saveProfileLoading,
                 saveEnabled = !readOnly
             )
-            // Extra bottom clearance so lower fields and Save button comfortably scroll above keyboard
-            Spacer(modifier = Modifier.height(spacing.huge))
         }
     }
+}
 
     if (showModePinDialog) {
         AlertDialog(

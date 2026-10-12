@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
@@ -55,8 +55,8 @@ export interface BottomActionBarItem {
       display: flex;
       justify-content: space-around;
       align-items: stretch;
-      background: var(--kb-color-surface, #FFFFFF);
-      border-top: 1px solid var(--kb-color-border, #EFE9DE);
+      background: var(--kb-color-surface);
+      border-top: 1px solid var(--kb-color-border);
       padding: var(--kb-space-2, 8px) var(--kb-space-2, 8px) max(var(--kb-space-2, 8px), env(safe-area-inset-bottom));
       box-shadow: 0 -4px 16px rgba(42, 31, 23, 0.08);
       gap: var(--kb-space-1, 4px);
@@ -72,7 +72,7 @@ export interface BottomActionBarItem {
       gap: 3px;
       padding: 6px 2px;
       border-radius: 12px;
-      color: var(--kb-color-muted-foreground, #6B655C);
+      color: var(--kb-color-muted-foreground);
       text-decoration: none;
       font-size: 0.68rem;
       font-weight: 600;
@@ -96,15 +96,15 @@ export interface BottomActionBarItem {
     }
     .action-item:active { transform: scale(0.95); }
     .action-item--active {
-      color: var(--pos-purple, #5D45FD);
-      background: rgba(93, 69, 253, 0.1);
+      color: var(--kb-color-primary);
+      background: rgba(108, 39, 217, 0.1);
     }
     .kb-badge {
       position: absolute;
       top: 2px;
       right: calc(50% - 18px);
-      background: var(--kb-color-danger, #C0392B);
-      color: #FFFFFF;
+      background: var(--kb-color-danger);
+      color: var(--kb-color-surface);
       font-size: 0.6rem;
       font-weight: 700;
       line-height: 1;

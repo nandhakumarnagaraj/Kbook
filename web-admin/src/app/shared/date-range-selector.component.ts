@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -94,9 +94,9 @@ export function getPresetDateRange(
       min-height: 36px;
       padding: 0.45rem 0.85rem;
       border-radius: 9px;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       background: #FFFFFF;
-      color: #334155;
+      color: var(--kb-color-foreground);
       font-size: 0.82rem;
       font-weight: 600;
       white-space: nowrap;
@@ -105,15 +105,15 @@ export function getPresetDateRange(
     }
 
     .date-range__preset-btn:hover {
-      border-color: #6C27D9;
-      color: #6C27D9;
-      background: #FAF8FF;
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-primary);
+      background: var(--kb-color-surface);
     }
 
     .date-range__preset-btn--active {
-      background: #6C27D9;
+      background: var(--kb-color-primary);
       color: #FFFFFF;
-      border-color: #6C27D9;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 2px 8px rgba(108, 39, 217, 0.25);
     }
 
@@ -124,27 +124,27 @@ export function getPresetDateRange(
       background: #FFFFFF;
       padding: 0.2rem 0.5rem;
       border-radius: 9px;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
     }
 
     .date-range__input {
       padding: 0.35rem 0.5rem;
-      border: 1px solid #CBD5E1;
+      border: 1px solid var(--kb-color-border-strong);
       border-radius: 6px;
       background: #FFFFFF;
-      color: #1E293B;
+      color: var(--kb-color-foreground);
       font-size: 0.82rem;
       min-height: 32px;
     }
 
     .date-range__input:focus {
       outline: none;
-      border-color: #6C27D9;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 2px rgba(108, 39, 217, 0.15);
     }
 
     .date-range__separator {
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-size: 0.8rem;
       font-weight: 500;
     }
@@ -152,8 +152,8 @@ export function getPresetDateRange(
     .date-range__label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
-      background: #F1F5F9;
+      color: var(--kb-color-muted-foreground);
+      background: var(--kb-color-surface-2);
       padding: 0.3rem 0.65rem;
       border-radius: 6px;
     }
@@ -225,11 +225,11 @@ export class DateRangeSelectorComponent {
     if (preset === 'custom') {
       const from = this.customFrom();
       const to = this.customTo();
-      if (from && to) return `${from} → ${to}`;
+      if (from && to) return `${from} â†’ ${to}`;
       return '';
     }
     const { from, to } = getPresetDateRange(preset);
-    return `${from} → ${to}`;
+    return `${from} â†’ ${to}`;
   });
 
   trackByIndex = (_: number, __: unknown) => _;

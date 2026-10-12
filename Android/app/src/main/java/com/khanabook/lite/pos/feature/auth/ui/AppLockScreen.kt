@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Fingerprint
@@ -51,6 +52,7 @@ fun AppLockScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val showBiometric = remember { viewModel.hasBiometric(context) }
     val allowedAuthenticators = remember { viewModel.allowedAuthenticators(context) }
     val scrollState = rememberScrollState()
@@ -132,6 +134,8 @@ fun AppLockScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScrollbar(scrollState)
                 .verticalScroll(scrollState)
                 .statusBarsPadding()
                 .navigationBarsPadding()

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -126,9 +127,12 @@ fun PaymentLevelView(
     val mainModes = enabledModes.filter { !com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.isPartPayment(it) }
     val partModes = enabledModes.filter { com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.isPartPayment(it) }
 
+    val listState = rememberLazyListState()
     LazyColumn(
+        state = listState,
         modifier = modifier
             .fillMaxWidth()
+            .verticalScrollbar(listState)
             .padding(horizontal = spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.small),
         contentPadding = PaddingValues(bottom = spacing.medium)
@@ -177,7 +181,7 @@ fun ReportDownloadBottomBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = spacing.small, bottom = spacing.small)
+            .padding(top = spacing.small, bottom = spacing.medium)
     ) {
         KhanaPrimaryButton(
             text = if (isExporting) "Exporting..." else "Download Reports",
@@ -188,7 +192,7 @@ fun ReportDownloadBottomBar(
             enabled = !isExporting,
             isLoading = isExporting,
             leadingIcon = Icons.Default.Download,
-            height = 44.dp
+            height = spacing.buttonHeightLarge
         )
     }
 }
@@ -337,10 +341,13 @@ fun OrderLevelView(
                 )
             }
         } else {
+            val listState = rememberLazyListState()
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .verticalScrollbar(listState)
                     .padding(horizontal = spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
                 contentPadding = PaddingValues(bottom = spacing.small)
@@ -376,6 +383,7 @@ fun OrderRowItem(
     var statusExpanded by remember { mutableStateOf(false) }
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
     // Mode/status edits are allowed only on the SAME DAY the bill was taken
     // (owner request). Unknown timestamps (createdAt == 0, legacy callers) stay
@@ -458,7 +466,10 @@ fun OrderRowItem(
                     Text(
                         text = row.paymentMode.displayLabel,
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = layout.tableCellFontSize,
+                            fontWeight = FontWeight.Bold
+                        ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         maxLines = 1
@@ -505,7 +516,10 @@ fun OrderRowItem(
                             else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
                         },
                         color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = layout.tableCellFontSize,
+                            fontWeight = FontWeight.Bold
+                        ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         maxLines = 1
@@ -551,7 +565,9 @@ fun OrderRowItem(
                     Text(
                         "View",
                         color = TextLight,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = layout.tableCellFontSize
+                        ),
                         modifier = Modifier.padding(horizontal = spacing.small - spacing.hairline, vertical = spacing.hairline)
                     )
                 }

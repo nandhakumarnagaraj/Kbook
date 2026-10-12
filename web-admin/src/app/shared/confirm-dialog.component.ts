@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -105,8 +105,8 @@ import {
       font-weight: 700;
     }
     .confirm-dialog__btn:focus-visible { outline: 3px solid rgba(181, 106, 45, 0.28); outline-offset: 2px; }
-    .confirm-dialog__btn--cancel { color: var(--ink); background: #f4ece1; border: 1px solid var(--line); }
-    .confirm-dialog__btn--confirm { color: #fff; background: var(--brand); }
+    .confirm-dialog__btn--cancel { color: var(--ink); background: var(--kb-color-muted); border: 1px solid var(--line); }
+    .confirm-dialog__btn--confirm { color: var(--kb-color-on-primary); background: var(--brand); }
     .confirm-dialog__btn--danger { background: var(--danger); }
     @media (max-width: 480px) {
       .confirm-dialog__overlay { place-items: end stretch; padding: 0; }

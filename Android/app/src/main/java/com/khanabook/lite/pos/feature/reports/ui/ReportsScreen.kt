@@ -102,11 +102,13 @@ fun ReportsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
                 .padding(bottom = spacing.small)
         ) {
             
@@ -117,10 +119,16 @@ fun ReportsScreen(
                         .padding(spacing.medium),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .size(layout.topBarIconButtonSize)
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
+                            modifier = Modifier.size(layout.topBarIconSize),
                             tint = PrimaryGold
                         )
                     }

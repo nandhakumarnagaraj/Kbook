@@ -156,7 +156,9 @@ class DatabaseProvider @Inject constructor(
             if (
                 "file is not a database" in message ||
                 "sqlite_master" in message ||
-                ("not an error" in message && "cipher" in message)
+                ("not an error" in message && "cipher" in message) ||
+                "migration" in message ||
+                "cannot verify the data integrity" in message
             ) {
                 return true
             }
@@ -199,6 +201,8 @@ class DatabaseProvider @Inject constructor(
         )
             .openHelperFactory(factory)
             .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .fallbackToDestructiveMigrationOnDowngrade()
+            .fallbackToDestructiveMigrationFrom(*(1 until 17).toList().toIntArray())
             .build()
     }
 

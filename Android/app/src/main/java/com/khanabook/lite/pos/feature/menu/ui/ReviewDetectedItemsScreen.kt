@@ -10,6 +10,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
@@ -82,6 +83,7 @@ internal fun ReviewDetectedItemsOverlay(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth(0.96f)
+                .widthIn(max = KhanaBookTheme.layout.maxContentWidth)
                 .fillMaxHeight(0.96f)
                 .padding(bottom = 10.dp, top = 10.dp)
                 .imePadding()
@@ -156,10 +158,13 @@ internal fun ReviewDetectedItemsOverlay(
                     )
                 }
 
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .verticalScrollbar(listState),
                     verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
                     contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = KhanaBookTheme.spacing.small)
                 ) {

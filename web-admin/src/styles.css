@@ -66,7 +66,7 @@
   /* Typography                                                              */
   /* ---------------------------------------------------------------------- */
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
@@ -102,10 +102,19 @@
   --kb-color-danger-soft:       #F9E7E3;
   --kb-color-info:              #2B6CB0;
   --kb-color-info-soft:         #E5EEF7;
+  /* Aliases for legacy token names still referenced by page components */
+  --kb-color-card:              var(--kb-color-surface);
+  --kb-color-surface-1:         var(--kb-color-surface);
+  --kb-color-on-primary:        #FFFFFF;
+  --kb-color-primary-rgb:       108, 39, 217;
+  --kb-color-error:             var(--kb-color-danger);
+  --kb-color-error-soft:        var(--kb-color-danger-soft);
+  --kb-easing-fast:             var(--kb-ease-standard);
+  --kb-font-caption:            0.75rem;
   --kb-gradient-hero:           linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
   --kb-gradient-cream:          linear-gradient(180deg, #FBF8F1 0%, #F5EFE3 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
-  --kb-font-display:            "Instrument Serif", serif;
+  --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
   --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
   --kb-font-size-h1:            1.75rem;
@@ -163,7 +172,7 @@ body {
 }
 
 h1, h2, h3, h4, p { margin-top: 0; }
-h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; color: var(--ink); }
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
 
 button, input, select, textarea { font: inherit; }
 
@@ -172,10 +181,12 @@ a:hover { color: var(--brand-deep); }
 
 /* ============ Page shell ============ */
 .page-shell {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
   padding: 1.5rem;
   display: grid;
   gap: 1.25rem;
-  max-width: 1400px;
 }
 
 .panel {
@@ -399,6 +410,35 @@ tbody tr:hover { background: var(--panel-2); }
 .ghost-btn:active { transform: scale(0.97); }
 .ghost-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .ghost-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* ============ Refresh Button (uniform colored CTA) ============ */
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  background: var(--brand);
+  color: #fff;
+  border: 1px solid var(--brand);
+  border-radius: var(--r-lg);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.refresh-btn:hover:not([disabled]) {
+  background: var(--brand-deep);
+  border-color: var(--brand-deep);
+  box-shadow: 0 4px 12px rgba(108, 39, 217, 0.3);
+}
+.refresh-btn:active:not([disabled]) { transform: scale(0.97); }
+.refresh-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.refresh-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+.refresh-btn .spinning { animation: spin 800ms linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .danger-btn {
   color: var(--danger) !important;

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -14,7 +14,7 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent],
   styles: [`
     .page-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
     }
     .page-header h2 { margin: 0; }
     .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
@@ -27,15 +27,15 @@ import { ToastService } from '../../core/services/toast.service';
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .material-card:hover { border-color: var(--kb-color-primary); box-shadow: 0 0 0 1px var(--kb-color-primary); }
-    .material-card.low-stock { border-left: 3px solid var(--kb-color-warning, #f59e0b); }
+    .material-card.low-stock { border-left: 3px solid var(--kb-color-warning); }
     .material-name { font-weight: 600; font-size: 0.95rem; }
     .material-stock { font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
     .material-stock strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
     .low-label { color: var(--kb-color-error); font-weight: 600; font-size: 0.75rem; }
     .chip { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
-    .chip-green { background: rgba(34,197,94,0.12); color: #16a34a; }
-    .chip-amber { background: rgba(245,158,11,0.12); color: #d97706; }
-    .chip-red { background: rgba(239,68,68,0.12); color: #dc2626; }
+    .chip-green { background: rgba(47,133,90,0.12); color: var(--kb-color-success); }
+    .chip-amber { background: rgba(183,121,31,0.12); color: var(--kb-color-warning); }
+    .chip-red { background: rgba(192,57,43,0.12); color: var(--kb-color-danger); }
     .modal-content { width: 100%; max-width: 480px; }
     .modal-content h3 { margin: 0 0 1.25rem; }
     .form-group { margin-bottom: 1rem; }
@@ -48,9 +48,9 @@ import { ToastService } from '../../core/services/toast.service';
     .tab.active { color: var(--kb-color-primary); border-bottom-color: var(--kb-color-primary); }
     .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--kb-color-border); font-size: 0.85rem; }
     .movement-type { font-weight: 500; }
-    .movement-qty { font-family: monospace; }
-    .movement-qty.positive { color: #16a34a; }
-    .movement-qty.negative { color: #dc2626; }
+    .movement-qty { font-family: var(--kb-font-mono); }
+    .movement-qty.positive { color: var(--kb-color-success); }
+    .movement-qty.negative { color: var(--kb-color-danger); }
     .action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--kb-color-border); }
     .table-wrap { overflow-x: auto; }
     table.styled { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
@@ -59,24 +59,24 @@ import { ToastService } from '../../core/services/toast.service';
     table.styled tr:hover td { background: rgba(0,0,0,0.02); }
     .preview-notice-banner {
       display: flex; align-items: flex-start; gap: 0.85rem; padding: 0.85rem 1.15rem; border-radius: 10px;
-      background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); margin-bottom: 1.25rem;
+      background: rgba(183, 121, 31, 0.08); border: 1px solid rgba(183, 121, 31, 0.25); margin-bottom: 1.25rem;
     }
-    .banner-icon-wrap { color: #f59e0b; display: flex; align-items: center; margin-top: 2px; }
+    .banner-icon-wrap { color: var(--kb-color-warning); display: flex; align-items: center; margin-top: 2px; }
     .banner-content { flex: 1; }
     .banner-title-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem; }
     .banner-title-row strong { font-size: 0.92rem; color: var(--kb-color-foreground); }
     .preview-pill {
       font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-      padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(245, 158, 11, 0.2);
-      color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(183, 121, 31, 0.2);
+      color: var(--kb-color-warning); border: 1px solid rgba(183, 121, 31, 0.35);
     }
     .banner-desc { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
   `],
   template: `
-    <div style="padding:0">
+    <div class="page-shell">
       <div class="page-header">
         <h2>Inventory</h2>
-        <div style="display:flex;gap:0.5rem">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
           <button class="ghost-btn" (click)="loadMaterials()" [disabled]="loading">Refresh</button>
           <button class="primary-btn" (click)="openAddMaterial()">+ Add Material</button>
         </div>
@@ -165,7 +165,7 @@ import { ToastService } from '../../core/services/toast.service';
                 {{ mv.createdAt | date:'short' }}
               </span>
               <span *ngIf="mv.reason" style="margin-left:0.5rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
-                — {{ mv.reason }}
+                â€” {{ mv.reason }}
               </span>
             </div>
             <span class="movement-qty" [class.positive]="mv.quantity > 0" [class.negative]="mv.quantity < 0">
@@ -210,7 +210,7 @@ import { ToastService } from '../../core/services/toast.service';
                   <td>{{ v.materialName }}</td>
                   <td>{{ v.systemStock }}</td>
                   <td>{{ v.physicalCount }}</td>
-                  <td [style.color]="v.variance < 0 ? '#dc2626' : v.variance > 0 ? '#16a34a' : ''">
+                  <td [style.color]="v.variance < 0 ? 'var(--kb-color-danger)' : v.variance > 0 ? 'var(--kb-color-success)' : ''">
                     {{ v.variance > 0 ? '+' : '' }}{{ v.variance }}
                   </td>
                   <td>{{ v.variancePct | number:'1.1-1' }}%</td>
@@ -255,7 +255,7 @@ import { ToastService } from '../../core/services/toast.service';
               <input class="field-control" type="number" [(ngModel)]="materialForm.lowStockThreshold" min="0" step="0.01" />
             </div>
             <div class="form-group">
-              <label>Cost per Unit (₹)</label>
+              <label>Cost per Unit (â‚¹)</label>
               <input class="field-control" type="number" [(ngModel)]="materialForm.costPerUnit" min="0" step="0.01" />
             </div>
           </div>
@@ -275,7 +275,7 @@ import { ToastService } from '../../core/services/toast.service';
           <h3>{{ selectedMaterial?.name }}</h3>
           <p style="margin:0 0 1rem;color:var(--kb-color-muted-foreground)">
             Current stock: <strong style="font-variant-numeric:tabular-nums">{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
-            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
+            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> Â· Cost: â‚¹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
           </p>
 
           <!-- Action sub-tabs -->
@@ -293,7 +293,7 @@ import { ToastService } from '../../core/services/toast.service';
                 <input class="field-control" type="number" [(ngModel)]="purchaseForm.quantity" min="0.01" step="0.01" />
               </div>
               <div class="form-group">
-                <label>Unit Cost (₹)</label>
+                <label>Unit Cost (â‚¹)</label>
                 <input class="field-control" type="number" [(ngModel)]="purchaseForm.unitCost" min="0" step="0.01" />
               </div>
             </div>

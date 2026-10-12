@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
@@ -36,7 +36,7 @@ import { ToastService } from '../core/services/toast.service';
       >
         <div class="order-modal__header">
           <h3 id="order-detail-title" class="order-modal__title">Order #{{ order.order.orderCode }}</h3>
-          <button #closeButton type="button" class="order-modal__close" (click)="close()" aria-label="Close order details">✕</button>
+          <button #closeButton type="button" class="order-modal__close" (click)="close()" aria-label="Close order details">âœ•</button>
         </div>
 
         <div class="order-modal__details">
@@ -54,11 +54,11 @@ import { ToastService } from '../core/services/toast.service';
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Customer</span>
-            <span class="order-modal__value">{{ order.order.customerName || '—' }}</span>
+            <span class="order-modal__value">{{ order.order.customerName || 'â€”' }}</span>
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Contact</span>
-            <span class="order-modal__value">{{ order.order.customerContact || '—' }}</span>
+            <span class="order-modal__value">{{ order.order.customerContact || 'â€”' }}</span>
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Status</span>
@@ -344,8 +344,8 @@ import { ToastService } from '../core/services/toast.service';
     }
 
     .action-btn-link.primary-action {
-      background: var(--brand, #c85a00);
-      color: #fff;
+      background: var(--brand);
+      color: var(--kb-color-on-primary);
     }
 
     .action-btn-link.primary-action:hover {
@@ -361,7 +361,7 @@ import { ToastService } from '../core/services/toast.service';
       font-size: 0.82rem;
       font-weight: 600;
       background: rgba(37, 211, 102, 0.12);
-      color: #128c7e;
+      color: var(--kb-color-success);
       border: 1px solid rgba(37, 211, 102, 0.3);
       cursor: pointer;
       transition: background 0.15s;
@@ -373,12 +373,12 @@ import { ToastService } from '../core/services/toast.service';
 
     .chip--dine-in {
       background: rgba(59, 130, 246, 0.12);
-      color: #2563eb;
+      color: var(--kb-color-info);
     }
 
     .chip--takeaway {
       background: rgba(245, 158, 11, 0.12);
-      color: #d97706;
+      color: var(--kb-color-warning);
     }
 
     @media (max-width: 480px) {

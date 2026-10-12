@@ -2,12 +2,15 @@ package com.khanabook.lite.pos.feature.auth.ui
 import com.khanabook.lite.pos.feature.settings.ui.SettingsItem
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.khanabook.lite.pos.feature.auth.ui.SettingsGroupLabel
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 
 @Composable
@@ -28,14 +32,22 @@ fun SettingsListView(
     onSelectItem: (String) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScrollbar(scrollState)
+                .verticalScroll(scrollState)
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
         SettingsGroupLabel("Security")
         // SettingsItem renders its own complete card — no outer wrapper box,
         // otherwise you get a card inside a card.
@@ -91,4 +103,5 @@ fun SettingsListView(
             modifier = Modifier.fillMaxWidth()
         )
     }
+}
 }

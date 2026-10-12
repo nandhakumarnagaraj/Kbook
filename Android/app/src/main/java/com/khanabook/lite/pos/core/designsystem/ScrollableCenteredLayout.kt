@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -45,18 +46,27 @@ fun ScrollableCenteredLayout(
 ) {
     val layout = KhanaBookTheme.layout
     val spacing = KhanaBookTheme.spacing
+    val scrollState = rememberScrollState()
 
     Column(modifier = modifier.fillMaxSize()) {
-        Column(
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = layout.contentPadding, vertical = spacing.large),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            content()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .verticalScrollbar(scrollState)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = layout.contentPadding, vertical = spacing.large),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                content()
+            }
         }
 
         if (bottomBar != null) {
@@ -66,15 +76,22 @@ fun ScrollableCenteredLayout(
                 tonalElevation = 2.dp
             ) {
                 Box(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .imePadding()
-                        .padding(
-                            horizontal = layout.contentPadding,
-                            vertical = spacing.smallMedium
-                        )
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    bottomBar()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = layout.maxContentWidth)
+                            .navigationBarsPadding()
+                            .imePadding()
+                            .padding(
+                                horizontal = layout.contentPadding,
+                                vertical = spacing.smallMedium
+                            )
+                    ) {
+                        bottomBar()
+                    }
                 }
             }
         }

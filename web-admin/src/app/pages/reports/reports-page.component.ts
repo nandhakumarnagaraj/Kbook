@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rxjs';
@@ -27,22 +27,21 @@ function formatLocalDate(d: Date): string {
         <div class="header-left">
           <div class="header-title-row">
             <h2>Financial &amp; Sales Reports</h2>
-            <span class="owner-pill">● Executive View</span>
           </div>
           <p class="header-sub">Recognized revenues, billing volume, refund impact, and gateway reconciliation.</p>
         </div>
         <div class="header-right">
           <app-date-range-selector [initialRange]="selectedRange()" (rangeChanged)="setRange($event)"/>
-          <button type="button" class="ghost-btn-tactile" [disabled]="refreshing()" (click)="refresh()">
+          <button type="button" class="refresh-btn" [disabled]="refreshing()" (click)="refresh()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            {{ refreshing() ? 'Calculating...' : 'Refresh' }}
+            Refresh
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="exportCsv()" *ngIf="report()">
+          <button type="button" class="ghost-btn" (click)="exportCsv()" *ngIf="report()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
@@ -261,7 +260,7 @@ function formatLocalDate(d: Date): string {
                   <tbody>
                     <tr *ngFor="let row of ledger.entries; trackBy: trackByBillId">
                       <td class="font-bold">
-                        <a [href]="getInvoiceUrl(row)" target="_blank" rel="noopener noreferrer" style="color: var(--brand, #c85a00); text-decoration: underline;" title="View tax invoice">
+                        <a [href]="getInvoiceUrl(row)" target="_blank" rel="noopener noreferrer" style="color: var(--brand, var(--kb-color-primary)); text-decoration: underline;" title="View tax invoice">
                           {{ row.invoiceNumber }}
                         </a>
                       </td>
@@ -355,7 +354,7 @@ function formatLocalDate(d: Date): string {
       <ng-template #reportState>
         <div class="panel loading" *ngIf="error(); else loadingState" role="alert">
           <p>{{ error() }}</p>
-          <button type="button" class="primary-btn-tactile" (click)="refresh()">Try again</button>
+          <button type="button" class="primary-btn" (click)="refresh()">Try again</button>
         </div>
         <ng-template #loadingState>
           <div class="reports-bento-grid" role="status" aria-label="Loading reports">
@@ -370,17 +369,17 @@ function formatLocalDate(d: Date): string {
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: var(--pos-bg-body, #F6F8FD);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background: var(--pos-bg-body, var(--kb-color-surface-2));
+      font-family: var(--kb-font-sans);
     }
 
     .page-shell {
       padding: 1.5rem 2rem;
-      max-width: 1440px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
-    /* ── Header (navbar.gallery standard) ── */
+    /* â”€â”€ Header (navbar.gallery standard) â”€â”€ */
     .reports-header {
       display: flex;
       align-items: center;
@@ -388,7 +387,7 @@ function formatLocalDate(d: Date): string {
       gap: 1.5rem;
       margin-bottom: 1.75rem;
       padding-bottom: 1.25rem;
-      border-bottom: 1px solid #EEF0F7;
+      border-bottom: 1px solid var(--kb-color-surface-2);
     }
     .header-title-row {
       display: flex;
@@ -400,25 +399,13 @@ function formatLocalDate(d: Date): string {
       margin: 0;
       font-size: 1.45rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
-    }
-    .owner-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.2rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      background: #F3F0FF;
-      color: #5D45FD;
-      border: 1px solid #DDD6FE;
     }
     .header-sub {
       margin: 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .header-right {
       display: flex;
@@ -426,50 +413,14 @@ function formatLocalDate(d: Date): string {
       gap: 0.75rem;
     }
 
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1rem;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      color: #334155;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .ghost-btn-tactile:hover:not(:disabled) {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
-      color: #0F172A;
-    }
-    .ghost-btn-tactile:active:not(:disabled) {
-      transform: scale(0.97);
-    }
+    
+    
+    
 
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1.15rem;
-      background: #5D45FD;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .primary-btn-tactile:active {
-      transform: scale(0.97);
-    }
+    
+    
 
-    /* ── Bento Analytics Grid (bentogrids.com standard) ── */
+    /* â”€â”€ Bento Analytics Grid (bentogrids.com standard) â”€â”€ */
     .reports-bento-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -485,7 +436,7 @@ function formatLocalDate(d: Date): string {
 
     .bento-card {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.4rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -494,7 +445,7 @@ function formatLocalDate(d: Date): string {
       gap: 0.35rem;
     }
     .bento-card--hero {
-      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 100%);
       color: #FFFFFF;
       border: none;
       box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
@@ -503,10 +454,10 @@ function formatLocalDate(d: Date): string {
     .bento-card--hero .bento-value { color: #FFFFFF; }
     .bento-card--hero .delta-sub { color: rgba(255, 255, 255, 0.7); }
     .bento-card--warn {
-      border-color: #FDE68A;
-      background: #FFFDF7;
+      border-color: var(--kb-color-warning-soft);
+      background: var(--kb-color-surface);
     }
-    .bento-card--warn .bento-value { color: #D97706; }
+    .bento-card--warn .bento-value { color: var(--kb-color-warning); }
 
     .bento-head {
       display: flex;
@@ -516,7 +467,7 @@ function formatLocalDate(d: Date): string {
     .bento-label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #8F95B2;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -526,17 +477,17 @@ function formatLocalDate(d: Date): string {
       letter-spacing: 0.04em;
       padding: 0.2rem 0.55rem;
       border-radius: 999px;
-      background: #F1F5F9;
-      color: #64748B;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
     }
     .bento-tag--hero { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
-    .bento-tag--brand { background: #EEF2FF; color: #4F46E5; }
-    .bento-tag--success { background: #ECFDF5; color: #059669; }
-    .bento-tag--amber { background: #FFFBEB; color: #D97706; }
+    .bento-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .bento-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
+    .bento-tag--amber { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .bento-value {
       font-size: 1.65rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
@@ -554,19 +505,19 @@ function formatLocalDate(d: Date): string {
     }
     .delta-tag--up {
       background: rgba(16, 185, 129, 0.2);
-      color: #34D399;
+      color: var(--kb-color-success);
     }
     .delta-sub {
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-size: 0.76rem;
     }
 
-    /* ── Secondary Financial Strip ── */
+    /* â”€â”€ Secondary Financial Strip â”€â”€ */
     .financial-strip-card {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       overflow: hidden;
       margin-bottom: 1.5rem;
@@ -580,7 +531,7 @@ function formatLocalDate(d: Date): string {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
-      border-right: 1px solid #EEF0F7;
+      border-right: 1px solid var(--kb-color-surface-2);
     }
     .strip-item:last-child {
       border-right: none;
@@ -588,30 +539,30 @@ function formatLocalDate(d: Date): string {
     .strip-label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .strip-val {
       font-size: 1.3rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
     .strip-hint {
       font-size: 0.76rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
-    .text-danger { color: #DC2626 !important; }
-    .text-warn { color: #D97706 !important; }
+    .text-danger { color: var(--kb-color-danger) !important; }
+    .text-warn { color: var(--kb-color-warning) !important; }
 
-    /* ── Audit Note Card (unsection.com aesthetic) ── */
+    /* â”€â”€ Audit Note Card (unsection.com aesthetic) â”€â”€ */
     .audit-note-card {
       display: flex;
       align-items: flex-start;
       gap: 1rem;
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.5rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -620,8 +571,8 @@ function formatLocalDate(d: Date): string {
       width: 38px;
       height: 38px;
       border-radius: 10px;
-      background: #F5F3FF;
-      color: #5D45FD;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -631,21 +582,21 @@ function formatLocalDate(d: Date): string {
       margin: 0 0 0.25rem;
       font-size: 0.95rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .note-copy p {
       margin: 0;
       font-size: 0.84rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       line-height: 1.5;
     }
 
-    /* ── Tab Navigation ── */
+    /* â”€â”€ Tab Navigation â”€â”€ */
     .report-tabs-nav {
       display: flex;
       gap: 0.5rem;
       margin-bottom: 1.5rem;
-      border-bottom: 1px solid #EEF0F7;
+      border-bottom: 1px solid var(--kb-color-surface-2);
       padding-bottom: 0.75rem;
       overflow-x: auto;
     }
@@ -657,32 +608,32 @@ function formatLocalDate(d: Date): string {
       border-radius: 999px;
       font-size: 0.84rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       cursor: pointer;
       transition: all 140ms ease;
       white-space: nowrap;
       min-height: 40px;
     }
     .tab-pill:hover {
-      color: #0F172A;
-      border-color: #CBD5E1;
+      color: var(--kb-color-foreground);
+      border-color: var(--kb-color-border-strong);
     }
     .tab-pill--active {
-      background: #5D45FD;
+      background: var(--kb-color-primary);
       color: #FFFFFF;
-      border-color: #5D45FD;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
     }
     .tab-pill--active:hover {
       color: #FFFFFF;
     }
 
-    /* ── Tables & Cards ── */
+    /* â”€â”€ Tables & Cards â”€â”€ */
     .table-card {
       background: #FFFFFF;
-      border: 1px solid #EEF0F7;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.5rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -700,20 +651,20 @@ function formatLocalDate(d: Date): string {
       margin: 0 0 0.25rem;
       font-size: 1.15rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .records-pill {
       display: inline-flex;
       padding: 0.25rem 0.75rem;
       border-radius: 999px;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       font-size: 0.78rem;
       font-weight: 700;
     }
     .table-container {
       overflow-x: auto;
-      border: 1px solid #F1F5F9;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 12px;
     }
     .report-table {
@@ -723,42 +674,42 @@ function formatLocalDate(d: Date): string {
       text-align: left;
     }
     .report-table th {
-      background: #F8FAFC;
-      color: #475569;
+      background: var(--kb-color-bg-app);
+      color: var(--kb-color-muted-foreground);
       font-weight: 700;
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #E2E8F0;
+      border-bottom: 1px solid var(--kb-color-border);
       white-space: nowrap;
     }
     .report-table td {
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #F1F5F9;
-      color: #1E293B;
+      border-bottom: 1px solid var(--kb-color-surface-2);
+      color: var(--kb-color-foreground);
       min-height: 44px;
     }
     .report-table tbody tr:hover {
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
     }
     .num-cell {
       text-align: right;
     }
     .table-totals-row td {
-      background: #F8FAFC;
-      border-top: 2px solid #E2E8F0;
+      background: var(--kb-color-bg-app);
+      border-top: 2px solid var(--kb-color-border);
       font-size: 0.92rem;
     }
     .font-bold { font-weight: 700; }
     .font-semibold { font-weight: 600; }
-    .text-brand { color: #5D45FD; }
+    .text-brand { color: var(--kb-color-primary); }
     .empty-table-state {
       padding: 3rem 1.5rem;
       text-align: center;
     }
 
-    .skeleton { background: #E2E8F0; border-radius: 14px; animation: pulse 1.5s ease-in-out infinite; }
+    .skeleton { background: var(--kb-color-border); border-radius: 14px; animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 120px; }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
   `]

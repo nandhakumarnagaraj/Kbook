@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
@@ -32,7 +32,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <button class="primary-btn" (click)="openCreateModal()">+ Add Restaurant</button>
-          <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+          <button class="refresh-btn" (click)="loadBusinesses()">Refresh</button>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
           <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
             <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
-              <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
+              <span>{{ business.ownerName || 'No owner name' }} Â· #{{ business.restaurantId }}</span>
             </button>
             <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div></dl>
             <div class="mobile-data-card__actions">
@@ -149,7 +149,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         <ng-template #businessesEmpty>
           <app-empty-state
             *ngIf="!loadError"
-            icon="🏪"
+            icon="ðŸª"
             title="No businesses match the current filters"
             text="Try a different search term to find the business you are looking for."
           ></app-empty-state>
@@ -311,13 +311,13 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       gap: 0.35rem;
     }
     .field-error {
-      color: var(--kb-color-error, #a6372f);
+      color: var(--kb-color-error);
       font-size: 0.78rem;
     }
     .form-error {
-      background: #fdf2f2;
-      border: 1px solid #f8d7da;
-      color: #a6372f;
+      background: var(--kb-color-error-soft);
+      border: 1px solid var(--kb-color-error-soft);
+      color: var(--kb-color-error);
       padding: 0.65rem 0.85rem;
       border-radius: var(--r-md);
       font-size: 0.85rem;

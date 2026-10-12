@@ -5,6 +5,8 @@ import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
@@ -56,6 +58,7 @@ fun ReprintKdsScreen(
     var dailyDate by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
+    val scrollState = rememberScrollState()
 
     val vmResult by searchViewModel.searchResult.collectAsStateWithLifecycle()
     // GST toggle drives invoice terminology — same rule as Orders table and
@@ -150,6 +153,8 @@ fun ReprintKdsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScrollbar(scrollState)
+                    .verticalScroll(scrollState)
                     .padding(horizontal = spacing.medium)
             ) {
             // Tabs

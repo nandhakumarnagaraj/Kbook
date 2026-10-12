@@ -58,12 +58,25 @@ fun TableHeader(isGstEnabled: Boolean) {
 }
 
 @Composable
-fun RowScope.HeaderCell(text: String, weight: Float) {
+fun RowScope.HeaderCell(
+    text: String,
+    weight: Float,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified
+) {
+    val layout = KhanaBookTheme.layout
+    val effectiveFontSize = if (fontSize == androidx.compose.ui.unit.TextUnit.Unspecified) {
+        layout.tableHeaderFontSize
+    } else {
+        fontSize
+    }
     Text(
         text = text,
         modifier = Modifier.weight(weight),
         color = TextGold,
-        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = effectiveFontSize,
+            fontWeight = FontWeight.Bold
+        ),
         textAlign = TextAlign.Center
     )
 }
@@ -426,13 +439,16 @@ fun RowScope.TableCell(
     color: Color = TextLight,
     maxLines: Int = 1
 ) {
-    // Use bodySmall from theme (already tier-scaled) unless caller provides explicit override.
-    // On tablets this resolves to ~13sp; on compact phones ~11.4sp.
-    val style = if (fontSize == androidx.compose.ui.unit.TextUnit.Unspecified) {
-        MaterialTheme.typography.bodySmall.copy(fontWeight = fontWeight)
+    val layout = KhanaBookTheme.layout
+    val effectiveFontSize = if (fontSize == androidx.compose.ui.unit.TextUnit.Unspecified) {
+        layout.tableCellFontSize
     } else {
-        MaterialTheme.typography.bodySmall.copy(fontSize = fontSize, fontWeight = fontWeight)
+        fontSize
     }
+    val style = MaterialTheme.typography.bodySmall.copy(
+        fontSize = effectiveFontSize,
+        fontWeight = fontWeight
+    )
     Text(
         text = text,
         modifier = Modifier.weight(weight),

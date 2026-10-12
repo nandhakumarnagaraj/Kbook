@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -55,7 +55,7 @@ import { AuthService } from '../../core/auth/auth.service';
 
             <div class="bill-line">
               <span class="line-name">1x Requested URI</span>
-              <span class="line-price tabular-num">₹ 0.00</span>
+              <span class="line-price tabular-num">â‚¹ 0.00</span>
             </div>
             <div class="bill-line bill-line--secondary">
               <span class="line-sub">{{ currentUrl }}</span>
@@ -83,7 +83,7 @@ import { AuthService } from '../../core/auth/auth.service';
           <div class="receipt-actions">
             <button
               type="button"
-              class="primary-btn-tactile"
+              class="primary-btn"
               (click)="navigateToDashboard()">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -92,7 +92,7 @@ import { AuthService } from '../../core/auth/auth.service';
               Return to POS Dashboard
             </button>
 
-            <a routerLink="/business/orders" class="ghost-btn-tactile">
+            <a routerLink="/business/orders" class="ghost-btn">
               View Active Orders
             </a>
           </div>
@@ -108,8 +108,8 @@ import { AuthService } from '../../core/auth/auth.service';
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: #F1F5F9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background: var(--kb-color-surface-2);
+      font-family: var(--kb-font-sans);
     }
 
     .error-stage {
@@ -118,10 +118,10 @@ import { AuthService } from '../../core/auth/auth.service';
       align-items: center;
       justify-content: center;
       padding: 2.5rem 1.5rem;
-      background: radial-gradient(circle at 50% 20%, #EDE9FE 0%, #F1F5F9 60%);
+      background: radial-gradient(circle at 50% 20%, var(--kb-color-primary-soft) 0%, var(--kb-color-surface-2) 60%);
     }
 
-    /* ── The Physical Thermal Receipt Card (Tactile Craft) ── */
+    /* â”€â”€ The Physical Thermal Receipt Card (Tactile Craft) â”€â”€ */
     .receipt-card {
       position: relative;
       width: 100%;
@@ -174,7 +174,7 @@ import { AuthService } from '../../core/auth/auth.service';
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: #5D45FD;
+      background: var(--kb-color-primary);
       color: #FFFFFF;
       margin-bottom: 0.75rem;
     }
@@ -186,21 +186,21 @@ import { AuthService } from '../../core/auth/auth.service';
     .receipt-title {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       margin: 0 0 0.25rem;
       letter-spacing: -0.02em;
     }
     .receipt-sub {
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin: 0;
     }
 
     .dashed-divider {
-      border-bottom: 1.5px dashed #CBD5E1;
+      border-bottom: 1.5px dashed var(--kb-color-border-strong);
       margin: 1.25rem 0;
     }
 
@@ -218,16 +218,16 @@ import { AuthService } from '../../core/auth/auth.service';
     .meta-label {
       font-size: 0.68rem;
       font-weight: 700;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       letter-spacing: 0.06em;
     }
     .meta-value {
       font-size: 0.86rem;
       font-weight: 700;
-      color: #1E293B;
+      color: var(--kb-color-foreground);
     }
     .text-amber {
-      color: #D97706;
+      color: var(--kb-color-warning);
     }
 
     /* Body */
@@ -236,7 +236,7 @@ import { AuthService } from '../../core/auth/auth.service';
     }
     .body-message {
       font-size: 0.84rem;
-      color: #475569;
+      color: var(--kb-color-muted-foreground);
       line-height: 1.5;
       margin: 0 0 1rem;
     }
@@ -246,7 +246,7 @@ import { AuthService } from '../../core/auth/auth.service';
       justify-content: space-between;
       font-size: 0.86rem;
       font-weight: 700;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
     .bill-line--secondary {
       margin-top: 0.25rem;
@@ -254,7 +254,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .line-sub {
       font-size: 0.76rem;
       font-weight: 500;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       word-break: break-all;
     }
     .tabular-num {
@@ -274,7 +274,7 @@ import { AuthService } from '../../core/auth/auth.service';
       height: 38px;
     }
     .bar {
-      background: #1E293B;
+      background: var(--kb-color-foreground);
       border-radius: 1px;
     }
     .b1 { width: 1.5px; }
@@ -286,10 +286,10 @@ import { AuthService } from '../../core/auth/auth.service';
       display: block;
       font-size: 0.68rem;
       font-weight: 700;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       letter-spacing: 0.18em;
       margin-top: 0.45rem;
-      font-family: 'Courier New', Courier, monospace;
+      font-family: var(--kb-font-mono);
     }
 
     /* CTA.gallery Tactile Buttons */
@@ -299,55 +299,13 @@ import { AuthService } from '../../core/auth/auth.service';
       gap: 0.65rem;
       margin-top: 1.5rem;
     }
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      padding: 0.85rem 1.25rem;
-      background: #5D45FD;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(93, 69, 253, 0.25);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .primary-btn-tactile:hover {
-      background: #4A32F0;
-      box-shadow: 0 6px 18px rgba(93, 69, 253, 0.32);
-    }
-    .primary-btn-tactile:active {
-      transform: scale(0.97);
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.2);
-    }
+    
+    
+    
 
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      padding: 0.75rem 1.25rem;
-      background: transparent;
-      color: #475569;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      font-size: 0.86rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .ghost-btn-tactile:hover {
-      background: #F8FAFC;
-      color: #0F172A;
-      border-color: #CBD5E1;
-    }
-    .ghost-btn-tactile:active {
-      transform: scale(0.97);
-    }
+    
+    
+    
   `]
 })
 export class NotFoundPageComponent {

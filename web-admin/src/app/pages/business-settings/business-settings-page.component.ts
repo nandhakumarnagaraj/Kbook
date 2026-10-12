@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -56,7 +56,7 @@ interface RestaurantProfile {
           <p class="header-sub">Configure restaurant identity, automated GST compliance, and payment settlement channels.</p>
         </div>
         <div class="header-right">
-          <button type="button" class="primary-btn-tactile" [disabled]="saving() || loading()" (click)="saveProfile()">
+          <button type="button" class="primary-btn" [disabled]="saving() || loading()" (click)="saveProfile()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
@@ -64,7 +64,7 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="load()">
+          <button type="button" class="ghost-btn" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -78,7 +78,7 @@ interface RestaurantProfile {
 
       <div class="panel loading" *ngIf="loading()">Loading settings...</div>
       <div class="panel loading" *ngIf="!loading() && loadError() && !profile()">
-        {{ loadError() }} <button class="ghost-btn-tactile" (click)="load()">Retry</button>
+        {{ loadError() }} <button class="ghost-btn" (click)="load()">Retry</button>
       </div>
 
       <ng-container *ngIf="profile() as p">
@@ -115,7 +115,7 @@ interface RestaurantProfile {
               <h4>Storefront &amp; Thermal Receipt Logo</h4>
               <p class="muted">Upload your brand mark. Displayed on bills, printed thermal receipts, and digital menus (PNG, JPG, max 2MB).</p>
               <div class="logo-actions">
-                <label class="ghost-btn-tactile file-picker-label">
+                <label class="ghost-btn file-picker-label">
                   <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" />
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -124,7 +124,7 @@ interface RestaurantProfile {
                   </svg>
                   {{ logoBusy() ? 'Uploading...' : (p.logoUrl ? 'Change Logo' : 'Upload Logo') }}
                 </label>
-                <button *ngIf="p.logoUrl" type="button" class="ghost-btn-tactile danger-btn" [disabled]="logoBusy()" (click)="removeLogo()">
+                <button *ngIf="p.logoUrl" type="button" class="ghost-btn danger-btn" [disabled]="logoBusy()" (click)="removeLogo()">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
@@ -187,7 +187,7 @@ interface RestaurantProfile {
         <div class="sticky-save-dock">
           <div class="save-dock-inner">
             <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
-            <button class="primary-btn-tactile" [disabled]="saving()" (click)="saveProfile()">
+            <button class="primary-btn" [disabled]="saving()" (click)="saveProfile()">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
@@ -233,22 +233,22 @@ interface RestaurantProfile {
       font-weight: 600;
       padding: 3px 10px;
       border-radius: var(--kb-radius-full);
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.25);
-      color: #16a34a;
+      background: rgba(47, 133, 90, 0.08);
+      border: 1px solid rgba(47, 133, 90, 0.25);
+      color: var(--kb-color-success);
     }
     .status-pulse-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: #16a34a;
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      background-color: var(--kb-color-success);
+      box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7);
       animation: pulse 2s infinite;
     }
     @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(47, 133, 90, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
     }
     .header-sub {
       margin: 4px 0 0 0;
@@ -261,37 +261,6 @@ interface RestaurantProfile {
       gap: var(--kb-space-2);
       flex-wrap: wrap;
     }
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground, #ffffff);
-      border: none;
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: transform 120ms ease, opacity 120ms ease;
-    }
-    .primary-btn-tactile:active { transform: scale(0.97); }
-    .primary-btn-tactile:disabled { opacity: 0.5; cursor: not-allowed; }
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-surface);
-      color: var(--kb-color-foreground);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 8px 14px;
-      cursor: pointer;
-      transition: transform 120ms ease, background-color 150ms ease;
-    }
-    .ghost-btn-tactile:active { transform: scale(0.97); }
     .section-title-wrap {
       display: flex;
       align-items: flex-start;
@@ -410,11 +379,11 @@ interface RestaurantProfile {
       cursor: pointer;
     }
     .danger-btn {
-      color: var(--kb-color-error, #dc2626);
-      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--kb-color-error);
+      border-color: rgba(192, 57, 43, 0.3);
     }
     .danger-btn:hover {
-      background: rgba(239, 68, 68, 0.08);
+      background: rgba(192, 57, 43, 0.08);
     }
     .field-btn {
       display: flex;

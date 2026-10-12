@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -58,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.designsystem.KhanaStatusBadge
 import com.khanabook.lite.pos.core.designsystem.KhanaStatusKind
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
 import com.khanabook.lite.pos.core.theme.BorderGold
 import com.khanabook.lite.pos.core.theme.CardBG
@@ -83,6 +85,7 @@ fun ActiveOrdersScreen(
 ) {
     val activeRows by viewModel.rows.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { event ->
@@ -123,12 +126,14 @@ fun ActiveOrdersScreen(
             contentAlignment = Alignment.TopCenter
         ) {
             com.khanabook.lite.pos.core.designsystem.ListLayout(
-                modifier = Modifier.fillMaxSize().widthIn(max = 1000.dp),
+                modifier = Modifier.fillMaxSize().widthIn(max = layout.maxContentWidth),
                 isEmpty = activeRows.isEmpty(),
                 emptyState = { EmptyActiveOrders() }
             ) {
+                val listState = rememberLazyListState()
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().verticalScrollbar(listState),
                     contentPadding = PaddingValues(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {

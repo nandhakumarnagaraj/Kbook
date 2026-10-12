@@ -1,6 +1,9 @@
 package com.khanabook.lite.pos.feature.settings.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,15 +65,23 @@ fun TaxConfigView(
     val isGstValid = !gstEnabled || ValidationUtils.isValidGst(gstNumber)
     val isGstPctValid = !gstEnabled || ValidationUtils.isValidTaxPercentage(gstPct)
     val isSaveEnabled = isFssaiValid && isGstValid && isGstPctValid
+    val layout = KhanaBookTheme.layout
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .imePadding()
-            .navigationBarsPadding()
-            .padding(spacing.medium)
+    val scrollState = rememberScrollState()
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScrollbar(scrollState)
+                .verticalScroll(scrollState)
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(spacing.medium)
+        ) {
         ConfigCard {
             if (readOnly) {
                 com.khanabook.lite.pos.feature.settings.ui.ReadOnlyConfigNotice(
@@ -195,6 +206,7 @@ fun TaxConfigView(
             )
         }
     }
+}
 }
 
 private fun formatExpiry(isoDate: String): String {

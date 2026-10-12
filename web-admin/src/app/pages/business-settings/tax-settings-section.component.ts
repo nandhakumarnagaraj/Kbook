@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -62,7 +62,7 @@ interface VerificationState {
               />
               <button
                 type="button"
-                class="ghost-btn-tactile action-btn"
+                class="ghost-btn action-btn"
                 [disabled]="gstState().verifying || !tax().gstin || tax().gstin.length !== 15"
                 (click)="verifyGst()"
               >
@@ -71,12 +71,12 @@ interface VerificationState {
             </div>
             <!-- GST Verification Result -->
             <div *ngIf="gstState().valid === true || (gstState().valid === null && tax().gstExpiryDate && tax().gstin?.length === 15)" class="verify-badge verify-badge--success">
-              <span class="badge-icon">✓</span>
+              <span class="badge-icon">âœ“</span>
               <span><strong>Verified:</strong> {{ gstState().businessName || 'Active GSTIN' }}</span>
               <span class="badge-sub">(Valid to: {{ gstState().expiryDate || tax().gstExpiryDate }})</span>
             </div>
             <div *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger">
-              <span class="badge-icon">✕</span>
+              <span class="badge-icon">âœ•</span>
               <span>{{ gstState().message || 'GSTIN verification failed.' }}</span>
             </div>
           </div>
@@ -133,7 +133,7 @@ interface VerificationState {
             />
             <button
               type="button"
-              class="ghost-btn-tactile action-btn"
+              class="ghost-btn action-btn"
               [disabled]="fssaiState().verifying || !tax().fssaiNumber || tax().fssaiNumber?.length !== 14"
               (click)="verifyFssai()"
             >
@@ -142,12 +142,12 @@ interface VerificationState {
           </div>
           <!-- FSSAI Verification Result -->
           <div *ngIf="fssaiState().valid === true || (fssaiState().valid === null && tax().fssaiExpiryDate && tax().fssaiNumber?.length === 14)" class="verify-badge verify-badge--success">
-            <span class="badge-icon">✓</span>
+            <span class="badge-icon">âœ“</span>
             <span><strong>Verified:</strong> {{ fssaiState().businessName || 'Active FSSAI License' }}</span>
             <span class="badge-sub">(Expiry: {{ fssaiState().expiryDate || tax().fssaiExpiryDate }})</span>
           </div>
           <div *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger">
-            <span class="badge-icon">✕</span>
+            <span class="badge-icon">âœ•</span>
             <span>{{ fssaiState().message || 'FSSAI verification failed.' }}</span>
           </div>
           <span class="field-hint">Mandatory for all food establishments under FSSAI regulations. Printed on receipts.</span>
@@ -173,8 +173,8 @@ interface VerificationState {
       width: 32px;
       height: 32px;
       border-radius: var(--kb-radius-md);
-      background: rgba(93, 69, 253, 0.08);
-      color: #5D45FD;
+      background: rgba(108, 39, 217, 0.08);
+      color: var(--kb-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -221,14 +221,14 @@ interface VerificationState {
       flex-wrap: wrap;
     }
     .verify-badge--success {
-      background: rgba(34, 197, 94, 0.1);
-      color: #16a34a;
-      border: 1px solid rgba(34, 197, 94, 0.25);
+      background: rgba(47, 133, 90, 0.1);
+      color: var(--kb-color-success);
+      border: 1px solid rgba(47, 133, 90, 0.25);
     }
     .verify-badge--danger {
-      background: rgba(239, 68, 68, 0.1);
-      color: #dc2626;
-      border: 1px solid rgba(239, 68, 68, 0.25);
+      background: rgba(192, 57, 43, 0.1);
+      color: var(--kb-color-danger);
+      border: 1px solid rgba(192, 57, 43, 0.25);
     }
     .badge-icon {
       font-weight: 700;

@@ -28,7 +28,7 @@ import { formatDate } from '../../shared/formatters';
           <h3>Flag State</h3>
           <p class="muted">Effective state shown is what a restaurant <strong>without an override</strong> resolves to.</p>
         </div>
-        <button class="ghost-btn" (click)="reload()">Refresh</button>
+        <button class="refresh-btn" (click)="reload()">Refresh</button>
       </div>
 
       <div class="panel table-wrap" *ngIf="!loading(); else loadingBlock">

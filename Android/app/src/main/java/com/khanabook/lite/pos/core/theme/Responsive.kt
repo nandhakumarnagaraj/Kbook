@@ -5,6 +5,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 
 @Immutable
 enum class WindowWidthTier {
@@ -105,6 +107,48 @@ data class ResponsiveLayout(
         TypeScaleTier.Tablet -> 28.dp
     }
 
+    // Bottom Navigation Bar adaptive tokens
+    val navIconSize: Dp = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 22.dp
+        TypeScaleTier.MediumPhone -> 24.dp
+        TypeScaleTier.LargePhone -> 26.dp
+        TypeScaleTier.Tablet -> 30.dp
+    }
+    val navLabelFontSize: TextUnit = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 11.sp
+        TypeScaleTier.MediumPhone -> 12.sp
+        TypeScaleTier.LargePhone -> 13.5.sp
+        TypeScaleTier.Tablet -> 16.sp
+    }
+
+    // Table adaptive typography tokens
+    val tableHeaderFontSize: TextUnit = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 11.5.sp
+        TypeScaleTier.MediumPhone -> 12.5.sp
+        TypeScaleTier.LargePhone -> 13.5.sp
+        TypeScaleTier.Tablet -> 15.sp
+    }
+    val tableCellFontSize: TextUnit = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 11.sp
+        TypeScaleTier.MediumPhone -> 12.sp
+        TypeScaleTier.LargePhone -> 13.sp
+        TypeScaleTier.Tablet -> 14.5.sp
+    }
+
+    // Top app bar adaptive navigation tokens
+    val topBarIconSize: Dp = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 22.dp
+        TypeScaleTier.MediumPhone -> 24.dp
+        TypeScaleTier.LargePhone -> 26.dp
+        TypeScaleTier.Tablet -> 32.dp
+    }
+    val topBarIconButtonSize: Dp = when (typeScaleTier) {
+        TypeScaleTier.CompactPhone -> 44.dp
+        TypeScaleTier.MediumPhone -> 48.dp
+        TypeScaleTier.LargePhone -> 50.dp
+        TypeScaleTier.Tablet -> 60.dp
+    }
+
     // Single-column action cards (v1 design decision).
     // Landscape gets 2 columns so all 4 actions stay visible without scroll.
     val homeActionColumns: Int = if (isLandscape) 2 else 1
@@ -170,8 +214,8 @@ data class ResponsiveLayout(
         else -> 1
     }
 
-    // Match the navigation suite: bottom bar in compact windows, rail in medium/expanded.
-    val useBottomNavigation: Boolean = screenWidthDp < 600
+    // Navigation bar stays at the bottom across all form factors (phones and tablets)
+    val useBottomNavigation: Boolean = true
 
     val contentPadding: Dp = when {
         isUltraCompact -> 12.dp

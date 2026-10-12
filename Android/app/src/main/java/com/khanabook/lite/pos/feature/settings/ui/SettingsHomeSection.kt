@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.core.designsystem.BoundedVerticalSpaceBetween
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.TypeScaleTier
 import com.khanabook.lite.pos.feature.auth.ui.SettingsGroupLabel
@@ -91,53 +92,33 @@ fun SettingsHomeSection(
     val sectionSpacing = layout.sectionSpacing
 
     AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (layout.typeScaleTier == TypeScaleTier.Tablet) {
-                // Tablet: Home-faithful rhythm. Cards are separate top-level children so
-                // residual viewport height distributes evenly across ALL section gaps,
-                // capped by maxSectionGap — cards keep natural heights, never stretch.
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = layout.maxContentWidth)
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = layout.contentPadding, vertical = spacing.medium),
-                    verticalArrangement = remember(sectionSpacing, layout.maxSectionGap) {
-                        BoundedVerticalSpaceBetween(sectionSpacing, layout.maxSectionGap)
-                    }
-                ) {
-                    ProfileCard(
-                        user = currentUser,
-                        profile = profile,
-                        lastSyncTimestamp = lastSyncTimestamp,
-                        onClick = { onSectionSelected("shop") }
-                    )
-                    GroupOrder.forEach { group -> SettingsGroup(group, onSectionSelected) }
-                    LogoutSection(logoutViewModel)
-                }
-            } else {
-                // Phones (incl. compact heights): original controlled spacing —
-                // no distribution of remaining height between cards. Scrollable so
-                // content never clips (compact-height / landscape / large font scale).
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = layout.maxContentWidth)
-                        .align(Alignment.TopCenter)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = layout.contentPadding, vertical = spacing.small)
-                        .padding(bottom = spacing.smallMedium),
-                    verticalArrangement = Arrangement.spacedBy(sectionSpacing)
-                ) {
-                    ProfileCard(
-                        user = currentUser,
-                        profile = profile,
-                        lastSyncTimestamp = lastSyncTimestamp,
-                        onClick = { onSectionSelected("shop") }
-                    )
-                    GroupOrder.forEach { group -> SettingsGroup(group, onSectionSelected) }
-                    LogoutSection(logoutViewModel)
-                }
+        val scrollState = rememberScrollState()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScrollbar(scrollState)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+                    .align(Alignment.TopCenter)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = layout.contentPadding)
+                    .padding(
+                        top = if (layout.typeScaleTier == TypeScaleTier.Tablet) spacing.medium else spacing.small,
+                        bottom = spacing.medium
+                    ),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing)
+            ) {
+                ProfileCard(
+                    user = currentUser,
+                    profile = profile,
+                    lastSyncTimestamp = lastSyncTimestamp,
+                    onClick = { onSectionSelected("shop") }
+                )
+                GroupOrder.forEach { group -> SettingsGroup(group, onSectionSelected) }
+                LogoutSection(logoutViewModel)
             }
         }
     }

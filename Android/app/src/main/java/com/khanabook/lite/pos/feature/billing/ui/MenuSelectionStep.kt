@@ -22,7 +22,15 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -313,8 +321,9 @@ fun MenuSelectionStep(
                 // This handles split-pane correctly: when the cart panel takes ~40% of 840dp,
                 // the grid pane is only ~500dp wide and should show 2 columns, not 3.
                 val paneColumns = when {
-                    maxWidth >= 640.dp -> 3
-                    maxWidth >= 420.dp -> 2
+                    maxWidth >= 720.dp -> 4
+                    maxWidth >= 480.dp -> 3
+                    maxWidth >= 280.dp -> 2
                     else -> 1
                 }
                 LazyVerticalGrid(
@@ -332,139 +341,50 @@ fun MenuSelectionStep(
                     val item = menuWithVariants.menuItem
                     val variants = menuWithVariants.variants
                     var showVariantPicker by remember { mutableStateOf(false) }
-                    val itemAvailable = item.isAvailable
-
-                    Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
-                            ),
-                            shape = KhanaRadii.lg
-                    ) {
-                        if (variants.isEmpty()) {
-                            val cartItem =
-                                    cartItems.find { it.item.id == item.id && it.variant == null }
-                            Row(
-                                    modifier = Modifier.padding(spacing.smallMedium),
-                                    verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                MenuItemThumbnail(
-                                    imageUrl = item.imageUrl,
-                                    imageVersion = item.imageVersion,
-                                    foodType = item.foodType,
-                                    size = 44.dp
-                                )
-                                Spacer(modifier = Modifier.width(spacing.smallMedium))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                            item.name,
-                                            color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                            style = MaterialTheme.typography.titleSmall
-                                    )
-                                    if (itemAvailable) {
-                                        Text("₹${item.basePrice}", color = TextGold, style = MaterialTheme.typography.bodySmall)
-                                    } else {
-                                        Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                if (itemAvailable) {
-                                    QuantitySelector(
-                                            quantity = cartItem?.quantity ?: 0,
-                                            onAdd = {
-                                                addItemWithFeedback {
-                                                    billingViewModel.addToCart(item)
-                                                }
-                                            },
-                                            onRemove = { billingViewModel.removeFromCart(item) }
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(modifier = Modifier.fillMaxWidth().padding(spacing.smallMedium)) {
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    MenuItemThumbnail(
-                                        imageUrl = item.imageUrl,
-                                        imageVersion = item.imageVersion,
-                                        foodType = item.foodType,
-                                        size = 44.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(spacing.smallMedium))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                                item.name,
-                                                color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                                style = MaterialTheme.typography.titleSmall,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (!itemAvailable) {
-                                            Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                        } else {
-                                            Text(
-                                                    "${variants.size} Variants",
-                                                    color = PrimaryGold,
-                                                    style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                    }
-                                }
-                                if (itemAvailable) {
-                                    Spacer(modifier = Modifier.height(spacing.small))
-                                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                                    Spacer(modifier = Modifier.height(spacing.small))
-                                    variants.forEach { variant ->
-                                        val variantAvailable = variant.isAvailable
-                                        val variantCartItem =
-                                                cartItems.find {
-                                                    it.item.id == item.id && it.variant?.id == variant.id
-                                                }
-                                        Row(
-                                                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
-                                                verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                    variant.variantName,
-                                                    color = if (variantAvailable) TextGold else TextGold.copy(alpha = 0.35f),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    modifier = Modifier.weight(1f)
-                                            )
-                                            if (variantAvailable) {
-                                                Text(
-                                                        CurrencyUtils.formatPrice(variant.price),
-                                                        color = PrimaryGold,
-                                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                                        modifier = Modifier.padding(end = spacing.smallMedium)
-                                                )
-                                                QuantitySelector(
-                                                        quantity = variantCartItem?.quantity ?: 0,
-                                                        onAdd = {
-                                                            addItemWithFeedback {
-                                                                billingViewModel.addToCart(item, variant)
-                                                            }
-                                                        },
-                                                        onRemove = { billingViewModel.removeFromCart(item, variant) }
-                                                )
-                                            } else {
-                                                Text("Unavailable", color = ErrorPink.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    val cartItem = cartItems.find { it.item.id == item.id && it.variant == null }
+                    val cartQuantity = if (variants.isEmpty()) {
+                        cartItem?.quantity ?: 0
+                    } else {
+                        cartItems.filter { it.item.id == item.id }.sumOf { it.quantity }
                     }
+
+                    SquareMenuItemCard(
+                        item = item,
+                        variants = variants,
+                        cartQuantity = cartQuantity,
+                        onCardClick = {
+                            if (variants.isNotEmpty()) {
+                                showVariantPicker = true
+                            } else {
+                                addItemWithFeedback {
+                                    billingViewModel.addToCart(item)
+                                }
+                            }
+                        },
+                        onAdd = {
+                            addItemWithFeedback {
+                                billingViewModel.addToCart(item)
+                            }
+                        },
+                        onRemove = {
+                            billingViewModel.removeFromCart(item)
+                        }
+                    )
 
                     if (showVariantPicker) {
                         VariantPickerDialog(
-                                itemName = item.name,
-                                variants = variants,
-                                onDismiss = { showVariantPicker = false },
-                                onSelect = { variant ->
-                                    addItemWithFeedback {
-                                        billingViewModel.addToCart(item, variant)
-                                    }
-                                    showVariantPicker = false
+                            itemName = item.name,
+                            variants = variants,
+                            cartItems = cartItems.filter { it.item.id == item.id },
+                            onDismiss = { showVariantPicker = false },
+                            onAddVariant = { variant ->
+                                addItemWithFeedback {
+                                    billingViewModel.addToCart(item, variant)
                                 }
+                            },
+                            onRemoveVariant = { variant ->
+                                billingViewModel.removeFromCart(item, variant)
+                            }
                         )
                     }
                 }
@@ -535,7 +455,7 @@ fun MenuSelectionStep(
                                         enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text(
-                                            "Update Table",
+                                            "Update & Send KOT",
                                             color = Color.White,
                                             style = MaterialTheme.typography.titleSmall
                                         )
@@ -564,7 +484,7 @@ fun MenuSelectionStep(
                                         enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
                                         Text(
-                                            "Save Table",
+                                            "Send to Kitchen (KOT)",
                                             color = Color.White,
                                             style = MaterialTheme.typography.titleSmall
                                         )
@@ -581,7 +501,7 @@ fun MenuSelectionStep(
                                         enabled = derivedItemCount > 0
                                     ) {
                                     Text(
-                                            if (billingViewModel.editingBillId != null) "Settle" else "Proceed",
+                                            if (billingViewModel.editingBillId != null) "Settle" else "Proceed to Pay",
                                             color = PrimaryGold,
                                             style = MaterialTheme.typography.titleMedium
                                     )
@@ -632,18 +552,59 @@ fun MenuSelectionStep(
                                             Text("Note: ${cartItem.note}", color = PrimaryGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .background(PrimaryGold, KhanaRadii.sm)
+                                            .clip(KhanaRadii.sm)
+                                            .height(28.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clickable { billingViewModel.removeFromCart(cartItem.item, cartItem.variant) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Remove,
+                                                contentDescription = "Decrease",
+                                                tint = DarkBrown1,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = "${cartItem.quantity}",
+                                            color = DarkBrown1,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clickable { billingViewModel.addToCart(cartItem.item, cartItem.variant) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Increase",
+                                                tint = DarkBrown1,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(spacing.small))
                                     Text(
-                                        "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
+                                        CurrencyUtils.formatPrice((cartItem.variant?.price ?: cartItem.item.basePrice).toDoubleOrNull()?.times(cartItem.quantity) ?: 0.0),
                                         color = TextLight,
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         maxLines = 1
                                     )
-                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
+                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(28.dp)) {
                                         Icon(
                                             if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
                                             contentDescription = "Add note",
                                             tint = if (cartItem.note.isNotBlank()) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                            modifier = Modifier.size(KhanaBookTheme.iconSize.small)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -704,7 +665,7 @@ fun MenuSelectionStep(
                                         shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
-                                        Text("Update Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                        Text("Update & Send KOT", color = Color.White, style = MaterialTheme.typography.titleMedium)
                                     }
                                     Spacer(modifier = Modifier.height(spacing.small))
                                 } else {
@@ -730,7 +691,7 @@ fun MenuSelectionStep(
                                         shape = KhanaRadii.lg,
                                         enabled = derivedItemCount > 0 && !isSavingTable
                                     ) {
-                                        Text("Save Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                        Text("Send to Kitchen (KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
                                     }
                                     Spacer(modifier = Modifier.height(spacing.small))
                                 }
@@ -745,7 +706,7 @@ fun MenuSelectionStep(
                                     enabled = derivedItemCount > 0
                                 ) {
                                     Text(
-                                        if (billingViewModel.editingBillId != null) "Proceed to Settle" else "Proceed to Payment",
+                                        if (billingViewModel.editingBillId != null) "Proceed to Settle" else "Proceed to Pay",
                                         color = DarkBrown1,
                                         style = MaterialTheme.typography.titleMedium
                                     )
@@ -771,24 +732,402 @@ fun MenuSelectionStep(
 
 @Composable
 fun VariantPickerDialog(
-        itemName: String,
-        variants: List<ItemVariantEntity>,
-        onDismiss: () -> Unit,
-        onSelect: (ItemVariantEntity) -> Unit
+    itemName: String,
+    variants: List<ItemVariantEntity>,
+    cartItems: List<BillingViewModel.CartItem> = emptyList(),
+    onDismiss: () -> Unit,
+    onAddVariant: (ItemVariantEntity) -> Unit,
+    onRemoveVariant: (ItemVariantEntity) -> Unit
 ) {
-    KhanaBookSelectionDialog(
-            title = "Choose Variant",
-            message = itemName,
-            onDismissRequest = onDismiss,
-        options = variants.map { variant ->
-            SelectionDialogOption(
-                value = variant,
-                title = variant.variantName,
-                subtitle = CurrencyUtils.formatPrice(variant.price.toString())
-            )
+    val spacing = KhanaBookTheme.spacing
+    val totalVariantsInCart = cartItems.sumOf { it.quantity }
+
+    KhanaBookDialog(
+        title = "Choose Variant",
+        message = itemName,
+        onDismissRequest = onDismiss,
+        content = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                variants.forEach { variant ->
+                    val variantQty = cartItems.find { it.variant?.id == variant.id }?.quantity ?: 0
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (variantQty > 0) PrimaryGold.copy(alpha = 0.12f) else DarkBrown2,
+                        shape = KhanaRadii.md,
+                        border = BorderStroke(
+                            1.dp,
+                            if (variantQty > 0) PrimaryGold else BorderGold.copy(alpha = 0.25f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = variant.variantName,
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                                Text(
+                                    text = CurrencyUtils.formatPrice(variant.price),
+                                    color = PrimaryGold,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+
+                            if (variantQty == 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
+                                        .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
+                                        .clip(KhanaRadii.sm)
+                                        .clickable { onAddVariant(variant) }
+                                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+ Add",
+                                        color = PrimaryGold,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .background(PrimaryGold, KhanaRadii.md)
+                                        .clip(KhanaRadii.md)
+                                        .height(34.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clickable { onRemoveVariant(variant) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Remove,
+                                            contentDescription = "Decrease",
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "$variantQty",
+                                        color = DarkBrown1,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clickable { onAddVariant(variant) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Increase",
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
-        onOptionSelected = onSelect
+        actions = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                shape = KhanaRadii.md
+            ) {
+                Text(
+                    text = if (totalVariantsInCart > 0) "Done ($totalVariantsInCart in cart)" else "Done",
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
     )
+}
+
+@Composable
+private fun SquareMenuItemCard(
+    item: MenuItemEntity,
+    variants: List<ItemVariantEntity>,
+    cartQuantity: Int,
+    onCardClick: () -> Unit,
+    onAdd: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val itemAvailable = item.isAvailable
+    var loadFailed by remember(item.imageUrl, item.imageVersion) { mutableStateOf(false) }
+    val showImage = !item.imageUrl.isNullOrBlank() && !loadFailed
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(KhanaRadii.lg)
+            .clickable(enabled = itemAvailable) {
+                if (variants.isNotEmpty() || cartQuantity == 0) {
+                    onCardClick()
+                }
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+        ),
+        border = if (cartQuantity > 0) BorderStroke(1.5.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.15f)),
+        shape = KhanaRadii.lg,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (cartQuantity > 0) 3.dp else 1.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // ── TOP: Prominent Food Image Box ──────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1.35f)
+                    .background(DarkBrown1),
+                contentAlignment = Alignment.Center
+            ) {
+                if (showImage) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(item.imageUrl)
+                            .crossfade(true)
+                            .memoryCacheKey("${item.imageUrl}:${item.imageVersion}")
+                            .diskCacheKey("${item.imageUrl}:${item.imageVersion}")
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .build(),
+                        contentDescription = item.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        onError = { loadFailed = true }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = null,
+                            tint = TextGold.copy(alpha = 0.3f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                // Top-Start: Dietary FSSAI Badge (🟢 Veg / 🔴 Non-Veg)
+                FoodTypeBadge(
+                    type = item.foodType,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp),
+                    size = 14.dp
+                )
+
+                // Top-End: Cart Quantity Badge if item is in cart
+                if (cartQuantity > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(24.dp)
+                            .background(PrimaryGold, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$cartQuantity",
+                            color = DarkBrown1,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                    }
+                }
+
+                // Out of stock frosted scrim
+                if (!itemAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.65f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Unavailable",
+                            color = ErrorPink,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .background(DarkBrown1.copy(alpha = 0.85f), KhanaRadii.sm)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            // ── BOTTOM: Dish Info & Action Controls ────────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.smallMedium, vertical = spacing.small)
+            ) {
+                Text(
+                    text = item.name,
+                    color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (variants.isEmpty()) {
+                        Text(
+                            text = "₹${item.basePrice}",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        if (itemAvailable) {
+                            if (cartQuantity == 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
+                                        .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
+                                        .clip(KhanaRadii.sm)
+                                        .clickable { onAdd() }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+ Add",
+                                        color = PrimaryGold,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .background(PrimaryGold, KhanaRadii.md)
+                                        .clip(KhanaRadii.md)
+                                        .height(34.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clickable { onRemove() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Remove,
+                                            contentDescription = "Decrease",
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "$cartQuantity",
+                                        color = DarkBrown1,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clickable { onAdd() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Increase",
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        val minPrice = variants.minOfOrNull { it.price.toDoubleOrNull() ?: 0.0 } ?: (item.basePrice.toDoubleOrNull() ?: 0.0)
+                        Column {
+                            Text(
+                                text = CurrencyUtils.formatPrice(minPrice),
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "${variants.size} sizes",
+                                color = TextGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        if (itemAvailable) {
+                            if (cartQuantity == 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
+                                        .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
+                                        .clip(KhanaRadii.sm)
+                                        .clickable { onCardClick() }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Options",
+                                        color = PrimaryGold,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .background(PrimaryGold, KhanaRadii.md)
+                                        .clip(KhanaRadii.md)
+                                        .clickable { onCardClick() }
+                                        .height(34.dp)
+                                        .padding(horizontal = 10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Tune,
+                                        contentDescription = "Manage variants",
+                                        tint = DarkBrown1,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "$cartQuantity in cart",
+                                        color = DarkBrown1,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

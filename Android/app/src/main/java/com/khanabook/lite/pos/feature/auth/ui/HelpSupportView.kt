@@ -283,8 +283,8 @@ fun AboutAppView() {
         // Legal links (Play Store requirement: reachable privacy policy).
         // Open in the browser — kept on this single screen by design.
         listOf(
-            "Privacy Policy" to "https://www.khanabook.com/privacy-policy",
-            "Terms of Use" to "https://www.khanabook.com/terms"
+            "Privacy Policy" to "https://www.khanabook.in/privacy-policy",
+            "Terms of Use" to "https://www.khanabook.in/terms"
         ).forEach { (label, url) ->
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),

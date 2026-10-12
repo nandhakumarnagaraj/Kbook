@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -65,7 +65,7 @@ function getTodayIsoDate(): string {
   imports: [CommonModule, FormsModule, OrderDetailModalComponent],
   template: `
     <div class="dash-shell" *ngIf="dashboard() as data; else loading">
-      <!-- ── Top Cockpit Header Bar ── -->
+      <!-- â”€â”€ Top Cockpit Header Bar â”€â”€ -->
       <header class="dash-header">
         <div class="dash-header__left">
           <h1 class="dash-header__title">{{ data.shopName || 'KhanaBook Restaurant' }}</h1>
@@ -143,7 +143,7 @@ function getTodayIsoDate(): string {
           <!-- Refresh Button -->
           <button
             type="button"
-            class="header-action-btn"
+            class="refresh-btn"
             [disabled]="isRefreshing()"
             (click)="refresh()"
             title="Refresh live metrics">
@@ -153,19 +153,19 @@ function getTodayIsoDate(): string {
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
               <path d="M16 21h5v-5"/>
             </svg>
-            <span>{{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}</span>
+            <span>Refresh</span>
           </button>
         </div>
       </header>
 
-      <!-- ── Bento KPI Row (4 Key Metrics) ── -->
+      <!-- â”€â”€ Bento KPI Row (4 Key Metrics) â”€â”€ -->
       <section class="bento-kpi-grid" aria-label="Key Performance Indicators">
         <!-- 1. Revenue Tile (Hero Tile) -->
         <article class="bento-tile bento-tile--hero">
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Today's Revenue</span>
             <span class="trend-badge" *ngIf="data.deltaToday !== 0" [class.trend-badge--down]="data.deltaToday < 0">
-              {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ Math.abs(data.deltaToday) }}% vs yest.
+              {{ data.deltaToday > 0 ? 'â†‘' : 'â†“' }} {{ Math.abs(data.deltaToday) }}% vs yest.
             </span>
             <span class="trend-badge trend-badge--neutral" *ngIf="data.deltaToday === 0">
               Live Intake
@@ -255,7 +255,7 @@ function getTodayIsoDate(): string {
         </article>
       </section>
 
-      <!-- ── Middle Bento Grid: Service Velocity & Bestsellers ── -->
+      <!-- â”€â”€ Middle Bento Grid: Service Velocity & Bestsellers â”€â”€ -->
       <section class="bento-intel-grid" aria-label="Operational Intelligence">
         <!-- Peak Hour Velocity Curve -->
         <article class="intel-card intel-card--chart">
@@ -340,12 +340,12 @@ function getTodayIsoDate(): string {
 
     </div>
 
-    <!-- ── Terminal Fleet Status Modal ── -->
+    <!-- â”€â”€ Terminal Fleet Status Modal â”€â”€ -->
     <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" (click)="toggleTerminalsModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <h3>POS Hardware Terminals</h3>
-          <button type="button" class="modal-close-icon" (click)="toggleTerminalsModal()">✕</button>
+          <button type="button" class="modal-close-icon" (click)="toggleTerminalsModal()">âœ•</button>
         </div>
         <div class="tactile-modal-body">
           <div class="terminal-item-row" *ngFor="let t of terminals()">
@@ -373,7 +373,7 @@ function getTodayIsoDate(): string {
       </div>
     </div>
 
-    <!-- ── Low Stock Alert Modal ── -->
+    <!-- â”€â”€ Low Stock Alert Modal â”€â”€ -->
     <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" (click)="toggleLowStockModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
@@ -383,7 +383,7 @@ function getTodayIsoDate(): string {
             </span>
             <h3>Low Stock Raw Ingredients</h3>
           </div>
-          <button type="button" class="modal-close-icon" (click)="toggleLowStockModal()">✕</button>
+          <button type="button" class="modal-close-icon" (click)="toggleLowStockModal()">âœ•</button>
         </div>
         <div class="tactile-modal-body">
           <p class="modal-lead-note">The following raw materials are currently below their minimum kitchen reserve threshold.</p>
@@ -447,10 +447,10 @@ function getTodayIsoDate(): string {
     :host {
       display: block;
       width: 100%;
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
       min-height: 100vh;
-      color: #0F172A;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--kb-color-foreground);
+      font-family: var(--kb-font-sans);
     }
 
     .dash-shell {
@@ -462,7 +462,7 @@ function getTodayIsoDate(): string {
       gap: 1.5rem;
     }
 
-    /* ── Header Bar ── */
+    /* â”€â”€ Header Bar â”€â”€ */
     .dash-header {
       display: flex;
       align-items: center;
@@ -478,20 +478,20 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       margin-bottom: 0.25rem;
     }
     .pulse-indicator {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #10B981;
+      background: var(--kb-color-success);
       box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
     }
-    .pill-divider { color: #CBD5E1; }
+    .pill-divider { color: var(--kb-color-border-strong); }
     .live-date-pill {
-      color: #6C27D9;
-      background: #F5F3FF;
+      color: var(--kb-color-primary);
+      background: var(--kb-color-primary-soft);
       padding: 0.1rem 0.5rem;
       border-radius: 999px;
       font-weight: 600;
@@ -500,13 +500,13 @@ function getTodayIsoDate(): string {
       margin: 0;
       font-size: 1.65rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.03em;
     }
     .dash-header__sub {
       margin: 0.2rem 0 0;
       font-size: 0.88rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
     .dash-header__right {
       display: flex;
@@ -522,38 +522,38 @@ function getTodayIsoDate(): string {
       gap: 0.5rem;
       padding: 0.55rem 0.85rem;
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--kb-color-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .header-pill-btn:hover {
-      border-color: #CBD5E1;
-      background: #F8FAFC;
+      border-color: var(--kb-color-border-strong);
+      background: var(--kb-color-bg-app);
     }
     .header-pill-btn:active { transform: scale(0.98); }
     .header-pill-btn--alert {
-      background: #FFFBEB;
-      border-color: #FDE68A;
-      color: #92400E;
+      background: var(--kb-color-warning-soft);
+      border-color: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
     }
     .header-pill-btn--alert:hover {
-      background: #FEF3C7;
-      border-color: #FCD34D;
+      background: var(--kb-color-warning-soft);
+      border-color: var(--kb-color-warning-soft);
     }
 
     .dot-beacon {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #94A3B8;
+      background: var(--kb-color-muted-foreground);
     }
     .dot-beacon--active {
-      background: #10B981;
+      background: var(--kb-color-success);
       box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
     }
 
@@ -566,13 +566,13 @@ function getTodayIsoDate(): string {
       height: 38px;
       border-radius: 12px;
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      color: #475569;
+      border: 1px solid var(--kb-color-border);
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       transition: all 140ms ease;
     }
-    .icon-action-btn:hover { background: #F8FAFC; border-color: #CBD5E1; }
+    .icon-action-btn:hover { background: var(--kb-color-bg-app); border-color: var(--kb-color-border-strong); }
     .icon-action-btn:active { transform: scale(0.96); }
 
     .notif-badge {
@@ -583,7 +583,7 @@ function getTodayIsoDate(): string {
       min-width: 16px;
       height: 16px;
       border-radius: 999px;
-      background: #EF4444;
+      background: var(--kb-color-danger);
       color: #FFFFFF;
       font-size: 0.65rem;
       font-weight: 700;
@@ -598,35 +598,35 @@ function getTodayIsoDate(): string {
       gap: 0.45rem;
       padding: 0.55rem 0.95rem;
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #334155;
+      color: var(--kb-color-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .header-action-btn:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
+      background: var(--kb-color-bg-app);
+      border-color: var(--kb-color-border-strong);
     }
     .header-action-btn:active { transform: scale(0.98); }
     .header-action-btn--primary {
-      background: #6C27D9;
-      border-color: #6C27D9;
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
       color: #FFFFFF;
       box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
     }
     .header-action-btn--primary:hover {
-      background: #5B21B6;
-      border-color: #5B21B6;
+      background: var(--kb-color-primary-hover);
+      border-color: var(--kb-color-primary-hover);
     }
 
     .spinning { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* ── Bento KPI Grid ── */
+    /* â”€â”€ Bento KPI Grid â”€â”€ */
     .bento-kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -641,7 +641,7 @@ function getTodayIsoDate(): string {
 
     .bento-tile {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 18px;
       padding: 1.25rem 1.35rem;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
@@ -652,17 +652,17 @@ function getTodayIsoDate(): string {
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
     }
     .bento-tile:hover {
-      border-color: #CBD5E1;
+      border-color: var(--kb-color-border-strong);
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
     }
 
     .bento-tile--hero {
-      background: linear-gradient(145deg, #0F172A 0%, #1E1B4B 100%);
-      border: 1px solid #1E293B;
+      background: linear-gradient(145deg, var(--kb-color-foreground) 0%, var(--kb-color-espresso) 100%);
+      border: 1px solid var(--kb-color-foreground);
       color: #FFFFFF;
       box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
     }
-    .bento-tile--hero .bento-tile__eyebrow { color: #94A3B8; }
+    .bento-tile--hero .bento-tile__eyebrow { color: var(--kb-color-muted-foreground); }
     .bento-tile--hero .bento-tile__main-metric { color: #FFFFFF; }
 
     .bento-tile__head {
@@ -676,7 +676,7 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
 
     .trend-badge {
@@ -687,16 +687,16 @@ function getTodayIsoDate(): string {
       font-size: 0.72rem;
       font-weight: 700;
       background: rgba(16, 185, 129, 0.15);
-      color: #34D399;
+      color: var(--kb-color-success);
       font-variant-numeric: tabular-nums;
     }
     .trend-badge--down {
       background: rgba(239, 68, 68, 0.15);
-      color: #F87171;
+      color: var(--kb-color-danger);
     }
     .trend-badge--neutral {
       background: rgba(148, 163, 184, 0.15);
-      color: #CBD5E1;
+      color: var(--kb-color-border-strong);
     }
 
     .kpi-tag {
@@ -704,20 +704,20 @@ function getTodayIsoDate(): string {
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
-    .kpi-tag--green { background: #ECFDF5; color: #059669; }
-    .kpi-tag--amber { background: #FFFBEB; color: #D97706; }
-    .kpi-tag--warn { background: #FEF2F2; color: #DC2626; }
-    .kpi-tag--neutral { background: #F8FAFC; color: #64748B; }
+    .kpi-tag--green { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
+    .kpi-tag--amber { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .kpi-tag--warn { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
+    .kpi-tag--neutral { background: var(--kb-color-bg-app); color: var(--kb-color-muted-foreground); }
 
     .bento-tile__main-metric {
       font-size: 1.85rem;
       font-weight: 800;
       letter-spacing: -0.03em;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
       display: flex;
       align-items: baseline;
@@ -726,13 +726,13 @@ function getTodayIsoDate(): string {
     .metric-total-sub {
       font-size: 0.95rem;
       font-weight: 600;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       letter-spacing: normal;
     }
     .metric-unit-sub {
       font-size: 0.85rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       letter-spacing: normal;
     }
 
@@ -743,7 +743,7 @@ function getTodayIsoDate(): string {
       gap: 0.65rem;
       padding-top: 0.4rem;
       font-size: 0.78rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .split-pill { display: flex; align-items: center; gap: 0.35rem; }
@@ -752,10 +752,10 @@ function getTodayIsoDate(): string {
       height: 6px;
       border-radius: 50%;
     }
-    .split-legend--cash { background: #34D399; }
-    .split-legend--upi { background: #818CF8; }
+    .split-legend--cash { background: var(--kb-color-success); }
+    .split-legend--upi { background: var(--kb-color-primary); }
     .split-val { color: #FFFFFF; font-weight: 600; }
-    .split-divider { color: #475569; }
+    .split-divider { color: var(--kb-color-muted-foreground); }
 
     /* Progress Meter */
     .progress-meter-container {
@@ -767,13 +767,13 @@ function getTodayIsoDate(): string {
     .progress-meter-track {
       width: 100%;
       height: 6px;
-      background: #F1F5F9;
+      background: var(--kb-color-surface-2);
       border-radius: 999px;
       overflow: hidden;
     }
     .progress-meter-fill {
       height: 100%;
-      background: linear-gradient(90deg, #10B981 0%, #34D399 100%);
+      background: linear-gradient(90deg, var(--kb-color-success) 0%, var(--kb-color-success) 100%);
       border-radius: 999px;
       transition: width 240ms ease;
     }
@@ -782,11 +782,11 @@ function getTodayIsoDate(): string {
       align-items: center;
       justify-content: space-between;
       font-size: 0.74rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
-    .text-amber { color: #D97706 !important; font-weight: 600; }
-    .text-rose { color: #E11D48 !important; }
+    .text-amber { color: var(--kb-color-warning) !important; font-weight: 600; }
+    .text-rose { color: var(--kb-color-danger) !important; }
 
     .bento-tile__footer-action {
       display: flex;
@@ -796,7 +796,7 @@ function getTodayIsoDate(): string {
     }
     .sub-caption {
       font-size: 0.76rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-weight: 500;
     }
     .tile-action-link {
@@ -805,16 +805,16 @@ function getTodayIsoDate(): string {
       gap: 0.2rem;
       background: transparent;
       border: none;
-      color: #6C27D9;
+      color: var(--kb-color-primary);
       font-size: 0.76rem;
       font-weight: 700;
       cursor: pointer;
       padding: 0;
       transition: color 140ms ease;
     }
-    .tile-action-link:hover { color: #4C1D95; }
+    .tile-action-link:hover { color: var(--kb-color-primary-hover); }
 
-    /* ── Middle Bento Grid ── */
+    /* â”€â”€ Middle Bento Grid â”€â”€ */
     .bento-intel-grid {
       display: grid;
       grid-template-columns: 1.55fr 1fr;
@@ -826,7 +826,7 @@ function getTodayIsoDate(): string {
 
     .intel-card {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 18px;
       padding: 1.35rem 1.5rem;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
@@ -845,7 +845,7 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       display: block;
       margin-bottom: 0.15rem;
     }
@@ -853,7 +853,7 @@ function getTodayIsoDate(): string {
       margin: 0;
       font-size: 1.12rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
     }
     .rush-badge {
@@ -861,22 +861,22 @@ function getTodayIsoDate(): string {
       border-radius: 999px;
       font-size: 0.74rem;
       font-weight: 700;
-      background: #F5F3FF;
-      color: #6C27D9;
-      border: 1px solid #DDD6FE;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
+      border: 1px solid var(--kb-color-primary-soft);
       font-variant-numeric: tabular-nums;
     }
     .link-btn-text {
       background: none;
       border: none;
-      color: #6C27D9;
+      color: var(--kb-color-primary);
       font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
       padding: 0;
       transition: color 140ms ease;
     }
-    .link-btn-text:hover { color: #4C1D95; text-decoration: underline; }
+    .link-btn-text:hover { color: var(--kb-color-primary-hover); text-decoration: underline; }
 
     /* Hourly Chart */
     .hourly-chart-wrapper {
@@ -905,8 +905,8 @@ function getTodayIsoDate(): string {
     .bar-pill-track {
       width: 100%;
       height: 90px;
-      background: #F8FAFC;
-      border: 1px solid #F1F5F9;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 8px;
       display: flex;
       align-items: flex-end;
@@ -914,20 +914,20 @@ function getTodayIsoDate(): string {
     }
     .bar-pill-fill {
       width: 100%;
-      background: #CBD5E1;
+      background: var(--kb-color-border-strong);
       border-radius: 7px;
       transition: height 240ms ease, background 140ms ease;
     }
-    .bar-pill-fill--peak { background: #6C27D9; }
-    .bar-pill-fill--current { background: #F97316; }
+    .bar-pill-fill--peak { background: var(--kb-color-primary); }
+    .bar-pill-fill--current { background: var(--kb-color-burnt); }
     .hourly-bar-node:hover .bar-pill-fill { filter: brightness(0.92); }
     .bar-tick-label {
       font-size: 0.68rem;
       font-weight: 600;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
-    .bar-tick-label--current { color: #F97316; font-weight: 700; }
+    .bar-tick-label--current { color: var(--kb-color-burnt); font-weight: 700; }
 
     /* Top Dishes Stack */
     .top-dishes-stack {
@@ -944,8 +944,8 @@ function getTodayIsoDate(): string {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #F5F3FF;
-      color: #6C27D9;
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
       font-size: 0.74rem;
       font-weight: 800;
       display: flex;
@@ -966,33 +966,33 @@ function getTodayIsoDate(): string {
     }
     .dish-name-label {
       font-size: 0.86rem;
-      color: #1E293B;
+      color: var(--kb-color-foreground);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .dish-qty-label {
       font-size: 0.75rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
     .dish-bar-track {
       width: 100%;
       height: 5px;
-      background: #F1F5F9;
+      background: var(--kb-color-surface-2);
       border-radius: 999px;
       overflow: hidden;
     }
     .dish-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6C27D9 0%, #A855F7 100%);
+      background: linear-gradient(90deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
       border-radius: 999px;
     }
     .dish-rev-label {
       font-size: 0.86rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
       flex-shrink: 0;
     }
@@ -1006,14 +1006,14 @@ function getTodayIsoDate(): string {
       text-align: center;
       gap: 0.45rem;
     }
-    .empty-icon-glyph { color: #CBD5E1; margin-bottom: 0.25rem; }
-    .intel-empty-box h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: #334155; }
-    .intel-empty-box p { margin: 0; font-size: 0.82rem; color: #64748B; max-width: 360px; line-height: 1.45; }
+    .empty-icon-glyph { color: var(--kb-color-border-strong); margin-bottom: 0.25rem; }
+    .intel-empty-box h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--kb-color-foreground); }
+    .intel-empty-box p { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
 
-    /* ── Bottom Bento Card: Live Stream & Orders ── */
+    /* â”€â”€ Bottom Bento Card: Live Stream & Orders â”€â”€ */
     .bento-orders-container {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 18px;
       padding: 1.5rem;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
@@ -1035,7 +1035,7 @@ function getTodayIsoDate(): string {
       margin: 0;
       font-size: 1.2rem;
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
     }
     .counter-badge {
@@ -1044,14 +1044,14 @@ function getTodayIsoDate(): string {
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: #F1F5F9;
-      color: #475569;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
     .orders-sub {
       margin: 0.2rem 0 0;
       font-size: 0.85rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
     }
 
     .orders-head-controls {
@@ -1063,7 +1063,7 @@ function getTodayIsoDate(): string {
 
     .channel-filter-tabs {
       display: inline-flex;
-      background: #F1F5F9;
+      background: var(--kb-color-surface-2);
       padding: 3px;
       border-radius: 10px;
       gap: 2px;
@@ -1075,14 +1075,14 @@ function getTodayIsoDate(): string {
       border-radius: 8px;
       font-size: 0.78rem;
       font-weight: 600;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       transition: all 120ms ease;
     }
-    .channel-tab-btn:hover { color: #1E293B; }
+    .channel-tab-btn:hover { color: var(--kb-color-foreground); }
     .channel-tab-btn--active {
       background: #FFFFFF;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-weight: 700;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
@@ -1091,8 +1091,8 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-border);
       border-radius: 10px;
       padding: 0.45rem 0.75rem;
       width: 220px;
@@ -1100,23 +1100,23 @@ function getTodayIsoDate(): string {
     }
     .order-search-box:focus-within {
       background: #FFFFFF;
-      border-color: #6C27D9;
+      border-color: var(--kb-color-primary);
       box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
     }
-    .order-search-box svg { color: #94A3B8; }
+    .order-search-box svg { color: var(--kb-color-muted-foreground); }
     .order-search-box input {
       border: none;
       background: transparent;
       outline: none;
       width: 100%;
       font-size: 0.82rem;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
     }
 
     /* Tactile Orders Table */
     .orders-table-wrapper {
       overflow-x: auto;
-      border: 1px solid #F1F5F9;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 12px;
     }
     .orders-tactile-table {
@@ -1127,18 +1127,18 @@ function getTodayIsoDate(): string {
     }
     .orders-tactile-table th {
       padding: 0.75rem 1rem;
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #64748B;
-      border-bottom: 1px solid #E2E8F0;
+      color: var(--kb-color-muted-foreground);
+      border-bottom: 1px solid var(--kb-color-border);
     }
     .orders-tactile-table td {
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #F1F5F9;
-      color: #334155;
+      border-bottom: 1px solid var(--kb-color-surface-2);
+      color: var(--kb-color-foreground);
       vertical-align: middle;
     }
     .order-row-interactive {
@@ -1146,15 +1146,15 @@ function getTodayIsoDate(): string {
       transition: background 120ms ease;
     }
     .order-row-interactive:hover {
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
     }
     .order-row-interactive:last-child td { border-bottom: none; }
 
     .order-hash-code {
-      font-family: monospace;
+      font-family: var(--kb-font-mono);
       font-weight: 700;
-      color: #0F172A;
-      background: #F1F5F9;
+      color: var(--kb-color-foreground);
+      background: var(--kb-color-surface-2);
       padding: 0.2rem 0.45rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -1168,9 +1168,9 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       letter-spacing: 0.02em;
     }
-    .channel-chip--dine_in { background: #EEF2FF; color: #4F46E5; }
-    .channel-chip--takeaway { background: #FEF3C7; color: #B45309; }
-    .channel-chip--delivery { background: #ECFDF5; color: #047857; }
+    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .channel-chip--takeaway { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .channel-chip--delivery { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
     .order-guest-desc {
       display: flex;
@@ -1179,17 +1179,17 @@ function getTodayIsoDate(): string {
     }
     .guest-title {
       font-weight: 600;
-      color: #1E293B;
+      color: var(--kb-color-foreground);
       font-size: 0.84rem;
     }
     .guest-meta {
       font-size: 0.74rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
     }
 
     .order-table-amount {
       font-weight: 800;
-      color: #0F172A;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
 
@@ -1200,14 +1200,14 @@ function getTodayIsoDate(): string {
       font-size: 0.72rem;
       font-weight: 700;
     }
-    .badge-preparing { background: #FEF3C7; color: #92400E; }
-    .badge-cooking { background: #FFEDD5; color: #C2410C; }
-    .badge-served { background: #E0E7FF; color: #3730A3; }
-    .badge-completed { background: #ECFDF5; color: #065F46; }
+    .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+    .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-burnt); }
+    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary-hover); }
+    .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
     .time-stamp-label {
       font-size: 0.76rem;
-      color: #64748B;
+      color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
 
@@ -1223,21 +1223,21 @@ function getTodayIsoDate(): string {
       gap: 0.3rem;
       padding: 0.35rem 0.65rem;
       border-radius: 8px;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       background: #FFFFFF;
-      color: #334155;
+      color: var(--kb-color-foreground);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 120ms ease;
     }
-    .btn-micro:hover { background: #F1F5F9; border-color: #CBD5E1; }
+    .btn-micro:hover { background: var(--kb-color-surface-2); border-color: var(--kb-color-border-strong); }
     .btn-micro--primary {
-      background: #6C27D9;
-      border-color: #6C27D9;
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
       color: #FFFFFF;
     }
-    .btn-micro--primary:hover { background: #5B21B6; }
+    .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
 
     .empty-orders-view {
       padding: 3rem 1.5rem;
@@ -1251,16 +1251,16 @@ function getTodayIsoDate(): string {
       width: 56px;
       height: 56px;
       border-radius: 16px;
-      background: #F8FAFC;
-      border: 1px solid #EEF2F6;
+      background: var(--kb-color-bg-app);
+      border: 1px solid var(--kb-color-surface-2);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       margin-bottom: 0.25rem;
     }
-    .empty-orders-view h4 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #0F172A; }
-    .empty-orders-view p { margin: 0; font-size: 0.85rem; color: #64748B; max-width: 440px; }
+    .empty-orders-view h4 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); }
+    .empty-orders-view p { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); max-width: 440px; }
     .empty-actions-row {
       display: flex;
       align-items: center;
@@ -1268,7 +1268,7 @@ function getTodayIsoDate(): string {
       margin-top: 0.75rem;
     }
 
-    /* ── Notifications Flyout ── */
+    /* â”€â”€ Notifications Flyout â”€â”€ */
     .notif-wrapper { position: relative; }
     .notif-flyout {
       position: absolute;
@@ -1277,7 +1277,7 @@ function getTodayIsoDate(): string {
       width: 320px;
       max-height: 400px;
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 16px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
       z-index: 60;
@@ -1290,10 +1290,10 @@ function getTodayIsoDate(): string {
       align-items: center;
       justify-content: space-between;
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #F1F5F9;
-      background: #F8FAFC;
+      border-bottom: 1px solid var(--kb-color-surface-2);
+      background: var(--kb-color-bg-app);
     }
-    .notif-flyout__head h4 { margin: 0; font-size: 0.88rem; font-weight: 700; color: #0F172A; }
+    .notif-flyout__head h4 { margin: 0; font-size: 0.88rem; font-weight: 700; color: var(--kb-color-foreground); }
     .notif-flyout__body {
       overflow-y: auto;
       max-height: 320px;
@@ -1303,30 +1303,30 @@ function getTodayIsoDate(): string {
     .notif-item {
       position: relative;
       padding: 0.75rem 1rem;
-      border-bottom: 1px solid #F8FAFC;
+      border-bottom: 1px solid var(--kb-color-bg-app);
       display: flex;
       align-items: flex-start;
       gap: 0.65rem;
       cursor: pointer;
       transition: background 120ms ease;
     }
-    .notif-item:hover { background: #F8FAFC; }
-    .notif-item--unread { background: #F5F3FF; }
+    .notif-item:hover { background: var(--kb-color-bg-app); }
+    .notif-item--unread { background: var(--kb-color-primary-soft); }
     .notif-unread-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #6C27D9;
+      background: var(--kb-color-primary);
       margin-top: 5px;
       flex-shrink: 0;
     }
     .notif-copy { flex: 1; }
-    .notif-title { font-size: 0.8rem; color: #0F172A; display: block; margin-bottom: 0.15rem; }
-    .notif-msg { margin: 0 0 0.25rem; font-size: 0.74rem; color: #64748B; line-height: 1.4; }
-    .notif-time { font-size: 0.68rem; color: #94A3B8; }
-    .notif-empty { padding: 2rem 1rem; text-align: center; color: #94A3B8; font-size: 0.82rem; }
+    .notif-title { font-size: 0.8rem; color: var(--kb-color-foreground); display: block; margin-bottom: 0.15rem; }
+    .notif-msg { margin: 0 0 0.25rem; font-size: 0.74rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
+    .notif-time { font-size: 0.68rem; color: var(--kb-color-muted-foreground); }
+    .notif-empty { padding: 2rem 1rem; text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
 
-    /* ── Modals Overlay ── */
+    /* â”€â”€ Modals Overlay â”€â”€ */
     .tactile-modal-overlay {
       position: fixed;
       inset: 0;
@@ -1340,7 +1340,7 @@ function getTodayIsoDate(): string {
     }
     .tactile-modal-box {
       background: #FFFFFF;
-      border: 1px solid #E2E8F0;
+      border: 1px solid var(--kb-color-border);
       border-radius: 20px;
       width: 100%;
       max-width: 520px;
@@ -1355,17 +1355,17 @@ function getTodayIsoDate(): string {
       align-items: center;
       justify-content: space-between;
       padding: 1.15rem 1.4rem;
-      border-bottom: 1px solid #F1F5F9;
-      background: #F8FAFC;
+      border-bottom: 1px solid var(--kb-color-surface-2);
+      background: var(--kb-color-bg-app);
     }
-    .tactile-modal-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0F172A; }
+    .tactile-modal-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--kb-color-foreground); }
     .tactile-head-with-icon { display: flex; align-items: center; gap: 0.65rem; }
     .warning-icon-badge {
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: #FEF3C7;
-      color: #D97706;
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1374,12 +1374,12 @@ function getTodayIsoDate(): string {
       background: none;
       border: none;
       font-size: 1.1rem;
-      color: #94A3B8;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       padding: 0;
       line-height: 1;
     }
-    .modal-close-icon:hover { color: #0F172A; }
+    .modal-close-icon:hover { color: var(--kb-color-foreground); }
     .tactile-modal-body {
       padding: 1.25rem 1.4rem;
       overflow-y: auto;
@@ -1387,31 +1387,31 @@ function getTodayIsoDate(): string {
       flex-direction: column;
       gap: 0.85rem;
     }
-    .modal-lead-note { margin: 0; font-size: 0.85rem; color: #64748B; }
+    .modal-lead-note { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
     .terminal-item-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0.75rem 0.85rem;
-      border: 1px solid #F1F5F9;
+      border: 1px solid var(--kb-color-surface-2);
       border-radius: 12px;
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
     }
     .terminal-core-info { display: flex; align-items: center; gap: 0.75rem; }
-    .terminal-tag { display: block; font-size: 0.72rem; color: #94A3B8; }
+    .terminal-tag { display: block; font-size: 0.72rem; color: var(--kb-color-muted-foreground); }
     .terminal-meta-info { text-align: right; }
-    .time-sub { display: block; font-size: 0.7rem; color: #94A3B8; margin-top: 0.15rem; }
-    .tactile-empty-sub { text-align: center; color: #94A3B8; font-size: 0.85rem; padding: 1.5rem 0; }
+    .time-sub { display: block; font-size: 0.7rem; color: var(--kb-color-muted-foreground); margin-top: 0.15rem; }
+    .tactile-empty-sub { text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.85rem; padding: 1.5rem 0; }
     .tactile-modal-foot {
       padding: 1rem 1.4rem;
-      border-top: 1px solid #F1F5F9;
+      border-top: 1px solid var(--kb-color-surface-2);
       display: flex;
       justify-content: flex-end;
-      background: #F8FAFC;
+      background: var(--kb-color-bg-app);
     }
 
     .skeleton-shimmer {
-      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background: linear-gradient(90deg, var(--kb-color-surface-2) 25%, var(--kb-color-border) 50%, var(--kb-color-surface-2) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
     }
@@ -1507,7 +1507,7 @@ export class BusinessDashboardPageComponent implements OnInit {
                     sourceType: typeLabel,
                     dishImg: undefined,
                     itemsSummary: o.customerName ? `Guest: ${o.customerName}` : `${typeLabel} Order`,
-                    tableAndChannel: `${typeLabel} · ${payment}`,
+                    tableAndChannel: `${typeLabel} Â· ${payment}`,
                     totalAmount: Number(o.totalAmount) || 0,
                     createdAt: o.createdAt
                   };

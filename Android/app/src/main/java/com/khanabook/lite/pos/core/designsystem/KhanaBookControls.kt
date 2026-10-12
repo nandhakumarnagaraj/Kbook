@@ -137,7 +137,7 @@ fun KhanaPrimaryButton(
             KhanaInlineLoader(color = DarkBrown1)
             Spacer(modifier = Modifier.width(spacing.small))
         } else if (leadingIcon != null) {
-            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.layout.actionIconSize))
             Spacer(modifier = Modifier.width(spacing.small))
         }
         Text(
@@ -168,7 +168,7 @@ fun KhanaSecondaryButton(
         shape = KhanaRadii.lg
     ) {
         if (leadingIcon != null) {
-            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.layout.actionIconSize))
             Spacer(modifier = Modifier.width(spacing.small))
         }
         Text(text, style = MaterialTheme.typography.titleMedium)
@@ -197,7 +197,7 @@ fun KhanaDestructiveButton(
         shape = KhanaRadii.lg
     ) {
         if (leadingIcon != null) {
-            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(KhanaBookTheme.layout.actionIconSize))
             Spacer(modifier = Modifier.width(spacing.small))
         }
         Text(

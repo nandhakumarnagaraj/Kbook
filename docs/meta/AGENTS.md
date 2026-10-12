@@ -144,7 +144,7 @@ Use these custom components from `ui/designsystem/`:
 
 ### Navigation
 - Jetpack Navigation Compose, animated transitions (`fadeIn + slideInHorizontally`, `tween(300)`, `FastOutSlowInEasing`)
-- Tabs via `NavigationSuiteScaffold` (rail >=600dp, else bar) + `AnimatedContent` in MainScreen (Home/Reports/Settings)
+- Tabs via `NavigationSuiteScaffold` (bottom bar across all devices) + `AnimatedContent` in MainScreen (Home/Reports/Settings)
 - Double-back-to-exit on main tabs
 
 ### Lists & Grids

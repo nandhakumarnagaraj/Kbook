@@ -48,6 +48,7 @@ import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.auth.domain.TrustedExternalAppReturn
 import com.khanabook.lite.pos.feature.sync.domain.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.core.navigation.AppNavGraph
+import com.khanabook.lite.pos.core.navigation.NavigationTabs
 import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.feature.auth.ui.BrandedStartFrame
 import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
@@ -81,7 +82,7 @@ class MainActivity : FragmentActivity() {
         if (!sessionManager.canUsePos()) return Routes.ROLE_ACCESS
         if (!sessionManager.isInitialSyncCompleted()) return Routes.INITIAL_SYNC
         if (!sessionManager.isQuickStartCompleted()) return Routes.QUICK_START
-        return Routes.main(0)
+        return Routes.main(NavigationTabs.TAB_HOME)
     }
 
     /**

@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -57,15 +59,35 @@ fun StickyBottomScaffold(
 
     Column(modifier = modifier.fillMaxSize()) {
         // Optional header — not scrolled, pinned at top
-        header?.invoke()
+        if (header != null) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = layout.maxContentWidth)
+                ) {
+                    header()
+                }
+            }
+        }
 
         // Content area — screen decides its own scroll strategy
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            content()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = layout.maxContentWidth)
+            ) {
+                content()
+            }
         }
 
         // Sticky bottom bar — handles IME + navigation bar insets
@@ -76,15 +98,22 @@ fun StickyBottomScaffold(
             border = bottomBarBorder
         ) {
             Box(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(
-                        horizontal = layout.contentPadding,
-                        vertical = spacing.smallMedium
-                    )
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                bottomBar()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = layout.maxContentWidth)
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(
+                            horizontal = layout.contentPadding,
+                            vertical = spacing.smallMedium
+                        )
+                ) {
+                    bottomBar()
+                }
             }
         }
     }

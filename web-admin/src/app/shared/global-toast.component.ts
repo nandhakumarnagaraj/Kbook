@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ToastService } from '../core/services/toast.service';
 
@@ -18,7 +18,7 @@ import { ToastService } from '../core/services/toast.service';
       aria-atomic="true"
     >
       <span class="global-toast__mark" aria-hidden="true">
-        {{ msg.type === 'error' ? '!' : (msg.type === 'success' ? '✓' : 'i') }}
+        {{ msg.type === 'error' ? '!' : (msg.type === 'success' ? 'âœ“' : 'i') }}
       </span>
       <span class="global-toast__message">{{ msg.text }}</span>
       <button
@@ -26,7 +26,7 @@ import { ToastService } from '../core/services/toast.service';
         class="global-toast__close"
         aria-label="Dismiss notification"
         (click)="toast.dismiss()"
-      >×</button>
+      >Ã—</button>
     </aside>
   `,
   styles: [`
@@ -41,7 +41,7 @@ import { ToastService } from '../core/services/toast.service';
       gap: 0.75rem;
       width: min(380px, calc(100vw - 2rem));
       padding: 0.8rem 0.9rem;
-      color: #fff;
+      color: var(--kb-color-on-primary);
       background: var(--ink);
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 14px;
@@ -74,7 +74,7 @@ import { ToastService } from '../core/services/toast.service';
     }
     .global-toast__close:hover,
     .global-toast__close:focus-visible { background: rgba(255, 255, 255, 0.12); }
-    .global-toast__close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .global-toast__close:focus-visible { outline: 2px solid var(--kb-color-on-primary); outline-offset: 2px; }
     @media (max-width: 480px) {
       .global-toast { right: 1rem; bottom: 1rem; }
     }

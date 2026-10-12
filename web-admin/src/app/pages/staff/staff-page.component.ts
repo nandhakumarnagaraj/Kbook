@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -61,41 +61,15 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       gap: var(--kb-space-2);
       flex-wrap: wrap;
     }
-    .primary-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground, #ffffff);
-      border: none;
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: transform 120ms ease, opacity 120ms ease;
-    }
-    .primary-btn-tactile:active { transform: scale(0.97); }
-    .ghost-btn-tactile {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-surface);
-      color: var(--kb-color-foreground);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-md);
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 8px 14px;
-      cursor: pointer;
-      transition: transform 120ms ease, background-color 150ms ease;
-    }
-    .ghost-btn-tactile:active { transform: scale(0.97); }
+    
+    
+    
+    
     .danger-btn {
-      color: #dc2626;
-      border-color: rgba(239, 68, 68, 0.25);
+      color: var(--kb-color-danger);
+      border-color: rgba(192, 57, 43, 0.25);
     }
-    .danger-btn:hover { background: rgba(239, 68, 68, 0.06); }
+    .danger-btn:hover { background: rgba(192, 57, 43, 0.06); }
     .role-filter-strip {
       display: flex;
       gap: var(--kb-space-2);
@@ -160,7 +134,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       border-radius: var(--kb-radius-full);
       font-size: 0.68rem;
       font-weight: 700;
-      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.12);
+      background: rgba(var(--kb-color-primary-rgb), 0.12);
       color: var(--kb-color-primary);
       text-transform: uppercase;
       letter-spacing: 0.03em;
@@ -174,9 +148,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       letter-spacing: 0.04em;
     }
     .role-pill--owner {
-      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.1);
+      background: rgba(var(--kb-color-primary-rgb), 0.1);
       color: var(--kb-color-primary);
-      border: 1px solid rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.3);
+      border: 1px solid rgba(var(--kb-color-primary-rgb), 0.3);
     }
     .role-pill--staff {
       background: var(--kb-color-surface-2);
@@ -199,9 +173,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       background: currentColor;
     }
     .status-indicator-pill--active {
-      color: #16a34a;
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: var(--kb-color-success);
+      background: rgba(47, 133, 90, 0.08);
+      border: 1px solid rgba(47, 133, 90, 0.25);
     }
     .status-indicator-pill--inactive {
       color: var(--kb-color-muted-foreground);
@@ -227,16 +201,16 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
     }
     .small-action-btn:hover:not(:disabled) { background: var(--kb-color-surface-2); }
     .small-action-btn:active:not(:disabled) { transform: scale(0.97); }
-    .small-action-btn--danger { color: #dc2626; border-color: rgba(239, 68, 68, 0.25); }
-    .small-action-btn--danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.06); }
-    .small-action-btn--success { color: #16a34a; border-color: rgba(34, 197, 94, 0.25); }
-    .small-action-btn--success:hover:not(:disabled) { background: rgba(34, 197, 94, 0.06); }
+    .small-action-btn--danger { color: var(--kb-color-danger); border-color: rgba(192, 57, 43, 0.25); }
+    .small-action-btn--danger:hover:not(:disabled) { background: rgba(192, 57, 43, 0.06); }
+    .small-action-btn--success { color: var(--kb-color-success); border-color: rgba(47, 133, 90, 0.25); }
+    .small-action-btn--success:hover:not(:disabled) { background: rgba(47, 133, 90, 0.06); }
     .small-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .tabular-num { font-variant-numeric: tabular-nums; }
     .tooltip-wrapper { position: relative; display: inline-block; }
     .tooltip-wrapper .tooltip-text {
       visibility: hidden; position: absolute; bottom: 100%; left: 50%;
-      transform: translateX(-50%); background: var(--kb-color-foreground); color: #fff;
+      transform: translateX(-50%); background: var(--kb-color-foreground); color: var(--kb-color-on-primary);
       font-size: 0.7rem; padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-md); white-space: nowrap; z-index: 10;
       margin-bottom: var(--kb-space-1);
@@ -257,7 +231,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           <p class="header-sub">Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.</p>
         </div>
         <div class="header-right">
-          <button type="button" class="primary-btn-tactile" *ngIf="isOwner" (click)="openCreateModal()">
+          <button type="button" class="primary-btn" *ngIf="isOwner" (click)="openCreateModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
@@ -266,7 +240,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           </button>
           <button
             type="button"
-            class="ghost-btn-tactile danger-btn"
+            class="ghost-btn danger-btn"
             *ngIf="isOwner"
             (click)="requestRevokeAll()"
             title="Emergency sign out of all devices"
@@ -277,7 +251,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             </svg>
             Sign Out All Devices
           </button>
-          <button type="button" class="ghost-btn-tactile" (click)="loadStaff()">
+          <button type="button" class="refresh-btn" (click)="loadStaff()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
@@ -341,7 +315,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       <app-confirm-dialog
         *ngIf="staffToRevoke"
         title="Sign out of all devices"
-        [message]="'Sign ' + staffToRevoke.name + ' out of every device? Their account stays active — they can sign in again straight away. Use this if a device was lost.'"
+        [message]="'Sign ' + staffToRevoke.name + ' out of every device? Their account stays active â€” they can sign in again straight away. Use this if a device was lost.'"
         confirmLabel="Sign out"
         cancelLabel="Cancel"
         [confirmDanger]="true"
@@ -394,7 +368,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
 
         <div class="filter-summary">
           <p class="muted">{{ filteredStaff.length }} of {{ staff().length }} staff members</p>
-          <button class="ghost-btn-tactile" (click)="clearFilters()">Clear filters</button>
+          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
         </div>
       </section>
 
@@ -481,11 +455,11 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                 {{ item.active ? 'Active' : 'Inactive' }}
               </span>
             </div>
-            <p><code>{{ item.loginId }}</code> · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
+            <p><code>{{ item.loginId }}</code> Â· {{ item.whatsappNumber || item.email || 'No contact' }}</p>
             <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
-              <button class="ghost-btn-tactile" (click)="openEditModal(item)">Edit</button>
-              <button class="ghost-btn-tactile danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
+              <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
+              <button class="ghost-btn danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
             </div>
           </article>
         </div>
@@ -493,8 +467,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <div class="pagination-bar" *ngIf="filteredStaff.length > pageSize">
           <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
           <div class="pagination-controls">
-            <button class="ghost-btn-tactile" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn-tactile" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
+            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
           </div>
         </div>
       </div>
@@ -508,7 +482,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <ng-template #staffEmpty>
           <app-empty-state
             *ngIf="!loadError()"
-            icon="👥"
+            icon="ðŸ‘¥"
             title="No staff match the current filters"
             text="Try a different search, role, or status filter. Owners can add a new team member."
             [actionLabel]="isOwner ? 'Add Staff' : ''"

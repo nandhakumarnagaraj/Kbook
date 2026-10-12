@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
@@ -92,10 +93,12 @@ fun CustomerInfoStep(
             }
         }
     ) {
+    val scrollState = rememberScrollState()
     Column(
             modifier =
                     Modifier.fillMaxSize()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScrollbar(scrollState)
+                            .verticalScroll(scrollState)
                             .padding(horizontal = layout.contentPadding, vertical = spacing.medium)
     ) {
         if (!hideHeader) {

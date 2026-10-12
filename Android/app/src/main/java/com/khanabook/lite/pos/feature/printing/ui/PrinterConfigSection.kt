@@ -4,6 +4,7 @@ package com.khanabook.lite.pos.feature.printing.ui
 import com.khanabook.lite.pos.feature.settings.ui.ConfigActionButtons
 import com.khanabook.lite.pos.feature.settings.ui.ConfigCard
 import com.khanabook.lite.pos.feature.printing.ui.*
+import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 
 import com.khanabook.lite.pos.core.theme.KhanaRadii
 import com.khanabook.lite.pos.core.theme.BorderGold
@@ -31,8 +32,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -130,6 +133,7 @@ fun PrinterConfigView(
     isSaving: Boolean = false
 ) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val customerPrinter by viewModel.customerPrinter.collectAsStateWithLifecycle()
     val kitchenPrinter by viewModel.kitchenPrinter.collectAsStateWithLifecycle()
     var enabled by remember(customerPrinter?.id, customerPrinter?.enabled, profile?.printerEnabled) {
@@ -285,11 +289,17 @@ fun PrinterConfigView(
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    val scrollState = rememberScrollState()
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .widthIn(max = layout.maxContentWidth)
+                .verticalScrollbar(scrollState)
+                .verticalScroll(scrollState)
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(spacing.medium)

@@ -16,6 +16,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
@@ -73,18 +74,18 @@ fun MainScreen(
     val haptic = LocalHapticFeedback.current
     val layout = KhanaBookTheme.layout
     val typeScale = KhanaBookTheme.typeScale
-    val navigationSuiteType = if (layout.screenWidthDp >= 600) {
-        NavigationSuiteType.NavigationRail
-    } else {
-        NavigationSuiteType.NavigationBar
+    val navigationSuiteType = NavigationSuiteType.NavigationBar
+
+    val homeTabIndex = remember(visibleTabs) {
+        visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_HOME }.coerceAtLeast(0)
     }
 
     var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
             .let { idx ->
                 if (idx != -1) idx
-                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: 0
-                else 0
+                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: homeTabIndex
+                else homeTabIndex
             }
         mutableIntStateOf(initialVisibleIndex) 
     }
@@ -102,12 +103,12 @@ fun MainScreen(
     }
 
     // Intercept back gesture to return to Home tab if not already there
-    BackHandler(enabled = safeSelectedTabIndex != 0) {
-        selectedTabIndex = 0
+    BackHandler(enabled = safeSelectedTabIndex != homeTabIndex) {
+        selectedTabIndex = homeTabIndex
     }
 
     val content: @Composable (Modifier) -> Unit = { modifier ->
-        val backToHome = { selectedTabIndex = 0 }
+        val backToHome = { selectedTabIndex = homeTabIndex }
         AnimatedContent(
             targetState = safeSelectedTabIndex,
             transitionSpec = {
@@ -173,15 +174,10 @@ fun MainScreen(
             indicatorColor = PrimaryGold.copy(alpha = 0.1f)
         )
     )
-    val navIconSize = when (typeScale) {
-        TypeScaleTier.Tablet -> 28.dp
-        TypeScaleTier.LargePhone -> 26.dp
-        else -> 24.dp
-    }
-    val navLabelStyle = when (typeScale) {
-        TypeScaleTier.Tablet -> MaterialTheme.typography.labelMedium
-        else -> MaterialTheme.typography.labelSmall
-    }
+    val navIconSize = layout.navIconSize
+    val navLabelStyle = MaterialTheme.typography.labelMedium.copy(
+        fontSize = layout.navLabelFontSize
+    )
 
     val mainContent: @Composable () -> Unit = {
         Box(
@@ -213,7 +209,15 @@ fun MainScreen(
                                 size = navIconSize
                             )
                         },
-                        label = { Text(item.label, style = navLabelStyle) },
+                        label = {
+                            Text(
+                                text = item.label,
+                                style = navLabelStyle.copy(
+                                    fontWeight = if (safeSelectedTabIndex == index) FontWeight.Bold else FontWeight.Medium
+                                ),
+                                maxLines = 1
+                            )
+                        },
                         alwaysShowLabel = true,
                         colors = suiteItemColors
                     )

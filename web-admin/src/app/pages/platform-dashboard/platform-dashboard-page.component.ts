@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
@@ -260,7 +260,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
                   <td>{{ sm.businessName || sm.beneficiaryName || '-' }}</td>
                   <td class="tabular-num">{{ (sm.pan || '-') + ' / ' + (sm.gst || '-') }}</td>
                   <td class="tabular-num muted">
-                    {{ sm.bankAccountNo ? ('••••' + sm.bankAccountNo.slice(-4)) : '-' }}
+                    {{ sm.bankAccountNo ? ('â€¢â€¢â€¢â€¢' + sm.bankAccountNo.slice(-4)) : '-' }}
                     <span *ngIf="sm.ifsc">({{ sm.ifsc }})</span>
                   </td>
                   <td class="muted">{{ sm.createdAt ? (sm.createdAt | date:'shortDate') : '-' }}</td>
@@ -350,7 +350,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
     .header-actions { display: flex; align-items: center; gap: var(--kb-space-2); }
 
-    /* ── Tab Navigation ── */
+    /* â”€â”€ Tab Navigation â”€â”€ */
     .operator-tabs-nav {
       display: flex;
       gap: 0.5rem;
@@ -379,15 +379,15 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
     .tab-pill--active {
       background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground, #ffffff);
+      color: var(--kb-color-primary-foreground);
       border-color: var(--kb-color-primary);
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
+      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.25);
     }
     .tab-pill--active:hover {
-      color: var(--kb-color-primary-foreground, #ffffff);
+      color: var(--kb-color-primary-foreground);
     }
 
-    /* ── KPI Grid ── */
+    /* â”€â”€ KPI Grid â”€â”€ */
     .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-4); }
     @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px)  { .kpi-row { grid-template-columns: 1fr; } }
@@ -416,7 +416,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
     .kpi-tag--hero { background: rgba(255, 255, 255, 0.2); color: var(--kb-color-primary-foreground); }
     .kpi-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-    .kpi-tag--brand { background: rgba(93, 69, 253, 0.1); color: #5D45FD; }
+    .kpi-tag--brand { background: rgba(108, 39, 217, 0.1); color: var(--kb-color-primary); }
     .kpi-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
 
     .kpi-label {
@@ -475,7 +475,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .focus-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
     .focus-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
-    /* ── Table Card & Responsive Tables ── */
+    /* â”€â”€ Table Card & Responsive Tables â”€â”€ */
     .table-card {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
@@ -547,7 +547,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .font-semibold { font-weight: 600; }
     .text-brand { color: var(--kb-color-primary); }
     .code-badge {
-      font-family: monospace;
+      font-family: var(--kb-font-mono);
       font-size: 0.8rem;
       padding: 2px 6px;
       border-radius: var(--kb-radius-sm);
@@ -567,19 +567,19 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       border: 1px solid var(--kb-color-border);
     }
     .status-pill--active {
-      background: rgba(34, 197, 94, 0.1);
-      color: #16a34a;
-      border-color: rgba(34, 197, 94, 0.3);
+      background: rgba(47, 133, 90, 0.1);
+      color: var(--kb-color-success);
+      border-color: rgba(47, 133, 90, 0.3);
     }
     .status-pill--warn {
-      background: rgba(245, 158, 11, 0.1);
-      color: #d97706;
-      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(183, 121, 31, 0.1);
+      color: var(--kb-color-warning);
+      border-color: rgba(183, 121, 31, 0.3);
     }
     .status-pill--danger {
-      background: rgba(239, 68, 68, 0.1);
-      color: #dc2626;
-      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(192, 57, 43, 0.1);
+      color: var(--kb-color-danger);
+      border-color: rgba(192, 57, 43, 0.3);
     }
     .empty-state-box {
       padding: 3rem 1rem;
