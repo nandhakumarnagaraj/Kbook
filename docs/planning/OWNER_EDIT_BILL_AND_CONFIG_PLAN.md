@@ -189,7 +189,94 @@ this area got hard to reason about):
 4. **Re-closing**: after an edit to a closed day, should the owner be forced to re-run
    Daily Closing, or should the figures update silently?
 
-## 9. Suggested order
+## 9. Decision-ready specification
+
+Answers below are **recommendations with consequences**, not decisions — §8 is still yours to
+make. The point is that once you answer, the work is mechanical.
+
+### 9.1 The endpoint contract (identical in shape to the existing `/void`)
+
+```
+POST /business/bills/{billId}/status
+  { "orderStatus": "completed"|"draft"|"cancelled",
+    "reason": "<required, trimmed, 5..500 chars>" }
+  200 -> BusinessOrderListItemResponse      // same shape as /void, so the table patches one row
+  403 -> not OWNER (already enforced: /business/** OWNER-only + @RequireRole)
+  409 -> bill is already in the requested state
+  422 -> refused by the transition matrix below
+
+POST /business/bills/{billId}/payment-mode
+  { "paymentMode": "cash"|"upi"|"pos"| "part_payment_upi_cash"|"part_payment_cash_pos"|
+                   "part_payment_upi_pos",
+    "partAmount1"?: number, "partAmount2"?: number,
+    "reason": "<required, same rules>" }
+  200 -> BusinessOrderListItemResponse
+```
+
+Every accepted write **bumps `statusVersion`** (the `voidBill` pattern,
+`BusinessReadService.java:302-321`) and audits through the **existing stream**, four-arg
+form, so web edits and device edits land in one place:
+`securityAuditService.record("BILL_STATUS_CHANGE", old + "->" + new, publicToken, reason)` and
+`record("BILL_PAYMODE_CHANGE", old + "->" + new, publicToken, reason)`.
+
+### 9.2 Transition matrix enforced server-side
+
+| From → to | Rule |
+|---|---|
+| `draft → completed` | allowed; needs a valid payment set (reuse the `PaymentSetValidator` semantics the device applies), or a synthesised row exactly as `BillRepository.updateOrderStatus:345-363` does; deduct inventory **once** |
+| `completed → draft` | allowed (owner correction); restore inventory only if this bill set `inventoryDeducted` |
+| any → `cancelled` | allowed (same effect as the existing `/void`) — terminal |
+| `cancelled → any` | **refused** under the recommendation in 9.3 |
+| any write touching `paymentStatus="paid"` | **refused** — gateway-owned (`protectBillState:318-326`) |
+
+### 9.3 §8.1 Un-cancel — recommendation: **no, not in this slice**
+
+Keep `cancelled` terminal. Allowing the reverse is the one change that reaches into
+`protectBillState`, which currently *restores* any backwards status move
+(`BillSyncService.java:341-351`): an owner-only override path there means the server must
+trust a web write over a device push in the opposite direction from today's rule. That is a
+sync-protocol change, not a UI change, and it is the highest-risk item in this plan.
+**If you say yes**, scope it as a separate action (`POST /bills/{id}/reopen`) with its own
+audit outcome, `paymentStatus` reset to `pending`, and inventory re-deducted — never as a
+general "any status to any status" rule.
+
+### 9.4 §8.2 Edit note — recommendation: **audit-only first, no schema change**
+
+Put `reason` in the audit detail and reuse `cancelReason` **only** when the target status is
+`cancelled`. Why not reuse it generally: `cancelReason` is rendered wherever a voided bill is
+shown (refund/void dialogs, slips via `InvoiceController.java:149-151`), so an unrelated
+"fixed mode" note would read as a cancellation. If you want the note visible in the table, the
+follow-up is a small migration — `last_edit_note`, `last_edited_by`, `last_edited_at` — which
+is the only option that also gives the UI something to display.
+
+### 9.5 §8.3 Which configs — recommendation: **start with two**
+
+1. **Order payment flow mode** (pay-first vs pay-after-food) — it changes billing behaviour and
+   is currently tablet-only (`SettingsViewModel.updateOrderPaymentFlowMode:1362`).
+2. **Receipt / bill defaults** (footer text and the print toggles an owner would otherwise
+   walk to each tablet to change).
+
+Defer **printer hardware config**: it is per-terminal and device-local by design, so a
+server-side control would be a promise the architecture cannot keep.
+
+### 9.6 §8.4 Re-closing — recommendation: **flag the day, offer a re-close**
+
+A closed-day edit should succeed (you asked for always-editable) but mark that day as
+*amended*, with the Daily Closing banner offering an explicit re-run. Silently moving a
+day's totals after someone counted the cash against them is how a report stops being
+trusted; the flag costs one column and keeps the audit story honest. Consequence to accept:
+until the owner re-closes, that day's figures are correct but visibly provisional.
+
+### 9.7 Web-admin wiring (unchanged by any decision)
+
+`BusinessApiService` gains `updateBillStatus()` / `updateBillPaymentMode()` next to the
+existing `voidBill()` (`:394`); the edit panel lives in the shared order-detail modal so both
+Orders tabs get it; the panel is rendered only for `session.role === 'OWNER'` and always
+requires a reason before submit.
+
+---
+
+## 10. Suggested order
 
 1. Server edit endpoints + audit + tests (A) — the seam both surfaces need, and the only
    step that needs no product decision beyond §8.1/§8.2.
