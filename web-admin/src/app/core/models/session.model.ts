@@ -1,5 +1,6 @@
 export interface AuthSession {
   token: string;
+  refreshToken: string;
   restaurantId: number | null;
   userName: string;
   loginId: string;

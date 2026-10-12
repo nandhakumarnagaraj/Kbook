@@ -240,7 +240,7 @@ import { formatDate } from '../../shared/formatters';
           <ng-template #noTerminals>
             <app-empty-state
               *ngIf="!terminalsError()"
-              icon="ðŸ“Ÿ"
+              icon="📟"
               title="No terminals registered yet"
               text="New devices will appear here once they request access to this shop."
             ></app-empty-state>
@@ -375,7 +375,7 @@ import { formatDate } from '../../shared/formatters';
         </div>
         <app-empty-state
           *ngIf="!requestsLoading() && !requestsError() && !pendingOrAllRequests().length"
-          icon="ðŸ””"
+          icon="🔔"
           title="No device requests"
           text="Pending and processed device access requests will appear here."
         ></app-empty-state>

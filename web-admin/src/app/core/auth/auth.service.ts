@@ -21,6 +21,9 @@ export class AuthService {
     // surface: 'web' lets the server enforce the staff-no-web-admin boundary (G3).
     return this.http.post<AuthSession>(`${API_BASE_URL}/auth/login`, { ...payload, surface: 'web' }).pipe(
       tap((session) => {
+        if (session.refreshToken) {
+          this.tokenStorage.saveRefreshToken(session.refreshToken);
+        }
         this.tokenStorage.save(session);
         this.session.set(session);
       }),
@@ -51,11 +54,15 @@ export class AuthService {
     if (session?.loginId) {
       sessionStorage.setItem('last_login_id', session.loginId);
     }
+    // Send the refresh token so the server revokes it (LogoutBody.refreshToken).
+    // Without this the refresh token stays valid until its 30-day expiry.
+    const refreshToken = this.tokenStorage.getRefreshToken();
     if (token) {
-      this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({
+      this.http.post(`${API_BASE_URL}/auth/logout`, { refreshToken }).subscribe({
         error: (err) => console.warn('Logout revocation call failed', err)
       });
     }
+    this.tokenStorage.clearRefreshToken();
     this.tokenStorage.clear();
     this.session.set(null);
     void this.router.navigate(['/login']);

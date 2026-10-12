@@ -4,6 +4,7 @@ import { AuthSession } from '../models/session.model';
 // Use sessionStorage instead of localStorage to reduce XSS attack surface.
 // Tokens are cleared automatically when the browser/tab closes.
 const STORAGE_KEY = 'khanabook.webAdmin.v1.session';
+const REFRESH_KEY = 'khanabook.webAdmin.v1.refresh';
 
 @Injectable({ providedIn: 'root' })
 export class TokenStorageService {
@@ -30,5 +31,20 @@ export class TokenStorageService {
 
   getToken(): string | null {
     return this.get()?.token ?? null;
+  }
+
+  // Refresh token is kept separately in the same sessionStorage (same XSS
+  // posture as the access JWT): it is only stored so /auth/logout can hand
+  // it back for server-side revocation. It is never used to refresh.
+  saveRefreshToken(refreshToken: string): void {
+    sessionStorage.setItem(REFRESH_KEY, refreshToken);
+  }
+
+  getRefreshToken(): string | null {
+    return sessionStorage.getItem(REFRESH_KEY);
+  }
+
+  clearRefreshToken(): void {
+    sessionStorage.removeItem(REFRESH_KEY);
   }
 }

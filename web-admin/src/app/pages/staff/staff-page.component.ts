@@ -225,7 +225,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           <div class="header-title-row">
             <h2>Staff &amp; Team Directory</h2>
             <span class="staff-count-badge" *ngIf="loaded()">
-              {{ activeCount }} / {{ staff().length }} Active Accounts
+              {{ activeCount }}/{{ staff().length }} Active Accounts
             </span>
           </div>
           <p class="header-sub">Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.</p>
@@ -482,7 +482,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <ng-template #staffEmpty>
           <app-empty-state
             *ngIf="!loadError()"
-            icon="ðŸ‘¥"
+            icon="👥"
             title="No staff match the current filters"
             text="Try a different search, role, or status filter. Owners can add a new team member."
             [actionLabel]="isOwner ? 'Add Staff' : ''"

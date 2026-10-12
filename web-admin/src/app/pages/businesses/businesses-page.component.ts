@@ -149,7 +149,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         <ng-template #businessesEmpty>
           <app-empty-state
             *ngIf="!loadError"
-            icon="ðŸª"
+            icon="🏪"
             title="No businesses match the current filters"
             text="Try a different search term to find the business you are looking for."
           ></app-empty-state>

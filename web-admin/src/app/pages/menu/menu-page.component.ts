@@ -25,7 +25,6 @@ import { environment } from '../../../environments/environment';
         <div class="header-left">
           <div class="header-title-row">
             <h2>Menu &amp; Dishes Catalog</h2>
-            <span class="catalog-badge" *ngIf="loaded">{{ items.length }} Items Active</span>
           </div>
           <p class="header-sub">Manage dish descriptions, variant pricing, and real-time counter stock availability.</p>
         </div>
@@ -281,7 +280,7 @@ import { environment } from '../../../environments/environment';
         <ng-template #menuEmpty>
           <app-empty-state
             *ngIf="!loadError"
-            icon="ðŸ½ï¸"
+            icon="🍽️"
             title="No menu items match the current filters"
             text="Try a different search or clear the filters. Owners can also add a new item."
             [actionLabel]="isOwner ? 'Add Item' : ''"
@@ -608,16 +607,6 @@ import { environment } from '../../../environments/environment';
       font-size: 1.35rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-    }
-    .catalog-badge {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
     }
     .header-sub {
       margin: 4px 0 0 0;

@@ -71,7 +71,6 @@ export function filterBusinessOrders(
         <div class="header-left">
           <div class="header-title-row">
             <h2>Order History &amp; Settlements</h2>
-            <span class="record-counter-pill" *ngIf="ordersLoaded">{{ filteredOrders.length }} Records</span>
           </div>
           <p class="header-sub">POS transactions, refund reconciliation, and customer invoice tracking.</p>
         </div>
@@ -495,17 +494,6 @@ export function filterBusinessOrders(
       font-weight: 800;
       color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
-    }
-    .record-counter-pill {
-      display: inline-block;
-      padding: 0.2rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      border: 1px solid var(--kb-color-border);
-      font-variant-numeric: tabular-nums;
     }
     .header-sub {
       margin: 0;

@@ -188,9 +188,18 @@ export function getPresetDateRange(
 export class DateRangeSelectorComponent {
   @Output() rangeChanged = new EventEmitter<{ from: string; to: string }>();
 
+  private initializedRange = false;
+
+  /**
+   * Applies ONLY the first incoming value. Parent pages bind to a getter
+   * (e.g. currentDateRange) that produces a new object every change-detection
+   * cycle; re-applying on each cycle would force the preset back and collapse
+   * the Custom date inputs mid-interaction.
+   */
   @Input()
   set initialRange(value: { from: string; to: string } | null) {
-    if (!value) return;
+    if (!value || this.initializedRange) return;
+    this.initializedRange = true;
     this.customFrom.set(value.from);
     this.customTo.set(value.to);
     // Check if matches known presets

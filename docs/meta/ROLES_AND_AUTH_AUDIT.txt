@@ -1,0 +1,289 @@
+KHANABOOK — ROLES, PERMISSIONS, TOKENS & WEB-ADMIN ACCESS
+Verified against source code on 2026-10-12 (main branch).
+Sources: server/src/main/java/com/khanabook/saas/feature/auth/*, feature/staff/*,
+core/security/*, core/utility/JwtUtility.java, application.properties,
+Android app SessionManager/AuthInterceptor, web-admin routes & token storage.
+
+====================================================================
+1. ROLES (server/src/.../feature/auth/entity/UserRole.java)
+====================================================================
+UserRole enum: OWNER | SHOP_STAFF | KBOOK_ADMIN
+
+Role matrix by platform:
+- Android POS   : OWNER (everything), SHOP_STAFF (fixed 30-key model, see below).
+                  KBOOK_ADMIN is NOT an app role (platform work is server-side).
+- Web-admin     : OWNER (business console), KBOOK_ADMIN (platform console).
+                  SHOP_STAFF are REJECTED at the web login surface
+                  ("surface=web" flag; AuthServiceImpl G3 rule) - staff are POS-only.
+- Server        : role checks are the source of truth (@RequireRole +
+                  SecurityConfig URL rules, see section 5).
+
+====================================================================
+2. PERMISSION KEYS (30 keys, 6 families)
+   server/src/.../feature/staff/data/PermissionKey.java
+====================================================================
+BILLING : billing.create / billing.edit / billing.void / billing.discount /
+          billing.refund / billing.settle
+MENU    : menu.view / menu.toggle_availability / menu.edit_price /
+          menu.edit_full / menu.add_item / menu.delete_item
+ORDERS  : orders.view / orders.kot_view / orders.kot_ready / orders.kot_void
+REPORTS : reports.day_summary / reports.full / reports.gst / reports.export
+STAFF   : staff.view / staff.add / staff.edit / staff.remove / staff.permissions
+SETTINGS: settings.shop_profile / settings.payment / settings.printer /
+          settings.terminal / settings.gst
+
+OWNER   : implied grant of ALL keys (no rows needed). Same for KBOOK_ADMIN.
+SHOP_STAFF: full operational freedom by role - every key EXCEPT the
+  owner-only config families (PermissionService.SHOP_STAFF_CONFIG_KEYS):
+    settings.shop_profile, settings.payment, settings.gst,
+    menu.toggle_availability, menu.edit_price, menu.edit_full,
+    menu.add_item, menu.delete_item
+  => staff CAN: all billing, all orders/KOT, all reports (incl. export),
+     all staff actions, settings.printer, settings.terminal.
+  => explicit grant/revoke ROWS NEVER override this fixed set, on either side
+     (server PermissionService.hasPermission AND Android PermissionManager both
+     pin SHOP_STAFF; web-admin permission editor is read-only for staff).
+  => changing staff access = code change + redeploy.
+
+Baseline "defensive floor" rows for new non-owner staff (DEFAULT_READONLY_KEYS):
+  menu.view, orders.view, orders.kot_view, reports.day_summary.
+
+====================================================================
+3. JWT & TOKEN DURATIONS (verified values)
+====================================================================
+Access token (JWT):
+  server/src/main/resources/application.properties:
+    jwt.secret=${JWT_SECRET}
+    jwt.expiration.ms=${JWT_EXPIRATION_MS:15552000000}
+  15552000000 ms = 180 days (sandbox dev profile hardcodes the same).
+  Issued in JwtUtility.generateToken(subject, restaurantId, role[, deviceId]).
+  NOTE: the code-level fallback is 15 min (JwtUtility @Value default 900000),
+  but every shipped properties file sets 180 days -> effective default is
+  180 days unless env overrides it.
+
+Terminal-bound token (issued by /sync/terminal/activate):
+    jwt.terminal.expiration.ms=${JWT_TERMINAL_EXPIRATION_MS:15552000000}
+  180 days (JwtUtility code fallback = 30 days / 2592000000 ms).
+  Carries terminalSeries/terminalId + credential_version (supports
+  immediate revocation); validated by TerminalRequestFilter AFTER
+  JwtRequestFilter (needs TenantContext).
+
+Refresh tokens: PRESENT (server-side, opaque, hashed).
+  - Table: refresh_tokens (RefreshToken.java): tokenHash (sha256 hex,
+    verified sha256() in AuthServiceImpl, unique 64-char column),
+    userId, restaurantId, expiresAt, createdAt, deviceFingerprint, revoked.
+  - Lifetime: REFRESH_TOKEN_DAYS = 30 (AuthServiceImpl line 53).
+  - Flow: /auth/refresh exchanges a valid refresh token for a new access
+    JWT; revoked/expired tokens are rejected; logout revokes the presented
+    token; password change / staff deactivation => revokeAllForUser.
+  - Rotation: a refresh produces a NEW stored refresh token; the old row
+    is revoked (single-use).
+
+Token blocklist: verified - /auth/logout extracts the JWT's JTI, saves it
+  to the token_blocklist table and into an in-memory tokenRevocationCache,
+  then TokenBlocklistCleanupService purges expired entries.
+
+====================================================================
+4. CLIENT-SIDE TOKEN STORAGE
+====================================================================
+Android (POS):
+  - Access JWT + terminal token stored in KeystoreBackedPreferences
+    ("auth_token", terminal_token) - Android Keystore-encrypted prefs,
+    NOT plaintext. Verified SessionManager.kt.
+  - IMPORTANT FINDING: the Android app never calls /auth/refresh.
+    No refreshToken handling anywhere in the Android codebase.
+    Android relies on the 180-day access token; a 401 response makes
+    AuthInterceptor invalidate the auth session (re-login required).
+    => refresh tokens exist on the server but are effectively used by
+    web clients only (and even there, see below).
+
+Web-admin (Angular):
+  - Stores the access JWT in sessionStorage (TokenStorageService,
+    key "khanabook.webAdmin.v1.session") - deliberately NOT localStorage
+    (XSS-surface reduction). Cleared when the tab closes.
+  - AuthSession { token, restaurantId, userName, loginId, role, ... }.
+  - IMPORTANT FINDING: web-admin also never uses /auth/refresh -
+    no refreshToken anywhere in web-admin/src. Session simply dies when
+    the tab closes or the token expires.
+  => refresh endpoints are live server-side but BOTH shipped clients
+     send only the access token today. Nuance (verified): the server DOES
+     return a refreshToken field in every AuthResponse (login/refresh) -
+     both clients simply drop it unused.
+
+====================================================================
+5. SERVER URL ACCESS RULES (SecurityConfig.java, verified)
+====================================================================
+Public (no auth, rate-limited separately):
+  /auth/login, /auth/refresh, /auth/signup*, /auth/google, /auth/check-user,
+  /auth/reset-password*, /auth/forgot-password/*,
+  /public/**, /cdn/**, /error,
+  /payments/easebuzz/webhook (and /payments/easebuzz/*/webhook), /payments/easebuzz/return,
+  /docs/swagger/v3/api-docs paths, /actuator/health*
+Role-gated:
+  /admin/**                          -> KBOOK_ADMIN only
+  /actuator/** (non-health)          -> KBOOK_ADMIN only
+  /business/** (dashboard, orders, menu, staff, refunds...) -> OWNER only
+  /business/terminals/**             -> OWNER only (device management)
+  /sync/**                           -> OWNER or SHOP_STAFF (operational sync;
+     per-key grant rules enforced by the permission layer for staff)
+  /sync/terminal/** (activate/list/reclaim/request-status/complete)
+                                     -> OWNER or SHOP_STAFF (on-device onboarding)
+  /sync/master/pull (GET)            -> any restaurant role incl. KBOOK_ADMIN
+     (returns master data + grantedPermissions + permissionRevision)
+  /restaurants/logo                  -> OWNER or KBOOK_ADMIN
+  /menus/** (OCR extraction)         -> OWNER only
+  everything else                    -> authenticated
+
+Other server-wide protections found:
+  - Endpoint RateLimitingInterceptor (public endpoints bucketed),
+    login/OTP rate limiters (LoginRateLimiter, OtpRateLimiter, DbRateLimiter).
+  - Admin IP allowlist inside JwtRequestFilter.
+  - Stateless sessions (STATELESS), strict security headers + CSP,
+    HSTS includes subdomains.
+  - SecurityAuditEvent logging (security_audit_log table).
+
+====================================================================
+6. OFFLINE AUTHORIZATION (sync-time revalidation)
+====================================================================
+OfflineAuthClass per permission key (Decision A/B approved model):
+  OFFLINE_ALLOWED      - accept at sync, no revalidation (offline-first core).
+  REVALIDATED_ON_SYNC  - allowed offline, server re-checks permission at sync.
+  ONLINE_ONLY          - offline-created op is QUARANTINED (needs live auth).
+  NEVER_OFFLINE        - quarantined for admin review (should not exist).
+OfflineAuthDecider (pure engine): terminal validity is an independent axis
+  (revoked terminal => REJECT before any permission check).
+Android pulls grantedPermissions + permissionRevision via /sync/master/pull;
+  cache persists in Room permission_cache (survives process death), so a
+  stripped permission cannot keep working offline forever.
+
+====================================================================
+7. WEB-ADMIN ROUTE GUARDS (app.routes.ts, verified)
+====================================================================
+Guards: authGuard (JWT present in sessionStorage) + roleGuard (role check).
+  /login, /limited-access, /404                : public/auth-only
+  KBOOK_ADMIN only:
+    /admin/dashboard   (platform-wide stats, all tenants)
+    /admin/businesses  (tenant management: KYC/settlement status)
+    /admin/feature-flags
+  OWNER only:
+    /business/dashboard          (cross-terminal bill view - the ONLY place)
+    /business/reports            /business/daily-closing
+    /business/orders             /business/active-orders
+    /business/menu               /business/inventory
+    /business/staff              (permission editor READ-ONLY for SHOP_STAFF)
+    /business/terminals          (device activation approval)
+    /business/settings           (profile, payments/UPI QR, GST/FSSAI, agreement)
+  Staff who somehow log in are routed to /limited-access with zero links.
+
+7b. WEB-ADMIN API SURFACE vs SERVER AUTHORIZATION (cross-checked 2026-10-12)
+=============================================================================
+web-admin makes 66 distinct calls via BusinessApiService + AdminApiService.
+Cross-check of every service family against SecurityConfig/@RequireRole:
+  /admin/**            KBOOK_ADMIN only  <- matches admin routes + AdminApiService
+  /business/**         OWNER only        <- matches OWNER-only routes; verified
+                                          BusinessApiService uses these paths
+                                          (bills, dashboard, menu, staff,
+                                          terminals, merchant-agreement,
+                                          payment-config, sessions revoke)
+  /analytics/*         NOT URL-role-gated; method-level guards instead:
+                       AnalyticsController.requirePermission() checks
+                       reports.day_summary / reports.full per endpoint.
+                       For web-admin this is a formality (OWNER = all keys)
+                       but it means a SHOP_STAFF JWT would be ALLOWED by
+                       the URL gate and pass/fail by permission key -
+                       by-design for POS parity, not a web-admin gap.
+  /inventory/**        @RequireRole(OWNER) on every operation - web-admin's
+                       inventory page (materials, vendors, purchase, wastage,
+                       physical-count, variance, movements) matches exactly.
+  /permissions/**      @RequireRole(OWNER) on all writes (templates,
+                       bulk-grant, apply-template) - matches staff page.
+  /notifications/**    authenticated-only URL gate + tenant-scoped by JWT;
+                       used by both surfaces - consistent with token model.
+  /menus/**            OWNER only (AI extraction/upload) - menu page matches.
+  /sync/config/users/update-mobile, /sync/terminal/list,
+                       /restaurants/payment-config/easebuzz - OWNER/STAFF
+                       sync gate at URL level, ownership enforced in service
+                       (tenant JWT scoping), consistent.
+MISMATCH CHECK (server blocks, web calls): none found. Every endpoint the
+  web-admin calls is reachable with an OWNER or KBOOK_ADMIN JWT, and the two
+  roleGuard route trees (/admin/** vs /business/**) match the two server URL
+  gates 1:1. 401 handling verified: jwtInterceptor clears session + redirects
+  to /login on 401 (parallels Android AuthInterceptor 401 behavior).
+LOGOUT NOTICE (UPDATED 2026-10-12): web-admin previously posted an EMPTY body
+  ({}), so the server's optional LogoutBody.refreshToken revocation never
+  fired for web. FIXED: AuthService.login now captures the refreshToken that
+  the server already returns (kept in sessionStorage under
+  'khanabook.webAdmin.v1.refresh'), and logout posts { refreshToken } in the
+  body so AuthServiceImpl.revokeRefreshToken runs. Verified: tsc --noEmit
+  clean + all 52 unit tests pass (new spec asserts the logout body contains
+  the stored refresh token). Android logout still revokes nothing refresh-
+  side - its session never holds one because the app never stores the
+  returned refreshToken either.
+
+====================================================================
+8. QUICK ANSWERS
+====================================================================
+Q: Roles?                 A: OWNER, SHOP_STAFF, KBOOK_ADMIN (fixed 3; no custom roles).
+Q: Access permissions?    A: 30 fine-grained keys; OWNER/KBOOK_ADMIN = all;
+                             SHOP_STAFF = fixed operational set minus 8 owner-only
+                             config keys; rows never override the staff role set.
+Q: JWT duration?          A: 180 days access (env-tunable), 180 days terminal token
+                             (code fallback 30 days), refresh token = 30 days.
+Q: Refresh present?       A: YES server-side (/auth/refresh, hashed, single-use
+                             rotation, revoke on logout/password change) - but
+                             NEITHER Android nor web-admin currently calls it;
+                             both clients rely on the 180-day access JWT.
+Q: Token storage?         A: Android = Keystore-encrypted prefs; web = sessionStorage
+                             (not localStorage), auto-cleared on tab close.
+Q: Refresh present?       A: server-side YES /auth/refresh; web now revokes the
+                             refresh token at logout (2026-10-12 fix) but still
+                             never refreshes mid-session; Android neither uses
+                             nor revokes (no refresh handling at all).
+
+=============================================================================
+9. UI-LAYER ENFORCEMENT AUDIT (Android + Web-admin, verified 2026-10-12)
+=============================================================================
+ANDROID UI (feature/*/ui + feature/*/viewmodel):
+- No role checks in UI layer itself; screens read the current user's role and
+  derive 'readOnly = !isOwner' locally (SettingsScreen.kt line 73:
+    val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)), then
+  pass readOnly down to section views ShopConfigView / PrinterConfigView /
+  TaxConfigView. Fields become [enabled = !readOnly] - matches the AGENTS.md
+  'owner-only config' policy (settings.shop_profile, settings.gst, etc.).
+- MenuViewModel exercises PermissionManager: on denied menu writes it emits
+  a PermissionBlockEvents block with the user-facing display name
+  (PermissionManager.getDisplayName) - UI does not guess the rule, it asks
+  the domain layer (matches server PermissionService semantics).
+- ReportsViewModel mirrors the server's own gate: enableFeatureFutureCheck()
+  exposes analytics only when permissionManager.hasPermission(REPORTS_FULL)
+  and REPORTS_EXPORT (comment notes 'The server already enforces this') -
+  a deliberate defense-in-depth mirror, not a duplicate source of truth.
+- Terminal onboarding (pending-approval flow) verified in code:
+  SyncManager throws TerminalPendingApprovalException;
+  InitialSyncViewModel surfaces 'pending owner approval' state to
+  InitialSyncScreen. Matches the web terminals page 'Pending' counter and
+  approve/reject actions (terminals-page.component.ts).
+
+WEB-ADMIN UI (pages/*):
+- staff-permissions-modal.component.ts: for SHOP_STAFF members it renders a
+  .role-disabled-note ('Staff permissions are fixed by the SHOP_STAFF role
+  and cannot be changed per member'), hides the Save button
+  (*ngIf="!isRoleFixed()"), and mirrors the server's SHOP_STAFF_CONFIG_KEYS
+  exclusion comment - read-only enforcement matches the server exactly.
+- staff page guards self-harm: 'Permissions' button hidden for self
+  (*ngIf="!isSelf(item) && item.role !== 'OWNER'"), Deactivate disabled for
+  self, and an 'You' self-pill shown. Owner rows have no Permissions button.
+- menu page: toggle-availability/edit forms disabled while in-flight only;
+  no client-side OWNER check - relies on route ownerGuard + server
+  @RequireRole(OWNER) for real enforcement. Consistent with 'web-admin is
+  the OWNER surface' positioning; a staff JWT would fail at login (G3).
+- reports page: exportCsv() builds a CSV client-side from fetched JSON and
+  downloads locally, no extra server call - matches the server comment in
+  PermissionService that REPORTS_EXPORT is a local/device-side action on POS
+  (and the OWNER route gate covers web).
+- terminals page implements the approval side of mobile pairing: pending
+  counter + approve/reject per request (matches Android polling flow).
+
+VERDICT BY SURFACE: every UI gate mirrors the server policy rather than
+inventing new rules; all mutations have a server-side equivalent check, so
+UI gates are UX only, never the security boundary.

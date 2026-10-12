@@ -13,6 +13,7 @@ import { environment } from '../../../environments/environment';
 function session(role: string): AuthSession {
   return {
     token: 'jwt-token',
+    refreshToken: 'rfrsh',
     restaurantId: 1,
     userName: 'Test',
     loginId: 'test@shop',
@@ -34,6 +35,9 @@ describe('AuthService', () => {
       'get',
       'clear',
       'getToken',
+      'saveRefreshToken',
+      'getRefreshToken',
+      'clearRefreshToken',
     ]);
     tokenStorage.get.and.returnValue(null);
     router = jasmine.createSpyObj<Router>('Router', ['navigate', 'navigateByUrl']);
@@ -95,6 +99,22 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
+    it('sends the refresh token in the logout body for server-side revocation', () => {
+      tokenStorage.getToken.and.returnValue('tok');
+      tokenStorage.getRefreshToken.and.returnValue('rfrsh');
+      service.logout();
+
+      const req = httpMock.expectOne(`${environment.apiBaseUrl}/auth/logout`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ refreshToken: 'rfrsh' });
+      req.flush(null);
+
+      expect(tokenStorage.clearRefreshToken).toHaveBeenCalled();
+      expect(tokenStorage.clear).toHaveBeenCalled();
+      expect(service.session()).toBeNull();
+      expect(router.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
     it('clears storage, nulls the session, and navigates to /login', () => {
       tokenStorage.getToken.and.returnValue(null); // no revocation call
       service.logout();
