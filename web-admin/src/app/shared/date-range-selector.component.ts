@@ -54,21 +54,32 @@ export function getPresetDateRange(
       </div>
 
       <div class="date-range__custom" *ngIf="activePreset() === 'custom'">
-        <input
-          type="date"
-          class="date-range__input"
-          [ngModel]="customFrom()"
-          (ngModelChange)="onCustomFromChange($event)"
-          [max]="customTo() || undefined"
-          aria-label="Start date" />
-        <span class="date-range__separator">to</span>
-        <input
-          type="date"
-          class="date-range__input"
-          [ngModel]="customTo()"
-          (ngModelChange)="onCustomToChange($event)"
-          [min]="customFrom() || undefined"
-          aria-label="End date" />
+        <ng-container *ngIf="mode === 'single'; else rangeInputs">
+          <input
+            type="date"
+            class="date-range__input"
+            [ngModel]="customFrom()"
+            (ngModelChange)="onSingleDateChange($event)"
+            [max]="maxDate || undefined"
+            [attr.aria-label]="singleDateLabel" />
+        </ng-container>
+        <ng-template #rangeInputs>
+          <input
+            type="date"
+            class="date-range__input"
+            [ngModel]="customFrom()"
+            (ngModelChange)="onCustomFromChange($event)"
+            [max]="customTo() || undefined"
+            aria-label="Start date" />
+          <span class="date-range__separator">to</span>
+          <input
+            type="date"
+            class="date-range__input"
+            [ngModel]="customTo()"
+            (ngModelChange)="onCustomToChange($event)"
+            [min]="customFrom() || undefined"
+            aria-label="End date" />
+        </ng-template>
       </div>
 
       <div class="date-range__label" *ngIf="rangeLabel()">
@@ -188,35 +199,43 @@ export function getPresetDateRange(
 export class DateRangeSelectorComponent {
   @Output() rangeChanged = new EventEmitter<{ from: string; to: string }>();
 
-  private initializedRange = false;
+  /**
+   * `range` (default) offers a from/to window — Reports and Orders history.
+   * `single` offers one day and emits `{ from: d, to: d }` — pages whose subject is a
+   * single business day, such as Daily Closing.
+   *
+   * Both modes render the same pills with the same styling and the same active-state
+   * rule, which is the point: before this existed, Daily Closing hand-rolled its own
+   * pills and its custom option opened one date while every other page opened two, so
+   * the same three words meant different things depending on the page.
+   */
+  @Input() mode: 'range' | 'single' = 'range';
+
+  /** Upper bound for `single` mode (e.g. closing cannot be selected for a future day). */
+  @Input() maxDate?: string;
+
+  @Input() singleDateLabel = 'Select date';
 
   /**
-   * Applies ONLY the first incoming value. Parent pages bind to a getter
-   * (e.g. currentDateRange) that produces a new object every change-detection
-   * cycle; re-applying on each cycle would force the preset back and collapse
-   * the Custom date inputs mid-interaction.
+   * The period the parent is actually filtering by.
+   *
+   * A value that merely echoes this component's own last emission is ignored, which
+   * is what lets a page bind to a getter (a fresh object every change-detection
+   * cycle) without the preset snapping back and collapsing the Custom inputs
+   * mid-interaction. Any *other* value is adopted, so a page that moves the period
+   * itself — Clear Filters, or a range restored from storage — takes the control with
+   * it instead of leaving the pills showing a day the table is no longer on.
    */
   @Input()
   set initialRange(value: { from: string; to: string } | null) {
-    if (!value || this.initializedRange) return;
-    this.initializedRange = true;
-    this.customFrom.set(value.from);
-    this.customTo.set(value.to);
-    // Check if matches known presets
-    const today = new Date();
-    const todayRange = getPresetDateRange('today', today);
-    const yestRange = getPresetDateRange('yesterday', today);
-    const weekRange = getPresetDateRange('last-7-days', today);
-    const monthRange = getPresetDateRange('this-month', today);
-
-    if (value.from === todayRange.from && value.to === todayRange.to) {
-      this.activePreset.set('today');
-    } else if (value.from === yestRange.from && value.to === yestRange.to) {
-      this.activePreset.set('yesterday');
-    } else {
-      this.activePreset.set('custom');
+    if (!value || !value.from || !value.to) return;
+    if (this.lastEmitted && value.from === this.lastEmitted.from && value.to === this.lastEmitted.to) {
+      return;
     }
+    this.applyRange(value);
   }
+
+  private lastEmitted: { from: string; to: string } | null = null;
 
   presets = [
     { label: 'Today', value: 'today' as DatePreset },
@@ -231,14 +250,13 @@ export class DateRangeSelectorComponent {
   rangeLabel = computed(() => {
     const preset = this.activePreset();
     if (!preset) return '';
-    if (preset === 'custom') {
-      const from = this.customFrom();
-      const to = this.customTo();
-      if (from && to) return `${from} → ${to}`;
-      return '';
-    }
-    const { from, to } = getPresetDateRange(preset);
-    return `${from} → ${to}`;
+    const range = preset === 'custom'
+      ? { from: this.customFrom(), to: this.customTo() }
+      : getPresetDateRange(preset);
+    if (!range.from || !range.to) return '';
+    // One day reads as one date; a window reads as a window.
+    if (this.mode === 'single' || range.from === range.to) return range.from;
+    return `${range.from} → ${range.to}`;
   });
 
   trackByIndex = (_: number, __: unknown) => _;
@@ -246,8 +264,7 @@ export class DateRangeSelectorComponent {
   selectPreset(preset: DatePreset): void {
     this.activePreset.set(preset);
     if (preset !== 'custom') {
-      const range = getPresetDateRange(preset);
-      this.rangeChanged.emit(range);
+      this.emit(getPresetDateRange(preset));
     } else {
       const today = formatLocalDate(new Date());
       if (!this.customFrom()) this.customFrom.set(today);
@@ -255,8 +272,16 @@ export class DateRangeSelectorComponent {
       const from = this.customFrom();
       const to = this.customTo();
       if (from && to) {
-        this.rangeChanged.emit({ from, to });
+        this.emit({ from, to });
       }
+    }
+  }
+
+  onSingleDateChange(value: string): void {
+    this.customFrom.set(value);
+    this.customTo.set(value);
+    if (value) {
+      this.emit({ from: value, to: value });
     }
   }
 
@@ -274,8 +299,33 @@ export class DateRangeSelectorComponent {
     const from = this.customFrom();
     const to = this.customTo();
     if (from && to) {
-      this.rangeChanged.emit({ from, to });
+      this.emit({ from, to });
     }
   }
 
+  private emit(range: { from: string; to: string }): void {
+    this.lastEmitted = { ...range };
+    this.rangeChanged.emit(range);
+  }
+
+  /**
+   * Only Today/Yesterday are recognised as presets, because those are the only ones the
+   * component offers. Any other window is genuinely custom and keeps its inputs
+   * visible, which is also what makes the range editable in the first place.
+   */
+  private applyRange(value: { from: string; to: string }): void {
+    this.customFrom.set(value.from);
+    this.customTo.set(value.to);
+    const today = new Date();
+    const todayRange = getPresetDateRange('today', today);
+    const yesterdayRange = getPresetDateRange('yesterday', today);
+
+    if (value.from === todayRange.from && value.to === todayRange.to) {
+      this.activePreset.set('today');
+    } else if (value.from === yesterdayRange.from && value.to === yesterdayRange.to) {
+      this.activePreset.set('yesterday');
+    } else {
+      this.activePreset.set('custom');
+    }
+  }
 }

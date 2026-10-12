@@ -8,6 +8,7 @@ import { DateRangeSelectorComponent } from '../../shared/date-range-selector.com
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { formatCurrency } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
+import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
 
 function formatLocalDate(d: Date): string {
@@ -15,6 +16,11 @@ function formatLocalDate(d: Date): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function todayRange(): { from: string; to: string } {
+  const today = formatLocalDate(new Date());
+  return { from: today, to: today };
 }
 
 @Component({
@@ -668,21 +674,23 @@ function formatLocalDate(d: Date): string {
   `]
 })
 export class ReportsPageComponent {
-  private static readonly RANGE_KEY = 'business-reports-date-range';
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly trigger$ = new Subject<void>();
-  readonly selectedRange = signal<{ from: string; to: string } | null>(this.readRange());
+  /**
+   * Restored from the range shared with Daily Closing and Orders history, so all three
+   * open on the same day, and seeded with Today so the selector is never left with no
+   * pill active — the state the other two pages always avoided.
+   */
+  readonly selectedRange = signal<{ from: string; to: string }>(readStoredDateRange() ?? todayRange());
   readonly activeTab = signal<'overview' | 'gst' | 'items'>('overview');
   readonly refreshing = signal(false);
   readonly error = signal('');
   readonly report = toSignal(this.trigger$.pipe(startWith(undefined), switchMap(() => {
     this.refreshing.set(true); this.error.set('');
     const range = this.selectedRange();
-    const now = new Date();
-    const today = formatLocalDate(now);
-    const fromDate = range?.from || today;
-    const toDate = range?.to || today;
+    const fromDate = range.from;
+    const toDate = range.to;
 
     return forkJoin({
       dashboard: this.api.getDashboard(fromDate, toDate),
@@ -725,7 +733,7 @@ export class ReportsPageComponent {
 
   setRange(range: { from: string; to: string }): void {
     this.selectedRange.set(range);
-    sessionStorage.setItem(ReportsPageComponent.RANGE_KEY, JSON.stringify(range));
+    storeDateRange(range);
     this.trigger$.next();
   }
 
@@ -815,19 +823,5 @@ export class ReportsPageComponent {
   getInvoiceUrl(row: GstLedgerEntry): string {
     const session = this.auth.session();
     return buildInvoiceLink(session?.restaurantId, row.billId, row.publicToken);
-  }
-
-  private readRange(): { from: string; to: string } {
-    try {
-      const raw = sessionStorage.getItem(ReportsPageComponent.RANGE_KEY);
-      if (raw) {
-        const range = JSON.parse(raw) as { from?: string; to?: string };
-        if (/^\d{4}-\d{2}-\d{2}$/.test(range.from ?? '') && /^\d{4}-\d{2}-\d{2}$/.test(range.to ?? '')) {
-          return { from: range.from!, to: range.to! };
-        }
-      }
-    } catch { /* ignore error and fall back */ }
-    const todayStr = formatLocalDate(new Date());
-    return { from: todayStr, to: todayStr };
   }
 }

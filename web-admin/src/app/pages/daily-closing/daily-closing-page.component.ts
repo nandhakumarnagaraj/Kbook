@@ -6,15 +6,11 @@ import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.mo
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
 function todayStr(): string {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function yesterdayStr(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -43,7 +39,7 @@ interface DailyClosingData {
   selector: 'app-daily-closing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent, DateRangeSelectorComponent],
   template: `
     <div class="page-shell">
       <!-- Operational Topbar (shared design system) -->
@@ -60,40 +56,15 @@ interface DailyClosingData {
         </span>
 
         <ng-container>
-          <div class="day-selector-group" role="group" aria-label="Closing date range">
-            <button
-              type="button"
-              class="day-pill"
-              [class.day-pill--active]="selectedDate() === today && !isCustomDate"
-              (click)="selectToday()">
-              Today
-            </button>
-            <button
-              type="button"
-              class="day-pill"
-              [class.day-pill--active]="selectedDate() === yesterday && !isCustomDate"
-              (click)="selectYesterday()">
-              Yesterday
-            </button>
-            <button
-              type="button"
-              class="day-pill"
-              [class.day-pill--active]="isCustomDate"
-              (click)="toggleCustomDate()">
-              Custom
-            </button>
-            <div class="date-picker-wrap" *ngIf="isCustomDate">
-              <input
-                type="date"
-                class="tactile-date-field"
-                [ngModel]="selectedDate()"
-                (ngModelChange)="selectCustomDate($event)"
-                [max]="today"
-                aria-label="Closing date"
-                title="Select custom closing date"
-              />
-            </div>
-          </div>
+          <!-- One date, one day: the shared selector in single mode, so Daily Closing
+               offers the same Today / Yesterday / Custom pills as Reports and Orders. -->
+          <app-date-range-selector
+            mode="single"
+            singleDateLabel="Closing date"
+            [maxDate]="today"
+            [initialRange]="closingRange()"
+            (rangeChanged)="onClosingDateChange($event)">
+          </app-date-range-selector>
           <button type="button" class="header-action-btn" [disabled]="loading()" (click)="load()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -310,53 +281,8 @@ interface DailyClosingData {
       border-color: var(--kb-color-border-strong);
     }
 
-    /* Day Selector Group */
-    .day-selector-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: var(--kb-color-surface-2);
-      padding: 3px;
-      border-radius: 12px;
-    }
-    .day-pill {
-      padding: 0.4rem 0.85rem;
-      border: none;
-      background: transparent;
-      border-radius: 9px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .day-pill:hover {
-      color: var(--kb-color-foreground);
-    }
-    .day-pill--active {
-      background: #FFFFFF;
-      color: var(--kb-color-primary);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-    }
-    .date-picker-wrap {
-      display: inline-flex;
-      align-items: center;
-    }
-    .tactile-date-field {
-      padding: 0.3rem 0.5rem;
-      border: 1px solid var(--kb-color-border-strong);
-      border-radius: 8px;
-      background: #FFFFFF;
-      color: var(--kb-color-foreground);
-      font-size: 0.8rem;
-      font-weight: 500;
-      min-height: 28px;
-    }
-    .tactile-date-field:focus {
-      outline: none;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 2px rgba(93, 69, 253, 0.15);
-    }
+    /* The date control is the shared selector (see app-date-range-selector), so this page
+       deliberately owns no pill or date-input styles of its own. */
 
     /* Draft warning banner */
     .draft-warning-banner {
@@ -683,8 +609,14 @@ export class DailyClosingPageComponent {
   countedCash = signal<number | null>(null);
 
   readonly today = todayStr();
-  readonly yesterday = yesterdayStr();
-  readonly selectedDate = signal<string>(todayStr());
+  /**
+   * Opening on Today ignored the day the user had just picked on Reports or Orders, so
+   * the closing figures silently described a different date than the page they came
+   * from. The stored period is shared with those pages; its end is the day they were
+   * last looking at. Clamped to today because a closing cannot be counted for a future
+   * day.
+   */
+  readonly selectedDate = signal<string>(this.initialClosingDate());
   readonly isToday = computed(() => this.selectedDate() === this.today);
 
   readonly fmt = formatCurrency;
@@ -693,30 +625,25 @@ export class DailyClosingPageComponent {
 
   trackByIndex = (_: number, __: unknown) => _;
 
-  isCustomDate = false;
+  /** The single day the closing is counting, as the shared selector's range. */
+  readonly closingRange = computed<{ from: string; to: string }>(() => {
+    const day = this.selectedDate();
+    return { from: day, to: day };
+  });
 
-  selectToday(): void {
-    this.isCustomDate = false;
-    this.selectDate(this.today);
+  onClosingDateChange(range: { from: string; to: string }): void {
+    this.selectDate(range.from);
   }
 
-  selectYesterday(): void {
-    this.isCustomDate = false;
-    this.selectDate(this.yesterday);
-  }
-
-  toggleCustomDate(): void {
-    this.isCustomDate = true;
-  }
-
-  selectCustomDate(d: string): void {
-    this.isCustomDate = true;
-    this.selectDate(d);
+  private initialClosingDate(): string {
+    const stored = readStoredDateRange()?.to;
+    return stored && stored <= this.today ? stored : this.today;
   }
 
   selectDate(d: string): void {
     if (!d || d === this.selectedDate()) return;
     this.selectedDate.set(d);
+    storeDateRange({ from: d, to: d });
     this.load();
   }
 

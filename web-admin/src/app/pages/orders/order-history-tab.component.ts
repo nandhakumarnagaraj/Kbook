@@ -11,6 +11,7 @@ import { DateRangeSelectorComponent } from '../../shared/date-range-selector.com
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
+import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
 export function escapeCsvField(value: string): string {
   const spreadsheetSafe = /^[=+\-@]/.test(value) ? `'${value}` : value;
@@ -919,10 +920,11 @@ export class OrderHistoryTabComponent implements OnDestroy {
   orderPageSize = 15;
   orderCurrentPage = 1;
 
-  // Period Preset & Summary State for Owner
-  activePreset: 'today' | 'yesterday' | 'custom' = 'today';
-  showCustomRange = false;
-
+  /**
+   * The period the history is filtered by. The active pill is owned by the shared
+   * selector, which reads this range back — so the control always shows the period the
+   * table is actually on, including when Clear Filters moves it.
+   */
   get currentDateRange(): { from: string; to: string } {
     const today = formatIsoDate(new Date());
     return {
@@ -960,7 +962,14 @@ export class OrderHistoryTabComponent implements OnDestroy {
       this.orderCurrentPage = 1;
       this.loadOrders();
     });
-    this.setPreset('today');
+    // This tab is destroyed and rebuilt every time it is opened, so it must open on the
+    // shared period rather than snapping back to Today — that reset is what made a
+    // custom day picked on Reports or Daily Closing look "lost" here. Falls back to
+    // Today when nothing has been picked yet, so the table is never left unfiltered.
+    const initial = readStoredDateRange() ?? this.currentDateRange;
+    this.dateFrom = initial.from;
+    this.dateTo = initial.to;
+    this.loadOrders();
   }
 
   onSearchChange(value: string): void {
@@ -1078,23 +1087,16 @@ export class OrderHistoryTabComponent implements OnDestroy {
     return Math.max(1, this.serverTotalPages);
   }
 
-  setPreset(preset: 'today' | 'yesterday' | 'custom'): void {
-    this.activePreset = preset;
-    this.showCustomRange = preset === 'custom';
+  setPreset(preset: 'today' | 'yesterday'): void {
     const now = new Date();
+    const day = preset === 'yesterday'
+      ? formatIsoDate(new Date(now.getTime() - 24 * 60 * 60 * 1000))
+      : formatIsoDate(now);
 
-    if (preset === 'today') {
-      const todayStr = formatIsoDate(now);
-      this.dateFrom = todayStr;
-      this.dateTo = todayStr;
-    } else if (preset === 'yesterday') {
-      const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const yStr = formatIsoDate(y);
-      this.dateFrom = yStr;
-      this.dateTo = yStr;
-    }
-
+    this.dateFrom = day;
+    this.dateTo = day;
     this.orderCurrentPage = 1;
+    storeDateRange({ from: day, to: day });
     this.loadOrders();
   }
 
@@ -1154,21 +1156,10 @@ export class OrderHistoryTabComponent implements OnDestroy {
   // --- Date range filtering ---
 
   onDateRangeChange(range: { from: string; to: string }): void {
-    const now = new Date();
-    const today = formatIsoDate(now);
-    const yest = formatIsoDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-
-    if (range.from === today && range.to === today) {
-      this.activePreset = 'today';
-    } else if (range.from === yest && range.to === yest) {
-      this.activePreset = 'yesterday';
-    } else {
-      this.activePreset = 'custom';
-    }
-
     this.dateFrom = range.from;
     this.dateTo = range.to;
     this.orderCurrentPage = 1;
+    storeDateRange(range);
     this.loadOrders();
   }
 
