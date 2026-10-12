@@ -19,8 +19,8 @@ import { formatDate } from '../../shared/formatters';
         title="Feature Flags"
         subtitle="Control rollout of ported v2 features. The kill switch dominates every override (first rollback step)."
       >
-        <span kbHeaderBadge class="chip">{{ flags().length }} Flags</span>
-        <span kbHeaderBadge class="chip success">{{ enabledCount() }} Globally Effective</span>
+        <span kbHeaderBadge class="kpi-tag">{{ flags().length }} Flags</span>
+        <span kbHeaderBadge class="kpi-tag kpi-tag--green">{{ enabledCount() }} Globally Effective</span>
       </app-page-header>
 
       <div class="toolbar">

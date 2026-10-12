@@ -22,8 +22,13 @@ import { formatDate } from '../../shared/formatters';
         title="POS Devices &amp; Terminals"
         subtitle="Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens."
       >
-        <span kbHeaderBadge class="active-badge" *ngIf="!terminalsLoading()">
-          <span class="pulse-dot"></span>
+        <span
+          kbHeaderBadge
+          class="kpi-tag"
+          [class.kpi-tag--green]="activeTerminalsCount > 0"
+          [class.kpi-tag--neutral]="activeTerminalsCount === 0"
+          *ngIf="!terminalsLoading()">
+          <span class="pulse-indicator" aria-hidden="true" *ngIf="activeTerminalsCount > 0"></span>
           {{ activeTerminalsCount }} Online
         </span>
 
@@ -507,32 +512,6 @@ import { formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .active-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      background: rgba(47, 133, 90, 0.08);
-      border: 1px solid rgba(47, 133, 90, 0.25);
-      color: var(--kb-color-success);
-      font-variant-numeric: tabular-nums;
-    }
-    .pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background-color: var(--kb-color-success);
-      box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(47, 133, 90, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
-    }
     .small-btn {
       padding: 4px 10px;
       font-size: 0.76rem;

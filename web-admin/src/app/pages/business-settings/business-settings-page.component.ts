@@ -48,8 +48,8 @@ interface RestaurantProfile {
         title="Business &amp; Restaurant Configuration"
         subtitle="Configure restaurant identity, automated GST compliance, and payment settlement channels."
       >
-        <span kbHeaderBadge class="sync-state-badge" *ngIf="!loading()">
-          <span class="status-pulse-dot" aria-hidden="true"></span>
+        <span kbHeaderBadge class="kpi-tag kpi-tag--green" *ngIf="!loading()">
+          <span class="pulse-indicator" aria-hidden="true"></span>
           Live Sync Ready
         </span>
 
@@ -199,31 +199,6 @@ interface RestaurantProfile {
     </div>
   `,
   styles: [`
-    .sync-state-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      background: rgba(47, 133, 90, 0.08);
-      border: 1px solid rgba(47, 133, 90, 0.25);
-      color: var(--kb-color-success);
-    }
-    .status-pulse-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--kb-color-success);
-      box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(47, 133, 90, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
-    }
     .section-title-wrap {
       display: flex;
       align-items: flex-start;

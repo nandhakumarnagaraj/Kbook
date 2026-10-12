@@ -21,8 +21,11 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         title="Businesses"
         subtitle="Platform directory with cleaner drill-down detail panel."
       >
-        <span kbHeaderBadge class="chip">Directory View</span>
-        <span kbHeaderBadge class="chip">Business Details</span>
+        <!-- Static labels, not status: the shared header-badge class (kpi-tag) so the
+             header slot means one thing app-wide. They restate the page's two panes and
+             carry no state, so the owner may want to drop them entirely. -->
+        <span kbHeaderBadge class="kpi-tag">Directory View</span>
+        <span kbHeaderBadge class="kpi-tag">Business Details</span>
       </app-page-header>
 
       <div class="toolbar">

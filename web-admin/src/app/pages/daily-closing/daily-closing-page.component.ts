@@ -49,9 +49,9 @@ interface DailyClosingData {
         subtitle="Count physical cash, audit payment splits, and verify recognized revenues.">
         <span
           kbHeaderBadge
-          class="settle-badge"
-          [class.settle-badge--live]="isToday()"
-          [class.settle-badge--closed]="!isToday()">
+          class="kpi-tag"
+          [class.kpi-tag--green]="isToday()"
+          [class.kpi-tag--neutral]="!isToday()">
           {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
         </span>
 
@@ -256,30 +256,9 @@ interface DailyClosingData {
       font-family: var(--kb-font-sans);
     }
 
-    /* Header layout comes from the shared <app-page-header>; page keeps no
-       page-shell override so it inherits the canonical geometry. */
-    .settle-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      font-size: 0.76rem;
-      font-weight: 700;
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
-      border: 1px solid var(--kb-color-primary-soft);
-    }
-    .settle-badge--live {
-      background: var(--kb-color-success-soft);
-      color: var(--kb-color-success);
-      border-color: var(--kb-color-success-soft);
-    }
-    .settle-badge--closed {
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      border-color: var(--kb-color-border-strong);
-    }
+    /* Header layout and the header status badge both come from shared code —
+       <app-page-header> and .kpi-tag in bento.css — so this page keeps no page-shell
+       override and owns no badge styles of its own. */
 
     /* The date control is the shared selector (see app-date-range-selector), so this page
        deliberately owns no pill or date-input styles of its own. */

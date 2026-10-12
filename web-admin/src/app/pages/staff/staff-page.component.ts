@@ -19,20 +19,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
   styles: [`
-    .staff-count-badge {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    
-    
-    
-    
+
     .danger-btn {
       color: var(--kb-color-danger);
       border-color: rgba(192, 57, 43, 0.25);
@@ -191,7 +178,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       <app-page-header
         title="Staff &amp; Team Directory"
         subtitle="Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.">
-        <span kbHeaderBadge class="staff-count-badge" *ngIf="loaded()">
+        <span kbHeaderBadge class="kpi-tag" *ngIf="loaded()">
           {{ activeCount }}/{{ staff().length }} Active Accounts
         </span>
           <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openCreateModal()">

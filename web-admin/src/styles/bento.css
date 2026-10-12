@@ -17,6 +17,11 @@
    ============================================================================ */
 
 .pulse-indicator {
+      /* Layout-only: the dot is used both in a flex row (the page-header eyebrow) and
+         inside .kpi-tag; without a display it is an empty inline box and collapses to
+         nothing in the second case. */
+      display: inline-block;
+      flex: none;
       width: 7px;
       height: 7px;
       border-radius: 50%;
@@ -222,6 +227,13 @@
     }
 
 .kpi-tag {
+      /* The one header-badge class (see docs/design/DESIGN_SYSTEM_FREEZE.md rule 3 and
+         web-admin/src/app/shared/page-header.component.ts). A flex row so a status dot
+         and its label sit on one baseline with the 4px gap the old per-page badges
+         hand-rolled; layout only, no palette/radius/spacing-token change. */
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
       padding: 0.15rem 0.55rem;
       border-radius: 999px;
       font-size: 0.72rem;

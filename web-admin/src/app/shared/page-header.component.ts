@@ -14,8 +14,24 @@ import { CommonModule } from '@angular/common';
  *     <button class="header-action-btn" ...>Refresh</button>
  *   </app-page-header>
  *
- * Optional projected badge next to the title:
+ * Optional projected badge next to the title. There is exactly one badge vocabulary,
+ * the shared `.kpi-tag` in styles/bento.css:
+ *
+ *   kpi-tag            a count, or a state that is simply off
+ *   kpi-tag--green     healthy / live / settled
+ *   kpi-tag--amber     needs attention
+ *   kpi-tag--warn      fault or danger
+ *   kpi-tag--neutral   muted, on the recessed surface
+ *
+ * Put `<span class="pulse-indicator" aria-hidden="true"></span>` first when the thing
+ * is live right now. Do not invent a page-local badge class: `.active-badge`,
+ * `.staff-count-badge`, `.settle-badge` and `.sync-state-badge` all existed once and
+ * meant slightly different things, which is the drift
+ * docs/design/DESIGN_SYSTEM_FREEZE.md rule 3 exists to stop.
+ *
+ * Usage:
  *   <span kbHeaderBadge class="kpi-tag kpi-tag--green">Live</span>
+ *   <span kbHeaderBadge class="kpi-tag">3/3 Active Accounts</span>
  */
 @Component({
   selector: 'app-page-header',

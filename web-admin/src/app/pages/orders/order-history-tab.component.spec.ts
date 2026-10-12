@@ -46,6 +46,10 @@ describe('OrderHistoryTabComponent — the period it opens on', () => {
     });
   });
 
+  // The stored range is shared app state, so a spec must not leave one behind for
+  // whichever spec file Karma runs next.
+  afterEach(() => sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY));
+
   function mount(): void {
     fixture = TestBed.createComponent(OrderHistoryTabComponent);
     fixture.detectChanges();
