@@ -7,7 +7,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
-import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
@@ -65,7 +64,7 @@ export function filterBusinessOrders(
   selector: 'app-order-history-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent],
   template: `
     <div class="tab-panel">
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
@@ -188,11 +187,6 @@ export function filterBusinessOrders(
             </button>
           </div>
         </section>
-      </div>
-
-      <!-- Period Filter for Owner: Today, Yesterday, Custom -->
-      <div class="period-presets-bar" *ngIf="ordersLoaded">
-        <app-date-range-selector [initialRange]="currentDateRange" (rangeChanged)="onDateRangeChange($event)"></app-date-range-selector>
       </div>
 
       <app-api-state
@@ -455,15 +449,6 @@ export function filterBusinessOrders(
       flex-wrap: wrap;
     }
 
-    /* Period Presets Bar */
-    .period-presets-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 1.15rem;
-      flex-wrap: wrap;
-    }
     .preset-pill-group {
       display: inline-flex;
       background: var(--kb-color-surface);

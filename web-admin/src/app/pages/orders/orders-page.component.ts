@@ -2,8 +2,10 @@ import { ChangeDetectionStrategy, Component, inject, signal, ViewChild } from '@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { LiveOrdersTabComponent } from './live-orders-tab.component';
 import { OrderHistoryTabComponent } from './order-history-tab.component';
+import { readStoredDateRange } from '../../core/utils/date-range-storage.util';
 
 export type OrdersTab = 'live' | 'history';
 
@@ -23,12 +25,17 @@ export type OrdersTab = 'live' | 'history';
   selector: 'app-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, PageHeaderComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
+  imports: [CommonModule, PageHeaderComponent, DateRangeSelectorComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
   template: `
     <div class="page-shell">
       <app-page-header
         title="Orders"
         subtitle="Live floor board and settled transaction history in one workspace.">
+        <app-date-range-selector
+          *ngIf="tab() === 'history'"
+          [initialRange]="historyDateRange()"
+          (rangeChanged)="onHistoryDateRangeChange($event)">
+        </app-date-range-selector>
         <button
           type="button"
           class="refresh-btn"
@@ -162,6 +169,16 @@ export class OrdersPageComponent {
     return this.tab() === 'live'
       ? this.liveOrdersTab?.loading() ?? false
       : !!this.orderHistoryTab && !this.orderHistoryTab.ordersLoaded;
+  }
+
+  historyDateRange(): { from: string; to: string } {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return this.orderHistoryTab?.currentDateRange ?? readStoredDateRange() ?? { from: todayStr, to: todayStr };
+  }
+
+  onHistoryDateRangeChange(range: { from: string; to: string }): void {
+    this.orderHistoryTab?.onDateRangeChange(range);
   }
 
   refreshActiveTab(): void {
