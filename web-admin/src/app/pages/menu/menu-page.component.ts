@@ -20,7 +20,7 @@ import { environment } from '../../../environments/environment';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
   template: `
-    <div class="page-shell">
+    <div class="page-shell menu-page-shell">
       <!-- Canonical page header (shared design system) -->
       <app-page-header
         title="Menu &amp; Dishes Catalog"
@@ -70,45 +70,6 @@ import { environment } from '../../../environments/environment';
         <span>Couldn't update menu. {{ loadError }}</span>
         <button type="button" class="btn-retry" (click)="loadMenu()">Retry</button>
       </div>
-
-      <!-- Stock Quick Filter Strip (bentogrids.com standard) -->
-      <nav class="stock-status-strip" *ngIf="loaded && items.length" aria-label="Stock status quick filters">
-        <button
-          type="button"
-          class="stock-tab-pill"
-          [class.stock-tab-pill--active]="stockFilter === 'ALL'"
-          (click)="setStockFilter('ALL')">
-          All Dishes ({{ items.length }})
-        </button>
-        <button
-          type="button"
-          class="stock-tab-pill stock-tab-pill--green"
-          [class.stock-tab-pill--active]="stockFilter === 'IN_STOCK'"
-          (click)="setStockFilter('IN_STOCK')">
-          ● In Stock ({{ inStockCount }})
-        </button>
-        <button
-          type="button"
-          class="stock-tab-pill stock-tab-pill--amber"
-          [class.stock-tab-pill--active]="stockFilter === 'RUNNING_LOW'"
-          (click)="setStockFilter('RUNNING_LOW')">
-          ● Running Low ({{ runningLowCount }})
-        </button>
-        <button
-          type="button"
-          class="stock-tab-pill stock-tab-pill--red"
-          [class.stock-tab-pill--active]="stockFilter === 'OUT_OF_STOCK'"
-          (click)="setStockFilter('OUT_OF_STOCK')">
-          ● Out of Stock ({{ outOfStockCount }})
-        </button>
-      </nav>
-
-      <app-api-state
-        *ngIf="loadError"
-        [loading]="false"
-        [error]="loadError"
-        (retry)="loadMenu()"
-      ></app-api-state>
 
       <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
         <table class="data-table">
@@ -521,6 +482,7 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .menu-page-shell { gap: 1.25rem; }
     .menu-header-search { width: min(15rem, 38vw); }
     .menu-load-more {
       display: flex;
@@ -557,57 +519,6 @@ import { environment } from '../../../environments/environment';
     
     
     
-    .stock-status-strip {
-      display: flex;
-      gap: var(--kb-space-2);
-      margin-bottom: var(--kb-space-4);
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-    .stock-tab-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: var(--kb-radius-full);
-      font-size: 0.8rem;
-      font-weight: 500;
-      border: 1px solid var(--kb-color-border);
-      background: var(--kb-color-surface);
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      font-variant-numeric: tabular-nums;
-      transition: transform 120ms ease, border-color 150ms ease, color 150ms ease;
-      white-space: nowrap;
-    }
-    .stock-tab-pill:active {
-      transform: scale(0.97);
-    }
-    .stock-tab-pill:hover {
-      border-color: var(--kb-color-primary);
-      color: var(--kb-color-foreground);
-    }
-    .stock-tab-pill--active {
-      border-color: var(--kb-color-primary);
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-primary);
-      font-weight: 600;
-    }
-    .stock-tab-pill--green.stock-tab-pill--active {
-      border-color: rgba(34, 197, 94, 0.4);
-      background: rgba(34, 197, 94, 0.08);
-      color: var(--kb-color-success);
-    }
-    .stock-tab-pill--amber.stock-tab-pill--active {
-      border-color: rgba(245, 158, 11, 0.4);
-      background: rgba(245, 158, 11, 0.08);
-      color: var(--kb-color-warning);
-    }
-    .stock-tab-pill--red.stock-tab-pill--active {
-      border-color: rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.08);
-      color: var(--kb-color-danger);
-    }
     .data-table td {
       font-variant-numeric: tabular-nums;
     }
@@ -674,8 +585,6 @@ export class MenuPageComponent implements OnDestroy {
 
   searchTerm = '';
   showSearchInput = false;
-  stockFilter = 'ALL';
-  availabilityFilter = 'ALL';
   pageSize = 10;
   visibleItemCount = 10;
 
@@ -745,13 +654,7 @@ export class MenuPageComponent implements OnDestroy {
         item.description ?? ''
       ].some(v => v.toLowerCase().includes(search));
 
-      const matchesStock = this.stockFilter === 'ALL' || item.stockStatus === this.stockFilter;
-      const matchesAvailability =
-        this.availabilityFilter === 'ALL' ||
-        (this.availabilityFilter === 'AVAILABLE' && item.available) ||
-        (this.availabilityFilter === 'UNAVAILABLE' && !item.available);
-
-      return matchesSearch && matchesStock && matchesAvailability;
+      return matchesSearch;
     });
   }
 
@@ -767,23 +670,6 @@ export class MenuPageComponent implements OnDestroy {
     if (!this.hasMoreItems) return;
     this.visibleItemCount = Math.min(this.visibleItemCount + this.pageSize, this.filteredItems.length);
     this.cdr.markForCheck();
-  }
-
-  get inStockCount(): number {
-    return this.items.filter(i => i.available && i.stockStatus === 'IN_STOCK').length;
-  }
-
-  get runningLowCount(): number {
-    return this.items.filter(i => i.stockStatus === 'RUNNING_LOW').length;
-  }
-
-  get outOfStockCount(): number {
-    return this.items.filter(i => !i.available || i.stockStatus === 'OUT_OF_STOCK').length;
-  }
-
-  setStockFilter(status: string): void {
-    this.stockFilter = status;
-    this.resetPage();
   }
 
   constructor() {
@@ -1281,14 +1167,6 @@ export class MenuPageComponent implements OnDestroy {
   // --- Filters and Pagination ---
 
   resetPage(): void {
-    this.visibleItemCount = this.pageSize;
-  }
-
-  clearFilters(): void {
-    this.searchTerm = '';
-    this.stockFilter = 'ALL';
-    this.availabilityFilter = 'ALL';
-    this.pageSize = 10;
     this.visibleItemCount = this.pageSize;
   }
 

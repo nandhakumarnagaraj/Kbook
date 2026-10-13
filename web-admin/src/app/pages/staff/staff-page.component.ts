@@ -26,40 +26,6 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       border-color: rgba(192, 57, 43, 0.25);
     }
     .danger-btn:hover { background: rgba(192, 57, 43, 0.06); }
-    .role-filter-strip {
-      display: flex;
-      gap: var(--kb-space-2);
-      margin-bottom: var(--kb-space-4);
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-    .role-tab-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: var(--kb-radius-full);
-      font-size: 0.8rem;
-      font-weight: 500;
-      border: 1px solid var(--kb-color-border);
-      background: var(--kb-color-surface);
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      font-variant-numeric: tabular-nums;
-      transition: transform 120ms ease, border-color 150ms ease, color 150ms ease;
-      white-space: nowrap;
-    }
-    .role-tab-pill:active { transform: scale(0.97); }
-    .role-tab-pill:hover {
-      border-color: var(--kb-color-primary);
-      color: var(--kb-color-foreground);
-    }
-    .role-tab-pill--active {
-      border-color: var(--kb-color-primary);
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-primary);
-      font-weight: 600;
-    }
     .staff-user-cell {
       display: flex;
       align-items: center;
@@ -229,25 +195,6 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           </button>
       </app-page-header>
 
-      <!-- Role Quick Filter Strip (bentogrids.com standard) -->
-      <nav class="role-filter-strip" *ngIf="loaded() && staff().length" aria-label="Staff role filters">
-        <button
-          type="button"
-          class="role-tab-pill"
-          [class.role-tab-pill--active]="roleFilter === 'ALL'"
-          (click)="setRoleFilter('ALL')">
-          All Roles ({{ staff().length }})
-        </button>
-        <button
-          *ngFor="let role of roleOptions; trackBy: trackByIndex"
-          type="button"
-          class="role-tab-pill"
-          [class.role-tab-pill--active]="roleFilter === role"
-          (click)="setRoleFilter(role)">
-          {{ role }}
-        </button>
-      </nav>
-
       <!-- Stale refresh banner (prototype pattern) -->
       <div class="stale-banner" *ngIf="loadError() && staff().length" role="status" aria-live="polite">
         <span>Couldn't update staff accounts. {{ loadError() }}</span>
@@ -346,8 +293,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
               </td>
               <td class="tabular-num muted">{{ formatDateValue(item.updatedAt) }}</td>
               <td *ngIf="isOwner">
-                <div class="action-cell">
-                  <button class="small-action-btn" (click)="openEditModal(item)">Edit</button>
+                <div class="action-cell" *ngIf="item.role !== 'OWNER'">
                   <button
                     class="small-action-btn"
                     *ngIf="item.active"
@@ -391,8 +337,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             </div>
             <p><code>{{ item.loginId }}</code> · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
             <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
-            <div class="mobile-data-card__actions" *ngIf="isOwner">
-              <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
+            <div class="mobile-data-card__actions" *ngIf="isOwner && item.role !== 'OWNER'">
               <button class="ghost-btn danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
             </div>
           </article>
@@ -447,18 +392,11 @@ export class StaffPageComponent {
 
   searchTerm = '';
   showSearchInput = false;
-  roleFilter = 'ALL';
-  statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
   pageSize = 10;
   currentPage = 1;
 
   get activeCount(): number {
     return this.staff().filter((s) => s.active).length;
-  }
-
-  setRoleFilter(role: string): void {
-    this.roleFilter = role;
-    this.resetPage();
   }
 
   getInitials(name: string | null | undefined): string {
@@ -612,10 +550,6 @@ export class StaffPageComponent {
     this.showRevokeAll = false;
   }
 
-  get roleOptions(): string[] {
-    return [...new Set(this.staff().map((item) => item.role))].sort();
-  }
-
   get filteredStaff(): BusinessStaffItem[] {
     const search = this.searchTerm.trim().toLowerCase();
 
@@ -628,13 +562,7 @@ export class StaffPageComponent {
         item.role
       ].some((value) => value.toLowerCase().includes(search));
 
-      const matchesRole = this.roleFilter === 'ALL' || item.role === this.roleFilter;
-      const matchesStatus =
-        this.statusFilter === 'ALL' ||
-        (this.statusFilter === 'ACTIVE' && item.active) ||
-        (this.statusFilter === 'INACTIVE' && !item.active);
-
-      return matchesSearch && matchesRole && matchesStatus;
+      return matchesSearch;
     });
   }
 
@@ -672,8 +600,6 @@ export class StaffPageComponent {
 
   clearFilters(): void {
     this.searchTerm = '';
-    this.roleFilter = 'ALL';
-    this.statusFilter = 'ALL';
     this.pageSize = 10;
     this.currentPage = 1;
   }

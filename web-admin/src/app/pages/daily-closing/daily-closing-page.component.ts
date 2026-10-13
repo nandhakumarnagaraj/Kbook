@@ -74,12 +74,9 @@ interface DailyClosingData {
           downloadLabel="Download daily closing CSV"
           [refreshDisabled]="loading()"
           [refreshing]="loading()"
-          [showPrint]="true"
-          [printDisabled]="!data()"
           (rangeChanged)="onClosingDateChange($event)"
           (download)="exportClosing()"
-          (refresh)="load()"
-          (print)="printSlip()">
+          (refresh)="load()">
         </app-date-range-toolbar>
       </app-page-header>
 
@@ -676,10 +673,6 @@ export class DailyClosingPageComponent {
   private countedCashStorageKey(): string {
     const restaurantId = this.auth.session()?.restaurantId ?? 'current';
     return `khanabook:daily-closing-cash:${restaurantId}:${this.selectedDate()}`;
-  }
-
-  printSlip(): void {
-    window.print();
   }
 
   load(): void {
