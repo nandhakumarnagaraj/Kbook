@@ -6,7 +6,7 @@ import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.mo
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
-import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { DateRangeToolbarComponent } from '../../shared/date-range-toolbar.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
@@ -45,7 +45,7 @@ interface DailyClosingData {
     FormsModule,
     EmptyStateComponent,
     PageHeaderComponent,
-    DateRangeSelectorComponent,
+    DateRangeToolbarComponent,
     ApiStateComponent
   ],
   template: `
@@ -63,41 +63,22 @@ interface DailyClosingData {
           {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
         </span>
 
-        <ng-container>
-          <!-- One date field for the business day being closed. -->
-          <app-date-range-selector
-            mode="single"
-            singleDateLabel="Closing date"
-            [maxDate]="today"
-            [initialRange]="closingRange()"
-            (rangeChanged)="onClosingDateChange($event)">
-          </app-date-range-selector>
-          <button type="button" class="header-action-btn" [disabled]="loading()" (click)="load()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
-          <button type="button" class="header-action-btn" (click)="printSlip()" *ngIf="data()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 6 2 18 2 18 9"/>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-              <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Print Slip
-          </button>
-          <button type="button" class="header-action-btn" (click)="exportClosing()" *ngIf="data()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export CSV
-          </button>
-        </ng-container>
+        <app-date-range-toolbar
+          mode="single"
+          singleDateLabel="Closing date"
+          [maxDate]="today"
+          [initialRange]="closingRange()"
+          [downloadDisabled]="!data()"
+          downloadLabel="Download daily closing CSV"
+          [refreshDisabled]="loading()"
+          [refreshing]="loading()"
+          [showPrint]="true"
+          [printDisabled]="!data()"
+          (rangeChanged)="onClosingDateChange($event)"
+          (download)="exportClosing()"
+          (refresh)="load()"
+          (print)="printSlip()">
+        </app-date-range-toolbar>
       </app-page-header>
 
       <!-- Alert if Draft Orders are Open -->
@@ -284,6 +265,7 @@ interface DailyClosingData {
        override and owns no badge styles of its own. */
 
     /* Date-field styles come from the shared app-date-range-selector component. */
+
 
     /* Draft warning banner */
     .draft-warning-banner {

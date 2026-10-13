@@ -986,6 +986,36 @@ export class OrderHistoryTabComponent implements OnDestroy {
     this.loadOrders();
   }
 
+  exportCsv(): void {
+    const headers = [
+      'Order Code', 'Source', 'Customer Name', 'Customer Contact',
+      'Order Status', 'Payment Method', 'Payment Status',
+      'Total Amount', 'Refund Amount', 'Created Date'
+    ];
+    const rows = this.filteredOrders.map(order => [
+      order.orderCode,
+      order.sourceType,
+      order.customerName ?? '',
+      order.customerContact ?? '',
+      order.orderStatus,
+      order.paymentMethod,
+      order.paymentStatus,
+      String(order.totalAmount ?? 0),
+      String(order.refundAmount ?? 0),
+      order.createdAt ? formatDate(order.createdAt) : ''
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(field => escapeCsvField(String(field ?? ''))).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `order-history-${this.dateFrom ?? 'all'}-to-${this.dateTo ?? 'all'}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   loadOrders(): void {
     this.ordersLoaded = false;
     this.ordersError = '';

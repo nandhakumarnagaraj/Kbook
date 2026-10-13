@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { DateRangeToolbarComponent } from '../../shared/date-range-toolbar.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency } from '../../shared/formatters';
@@ -28,7 +28,7 @@ function todayRange(): { from: string; to: string } {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DateRangeSelectorComponent, PageHeaderComponent, ApiStateComponent],
+  imports: [CommonModule, DateRangeToolbarComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -36,36 +36,16 @@ function todayRange(): { from: string; to: string } {
         title="Financial &amp; Sales Reports"
         subtitle="Recognized revenues, billing volume, refund impact, and gateway reconciliation."
       >
-        <div class="reports-header-controls">
-          <app-date-range-selector [initialRange]="selectedRange()" (rangeChanged)="setRange($event)" />
-          <button
-            type="button"
-            class="date-toolbar-icon-btn date-toolbar-icon-btn--download"
-            (click)="exportCsv()"
-            *ngIf="report()"
-            aria-label="Export report data"
-            title="Export CSV">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <path d="m7 10 5 5 5-5" />
-              <path d="M12 15V3" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="date-toolbar-icon-btn date-toolbar-icon-btn--refresh"
-            [disabled]="refreshing()"
-            (click)="refresh()"
-            aria-label="Refresh report data"
-            title="Refresh">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="refreshing()" aria-hidden="true">
-              <path d="M20 7v5h-5" />
-              <path d="M4.9 9A8 8 0 0 1 18.3 6L20 7" />
-              <path d="M4 17v-5h5" />
-              <path d="M19.1 15A8 8 0 0 1 5.7 18L4 17" />
-            </svg>
-          </button>
-        </div>
+        <app-date-range-toolbar
+          [initialRange]="selectedRange()"
+          [downloadDisabled]="!report()"
+          downloadLabel="Export report data"
+          [refreshDisabled]="refreshing()"
+          [refreshing]="refreshing()"
+          (rangeChanged)="setRange($event)"
+          (download)="exportCsv()"
+          (refresh)="refresh()">
+        </app-date-range-toolbar>
       </app-page-header>
 
       <!-- Report View Navigation Tabs -->
@@ -393,39 +373,6 @@ function todayRange(): { from: string; to: string } {
 
     /* Page geometry + page header now come from the shared design system
        (styles.css .page-shell + shared/page-header.component). */
-
-    .reports-header-controls {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 0.65rem;
-      flex-wrap: nowrap;
-    }
-
-    .reports-header-controls app-date-range-selector { flex: 0 0 auto; }
-
-    .date-toolbar-icon-btn {
-      display: grid;
-      place-items: center;
-      flex: 0 0 38px;
-      width: 38px;
-      height: 38px;
-      padding: 0;
-      border: 1px solid #1686f5;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-    }
-    .date-toolbar-icon-btn--download { color: #fff; background: #1686f5; }
-    .date-toolbar-icon-btn--download:hover { background: #0872dc; border-color: #0872dc; }
-    .date-toolbar-icon-btn--refresh { color: #1686f5; background: #fff; }
-    .date-toolbar-icon-btn--refresh:hover:not(:disabled) { background: #edf6ff; }
-    .date-toolbar-icon-btn:disabled { opacity: 0.55; cursor: default; }
-    .date-toolbar-icon-btn:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
-
-    @media (max-width: 680px) {
-      .reports-header-controls { justify-content: flex-start; flex-wrap: wrap; }
-    }
 
     /* ── Bento Analytics Grid (bentogrids.com standard) ── */
     .reports-bento-grid {

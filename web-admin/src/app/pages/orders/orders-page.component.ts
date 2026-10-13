@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal, ViewChild } from '@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/page-header.component';
-import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { DateRangeToolbarComponent } from '../../shared/date-range-toolbar.component';
 import { LiveOrdersTabComponent } from './live-orders-tab.component';
 import { OrderHistoryTabComponent } from './order-history-tab.component';
 import { readStoredDateRange } from '../../core/utils/date-range-storage.util';
@@ -25,33 +25,24 @@ export type OrdersTab = 'live' | 'history';
   selector: 'app-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, PageHeaderComponent, DateRangeSelectorComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
+  imports: [CommonModule, PageHeaderComponent, DateRangeToolbarComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
   template: `
     <div class="page-shell">
       <app-page-header
         title="Orders"
         subtitle="Live floor board and settled transaction history in one workspace.">
-        <div class="orders-header-controls">
-          <app-date-range-selector
-            *ngIf="tab() === 'history'"
-            [initialRange]="historyDateRange()"
-            (rangeChanged)="onHistoryDateRangeChange($event)">
-          </app-date-range-selector>
-        <button
-          type="button"
-          class="date-toolbar-icon-btn date-toolbar-icon-btn--refresh"
-          [disabled]="isRefreshing()"
-          (click)="refreshActiveTab()"
-          aria-label="Refresh current orders tab"
-          title="Refresh">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="isRefreshing()" aria-hidden="true">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-            <path d="M16 21h5v-5" />
-          </svg>
-          </button>
-        </div>
+        <app-date-range-toolbar
+          [initialRange]="historyDateRange()"
+          [showDateSelector]="tab() === 'history'"
+          [showDownload]="tab() === 'history'"
+          [downloadDisabled]="!orderHistoryTab?.ordersLoaded || !orderHistoryTab?.pagedOrders?.length"
+          [downloadLabel]="'Download order history CSV'"
+          [refreshDisabled]="isRefreshing()"
+          [refreshing]="isRefreshing()"
+          (rangeChanged)="onHistoryDateRangeChange($event)"
+          (download)="orderHistoryTab?.exportCsv()"
+          (refresh)="refreshActiveTab()">
+        </app-date-range-toolbar>
       </app-page-header>
 
       <nav class="orders-tabs" role="tablist" aria-label="Orders views">
@@ -107,42 +98,6 @@ export type OrdersTab = 'live' | 'history';
   `,
   styles: [
     `
-      .orders-header-controls {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 0.65rem;
-        flex-wrap: nowrap;
-      }
-
-      .orders-header-controls app-date-range-selector {
-        flex: 0 0 auto;
-      }
-
-      .date-toolbar-icon-btn {
-        display: grid;
-        place-items: center;
-        flex: 0 0 38px;
-        width: 38px;
-        height: 38px;
-        padding: 0;
-        border: 1px solid #1686f5;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-      }
-      .date-toolbar-icon-btn--refresh { color: #1686f5; background: #fff; }
-      .date-toolbar-icon-btn--refresh:hover:not(:disabled) { background: #edf6ff; }
-      .date-toolbar-icon-btn:disabled { opacity: 0.55; cursor: default; }
-      .date-toolbar-icon-btn:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
-
-      @media (max-width: 680px) {
-        .orders-header-controls {
-          justify-content: flex-start;
-          flex-wrap: wrap;
-        }
-      }
-
       .orders-tabs {
         display: flex;
         gap: 0.4rem;
@@ -198,7 +153,7 @@ export class OrdersPageComponent {
   private readonly router = inject(Router);
 
   @ViewChild(LiveOrdersTabComponent) private liveOrdersTab?: LiveOrdersTabComponent;
-  @ViewChild(OrderHistoryTabComponent) private orderHistoryTab?: OrderHistoryTabComponent;
+  @ViewChild(OrderHistoryTabComponent) orderHistoryTab?: OrderHistoryTabComponent;
 
   private readonly requestedTab = signal<OrdersTab>(this.readTabFromUrl());
   readonly tab = this.requestedTab.asReadonly();
