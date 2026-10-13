@@ -19,6 +19,8 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
+import { NotificationBellComponent } from '../../shared/notification-bell.component';
 
 export interface PosActiveOrder {
   orderId: number;
@@ -64,7 +66,14 @@ function getTodayIsoDate(): string {
   selector: 'app-business-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    OrderDetailModalComponent,
+    PageHeaderComponent,
+    AnimatedCounterComponent,
+    NotificationBellComponent
+  ],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
       <!-- ── Top Cockpit Header Bar (shared PageHeaderComponent) ── -->
@@ -98,47 +107,12 @@ function getTodayIsoDate(): string {
           </button>
 
           <!-- Notifications Bell -->
-          <div class="notif-wrapper">
-            <button
-              type="button"
-              class="icon-action-btn"
-              (click)="toggleNotifications()"
-              aria-label="Notifications"
-              [attr.aria-expanded]="notificationsOpen()">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <span class="notif-badge" *ngIf="unreadNotifsCount() > 0">{{ unreadNotifsCount() }}</span>
-            </button>
-
-            <!-- Notifications Drawer -->
-            <div class="notif-flyout" *ngIf="notificationsOpen()">
-              <div class="notif-flyout__head">
-                <h4>System Notifications</h4>
-                <button type="button" class="link-btn-text" (click)="markAllNotificationsRead()" *ngIf="notifications().length > 0">Mark all read</button>
-              </div>
-              <div class="notif-flyout__body" *ngIf="notifications().length > 0; else noNotifs">
-                <div
-                  class="notif-item"
-                  *ngFor="let n of notifications()"
-                  [class.notif-item--unread]="!n.isRead"
-                  (click)="markNotificationAsRead(n)">
-                  <div class="notif-unread-dot" *ngIf="!n.isRead"></div>
-                  <div class="notif-copy">
-                    <strong class="notif-title">{{ n.title || 'POS Alert' }}</strong>
-                    <p class="notif-msg">{{ n.message }}</p>
-                    <span class="notif-time">{{ formatDateValue(n.createdAt) }}</span>
-                  </div>
-                </div>
-              </div>
-              <ng-template #noNotifs>
-                <div class="notif-empty">
-                  <p>All caught up! No unread notifications.</p>
-                </div>
-              </ng-template>
-            </div>
-          </div>
+          <app-notification-bell
+            [notifications]="notifications()"
+            [unreadCount]="unreadNotifsCount()"
+            (markRead)="markNotificationAsRead($event)"
+            (markAllRead)="markAllNotificationsRead()">
+          </app-notification-bell>
 
           <!-- Refresh Button -->
           <button
@@ -171,7 +145,9 @@ function getTodayIsoDate(): string {
               Live Intake
             </span>
           </div>
-          <div class="bento-tile__main-metric">{{ data.todayRevenueFormatted }}</div>
+          <div class="bento-tile__main-metric">
+            <app-animated-counter [value]="data.todayRevenueValue" format="currency"></app-animated-counter>
+          </div>
           <div class="revenue-split-bar">
             <div class="split-pill">
               <span class="split-legend split-legend--cash"></span>
@@ -196,7 +172,7 @@ function getTodayIsoDate(): string {
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            {{ completedCount() }}
+            <app-animated-counter [value]="completedCount()"></app-animated-counter>
             <span class="metric-total-sub">/ {{ data.posOrderCount }}</span>
           </div>
           <div class="progress-meter-container">
@@ -219,7 +195,7 @@ function getTodayIsoDate(): string {
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            {{ unsettledOrdersCount() }}
+            <app-animated-counter [value]="unsettledOrdersCount()"></app-animated-counter>
             <span class="metric-unit-sub">Unsettled</span>
           </div>
           <div class="bento-tile__footer-action">
@@ -240,7 +216,7 @@ function getTodayIsoDate(): string {
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            {{ onlineTerminalsCount() }}
+            <app-animated-counter [value]="onlineTerminalsCount()"></app-animated-counter>
             <span class="metric-total-sub">/ {{ totalTerminalsCount() }}</span>
           </div>
           <div class="bento-tile__footer-action">
@@ -515,23 +491,6 @@ function getTodayIsoDate(): string {
       min-height: 100vh;
       color: var(--kb-color-foreground);
       font-family: var(--kb-font-sans);
-    }
-
-    .notif-badge {
-      position: absolute;
-      top: -3px;
-      right: -3px;
-      padding: 0 5px;
-      min-width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: var(--kb-color-danger);
-      color: #FFFFFF;
-      font-size: 0.65rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     /* Revenue Split Bar */
@@ -825,64 +784,6 @@ function getTodayIsoDate(): string {
     /* .channel-chip table badge + its channel modifiers now live in the global
        styles/bento.css (identical values) so every page shares one definition. */
 
-    /* ── Notifications Flyout ── */
-    .notif-wrapper { position: relative; }
-    .notif-flyout {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      width: 320px;
-      max-height: 400px;
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-      z-index: 60;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .notif-flyout__head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      background: var(--kb-color-bg-app);
-    }
-    .notif-flyout__head h4 { margin: 0; font-size: 0.88rem; font-weight: 700; color: var(--kb-color-foreground); }
-    .notif-flyout__body {
-      overflow-y: auto;
-      max-height: 320px;
-      display: flex;
-      flex-direction: column;
-    }
-    .notif-item {
-      position: relative;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--kb-color-bg-app);
-      display: flex;
-      align-items: flex-start;
-      gap: 0.65rem;
-      cursor: pointer;
-      transition: background 120ms ease;
-    }
-    .notif-item:hover { background: var(--kb-color-bg-app); }
-    .notif-item--unread { background: var(--kb-color-primary-soft); }
-    .notif-unread-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--kb-color-primary);
-      margin-top: 5px;
-      flex-shrink: 0;
-    }
-    .notif-copy { flex: 1; }
-    .notif-title { font-size: 0.8rem; color: var(--kb-color-foreground); display: block; margin-bottom: 0.15rem; }
-    .notif-msg { margin: 0 0 0.25rem; font-size: 0.74rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
-    .notif-time { font-size: 0.68rem; color: var(--kb-color-muted-foreground); }
-    .notif-empty { padding: 2rem 1rem; text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
-
     /* ── Modals Overlay ── */
     .terminal-item-row {
       display: flex;
@@ -944,7 +845,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly unreadNotifsCount = signal<number>(0);
 
   // Modal / Flyout Toggles
-  readonly notificationsOpen = signal(false);
   readonly terminalsModalOpen = signal(false);
   readonly lowStockModalOpen = signal(false);
 
@@ -1061,6 +961,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
               ...data,
               shopName: data.shopName || this.auth.session()?.userName || 'KhanaBook',
               todayRevenueFormatted: formatCurrency(todayRev),
+              // Raw value for the animated counter; the formatted string above stays
+              // for any non-animated consumer.
+              todayRevenueValue: todayRev,
               totalRevenueFormatted: formatCurrency(Number(data.totalRevenue) || 0),
               deltaToday,
               posOrderCount: Number(data.posOrderCount) || 0,
@@ -1284,10 +1187,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   resetFilters(): void {
     this.selectedChannel.set('all');
     this.searchQuery = '';
-  }
-
-  toggleNotifications(): void {
-    this.notificationsOpen.update(v => !v);
   }
 
   toggleTerminalsModal(): void {
