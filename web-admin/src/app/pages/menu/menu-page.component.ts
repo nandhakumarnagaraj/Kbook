@@ -25,6 +25,22 @@ import { environment } from '../../../environments/environment';
       <app-page-header
         title="Menu &amp; Dishes Catalog"
         subtitle="Manage dish descriptions, variant pricing, and real-time counter stock availability.">
+          <button type="button" class="header-action-btn" (click)="showSearchInput = !showSearchInput" [attr.aria-expanded]="showSearchInput" aria-controls="menu-search">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+            </svg>
+            Search
+          </button>
+          <input
+            *ngIf="showSearchInput"
+            id="menu-search"
+            class="field-control menu-header-search"
+            type="search"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="resetPage()"
+            placeholder="Search menu items"
+            aria-label="Search menu items"
+          />
           <button type="button" class="header-action-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h7"/>
@@ -93,67 +109,6 @@ import { environment } from '../../../environments/environment';
         [error]="loadError"
         (retry)="loadMenu()"
       ></app-api-state>
-
-      <section class="panel filter-panel" *ngIf="loaded && items.length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="menu-search">Search</label>
-            <input
-              id="menu-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by item, category, or description"
-            />
-          </div>
-          <div class="filter-group">
-            <label for="menu-stock">Stock</label>
-            <select
-              id="menu-stock"
-              class="field-select"
-              [(ngModel)]="stockFilter"
-              (ngModelChange)="resetPage()"
-            >
-              <option value="ALL">All stock states</option>
-              <option value="IN_STOCK">In stock</option>
-              <option value="RUNNING_LOW">Running low</option>
-              <option value="OUT_OF_STOCK">Out of stock</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="menu-availability">Availability</label>
-            <select
-              id="menu-availability"
-              class="field-select"
-              [(ngModel)]="availabilityFilter"
-              (ngModelChange)="resetPage()"
-            >
-              <option value="ALL">All items</option>
-              <option value="AVAILABLE">Available</option>
-              <option value="UNAVAILABLE">Unavailable</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="menu-size">Rows</label>
-            <select
-              id="menu-size"
-              class="field-select"
-              [(ngModel)]="pageSize"
-              (ngModelChange)="resetPage()"
-            >
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-summary">
-          <p class="muted">{{ filteredItems.length }} of {{ items.length }} menu items</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
 
       <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
         <table class="data-table">
@@ -569,6 +524,7 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .menu-header-search { width: min(15rem, 38vw); }
     .photo-picker {
       display: flex;
       align-items: center;
@@ -702,6 +658,7 @@ export class MenuPageComponent implements OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
 
   searchTerm = '';
+  showSearchInput = false;
   stockFilter = 'ALL';
   availabilityFilter = 'ALL';
   pageSize = 10;

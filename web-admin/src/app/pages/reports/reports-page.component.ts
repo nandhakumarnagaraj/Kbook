@@ -34,7 +34,7 @@ function todayRange(): { from: string; to: string } {
       <!-- Canonical page header (shared design system) -->
       <app-page-header
         title="Financial &amp; Sales Reports"
-        subtitle="Recognized revenues, billing volume, refund impact, and gateway reconciliation."
+        subtitle="Sales, refunds, item performance, and GST for the selected period."
       >
         <app-date-range-toolbar
           [initialRange]="selectedRange()"

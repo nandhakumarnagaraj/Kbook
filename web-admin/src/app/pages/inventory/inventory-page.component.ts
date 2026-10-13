@@ -20,11 +20,11 @@ import { ToastService } from '../../core/services/toast.service';
     }
     .material-card {
       background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 8px;
-      padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.45rem;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .material-card:hover { border-color: var(--kb-color-primary); box-shadow: 0 0 0 1px var(--kb-color-primary); }
-    .material-card.low-stock { border-left: 3px solid var(--kb-color-warning); }
+    .material-card:hover { border-color: var(--kb-color-primary); background: var(--kb-color-surface); }
+    .material-card.low-stock { border-color: var(--kb-color-warning); }
     .material-name { font-weight: 600; font-size: 0.95rem; }
     .material-stock { font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
     .material-stock strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
@@ -54,20 +54,22 @@ import { ToastService } from '../../core/services/toast.service';
     table.styled th { text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; border-bottom: 2px solid var(--kb-color-border); white-space: nowrap; }
     table.styled td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--kb-color-border); }
     table.styled tr:hover td { background: rgba(0,0,0,0.02); }
-    .preview-notice-banner {
-      display: flex; align-items: flex-start; gap: 0.85rem; padding: 0.85rem 1.15rem; border-radius: 10px;
-      background: rgba(183, 121, 31, 0.08); border: 1px solid rgba(183, 121, 31, 0.25); margin-bottom: 1.25rem;
+    .inventory-summary, .materials-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .inventory-summary { margin: 0.25rem 0 1rem; color: var(--kb-color-muted-foreground); font-size: 0.84rem; }
+    .inventory-summary strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
+    .materials-toolbar { justify-content: space-between; margin-bottom: 0.85rem; }
+    .materials-search { display: flex; align-items: center; flex: 1 1 260px; max-width: 420px; }
+    .materials-search input { width: 100%; min-height: 40px; }
+    .low-stock-filter[aria-pressed="true"] { color: var(--kb-color-warning); border-color: var(--kb-color-warning); background: rgba(183,121,31,0.08); }
+    .material-card__actions { display: flex; gap: 0.45rem; margin-top: 0.35rem; }
+    .material-card__actions button { min-height: 34px; padding: 0.35rem 0.65rem; }
+    .vendor-form { padding: 0.8rem; margin: 0 0 1rem; background: var(--kb-color-surface-2); border-radius: 8px; }
+    .vendor-form__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .inventory-note { margin: 0 0 1rem; font-size: 0.8rem; color: var(--kb-color-muted-foreground); }
+    @media (max-width: 560px) {
+      .form-row { grid-template-columns: 1fr; gap: 0; }
+      .material-card__actions button { flex: 1; }
     }
-    .banner-icon-wrap { color: var(--kb-color-warning); display: flex; align-items: center; margin-top: 2px; }
-    .banner-content { flex: 1; }
-    .banner-title-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem; }
-    .banner-title-row strong { font-size: 0.92rem; color: var(--kb-color-foreground); }
-    .preview-pill {
-      font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-      padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(183, 121, 31, 0.2);
-      color: var(--kb-color-warning); border: 1px solid rgba(183, 121, 31, 0.35);
-    }
-    .banner-desc { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
   `],
   template: `
     <div class="page-shell">
@@ -76,24 +78,12 @@ import { ToastService } from '../../core/services/toast.service';
         <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">+ Add Material</button>
       </app-page-header>
 
-      <!-- Feature Preview Banner -->
-      <div class="preview-notice-banner">
-        <div class="banner-icon-wrap">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        </div>
-        <div class="banner-content">
-          <div class="banner-title-row">
-            <strong>Inventory Management (Feature Preview)</strong>
-            <span class="preview-pill">Coming Soon</span>
-          </div>
-          <p class="banner-desc">
-            Raw material tracking and physical reconciliation are active in preview mode. Automated Recipe BOM depletion and Vendor Purchase Orders will be fully enabled soon.
-          </p>
-        </div>
+      <div class="inventory-summary" *ngIf="!loading && !error" aria-label="Inventory summary">
+        <span><strong>{{ materials.length }}</strong> materials</span>
+        <span aria-hidden="true">·</span>
+        <span [class.low-label]="lowStockCount > 0"><strong>{{ lowStockCount }}</strong> low stock</span>
+        <span aria-hidden="true">·</span>
+        <span>Estimated value <strong>₹{{ totalStockValue | number:'1.2-2' }}</strong></span>
       </div>
 
       <!-- Tabs -->
@@ -107,6 +97,16 @@ import { ToastService } from '../../core/services/toast.service';
 
       <!-- Materials Tab -->
       <div role="tabpanel" aria-label="Materials" *ngIf="activeTab === 'materials' && !loading && !error">
+        <div class="materials-toolbar" *ngIf="materials.length > 0">
+          <label class="materials-search">
+            <span class="sr-only">Search materials</span>
+            <input class="field-control" type="search" [(ngModel)]="searchTerm" placeholder="Search materials..." />
+          </label>
+          <button type="button" class="ghost-btn low-stock-filter" (click)="lowStockOnly = !lowStockOnly" [attr.aria-pressed]="lowStockOnly">
+            {{ lowStockOnly ? 'Showing low stock' : 'Low stock only' }}
+          </button>
+          <span class="muted" aria-live="polite">{{ filteredMaterials.length }} of {{ materials.length }}</span>
+        </div>
         <div *ngIf="materials.length === 0">
           <app-empty-state
             title="No materials"
@@ -116,15 +116,15 @@ import { ToastService } from '../../core/services/toast.service';
           </app-empty-state>
         </div>
 
-        <div *ngIf="materials.length > 0" class="materials-grid">
-          <div *ngFor="let m of materials; trackBy: trackByMaterialId"
+        <div *ngIf="materials.length > 0 && filteredMaterials.length === 0" class="card" role="status">
+          <p style="margin:0;color:var(--kb-color-muted-foreground)">No materials match these filters.</p>
+        </div>
+
+        <div *ngIf="filteredMaterials.length > 0" class="materials-grid">
+          <article *ngFor="let m of filteredMaterials; trackBy: trackByMaterialId"
                class="material-card"
-               role="button"
-               tabindex="0"
-               [attr.aria-label]="'Open stock actions for ' + m.name"
                [class.low-stock]="isLowStock(m)"
-               (click)="openMaterialDetail(m)"
-               (keydown.enter)="openMaterialDetail(m)">
+               [attr.aria-label]="m.name + ', ' + m.stockQuantity + ' ' + m.unit">
             <div style="display:flex;justify-content:space-between;align-items:start">
               <span class="material-name">{{ m.name }}</span>
               <span *ngIf="isLowStock(m)" class="low-label">LOW</span>
@@ -138,7 +138,11 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="material-stock" *ngIf="m.costPerUnit">
               Cost: {{ m.costPerUnit | number:'1.2-2' }} / {{ m.unit }}
             </div>
-          </div>
+            <div class="material-card__actions">
+              <button type="button" class="primary-btn" (click)="openMaterialDetail(m)">Stock actions</button>
+              <button type="button" class="ghost-btn" (click)="openEditMaterial(m)">Edit details</button>
+            </div>
+          </article>
         </div>
       </div>
 
@@ -225,8 +229,8 @@ import { ToastService } from '../../core/services/toast.service';
           <h3 id="material-modal-title">{{ editingMaterial ? 'Edit Material' : 'Add Material' }}</h3>
 
           <div class="form-group">
-            <label>Name *</label>
-            <input class="field-control" type="text" [(ngModel)]="materialForm.name" placeholder="e.g. Basmati Rice" />
+            <label for="material-name">Name *</label>
+            <input id="material-name" class="field-control" type="text" [(ngModel)]="materialForm.name" placeholder="e.g. Basmati Rice" />
           </div>
 
           <div class="form-row">
@@ -241,11 +245,10 @@ import { ToastService } from '../../core/services/toast.service';
                 <option value="dozen">dozen</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Stock Quantity</label>
-              <input class="field-control" type="number" [(ngModel)]="materialForm.stockQuantity" min="0" step="0.01" />
-            </div>
           </div>
+
+          <p class="inventory-note" *ngIf="editingMaterial">To change the stock quantity, use Physical Count so the adjustment appears in movement history.</p>
+          <p class="inventory-note" *ngIf="!editingMaterial">New materials start at zero. Use Physical Count after saving to record the starting quantity in movement history.</p>
 
           <div class="form-row">
             <div class="form-group">
@@ -259,9 +262,9 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="modal-actions">
-            <button class="ghost-btn" (click)="closeMaterialModal()">Cancel</button>
-            <button class="primary-btn" (click)="saveMaterial()" [disabled]="!materialForm.name?.trim()">
-              {{ editingMaterial ? 'Update' : 'Add Material' }}
+            <button class="ghost-btn" (click)="closeMaterialModal()" [disabled]="savingMaterial">Cancel</button>
+            <button class="primary-btn" (click)="saveMaterial()" [disabled]="!materialForm.name?.trim() || savingMaterial">
+              {{ savingMaterial ? 'Saving…' : (editingMaterial ? 'Update material' : 'Add material') }}
             </button>
           </div>
         </div>
@@ -285,6 +288,31 @@ import { ToastService } from '../../core/services/toast.service';
 
           <!-- Purchase / Stock In -->
           <div role="tabpanel" aria-label="Stock in" *ngIf="detailTab === 'purchase'">
+            <div class="form-group">
+              <label for="purchase-vendor">Supplier (optional)</label>
+              <select id="purchase-vendor" class="field-select" [(ngModel)]="purchaseForm.vendorId">
+                <option [ngValue]="null">No supplier selected</option>
+                <option *ngFor="let vendor of vendors; trackBy: trackByVendorId" [ngValue]="vendor.id">{{ vendor.name }}</option>
+              </select>
+              <button type="button" class="ghost-btn" style="margin-top:0.45rem" (click)="showVendorForm = !showVendorForm">
+                {{ showVendorForm ? 'Cancel new supplier' : '+ Add supplier' }}
+              </button>
+            </div>
+            <div class="vendor-form" *ngIf="showVendorForm">
+              <div class="form-group">
+                <label for="vendor-name">Supplier name *</label>
+                <input id="vendor-name" class="field-control" type="text" [(ngModel)]="vendorForm.name" />
+              </div>
+              <div class="form-group">
+                <label for="vendor-phone">Phone (optional)</label>
+                <input id="vendor-phone" class="field-control" type="tel" [(ngModel)]="vendorForm.phone" />
+              </div>
+              <div class="vendor-form__actions">
+                <button type="button" class="primary-btn" (click)="createVendor()" [disabled]="!vendorForm.name.trim() || savingVendor">
+                  {{ savingVendor ? 'Saving…' : 'Save supplier' }}
+                </button>
+              </div>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Quantity *</label>
@@ -295,7 +323,9 @@ import { ToastService } from '../../core/services/toast.service';
                 <input class="field-control" type="number" [(ngModel)]="purchaseForm.unitCost" min="0" step="0.01" />
               </div>
             </div>
-            <button class="primary-btn" (click)="submitPurchase()" [disabled]="!purchaseForm.quantity">Record Purchase</button>
+            <button class="primary-btn" (click)="submitPurchase()" [disabled]="!isPositive(purchaseForm.quantity) || savingStock">
+              {{ savingStock ? 'Recording…' : 'Record stock-in' }}
+            </button>
           </div>
 
           <!-- Wastage -->
@@ -308,7 +338,9 @@ import { ToastService } from '../../core/services/toast.service';
               <label>Reason *</label>
               <input class="field-control" type="text" [(ngModel)]="wastageForm.reason" placeholder="e.g. Expired, spillage" />
             </div>
-            <button class="primary-btn" (click)="submitWastage()" [disabled]="!wastageForm.quantity || !wastageForm.reason?.trim()">Record Wastage</button>
+            <button class="primary-btn" (click)="submitWastage()" [disabled]="!isPositive(wastageForm.quantity) || !wastageForm.reason?.trim() || savingStock">
+              {{ savingStock ? 'Recording…' : 'Record wastage' }}
+            </button>
           </div>
 
           <!-- Physical Count -->
@@ -320,11 +352,14 @@ import { ToastService } from '../../core/services/toast.service';
             <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
               System shows {{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}. Any variance will create an adjustment entry.
             </p>
-            <button class="primary-btn" (click)="submitPhysicalCount()" [disabled]="countForm.countedQty === null">Submit Count</button>
+            <button class="primary-btn" (click)="submitPhysicalCount()" [disabled]="!isNonNegative(countForm.countedQty) || savingStock">
+              {{ savingStock ? 'Saving…' : 'Submit count' }}
+            </button>
           </div>
 
           <div class="modal-actions">
             <button class="ghost-btn" (click)="closeDetailModal()">Close</button>
+            <button class="ghost-btn" (click)="openEditMaterial(selectedMaterial)">Edit details</button>
             <button class="ghost-btn" style="color:var(--kb-color-error)" (click)="deleteMaterial()">Delete</button>
           </div>
         </div>
@@ -350,9 +385,17 @@ export class InventoryPageComponent implements OnInit {
 
   loading = true;
   error: string | null = null;
+  savingStock = false;
+  savingVendor = false;
+  savingMaterial = false;
 
   activeTab: 'materials' | 'movements' | 'variance' = 'materials';
   materials: any[] = [];
+  vendors: any[] = [];
+  searchTerm = '';
+  lowStockOnly = false;
+  showVendorForm = false;
+  vendorForm = { name: '', phone: '' };
 
   // Material modal
   showMaterialModal = false;
@@ -386,6 +429,33 @@ export class InventoryPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadMaterials();
+    this.loadVendors();
+  }
+
+  get filteredMaterials(): any[] {
+    const query = this.searchTerm.trim().toLowerCase();
+    return this.materials.filter(material => {
+      const matchesSearch = !query || String(material.name ?? '').toLowerCase().includes(query);
+      return matchesSearch && (!this.lowStockOnly || this.isLowStock(material));
+    });
+  }
+
+  get lowStockCount(): number {
+    return this.materials.filter(material => this.isLowStock(material)).length;
+  }
+
+  get totalStockValue(): number {
+    return this.materials.reduce((total, material) =>
+      total + (Number(material.stockQuantity) || 0) * (Number(material.costPerUnit) || 0), 0);
+  }
+
+  isPositive(value: unknown): boolean {
+    return Number.isFinite(Number(value)) && Number(value) > 0;
+  }
+
+  isNonNegative(value: unknown): boolean {
+    return value !== null && value !== undefined && value !== ''
+      && Number.isFinite(Number(value)) && Number(value) >= 0;
   }
 
   loadMaterials(): void {
@@ -397,13 +467,39 @@ export class InventoryPageComponent implements OnInit {
     });
   }
 
+  loadVendors(): void {
+    this.api.getVendors().subscribe({
+      next: vendors => {
+        this.vendors = Array.isArray(vendors) ? vendors : [];
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.vendors = [];
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   isLowStock(m: any): boolean {
     return m.lowStockThreshold > 0 && m.stockQuantity <= m.lowStockThreshold;
   }
 
   openAddMaterial(): void {
     this.editingMaterial = null;
-    this.materialForm = { name: '', unit: 'kg', stockQuantity: 0, lowStockThreshold: 0, costPerUnit: null };
+    this.materialForm = { name: '', unit: 'kg', lowStockThreshold: 0, costPerUnit: null };
+    this.showMaterialModal = true;
+  }
+
+  openEditMaterial(material: any): void {
+    if (!material) return;
+    this.closeDetailModal();
+    this.editingMaterial = material;
+    this.materialForm = {
+      name: material.name ?? '',
+      unit: material.unit ?? 'kg',
+      lowStockThreshold: Number(material.lowStockThreshold) || 0,
+      costPerUnit: material.costPerUnit ?? null
+    };
     this.showMaterialModal = true;
   }
 
@@ -411,8 +507,11 @@ export class InventoryPageComponent implements OnInit {
     this.selectedMaterial = m;
     this.detailTab = 'purchase';
     this.purchaseForm = { quantity: null, unitCost: m.costPerUnit || null };
+    this.purchaseForm.vendorId = null;
     this.wastageForm = { quantity: null, reason: '' };
     this.countForm = { countedQty: null };
+    this.showVendorForm = false;
+    this.vendorForm = { name: '', phone: '' };
     this.showDetailModal = true;
   }
 
@@ -428,19 +527,51 @@ export class InventoryPageComponent implements OnInit {
 
   saveMaterial(): void {
     if (!this.materialForm.name?.trim()) return;
-    const payload = { ...this.materialForm, name: this.materialForm.name.trim() };
+    if (!this.isNonNegative(this.materialForm.lowStockThreshold)
+        || !this.isNonNegative(this.materialForm.costPerUnit ?? 0)) {
+      this.toast.show('Threshold and unit cost must be zero or greater.', 'error');
+      return;
+    }
+    this.savingMaterial = true;
+    const payload = {
+      ...this.materialForm,
+      name: this.materialForm.name.trim(),
+      ...(!this.editingMaterial ? { stockQuantity: 0 } : {})
+    };
 
     if (this.editingMaterial) {
       this.api.updateMaterial(this.editingMaterial.id, payload).subscribe({
-        next: () => { this.closeMaterialModal(); this.loadMaterials(); this.toast.show('Material updated', 'success'); },
-        error: (err) => { this.toast.show(err?.error?.error || 'Failed to update', 'error'); }
+        next: () => { this.savingMaterial = false; this.closeMaterialModal(); this.loadMaterials(); this.toast.show('Material updated', 'success'); },
+        error: (err) => { this.savingMaterial = false; this.toast.show(err?.error?.error || 'Failed to update material.', 'error'); this.cdr.markForCheck(); }
       });
     } else {
       this.api.createMaterial(payload).subscribe({
-        next: () => { this.closeMaterialModal(); this.loadMaterials(); this.toast.show('Material added', 'success'); },
-        error: (err) => { this.toast.show(err?.error?.error || 'Failed to add', 'error'); }
+        next: () => { this.savingMaterial = false; this.closeMaterialModal(); this.loadMaterials(); this.toast.show('Material added', 'success'); },
+        error: (err) => { this.savingMaterial = false; this.toast.show(err?.error?.error || 'Failed to add material.', 'error'); this.cdr.markForCheck(); }
       });
     }
+  }
+
+  createVendor(): void {
+    const name = this.vendorForm.name.trim();
+    if (!name || this.savingVendor) return;
+    this.savingVendor = true;
+    this.api.createVendor({ name, phone: this.vendorForm.phone.trim() || undefined }).subscribe({
+      next: vendor => {
+        this.savingVendor = false;
+        this.vendors = [...this.vendors, vendor].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        this.purchaseForm.vendorId = vendor.id;
+        this.vendorForm = { name: '', phone: '' };
+        this.showVendorForm = false;
+        this.toast.show('Supplier saved.', 'success');
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.savingVendor = false;
+        this.toast.show(err?.error?.error || 'Could not save supplier.', 'error');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   deleteMaterial(): void {
@@ -459,44 +590,55 @@ export class InventoryPageComponent implements OnInit {
   }
 
   submitPurchase(): void {
-    if (!this.selectedMaterial || !this.purchaseForm.quantity) return;
+    if (!this.selectedMaterial || !this.isPositive(this.purchaseForm.quantity) || this.savingStock) return;
+    if (this.purchaseForm.unitCost !== null && this.purchaseForm.unitCost !== '' && !this.isNonNegative(this.purchaseForm.unitCost)) {
+      this.toast.show('Unit cost must be zero or greater.', 'error');
+      return;
+    }
+    this.savingStock = true;
     this.api.purchaseStock({
       materialId: this.selectedMaterial.id,
-      quantity: this.purchaseForm.quantity,
-      unitCost: this.purchaseForm.unitCost || undefined
+      quantity: Number(this.purchaseForm.quantity),
+      unitCost: this.purchaseForm.unitCost === null || this.purchaseForm.unitCost === '' ? undefined : Number(this.purchaseForm.unitCost),
+      vendorId: this.purchaseForm.vendorId ? Number(this.purchaseForm.vendorId) : undefined
     }).subscribe({
       next: () => {
+        this.savingStock = false;
         this.toast.show('Stock recorded', 'success');
         this.closeDetailModal();
         this.loadMaterials();
       },
-      error: (err) => { this.toast.show(err?.error?.error || 'Failed to record', 'error'); }
+      error: (err) => { this.savingStock = false; this.toast.show(err?.error?.error || 'Failed to record stock-in.', 'error'); this.cdr.markForCheck(); }
     });
   }
 
   submitWastage(): void {
-    if (!this.selectedMaterial || !this.wastageForm.quantity || !this.wastageForm.reason?.trim()) return;
+    if (!this.selectedMaterial || !this.isPositive(this.wastageForm.quantity) || !this.wastageForm.reason?.trim() || this.savingStock) return;
+    this.savingStock = true;
     this.api.recordWastage({
       materialId: this.selectedMaterial.id,
-      quantity: this.wastageForm.quantity,
+      quantity: Number(this.wastageForm.quantity),
       reason: this.wastageForm.reason.trim()
     }).subscribe({
       next: () => {
+        this.savingStock = false;
         this.toast.show('Wastage recorded', 'success');
         this.closeDetailModal();
         this.loadMaterials();
       },
-      error: (err) => { this.toast.show(err?.error?.error || 'Failed to record', 'error'); }
+      error: (err) => { this.savingStock = false; this.toast.show(err?.error?.error || 'Failed to record wastage.', 'error'); this.cdr.markForCheck(); }
     });
   }
 
   submitPhysicalCount(): void {
-    if (!this.selectedMaterial || this.countForm.countedQty === null) return;
+    if (!this.selectedMaterial || !this.isNonNegative(this.countForm.countedQty) || this.savingStock) return;
+    this.savingStock = true;
     this.api.physicalCount({
       materialId: this.selectedMaterial.id,
       countedQty: this.countForm.countedQty
     }).subscribe({
       next: (res: any) => {
+        this.savingStock = false;
         const variance = res?.variance ?? 0;
         this.toast.show(
           variance === 0 ? 'Count matches system' : `Variance: ${variance > 0 ? '+' : ''}${variance} ${this.selectedMaterial.unit}`,
@@ -505,7 +647,7 @@ export class InventoryPageComponent implements OnInit {
         this.closeDetailModal();
         this.loadMaterials();
       },
-      error: (err) => { this.toast.show(err?.error?.error || 'Failed to submit', 'error'); }
+      error: (err) => { this.savingStock = false; this.toast.show(err?.error?.error || 'Failed to submit physical count.', 'error'); this.cdr.markForCheck(); }
     });
   }
 
@@ -545,4 +687,5 @@ export class InventoryPageComponent implements OnInit {
 
   trackByIndex = (_: number, __: unknown) => _;
   trackByMaterialId = (_: number, m: any) => m.id;
+  trackByVendorId = (_: number, v: any) => v.id;
 }

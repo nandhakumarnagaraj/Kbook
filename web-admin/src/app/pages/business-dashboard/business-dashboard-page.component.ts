@@ -229,7 +229,13 @@ function getTodayIsoDate(): string {
           </div>
           <div class="bento-tile__footer-action">
             <span class="sub-caption" [class.text-amber]="lowStockMaterials().length > 0">
-              {{ lowStockMaterials().length > 0 ? (lowStockMaterials().length + ' raw items low') : 'Inventory optimal' }}
+              {{ inventoryStatus() === 'loading'
+                ? 'Checking stock…'
+                : inventoryStatus() === 'unavailable'
+                  ? 'Stock levels unavailable'
+                  : lowStockMaterials().length > 0
+                    ? (lowStockMaterials().length + ' raw items low')
+                    : 'No low-stock alerts' }}
             </span>
             <button type="button" class="tile-action-link" (click)="navigateToTerminals()">
               Hardware
@@ -863,6 +869,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly hourlySalesData = signal<HourlySalesRow[]>([]);
   readonly topDishesData = signal<ItemSalesRow[]>([]);
   readonly lowStockMaterials = signal<any[]>([]);
+  readonly inventoryStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly dailyClosingData = signal<any>(null);
   readonly notifications = signal<NotificationItem[]>([]);
@@ -1056,6 +1063,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   // Load supplementary widgets from backend endpoints
   private loadSupplementaryData(): void {
     const today = getTodayIsoDate();
+    this.inventoryStatus.set('loading');
 
     // 1. Hourly Sales Curve (GET /analytics/hourly-sales)
     this.api.getHourlySales(today).pipe(catchError(() => of([]))).subscribe(data => {
@@ -1072,14 +1080,23 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     });
 
     // 3. Low Stock Materials (GET /inventory/materials)
-    this.api.getInventoryMaterials().pipe(catchError(() => of([]))).subscribe(materials => {
-      if (Array.isArray(materials)) {
+    this.api.getInventoryMaterials().subscribe({
+      next: materials => {
+        if (!Array.isArray(materials)) {
+          this.inventoryStatus.set('unavailable');
+          return;
+        }
         const low = materials.filter(m => {
-          const thresh = Number(m.lowStockThreshold) || 0;
-          const qty = Number(m.stockQuantity) || 0;
-          return thresh > 0 && qty <= thresh;
+          const threshold = Number(m.lowStockThreshold) || 0;
+          const quantity = Number(m.stockQuantity) || 0;
+          return threshold > 0 && quantity <= threshold;
         });
         this.lowStockMaterials.set(low);
+        this.inventoryStatus.set('available');
+      },
+      error: () => {
+        this.lowStockMaterials.set([]);
+        this.inventoryStatus.set('unavailable');
       }
     });
 

@@ -437,7 +437,7 @@ export class SidebarLayoutComponent implements OnInit {
       { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
       { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
       { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
-      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory', badge: 'Preview' },
+      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory' },
       { label: 'Terminals', path: '/business/terminals', icon: '📱', iconKey: 'terminals' },
       { label: 'Daily Closing', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
       { label: 'Reports', path: '/business/reports', icon: '◔', iconKey: 'reports' },

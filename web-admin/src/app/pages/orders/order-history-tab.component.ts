@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged, from, of } from 'rxjs';
+import { concatMap, finalize, reduce, switchMap } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -366,13 +367,12 @@ export function filterBusinessOrders(
           </ng-template>
         </ng-template>
 
-        <!-- Pagination Bar -->
-        <div class="orders-pagination-bar" *ngIf="serverTotalPages > 1">
-          <p class="muted font-mono" style="margin: 0; font-size: 0.82rem;">Page {{ orderCurrentPage }} of {{ orderTotalPages }} ({{ serverTotalElements }} total orders)</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="orderCurrentPage === 1" (click)="goToOrderPage(orderCurrentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="orderCurrentPage === orderTotalPages" (click)="goToOrderPage(orderCurrentPage + 1)">Next</button>
-          </div>
+        <div #ordersLoadMoreSentinel class="orders-load-more" aria-live="polite">
+          <span *ngIf="loadingMoreOrders" role="status">Loading more orders…</span>
+          <span *ngIf="!loadingMoreOrders && loadMoreOrdersError" class="load-more-error">{{ loadMoreOrdersError }}</span>
+          <button *ngIf="!loadingMoreOrders && loadMoreOrdersError" type="button" class="ghost-btn" (click)="loadNextOrderPage()">Retry</button>
+          <span *ngIf="!loadingMoreOrders && !loadMoreOrdersError && hasMoreOrders">Scroll to load more orders</span>
+          <span *ngIf="ordersLoaded && !hasMoreOrders && serverTotalElements > 0">All {{ serverTotalElements }} orders loaded</span>
         </div>
       </section>
     </div>
@@ -779,16 +779,20 @@ export function filterBusinessOrders(
       gap: 0.65rem;
       margin-top: 0.75rem;
     }
-    .orders-pagination-bar {
+    .orders-load-more {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
+      justify-content: center;
+      gap: 0.65rem;
       padding-top: 1rem;
       margin-top: 1rem;
       border-top: 1px solid var(--kb-color-surface-2);
       flex-wrap: wrap;
+      min-height: 2.5rem;
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.82rem;
     }
+    .load-more-error { color: var(--kb-color-error); }
   `]
 })
 export class OrderHistoryTabComponent implements OnDestroy {
@@ -800,6 +804,17 @@ export class OrderHistoryTabComponent implements OnDestroy {
   ordersLoaded = false;
   ordersError = '';
   private readonly cdr = inject(ChangeDetectorRef);
+  private loadMoreObserver?: IntersectionObserver;
+
+  @ViewChild('ordersLoadMoreSentinel')
+  set ordersLoadMoreSentinel(element: ElementRef<HTMLElement> | undefined) {
+    this.loadMoreObserver?.disconnect();
+    if (!element || typeof IntersectionObserver === 'undefined') return;
+    this.loadMoreObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) this.loadNextOrderPage();
+    }, { rootMargin: '120px 0px' });
+    this.loadMoreObserver.observe(element.nativeElement);
+  }
 
   refundTarget: BusinessOrder | null = null;
   refundAmountInput: number | null = null;
@@ -813,6 +828,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
   orderSourceFilter = 'ALL';
   orderPageSize = 15;
   orderCurrentPage = 1;
+  exportingCsv = false;
+  loadingMoreOrders = false;
+  loadMoreOrdersError = '';
 
   /** The period the history table is currently filtered by. */
   get currentDateRange(): { from: string; to: string } {
@@ -973,6 +991,10 @@ export class OrderHistoryTabComponent implements OnDestroy {
     return Math.max(1, this.serverTotalPages);
   }
 
+  get hasMoreOrders(): boolean {
+    return this.orderCurrentPage < this.serverTotalPages;
+  }
+
   setPreset(preset: 'today' | 'yesterday'): void {
     const now = new Date();
     const day = preset === 'yesterday'
@@ -987,12 +1009,49 @@ export class OrderHistoryTabComponent implements OnDestroy {
   }
 
   exportCsv(): void {
+    if (this.exportingCsv || !this.ordersLoaded) return;
+    this.exportingCsv = true;
+    this.cdr.markForCheck();
+    const pageSize = 100;
+    const fromDate = this.dateFrom ?? undefined;
+    const toDate = this.dateTo ?? undefined;
+    const search = this.orderSearchTerm.trim() || undefined;
+
+    this.api.getOrdersPaginated(0, pageSize, undefined, fromDate, toDate, search).pipe(
+      switchMap(firstPage => {
+        if (firstPage.totalPages <= 1) return of(firstPage.content);
+        const remainingPages = Array.from({ length: firstPage.totalPages - 1 }, (_, index) => index + 1);
+        return from(remainingPages).pipe(
+          concatMap(page => this.api.getOrdersPaginated(page, pageSize, undefined, fromDate, toDate, search)),
+          reduce((all, nextPage) => all.concat(nextPage.content), [...firstPage.content])
+        );
+      }),
+      finalize(() => {
+        this.exportingCsv = false;
+        this.cdr.markForCheck();
+      })
+    ).subscribe({
+      next: orders => this.downloadOrdersCsv(orders),
+      error: () => this.toast.show('Could not download order history. Please try again.', 'error')
+    });
+  }
+
+  private downloadOrdersCsv(orders: BusinessOrder[]): void {
+    const matchingOrders = orders.filter(order => {
+      if (this.orderSourceFilter === 'DINE_IN') return this.isDineIn(order);
+      if (this.orderSourceFilter === 'TAKEAWAY') return this.isTakeaway(order);
+      return true;
+    });
+    if (!matchingOrders.length) {
+      this.toast.show('There are no orders to export for these filters.', 'info');
+      return;
+    }
     const headers = [
       'Order Code', 'Source', 'Customer Name', 'Customer Contact',
       'Order Status', 'Payment Method', 'Payment Status',
       'Total Amount', 'Refund Amount', 'Created Date'
     ];
-    const rows = this.filteredOrders.map(order => [
+    const rows = matchingOrders.map(order => [
       order.orderCode,
       order.sourceType,
       order.customerName ?? '',
@@ -1013,10 +1072,12 @@ export class OrderHistoryTabComponent implements OnDestroy {
     anchor.href = url;
     anchor.download = `order-history-${this.dateFrom ?? 'all'}-to-${this.dateTo ?? 'all'}.csv`;
     anchor.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   loadOrders(): void {
+    this.loadMoreOrdersError = '';
+    this.loadingMoreOrders = false;
     this.ordersLoaded = false;
     this.ordersError = '';
     const from = this.dateFrom ?? undefined;
@@ -1049,6 +1110,32 @@ export class OrderHistoryTabComponent implements OnDestroy {
     });
   }
 
+  loadNextOrderPage(): void {
+    if (!this.ordersLoaded || this.loadingMoreOrders || !this.hasMoreOrders) return;
+    this.loadingMoreOrders = true;
+    this.loadMoreOrdersError = '';
+    const from = this.dateFrom ?? undefined;
+    const to = this.dateTo ?? undefined;
+    const search = this.orderSearchTerm?.trim() || undefined;
+    const requestedPage = this.orderCurrentPage;
+    this.api.getOrdersPaginated(requestedPage, this.orderPageSize, undefined, from, to, search).subscribe({
+      next: (data: PaginatedOrdersResponse) => {
+        const existingIds = new Set(this.orders.map(order => order.orderId));
+        this.orders = [...this.orders, ...data.content.filter(order => !existingIds.has(order.orderId))];
+        this.serverTotalElements = data.totalElements;
+        this.serverTotalPages = data.totalPages;
+        this.orderCurrentPage = requestedPage + 1;
+        this.loadingMoreOrders = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingMoreOrders = false;
+        this.loadMoreOrdersError = 'Could not load more orders.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   resetOrderPage(): void {
     this.orderCurrentPage = 1;
     this.loadOrders();
@@ -1060,11 +1147,6 @@ export class OrderHistoryTabComponent implements OnDestroy {
     this.orderPageSize = 15;
     this.orderCurrentPage = 1;
     this.setPreset('today');
-  }
-
-  goToOrderPage(page: number): void {
-    this.orderCurrentPage = Math.min(Math.max(1, page), this.orderTotalPages);
-    this.loadOrders();
   }
 
   // --- Date range filtering ---
@@ -1169,6 +1251,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
+    this.loadMoreObserver?.disconnect();
     // Release the refund dialog's body scroll-lock when navigating away mid-dialog.
     document.body.style.overflow = '';
   }

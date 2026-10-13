@@ -35,7 +35,7 @@ export type OrdersTab = 'live' | 'history';
           [initialRange]="historyDateRange()"
           [showDateSelector]="tab() === 'history'"
           [showDownload]="tab() === 'history'"
-          [downloadDisabled]="!orderHistoryTab?.ordersLoaded || !orderHistoryTab?.pagedOrders?.length"
+          [downloadDisabled]="!orderHistoryTab?.ordersLoaded || !orderHistoryTab?.serverTotalElements || !!orderHistoryTab?.exportingCsv"
           [downloadLabel]="'Download order history CSV'"
           [refreshDisabled]="isRefreshing()"
           [refreshing]="isRefreshing()"

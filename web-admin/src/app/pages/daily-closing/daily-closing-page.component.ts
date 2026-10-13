@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { EMPTY, expand, reduce } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessOrder, PaginatedOrdersResponse } from '../../core/models/api.models';
+import { AuthService } from '../../core/auth/auth.service';
+import { BusinessOrder } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
@@ -60,7 +62,7 @@ interface DailyClosingData {
           class="kpi-tag"
           [class.kpi-tag--green]="isToday()"
           [class.kpi-tag--neutral]="!isToday()">
-          {{ isToday() ? '● Live Session (Today)' : '✓ Closed Business Day (' + selectedDate() + ')' }}
+          {{ isToday() ? 'Today · Current Business Day' : 'Historical Date · ' + selectedDate() }}
         </span>
 
         <app-date-range-toolbar
@@ -176,10 +178,14 @@ interface DailyClosingData {
                   min="0"
                   step="1"
                   [ngModel]="countedCash()"
-                  (ngModelChange)="countedCash.set($event)"
+                  (ngModelChange)="setCountedCash($event)"
                 />
               </div>
-              <span class="recon-hint">Enter your actual physical cash count</span>
+              <span class="recon-hint">
+                {{ countedCashSavedLocally()
+                  ? 'Saved in this browser only; it has not been submitted as a close record.'
+                  : 'This count is kept in this browser only; it does not submit or close the day.' }}
+              </span>
             </div>
 
             <div class="recon-card recon-card--variance" [ngClass]="getVarianceClass(d.expectedCash)">
@@ -585,11 +591,13 @@ interface DailyClosingData {
 })
 export class DailyClosingPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly auth = inject(AuthService);
 
   loading = signal(false);
   error = signal('');
   data = signal<DailyClosingData | null>(null);
   countedCash = signal<number | null>(null);
+  countedCashSavedLocally = signal(false);
 
   readonly today = todayStr();
   /**
@@ -604,7 +612,10 @@ export class DailyClosingPageComponent {
 
   readonly fmt = formatCurrency;
 
-  constructor() { this.load(); }
+  constructor() {
+    this.restoreCountedCash();
+    this.load();
+  }
 
   trackByIndex = (_: number, __: unknown) => _;
 
@@ -627,7 +638,44 @@ export class DailyClosingPageComponent {
     if (!d || d === this.selectedDate()) return;
     this.selectedDate.set(d);
     storeDateRange({ from: d, to: d });
+    this.restoreCountedCash();
     this.load();
+  }
+
+  setCountedCash(value: number | null): void {
+    const amount = value === null || value === undefined || Number.isNaN(Number(value))
+      ? null
+      : Number(value);
+    this.countedCash.set(amount);
+    const storageKey = this.countedCashStorageKey();
+    try {
+      if (amount === null) {
+        localStorage.removeItem(storageKey);
+        this.countedCashSavedLocally.set(false);
+      } else {
+        localStorage.setItem(storageKey, String(amount));
+        this.countedCashSavedLocally.set(true);
+      }
+    } catch {
+      this.countedCashSavedLocally.set(false);
+    }
+  }
+
+  private restoreCountedCash(): void {
+    try {
+      const stored = localStorage.getItem(this.countedCashStorageKey());
+      const amount = stored === null ? null : Number(stored);
+      this.countedCash.set(amount !== null && Number.isFinite(amount) && amount >= 0 ? amount : null);
+      this.countedCashSavedLocally.set(amount !== null && Number.isFinite(amount) && amount >= 0);
+    } catch {
+      this.countedCash.set(null);
+      this.countedCashSavedLocally.set(false);
+    }
+  }
+
+  private countedCashStorageKey(): string {
+    const restaurantId = this.auth.session()?.restaurantId ?? 'current';
+    return `khanabook:daily-closing-cash:${restaurantId}:${this.selectedDate()}`;
   }
 
   printSlip(): void {
@@ -658,10 +706,15 @@ export class DailyClosingPageComponent {
         });
       },
       error: () => {
-        this.api.getOrdersPaginated(0, 500, undefined, d, d).subscribe({
-          next: (res: PaginatedOrdersResponse) => {
+        this.api.getOrdersPaginated(0, 100, undefined, d, d).pipe(
+          expand((page, index) => index + 1 < page.totalPages
+            ? this.api.getOrdersPaginated(index + 1, 100, undefined, d, d)
+            : EMPTY),
+          reduce((all, page) => all.concat(page.content), [] as BusinessOrder[])
+        ).subscribe({
+          next: (orders: BusinessOrder[]) => {
             this.loading.set(false);
-            this.data.set(this.computeClosing(res.content, d));
+            this.data.set(this.computeClosing(orders, d));
           },
           error: () => {
             this.loading.set(false);
@@ -780,6 +833,8 @@ export class DailyClosingPageComponent {
       ['Refunds', String(d.refundedAmount)],
       ['Net Revenue', String(d.netRevenue)],
       ['Expected Cash', String(d.expectedCash)],
+      ['Counted Cash (saved in this browser only)', String(this.countedCash() ?? '')],
+      ['Drawer Variance', this.countedCash() === null ? 'Not counted' : this.getVarianceFormatted(d.expectedCash)],
       [''],
       ['Payment Mode', 'Count', 'Amount'],
       ...d.paymentSplits.map(s => [s.label, String(s.count), String(s.total)])

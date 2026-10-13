@@ -19,6 +19,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
   styles: [`
+    .staff-header-search { width: min(15rem, 38vw); }
 
     .danger-btn {
       color: var(--kb-color-danger);
@@ -181,6 +182,22 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <span kbHeaderBadge class="kpi-tag" *ngIf="loaded()">
           {{ activeCount }}/{{ staff().length }} Active Accounts
         </span>
+          <button type="button" class="header-action-btn" (click)="showSearchInput = !showSearchInput" [attr.aria-expanded]="showSearchInput" aria-controls="staff-search">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+            </svg>
+            Search
+          </button>
+          <input
+            *ngIf="showSearchInput"
+            id="staff-search"
+            class="field-control staff-header-search"
+            type="search"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="resetPage()"
+            placeholder="Search staff"
+            aria-label="Search staff members"
+          />
           <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openCreateModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -289,43 +306,6 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         (confirmed)="confirmRevokeAll()"
         (cancelled)="cancelRevokeAll()"
       ></app-confirm-dialog>
-
-      <section class="panel filter-panel" *ngIf="loaded() && staff().length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="staff-search">Search</label>
-            <input
-              id="staff-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by name, login, email, or phone"
-            />
-          </div>
-          <div class="filter-group">
-            <label for="staff-status">Status</label>
-            <select id="staff-status" class="field-select" [(ngModel)]="statusFilter" (ngModelChange)="resetPage()">
-              <option value="ALL">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="staff-size">Rows</label>
-            <select id="staff-size" class="field-select" [(ngModel)]="pageSize" (ngModelChange)="resetPage()">
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-summary">
-          <p class="muted">{{ filteredStaff.length }} of {{ staff().length }} staff members</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
 
       <div class="panel table-wrap" *ngIf="loaded() && pagedStaff.length; else loading">
         <table class="data-table">
@@ -467,6 +447,7 @@ export class StaffPageComponent {
   loadError = signal('');
 
   searchTerm = '';
+  showSearchInput = false;
   roleFilter = 'ALL';
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
   pageSize = 10;
