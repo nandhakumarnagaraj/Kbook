@@ -64,8 +64,7 @@ interface DailyClosingData {
         </span>
 
         <ng-container>
-          <!-- One date, one day: the shared selector in single mode, so Daily Closing
-               offers the same Today / Yesterday / Custom pills as Reports and Orders. -->
+          <!-- One date field for the business day being closed. -->
           <app-date-range-selector
             mode="single"
             singleDateLabel="Closing date"
@@ -284,8 +283,7 @@ interface DailyClosingData {
        <app-page-header> and .kpi-tag in bento.css — so this page keeps no page-shell
        override and owns no badge styles of its own. */
 
-    /* The date control is the shared selector (see app-date-range-selector), so this page
-       deliberately owns no pill or date-input styles of its own. */
+    /* Date-field styles come from the shared app-date-range-selector component. */
 
     /* Draft warning banner */
     .draft-warning-banner {

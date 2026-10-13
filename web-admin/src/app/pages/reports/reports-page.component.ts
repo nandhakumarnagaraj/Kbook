@@ -38,24 +38,34 @@ function todayRange(): { from: string; to: string } {
       >
         <div class="reports-header-controls">
           <app-date-range-selector [initialRange]="selectedRange()" (rangeChanged)="setRange($event)" />
-          <button type="button" class="refresh-btn" [disabled]="refreshing()" (click)="refresh()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="refreshing()" aria-hidden="true">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9-9 9.75 9.75 0 0 0-6.74-2.74L21 16" />
-              <path d="M16 21h5v-5" />
+          <button
+            type="button"
+            class="date-toolbar-icon-btn date-toolbar-icon-btn--download"
+            (click)="exportCsv()"
+            *ngIf="report()"
+            aria-label="Export report data"
+            title="Export CSV">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M12 15V3" />
             </svg>
-            Refresh
+          </button>
+          <button
+            type="button"
+            class="date-toolbar-icon-btn date-toolbar-icon-btn--refresh"
+            [disabled]="refreshing()"
+            (click)="refresh()"
+            aria-label="Refresh report data"
+            title="Refresh">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="refreshing()" aria-hidden="true">
+              <path d="M20 7v5h-5" />
+              <path d="M4.9 9A8 8 0 0 1 18.3 6L20 7" />
+              <path d="M4 17v-5h5" />
+              <path d="M19.1 15A8 8 0 0 1 5.7 18L4 17" />
+            </svg>
           </button>
         </div>
-        <button type="button" class="header-action-btn" (click)="exportCsv()" *ngIf="report()">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Export CSV
-        </button>
       </app-page-header>
 
       <!-- Report View Navigation Tabs -->
@@ -394,6 +404,25 @@ function todayRange(): { from: string; to: string } {
 
     .reports-header-controls app-date-range-selector { flex: 0 0 auto; }
 
+    .date-toolbar-icon-btn {
+      display: grid;
+      place-items: center;
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid #1686f5;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+    .date-toolbar-icon-btn--download { color: #fff; background: #1686f5; }
+    .date-toolbar-icon-btn--download:hover { background: #0872dc; border-color: #0872dc; }
+    .date-toolbar-icon-btn--refresh { color: #1686f5; background: #fff; }
+    .date-toolbar-icon-btn--refresh:hover:not(:disabled) { background: #edf6ff; }
+    .date-toolbar-icon-btn:disabled { opacity: 0.55; cursor: default; }
+    .date-toolbar-icon-btn:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
+
     @media (max-width: 680px) {
       .reports-header-controls { justify-content: flex-start; flex-wrap: wrap; }
     }
@@ -696,11 +725,7 @@ export class ReportsPageComponent {
   private readonly api = inject(BusinessApiService);
   private readonly auth = inject(AuthService);
   private readonly trigger$ = new Subject<void>();
-  /**
-   * Restored from the range shared with Daily Closing and Orders history, so all three
-   * open on the same day, and seeded with Today so the selector is never left with no
-   * pill active — the state the other two pages always avoided.
-   */
+  /** Restored from the range shared with Daily Closing and Orders history. */
   readonly selectedRange = signal<{ from: string; to: string }>(readStoredDateRange() ?? todayRange());
   readonly activeTab = signal<'overview' | 'gst' | 'items'>('overview');
   readonly refreshing = signal(false);

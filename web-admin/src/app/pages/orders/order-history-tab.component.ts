@@ -814,11 +814,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
   orderPageSize = 15;
   orderCurrentPage = 1;
 
-  /**
-   * The period the history is filtered by. The active pill is owned by the shared
-   * selector, which reads this range back — so the control always shows the period the
-   * table is actually on, including when Clear Filters moves it.
-   */
+  /** The period the history table is currently filtered by. */
   get currentDateRange(): { from: string; to: string } {
     const today = formatIsoDate(new Date());
     return {

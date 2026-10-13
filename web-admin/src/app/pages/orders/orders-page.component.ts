@@ -39,17 +39,17 @@ export type OrdersTab = 'live' | 'history';
           </app-date-range-selector>
         <button
           type="button"
-          class="refresh-btn"
+          class="date-toolbar-icon-btn date-toolbar-icon-btn--refresh"
           [disabled]="isRefreshing()"
           (click)="refreshActiveTab()"
-          aria-label="Refresh current orders tab">
+          aria-label="Refresh current orders tab"
+          title="Refresh">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="isRefreshing()" aria-hidden="true">
             <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
             <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
             <path d="M16 21h5v-5" />
           </svg>
-            <span>Refresh</span>
           </button>
         </div>
       </app-page-header>
@@ -118,6 +118,23 @@ export type OrdersTab = 'live' | 'history';
       .orders-header-controls app-date-range-selector {
         flex: 0 0 auto;
       }
+
+      .date-toolbar-icon-btn {
+        display: grid;
+        place-items: center;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border: 1px solid #1686f5;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      }
+      .date-toolbar-icon-btn--refresh { color: #1686f5; background: #fff; }
+      .date-toolbar-icon-btn--refresh:hover:not(:disabled) { background: #edf6ff; }
+      .date-toolbar-icon-btn:disabled { opacity: 0.55; cursor: default; }
+      .date-toolbar-icon-btn:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
 
       @media (max-width: 680px) {
         .orders-header-controls {
