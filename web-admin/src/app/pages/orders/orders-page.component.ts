@@ -29,9 +29,6 @@ export type OrdersTab = 'live' | 'history';
       <app-page-header
         title="Orders"
         subtitle="Live floor board and settled transaction history in one workspace.">
-        <span kbHeaderBadge class="kpi-tag" [class.kpi-tag--green]="tab() === 'live'">
-          {{ tab() === 'live' ? '● Live Floor' : '✓ Settled History' }}
-        </span>
       </app-page-header>
 
       <nav class="orders-tabs" role="tablist" aria-label="Orders views">

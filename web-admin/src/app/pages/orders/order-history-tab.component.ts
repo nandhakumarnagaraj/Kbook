@@ -70,19 +70,6 @@ export function filterBusinessOrders(
     <div class="tab-panel">
       <div class="tab-toolbar">
         <div class="tab-toolbar__actions">
-          <button
-            type="button"
-            class="header-action-btn"
-            [disabled]="filteredOrders.length === 0"
-            (click)="exportCsv()"
-            title="Export filtered orders as CSV">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export CSV
-          </button>
           <button type="button" class="header-action-btn" (click)="loadOrders()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -240,7 +227,7 @@ export function filterBusinessOrders(
             <p class="orders-sub">Active dining tickets, takeaway pickups, and today's latest POS settlements.</p>
           </div>
 
-          <!-- Channel Filter Tabs, Search & Status -->
+          <!-- Channel Filter Tabs & Search -->
           <div class="orders-head-controls">
             <div class="channel-filter-tabs" role="tablist">
               <button
@@ -280,12 +267,6 @@ export function filterBusinessOrders(
               />
             </div>
 
-            <div class="order-status-select-wrap">
-              <select class="field-select-compact" [(ngModel)]="orderStatusFilter" (ngModelChange)="resetOrderPage()" aria-label="Filter by status">
-                <option value="ALL">All Statuses</option>
-                <option *ngFor="let s of businessOrderStatuses; trackBy: trackByIndex" [value]="s">{{ s }}</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -702,26 +683,6 @@ export function filterBusinessOrders(
       font-size: 0.82rem;
       color: var(--kb-color-foreground);
     }
-    .order-status-select-wrap {
-      display: inline-flex;
-      align-items: center;
-    }
-    .field-select-compact {
-      padding: 0.45rem 0.75rem;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 10px;
-      background: var(--kb-color-bg-app);
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      outline: none;
-      min-height: 36px;
-    }
-    .field-select-compact:focus {
-      border-color: var(--kb-color-primary);
-      background: var(--kb-color-surface);
-    }
     .orders-table-wrapper {
       overflow-x: auto;
       border: 1px solid var(--kb-color-surface-2);
@@ -878,7 +839,6 @@ export class OrderHistoryTabComponent implements OnDestroy {
   private refundTrigger: HTMLElement | null = null;
 
   orderSearchTerm = '';
-  orderStatusFilter = 'ALL';
   orderSourceFilter = 'ALL';
   orderPageSize = 15;
   orderCurrentPage = 1;
@@ -937,10 +897,6 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   onSearchChange(value: string): void {
     this.searchSubject.next(value);
-  }
-
-  get businessOrderStatuses(): string[] {
-    return [...new Set(this.orders.map((order) => order.orderStatus))].sort();
   }
 
   get businessOrderSources(): string[] {
@@ -1066,11 +1022,10 @@ export class OrderHistoryTabComponent implements OnDestroy {
   loadOrders(): void {
     this.ordersLoaded = false;
     this.ordersError = '';
-    const serverStatus = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
     const search = this.orderSearchTerm?.trim() || undefined;
-    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, serverStatus, from, to, search).subscribe({
+    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, undefined, from, to, search).subscribe({
       next: (data: PaginatedOrdersResponse) => {
         this.orders = data.content;
         this.serverTotalElements = data.totalElements;
@@ -1104,7 +1059,6 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   clearOrderFilters(): void {
     this.orderSearchTerm = '';
-    this.orderStatusFilter = 'ALL';
     this.orderSourceFilter = 'ALL';
     this.orderPageSize = 15;
     this.orderCurrentPage = 1;
@@ -1187,55 +1141,6 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   closeOrderDetail(): void {
     this.selectedOrderDetail = null;
-  }
-
-  // --- CSV Export ---
-
-  exportCsv(): void {
-    const orders = this.filteredOrders;
-    if (orders.length === 0) return;
-
-    const headers = [
-      'Order Code', 'Source', 'Customer Name', 'Customer Contact',
-      'Order Status', 'Payment Method', 'Payment Status',
-      'Total Amount', 'Refund Amount', 'Created Date'
-    ];
-
-    const rows = orders.map(order => [
-      order.orderCode,
-      order.sourceType,
-      order.customerName ?? '',
-      order.customerContact ?? '',
-      order.orderStatus,
-      order.paymentMethod,
-      order.paymentStatus,
-      String(order.totalAmount ?? 0),
-      String(order.refundAmount ?? 0),
-      order.createdAt ? this.formatDateValue(order.createdAt) : ''
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(field => escapeCsvField(field)).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = this.getCsvFilename();
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  private getCsvFilename(): string {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    return `orders_${yyyy}-${mm}-${dd}.csv`;
   }
 
   // --- Refund ---

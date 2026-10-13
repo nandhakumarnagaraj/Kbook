@@ -36,7 +36,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
           <div class="brand-trust-pill">
             <span class="pill-star" aria-hidden="true">★</span>
-            <span>Trusted by 1,000+ Restaurants</span>
+            <span>Trusted by 250+ Restaurants</span>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
             <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
               <div class="field">
-                <label for="login-id" class="field-label">Phone number or email</label>
+                <label for="login-id" class="field-label">Phone Number or Email</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -841,6 +841,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-weight: 600;
       color: #111827;
       letter-spacing: -0.01em;
+      text-transform: none;
     }
     .field-label-row {
       display: flex;

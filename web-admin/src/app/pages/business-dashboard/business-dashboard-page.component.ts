@@ -78,9 +78,7 @@ function getTodayIsoDate(): string {
       <!-- ── Top Cockpit Header Bar (shared PageHeaderComponent) ── -->
       <app-page-header
         [title]="data.shopName || 'KhanaBook Restaurant'"
-        subtitle="Real-time sales, order settlements, and terminal activity."
-        eyebrow="Live Operations"
-        [live]="true">
+        subtitle="Real-time sales, order settlements, and terminal activity.">
           <!-- Terminal Fleet Pill -->
           <button
             type="button"
