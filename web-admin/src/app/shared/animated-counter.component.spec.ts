@@ -1,6 +1,19 @@
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { AnimatedCounterComponent } from './animated-counter.component';
 import { formatCurrency } from './formatters';
+
+/** Renders the counter where it actually lives, so the shared tile CSS applies. */
+@Component({
+  standalone: true,
+  imports: [AnimatedCounterComponent],
+  template: `
+    <div class="bento-tile__main-metric">
+      <app-animated-counter [value]="1234"></app-animated-counter>
+    </div>
+  `,
+})
+class BentoMetricHostComponent {}
 
 /**
  * The counter exists to make a refresh legible: the dashboard polls every 60s and
@@ -101,6 +114,32 @@ describe('AnimatedCounterComponent', () => {
     // No timer advanced: it must already be final.
     expect(text()).toBe(formatCurrency(250));
   }));
+
+  it('inherits the tile typography rather than restyling the value', () => {
+    // The counter must add no font, colour, size or spacing of its own: the tile
+    // keeps owning the metric typography, and tabular-nums is what stops the digits
+    // jittering while the number rolls. Measured in the real cascade, because
+    // Karma loads styles.css + bento.css exactly as index.html does.
+    const hostFixture = TestBed.createComponent(BentoMetricHostComponent);
+    hostFixture.detectChanges();
+
+    const host = hostFixture.nativeElement as HTMLElement;
+    const metric = host.querySelector('.bento-tile__main-metric') as HTMLElement;
+    const counter = host.querySelector('app-animated-counter') as HTMLElement;
+    const metricStyle = getComputedStyle(metric);
+    const counterStyle = getComputedStyle(counter);
+
+    const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(metricStyle.fontSize).toBe(`${Math.round(1.85 * rootSize * 100) / 100}px`);
+    expect(counterStyle.fontSize).toBe(metricStyle.fontSize);
+    expect(counterStyle.fontWeight).toBe('800');
+    expect(counterStyle.fontVariantNumeric).toBe('tabular-nums');
+    // Nothing may be added to the frozen spacing or colour tokens.
+    expect(counterStyle.marginTop).toBe('0px');
+    expect(counterStyle.color).toBe(metricStyle.color);
+
+    hostFixture.destroy();
+  });
 
   it('stops rolling once destroyed, so a poll cannot write into a dead view', fakeAsync(() => {
     withMotionPreference(false);
