@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
@@ -21,25 +21,46 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="auth-shell">
+      <!-- Left Brand Panel (62.5% desktop) -->
       <aside class="auth-brand" aria-label="KhanaBook Restaurant Platform Overview">
+        <div class="brand-glow-1" aria-hidden="true"></div>
+        <div class="brand-glow-2" aria-hidden="true"></div>
+
         <div class="brand-top">
           <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
             <div class="brand-logo">
-              <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
+              <img src="/khanabook_logo.png" alt="KhanaBook" />
             </div>
             <span class="brand-title">KhanaBook</span>
           </a>
+
+          <div class="brand-trust-pill">
+            <span class="pill-star" aria-hidden="true">★</span>
+            <span>Trusted by 1,000+ Restaurants</span>
+          </div>
         </div>
 
-        <div class="brand-copy">
-          <h1 class="brand-hero-title">
-            Run your restaurant<br/>with <span class="brand-accent-text">confidence.</span>
-          </h1>
-          <p class="brand-hero-sub">One workspace for menu, orders, staff, and payments — built for restaurant owners.</p>
+        <div class="brand-body">
+          <div class="brand-copy">
+            <h1 class="brand-hero-title">
+              Run your restaurant<br/>with <span class="brand-hero-accent">confidence.</span>
+            </h1>
+            <p class="brand-hero-sub">
+              One workspace for menu, orders, staff, and payments — built for restaurant owners.
+            </p>
+          </div>
 
+          <img
+            src="/login-approved-dashboard.png"
+            alt="KhanaBook restaurant dashboard, mobile order screen, and receipt printer"
+            class="brand-approved-dashboard-img"
+            fetchpriority="high"
+          />
+
+          <!-- Translucent Feature Cards Stack -->
           <div class="brand-feature-stack">
             <div class="brand-feature-card">
-              <div class="feature-icon-badge">
+              <div class="feature-icon-badge feature-icon-badge--sales">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M18 20V10"/>
                   <path d="M12 20V4"/>
@@ -53,7 +74,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </div>
 
             <div class="brand-feature-card">
-              <div class="feature-icon-badge">
+              <div class="feature-icon-badge feature-icon-badge--menu">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
                   <polyline points="14 2 14 8 20 8"/>
@@ -63,19 +84,16 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 </svg>
               </div>
               <div class="feature-text">
-                <strong class="feature-heading">Menu &amp; recipe stock control in seconds</strong>
-                <span class="feature-sub">Keep your kitchen and inventory in sync.</span>
+              <strong class="feature-heading">Menu and terminal setup in seconds</strong>
+              <span class="feature-sub">Keep your menu and POS devices in sync.</span>
               </div>
             </div>
 
             <div class="brand-feature-card">
-              <div class="feature-icon-badge">
+              <div class="feature-icon-badge feature-icon-badge--reports">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                  <polyline points="10 9 9 9 8 9"/>
+                  <path d="M12 3v9h9A9 9 0 1 1 12 3Z"/>
+                  <path d="M16 3.8A8.7 8.7 0 0 1 20.2 8H16V3.8Z"/>
                 </svg>
               </div>
               <div class="feature-text">
@@ -87,17 +105,22 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         </div>
 
         <div class="brand-foot-row">
-          <p class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</p>
-          <a href="https://khanabook.in" class="brand-link" target="_blank" rel="noopener">khanabook.in ↗</a>
+          <span class="brand-foot">© {{ year }} KhanaBook. All rights reserved.</span>
+          <div class="brand-foot-links">
+            <a href="https://khanabook.in/privacy-policy" target="_blank" rel="noopener" class="brand-foot-link">Privacy</a>
+            <span class="foot-dot">•</span>
+            <a href="https://khanabook.in" target="_blank" rel="noopener" class="brand-foot-link">khanabook.in ↗</a>
+          </div>
         </div>
       </aside>
 
+      <!-- Right Form Panel (37.5% desktop) -->
       <main class="auth-main">
-        <div class="auth-card">
+        <div class="auth-topbar">
           <div class="mobile-brand-container">
             <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
               <div class="brand-logo brand-logo--sm">
-                <img src="/khanabook_logo.png" alt="KhanaBook" style="width:100%;height:100%;object-fit:contain;" />
+                <img src="/khanabook_logo.png" alt="KhanaBook" />
               </div>
               <div class="mobile-brand-meta">
                 <span class="brand-title brand-title--dark">KhanaBook</span>
@@ -106,25 +129,39 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </a>
           </div>
 
+          <div class="auth-topbar-actions">
+            <div class="lang-selector-pill" aria-label="Language: English">
+              <svg class="lang-globe" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+              </svg>
+              <span class="lang-name">English</span>
+              <svg class="lang-caret" viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden="true"><path d="m1 1 5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-card">
           <div *ngIf="loginSuccessMessage()" class="alert-box success" role="status">{{ loginSuccessMessage() }}</div>
 
+          <!-- Sign-In Form State -->
           <ng-container *ngIf="forgotStep() === 'none'">
             <header class="auth-head">
-              <h2>Welcome back</h2>
-              <p class="muted">Sign in to your restaurant owner workspace.</p>
+              <h2 class="login-heading">Welcome back</h2>
+              <p class="login-sub">Sign in to your restaurant owner workspace.</p>
             </header>
 
             <div class="google-wrap">
-              <div id="google-btn"></div>
+              <div #googleButtonHost class="google-button-host"></div>
               <div *ngIf="googleLoading()" class="google-loading">Signing in with Google...</div>
               <div *ngIf="googleError()" class="alert-box error" role="alert">{{ googleError() }}</div>
             </div>
 
-            <div class="divider"><span>or with password</span></div>
+            <div class="divider"><span>or continue with email</span></div>
 
             <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
               <div class="field">
-                <label for="login-id" class="field-label">PHONE NUMBER OR EMAIL</label>
+                <label for="login-id" class="field-label">Phone number or email</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -134,7 +171,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     id="login-id"
                     class="field-input field-input--with-icon"
                     formControlName="loginId"
-                    placeholder="e.g. 98765 43210 or owner@restaurant.com"
+                    placeholder="admin@khanabook.com"
                     autocomplete="username"
                     inputmode="text"
                     autocorrect="off"
@@ -144,11 +181,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               </div>
 
               <div class="field">
-                <div class="field-row">
-                  <label for="login-password" class="field-label">PASSWORD</label>
+                <div class="field-label-row">
+                  <label for="login-password" class="field-label">Password</label>
                   <a
                     href="#forgot"
-                    class="link-right"
+                    class="forgot-link"
                     (click)="startForgotPassword($event)"
                     role="button"
                     aria-haspopup="dialog"
@@ -164,7 +201,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     class="field-input field-input--with-icon field-input--with-trailing"
                     [type]="showPassword() ? 'text' : 'password'"
                     formControlName="password"
-                    placeholder="Enter password"
+                    placeholder="••••••••"
                     autocomplete="current-password"
                   />
                   <button
@@ -174,15 +211,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
                     [attr.aria-pressed]="showPassword()"
                   >
-                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575a1 1 0 0 1 0 .696a10.8 10.8 0 0 1-1.444 2.49m-6.41-.679a3 3 0 0 1-4.242-4.242"/><path fill="currentColor" d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 4.446-5.143M2 2l20 20"/></g></svg>
-                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="currentColor" d="M2.062 12.348a1 1 0 0 1 0-.696a10.75 10.75 0 0 1 19.876 0a1 1 0 0 1 0 .696a10.75 10.75 0 0 1-19.876 0"/><circle fill="currentColor" cx="12" cy="12" r="3"/></g></svg>
+                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.8 10.8 0 0 1 12 4.8c5.2 0 8.8 7.2 8.8 7.2a14.5 14.5 0 0 1-3.1 3.7"/><path d="M6.6 6.6C3.8 8.2 2 12 2 12s3.6 7.2 10 7.2a10.6 10.6 0 0 0 3.3-.5"/></svg>
+                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                 </div>
               </div>
 
               <div *ngIf="error()" class="alert-box error" role="alert">{{ error() }}</div>
 
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading()">
+              <button class="login-button" type="submit" [disabled]="form.invalid || loading()">
                 <span *ngIf="!loading()">Sign in &rarr;</span>
                 <span *ngIf="loading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -192,14 +229,14 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </form>
 
             <div class="auth-card-footer">
-              <p class="footer-links muted">
+              <p class="footer-links">
                 New to KhanaBook?
-                <a href="https://khanabook.in/get-started" class="link-right" target="_blank" rel="noopener">Get started</a>
+                <a href="https://khanabook.in/get-started" class="signup-link" target="_blank" rel="noopener">Get started</a>
                 or
-                <a href="https://khanabook.in" class="link-right" target="_blank" rel="noopener">learn more</a>
+                <a href="https://khanabook.in" class="signup-link" target="_blank" rel="noopener">learn more</a>
               </p>
               <div class="trust-badge-row">
-                <span class="trust-icon" aria-hidden="true">🔒</span>
+                <svg class="trust-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><path d="M12 14v3"/></svg>
                 <span>256-bit SSL encrypted • Restaurant Cloud</span>
               </div>
               <div class="mobile-foot-row">
@@ -209,14 +246,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </div>
           </ng-container>
 
+          <!-- Forgot Password: Step 1 (Phone) -->
           <ng-container *ngIf="forgotStep() === 'phone'">
             <header class="auth-head">
-              <h2>Forgot password</h2>
-              <p class="muted">Enter your registered phone number to receive an OTP.</p>
+              <h2 class="login-heading">Forgot password</h2>
+              <p class="login-sub">Enter your registered mobile number to receive an OTP.</p>
             </header>
             <form [formGroup]="phoneForm" (ngSubmit)="submitPhone()" class="auth-form" novalidate>
               <div class="field">
-                <label for="forgot-phone" class="field-label">PHONE NUMBER</label>
+                <label for="forgot-phone" class="field-label">Phone number</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -233,7 +271,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 </div>
               </div>
               <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading()">
+              <button class="login-button" type="submit" [disabled]="phoneForm.invalid || forgotLoading()">
                 <span *ngIf="!forgotLoading()">Send OTP &rarr;</span>
                 <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -244,14 +282,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
+          <!-- Forgot Password: Step 2 (OTP) -->
           <ng-container *ngIf="forgotStep() === 'otp'">
             <header class="auth-head">
-              <h2>Enter OTP</h2>
-              <p class="muted">If this number is registered, you'll receive a 6-digit code shortly.</p>
+              <h2 class="login-heading">Enter OTP</h2>
+              <p class="login-sub">If this number is registered, you'll receive a 6-digit code shortly.</p>
             </header>
             <form [formGroup]="otpForm" (ngSubmit)="submitOtp()" class="auth-form" novalidate>
               <div class="field">
-                <label for="forgot-otp" class="field-label">OTP CODE</label>
+                <label for="forgot-otp" class="field-label">OTP code</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -269,7 +308,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 </div>
               </div>
               <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading()">
+              <button class="login-button" type="submit" [disabled]="otpForm.invalid || forgotLoading()">
                 <span *ngIf="!forgotLoading()">Verify OTP &rarr;</span>
                 <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -280,14 +319,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
+          <!-- Forgot Password: Step 3 (New Password) -->
           <ng-container *ngIf="forgotStep() === 'password'">
             <header class="auth-head">
-              <h2>Reset password</h2>
-              <p class="muted">Enter a new password (minimum 6 characters).</p>
+              <h2 class="login-heading">Reset password</h2>
+              <p class="login-sub">Enter a new password (minimum 6 characters).</p>
             </header>
             <form [formGroup]="passwordForm" (ngSubmit)="submitNewPassword()" class="auth-form" novalidate>
               <div class="field">
-                <label for="reset-new-password" class="field-label">NEW PASSWORD</label>
+                <label for="reset-new-password" class="field-label">New password</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -304,7 +344,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 </div>
               </div>
               <div class="field">
-                <label for="reset-confirm-password" class="field-label">CONFIRM PASSWORD</label>
+                <label for="reset-confirm-password" class="field-label">Confirm password</label>
                 <div class="input-icon-wrap">
                   <svg class="leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -323,7 +363,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 Passwords do not match.
               </div>
               <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading()">
+              <button class="login-button" type="submit" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading()">
                 <span *ngIf="!forgotLoading()">Reset password &rarr;</span>
                 <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -334,181 +374,479 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
+          <!-- Forgot Password: Step 4 (Success) -->
           <ng-container *ngIf="forgotStep() === 'success'">
             <header class="auth-head">
-              <h2>Password reset</h2>
-              <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
+              <h2 class="login-heading">Password updated!</h2>
+              <p class="login-sub">Your password has been changed successfully. You can now sign in with your new credentials.</p>
             </header>
-            <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
+            <a href="#login" class="login-button" (click)="backToLogin($event)" role="button" style="text-decoration:none;">
+              Sign in now &rarr;
+            </a>
           </ng-container>
         </div>
       </main>
     </section>
   `,
   styles: [`
-    :host { display: block; }
+    :host {
+      display: block;
+      --kb-purple-950: #321064;
+      --kb-purple-800: #5B21B6;
+      --kb-purple-600: #7C3AED;
+      --kb-lavender: #A78BFA;
+      --kb-text: #111827;
+      --kb-muted: #667085;
+      --kb-border: #D8DCE7;
+      --kb-surface: #FFFFFF;
+      --kb-soft: #F5F3FF;
+    }
+
     .auth-shell {
       min-height: 100vh;
       min-height: 100dvh;
       display: grid;
-      grid-template-columns: 1.1fr 1fr;
+      grid-template-columns: 5fr 3fr; /* 62.5% left, 37.5% right */
       background: #FFFFFF;
       overflow-x: hidden;
     }
-    @media (max-width: 960px) {
-      .auth-shell { grid-template-columns: 1fr; }
-      .auth-brand { display: none !important; }
-      .mobile-brand-container { display: block !important; }
-      .mobile-foot-row { display: flex !important; }
-    }
+
+    /* LEFT BRAND PANEL */
     .auth-brand {
-      padding: clamp(2rem, 4vw, 3.5rem) clamp(2rem, 3.8vw, 3.2rem);
-      background: linear-gradient(145deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 40%, var(--kb-color-primary-hover) 75%, var(--kb-color-primary-hover) 100%);
+      background: linear-gradient(
+        125deg,
+        #321064 0%,
+        #5B21B6 48%,
+        #6D28D9 100%
+      );
       color: #FFFFFF;
+      padding: clamp(32px, 3.5vw, 48px) clamp(36px, 4.2vw, 56px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
+      overflow: hidden;
     }
-    .brand-top { display: flex; align-items: center; justify-content: space-between; }
-    .brand-mark { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
-    .brand-mark:hover .brand-title { opacity: 0.95; }
+    .auth-brand::before,
+    .auth-brand::after {
+      content: '';
+      position: absolute;
+      bottom: -245px;
+      width: 430px;
+      height: 430px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .auth-brand::before {
+      left: -245px;
+      background: linear-gradient(145deg, rgba(221, 214, 254, 0.12), rgba(124, 58, 237, 0.22));
+    }
+    .auth-brand::after {
+      right: -245px;
+      background: linear-gradient(220deg, rgba(196, 181, 253, 0.10), rgba(147, 51, 234, 0.24));
+    }
+
+    /* Ambient soft decorative glows */
+    .brand-glow-1 {
+      position: absolute;
+      top: -100px;
+      left: -80px;
+      width: 440px;
+      height: 440px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(167, 139, 250, 0.18) 0%, rgba(91, 33, 182, 0) 70%);
+      pointer-events: none;
+    }
+    .brand-glow-2 {
+      position: absolute;
+      bottom: -60px;
+      right: -80px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, rgba(50, 16, 100, 0) 75%);
+      pointer-events: none;
+    }
+
+    .brand-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
     .brand-logo {
-      width: 42px; height: 42px; border-radius: 10px;
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
       background: #FFFFFF;
-      display: grid; place-items: center;
+      display: grid;
+      place-items: center;
       padding: 4px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
     .brand-logo--sm {
-      width: 38px; height: 38px; border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
       padding: 3px;
     }
     .brand-title {
-      font-family: var(--kb-font-display);
-      font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #FFFFFF;
-    }
-    .brand-title--dark { color: var(--kb-color-foreground); font-size: 1.2rem; }
-    .brand-copy { max-width: none; display: grid; gap: 1rem; margin: clamp(1.5rem, 3vh, 3rem) 0; }
-    .brand-hero-title {
-      font-family: var(--kb-font-display);
-      font-size: clamp(2rem, 3.2vw, 2.75rem);
-      line-height: 1.15;
       font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.025em;
+      color: #FFFFFF;
+    }
+    .brand-title--dark {
+      color: #111827;
+      font-size: 1.2rem;
+    }
+
+    .brand-trust-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #FFFFFF;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .pill-star {
+      color: #FBBF24;
+      font-size: 0.9rem;
+    }
+
+    .brand-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      column-gap: clamp(0.5rem, 1.4vw, 1.25rem);
+      row-gap: clamp(0.75rem, 1.5vh, 1.25rem);
+      min-height: clamp(440px, 62vh, 590px);
+      margin: auto 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-copy {
+      display: grid;
+      gap: 0.65rem;
+      grid-column: 1;
+      grid-row: 1;
+      align-self: start;
+      position: relative;
+      z-index: 2;
+    }
+    .brand-hero-title {
+      font-size: clamp(34px, 2.9vw, 54px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
       color: #FFFFFF;
       margin: 0;
-      letter-spacing: -0.025em;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
-    .brand-accent-text {
-      font-style: italic;
-      background: linear-gradient(135deg, var(--kb-color-primary-soft) 0%, var(--kb-color-primary) 50%, var(--kb-color-primary) 100%);
+    .brand-hero-accent {
+      background: linear-gradient(135deg, #FFFFFF 20%, #DDD6FE 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .brand-hero-sub {
+      font-size: clamp(15px, 1.05vw, 17px);
+      font-weight: 400;
+      line-height: 1.5;
       color: rgba(255, 255, 255, 0.88);
-      line-height: 1.55;
       margin: 0;
-      font-size: 1rem;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+      max-width: 580px;
     }
+
+    .brand-approved-dashboard-img {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      align-self: center;
+      justify-self: center;
+      width: 140%;
+      max-width: 720px;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 18px 28px rgba(18, 5, 43, 0.34));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Translucent Feature Cards */
     .brand-feature-stack {
-      display: grid; gap: 0.85rem; margin-top: 1rem;
+      display: grid;
+      gap: 10px;
+      grid-column: 1;
+      grid-row: 2;
+      align-self: end;
+      width: 100%;
+      max-width: none;
+      position: relative;
+      z-index: 2;
     }
     .brand-feature-card {
-      display: flex; align-items: flex-start; gap: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 12px 16px;
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: background 0.15s ease, transform 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      border-radius: 18px;
+      padding: 12px 18px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
     }
     .brand-feature-card:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.32);
       transform: translateY(-1px);
     }
     .feature-icon-badge {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: #FFFFFF; color: var(--kb-color-primary);
-      display: grid; place-items: center; flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.18);
+      color: #FFFFFF;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .feature-icon-badge--sales {
+      background: linear-gradient(140deg, #A34BFF, #7432E8);
+      border-color: rgba(216, 187, 255, 0.75);
+    }
+    .feature-icon-badge--menu {
+      background: linear-gradient(140deg, #E13CC4, #BB2AA9);
+      border-color: rgba(255, 185, 239, 0.72);
+    }
+    .feature-icon-badge--reports {
+      background: linear-gradient(140deg, #27CDA0, #0D9F83);
+      border-color: rgba(160, 255, 224, 0.72);
     }
     .feature-text {
-      display: flex; flex-direction: column; gap: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     .feature-heading {
-      font-size: 0.88rem; font-weight: 700; color: #FFFFFF; line-height: 1.35;
+      font-size: 14.5px;
+      font-weight: 650;
+      color: #FFFFFF;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
     }
     .feature-sub {
-      font-size: 0.78rem; color: rgba(255, 255, 255, 0.82); line-height: 1.3;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.84);
+      line-height: 1.3;
     }
-    .brand-foot { font-size: 0.82rem; color: rgba(255, 255, 255, 0.85); margin: 0; }
-    .brand-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
-    .brand-link { color: rgba(255, 255, 255, 0.92); font-size: 0.82rem; font-weight: 600; text-decoration: none; }
-    .brand-link:hover { color: #FFFFFF; text-decoration: underline; }
 
+    .brand-foot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-top: 1rem;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.75);
+      position: relative;
+      z-index: 1;
+    }
+    .brand-foot {
+      margin: 0;
+    }
+    .brand-foot-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-foot-link {
+      color: rgba(255, 255, 255, 0.88);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .brand-foot-link:hover {
+      color: #FFFFFF;
+      text-decoration: underline;
+    }
+    .foot-dot {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* RIGHT MAIN FORM PANEL */
     .auth-main {
-      display: grid; place-items: center; padding: clamp(1.5rem, 3.5vw, 3rem);
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(24px, 3.5vw, 48px) clamp(24px, 4vw, 56px);
+      background:
+        radial-gradient(ellipse at 100% 100%, rgba(124, 58, 237, 0.10) 0%, rgba(124, 58, 237, 0) 34%),
+        radial-gradient(ellipse at 0% 100%, rgba(167, 139, 250, 0.08) 0%, rgba(167, 139, 250, 0) 30%),
+        linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 52%, #FAF7FF 100%);
+      overflow-y: auto;
+      box-sizing: border-box;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .auth-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       width: 100%;
-      box-sizing: border-box;
-      background: #FFFFFF;
+      max-width: 520px;
+      margin: 0 auto 1.5rem;
     }
+    .auth-topbar-actions {
+      margin-left: auto;
+    }
+    .lang-selector-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #F9FAFB;
+      border: 1px solid #D8DCE7;
+      border-radius: 9999px;
+      min-height: 42px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      cursor: default;
+    }
+    .lang-globe {
+      flex: none;
+    }
+    .lang-caret {
+      color: #6B7280;
+      flex: none;
+    }
+
     .auth-card {
-      width: min(420px, 100%);
-      display: grid; gap: 1.25rem;
+      width: min(100%, 400px);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
       box-sizing: border-box;
     }
+
     .mobile-brand-container {
       display: none;
-      margin-bottom: 0.5rem;
     }
     .mobile-brand {
-      display: inline-flex; align-items: center; gap: 0.75rem; text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
     }
-    .mobile-brand-meta { display: flex; flex-direction: column; }
-    .brand-subtitle { font-size: 0.72rem; color: var(--kb-color-primary); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-
-    .auth-head h2 {
-      margin: 0 0 0.35rem;
-      font-family: var(--kb-font-display);
-      font-size: clamp(1.6rem, 2.2vw, 1.85rem);
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.025em;
+    .mobile-brand-meta {
+      display: flex;
+      flex-direction: column;
     }
-    .auth-head p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.92rem; }
-    .auth-form { display: grid; gap: 1.15rem; }
+    .brand-subtitle {
+      font-size: 0.72rem;
+      color: #7C3AED;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
 
-    .auth-card-footer {
-      margin-top: 0.5rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--kb-color-surface-2);
+    .auth-head {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .login-heading {
+      margin: 0;
+      font-size: clamp(30px, 2.2vw, 38px);
+      font-weight: 750;
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+      color: #111827;
+    }
+    .login-sub {
+      margin: 0;
+      font-size: 15px;
+      color: #667085;
+      line-height: 1.45;
+    }
+
+    .google-wrap {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+      min-height: 50px;
+    }
+    .google-button-host {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .google-loading {
       text-align: center;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
+      color: #667085;
+      padding: 0.25rem 0;
     }
-    .footer-links { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.86rem; }
-    .trust-badge-row {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 0.76rem; color: var(--kb-color-muted-foreground); margin-top: 0.75rem;
-    }
-    .trust-icon { font-size: 0.85rem; }
-    .mobile-foot-row {
-      display: none;
-      font-size: 0.76rem; color: var(--kb-color-muted-foreground); margin-top: 0.5rem;
-      justify-content: center; gap: 6px;
-    }
-    .mobile-foot-link { color: var(--kb-color-primary); font-weight: 600; text-decoration: none; }
-    .mobile-foot-link:hover { text-decoration: underline; color: var(--kb-color-primary-hover); }
 
-    .field { display: grid; gap: 0.35rem; }
-    .field-row { display: flex; justify-content: space-between; align-items: center; }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #667085;
+      font-size: 13px;
+      font-weight: 500;
+      margin: 4px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #D8DCE7;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 18px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
     .field-label {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--kb-color-muted-foreground);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .field-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
     .input-icon-wrap {
       position: relative;
@@ -518,123 +856,132 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .leading-icon {
       position: absolute;
-      left: 14px;
-      color: var(--kb-color-muted-foreground);
+      left: 16px;
+      color: #667085;
       pointer-events: none;
       z-index: 1;
       flex-shrink: 0;
     }
     .field-input {
-      border: 1.5px solid var(--kb-color-border);
-      border-radius: 10px;
-      padding: 0.65rem 1rem;
-      background: #FFFFFF;
-      font-size: 0.93rem;
-      color: var(--kb-color-foreground);
-      height: 46px;
       box-sizing: border-box;
       width: 100%;
-      transition: border-color .15s ease, box-shadow .15s ease;
+      min-height: 52px;
+      padding: 14px 16px;
+      border: 1px solid #D8DCE7;
+      border-radius: 12px;
+      background: #FFFFFF;
+      font: inherit;
+      font-size: 15px;
+      color: #111827;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .field-input--with-icon {
-      padding-left: 42px;
+      padding-left: 46px;
     }
     .field-input--with-trailing {
       padding-right: 48px;
     }
-    .field-input:focus {
-      outline: none;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3.5px rgba(108, 39, 217, 0.14);
-    }
     .field-input::placeholder {
-      color: var(--kb-color-muted-foreground);
+      color: #9CA3AF;
+    }
+    .field-input:focus {
+      outline: 3px solid #C4B5FD;
+      outline-offset: 2px;
+      border-color: #7C3AED;
     }
 
-    .divider {
-      display: flex; align-items: center; gap: 0.75rem;
-      color: var(--kb-color-muted-foreground); font-size: 0.78rem; font-weight: 500; margin: 0.25rem 0;
-    }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--kb-color-border);
-    }
-
-    .google-wrap { display: grid; gap: 0.5rem; width: 100%; }
-    #google-btn {
-      display: flex; justify-content: center; width: 100%; max-width: 100%;
-      min-height: 44px; overflow: hidden;
-    }
-    #google-btn > div, #google-btn iframe { max-width: 100% !important; }
-    .google-loading {
-      text-align: center; font-size: 0.82rem; color: var(--kb-color-muted-foreground);
-      padding: 0.25rem 0;
-    }
-
-    .link-right {
-      color: var(--kb-color-primary);
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
+    .toggle-pwd-btn {
+      position: absolute;
+      right: 6px;
       background: none;
       border: none;
-      padding: 0;
-      margin: 0;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
+      cursor: pointer;
+      min-width: 40px;
+      min-height: 40px;
+      padding: 8px;
+      color: #667085;
+      display: grid;
+      place-items: center;
+      z-index: 1;
+      border-radius: 8px;
       transition: color 0.15s ease;
     }
-    .link-right:hover { color: var(--kb-color-primary-hover); text-decoration: underline; }
-    .link-right:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: 4px; }
+    .toggle-pwd-btn:hover {
+      color: #111827;
+    }
+    .toggle-pwd-btn:focus-visible {
+      outline: 2px solid #7C3AED;
+    }
+    .pwd-icon {
+      display: block;
+    }
 
-    .back-link {
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      background: none;
-      border: none;
-      padding: 0;
-      margin: 0;
-      font-family: inherit;
-      min-height: 44px;
+    .field-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: -4px;
+    }
+    .remember-label {
       display: inline-flex;
       align-items: center;
-    }
-    .back-link:hover { color: var(--kb-color-primary); text-decoration: underline; }
-    .back-link:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: 4px; }
-
-    .primary-btn--block { width: 100%; justify-content: center; height: 48px; font-size: 0.95rem; }
-    .primary-btn--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
-      color: #FFFFFF;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      border: none;
-      box-shadow: 0 4px 14px rgba(93, 69, 253, 0.35);
-      border-radius: 10px;
+      gap: 8px;
+      font-size: 14px;
+      color: #4B5563;
       cursor: pointer;
+      user-select: none;
+    }
+    .remember-checkbox {
+      width: 17px;
+      height: 17px;
+      border-radius: 4px;
+      border: 1.5px solid #D8DCE7;
+      accent-color: #7C3AED;
+      cursor: pointer;
+    }
+    .forgot-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: #7C3AED;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .forgot-link:hover {
+      color: #5B21B6;
+      text-decoration: underline;
+    }
+
+    .login-button {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      border-radius: 12px;
+      background: #7C3AED;
+      color: #FFFFFF;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 650;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      transition: all 0.15s ease;
+      gap: 8px;
+      transition: background 160ms ease,
+                  transform 160ms ease,
+                  box-shadow 160ms ease;
     }
-    .primary-btn--hero:hover:not(:disabled) {
-      background: linear-gradient(135deg, var(--kb-color-primary-hover) 0%, var(--kb-color-primary-hover) 100%);
+    .login-button:hover:not(:disabled) {
+      background: #5B21B6;
+      box-shadow: 0 6px 20px rgba(91, 33, 182, 0.38);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(93, 69, 253, 0.45);
     }
-    .primary-btn--hero:active:not(:disabled) {
-      transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
+    .login-button:active:not(:disabled) {
+      transform: scale(0.98);
     }
-    .primary-btn--hero:disabled {
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
-      border: 1px solid var(--kb-color-primary-soft);
+    .login-button:disabled {
+      background: #DDD6FE;
+      color: #FFFFFF;
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -654,37 +1001,113 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       to { transform: rotate(360deg); }
     }
 
-    .toggle-pwd-btn {
-      position: absolute;
-      right: 4px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      line-height: 1;
-      min-width: 40px;
-      min-height: 40px;
-      padding: 8px;
-      color: var(--kb-color-muted-foreground);
-      transition: color 0.15s ease;
-      display: grid;
-      place-items: center;
-      z-index: 1;
+    .auth-card-footer {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
     }
-    .toggle-pwd-btn:hover { color: var(--kb-color-muted-foreground); }
-    .pwd-icon { display: block; }
-    .toggle-pwd-btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; border-radius: 4px; color: var(--kb-color-muted-foreground); }
-    .alert-box { border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; }
-    .alert-box.error { color: var(--kb-color-danger); background: var(--kb-color-danger-soft); border: 1px solid var(--kb-color-danger-soft); }
-    .alert-box.success { color: var(--kb-color-success); background: var(--kb-color-success-soft); border: 1px solid var(--kb-color-success-soft); }
+    .footer-links {
+      margin: 0;
+      color: #667085;
+      font-size: 14px;
+    }
+    .signup-link {
+      color: #7C3AED;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .signup-link:hover {
+      color: #5B21B6;
+      text-decoration: underline;
+    }
+    .trust-badge-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #667085;
+      font-weight: 500;
+    }
+    .trust-icon {
+      font-size: 13px;
+    }
+    .mobile-foot-row {
+      display: none;
+      font-size: 13px;
+      color: #667085;
+      gap: 8px;
+    }
+    .mobile-foot-link {
+      color: #7C3AED;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .mobile-foot-link:hover {
+      text-decoration: underline;
+    }
+
+    .back-link {
+      color: #667085;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      transition: color 0.15s ease;
+    }
+    .back-link:hover {
+      color: #7C3AED;
+      text-decoration: underline;
+    }
+
+    .alert-box {
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .alert-box.error {
+      color: #B91C1C;
+      background: #FEF2F2;
+      border: 1px solid #FEE2E2;
+    }
+    .alert-box.success {
+      color: #15803D;
+      background: #F0FDF4;
+      border: 1px solid #DCFCE7;
+    }
+
+    @media (max-width: 1080px) {
+      .auth-shell {
+        grid-template-columns: 1fr;
+      }
+      .auth-brand {
+        display: none !important;
+      }
+      .mobile-brand-container {
+        display: block !important;
+      }
+      .mobile-foot-row {
+        display: flex !important;
+      }
+      .auth-main {
+        padding: 24px 20px;
+      }
+    }
 
     @media (prefers-contrast: more) {
-      .field-input { border-color: var(--kb-color-foreground); border-width: 2px; }
+      .field-input { border-color: #000000; border-width: 2px; }
       .field-label { color: #000000; font-weight: 700; }
-      .link-right, .back-link, .mobile-foot-link { color: var(--kb-color-primary-hover); text-decoration: underline; font-weight: 700; }
-      .primary-btn--hero { background: var(--kb-color-primary-hover); color: #FFFFFF; border: 2px solid #000000; }
+      .login-button { background: #5B21B6; color: #FFFFFF; border: 2px solid #000000; }
       .divider { color: #000000; font-weight: 700; }
-      .divider::before, .divider::after { background: var(--kb-color-foreground); height: 2px; }
+      .divider::before, .divider::after { background: #000000; height: 2px; }
     }
   `]
 })
@@ -699,7 +1122,8 @@ export class LoginPageComponent implements OnInit, OnDestroy {
 
   readonly form = this.fb.nonNullable.group({
     loginId: ['', Validators.required],
-    password: ['', Validators.required]
+    password: ['', Validators.required],
+    rememberMe: [false]
   });
 
   readonly phoneForm = this.fb.nonNullable.group({
@@ -727,6 +1151,27 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private forgotPhone = '';
   private tempToken = '';
   private googleTimer: ReturnType<typeof setTimeout> | null = null;
+  private googleInitialized = false;
+  private googleButtonHost: HTMLElement | null = null;
+  private googleButtonObserver: ResizeObserver | null = null;
+  private renderedGoogleButtonHost: HTMLElement | null = null;
+  private renderedGoogleButtonWidth = 0;
+
+  @ViewChild('googleButtonHost')
+  set googleButtonHostElement(hostRef: ElementRef<HTMLDivElement> | undefined) {
+    this.googleButtonObserver?.disconnect();
+    this.googleButtonObserver = null;
+    this.googleButtonHost = hostRef?.nativeElement ?? null;
+    this.renderedGoogleButtonHost = null;
+    this.renderedGoogleButtonWidth = 0;
+
+    if (this.googleButtonHost && typeof ResizeObserver !== 'undefined') {
+      this.googleButtonObserver = new ResizeObserver(() => this.renderGoogleButton());
+      this.googleButtonObserver.observe(this.googleButtonHost);
+    }
+
+    this.renderGoogleButton();
+  }
 
   get passwordMismatch(): boolean {
     const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
@@ -746,29 +1191,17 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     const maxAttempts = 40; // ~12s at 300ms
     const check = () => {
       attempts++;
-      const target = document.getElementById('google-btn');
       const gsiReady = typeof google !== 'undefined' && google?.accounts?.id;
-      // Render only once BOTH the GIS script is ready AND the target element
-      // exists in the DOM. The #google-btn div lives inside *ngIf="forgotStep
-      // === 'none'", so it may not be present on the first tick — calling
-      // renderButton(null, ...) makes GIS log "no parent" and draw nothing.
-      if (gsiReady && target) {
+
+      if (gsiReady) {
         google.accounts.id.initialize({
           client_id: environment.googleClientId,
           callback: (response: any) => {
             this.ngZone.run(() => this.handleGoogleCredential(response.credential));
           }
         });
-        // GIS renders an iframe. Clamping width to actual container width prevents
-        // horizontal overflow on small mobile screens (<400px down to 320px).
-        const containerWidth = Math.round(
-          target.clientWidth || target.parentElement?.clientWidth || (window.innerWidth - 48)
-        );
-        const targetWidth = Math.max(200, Math.min(380, containerWidth));
-        google.accounts.id.renderButton(
-          target,
-          { theme: 'outline', size: 'large', width: targetWidth, text: 'signin_with' }
-        );
+        this.googleInitialized = true;
+        this.renderGoogleButton();
         return;
       }
       if (attempts < maxAttempts) {
@@ -778,7 +1211,30 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     check();
   }
 
+  private renderGoogleButton(): void {
+    const host = this.googleButtonHost;
+    if (!this.googleInitialized || !host || typeof google === 'undefined' || !google?.accounts?.id) return;
+
+    const width = Math.min(400, Math.floor(host.getBoundingClientRect().width));
+    if (width < 120 || (this.renderedGoogleButtonHost === host && this.renderedGoogleButtonWidth === width)) return;
+
+    host.replaceChildren();
+    google.accounts.id.renderButton(host, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width
+    });
+    this.renderedGoogleButtonHost = host;
+    this.renderedGoogleButtonWidth = width;
+  }
+
   ngOnDestroy(): void {
+    this.googleButtonObserver?.disconnect();
+    this.googleButtonObserver = null;
     if (this.googleTimer !== null) {
       clearTimeout(this.googleTimer);
       this.googleTimer = null;
@@ -806,7 +1262,8 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set('');
     this.loginSuccessMessage.set('');
-    this.authService.login(this.form.getRawValue()).subscribe({
+    const { loginId, password } = this.form.getRawValue();
+    this.authService.login({ loginId, password }).subscribe({
       next: () => {
         this.loading.set(false);
         this.cdr.markForCheck();
@@ -855,8 +1312,6 @@ export class LoginPageComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: () => {
-        // Server always returns 200 to prevent user enumeration.
-        // Move to OTP step regardless — if the number isn't registered, no OTP arrives.
         this.forgotLoading.set(false);
         this.forgotStep.set('otp');
         this.forgotError.set('');
