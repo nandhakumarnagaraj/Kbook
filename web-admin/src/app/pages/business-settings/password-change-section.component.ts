@@ -21,12 +21,12 @@ const API = environment.apiBaseUrl;
           <label>Phone Number</label>
           <input class="field-control" [(ngModel)]="pwPhone" placeholder="Registered phone" maxlength="10" aria-label="Registered phone number" />
         </div>
-        <div class="field" *ngIf="!pwOtpSent">
-          <button class="primary-btn" [disabled]="!pwPhone || pwPhone.length !== 10 || pwLoading" (click)="requestPasswordOtp()">
-            {{ pwLoading ? 'Sending...' : 'Send OTP' }}
+        <div class="field" *ngIf="!pwOtpSent()">
+          <button class="primary-btn" [disabled]="!pwPhone || pwPhone.length !== 10 || pwLoading()" (click)="requestPasswordOtp()">
+            {{ pwLoading() ? 'Sending...' : 'Send OTP' }}
           </button>
         </div>
-        <ng-container *ngIf="pwOtpSent">
+        <ng-container *ngIf="pwOtpSent()">
           <div class="field">
             <label>OTP</label>
             <input class="field-control" [(ngModel)]="pwOtp" placeholder="6-digit OTP" maxlength="6" aria-label="One-time password" autocomplete="one-time-code" />
@@ -36,13 +36,13 @@ const API = environment.apiBaseUrl;
             <input class="field-control" type="password" [(ngModel)]="pwNew" placeholder="Min 6 characters" aria-label="New password" autocomplete="new-password" />
           </div>
           <div class="field">
-            <button class="primary-btn" [disabled]="!pwOtp || pwOtp.length !== 6 || !pwNew || pwNew.length < 6 || pwLoading" (click)="resetPassword()">
-              {{ pwLoading ? 'Updating...' : 'Update Password' }}
+            <button class="primary-btn" [disabled]="!pwOtp || pwOtp.length !== 6 || !pwNew || pwNew.length < 6 || pwLoading()" (click)="resetPassword()">
+              {{ pwLoading() ? 'Updating...' : 'Update Password' }}
             </button>
           </div>
         </ng-container>
-        <p class="error-text" id="pw-error" role="alert" *ngIf="pwError">{{ pwError }}</p>
-        <p class="success-text" role="status" *ngIf="pwSuccess">{{ pwSuccess }}</p>
+        <p class="error-text" id="pw-error" role="alert" *ngIf="pwError()">{{ pwError() }}</p>
+        <p class="success-text" role="status" *ngIf="pwSuccess()">{{ pwSuccess() }}</p>
       </div>
     </section>
   `,
@@ -66,38 +66,51 @@ export class PasswordChangeSectionComponent {
   pwPhone = '';
   pwOtp = '';
   pwNew = '';
-  pwOtpSent = false;
-  pwLoading = false;
-  pwError = '';
-  pwSuccess = '';
+  readonly pwOtpSent = signal(false);
+  readonly pwLoading = signal(false);
+  readonly pwError = signal('');
+  readonly pwSuccess = signal('');
 
   requestPasswordOtp(): void {
-    this.pwLoading = true;
-    this.pwError = '';
+    this.pwLoading.set(true);
+    this.pwError.set('');
     this.http.post(`${API}/auth/forgot-password/request-otp`, { phone: this.pwPhone }).subscribe({
-      next: () => { this.pwLoading = false; this.pwOtpSent = true; },
-      error: () => { this.pwLoading = false; this.pwOtpSent = true; }
+      next: () => {
+        this.pwLoading.set(false);
+        this.pwOtpSent.set(true);
+      },
+      error: () => {
+        this.pwLoading.set(false);
+        this.pwOtpSent.set(true);
+      }
     });
   }
 
   resetPassword(): void {
-    this.pwLoading = true;
-    this.pwError = '';
-    this.pwSuccess = '';
+    this.pwLoading.set(true);
+    this.pwError.set('');
+    this.pwSuccess.set('');
     this.http.post<any>(`${API}/auth/forgot-password/verify-otp`, { phone: this.pwPhone, otp: this.pwOtp }).subscribe({
       next: (res) => {
         this.http.post(`${API}/auth/forgot-password/reset-password`, { tempToken: res.tempToken, newPassword: this.pwNew }).subscribe({
           next: () => {
-            this.pwLoading = false;
-            this.pwSuccess = 'Password updated successfully. Use the new password on your next login.';
+            this.pwLoading.set(false);
+            this.pwSuccess.set('Password updated successfully. Use the new password on your next login.');
+            this.toast.success('Password updated successfully.');
             this.pwOtp = '';
             this.pwNew = '';
-            this.pwOtpSent = false;
+            this.pwOtpSent.set(false);
           },
-          error: () => { this.pwLoading = false; this.pwError = 'Failed to update password. Try again.'; }
+          error: () => {
+            this.pwLoading.set(false);
+            this.pwError.set('Failed to update password. Try again.');
+          }
         });
       },
-      error: () => { this.pwLoading = false; this.pwError = 'Invalid OTP. Please check and try again.'; }
+      error: () => {
+        this.pwLoading.set(false);
+        this.pwError.set('Invalid OTP. Please check and try again.');
+      }
     });
   }
 }

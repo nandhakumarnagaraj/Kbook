@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rxjs';
@@ -6,6 +6,7 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
@@ -27,7 +28,7 @@ function todayRange(): { from: string; to: string } {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DateRangeSelectorComponent, PageHeaderComponent],
+  imports: [CommonModule, DateRangeSelectorComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -355,12 +356,14 @@ function todayRange(): { from: string; to: string } {
       </ng-container>
 
       <ng-template #reportState>
-        <div class="panel loading" *ngIf="error(); else loadingState" role="alert">
-          <p>{{ error() }}</p>
-          <button type="button" class="primary-btn" (click)="refresh()">Try again</button>
-        </div>
+        <app-api-state
+          *ngIf="error(); else loadingState"
+          [message]="error()"
+          (retry)="refresh()"
+        ></app-api-state>
         <ng-template #loadingState>
-          <div class="reports-bento-grid" role="status" aria-label="Loading reports">
+          <div class="reports-bento-grid" role="status" aria-busy="true" aria-label="Loading reports">
+            <span class="sr-only">Loading financial reports...</span>
             <div class="skeleton skeleton-stat" *ngFor="let item of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
         </ng-template>

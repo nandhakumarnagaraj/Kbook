@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Business Settings — KhanaBook prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-local layout only (~20 rules). All state, toast, modal, empty and
+     skeleton behaviour comes from _shared/proto.css + _shared/proto.js. */
+  .settings-section { margin-bottom: 14px; }
+  .section-title-wrap { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .section-icon { width: 34px; height: 34px; border-radius: var(--r-lg); background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; flex: none; }
+  .section-title-wrap h3 { font-size: 16px; }
+  .section-title-wrap p { margin-top: 3px; font-size: 12.5px; }
+  .section-head-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .logo-uploader-card { display: flex; gap: 16px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--panel-2); margin-bottom: 14px; flex-wrap: wrap; }
+  .logo-preview-box { width: 92px; height: 92px; border-radius: var(--r-xl); border: 1px dashed var(--line-strong); background: var(--panel); display: grid; place-items: center; overflow: hidden; flex: none; color: var(--muted-2); }
+  .logo-mark { width: 100%; height: 100%; display: grid; place-items: center; background: var(--pos-purple-gradient); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 30px; }
+  .logo-meta { min-width: 0; flex: 1; display: grid; gap: 8px; }
+  .logo-meta h4 { font-size: 14px; }
+  .logo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .file-picker-label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+  .toggle-label { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .toggle-label input { width: 18px; height: 18px; accent-color: var(--pos-purple); }
+  .feedback { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .feedback--ok { color: var(--success); }
+  .feedback--warn { color: var(--warning); }
+  .feedback--bad { color: var(--danger); }
+  .feedback .suggestion { background: transparent; border: 0; color: var(--brand); font-weight: 700; text-decoration: underline; }
+  .flow-mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; margin-top: 12px; }
+  .flow-mode-card { border: 1px solid var(--line); border-radius: var(--r-xl); padding: 13px; background: var(--panel); display: grid; gap: 6px; }
+  .flow-mode-card.is-active { border-color: var(--brand); background: var(--brand-soft); }
+  .flow-mode-card strong { font-size: 13px; }
+  .flow-mode-card p { font-size: 12px; }
+  .test-qr-card { display: flex; gap: 16px; align-items: center; margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--panel-2); flex-wrap: wrap; }
+  .qr-grid { width: 96px; height: 96px; flex: none; background: #fff; border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; padding: 7px; }
+  .qr-grid i { background: var(--ink); border-radius: 1px; }
+  .qr-grid i.off { background: transparent; }
+  .save-dock { position: sticky; bottom: 12px; z-index: 5; margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--r-xl); background: var(--ink); color: #F1ECDF; box-shadow: var(--shadow-lg); flex-wrap: wrap; }
+  .save-dock span { font-size: 12.5px; }
+  .save-dock .btn-primary { min-height: 38px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ══════════════════════════════════════════════════════════════════════
+     Page state. The real page keeps the profile in a signal and mutates it
+     through [(ngModel)]; here every field is an entry in `page` so a re-render
+     can never disagree with what is on screen.
+     ══════════════════════════════════════════════════════════════════════ */
+  var page = {
+    hasProfile: true,
+    dirty: {},                 // { identity: true, tax: true, payments: true }
+    errors: {},                // { identity: 'Shop name is required.', shopName: '…' }
+    logoError: '',
+    logoBusy: false,
+    profile: {
+      shopName: 'Spice Route Kitchen',
+      shopAddress: '12 Banjara Hills, Road No. 3, Hyderabad 500034',
+      whatsappNumber: '9876543210',
+      email: 'owner@spiceroute.in',
+      invoiceFooter: 'Thank you for dining with us! Visit again.',
+      reviewUrl: 'https://g.page/r/spice-route-kitchen/review',
+      logoUrl: ''
+    },
+    tax: {
+      gstEnabled: true,
+      gstin: '29ABCDE1234F1Z5',
+      gstPercentage: 5,
+      customTaxName: '',
+      customTaxPercentage: 0,
+      fssaiNumber: '12345678901234',
+      fssaiExpiryDate: '2027-03-31',
+      gstExpiryDate: '2026-12-31'
+    },
+    payments: {
+      cashEnabled: true,
+      upiEnabled: true,
+      posEnabled: true,
+      upiHandle: 'spiceroute@okhdfcbank',
+      upiMobile: '9876543210',
+      orderPaymentFlowMode: 'pay_after_food'
+    },
+    easebuzz: { status: 'not_started', enabled: false, subMerchantId: '', otp: '' },
+    agreement: { signedOn: '2026-04-02', version: 'v3.1' },
+    password: { phone: '9876543210', otp: '', next: '', confirm: '', otpSent: false, success: '', error: '' }
+  };
+
+  var KNOWN_UPI_SUFFIXES = ['okhdfcbank', 'okicici', 'oksbi', 'okaxis', 'ybl', 'paytm', 'upi', 'apl', 'ibl', 'axl', 'jupiteraxis', 'fam', 'airtel'];
+  var LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+  var GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+  var UPI_RE = /^[a-z0-9.\-_]{2,}@[a-z]{2,}$/;
+
+  /* ── validation (mirrors what the server enforces) ──────────────────── */
+  function gstinState() {
+    var v = (page.tax.gstin || '').trim();
+    if (!v) return page.tax.gstEnabled ? { state: 'bad', text: 'GSTIN is required while GST is enabled.' } : null;
+    if (GSTIN_RE.test(v.toUpperCase())) return { state: 'ok', text: 'GSTIN format looks valid.' };
+    if (v.length === 15) return { state: 'bad', text: 'That GSTIN checksum does not look valid.' };
+    return { state: 'bad', text: 'A GSTIN is 15 characters: 2 digits, 5 letters, 4 digits, then the entity code.' };
+  }
+  function fssaiState() {
+    var v = (page.tax.fssaiNumber || '').trim();
+    if (!v) return null;
+    if (/^[0-9]{14}$/.test(v)) return { state: 'ok', text: 'FSSAI licence format looks valid.' };
+    return { state: 'bad', text: 'An FSSAI licence number is exactly 14 digits.' };
+  }
+  function upiState() {
+    var v = (page.payments.upiHandle || '').trim().toLowerCase();
+    if (!v) return null;
+    if (!UPI_RE.test(v)) return { state: 'bad', text: 'A UPI ID looks like name@bank — letters, digits, dot, dash and underscore before the @.' };
+    var suffix = v.split('@')[1];
+    if (KNOWN_UPI_SUFFIXES.indexOf(suffix) >= 0) return { state: 'ok', text: 'Verified bank handle (@' + suffix + ').' };
+    return { state: 'warn', text: 'Unrecognised handle @' + suffix + '.', suggestion: v.split('@')[0] + '@okhdfcbank' };
+  }
+
+  function isValid() {
+    var p = page.profile;
+    var errs = {};
+    if (!p.shopName.trim()) errs.shopName = 'Shop name is required — it prints on every bill.';
+    if (p.whatsappNumber && !/^[0-9]{10}$/.test(p.whatsappNumber)) errs.whatsappNumber = 'Enter a 10-digit mobile number.';
+    if (p.email && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(p.email)) errs.email = 'Enter a valid email address.';
+    return errs;
+  }
+  function markDirty(section) { page.dirty[section] = true; syncDock(); }
+  function clearDirty(section) { delete page.dirty[section]; syncDock(); }
+  var dirtyCount = function () { return Object.keys(page.dirty).length; };
+
+  /* ── in-place patches (keeps focus while typing) ────────────────────── */
+  function patch(selector, html) {
+    var node = document.querySelector(selector);
+    if (node) node.innerHTML = html;
+  }
+  function feedbackHtml(s) {
+    if (!s) return '';
+    var cls = s.state === 'ok' ? 'feedback--ok' : s.state === 'warn' ? 'feedback--warn' : 'feedback--bad';
+    var glyph = s.state === 'ok' ? '✓' : s.state === 'warn' ? '⚠' : '✕';
+    var role = s.state === 'bad' ? 'role="alert"' : 'role="status"';
+    return '<span class="feedback ' + cls + '" ' + role + '>' + glyph + ' ' + Proto.esc(s.text) +
+      (s.suggestion ? ' <button class="suggestion" type="button" data-action="applyUpi">Use ' + Proto.esc(s.suggestion) + '</button>' : '') +
+    '</span>';
+  }
+  function syncDock() {
+    var header = document.getElementById('headerSave');
+    var dock = document.getElementById('dockSave');
+    var hint = document.getElementById('dockHint');
+    var n = dirtyCount();
+    if (header) header.disabled = !!Proto.busy('save');
+    if (dock) {
+      dock.disabled = !!Proto.busy('save');
+      dock.textContent = Proto.busy('save') ? 'Saving Changes…' : 'Save All Changes';
+      dock.setAttribute('aria-busy', String(!!Proto.busy('save')));
+    }
+    if (hint) {
+      hint.textContent = n
+        ? n + ' section' + (n > 1 ? 's have' : ' has') + ' unsaved changes — they sync to every POS register.'
+        : 'All changes saved. Registers are in sync.';
+    }
+    ['identity', 'tax', 'payments'].forEach(function (key) {
+      var marker = document.getElementById('dirty-' + key);
+      if (marker) marker.hidden = !page.dirty[key];
+    });
+  }
+
+  /* ── sections ────────────────────────────────────────────────────────── */
+  function sectionHead(id, title, note, iconPath) {
+    return '<div class="section-title-wrap">' +
+      '<div class="section-icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + iconPath + '</svg></div>' +
+      '<div><h3>' + title + '</h3><p class="muted">' + note + '</p></div>' +
+      '<div class="section-head-right"><span class="kpi-tag kpi-tag--amber" id="dirty-' + id + '"' + (page.dirty[id] ? '' : ' hidden') + '>Unsaved changes</span></div>' +
+    '</div>';
+  }
+
+  function identitySection() {
+    var p = page.profile;
+    var errs = page.errors;
+    var logo = p.logoUrl
+      ? '<div class="logo-mark">' + Proto.esc(p.shopName.trim().charAt(0).toUpperCase() || 'K') + '</div>'
+      : '<svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    return '<section class="panel settings-section" ' + (Proto.busy('save') ? 'aria-busy="true"' : '') + '>' +
+      sectionHead('identity', 'Restaurant Identity &amp; Invoicing', 'Information printed on thermal receipts, customer invoices, and online menus.',
+        '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>') +
+
+      '<div class="logo-uploader-card">' +
+        '<div class="logo-preview-box">' + logo + '</div>' +
+        '<div class="logo-meta">' +
+          '<h4>Storefront &amp; Thermal Receipt Logo</h4>' +
+          '<p class="muted">Shown on bills, printed thermal receipts and your digital menu. PNG, JPG or WEBP, up to 2MB.</p>' +
+          '<div class="logo-actions">' +
+            '<label class="ghost-btn file-picker-label">' +
+              '<input type="file" accept="image/png,image/jpeg,image/webp" id="logoFile" style="display:none" aria-label="Choose restaurant logo file" />' +
+              (page.logoBusy ? 'Uploading…' : (p.logoUrl ? 'Change Logo' : 'Upload Logo')) +
+            '</label>' +
+            (p.logoUrl ? '<button class="ghost-btn ghost-btn--danger" type="button" data-action="removeLogo"' + (page.logoBusy ? ' disabled' : '') + '>Remove Logo</button>' : '') +
+          '</div>' +
+          (page.logoError ? '<p class="field-error" role="alert">' + Proto.esc(page.logoError) + '</p>' : '') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="form-grid">' +
+        field('shopName', 'Shop Name *', 'Restaurant name', errs.shopName) +
+        field('shopAddress', 'Shop Address', 'Full address') +
+        field('whatsappNumber', 'WhatsApp Contact Number', '10-digit mobile number', errs.whatsappNumber, 'inputmode="numeric" maxlength="10"') +
+        field('email', 'Official Email', 'Business email', errs.email, 'type="email"') +
+        field('invoiceFooter', 'Thermal Receipt Footer Note', 'Thank-you message on receipts') +
+        field('reviewUrl', 'Google Maps Review URL', 'https://g.page/r/your-restaurant/review') +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-primary" type="button" data-action="save" data-section="identity"' + (Proto.busy('save') ? ' disabled aria-busy="true"' : '') + '>' +
+          (Proto.busy('save') ? 'Saving Changes…' : 'Save Identity') + '</button>' +
+        '<span class="inline-note">Saving here does not touch tax, payments or the agreement.</span>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function field(name, label, placeholder, error, extra) {
+    var value = page.profile[name];
+    return '<div class="field">' +
+      '<label class="field-label" for="f-' + name + '">' + label + '</label>' +
+      '<input class="field-control" id="f-' + name + '" data-input="' + name + '" value="' + Proto.esc(value) + '" placeholder="' + placeholder + '" ' + (extra || '') + ' />' +
+      (error ? '<span class="field-error" role="alert">' + Proto.esc(error) + '</span>' : '') +
+    '</div>';
+  }
+
+  function taxSection() {
+    var t = page.tax;
+    return '<section class="panel settings-section" ' + (Proto.busy('save') ? 'aria-busy="true"' : '') + '>' +
+      sectionHead('tax', 'GST &amp; FSSAI Compliance', 'Statutory tax identity used on invoices, plus licence validity reminders.',
+        '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>') +
+      '<div class="form-grid">' +
+        '<div class="field"><label class="toggle-label"><input type="checkbox" data-action="toggleGst"' + (t.gstEnabled ? ' checked' : '') + ' /><span>Enable GST on bills</span></label>' +
+          '<span class="inline-note">' + (t.gstEnabled ? 'Invoices print a tax breakdown at ' + t.gstPercentage + '% GST.' : 'Bills will print without tax lines.') + '</span></div>' +
+        '<div class="field"><label class="field-label" for="f-gstin">GSTIN</label>' +
+          '<input class="field-control" id="f-gstin" data-input="gstin" value="' + Proto.esc(t.gstin) + '" placeholder="29ABCDE1234F1Z5" ' + (t.gstEnabled ? '' : 'disabled') + ' />' +
+          '<span id="gstinFeedback">' + (t.gstEnabled ? feedbackHtml(gstinState()) : '') + '</span></div>' +
+        '<div class="field"><label class="field-label" for="f-gstPercentage">GST Percentage (%)</label>' +
+          '<input class="field-control" id="f-gstPercentage" data-input="gstPercentage" type="number" min="0" max="28" step="0.5" value="' + Proto.esc(t.gstPercentage) + '" /></div>' +
+        '<div class="field"><label class="field-label" for="f-customTaxName">Custom Tax Name</label>' +
+          '<input class="field-control" id="f-customTaxName" data-input="customTaxName" value="' + Proto.esc(t.customTaxName) + '" placeholder="e.g. Service Charge" /></div>' +
+        '<div class="field"><label class="field-label" for="f-customTaxPercentage">Custom Tax Percentage (%)</label>' +
+          '<input class="field-control" id="f-customTaxPercentage" data-input="customTaxPercentage" type="number" min="0" max="28" step="0.5" value="' + Proto.esc(t.customTaxPercentage) + '" /></div>' +
+        '<div class="field"><label class="field-label" for="f-fssaiNumber">FSSAI Licence Number</label>' +
+          '<input class="field-control" id="f-fssaiNumber" data-input="fssaiNumber" value="' + Proto.esc(t.fssaiNumber) + '" placeholder="14-digit licence number" maxlength="14" />' +
+          '<span id="fssaiFeedback">' + feedbackHtml(fssaiState()) + '</span></div>' +
+        '<div class="field"><label class="field-label" for="f-fssaiExpiryDate">FSSAI Expiry</label>' +
+          '<input class="field-control" id="f-fssaiExpiryDate" data-input="fssaiExpiryDate" type="date" value="' + Proto.esc(t.fssaiExpiryDate) + '" /></div>' +
+        '<div class="field"><label class="field-label" for="f-gstExpiryDate">GST Registration Expiry</label>' +
+          '<input class="field-control" id="f-gstExpiryDate" data-input="gstExpiryDate" type="date" value="' + Proto.esc(t.gstExpiryDate) + '" /></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-primary" type="button" data-action="save" data-section="tax"' + (Proto.busy('save') ? ' disabled' : '') + '>Save Tax Details</button>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function paymentsSection() {
+    var p = page.payments;
+    var upi = upiState();
+    return '<section class="panel settings-section" ' + (Proto.busy('save') ? 'aria-busy="true"' : '') + '>' +
+      sectionHead('payments', 'Payment Methods', 'Which channels a POS terminal may collect on, and how a bill settles.',
+        '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>') +
+      '<div class="form-grid">' +
+        '<div class="field"><label class="toggle-label"><input type="checkbox" data-action="toggleCash"' + (p.cashEnabled ? ' checked' : '') + ' /><span>Accept Cash</span></label></div>' +
+        '<div class="field"><label class="toggle-label"><input type="checkbox" data-action="toggleUpi"' + (p.upiEnabled ? ' checked' : '') + ' /><span>Accept UPI</span></label></div>' +
+        '<div class="field"><label class="toggle-label"><input type="checkbox" data-action="togglePos"' + (p.posEnabled ? ' checked' : '') + ' /><span>Accept POS / Card</span></label></div>' +
+      '</div>' +
+      (p.upiEnabled
+        ? '<div class="form-grid" style="margin-top:14px">' +
+            '<div class="field"><label class="field-label" for="f-upiHandle">UPI Handle</label>' +
+              '<input class="field-control" id="f-upiHandle" data-input="upiHandle" value="' + Proto.esc(p.upiHandle) + '" placeholder="yourname@bank" aria-describedby="upiFeedback" />' +
+              '<span id="upiFeedback">' + feedbackHtml(upi) + '</span></div>' +
+            '<div class="field"><label class="field-label" for="f-upiMobile">UPI Linked Mobile</label>' +
+              '<input class="field-control" id="f-upiMobile" data-input="upiMobile" value="' + Proto.esc(p.upiMobile) + '" placeholder="Linked mobile number" maxlength="10" /></div>' +
+          '</div>'
+        : '<p class="inline-note" style="margin-top:10px">UPI is off — terminal counters will only offer the channels left switched on.</p>') +
+      (p.upiEnabled && upi && upi.state === 'ok'
+        ? '<div class="test-qr-card">' +
+            '<div class="qr-grid" aria-hidden="true">' + qrCells() + '</div>' +
+            '<div style="min-width:0;display:grid;gap:4px">' +
+              '<span class="status-chip st-completed">✓ Ready to scan &amp; verify</span>' +
+              '<strong style="font-size:13.5px">Interactive UPI verification test</strong>' +
+              '<p class="inline-note">Scan this ₹1.00 test QR with Google Pay, PhonePe or Paytm — your phone shows the registered legal bank name for this VPA, which is the fastest way to catch a typo before a customer does.</p>' +
+              '<span class="inline-note">VPA <strong>' + Proto.esc(p.upiHandle) + '</strong> · Payee <strong>' + Proto.esc(page.profile.shopName || 'Merchant') + '</strong></span>' +
+            '</div>' +
+          '</div>'
+        : '') +
+      '<div class="flow-mode-cards" role="radiogroup" aria-label="Order payment flow">' +
+        flowCard('pay_before_food', 'Pay Before Food (Fast Counter / QSR)', 'Customers settle at the billing counter. The receipt prints the moment payment succeeds.') +
+        flowCard('pay_after_food', 'Pay After Food (Dine-In Table Service)', 'Orders open as tabs, stay on the floor board, and settle at checkout.') +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="btn-primary" type="button" data-action="save" data-section="payments"' + (Proto.busy('save') ? ' disabled' : '') + '>Save Payment Settings</button>' +
+      '</div>' +
+    '</section>';
+  }
+  function flowCard(value, title, note) {
+    var active = page.payments.orderPaymentFlowMode === value;
+    return '<div class="flow-mode-card' + (active ? ' is-active' : '') + '" role="radio" tabindex="0" aria-checked="' + active + '" ' +
+      'data-action="flow" data-value="' + value + '"><strong>' + title + '</strong><p class="muted">' + note + '</p></div>';
+  }
+  function qrCells() {
+    // Decorative only — a real implementation renders the UPI intent payload.
+    var out = '';
+    for (var i = 0; i < 81; i++) {
+      var on = (i * 7) % 5 < 2 || i < 9 || i > 71 || i % 10 === 0;
+      out += '<i' + (on ? '' : ' class="off"') + '></i>';
+    }
+    return out;
+  }
+
+  function easebuzzSection() {
+    var e = page.easebuzz;
+    var chip = e.status === 'verified' ? '<span class="status-chip st-completed">Verified</span>'
+      : e.status === 'otp_sent' ? '<span class="status-chip st-cooking">OTP sent</span>'
+      : '<span class="status-chip st-neutral">Not started</span>';
+    return '<section class="panel settings-section">' +
+      '<div class="section-title-wrap">' +
+        '<div class="section-icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>' +
+        '<div><h3>Online Payments (Easebuzz)</h3><p class="muted">Collect UPI, cards and net-banking through the payment gateway.</p></div>' +
+        '<div class="section-head-right">' + chip + '</div>' +
+      '</div>' +
+      (e.status === 'verified'
+        ? '<div class="form-grid">' +
+            '<div class="field"><label class="toggle-label"><input type="checkbox" data-action="toggleEasebuzz"' + (e.enabled ? ' checked' : '') + ' /><span>Enable online payments</span></label>' +
+            '<span class="inline-note">Sub-merchant <strong>' + Proto.esc(e.subMerchantId) + '</strong> · settlements land in your registered bank account.</span></div>' +
+          '</div>'
+        : '<div class="stack--tight">' +
+            '<p class="inline-note">Onboarding needs your GSTIN and a bank account in the shop\'s name. It takes about two minutes and can be verified with an OTP on the registered mobile.</p>' +
+            '<div class="form-actions">' +
+              '<button class="btn-primary" type="button" data-action="onboard">' + (e.status === 'otp_sent' ? 'Continue onboarding' : 'Start onboarding') + '</button>' +
+              '<span class="inline-note">You can still retry or configure this later from the Android app.</span>' +
+            '</div>' +
+          '</div>') +
+    '</section>';
+  }
+
+  function agreementSection() {
+    return '<section class="panel settings-section">' +
+      '<div class="section-title-wrap">' +
+        '<div class="section-icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>' +
+        '<div><h3>Merchant Agreement</h3><p class="muted">Platform terms, commission and settlement schedule accepted for this shop.</p></div>' +
+        '<div class="section-head-right"><span class="status-chip st-completed">Signed ' + Proto.esc(page.agreement.version) + '</span></div>' +
+      '</div>' +
+      '<div class="form-actions">' +
+        '<button class="ghost-btn" type="button" data-action="viewAgreement">View agreement</button>' +
+        '<span class="inline-note">Accepted on ' + Proto.fmtDate(page.agreement.signedOn) + ' by the shop owner.</span>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function passwordSection() {
+    var pw = page.password;
+    return '<section class="panel settings-section">' +
+      '<div class="section-title-wrap">' +
+        '<div class="section-icon"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>' +
+        '<div><h3>Change Password</h3><p class="muted">Update your account password using OTP verification on the registered mobile.</p></div>' +
+      '</div>' +
+      '<div class="form-grid" style="max-width:520px">' +
+        '<div class="field"><label class="field-label" for="f-pwPhone">Phone Number</label>' +
+          '<input class="field-control" id="f-pwPhone" data-input="pwPhone" value="' + Proto.esc(pw.phone) + '" placeholder="Registered phone" maxlength="10" /></div>' +
+        (pw.otpSent
+          ? '<div class="field"><label class="field-label" for="f-pwOtp">OTP</label>' +
+              '<input class="field-control" id="f-pwOtp" data-input="pwOtp" value="' + Proto.esc(pw.otp) + '" placeholder="6-digit OTP" maxlength="6" autocomplete="one-time-code" /></div>' +
+            '<div class="field"><label class="field-label" for="f-pwNext">New Password</label>' +
+              '<input class="field-control" id="f-pwNext" data-input="pwNext" type="password" value="' + Proto.esc(pw.next) + '" placeholder="Minimum 6 characters" autocomplete="new-password" /></div>' +
+            '<div class="field"><label class="field-label" for="f-pwConfirm">Confirm New Password</label>' +
+              '<input class="field-control" id="f-pwConfirm" data-input="pwConfirm" type="password" value="' + Proto.esc(pw.confirm) + '" placeholder="Repeat the new password" autocomplete="new-password" /></div>'
+          : '') +
+      '</div>' +
+      '<div class="form-actions">' +
+        (pw.otpSent
+          ? '<button class="btn-primary" type="button" data-action="updatePassword"' + (Proto.busy('pw') ? ' disabled aria-busy="true"' : '') + '>' + (Proto.busy('pw') ? 'Updating…' : 'Update Password') + '</button>' +
+            '<button class="ghost-btn" type="button" data-action="sendOtp"' + (Proto.busy('pw') ? ' disabled' : '') + '>Send a new OTP</button>'
+          : '<button class="btn-primary" type="button" data-action="sendOtp"' + (Proto.busy('pw') ? ' disabled aria-busy="true"' : '') + '>' + (Proto.busy('pw') ? 'Sending…' : 'Send OTP') + '</button>') +
+      '</div>' +
+      (pw.error ? '<p class="field-error" role="alert" style="margin-top:8px">' + Proto.esc(pw.error) + '</p>' : '') +
+      (pw.success ? '<p class="text-success" role="status" style="margin-top:8px;font-size:13px">' + Proto.esc(pw.success) + '</p>' : '') +
+    '</section>';
+  }
+
+  function dock() {
+    return '<div class="save-dock">' +
+      '<span id="dockHint">All changes saved. Registers are in sync.</span>' +
+      '<button class="btn-primary" type="button" data-action="saveAll" id="dockSave">Save All Changes</button>' +
+    '</div>';
+  }
+
+  function skeleton() {
+    return '<div class="stack">' +
+      '<div class="panel"><div class="skeleton sk-line" style="width:240px"></div><div class="skeleton sk-line" style="width:360px;margin-top:10px"></div>' +
+        '<div class="logo-uploader-card" aria-hidden="true"><div class="skeleton" style="width:92px;height:92px;border-radius:12px"></div>' +
+        '<div class="logo-meta"><div class="skeleton sk-line" style="width:200px"></div><div class="skeleton sk-line" style="width:320px"></div></div></div>' +
+        '<div class="form-grid">' + skFields(6) + '</div></div>' +
+      '<div class="panel"><div class="skeleton sk-line" style="width:200px"></div>' +
+        '<div class="form-grid" style="margin-top:14px">' + skFields(8) + '</div></div>' +
+      '<div class="panel"><div class="skeleton sk-line" style="width:220px"></div>' +
+        '<div class="skeleton" style="height:90px;margin-top:14px"></div></div>' +
+    '</div>';
+  }
+  function skFields(n) {
+    var out = '';
+    for (var i = 0; i < n; i++) out += '<div class="skeleton" style="height:40px"></div>';
+    return out;
+  }
+
+  /* ── boot ────────────────────────────────────────────────────────────── */
+  Proto.boot({
+    page: 'settings',
+    eyebrow: 'Configuration',
+    live: false,
+    title: 'Business & Restaurant Configuration',
+    subtitle: 'Configure restaurant identity, automated GST compliance, and payment settlement channels.',
+    headerExtra:
+      '<span class="kpi-tag kpi-tag--green" id="syncBadge">● Live Sync Ready</span>' +
+      '<button class="header-pill" type="button" data-action="saveAll" id="headerSave">Save All Changes</button>',
+
+    data: {},
+
+    skeleton: skeleton(),
+
+    onBusy: function () { syncDock(); },
+
+    render: function (ctx) {
+      if (ctx.mode === 'empty' || !page.hasProfile) {
+        return '<section class="panel" style="margin-bottom:14px">' +
+              '<h3 style="font-size:16px">No business profile saved yet</h3>' +
+              '<p class="muted" style="margin-top:4px;font-size:13px">Fill this in once and it prints on every bill, invoice and thermal receipt. Nothing reaches your registers until you save.</p>' +
+              '<div class="form-actions" style="margin-top:12px">' +
+                '<button class="btn-primary" type="button" data-action="createProfile">Start with shop details</button>' +
+              '</div>' +
+              '<p class="inline-note" style="margin-top:12px">Prototype note: the live page renders a failed load with the <em>loading</em> panel\'s styling, so a failure and a spinner look identical. The Error state in the panel at bottom-left shows the corrected treatment.</p>' +
+            '</section>' + passwordSection();
+      }
+      // syncDock patches the header save button + dock, which the shared layer
+      // only mounts after this render returns, so it runs on the next tick.
+      setTimeout(syncDock, 0);
+      return identitySection() + taxSection() + paymentsSection() + easebuzzSection() + agreementSection() + passwordSection() + dock();
+    },
+
+    inputs: {
+      shopName: function (v) { page.profile.shopName = v; markDirty('identity'); },
+      shopAddress: function (v) { page.profile.shopAddress = v; markDirty('identity'); },
+      whatsappNumber: function (v) { page.profile.whatsappNumber = v; markDirty('identity'); },
+      email: function (v) { page.profile.email = v; markDirty('identity'); },
+      invoiceFooter: function (v) { page.profile.invoiceFooter = v; markDirty('identity'); },
+      reviewUrl: function (v) { page.profile.reviewUrl = v; markDirty('identity'); },
+
+      gstin: function (v) { page.tax.gstin = v; markDirty('tax'); patch('#gstinFeedback', feedbackHtml(gstinState())); },
+      gstPercentage: function (v) { page.tax.gstPercentage = v; markDirty('tax'); },
+      customTaxName: function (v) { page.tax.customTaxName = v; markDirty('tax'); },
+      customTaxPercentage: function (v) { page.tax.customTaxPercentage = v; markDirty('tax'); },
+      fssaiNumber: function (v) { page.tax.fssaiNumber = v; markDirty('tax'); patch('#fssaiFeedback', feedbackHtml(fssaiState())); },
+      fssaiExpiryDate: function (v) { page.tax.fssaiExpiryDate = v; markDirty('tax'); },
+      gstExpiryDate: function (v) { page.tax.gstExpiryDate = v; markDirty('tax'); },
+
+      upiHandle: function (v) { page.payments.upiHandle = v; markDirty('payments'); patch('#upiFeedback', feedbackHtml(upiState())); },
+      upiMobile: function (v) { page.payments.upiMobile = v; markDirty('payments'); },
+
+      pwPhone: function (v) { page.password.phone = v; },
+      pwOtp: function (v) { page.password.otp = v; },
+      pwNext: function (v) { page.password.next = v; },
+      pwConfirm: function (v) { page.password.confirm = v; }
+    },
+
+    actions: {
+      /* Save one section, or everything. Success names the section so the user
+         knows exactly what went where; failure goes through the shared path. */
+      save: function (el) {
+        var section = el.dataset.section || 'identity';
+        if (section === 'identity') {
+          var errs = isValid();
+          page.errors = errs;
+          if (Object.keys(errs).length) {
+            Proto.render();
+            var first = document.querySelector('.field-error');
+            if (first && first.previousElementSibling) first.previousElementSibling.focus();
+            Proto.toast('Fix the highlighted fields before saving.', 'error', 'Restaurant identity');
+            return;
+          }
+        }
+        var gs = gstinState();
+        if (section === 'tax' && page.tax.gstEnabled && (!gs || gs.state !== 'ok')) {
+          Proto.toast('That GSTIN is not valid, so tax details were not saved.', 'error', 'GST & FSSAI');
+          Proto.render();
+          return;
+        }
+        Proto.setBusy('save', true);
+        Proto.call('Save ' + label(section), {
+          meta: 'PUT /business/profile',
+          onOk: function () {
+            clearDirty(section);
+            Proto.toast(label(section) + ' saved.', 'success', 'Synced to all POS registers');
+          }
+        });
+      },
+      saveAll: function () {
+        var errs = isValid();
+        page.errors = errs;
+        if (Object.keys(errs).length) {
+          Proto.render();
+          Proto.toast('Shop name is required before anything can be saved.', 'error', 'Save all changes');
+          return;
+        }
+        Proto.setBusy('save', true);
+        Proto.call('Save all business settings', {
+          meta: 'PUT /business/profile',
+          onOk: function () {
+            page.dirty = {};
+            Proto.toast('All business settings saved.', 'success', 'Synced to all POS registers');
+          }
+        });
+      },
+      createProfile: function () {
+        page.hasProfile = true;
+        Proto.setMode('loaded');
+        Proto.toast('Defaults loaded — review the fields and save.', 'info');
+      },
+
+      removeLogo: function () {
+        Proto.modal('Remove the shop logo?',
+          '<p class="inline-note">Bills, thermal receipts and your digital menu go back to a plain text header until a new logo is uploaded.</p>',
+          '<button class="ghost-btn" type="button" data-close>Keep logo</button>' +
+          '<button class="btn-danger" type="button" data-action="confirmRemoveLogo">Remove logo</button>');
+      },
+      confirmRemoveLogo: function (el) {
+        var overlay = el.closest('.modal-overlay');
+        if (overlay) overlay.remove();
+        Proto.setBusy('logo', true);
+        page.logoBusy = true;
+        Proto.call('Remove logo', {
+          onOk: function () {
+            page.profile.logoUrl = '';
+            page.logoError = '';
+            Proto.toast('Logo removed.', 'success');
+          }
+        }).then(function () { page.logoBusy = false; Proto.render(); });
+      },
+
+      toggleGst: function (el) {
+        page.tax.gstEnabled = !!el.checked;
+        markDirty('tax');
+        Proto.render();
+        var gs = gstinState();
+        if (page.tax.gstEnabled && (!gs || gs.state !== 'ok')) {
+          Proto.toast('GST is on, so a valid 15-character GSTIN is required before saving.', 'error', 'GST & FSSAI');
+        }
+      },
+      toggleCash: function (el) { page.payments.cashEnabled = !!el.checked; markDirty('payments'); },
+      toggleUpi: function (el) { page.payments.upiEnabled = !!el.checked; markDirty('payments'); Proto.render(); },
+      togglePos: function (el) { page.payments.posEnabled = !!el.checked; markDirty('payments'); },
+      flow: function (el) { page.payments.orderPaymentFlowMode = el.dataset.value; markDirty('payments'); Proto.render(); },
+      applyUpi: function () {
+        var s = upiState();
+        if (!s || !s.suggestion) return;
+        page.payments.upiHandle = s.suggestion;
+        Proto.render();
+        Proto.toast('UPI handle set to ' + s.suggestion, 'info');
+      },
+
+      onboard: function () {
+        var e = page.easebuzz;
+        Proto.modal('Online payment onboarding',
+          '<p class="inline-note">We verify your GSTIN and registered mobile with the gateway before creating the sub-merchant account.</p>' +
+          '<div class="field"><label class="field-label" for="obPhone">Registered mobile</label>' +
+            '<input class="field-control" id="obPhone" value="' + Proto.esc(page.profile.whatsappNumber) + '" maxlength="10" /></div>' +
+          (e.status === 'otp_sent'
+            ? '<div class="field"><label class="field-label" for="obOtp">OTP</label>' +
+                '<input class="field-control" id="obOtp" placeholder="6-digit OTP" maxlength="6" autocomplete="one-time-code" /></div>'
+            : '') +
+          '<p class="inline-note" id="obNote"></p>',
+          '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+          (e.status === 'otp_sent'
+            ? '<button class="btn-primary" type="button" data-action="verifyOtp">Verify &amp; create account</button>'
+            : '<button class="btn-primary" type="button" data-action="requestOtp">Send OTP</button>'));
+      },
+      requestOtp: function () {
+        page.easebuzz.status = 'otp_sent';
+        Proto.setBusy('onboard', true);
+        Proto.call('Request onboarding OTP', {
+          meta: 'POST /business/payments/onboarding/otp',
+          onOk: function () {
+            Proto.toast('OTP sent to the registered mobile.', 'success', 'Valid for 10 minutes');
+            var ov = document.querySelector('.modal-overlay');
+            if (ov) ov.remove();
+            Proto.render();
+            protoOpenOnboarding();
+          }
+        });
+      },
+      verifyOtp: function () {
+        var input = document.getElementById('obOtp');
+        var value = input ? input.value.trim() : '';
+        var note = document.getElementById('obNote');
+        if (!/^[0-9]{6}$/.test(value)) {
+          if (note) { note.textContent = 'Enter the 6-digit OTP from the SMS.'; note.className = 'field-error'; note.setAttribute('role', 'alert'); }
+          return;
+        }
+        Proto.setBusy('onboard', true);
+        Proto.call('Verify onboarding OTP', {
+          meta: 'POST /business/payments/onboarding/verify',
+          onOk: function () {
+            page.easebuzz.status = 'verified';
+            page.easebuzz.enabled = true;
+            page.easebuzz.subMerchantId = 'EZB-SR-88214';
+            var ov = document.querySelector('.modal-overlay');
+            if (ov) ov.remove();
+            Proto.toast('Online payments enabled.', 'success', 'Sub-merchant EZB-SR-88214 created');
+          }
+        });
+      },
+      toggleEasebuzz: function (el) {
+        var next = !!el.checked;
+        Proto.setBusy('easebuzz', true);
+        Proto.call((next ? 'Enable' : 'Disable') + ' online payments', {
+          onOk: function () {
+            page.easebuzz.enabled = next;
+            Proto.toast('Online payments ' + (next ? 'enabled' : 'disabled') + '.', 'success');
+          }
+        });
+      },
+
+      viewAgreement: function () {
+        Proto.modal('Merchant agreement ' + page.agreement.version,
+          '<p class="inline-note">Accepted ' + Proto.fmtDate(page.agreement.signedOn) + ' by the shop owner.</p>' +
+          '<ul class="inline-note" style="padding-left:18px;line-height:1.7">' +
+            '<li>Commission is charged on settled card and online collections.</li>' +
+            '<li>Cash collections are not commissionable.</li>' +
+            '<li>Settlements follow the T+2 schedule to the registered bank account.</li>' +
+            '<li>Refunds requested after settlement appear in the next cycle.</li>' +
+          '</ul>', '<button class="btn-primary" type="button" data-close>Close</button>', true);
+      },
+
+      sendOtp: function () {
+        var pw = page.password;
+        if (!/^[0-9]{10}$/.test(pw.phone || '')) {
+          pw.error = 'Enter the 10-digit mobile number registered with this shop.';
+          pw.success = '';
+          Proto.render();
+          return;
+        }
+        Proto.setBusy('pw', true);
+        Proto.call('Send password OTP', {
+          meta: 'POST /auth/forgot-password/request-otp',
+          onOk: function () {
+            pw.otpSent = true;
+            pw.error = '';
+            Proto.toast('OTP sent to ' + pw.phone + '.', 'success');
+          }
+        });
+      },
+      updatePassword: function () {
+        var pw = page.password;
+        pw.success = '';
+        pw.error = '';
+        if (!/^[0-9]{6}$/.test(pw.otp || '')) { pw.error = 'Enter the 6-digit OTP from the SMS.'; Proto.render(); return; }
+        if ((pw.next || '').length < 6) { pw.error = 'The new password must be at least 6 characters.'; Proto.render(); return; }
+        if (pw.next !== pw.confirm) { pw.error = 'The two passwords do not match.'; Proto.render(); return; }
+        Proto.setBusy('pw', true);
+        Proto.call('Change password', {
+          meta: 'POST /auth/forgot-password/reset-password',
+          onOk: function () {
+            pw.success = 'Password updated. Use the new password on your next sign-in.';
+            pw.otp = ''; pw.next = ''; pw.confirm = ''; pw.otpSent = false;
+            Proto.toast('Password updated successfully.', 'success', 'Use it on your next sign-in');
+          }
+        });
+      }
+    },
+
+    onReady: function () {
+      syncDock();
+      // A real <input type="file"> needs a change listener; size is checked here
+      // so an oversized file never becomes an API call.
+      document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'logoFile') {
+          var file = e.target.files && e.target.files[0];
+          if (!file) return;
+          if (file.size > LOGO_MAX_BYTES) {
+            page.logoError = 'That file is ' + (file.size / 1024 / 1024).toFixed(1) + 'MB. The logo must be 2MB or smaller.';
+            Proto.render();
+            Proto.toast('Logo not uploaded — file is larger than 2MB.', 'error');
+            return;
+          }
+          page.logoError = '';
+          page.logoBusy = true;
+          Proto.setBusy('logo', true);
+          Proto.render();
+          Proto.call('Upload logo', {
+            meta: 'POST /restaurants/logo',
+            onOk: function () {
+              page.profile.logoUrl = 'uploaded';
+              Proto.toast('Logo uploaded.', 'success', file.name);
+            }
+          }).then(function () { page.logoBusy = false; Proto.render(); });
+        }
+      });
+    }
+  });
+
+  function label(section) {
+    return section === 'tax' ? 'GST & FSSAI details' : section === 'payments' ? 'payment settings' : 'restaurant identity';
+  }
+  function protoOpenOnboarding() {
+    var btn = document.querySelector('[data-action="onboard"]');
+    if (btn) btn.click();
+  }
+})();
+</script>
+</body>
+</html>

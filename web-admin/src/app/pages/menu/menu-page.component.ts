@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -48,6 +48,12 @@ import { environment } from '../../../environments/environment';
             Refresh
           </button>
       </app-page-header>
+
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="loadError && items.length" role="status" aria-live="polite">
+        <span>Couldn't update menu. {{ loadError }}</span>
+        <button type="button" class="btn-retry" (click)="loadMenu()">Retry</button>
+      </div>
 
       <!-- Stock Quick Filter Strip (bentogrids.com standard) -->
       <nav class="stock-status-strip" *ngIf="loaded && items.length" aria-label="Stock status quick filters">
@@ -267,7 +273,13 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading" *ngIf="!loaded; else menuEmpty">
+        <app-api-state
+          *ngIf="loadError && !items.length"
+          [message]="loadError"
+          (retry)="loadMenu()"
+        ></app-api-state>
+        <div class="panel loading" *ngIf="!loaded && !loadError; else menuEmpty" role="status" aria-busy="true">
+          <span class="sr-only">Loading menu items...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
@@ -817,8 +829,10 @@ export class MenuPageComponent implements OnDestroy {
         this.cdr.markForCheck();
       },
       error: () => {
-        this.items = [];
-        this.categories = [];
+        if (!this.items.length) {
+          this.items = [];
+          this.categories = [];
+        }
         this.loadError = 'Unable to load the menu. Check your connection and try again.';
         this.loaded = true;
         this.cdr.markForCheck();

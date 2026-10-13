@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Businesses — KhanaBook prototype</title>
+<!--
+  PROTOTYPE — platform (KBOOK_ADMIN) tenant directory.
+  Mirrors web-admin/src/app/pages/businesses/businesses-page.component.ts:
+  same title/subtitle, same "Business Directory" toolbar, same table column set
+  (Business / Owner / Orders / Menu / Staff / Updated / Action) extended with the
+  KYC + settlement facts the admin page reads, the same Add-Restaurant form and
+  validators, the same empty copy, and the same suspend confirmation wording.
+  State behaviour comes from _shared/proto.js — no page-local state logic.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-local layout only — every colour, chip and state comes from proto.css. */
+  .filter-strip { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: end; }
+  @media (max-width: 900px) { .filter-strip { grid-template-columns: 1fr; } }
+  .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .cell-meta { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .biz-row.is-busy { opacity: .62; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .pager__controls { display: inline-flex; gap: 8px; }
+  .form-error { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-xl); background: var(--danger-soft); border: 1px solid rgba(192,57,43,.28); color: var(--danger); font-size: 12.5px; font-weight: 600; }
+  .cred-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--r-xl); }
+  .cred-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: block; }
+  .cred-value { font-family: var(--kb-font-mono); font-size: 13.5px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── data ──────────────────────────────────────────────────────────────── */
+  var PHONES = function (p) { return '+91 ' + p.slice(0, 5) + ' ' + p.slice(5); };
+
+  var BUSINESSES = [
+    { id: 1001, shopName: 'Spice Route Kitchen', ownerName: 'Ravi Sharma',     phone: '9876543210', email: 'ravi@spiceroute.in',      city: 'Indiranagar, Bangalore', orders: 4821, menu: 86, staff: 7, suspended: false, kyc: 'Verified', settlement: 'Weekly',   created: '2026-04-12', updated: '2026-10-13', revenue: 1842300, posOrders: 4821, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1002, shopName: 'Sagar Ratna Cafe',    ownerName: 'Meera Iyer',      phone: '9812345678', email: 'meera@sagarratna.in',     city: 'Jayanagar, Bangalore',   orders: 3110, menu: 64, staff: 5, suspended: false, kyc: 'Verified', settlement: 'Instant',  created: '2026-05-03', updated: '2026-10-13', revenue: 1128900, posOrders: 3110, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1003, shopName: 'Tandoori Nights',     ownerName: 'Imran Khan',      phone: '9900122334', email: 'imran@tandoorinights.in', city: 'Koramangala, Bangalore', orders: 2680, menu: 58, staff: 4, suspended: true,  kyc: 'Pending',  settlement: 'Weekly',   created: '2026-05-28', updated: '2026-10-09', revenue: 964500,  posOrders: 2680, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1004, shopName: 'Annapurna Mess',      ownerName: 'Lakshmi Rao',     phone: '9740055667', email: 'lakshmi@annapurna.in',    city: 'Malleshwaram, Bangalore',orders: 1990, menu: 41, staff: 3, suspended: false, kyc: 'Verified', settlement: 'Weekly',   created: '2026-06-15', updated: '2026-10-12', revenue: 612300,  posOrders: 1990, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1005, shopName: 'Coastal Curry House', ownerName: 'Joseph Fernandes',phone: '9632288990', email: 'joseph@coastalcurry.in',  city: 'HSR Layout, Bangalore',  orders: 1520, menu: 52, staff: 6, suspended: false, kyc: 'Pending',  settlement: 'Instant',  created: '2026-07-02', updated: '2026-10-13', revenue: 742100,  posOrders: 1520, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1006, shopName: 'Biryani Bhavan',      ownerName: 'Faisal Ahmed',    phone: '9511133445', email: 'faisal@biryanibhavan.in', city: 'Banashankari, Bangalore',orders: 3760, menu: 37, staff: 4, suspended: true,  kyc: 'Verified', settlement: 'Weekly',   created: '2026-07-21', updated: '2026-10-01', revenue: 1426500, posOrders: 3760, gst: true,  tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1007, shopName: 'Green Leaf Veg',      ownerName: 'Anjali Desai',    phone: '9422077112', email: 'anjali@greenleaf.in',     city: 'Whitefield, Bangalore',  orders: 880,  menu: 45, staff: 2, suspended: false, kyc: 'Pending',  settlement: 'Weekly',   created: '2026-08-09', updated: '2026-10-11', revenue: 298400,  posOrders: 880,  gst: false, tz: 'Asia/Kolkata', currency: 'INR' },
+    { id: 1008, shopName: 'Hotel Saravana Grand',ownerName: 'Suresh Nair',     phone: '9344566778', email: 'suresh@saravanagrand.in', city: 'Electronic City, Bangalore', orders: 640, menu: 72, staff: 8, suspended: false, kyc: 'Verified', settlement: 'Instant', created: '2026-09-18', updated: '2026-10-13', revenue: 411750, posOrders: 640, gst: true, tz: 'Asia/Kolkata', currency: 'INR' }
+  ];
+
+  var ui = { search: '', status: 'all', page: 1, pageSize: 10 };
+
+  /* ── derivations ───────────────────────────────────────────────────────── */
+  function filtered() {
+    var q = ui.search.trim().toLowerCase();
+    return BUSINESSES.filter(function (b) {
+      var byStatus = ui.status === 'all' || (ui.status === 'suspended' ? b.suspended : ui.status === 'active' ? !b.suspended : ui.status === 'kyc' ? b.kyc === 'Pending' : true);
+      if (!byStatus) return false;
+      if (!q) return true;
+      return [b.shopName, b.ownerName, b.phone, b.email, String(b.id), b.city]
+        .some(function (v) { return String(v).toLowerCase().indexOf(q) >= 0; });
+    });
+  }
+  function pageCount() { return Math.max(1, Math.ceil(filtered().length / ui.pageSize)); }
+  function paged() {
+    var start = (ui.page - 1) * ui.pageSize;
+    return filtered().slice(start, start + ui.pageSize);
+  }
+  function byId(id) { return BUSINESSES.filter(function (b) { return b.id === id; })[0]; }
+
+  /* ── view pieces ───────────────────────────────────────────────────────── */
+  function kpiRow(rows) {
+    var total = rows.length;
+    var active = rows.filter(function (b) { return !b.suspended; }).length;
+    var suspended = total - active;
+    var pendingKyc = rows.filter(function (b) { return b.kyc === 'Pending'; }).length;
+    var tile = function (label, value, tag, tagClass, foot) {
+      return '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">' + label + '</span>' +
+        (tag ? '<span class="kpi-tag ' + tagClass + '">' + tag + '</span>' : '') + '</div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + value + '">0</div>' +
+        '<div class="tile-foot"><span class="sub-caption">' + foot + '</span></div>' +
+      '</article>';
+    };
+    return '<section class="bento-kpi-grid" aria-label="Platform tenant summary">' +
+      tile('Businesses onboarded', total, 'All tenants', 'kpi-tag--neutral', 'Across every plan') +
+      tile('Active', active, Math.round((active / (total || 1)) * 100) + '%', 'kpi-tag--green', 'Billing normally') +
+      tile('Suspended', suspended, suspended ? 'Needs review' : 'None', suspended ? 'kpi-tag--danger' : 'kpi-tag--neutral', 'Operations disabled') +
+      tile('Pending KYC', pendingKyc, pendingKyc ? 'Action' : 'Clear', pendingKyc ? 'kpi-tag--amber' : 'kpi-tag--neutral', 'Settlement blocked') +
+    '</section>';
+  }
+
+  function toolbar() {
+    var total = BUSINESSES.length, shown = filtered().length;
+    var chip = function (key, label) {
+      return '<button class="chip" type="button" data-action="filterStatus" data-status="' + key + '" aria-pressed="' + (ui.status === key) + '">' + label + '</button>';
+    };
+    return '<section class="panel" style="margin-top:14px">' +
+      '<div class="panel__head" style="margin-bottom:12px">' +
+        '<div><h3 class="panel__title">Business Directory</h3>' +
+        '<p class="muted" style="font-size:12.5px">Select a row to inspect revenue and business details.</p></div>' +
+        '<span class="records-pill tabular">' + shown + ' of ' + total + ' businesses</span>' +
+      '</div>' +
+      '<div class="filter-strip">' +
+        '<div class="field"><label class="field-label" for="biz-search">Search</label>' +
+          '<input class="field-control" id="biz-search" type="text" data-input="search" value="' + Proto.esc(ui.search) + '" placeholder="Search by shop, owner, login, email, or id" /></div>' +
+        '<div class="field"><label class="field-label" for="biz-rows">Rows</label>' +
+          '<select class="field-control" id="biz-rows" data-input="pageSize">' +
+            [5, 10, 20].map(function (n) { return '<option value="' + n + '"' + (ui.pageSize === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') +
+          '</select></div>' +
+        '<div class="field"><span class="field-label" id="status-label">Status</span>' +
+          '<div class="chip-group" role="group" aria-labelledby="status-label">' +
+            chip('all', 'All') + chip('active', 'Active') + chip('suspended', 'Suspended') + chip('kyc', 'KYC pending') +
+          '</div></div>' +
+      '</div>' +
+      '<div class="filter-foot">' +
+        '<span class="inline-note">Suspension disables every terminal for that shop until you reactivate it.</span>' +
+        (ui.search || ui.status !== 'all' || ui.pageSize !== 10
+          ? '<button class="ghost-btn" type="button" data-action="clearFilters">Clear filters</button>' : '') +
+      '</div>' +
+    '</section>';
+  }
+
+  function statusChip(b) {
+    return '<span class="status-chip ' + (b.suspended ? 'st-danger' : 'st-completed') + '">' + (b.suspended ? 'Suspended' : 'Active') + '</span>';
+  }
+  function kycChip(b) {
+    return '<span class="status-chip ' + (b.kyc === 'Verified' ? 'st-completed' : 'st-warn') + '">' + b.kyc + '</span>';
+  }
+
+  function table() {
+    var rows = paged();
+    return '<section class="panel panel--flush" style="margin-top:14px">' +
+      '<div class="table-wrap"><table class="data-table">' +
+        '<thead><tr>' +
+          '<th>Business</th><th>Owner &amp; contact</th><th>Orders</th><th>Menu</th><th>Staff</th>' +
+          '<th>KYC</th><th>Settlement</th><th>Updated</th><th>Action</th>' +
+        '</tr></thead><tbody>' +
+        rows.map(function (b) {
+          var busy = Proto.busy('row-' + b.id);
+          return '<tr class="biz-row' + (busy ? ' is-busy' : '') + '"' + (busy ? ' aria-busy="true"' : '') + '>' +
+            '<td><strong>' + Proto.esc(b.shopName) + '</strong>' +
+              '<span class="cell-meta">#' + b.id + ' · ' + Proto.esc(b.city) + '</span>' +
+              '<span style="display:inline-block;margin-top:6px">' + statusChip(b) + '</span></td>' +
+            '<td>' + Proto.esc(b.ownerName) +
+              '<span class="cell-meta">' + PHONES(b.phone) + '</span>' +
+              '<span class="cell-meta">' + Proto.esc(b.email) + '</span></td>' +
+            '<td class="num-cell tabular">' + b.orders.toLocaleString('en-IN') + '</td>' +
+            '<td class="num-cell tabular">' + b.menu + '</td>' +
+            '<td class="num-cell tabular">' + b.staff + '</td>' +
+            '<td>' + kycChip(b) + '</td>' +
+            '<td><span class="status-chip st-neutral">' + b.settlement + '</span></td>' +
+            '<td class="muted tabular">' + Proto.fmtDate(b.updated) + '</td>' +
+            '<td><span class="row-actions">' +
+              '<button class="ghost-btn" type="button" data-action="detail" data-id="' + b.id + '"' + (busy ? ' disabled' : '') + '>Details</button>' +
+              (b.suspended
+                ? '<button class="ghost-btn ghost-btn--success" type="button" data-action="activate" data-id="' + b.id + '"' + (busy ? ' disabled' : '') + '>Activate</button>'
+                : '<button class="ghost-btn ghost-btn--danger" type="button" data-action="suspend" data-id="' + b.id + '"' + (busy ? ' disabled' : '') + '>Suspend</button>') +
+            '</span></td>' +
+          '</tr>';
+        }).join('') +
+      '</tbody></table></div>' +
+      pager() +
+    '</section>';
+  }
+
+  function pager() {
+    var pages = pageCount();
+    if (filtered().length <= ui.pageSize) {
+      return '<div class="pager"><span class="muted" style="font-size:12.5px">Showing all ' + filtered().length + ' matching businesses</span></div>';
+    }
+    return '<div class="pager">' +
+      '<span class="muted" style="font-size:12.5px">Page ' + ui.page + ' of ' + pages + '</span>' +
+      '<span class="pager__controls">' +
+        '<button class="ghost-btn" type="button" data-action="page" data-page="prev"' + (ui.page === 1 ? ' disabled' : '') + '>Previous</button>' +
+        '<button class="ghost-btn" type="button" data-action="page" data-page="next"' + (ui.page === pages ? ' disabled' : '') + '>Next</button>' +
+      '</span></div>';
+  }
+
+  function filteredEmpty() {
+    return '<section class="panel" style="margin-top:14px">' +
+      Proto.emptyBox('No businesses match the current filters', 'Try a different search term or status filter to find the business you are looking for.', 'Clear filters', 'clearFilters') +
+    '</section>';
+  }
+
+  /* ── modals ────────────────────────────────────────────────────────────── */
+  function detailModal(b) {
+    var fact = function (label, value, cls) {
+      return '<div class="cred-row"><span><span class="cred-label">' + label + '</span>' +
+        '<span class="cred-value' + (cls ? ' ' + cls : '') + '">' + value + '</span></span></div>';
+    };
+    Proto.modal('Business details',
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<div><h3 style="font-size:16px">' + Proto.esc(b.shopName) + '</h3>' +
+        '<span class="cell-meta">Restaurant ID: ' + b.id + ' · ' + Proto.esc(b.city) + '</span></div>' +
+        statusChip(b) +
+      '</div>' +
+      '<div class="stack--tight" style="margin-top:4px">' +
+        fact('Total revenue', Proto.money(b.revenue)) +
+        fact('POS orders', b.posOrders.toLocaleString('en-IN')) +
+        fact('GST', b.gst ? 'Enabled' : 'Disabled') +
+        fact('Timezone', b.tz) +
+        fact('Currency', b.currency) +
+        fact('KYC', b.kyc) +
+        fact('Settlement', b.settlement) +
+        fact('Owner', Proto.esc(b.ownerName) + ' · ' + PHONES(b.phone)) +
+        fact('Onboarded', Proto.fmtDate(b.created) + ' · updated ' + Proto.fmtDate(b.updated)) +
+      '</div>',
+      '<button class="ghost-btn" type="button" data-close>Close</button>' +
+      '<button class="btn-primary" type="button" data-close data-action="detail-go-suspend" data-id="' + b.id + '">' +
+        (b.suspended ? 'Activate business' : 'Suspend business') + '</button>',
+      true);
+  }
+
+  function suspendConfirm(b) {
+    var overlay = Proto.modal('Suspend business',
+      '<p style="font-size:13.5px;line-height:1.55">Are you sure you want to suspend <strong>' + Proto.esc(b.shopName) + '</strong>? ' +
+      'This will disable all operations for this business.</p>' +
+      '<p class="inline-note">Every POS terminal for this shop loses access immediately and keeps showing the last synced data until you reactivate it. Nothing is deleted.</p>',
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-danger" type="button" id="confirmSuspend" data-id="' + b.id + '">Suspend</button>');
+    var confirm = overlay.querySelector('#confirmSuspend');
+    confirm.focus();
+    confirm.addEventListener('click', function () {
+      overlay.remove();
+      runSuspend(b);
+    });
+  }
+
+  function runSuspend(b) {
+    Proto.setBusy('row-' + b.id, true);
+    Proto.render();
+    Proto.call('Suspend ' + b.shopName, {
+      onOk: function () {
+        b.suspended = true;
+        b.updated = '2026-10-13';
+        Proto.toast((b.shopName || 'Business') + ' has been suspended.', 'success', 'All terminals disabled');
+      },
+      meta: 'POST /admin/businesses/' + b.id + '/suspend'
+    }).then(function (ok) {
+      Proto.setBusy('row-' + b.id, false);
+      if (!ok) Proto.toast('Failed to suspend ' + (b.shopName || 'business') + '.', 'error');
+      Proto.render();
+    });
+  }
+
+  function runActivate(b) {
+    Proto.setBusy('row-' + b.id, true);
+    Proto.render();
+    Proto.call('Activate ' + b.shopName, {
+      onOk: function () {
+        b.suspended = false;
+        b.updated = '2026-10-13';
+        Proto.toast((b.shopName || 'Business') + ' has been activated.', 'success', 'Terminals can sign in again');
+      },
+      meta: 'POST /admin/businesses/' + b.id + '/activate'
+    }).then(function (ok) {
+      Proto.setBusy('row-' + b.id, false);
+      if (!ok) Proto.toast('Failed to activate ' + (b.shopName || 'business') + '.', 'error');
+      Proto.render();
+    });
+  }
+
+  function runDetail(b) {
+    Proto.setBusy('row-' + b.id, true);
+    Proto.render();
+    Proto.call('Load business details', {
+      onOk: function () { detailModal(b); },
+      meta: 'GET /admin/businesses/' + b.id
+    }).then(function (ok) {
+      Proto.setBusy('row-' + b.id, false);
+      if (!ok) Proto.toast('Unable to load business details.', 'error');
+      Proto.render();
+    });
+  }
+
+  /* ── create business ───────────────────────────────────────────────────── */
+  var FIELDS = [
+    { id: 'create-shop-name',  key: 'shopName',  label: 'Restaurant / Shop Name *', type: 'text',     ph: 'e.g. Sagar Ratna Cafe' },
+    { id: 'create-owner-name', key: 'ownerName', label: 'Owner Full Name *',        type: 'text',     ph: 'e.g. Ramesh Sharma' },
+    { id: 'create-owner-phone',key: 'ownerPhone',label: 'Owner Phone (10 digits) *',type: 'text',     ph: '10-digit mobile number', maxlength: 10 },
+    { id: 'create-initial-pwd',key: 'initialPassword', label: 'Initial Password *', type: 'password', ph: 'Minimum 6 characters' },
+    { id: 'create-owner-email',key: 'ownerEmail', label: 'Owner Email (optional)',  type: 'email',    ph: 'e.g. owner@example.com' },
+    { id: 'create-address',    key: 'address',   label: 'Address / City (optional)',type: 'text',     ph: 'e.g. Indiranagar, Bangalore' }
+  ];
+
+  function createModal() {
+    var body =
+      '<div id="createError" hidden role="alert" class="form-error"></div>' +
+      '<p class="inline-note">Provision a new restaurant tenant and initial owner account.</p>' +
+      '<div class="form-grid">' +
+        FIELDS.map(function (f) {
+          return '<div class="field"><label class="field-label" for="' + f.id + '">' + f.label + '</label>' +
+            '<input class="field-control" id="' + f.id + '" type="' + f.type + '" placeholder="' + f.ph + '"' +
+            (f.maxlength ? ' maxlength="' + f.maxlength + '"' : '') + ' aria-describedby="err-' + f.key + '" />' +
+            '<span class="field-error" id="err-' + f.key + '" role="alert"></span></div>';
+        }).join('') +
+      '</div>';
+    var foot = '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-primary" type="button" id="createSubmit">Create Restaurant</button>';
+    var overlay = Proto.modal('Add New Restaurant', body, foot, true);
+    var submit = overlay.querySelector('#createSubmit');
+    submit.addEventListener('click', function () { submitCreate(overlay, submit); });
+
+    /* Field-level validation on blur, matching the reactive form's rules. */
+    FIELDS.forEach(function (f) {
+      var input = overlay.querySelector('#' + f.id);
+      input.addEventListener('blur', function () { showFieldError(overlay, f.key, validateField(f, input.value)); });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit.click(); });
+    });
+    var first = overlay.querySelector('#create-shop-name');
+    if (first) first.focus();
+  }
+
+  function validateField(f, raw) {
+    var v = String(raw == null ? '' : raw).trim();
+    if (f.key === 'shopName' && !v) return 'Restaurant name is required.';
+    if (f.key === 'ownerName' && !v) return 'Owner name is required.';
+    if (f.key === 'ownerPhone') {
+      if (!v) return 'Phone number is required.';
+      if (!/^\d{10}$/.test(v)) return 'Must be exactly 10 digits.';
+    }
+    if (f.key === 'initialPassword') {
+      if (!v) return 'Initial password is required.';
+      if (v.length < 6) return 'Password must be at least 6 characters.';
+    }
+    if (f.key === 'ownerEmail' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Enter a valid email address.';
+    return '';
+  }
+  function showFieldError(overlay, key, message) {
+    var slot = overlay.querySelector('#err-' + key);
+    if (slot) slot.textContent = message || '';
+  }
+  function showFormError(overlay, message) {
+    var box = overlay.querySelector('#createError');
+    if (!box) return;
+    if (!message) { box.hidden = true; box.textContent = ''; return; }
+    box.hidden = false;
+    box.textContent = message;
+  }
+
+  function submitCreate(overlay, submit) {
+    var values = {}, dirty = false;
+    FIELDS.forEach(function (f) {
+      var input = overlay.querySelector('#' + f.id);
+      var message = validateField(f, input.value);
+      showFieldError(overlay, f.key, message);
+      if (message) dirty = true;
+      values[f.key] = String(input.value || '').trim();
+    });
+    if (dirty) {
+      showFormError(overlay, 'Fix the highlighted fields before provisioning this restaurant.');
+      var firstBad = overlay.querySelector('.field-error:not(:empty)');
+      if (firstBad) { var prev = firstBad.previousElementSibling; if (prev) prev.focus(); }
+      return;
+    }
+    showFormError(overlay, '');
+    submit.disabled = true;
+    submit.textContent = 'Provisioning...';
+    Proto.call('Create restaurant', {
+      failMode: Proto.state.fail,
+      meta: 'POST /admin/businesses',
+      onOk: function () {
+        var created = { id: 1099, shopName: values.shopName, ownerName: values.ownerName, phone: values.ownerPhone, email: values.ownerEmail || null };
+        BUSINESSES.unshift({
+          id: created.id, shopName: created.shopName, ownerName: created.ownerName, phone: created.phone,
+          email: created.email || '—', city: values.address || 'Not provided',
+          orders: 0, menu: 0, staff: 1, suspended: false, kyc: 'Pending', settlement: 'Weekly',
+          created: '2026-10-13', updated: '2026-10-13', revenue: 0, posOrders: 0, gst: false,
+          tz: 'Asia/Kolkata', currency: 'INR'
+        });
+        ui.page = 1;
+        Proto.toast('Restaurant "' + (created.shopName || 'New Restaurant') + '" created successfully.', 'success', 'Tenant #' + created.id);
+        overlay.remove();
+        credentialsModal(created);
+      }
+    }).then(function (ok) {
+      submit.disabled = false;
+      submit.textContent = 'Create Restaurant';
+      if (!ok) {
+        /* The server's duplicate-phone rejection, surfaced on the form itself. */
+        showFormError(overlay, 'Failed to provision restaurant. Check phone number uniqueness.');
+        showFieldError(overlay, 'ownerPhone', 'This number already owns a business on the platform.');
+      }
+    });
+  }
+
+  function credentialsModal(created) {
+    var overlay = Proto.modal('Restaurant created',
+      '<p class="inline-note">Share these one-time credentials with the owner. They can change the password from the Android app.</p>' +
+      '<div class="cred-row"><span><span class="cred-label">Restaurant</span><span class="cred-value">' + Proto.esc(created.shopName) + '</span></span>' +
+        '<span class="status-chip st-completed">Tenant #' + created.id + '</span></div>' +
+      '<div class="cred-row"><span><span class="cred-label">Owner</span><span class="cred-value">' + Proto.esc(created.ownerName) + '</span></span></div>' +
+      '<div class="cred-row"><span><span class="cred-label">Login ID</span><span class="cred-value">' + created.phone + '</span></span>' +
+        '<button class="ghost-btn" type="button" id="copyCreds">Copy credentials</button></div>' +
+      '<div class="cred-row"><span><span class="cred-label">Initial password</span><span class="cred-value">' + Proto.esc(created.ownerEmail ? 'set at provisioning' : 'set at provisioning') + '</span></span>' +
+        '<span class="status-chip st-neutral">Sent over WhatsApp</span></div>',
+      '<button class="btn-primary" type="button" data-close>Done</button>');
+    var copy = overlay.querySelector('#copyCreds');
+    if (copy) copy.addEventListener('click', function () {
+      Proto.toast('Login ID ' + created.phone + ' copied to clipboard', 'success');
+    });
+  }
+
+  /* ── boot ──────────────────────────────────────────────────────────────── */
+  Proto.boot({
+    page: 'businesses',
+    title: 'Businesses',
+    subtitle: 'Platform directory with cleaner drill-down detail panel.',
+    eyebrow: 'Platform console',
+    live: false,
+    headerExtra:
+      '<span class="kpi-tag">Directory View</span>' +
+      '<span class="kpi-tag">Business Details</span>' +
+      '<button class="btn-primary" type="button" data-action="openCreate">+ Add Restaurant</button>',
+    data: { businesses: BUSINESSES },
+    skeleton:
+      '<section class="bento-kpi-grid" aria-hidden="true">' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+      '</section>' +
+      '<section class="panel" style="margin-top:14px" aria-hidden="true">' +
+        '<div class="skeleton sk-line" style="width:200px"></div>' +
+        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-top:14px">' +
+          '<div class="skeleton sk-row" style="height:40px"></div>' +
+          '<div class="skeleton sk-row" style="height:40px"></div>' +
+          '<div class="skeleton sk-row" style="height:40px"></div>' +
+        '</div>' +
+      '</section>' +
+      '<section class="panel panel--flush" style="margin-top:14px" aria-hidden="true">' +
+        '<div style="padding:16px 16px 0"><div class="skeleton sk-line" style="height:36px"></div></div>' +
+        '<div style="padding:0 16px 16px;margin-top:8px">' + Proto.skeletonRows(6, 'sk-table-row') + '</div>' +
+      '</section>',
+
+    render: function (ctx) {
+      if (ctx.mode === 'empty') {
+        return kpiRow([]) +
+          '<section class="panel" style="margin-top:14px">' +
+            Proto.emptyBox(
+              'No businesses onboarded yet',
+              'Provision the platform\u2019s first restaurant tenant \u2014 the owner account is created with it, so nothing else is needed to get them billing.',
+              '+ Add Restaurant', 'openCreate') +
+          '</section>';
+      }
+      var rows = filtered();
+      return kpiRow(BUSINESSES) + toolbar() + (rows.length ? table() : filteredEmpty());
+    },
+
+    onBusy: function () { Proto.render(); },
+
+    inputs: {
+      /* Stored without a re-render so typing keeps the caret in place, then the
+         table is re-rendered once the value has settled. */
+      search: function (v) {
+        ui.search = v;
+        ui.page = 1;
+        Proto.render();
+        var box = document.getElementById('biz-search');
+        if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+      },
+      pageSize: function (v) { ui.pageSize = Number(v) || 10; ui.page = 1; Proto.render(); }
+    },
+
+    actions: {
+      filterStatus: function (el) { ui.status = el.dataset.status; ui.page = 1; Proto.render(); },
+      clearFilters: function () { ui.search = ''; ui.status = 'all'; ui.pageSize = 10; ui.page = 1; Proto.render(); },
+      page: function (el) {
+        var next = el.dataset.page === 'next' ? ui.page + 1 : ui.page - 1;
+        ui.page = Math.min(Math.max(1, next), pageCount());
+        Proto.render();
+      },
+      openCreate: function () { createModal(); },
+      detail: function (el) { var b = byId(Number(el.dataset.id)); if (b) runDetail(b); },
+      suspend: function (el) { var b = byId(Number(el.dataset.id)); if (b) suspendConfirm(b); },
+      activate: function (el) { var b = byId(Number(el.dataset.id)); if (b) runActivate(b); },
+      'detail-go-suspend': function (el) {
+        var b = byId(Number(el.dataset.id));
+        if (!b) return;
+        if (b.suspended) runActivate(b); else suspendConfirm(b);
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

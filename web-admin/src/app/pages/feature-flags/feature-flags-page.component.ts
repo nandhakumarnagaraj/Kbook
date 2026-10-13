@@ -6,13 +6,14 @@ import { ToastService } from '../../core/services/toast.service';
 import { FeatureFlagAdminItem, FeatureFlagAuditItem } from '../../core/models/api.models';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-feature-flags-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -32,10 +33,11 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <div class="panel table-wrap" *ngIf="!loading(); else loadingBlock">
-        <div class="alert error load-error" role="alert" *ngIf="error()">
-          <span>{{ error() }}</span>
-          <button type="button" class="ghost-btn" (click)="reload()">Try again</button>
-        </div>
+        <app-api-state
+          *ngIf="error()"
+          [message]="error()"
+          (retry)="reload()"
+        ></app-api-state>
         <table class="data-table" *ngIf="!error() && flags().length; else emptyBlock">
           <thead>
             <tr>
@@ -127,7 +129,12 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loadingBlock>
-        <div class="panel loading">Loading feature flags...</div>
+        <div class="panel loading" role="status" aria-busy="true">
+          <span class="sr-only">Loading feature flags...</span>
+          <div class="skeleton-stack">
+            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+          </div>
+        </div>
       </ng-template>
 
       <div class="panel table-wrap audit-panel" *ngIf="selectedFlag(); else noAudit">

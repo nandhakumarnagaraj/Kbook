@@ -1,5 +1,5 @@
-﻿import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
@@ -106,9 +106,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </a>
           </div>
 
-          <div *ngIf="loginSuccessMessage" class="alert-box success" role="status">{{ loginSuccessMessage }}</div>
+          <div *ngIf="loginSuccessMessage()" class="alert-box success" role="status">{{ loginSuccessMessage() }}</div>
 
-          <ng-container *ngIf="forgotStep === 'none'">
+          <ng-container *ngIf="forgotStep() === 'none'">
             <header class="auth-head">
               <h2>Welcome back</h2>
               <p class="muted">Sign in to your restaurant owner workspace.</p>
@@ -116,8 +116,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
             <div class="google-wrap">
               <div id="google-btn"></div>
-              <div *ngIf="googleLoading" class="google-loading">Signing in with Google...</div>
-              <div *ngIf="googleError" class="alert-box error" role="alert">{{ googleError }}</div>
+              <div *ngIf="googleLoading()" class="google-loading">Signing in with Google...</div>
+              <div *ngIf="googleError()" class="alert-box error" role="alert">{{ googleError() }}</div>
             </div>
 
             <div class="divider"><span>or with password</span></div>
@@ -180,11 +180,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 </div>
               </div>
 
-              <div *ngIf="error" class="alert-box error" role="alert">{{ error }}</div>
+              <div *ngIf="error()" class="alert-box error" role="alert">{{ error() }}</div>
 
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading">
-                <span *ngIf="!loading">Sign in &rarr;</span>
-                <span *ngIf="loading" class="btn-spinner-row">
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="form.invalid || loading()">
+                <span *ngIf="!loading()">Sign in &rarr;</span>
+                <span *ngIf="loading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Signing in…
                 </span>
@@ -209,7 +209,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </div>
           </ng-container>
 
-          <ng-container *ngIf="forgotStep === 'phone'">
+          <ng-container *ngIf="forgotStep() === 'phone'">
             <header class="auth-head">
               <h2>Forgot password</h2>
               <p class="muted">Enter your registered phone number to receive an OTP.</p>
@@ -232,10 +232,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   />
                 </div>
               </div>
-              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading">
-                <span *ngIf="!forgotLoading">Send OTP &rarr;</span>
-                <span *ngIf="forgotLoading" class="btn-spinner-row">
+              <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="phoneForm.invalid || forgotLoading()">
+                <span *ngIf="!forgotLoading()">Send OTP &rarr;</span>
+                <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Sending OTP…
                 </span>
@@ -244,7 +244,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
-          <ng-container *ngIf="forgotStep === 'otp'">
+          <ng-container *ngIf="forgotStep() === 'otp'">
             <header class="auth-head">
               <h2>Enter OTP</h2>
               <p class="muted">If this number is registered, you'll receive a 6-digit code shortly.</p>
@@ -268,10 +268,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   />
                 </div>
               </div>
-              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading">
-                <span *ngIf="!forgotLoading">Verify OTP &rarr;</span>
-                <span *ngIf="forgotLoading" class="btn-spinner-row">
+              <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="otpForm.invalid || forgotLoading()">
+                <span *ngIf="!forgotLoading()">Verify OTP &rarr;</span>
+                <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Verifying…
                 </span>
@@ -280,7 +280,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
-          <ng-container *ngIf="forgotStep === 'password'">
+          <ng-container *ngIf="forgotStep() === 'password'">
             <header class="auth-head">
               <h2>Reset password</h2>
               <p class="muted">Enter a new password (minimum 6 characters).</p>
@@ -322,10 +322,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error" role="alert">
                 Passwords do not match.
               </div>
-              <div *ngIf="forgotError" class="alert-box error" role="alert">{{ forgotError }}</div>
-              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading">
-                <span *ngIf="!forgotLoading">Reset password &rarr;</span>
-                <span *ngIf="forgotLoading" class="btn-spinner-row">
+              <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
+              <button class="primary-btn primary-btn--block primary-btn--hero" [disabled]="passwordForm.invalid || passwordMismatch || forgotLoading()">
+                <span *ngIf="!forgotLoading()">Reset password &rarr;</span>
+                <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Resetting…
                 </span>
@@ -334,7 +334,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             <a href="#login" class="back-link" (click)="backToLogin($event)" role="button">← Back to sign in</a>
           </ng-container>
 
-          <ng-container *ngIf="forgotStep === 'success'">
+          <ng-container *ngIf="forgotStep() === 'success'">
             <header class="auth-head">
               <h2>Password reset</h2>
               <p class="muted">Your password has been changed. You can now sign in with your new password.</p>
@@ -692,6 +692,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly year = new Date().getFullYear();
   readonly showPassword = signal(false);
@@ -714,15 +715,15 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     confirmPassword: ['', [Validators.required, Validators.minLength(6)]]
   });
 
-  loading = false;
-  error = '';
-  googleError = '';
-  googleLoading = false;
-  loginSuccessMessage = '';
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly googleError = signal('');
+  readonly googleLoading = signal(false);
+  readonly loginSuccessMessage = signal('');
 
-  forgotStep: ForgotStep = 'none';
-  forgotLoading = false;
-  forgotError = '';
+  readonly forgotStep = signal<ForgotStep>('none');
+  readonly forgotLoading = signal(false);
+  readonly forgotError = signal('');
   private forgotPhone = '';
   private tempToken = '';
   private googleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -785,88 +786,102 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   }
 
   private handleGoogleCredential(idToken: string): void {
-    this.googleError = '';
-    this.googleLoading = true;
+    this.googleError.set('');
+    this.googleLoading.set(true);
     this.authService.googleLogin(idToken).subscribe({
-      next: () => { this.googleLoading = false; },
+      next: () => {
+        this.googleLoading.set(false);
+        this.cdr.markForCheck();
+      },
       error: (err) => {
-        this.googleLoading = false;
-        this.googleError = err?.error?.error ?? err?.error?.message ?? 'Google sign-in failed.';
+        this.googleLoading.set(false);
+        this.googleError.set(err?.error?.error ?? err?.error?.message ?? 'Google sign-in failed.');
+        this.cdr.markForCheck();
       }
     });
   }
 
   submit(): void {
-    if (this.form.invalid || this.loading) return;
-    this.loading = true;
-    this.error = '';
-    this.loginSuccessMessage = '';
+    if (this.form.invalid || this.loading()) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.loginSuccessMessage.set('');
     this.authService.login(this.form.getRawValue()).subscribe({
-      next: () => { this.loading = false; },
+      next: () => {
+        this.loading.set(false);
+        this.cdr.markForCheck();
+      },
       error: (err) => {
-        this.loading = false;
-        this.error = err?.error?.error || err?.error?.message || 'Login failed.';
+        this.loading.set(false);
+        this.error.set(err?.error?.error || err?.error?.message || 'Invalid login ID or password.');
+        this.cdr.markForCheck();
       }
     });
   }
 
   startForgotPassword(event?: Event): void {
     if (event) event.preventDefault();
-    this.forgotStep = 'phone';
-    this.forgotError = '';
-    this.forgotLoading = false;
-    this.loginSuccessMessage = '';
+    this.forgotStep.set('phone');
+    this.forgotError.set('');
+    this.forgotLoading.set(false);
+    this.loginSuccessMessage.set('');
     this.phoneForm.reset();
     this.otpForm.reset();
     this.passwordForm.reset();
+    this.cdr.markForCheck();
   }
 
   backToLogin(event?: Event): void {
     if (event) event.preventDefault();
-    this.forgotStep = 'none';
-    this.forgotError = '';
-    this.forgotLoading = false;
+    this.forgotStep.set('none');
+    this.forgotError.set('');
+    this.forgotLoading.set(false);
     this.forgotPhone = '';
     this.tempToken = '';
+    this.cdr.markForCheck();
   }
 
   submitPhone(): void {
-    if (this.phoneForm.invalid || this.forgotLoading) return;
-    this.forgotLoading = true;
-    this.forgotError = '';
+    if (this.phoneForm.invalid || this.forgotLoading()) return;
+    this.forgotLoading.set(true);
+    this.forgotError.set('');
     this.forgotPhone = this.phoneForm.getRawValue().phone;
 
     this.authService.requestPasswordOtp(this.forgotPhone).subscribe({
       next: () => {
-        this.forgotLoading = false;
-        this.forgotStep = 'otp';
-        this.forgotError = '';
+        this.forgotLoading.set(false);
+        this.forgotStep.set('otp');
+        this.forgotError.set('');
+        this.cdr.markForCheck();
       },
       error: () => {
         // Server always returns 200 to prevent user enumeration.
         // Move to OTP step regardless — if the number isn't registered, no OTP arrives.
-        this.forgotLoading = false;
-        this.forgotStep = 'otp';
-        this.forgotError = '';
+        this.forgotLoading.set(false);
+        this.forgotStep.set('otp');
+        this.forgotError.set('');
+        this.cdr.markForCheck();
       }
     });
   }
 
   submitOtp(): void {
-    if (this.otpForm.invalid || this.forgotLoading) return;
-    this.forgotLoading = true;
-    this.forgotError = '';
+    if (this.otpForm.invalid || this.forgotLoading()) return;
+    this.forgotLoading.set(true);
+    this.forgotError.set('');
     const otp = this.otpForm.getRawValue().otp;
 
     this.authService.verifyPasswordOtp(this.forgotPhone, otp).subscribe({
       next: (res) => {
-        this.forgotLoading = false;
+        this.forgotLoading.set(false);
         this.tempToken = res.tempToken;
-        this.forgotStep = 'password';
+        this.forgotStep.set('password');
+        this.cdr.markForCheck();
       },
       error: (err) => {
-        this.forgotLoading = false;
-        this.forgotError = err?.error?.error || err?.error?.message || 'Invalid or expired OTP. Please try again.';
+        this.forgotLoading.set(false);
+        this.forgotError.set(err?.error?.error || err?.error?.message || 'Invalid or expired OTP. Please try again.');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -875,18 +890,20 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     const { newPassword, confirmPassword } = this.passwordForm.getRawValue();
     if (this.passwordForm.invalid
         || !isPasswordResetSubmissionValid(newPassword, confirmPassword)
-        || this.forgotLoading) return;
-    this.forgotLoading = true;
-    this.forgotError = '';
+        || this.forgotLoading()) return;
+    this.forgotLoading.set(true);
+    this.forgotError.set('');
 
     this.authService.resetPassword(this.tempToken, newPassword).subscribe({
       next: () => {
-        this.forgotLoading = false;
-        this.forgotStep = 'success';
+        this.forgotLoading.set(false);
+        this.forgotStep.set('success');
+        this.cdr.markForCheck();
       },
       error: (err) => {
-        this.forgotLoading = false;
-        this.forgotError = err?.error?.error || err?.error?.message || 'Failed to reset password. Please try again.';
+        this.forgotLoading.set(false);
+        this.forgotError.set(err?.error?.error || err?.error?.message || 'Failed to reset password. Please try again.');
+        this.cdr.markForCheck();
       }
     });
   }

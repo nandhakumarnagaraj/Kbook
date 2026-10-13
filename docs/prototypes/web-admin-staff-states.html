@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Staff &amp; Team Directory — KhanaBook prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Only page-specific atoms the shared shell does not own. Everything else
+     (panels, tables, chips, states, toasts, modals) comes from _shared/proto.css. */
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--panel-2); color: var(--brand); font-weight: 700; font-size: 12px; display: grid; place-items: center; border: 1px solid var(--line); flex: none; }
+  .user-cell { display: flex; align-items: center; gap: 8px; }
+  .self-pill { padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; background: var(--brand-soft); color: var(--brand); letter-spacing: .04em; text-transform: uppercase; }
+  .row-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .small-btn { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1px solid var(--line-strong); background: var(--panel); }
+  .small-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+  .small-btn--danger { color: var(--danger); border-color: rgba(192,57,43,.3); }
+  .small-btn--success { color: var(--success); border-color: rgba(47,133,90,.3); }
+  .small-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .why { font-size: 10.5px; color: var(--muted); display: block; }
+  .role-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filter-strip { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .perm-grid { display: grid; gap: 14px; }
+  .perm-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .perm-cat { font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--brand); border-bottom: 2px solid var(--brand-soft); padding-bottom: 5px; }
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span { position: absolute; inset: 0; background: var(--line-strong); border-radius: 22px; transition: .2s; cursor: pointer; }
+  .switch span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + span { background: var(--brand); }
+  .switch input:checked + span::before { transform: translateX(18px); }
+  .switch input:disabled + span { opacity: .5; cursor: not-allowed; }
+  .proto-only { font-size: 11px; color: var(--muted); font-style: italic; }
+  @media (max-width: 700px) { .filter-strip { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── data (shapes mirror BusinessStaffItem) ─────────────────────────── */
+  var ME = '9876543210';
+
+  var STAFF = [
+    { userId: 1, name: 'Ravi Sharma',   loginId: '9876543210', role: 'OWNER',      whatsappNumber: '9876543210', email: 'ravi@spiceroute.in',  active: true,  updatedAt: Date.now() - 2 * 3600e3 },
+    { userId: 2, name: 'Priya Nair',    loginId: '9123456780', role: 'SHOP_STAFF', whatsappNumber: '9123456780', email: 'priya@spiceroute.in', active: true,  updatedAt: Date.now() - 26 * 3600e3 },
+    { userId: 3, name: 'Imran Qureshi', loginId: '9988776655', role: 'SHOP_STAFF', whatsappNumber: '9988776655', email: '',                    active: true,  updatedAt: Date.now() - 3 * 24 * 3600e3 },
+    { userId: 4, name: 'Anjali Desai',  loginId: '9765432100', role: 'SHOP_STAFF', whatsappNumber: '9765432100', email: 'anjali@spiceroute.in', active: false, updatedAt: Date.now() - 9 * 24 * 3600e3 }
+  ];
+
+  /* The 30 keys the server enum defines, in the modal's own grouping. */
+  var CATEGORIES = [
+    { name: 'Billing', items: [
+      ['billing.create', 'Create Bills'], ['billing.edit', 'Edit Open Bills'], ['billing.void', 'Cancel/Void Bills'],
+      ['billing.discount', 'Apply Discounts'], ['billing.refund', 'Process Refunds'], ['billing.settle', 'Mark Payment Received']
+    ] },
+    { name: 'Menu', items: [
+      ['menu.view', 'View Menu Items'], ['menu.toggle_availability', 'Toggle Item Availability'], ['menu.edit_price', 'Change Prices'],
+      ['menu.edit_full', 'Edit Full Menu Details'], ['menu.add_item', 'Add New Items'], ['menu.delete_item', 'Remove Items']
+    ] },
+    { name: 'Orders', items: [
+      ['orders.view', 'View Order List'], ['orders.kot_view', 'See Kitchen Queue'], ['orders.kot_ready', 'Mark Items Ready'], ['orders.kot_void', 'Void KOT Items']
+    ] },
+    { name: 'Reports', items: [
+      ['reports.day_summary', "Today's Sales Summary"], ['reports.full', 'Full Revenue Reports'], ['reports.gst', 'GST/Tax Reports'], ['reports.export', 'Export/Download Data']
+    ] },
+    { name: 'Staff', items: [
+      ['staff.view', 'View Staff List'], ['staff.add', 'Add New Staff'], ['staff.edit', 'Edit Staff Details'], ['staff.remove', 'Deactivate Staff'], ['staff.permissions', 'Manage Permissions']
+    ] },
+    { name: 'Settings', items: [
+      ['settings.shop_profile', 'Edit Shop Profile'], ['settings.payment', 'Bank/UPI Settings'], ['settings.printer', 'Printer Configuration'],
+      ['settings.terminal', 'Manage Devices'], ['settings.gst', 'GST/FSSAI Settings']
+    ] }
+  ];
+  var ALL_KEYS = CATEGORIES.reduce(function (acc, c) { return acc.concat(c.items.map(function (i) { return i[0]; })); }, []);
+
+  /* SHOP_STAFF = every operational key except the owner-only config families
+     (server PermissionService.SHOP_STAFF_CONFIG_KEYS). Fixed by role. */
+  var STAFF_FIXED = ALL_KEYS.filter(function (k) {
+    return ['settings.shop_profile', 'settings.payment', 'settings.gst', 'menu.toggle_availability', 'menu.edit_price', 'menu.edit_full', 'menu.add_item', 'menu.delete_item'].indexOf(k) < 0;
+  });
+  var OWNER_SAMPLE = ALL_KEYS.slice();
+
+  /* Owner-only config families, for the read-only view's strikethrough rows. */
+  var COUNTER_TEMPLATE = ['billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'orders.view', 'orders.kot_view', 'reports.day_summary'];
+  var MANAGER_TEMPLATE = ['billing.create', 'billing.edit', 'billing.void', 'billing.discount', 'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'menu.edit_price', 'menu.add_item', 'orders.view', 'orders.kot_view', 'orders.kot_ready', 'reports.day_summary', 'reports.full', 'staff.view'];
+
+  /* ── view state ─────────────────────────────────────────────────────── */
+  var ui = {
+    search: '', role: 'ALL', status: 'ALL', page: 1, pageSize: 10,
+    permSet: [], permEditable: false, restoredFocus: null
+  };
+
+  function initials(name) {
+    var parts = String(name || '').trim().split(/\s+/);
+    if (!parts[0]) return 'ST';
+    return (parts.length === 1 ? parts[0].substring(0, 2) : parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  var isSelf = function (s) { return s.loginId === ME; };
+  function filtered() {
+    var q = ui.search.trim().toLowerCase();
+    return STAFF.filter(function (s) {
+      var hay = [s.name, s.loginId, s.email || '', s.whatsappNumber || '', s.role].join(' ').toLowerCase();
+      var okSearch = !q || hay.indexOf(q) >= 0;
+      var okRole = ui.role === 'ALL' || s.role === ui.role;
+      var okStatus = ui.status === 'ALL' || (ui.status === 'ACTIVE' ? s.active : !s.active);
+      return okSearch && okRole && okStatus;
+    });
+  }
+  function paged() {
+    var f = filtered();
+    var start = (ui.page - 1) * ui.pageSize;
+    return { rows: f.slice(start, start + ui.pageSize), total: f.length, pages: Math.max(1, Math.ceil(f.length / ui.pageSize)) };
+  }
+  function busyLabel(key) { return Proto.busy(key) ? ' busy' : ''; }
+
+  /* ── table ──────────────────────────────────────────────────────────── */
+  function rolePill(role) {
+    return '<span class="chip ' + (role === 'OWNER' ? 'chip--active' : '') + '" style="' +
+      (role === 'OWNER' ? '' : 'background:var(--panel-2);color:var(--ink);') + '">' + Proto.esc(role) + '</span>';
+  }
+
+  function row(s) {
+    var self = isSelf(s);
+    var canManage = !self && s.role !== 'OWNER';
+    return '<tr aria-busy="' + (Proto.busy('row' + s.userId) ? 'true' : 'false') + '">' +
+      '<td><div class="user-cell"><span class="avatar" aria-hidden="true">' + Proto.esc(initials(s.name)) + '</span>' +
+        '<span><strong>' + Proto.esc(s.name) + '</strong>' + (self ? ' <span class="self-pill">You</span>' : '') + '</span></div></td>' +
+      '<td><code>' + Proto.esc(s.loginId) + '</code></td>' +
+      '<td>' + rolePill(s.role) + '</td>' +
+      '<td>' + Proto.esc(s.whatsappNumber || s.email || '—') + '</td>' +
+      '<td><span class="status-chip ' + (s.active ? 'st-completed' : 'st-neutral') + '">' + (s.active ? 'Active' : 'Inactive') + '</span></td>' +
+      '<td class="tabular muted">' + Proto.esc(Proto.fmtDate(s.updatedAt)) + '</td>' +
+      '<td><div class="row-actions">' +
+        '<button class="small-btn" type="button" data-action="edit" data-id="' + s.userId + '">Edit</button>' +
+        (canManage ? '<button class="small-btn" type="button" data-action="permissions" data-id="' + s.userId + '">Permissions</button>' : '') +
+        (s.active ? '<button class="small-btn" type="button" data-action="revokeOne" data-id="' + s.userId + '" title="Sign this person out of every device without disabling their account">Sign out</button>' : '') +
+        (!s.active && !self ? '<button class="small-btn small-btn--success" type="button" data-action="activate" data-id="' + s.userId + '">Activate</button>' : '') +
+        (self
+          ? '<span><button class="small-btn small-btn--danger" type="button" disabled aria-describedby="why-self-' + s.userId + '">Deactivate</button>' +
+            '<span class="why" id="why-self-' + s.userId + '">Cannot deactivate yourself</span></span>'
+          : '<button class="small-btn small-btn--danger" type="button" data-action="deactivate" data-id="' + s.userId + '"' + (s.active ? '' : ' disabled') + '>Deactivate</button>') +
+      '</div></td>' +
+    '</tr>';
+  }
+
+  function filtersHtml() {
+    return '<section class="panel" style="margin-bottom:14px">' +
+      '<div class="filter-strip">' +
+        '<div class="field"><label class="field-label" for="staff-search">Search</label>' +
+          '<input id="staff-search" class="field-control" type="search" data-input="search" value="' + Proto.esc(ui.search) + '" placeholder="Search by name, login, email, or phone" /></div>' +
+        '<div class="field"><label class="field-label" for="staff-status">Status</label>' +
+          '<select id="staff-status" class="field-control" data-input="status">' +
+            ['ALL:All statuses', 'ACTIVE:Active', 'INACTIVE:Inactive'].map(function (o) {
+              var p = o.split(':');
+              return '<option value="' + p[0] + '"' + (ui.status === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
+            }).join('') +
+          '</select></div>' +
+        '<div class="field"><label class="field-label" for="staff-size">Rows</label>' +
+          '<select id="staff-size" class="field-control" data-input="rows">' +
+            [5, 10, 20].map(function (n) { return '<option value="' + n + '"' + (ui.pageSize === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') +
+          '</select></div>' +
+      '</div>' +
+      '<div class="filter-foot">' +
+        '<p class="muted">' + filtered().length + ' of ' + STAFF.length + ' staff members</p>' +
+        '<button class="ghost-btn" type="button" data-action="clearFilters">Clear filters</button>' +
+      '</div>' +
+    '</section>';
+  }
+
+  /* ── render ─────────────────────────────────────────────────────────── */
+  function render(ctx) {
+    if (ctx.mode === 'empty') {
+      return '<section class="panel">' +
+        '<div class="empty-box">' +
+          '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>' +
+          '<h4>No staff added yet</h4>' +
+          '<p>Your shop has only its owner account. Add a team member to give them billing, kitchen or reporting access on the POS.</p>' +
+          '<button class="ghost-btn" type="button" data-action="openAdd">Add Staff</button>' +
+        '</div>' +
+      '</section>';
+    }
+
+    var page = paged();
+    var roles = ['ALL'].concat(STAFF.map(function (s) { return s.role; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort());
+    var activeCount = STAFF.filter(function (s) { return s.active; }).length;
+
+    var strip = '<nav class="role-strip" aria-label="Staff role filters">' +
+      roles.map(function (r) {
+        var count = r === 'ALL' ? STAFF.length : STAFF.filter(function (s) { return s.role === r; }).length;
+        var label = r === 'ALL' ? 'All Roles (' + count + ')' : r + ' (' + count + ')';
+        return '<button class="chip" type="button" data-action="roleFilter" data-role="' + r + '" aria-pressed="' + (ui.role === r) + '">' + Proto.esc(label) + '</button>';
+      }).join('') +
+    '</nav>';
+
+    var body;
+    if (!page.rows.length) {
+      body = '<section class="panel"><div class="empty-box">' +
+        '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>' +
+        '<h4>No staff match the current filters</h4>' +
+        '<p>Try a different search, role, or status filter. Owners can add a new team member.</p>' +
+        '<button class="ghost-btn" type="button" data-action="clearFilters">Clear filters</button>' +
+      '</div></section>';
+    } else {
+      body = '<section class="panel panel--flush">' +
+        '<div class="table-wrap"><table class="data-table">' +
+          '<thead><tr><th>Staff Member</th><th>Login ID</th><th>Assigned Role</th><th>Contact</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>' +
+          '<tbody>' + page.rows.map(row).join('') + '</tbody>' +
+        '</table></div>' +
+        (page.total > ui.pageSize
+          ? '<div class="pager" style="padding:12px 14px"><p class="muted">Page ' + ui.page + ' of ' + page.pages + '</p>' +
+            '<div style="display:flex;gap:8px">' +
+              '<button class="ghost-btn" type="button" data-action="page" data-page="' + (ui.page - 1) + '"' + (ui.page === 1 ? ' disabled' : '') + '>Previous</button>' +
+              '<button class="ghost-btn" type="button" data-action="page" data-page="' + (ui.page + 1) + '"' + (ui.page === page.pages ? ' disabled' : '') + '>Next</button>' +
+            '</div></div>'
+          : '') +
+      '</section>';
+    }
+
+    return '<div class="panel__head" style="margin-bottom:12px">' +
+        '<span class="kpi-tag kpi-tag--green">' + activeCount + '/' + STAFF.length + ' Active Accounts</span>' +
+      '</div>' + strip + filtersHtml() + body;
+  }
+
+  /* ── modals ─────────────────────────────────────────────────────────── */
+  function staffById(id) {
+    return STAFF.filter(function (s) { return String(s.userId) === String(id); })[0];
+  }
+
+  function formModal(item) {
+    var isEdit = !!item;
+    var html =
+      (isEdit ? '' : '<div id="staff-form-error" role="alert" hidden class="field-error" style="background:var(--danger-soft);border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:10px 12px"></div>') +
+      '<div class="field"><label class="field-label" for="sf-name">Name *</label>' +
+        '<input id="sf-name" class="field-control" value="' + Proto.esc(item ? item.name : '') + '" placeholder="Full name" />' +
+        '<span class="field-error" id="sf-name-err" role="alert" hidden>Name is required.</span></div>' +
+      '<div class="field"><label class="field-label" for="sf-phone">Phone (10 digits) *</label>' +
+        '<input id="sf-phone" class="field-control" maxlength="10" inputmode="numeric" value="' + Proto.esc(item ? (item.whatsappNumber || item.loginId) : '') + '" placeholder="10-digit phone number" />' +
+        '<span class="field-error" id="sf-phone-err" role="alert" hidden>Phone must be exactly 10 digits.</span></div>' +
+      '<div class="field"><label class="field-label" for="sf-role">Role *</label>' +
+        '<select id="sf-role" class="field-control"' + (isEdit && isSelf(item) ? ' disabled' : '') + '>' +
+          '<option value="SHOP_STAFF"' + (isEdit && item.role === 'SHOP_STAFF' ? ' selected' : '') + '>Staff</option>' +
+          (isEdit && item.role === 'OWNER' ? '<option value="OWNER" selected>Owner</option>' : '') +
+        '</select>' +
+        (isEdit && isSelf(item) ? '<span class="inline-note">Cannot change your own role</span>' : '<span class="inline-note">Staff accounts sign in on the POS app only — the web console stays owner-only.</span>') +
+      '</div>' +
+      '<div class="field"><label class="field-label" for="sf-email">Email (optional)</label>' +
+        '<input id="sf-email" class="field-control" type="email" value="' + Proto.esc(item ? (item.email || '') : '') + '" placeholder="Email address" />' +
+        '<span class="field-error" id="sf-email-err" role="alert" hidden>Enter a valid email address.</span></div>';
+
+    Proto.modal(isEdit ? 'Edit Staff Member' : 'Add Staff Member', html,
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-primary" type="button" id="sf-save" data-action="' + (isEdit ? 'saveEdit' : 'createStaff') + '" data-id="' + (isEdit ? item.userId : '') + '">' +
+        (isEdit ? 'Save Changes' : 'Create Staff') + '</button>');
+  }
+
+  function createdModal(rec) {
+    var overlay = Proto.modal('Staff Member Created',
+      '<p><strong>' + Proto.esc(rec.name) + '</strong> (' + Proto.esc(rec.role) + ')</p>' +
+      '<p class="' + (rec.credentialsSent ? 'inline-note' : '') + '" style="border:1px solid ' + (rec.credentialsSent ? 'var(--brand)' : 'var(--danger)') + ';border-radius:10px;padding:12px;line-height:1.5">' +
+        (rec.credentialsSent
+          ? 'A login password was sent to <strong>' + Proto.esc(rec.phone) + '</strong> on WhatsApp. Ask them to sign in with it, then change it from the app.'
+          : 'The account was created, but the password could not be sent on WhatsApp. Use “Re-send password” below, or the staff member can tap <strong>Forgot Password</strong> in the app to set their own.') +
+      '</p>' +
+      '<div><button class="ghost-btn" type="button" id="resend-btn" data-action="resend">' +
+        (rec.credentialsSent ? 'Re-send password' : 'Re-send password') + '</button>' +
+        '<span class="inline-loading" id="resend-busy" hidden> <span class="skeleton" style="width:12px;height:12px;border-radius:50%"></span> Sending…</span></div>' +
+      '<p class="inline-note">Re-sending issues a new password and signs the staff member out everywhere.</p>',
+      '<button class="btn-primary" type="button" data-close>Done</button>');
+    return overlay;
+  }
+
+  function permissionsModal(item) {
+    var fixed = item.role === 'SHOP_STAFF';
+    var granted = fixed ? STAFF_FIXED : (ui.permSet.length ? ui.permSet : OWNER_SAMPLE);
+    var editable = ui.permEditable;
+
+    var body = '<p class="muted">Role: <span class="chip">' + Proto.esc(item.role) + '</span></p>';
+
+    if (fixed && !editable) {
+      body += '<p class="inline-note" style="background:var(--panel-2);border-radius:10px;padding:10px 12px;line-height:1.5">' +
+        'Staff permissions are fixed by the <strong>SHOP_STAFF</strong> role and cannot be changed per member. ' +
+        'Granting or revoking a row here has no effect on the POS — it is enforced server-side by role.</p>';
+      body += '<div class="perm-grid">' + CATEGORIES.map(function (cat) {
+        return '<div><div class="perm-cat">' + cat.name + '</div>' + cat.items.map(function (it) {
+          var has = granted.indexOf(it[0]) >= 0;
+          return '<div class="perm-row"><span style="' + (has ? '' : 'color:var(--muted);text-decoration:line-through') + '">' + Proto.esc(it[1]) + '</span>' +
+            '<span class="status-chip ' + (has ? 'st-completed' : 'st-neutral') + '">' + (has ? 'Granted' : 'Denied') + '</span></div>';
+        }).join('') + '</div>';
+      }).join('') + '</div>' +
+        '<p class="proto-only">Prototype note: in the live app this editor is unreachable — “Permissions” only appears for SHOP_STAFF, and SHOP_STAFF is always role-fixed, so the editable version below never shows. Use the button to preview it.</p>' +
+        '<div><button class="ghost-btn" type="button" data-action="previewEditable">Preview the editable editor</button></div>';
+    } else {
+      body += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">' +
+        '<button class="ghost-btn" type="button" data-action="tpl" data-tpl="counter">Counter Staff</button>' +
+        '<button class="ghost-btn" type="button" data-action="tpl" data-tpl="manager">Manager</button>' +
+        '<button class="ghost-btn" type="button" disabled title="Template storage is server-side; the prototype does not persist it">+ Save as Template</button>' +
+      '</div>' +
+      '<p class="inline-note">' + granted.length + ' of ' + ALL_KEYS.length + ' permissions selected.</p>' +
+      '<div class="perm-grid">' + CATEGORIES.map(function (cat) {
+        var all = cat.items.every(function (i) { return granted.indexOf(i[0]) >= 0; });
+        return '<div><div class="perm-row" style="border-bottom:2px solid var(--brand-soft)">' +
+          '<span class="perm-cat" style="border:0;padding:0">' + cat.name + '</span>' +
+          '<label class="switch"><input type="checkbox" data-action="toggleCat" data-cat="' + cat.name + '"' + (all ? ' checked' : '') + ' /><span></span></label>' +
+        '</div>' + cat.items.map(function (it) {
+          return '<div class="perm-row"><span>' + Proto.esc(it[1]) + '</span>' +
+            '<label class="switch"><input type="checkbox" data-action="togglePerm" data-key="' + it[0] + '"' + (granted.indexOf(it[0]) >= 0 ? ' checked' : '') + ' /><span></span></label></div>';
+        }).join('') + '</div>';
+      }).join('') + '</div>';
+    }
+
+    Proto.modal('Permissions — ' + item.name, body,
+      '<button class="ghost-btn" type="button" data-close>' + (fixed && !editable ? 'Close' : 'Cancel') + '</button>' +
+      (!fixed || editable
+        ? '<button class="btn-primary" type="button" data-action="savePermissions" data-id="' + item.userId + '"' + (Proto.busy('perms') ? ' disabled aria-busy="true"' : '') + '>' +
+          (Proto.busy('perms') ? 'Saving…' : 'Save Permissions') + '</button>'
+        : ''), true);
+  }
+
+  function confirmModal(title, message, confirmLabel, action, id) {
+    var overlay = Proto.modal(title, '<p style="line-height:1.55">' + message + '</p>',
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-danger" type="button" data-action="' + action + '" data-id="' + (id || '') + '">' + confirmLabel + '</button>');
+    return overlay;
+  }
+  function closeModals() {
+    Array.prototype.slice.call(document.querySelectorAll('.modal-overlay')).forEach(function (o) { o.remove(); });
+  }
+
+  /* ── actions ────────────────────────────────────────────────────────── */
+  var actions = {
+    openAdd: function () { ui.permEditable = false; formModal(null); },
+
+    edit: function (el) { ui.permEditable = false; formModal(staffById(el.dataset.id)); },
+
+    createStaff: function (el) {
+      var name = (document.getElementById('sf-name') || {}).value || '';
+      var phone = (document.getElementById('sf-phone') || {}).value || '';
+      var email = (document.getElementById('sf-email') || {}).value || '';
+      var bad = false;
+      var setErr = function (id, on, msg) {
+        var n = document.getElementById(id);
+        if (!n) return;
+        n.hidden = !on;
+        if (msg) n.textContent = msg;
+        if (on) bad = true;
+      };
+      setErr('sf-name-err', name.trim().length < 2, 'Name is required.');
+      setErr('sf-phone-err', !/^[0-9]{10}$/.test(phone), 'Phone must be exactly 10 digits.');
+      setErr('sf-email-err', !!email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), 'Enter a valid email address.');
+      if (bad) return;
+
+      // Mirrors the real 409: the server rejects a phone that is already registered.
+      var clash = STAFF.filter(function (s) { return s.loginId === phone || s.whatsappNumber === phone; })[0];
+      var box = document.getElementById('staff-form-error');
+      if (clash) {
+        var msg = 'This phone number is already registered (to ' + clash.name + '). Please use a different number.';
+        if (box) { box.hidden = false; box.textContent = msg; }
+        Proto.toast(msg, 'error', '409 from POST /business/staff');
+        return;
+      }
+
+      el.disabled = true;
+      el.setAttribute('aria-busy', 'true');
+      var label = el.textContent;
+      el.textContent = 'Creating…';
+      Proto.call('Create staff member', {
+        onOk: function () {
+          var rec = { userId: Math.max.apply(null, STAFF.map(function (s) { return s.userId; })) + 1, name: name.trim(), loginId: phone, role: 'SHOP_STAFF', whatsappNumber: phone, email: email, active: true, updatedAt: Date.now(), credentialsSent: true };
+          STAFF.push(rec);
+          ui.page = 1;
+          Proto.toast(name.trim() + ' can now sign in on the POS', 'success', 'A password was sent on WhatsApp');
+          closeModals();
+          createdModal(rec);
+        },
+        meta: 'POST /business/staff'
+      }).then(function (ok) {
+        if (!el.isConnected) return;
+        el.disabled = false;
+        el.removeAttribute('aria-busy');
+        el.textContent = label;
+        if (!ok) Proto.toast('Could not create the staff member. Please try again.', 'error');
+      });
+    },
+
+    saveEdit: function (el) {
+      var item = staffById(el.dataset.id);
+      var name = (document.getElementById('sf-name') || {}).value || '';
+      var phone = (document.getElementById('sf-phone') || {}).value || '';
+      var email = (document.getElementById('sf-email') || {}).value || '';
+      if (!item) return;
+      if (name.trim().length < 2) { var n = document.getElementById('sf-name-err'); if (n) n.hidden = false; return; }
+      if (!/^[0-9]{10}$/.test(phone)) { var p = document.getElementById('sf-phone-err'); if (p) p.hidden = false; return; }
+      el.disabled = true;
+      el.setAttribute('aria-busy', 'true');
+      var label = el.textContent;
+      el.textContent = 'Saving…';
+      Proto.call('Update staff member', {
+        onOk: function () {
+          item.name = name.trim();
+          item.whatsappNumber = phone;
+          item.loginId = phone;
+          item.email = email;
+          item.updatedAt = Date.now();
+          Proto.toast(name.trim() + ' updated', 'success');
+          closeModals();
+        },
+        meta: 'PUT /business/staff/{id}'
+      }).then(function (ok) {
+        if (el.isConnected) { el.disabled = false; el.removeAttribute('aria-busy'); el.textContent = label; }
+        if (!ok) Proto.toast('Could not save the staff member. Please try again.', 'error');
+      });
+    },
+
+    permissions: function (el) { ui.permEditable = false; ui.permSet = []; permissionsModal(staffById(el.dataset.id)); },
+
+    previewEditable: function () { ui.permEditable = true; ui.permSet = COUNTER_TEMPLATE.slice(); closeModals(); permissionsModal(staffById('2')); },
+
+    tpl: function (el) {
+      var tpl = el.dataset.tpl === 'manager' ? MANAGER_TEMPLATE : COUNTER_TEMPLATE;
+      ui.permSet = tpl.slice();
+      Proto.toast(el.textContent.trim() + ' template applied (' + tpl.length + ' permissions)', 'info');
+      closeModals();
+      permissionsModal(staffById('2'));
+    },
+
+    togglePerm: function (el) {
+      var key = el.dataset.key;
+      var set = ui.permSet.length ? ui.permSet.slice() : OWNER_SAMPLE.slice();
+      var i = set.indexOf(key);
+      if (i >= 0) set.splice(i, 1); else set.push(key);
+      ui.permSet = set;
+    },
+
+    toggleCat: function (el) {
+      var cat = CATEGORIES.filter(function (c) { return c.name === el.dataset.cat; })[0];
+      if (!cat) return;
+      var set = ui.permSet.length ? ui.permSet.slice() : OWNER_SAMPLE.slice();
+      var keys = cat.items.map(function (i) { return i[0]; });
+      var all = keys.every(function (k) { return set.indexOf(k) >= 0; });
+      keys.forEach(function (k) {
+        var i = set.indexOf(k);
+        if (all && i >= 0) set.splice(i, 1);
+        else if (!all && i < 0) set.push(k);
+      });
+      ui.permSet = set;
+      Proto.toast(cat.name + ' ' + (all ? 'cleared' : 'granted') + ' (' + keys.length + ' permissions)', 'info');
+      closeModals();
+      permissionsModal(staffById('2'));
+    },
+
+    savePermissions: function (el, api) {
+      Proto.setBusy('perms', true);
+      el.disabled = true;
+      el.setAttribute('aria-busy', 'true');
+      el.textContent = 'Saving…';
+      Proto.call('Save permissions', {
+        onOk: function () {
+          Proto.toast('Permissions updated', 'success', (ui.permSet.length || OWNER_SAMPLE.length) + ' keys granted');
+          closeModals();
+        },
+        meta: 'PUT /business/staff/{id}/permissions'
+      }).then(function () { Proto.setBusy('perms', false); });
+    },
+
+    deactivate: function (el) {
+      var item = staffById(el.dataset.id);
+      if (!item || isSelf(item)) return;
+      var overlay = confirmModal('Deactivate Staff Member',
+        'Are you sure you want to deactivate <strong>' + Proto.esc(item.name) + '</strong>? They will lose access immediately.',
+        'Deactivate', 'confirmDeactivate', item.userId);
+      overlay.dataset.name = item.name;
+    },
+
+    confirmDeactivate: function (el) {
+      var item = staffById(el.dataset.id);
+      if (!item) return;
+      Proto.setBusy('row' + item.userId, true);
+      closeModals();
+      Proto.call('Deactivate ' + item.name, {
+        onOk: function () {
+          item.active = false;
+          item.updatedAt = Date.now();
+          Proto.toast(item.name + ' has been deactivated and signed out', 'success');
+        },
+        meta: 'DELETE /business/staff/{id}'
+      }).then(function () { Proto.setBusy('row' + item.userId, false); });
+    },
+
+    activate: function (el) {
+      var item = staffById(el.dataset.id);
+      if (!item) return;
+      Proto.setBusy('row' + item.userId, true);
+      Proto.call('Reactivate ' + item.name, {
+        onOk: function () {
+          item.active = true;
+          item.updatedAt = Date.now();
+          Proto.toast(item.name + ' has been reactivated', 'success');
+        },
+        meta: 'POST /business/staff/{id}/activate'
+      }).then(function () { Proto.setBusy('row' + item.userId, false); });
+    },
+
+    revokeOne: function (el) {
+      var item = staffById(el.dataset.id);
+      if (!item) return;
+      confirmModal('Sign out of all devices',
+        'Sign <strong>' + Proto.esc(item.name) + '</strong> out of every device? Their account stays active — they can sign in again straight away. Use this if a device was lost.',
+        'Sign out', 'confirmRevokeOne', item.userId);
+    },
+
+    confirmRevokeOne: function (el) {
+      var item = staffById(el.dataset.id);
+      if (!item) return;
+      closeModals();
+      Proto.call('Sign out ' + item.name + ' everywhere', {
+        onOk: function () { Proto.toast(item.name + ' has been signed out of all devices', 'success'); },
+        meta: 'POST /business/staff/{id}/revoke-sessions'
+      });
+    },
+
+    revokeAll: function () {
+      confirmModal('Sign out all devices',
+        'Every account in this restaurant will be signed out of every device, <strong>including you</strong>. Accounts stay active and everyone can sign in again. Use this if a terminal was lost or stolen.',
+        'Sign out everyone', 'confirmRevokeAll');
+    },
+
+    confirmRevokeAll: function () {
+      closeModals();
+      Proto.call('Sign out every account', {
+        onOk: function () { Proto.toast('4 account(s) signed out of all devices. You will need to sign in again.', 'success'); },
+        meta: 'POST /business/staff/revoke-all-sessions'
+      });
+    },
+
+    resend: function (el) {
+      el.disabled = true;
+      var busy = document.getElementById('resend-busy');
+      if (busy) busy.hidden = false;
+      var label = el.textContent;
+      el.textContent = 'Sending…';
+      Proto.call('Re-send password', {
+        onOk: function () { Proto.toast('A new password was sent on WhatsApp.', 'success'); },
+        meta: 'POST /business/staff/{id}/resend-credentials'
+      }).then(function (ok) {
+        if (el.isConnected) { el.disabled = false; el.textContent = label; }
+        if (busy && busy.isConnected) busy.hidden = true;
+        if (!ok) Proto.toast('Could not send the password. Please try again.', 'error');
+      });
+    },
+
+    roleFilter: function (el) { ui.role = el.dataset.role; ui.page = 1; Proto.render(); },
+    clearFilters: function () { ui.search = ''; ui.role = 'ALL'; ui.status = 'ALL'; ui.pageSize = 10; ui.page = 1; Proto.render(); },
+    page: function (el) { ui.page = Math.max(1, Number(el.dataset.page)); Proto.render(); }
+  };
+
+  var inputs = {
+    search: function (v) { ui.search = v; ui.page = 1; Proto.render(); focusSearch(); },
+    status: function (v) { ui.status = v; ui.page = 1; Proto.render(); },
+    rows: function (v) { ui.pageSize = Number(v) || 10; ui.page = 1; Proto.render(); }
+  };
+  function focusSearch() {
+    var box = document.getElementById('staff-search');
+    if (box) { box.focus(); var n = box.value.length; try { box.setSelectionRange(n, n); } catch (e) {} }
+  }
+
+  Proto.boot({
+    page: 'staff',
+    title: 'Staff & Team Directory',
+    subtitle: 'Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.',
+    eyebrow: 'Team & Access',
+    live: false,
+    headerExtra:
+      '<button class="header-pill" type="button" data-action="openAdd">+ Add Staff</button>' +
+      '<button class="header-pill header-pill--alert" type="button" data-action="revokeAll" title="Emergency sign out of all devices">Sign out all devices</button>',
+    data: { staff: STAFF, categories: CATEGORIES },
+    skeleton:
+      '<div class="panel" style="margin-bottom:14px"><div class="filter-strip">' +
+        '<div class="skeleton sk-row" style="height:40px"></div><div class="skeleton sk-row" style="height:40px"></div><div class="skeleton sk-row" style="height:40px"></div>' +
+      '</div></div>' +
+      '<div class="panel"><div class="skeleton-stack--table">' + Proto.skeletonRows(5, 'sk-table-row') + '</div></div>',
+    render: render,
+    actions: actions,
+    inputs: inputs
+  });
+})();
+</script>
+</body>
+</html>

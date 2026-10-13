@@ -35,32 +35,51 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     },
   });
 
+  const isAuthRequest = req.url.includes('/auth/');
+
   return next(authReq).pipe(
     catchError((err: unknown) => {
       if (err instanceof HttpErrorResponse) {
-        switch (err.status) {
-          case 0:
-            console.error('[KhanaBook] Network error — no internet connection', err);
-            break;
-          case 401:
-            tokenStorage.clear();
-            void router.navigate(['/login']);
-            break;
-          case 403:
-            if (err.error?.error === 'BUSINESS_SUSPENDED') {
-              void router.navigate(['/limited-access']);
-            } else {
+        if (!isAuthRequest) {
+          switch (err.status) {
+            case 0:
               toastService.show(
-                err.error?.message || err.error?.error || 'Access denied: you do not have permission to perform this action.',
+                'No internet connection. Check your network and try again.',
                 'error'
               );
-            }
-            break;
-          default:
-            if (err.status >= 500) {
-              console.error('[KhanaBook] Server error', err);
-            }
-            break;
+              console.error('[KhanaBook] Network error — no internet connection', err);
+              break;
+            case 401:
+              toastService.show(
+                'Your session has expired. Please sign in again.',
+                'error'
+              );
+              tokenStorage.clear();
+              void router.navigate(['/login']);
+              break;
+            case 403:
+              if (err.error?.error === 'BUSINESS_SUSPENDED') {
+                void router.navigate(['/limited-access']);
+              } else {
+                toastService.show(
+                  err.error?.message || err.error?.error || 'Access denied: you do not have permission to perform this action.',
+                  'error'
+                );
+              }
+              break;
+            default:
+              if (err.status >= 500) {
+                toastService.show(
+                  'The server could not complete this request (500). Your data is unchanged.',
+                  'error'
+                );
+                console.error('[KhanaBook] Server error', err);
+              }
+              break;
+          }
+        } else if (err.status === 401) {
+          tokenStorage.clear();
+          void router.navigate(['/login']);
         }
         return throwError(() => err);
       }

@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reports — KhanaBook prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-local: only what the shared sheet does not cover (chart + two strips). */
+  .range-bar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .range-dates { display: flex; gap: 10px; flex-wrap: wrap; }
+  .range-dates .field { min-width: 150px; }
+  .range-active { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .strip-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .strip-item { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: var(--r-xl); background: var(--panel-2); border: 1px solid var(--line); min-width: 0; }
+  .strip-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .strip-val { font-size: 20px; font-weight: 800; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+  .strip-hint { font-size: 11.5px; color: var(--muted); }
+  .audit-note { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding: 16px; border-radius: var(--r-2xl); background: var(--brand-soft); border: 1px solid var(--line); }
+  .audit-note h4 { font-size: 14px; margin-bottom: 3px; }
+  .audit-note p { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .note-halo { width: 36px; height: 36px; border-radius: 10px; background: var(--panel); color: var(--brand); display: grid; place-items: center; flex: none; }
+  .hourly-track { display: flex; align-items: flex-end; gap: 5px; height: 170px; }
+  .hourly-node { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; }
+  .hourly-pill-track { flex: 1; width: 100%; display: flex; align-items: flex-end; background: var(--panel-2); border-radius: 7px; overflow: hidden; }
+  .hourly-pill { width: 100%; border-radius: 7px; background: var(--brand); transition: height 500ms var(--kb-ease-standard); }
+  .hourly-pill--peak { background: var(--warning); }
+  .hourly-tick { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+  /* Totals row emphasis. This belongs in _shared/proto.css next to
+     .data-table (every table page needs it) — kept local so this slice does
+     not touch a file the coordinator owns. */
+  .data-table tfoot td { background: var(--panel-2); border-top: 2px solid var(--line); border-bottom: 0; }
+  .data-table tfoot td:first-child { border-radius: var(--r-lg) 0 0 var(--r-lg); }
+  .data-table tfoot td:last-child { border-radius: 0 var(--r-lg) var(--r-lg) 0; }
+  @media (max-width: 1020px) { .strip-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 560px) { .strip-grid { grid-template-columns: 1fr; } .hourly-track { height: 130px; gap: 3px; } }
+  @media (max-width: 520px) { .range-active { margin-left: 0; width: 100%; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── page-local view state (survives every re-render) ──────────────────── */
+  var ui = {
+    tab: 'overview',            // overview | gst | hourly | items
+    preset: 'today',            // today | yesterday | last7 | month | custom
+    from: '2026-10-13',
+    to: '2026-10-13'
+  };
+  var todayIso = '2026-10-13';
+
+  var PRESETS = [
+    { key: 'today',     label: 'Today',        from: '2026-10-13', to: '2026-10-13' },
+    { key: 'yesterday', label: 'Yesterday',    from: '2026-10-12', to: '2026-10-12' },
+    { key: 'last7',     label: 'Last 7 days',  from: '2026-10-07', to: '2026-10-13' },
+    { key: 'month',     label: 'This month',   from: '2026-10-01', to: '2026-10-13' }
+  ];
+
+  /* Invoice templates — every amount the tables show is derived from these, so
+     the footer totals can never disagree with the rows above them. */
+  var INVOICES = [
+    { invoiceNumber: 'INV-2026-1041', customerName: 'Walk-in',      taxable: 420,  gstRate: 5, at: '2026-10-13T12:42:00' },
+    { invoiceNumber: 'INV-2026-1042', customerName: 'Ravi Kumar',   taxable: 1860, gstRate: 5, at: '2026-10-13T13:18:00' },
+    { invoiceNumber: 'INV-2026-1043', customerName: 'Walk-in',      taxable: 980,  gstRate: 5, at: '2026-10-13T14:05:00' },
+    { invoiceNumber: 'INV-2026-1044', customerName: 'Anita Sharma', taxable: 3240, gstRate: 5, at: '2026-10-13T19:47:00' },
+    { invoiceNumber: 'INV-2026-1045', customerName: 'Walk-in',      taxable: 1250, gstRate: 5, at: '2026-10-13T20:12:00' },
+    { invoiceNumber: 'INV-2026-1046', customerName: 'Suresh Nair',  taxable: 2690, gstRate: 5, at: '2026-10-13T20:55:00' }
+  ];
+
+  var ITEMS = [
+    { name: 'Hyderabadi Chicken Biryani', quantitySold: 38, revenue: 13300 },
+    { name: 'Paneer Butter Masala',       quantitySold: 26, revenue: 8060 },
+    { name: 'Butter Naan (2 pc)',         quantitySold: 34, revenue: 2720 },
+    { name: 'Masala Dosa',                quantitySold: 22, revenue: 3300 },
+    { name: 'Filter Coffee',              quantitySold: 31, revenue: 1860 }
+  ];
+
+  var HOURLY = [
+    { label: '9a', items: 8 },  { label: '10a', items: 14 }, { label: '11a', items: 19 },
+    { label: '12p', items: 34 }, { label: '1p', items: 46 },  { label: '2p', items: 29 },
+    { label: '3p', items: 12 },  { label: '4p', items: 9 },   { label: '5p', items: 21 },
+    { label: '6p', items: 36 },  { label: '7p', items: 52 },  { label: '8p', items: 40 }
+  ];
+
+  var TAB_LABELS = { overview: 'Overview & Revenue', gst: 'GST Tax Ledger', hourly: 'Hourly Sales', items: 'Item-Wise Sales' };
+  /* Tabs that hit their own endpoint in the live app (so a switch can fail). */
+  var FETCHING_TABS = { gst: true, hourly: true, items: true };
+
+  /* ── derived report data for the selected range ───────────────────────── */
+  function days() {
+    var f = new Date(ui.from + 'T00:00:00');
+    var t = new Date(ui.to + 'T00:00:00');
+    var diff = Math.round((t - f) / 86400000) + 1;
+    return Math.max(1, diff || 1);
+  }
+  function scale() {
+    var d = days();
+    // A single trading day is the base; longer ranges grow roughly linearly
+    // with a small overlap discount so the numbers stay believable.
+    return d === 1 ? 1 : d * 0.95;
+  }
+  function report() {
+    var k = scale();
+    var gross = Math.round(42850 * k);
+    var billCount = Math.round(128 * k);
+    var refundedOrders = Math.max(1, Math.round(1 * k));
+    var refundedAmount = Math.round(640 * k);
+    var net = Math.max(0, gross - refundedAmount);
+    var avgBill = billCount ? gross / billCount : 0;
+    var settled = billCount ? 94.5 : 0;
+    return {
+      factor: k, days: days(), gross: gross, billCount: billCount,
+      refundedOrders: refundedOrders, refundedAmount: refundedAmount, net: net,
+      avgBill: avgBill, settledShare: settled,
+      settledCount: Math.round(billCount * settled / 100),
+      unsettled: billCount - Math.round(billCount * settled / 100),
+      refundRate: billCount ? (refundedOrders / billCount) * 100 : 0
+    };
+  }
+  function gstRows() {
+    var k = scale();
+    var count = Math.min(INVOICES.length * 2, Math.max(6, Math.round(INVOICES.length * Math.min(k, 2))));
+    var rows = [];
+    for (var i = 0; i < count; i++) {
+      var tpl = INVOICES[i % INVOICES.length];
+      var taxable = Math.round(tpl.taxable * (i >= INVOICES.length ? 1.15 : 1));
+      var cgst = Math.round(taxable * tpl.gstRate / 200);
+      var sgst = cgst;
+      rows.push({
+        invoiceNumber: tpl.invoiceNumber.replace(/(\d+)$/, function (m) { return String(Number(m) + i).padStart(4, '0'); }),
+        customerName: tpl.customerName,
+        taxable: taxable,
+        gstRate: tpl.gstRate,
+        cgst: cgst,
+        sgst: sgst,
+        totalTax: cgst + sgst,
+        totalAmount: taxable + cgst + sgst,
+        at: new Date(new Date(tpl.at).getTime() + (i >= INVOICES.length ? 86400000 : 0))
+      });
+    }
+    return rows;
+  }
+  function gstTotals(rows) {
+    return rows.reduce(function (acc, r) {
+      acc.taxable += r.taxable; acc.cgst += r.cgst; acc.sgst += r.sgst;
+      acc.totalTax += r.totalTax; acc.totalAmount += r.totalAmount;
+      return acc;
+    }, { taxable: 0, cgst: 0, sgst: 0, totalTax: 0, totalAmount: 0 });
+  }
+  function rangeLabel() {
+    if (ui.preset !== 'custom') {
+      var p = PRESETS.filter(function (x) { return x.key === ui.preset; })[0];
+      if (p) return p.label + ' · ' + (p.from === p.to ? p.from : p.from + ' → ' + p.to);
+    }
+    return ui.from + ' → ' + ui.to;
+  }
+  function money(n) { return Proto.money(n); }
+
+  /* ── markup ────────────────────────────────────────────────────────────── */
+  function rangeBar() {
+    return '<section class="panel" aria-label="Report period">' +
+      '<div class="range-bar">' +
+        '<div class="chip-group" role="group" aria-label="Quick ranges">' +
+          PRESETS.map(function (p) {
+            return '<button class="chip" type="button" data-action="preset" data-preset="' + p.key + '" aria-pressed="' + (ui.preset === p.key) + '">' + p.label + '</button>';
+          }).join('') +
+        '</div>' +
+        '<div class="range-dates">' +
+          '<div class="field"><label class="field-label" for="range-from">From</label>' +
+            '<input class="field-control" type="date" id="range-from" data-input="from" value="' + ui.from + '" max="' + todayIso + '" /></div>' +
+          '<div class="field"><label class="field-label" for="range-to">To</label>' +
+            '<input class="field-control" type="date" id="range-to" data-input="to" value="' + ui.to + '" max="' + todayIso + '" /></div>' +
+          '<button class="ghost-btn" type="button" data-action="applyRange" style="align-self:end;min-height:40px"' +
+            (UiBusy() ? ' disabled aria-busy="true"' : '') + '>Run report</button>' +
+        '</div>' +
+        '<span class="range-active" role="status">Showing <strong>' + Proto.esc(rangeLabel()) + '</strong>' +
+          (UiBusy() ? ' · loading…' : ' · ' + report().days + ' day' + (report().days === 1 ? '' : 's') + ' of trade') + '</span>' +
+      '</div>' +
+    '</section>';
+  }
+  function UiBusy() { return Proto.busy('report') || Proto.busy('tab'); }
+
+  function tabs() {
+    return '<div class="tab-bar" role="tablist" aria-label="Report views">' +
+      Object.keys(TAB_LABELS).map(function (key) {
+        return '<button class="tab" type="button" role="tab" data-action="selectTab" data-tab="' + key + '" ' +
+          'aria-selected="' + (ui.tab === key) + '">' + TAB_LABELS[key] + '</button>';
+      }).join('') +
+    '</div>';
+  }
+
+  function kpiRow(d) {
+    return '<section class="bento-kpi-grid" aria-label="Report summary">' +
+      '<article class="bento-tile bento-tile--hero">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Net Realized Revenue</span>' +
+        '<span class="trend-badge">Net Realized</span></div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + d.net + '" data-format="money">₹0</div>' +
+        '<div class="sub-caption" style="color:rgba(255,255,255,.75)">After all refunds · gross ' + money(d.gross) + '</div>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Bills Minted</span>' +
+        '<span class="kpi-tag kpi-tag--neutral">POS Tickets</span></div>' +
+        '<div class="bento-tile__metric tabular"><span data-counter="' + d.billCount + '">0</span>' +
+        '<span class="metric-sub">/ ' + Proto.esc(String(d.days)) + 'd</span></div>' +
+        '<div class="sub-caption">Completed &amp; draft orders</div>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Average Bill</span>' +
+        '<span class="kpi-tag kpi-tag--green">Per ticket</span></div>' +
+        '<div class="bento-tile__metric tabular">' + money(Math.round(d.avgBill)) + '</div>' +
+        '<div class="sub-caption">Gross billed ÷ bills minted</div>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Settled Share</span>' +
+        '<span class="kpi-tag ' + (d.unsettled > 0 ? 'kpi-tag--amber' : 'kpi-tag--green') + '">' +
+          (d.unsettled > 0 ? d.unsettled + ' pending' : 'All cleared') + '</span></div>' +
+        '<div class="bento-tile__metric tabular">' + d.settledShare.toFixed(1) + '%</div>' +
+        '<div>' +
+          '<div class="progress-track" role="progressbar" aria-valuenow="' + Math.round(d.settledShare) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Settled share">' +
+            '<div class="progress-fill" style="width:' + d.settledShare + '%"></div></div>' +
+          '<div class="sub-caption" style="margin-top:8px"><strong>' + d.settledCount + '</strong> paid · <strong>' + d.unsettled + '</strong> unsettled</div>' +
+        '</div>' +
+      '</article>' +
+    '</section>';
+  }
+
+  function refundStrip(d) {
+    return '<section class="strip-grid" aria-label="Refund impact">' +
+      '<div class="strip-item"><span class="strip-label">Gross Billed</span><span class="strip-val">' + money(d.gross) + '</span>' +
+        '<span class="strip-hint">Total sales before deductions</span></div>' +
+      '<div class="strip-item"><span class="strip-label">Refunded Tickets</span>' +
+        '<span class="strip-val ' + (d.refundedOrders > 0 ? 'text-danger' : '') + '">' + d.refundedOrders + '</span>' +
+        '<span class="strip-hint">Orders reversed or refunded</span></div>' +
+      '<div class="strip-item"><span class="strip-label">Refund Deductions</span>' +
+        '<span class="strip-val ' + (d.refundedAmount > 0 ? 'text-danger' : '') + '">' + money(d.refundedAmount) + '</span>' +
+        '<span class="strip-hint">Returned to customers</span></div>' +
+      '<div class="strip-item"><span class="strip-label">Refund Rate</span>' +
+        '<span class="strip-val ' + (d.refundRate > 0 ? 'text-amber' : '') + '">' + d.refundRate.toFixed(1) + '%</span>' +
+        '<span class="strip-hint">Share of overall order volume</span></div>' +
+    '</section>';
+  }
+
+  function auditNote() {
+    return '<section class="audit-note">' +
+      '<div class="note-halo" aria-hidden="true">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+      '</div>' +
+      '<div><h4>Financial Integrity &amp; Settlement Standard</h4>' +
+      '<p>Recognized revenue includes every order settled through Cash, Dynamic UPI QR and paired card terminals. ' +
+      'Unsettled draft tickets and cancelled orders are excluded from net revenue to prevent double-counting. ' +
+      'Figures cover <strong>' + Proto.esc(rangeLabel()) + '</strong>.</p></div>' +
+    '</section>';
+  }
+
+  function overviewTab(d) {
+    return kpiRow(d) + refundStrip(d) + auditNote();
+  }
+
+  function gstTab() {
+    var rows = gstRows();
+    var totals = gstTotals(rows);
+    return '<section class="bento-kpi-grid" aria-label="GST summary">' +
+        '<article class="bento-tile bento-tile--hero">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Total Tax Liability</span></div>' +
+          '<div class="bento-tile__metric tabular">' + money(totals.totalTax) + '</div>' +
+          '<div class="sub-caption" style="color:rgba(255,255,255,.75)">CGST + SGST combined</div>' +
+        '</article>' +
+        '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">Taxable Turnover</span></div>' +
+          '<div class="bento-tile__metric tabular">' + money(totals.taxable) + '</div><div class="sub-caption">Net assessable sales value</div></article>' +
+        '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">CGST (Central)</span></div>' +
+          '<div class="bento-tile__metric tabular">' + money(totals.cgst) + '</div><div class="sub-caption">Central GST collected</div></article>' +
+        '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">SGST (State)</span></div>' +
+          '<div class="bento-tile__metric tabular">' + money(totals.sgst) + '</div><div class="sub-caption">State GST collected</div></article>' +
+      '</section>' +
+      '<div class="panel" style="margin-top:14px">' +
+        '<div class="panel__head"><div><span class="bento-tile__eyebrow" style="color:var(--muted)">Compliance</span>' +
+          '<h3 class="panel__title">Tax Invoices &amp; Bill Breakdown</h3>' +
+          '<p class="muted" style="font-size:12.5px">All completed invoices in the selected period with applicable tax proportions.</p></div>' +
+          '<span class="records-pill tabular">' + rows.length + ' Invoices</span></div>' +
+        '<div class="table-wrap"><table class="data-table">' +
+          '<thead><tr><th>Invoice / Bill #</th><th>Date &amp; Time</th><th>Customer</th>' +
+            '<th class="num-cell">Taxable Value</th><th class="num-cell">GST %</th><th class="num-cell">CGST</th>' +
+            '<th class="num-cell">SGST</th><th class="num-cell">Tax Total</th><th class="num-cell">Invoice Total</th></tr></thead>' +
+          '<tbody>' + rows.map(function (r) {
+            return '<tr><td class="font-bold"><a href="#invoice-' + Proto.esc(r.invoiceNumber) + '" class="tile-link" ' +
+                'title="View tax invoice">' + Proto.esc(r.invoiceNumber) + '</a></td>' +
+              '<td class="muted">' + Proto.esc(Proto.fmtDate(r.at)) + ' ' + Proto.esc(Proto.fmtTime(r.at)) + '</td>' +
+              '<td>' + Proto.esc(r.customerName || 'Walk-in') + '</td>' +
+              '<td class="num-cell tabular">' + money(r.taxable) + '</td>' +
+              '<td class="num-cell tabular">' + r.gstRate + '%</td>' +
+              '<td class="num-cell tabular">' + money(r.cgst) + '</td>' +
+              '<td class="num-cell tabular">' + money(r.sgst) + '</td>' +
+              '<td class="num-cell tabular font-bold">' + money(r.totalTax) + '</td>' +
+              '<td class="num-cell tabular font-bold">' + money(r.totalAmount) + '</td></tr>';
+          }).join('') + '</tbody>' +
+          '<tfoot><tr class="f-total"><td colspan="3"><strong>Total (' + rows.length + ' bills)</strong></td>' +
+            '<td class="num-cell tabular font-bold">' + money(totals.taxable) + '</td><td></td>' +
+            '<td class="num-cell tabular font-bold">' + money(totals.cgst) + '</td>' +
+            '<td class="num-cell tabular font-bold">' + money(totals.sgst) + '</td>' +
+            '<td class="num-cell tabular font-bold">' + money(totals.totalTax) + '</td>' +
+            '<td class="num-cell tabular font-bold">' + money(totals.totalAmount) + '</td></tr></tfoot>' +
+        '</table></div>' +
+      '</div>';
+  }
+
+  function hourlyTab() {
+    var d = report();
+    var k = Math.max(1, Math.min(scale(), 3));
+    var bars = HOURLY.map(function (h) { return { label: h.label, items: Math.round(h.items * k) }; });
+    var peak = bars.reduce(function (m, b) { return Math.max(m, b.items); }, 0);
+    var total = bars.reduce(function (s, b) { return s + b.items; }, 0);
+    var peakHour = bars.filter(function (b) { return b.items === peak; })[0];
+    return '<div class="panel">' +
+        '<div class="panel__head"><div><span class="bento-tile__eyebrow" style="color:var(--muted)">Service Velocity</span>' +
+          '<h3 class="panel__title">Items Sold Per Hour</h3>' +
+          '<p class="muted" style="font-size:12.5px">' + Proto.esc(rangeLabel()) + ' · ' + total + ' items across completed tickets.</p></div>' +
+          '<span class="kpi-tag kpi-tag--amber">Rush hits ' + Proto.esc(peakHour.label) + '</span></div>' +
+        '<div class="hourly-track" role="img" aria-label="Items sold per hour: peak ' + peak + ' items at ' + Proto.esc(peakHour.label) + '">' +
+          bars.map(function (b) {
+            var isPeak = b.items === peak;
+            return '<div class="hourly-node" title="' + Proto.esc(b.label) + ': ' + b.items + ' items sold">' +
+              '<div class="hourly-pill-track">' +
+                '<div class="hourly-pill' + (isPeak ? ' hourly-pill--peak' : '') + '" style="height:' + Math.max(5, Math.round(b.items / peak * 100)) + '%"></div>' +
+              '</div><span class="hourly-tick">' + Proto.esc(b.label) + '</span></div>';
+          }).join('') +
+        '</div>' +
+        '<div class="sub-caption" style="margin-top:12px">Peak hour carried <strong>' + peak + '</strong> items · average bill ' + money(Math.round(d.avgBill)) + '</div>' +
+      '</div>';
+  }
+
+  function itemsTab() {
+    var k = Math.max(1, Math.min(scale(), 3));
+    var rows = ITEMS.map(function (i) {
+      return { name: i.name, quantitySold: Math.round(i.quantitySold * k), revenue: Math.round(i.revenue * k) };
+    }).sort(function (a, b) { return b.quantitySold - a.quantitySold; });
+    var units = rows.reduce(function (s, r) { return s + r.quantitySold; }, 0);
+    var revenue = rows.reduce(function (s, r) { return s + r.revenue; }, 0);
+    return '<div class="panel">' +
+        '<div class="panel__head"><div><span class="bento-tile__eyebrow" style="color:var(--muted)">Kitchen</span>' +
+          '<h3 class="panel__title">Item-Wise Sales &amp; Quantity Volume</h3>' +
+          '<p class="muted" style="font-size:12.5px">Aggregate sales breakdown sorted by highest quantity sold.</p></div>' +
+          '<span class="records-pill tabular">' + rows.length + ' Menu Items</span></div>' +
+        '<div class="table-wrap"><table class="data-table">' +
+          '<thead><tr><th># Rank</th><th>Dish / Item Name</th><th class="num-cell">Units Sold</th>' +
+          '<th class="num-cell">Total Revenue</th><th class="num-cell">Average Price</th></tr></thead>' +
+          '<tbody>' + rows.map(function (r, i) {
+            return '<tr><td class="muted tabular">' + (i + 1) + '</td><td class="font-bold">' + Proto.esc(r.name) + '</td>' +
+              '<td class="num-cell tabular font-bold">' + r.quantitySold + '</td>' +
+              '<td class="num-cell tabular font-bold">' + money(r.revenue) + '</td>' +
+              '<td class="num-cell tabular muted">' + (r.quantitySold ? money(Math.round(r.revenue / r.quantitySold)) : '—') + '</td></tr>';
+          }).join('') + '</tbody>' +
+          '<tfoot><tr class="f-total"><td colspan="2"><strong>Total (' + rows.length + ' items)</strong></td>' +
+            '<td class="num-cell tabular font-bold">' + units + '</td>' +
+            '<td class="num-cell tabular font-bold">' + money(revenue) + '</td><td></td></tr></tfoot>' +
+        '</table></div>' +
+      '</div>';
+  }
+
+  function emptyState() {
+    var copy = {
+      overview: ['No sales recorded in this range', 'Nothing was billed between ' + ui.from + ' and ' + ui.to + '. Pick a wider range or refresh to try again.'],
+      gst: ['No tax invoices in this range', 'GST entries appear here once bills in ' + ui.from + ' – ' + ui.to + ' are settled.'],
+      hourly: ['No hourly sales in this range', 'Completed POS tickets will plot their hourly volume here.'],
+      items: ['No item sales in this range', 'Dish rankings populate as dining tickets close.']
+    }[ui.tab];
+    return '<div class="panel">' + Proto.emptyBox(copy[0], copy[1], 'Refresh') + '</div>';
+  }
+
+  function content() {
+    if (Proto.state.mode === 'empty') return emptyState();
+    var d = report();
+    if (ui.tab === 'gst') return gstTab();
+    if (ui.tab === 'hourly') return hourlyTab();
+    if (ui.tab === 'items') return itemsTab();
+    return overviewTab(d);
+  }
+
+  function skeletonFor() {
+    return '<div class="stack">' +
+      '<div class="skeleton" style="height:64px;border-radius:16px"></div>' +
+      '<div class="skeleton" style="height:44px;border-radius:12px;max-width:520px"></div>' +
+      '<section class="bento-kpi-grid">' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+      '</section>' +
+      '<div class="skeleton sk-card"></div>' +
+      '<div class="skeleton-stack skeleton-stack--table">' + Proto.skeletonRows(5, 'sk-table-row') + '</div>' +
+    '</div>';
+  }
+
+  /* ── async actions — every one routes through Proto.call so the panel's
+        failure selector exercises the real failure behaviour ─────────────── */
+  function runReport(label) {
+    Proto.setBusy('report', true);
+    Proto.render();
+    return Proto.call(label || ('Run report · ' + rangeLabel()), {
+      onOk: function () {
+        Proto.toast('Report updated for ' + rangeLabel(), 'success',
+          'Gross ' + money(report().gross) + ' · ' + report().billCount + ' bills');
+      }
+    });
+  }
+
+  Proto.boot({
+    page: 'reports',
+    title: 'Financial & Sales Reports',
+    subtitle: 'Recognized revenues, billing volume, refund impact, and gateway reconciliation.',
+    eyebrow: 'Reports',
+    live: false,
+    headerExtra:
+      '<button class="header-pill" type="button" data-action="exportCsv" aria-label="Export this report as CSV">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        'Export CSV</button>',
+    data: {},
+    skeleton: skeletonFor(),
+    onBusy: function () { Proto.render(); },
+    render: function () {
+      return rangeBar() + tabs() + content();
+    },
+    inputs: {
+      /* Stored without re-rendering, so the date field keeps focus while typing;
+         "Run report" applies them. */
+      from: function (v) { ui.from = v || ui.from; ui.preset = 'custom'; },
+      to: function (v) { ui.to = v || ui.to; ui.preset = 'custom'; }
+    },
+    actions: {
+      preset: function (el) {
+        var p = PRESETS.filter(function (x) { return x.key === el.dataset.preset; })[0];
+        if (!p) return;
+        ui.preset = p.key; ui.from = p.from; ui.to = p.to;
+        runReport('Run report · ' + p.label);
+      },
+      applyRange: function () {
+        if (new Date(ui.to + 'T00:00:00') < new Date(ui.from + 'T00:00:00')) {
+          var swap = ui.from; ui.from = ui.to; ui.to = swap;
+          Proto.toast('Start date was after the end date — the range was swapped.', 'info');
+        }
+        runReport('Run report · ' + rangeLabel());
+      },
+      selectTab: function (el) {
+        var tab = el.dataset.tab;
+        if (!tab || tab === ui.tab) return;
+        ui.tab = tab;
+        if (!FETCHING_TABS[tab]) { Proto.render(); return; }
+        Proto.setBusy('tab', true);
+        Proto.render();
+        Proto.call('Load ' + TAB_LABELS[tab], {
+          failMode: Proto.state.fail,
+          onOk: function () { Proto.toast(TAB_LABELS[tab] + ' loaded', 'info'); }
+        });
+      },
+      exportCsv: function () {
+        Proto.setBusy('report', true);
+        Proto.render();
+        Proto.call('Export CSV', {
+          meta: 'Executive summary · GST ledger · item sales',
+          onOk: function () {
+            var rows = gstRows().length + ITEMS.length;
+            Proto.toast('khanabook-report-' + todayIso + '.csv downloaded', 'success',
+              '3 sections · ' + rows + ' rows · ' + rangeLabel());
+          }
+        });
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

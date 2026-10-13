@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
@@ -39,8 +39,14 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         </div>
       </div>
 
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="loadError && businesses.length" role="status" aria-live="polite">
+        <span>Couldn't update businesses. {{ loadError }}</span>
+        <button type="button" class="btn-retry" (click)="loadBusinesses()">Retry</button>
+      </div>
+
       <app-api-state
-        *ngIf="loadError"
+        *ngIf="loadError && !businesses.length"
         [loading]="false"
         [error]="loadError"
         (retry)="loadBusinesses()"
@@ -144,7 +150,8 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading" *ngIf="!loaded; else businessesEmpty">
+        <div class="panel loading" *ngIf="!loaded && !loadError; else businessesEmpty" role="status" aria-busy="true">
+          <span class="sr-only">Loading businesses...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
@@ -454,8 +461,10 @@ export class BusinessesPageComponent {
         this.cdr.markForCheck();
       },
       error: () => {
-        this.businesses = [];
-        this.loadError = 'Unable to load businesses.';
+        if (!this.businesses.length) {
+          this.businesses = [];
+        }
+        this.loadError = 'Unable to load businesses. Check your connection and try again.';
         this.loaded = true;
         this.cdr.markForCheck();
       }

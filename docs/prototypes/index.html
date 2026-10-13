@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KhanaBook Web-Admin — Prototype hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  .hub { max-width: 1080px; margin: 0 auto; padding: 34px 22px 60px; }
+  .hub-head { margin-bottom: 26px; }
+  .hub h1 { font-size: 32px; margin: 8px 0 8px; }
+  .hub-lead { color: var(--muted); font-size: 14.5px; line-height: 1.6; max-width: 760px; }
+  .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 14px; }
+  .hub-card { display: flex; flex-direction: column; gap: 10px; text-decoration: none; }
+  .hub-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .hub-card__name { font-size: 15.5px; font-weight: 700; font-family: var(--font-display); }
+  .hub-card__path { font-family: var(--kb-font-mono); font-size: 11.5px; color: var(--brand); }
+  .hub-card__desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .hub-card:hover { border-color: var(--brand); box-shadow: var(--shadow-md); }
+  .hub-section { margin: 30px 0 14px; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .hub-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .hub-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .hub-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+  .ev { font-family: var(--kb-font-mono); font-size: 11.5px; background: var(--panel-2); padding: 2px 6px; border-radius: 6px; }
+  .hub-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="hub">
+  <header class="hub-head">
+    <span class="eyebrow">Prototype &middot; not wired into the app</span>
+    <h1>Web-admin state prototype</h1>
+    <p class="hub-lead">
+      Every surface of the live web-admin, rebuilt with one shared loading / error / empty / success
+      vocabulary so the states can be judged and agreed <em>before</em> any Angular code changes.
+      Tokens, copy and table columns come from the real components; the prototype chrome
+      (bottom-left panel) exists only here.
+    </p>
+    <div class="hub-legend">
+      <span class="kpi-tag kpi-tag--green">These are the states the live app gets wrong</span>
+      <span class="kpi-tag">Flip them in the “Prototype states” panel on any page</span>
+    </div>
+  </header>
+
+  <div class="hub-section">Owner console</div>
+  <div class="hub-grid" id="gridOwner"></div>
+
+  <div class="hub-section">Platform (KBOOK_ADMIN)</div>
+  <div class="hub-grid" id="gridPlatform"></div>
+
+  <div class="hub-section">Public &amp; edge</div>
+  <div class="hub-grid" id="gridPublic"></div>
+
+  <div class="hub-section">The shared state vocabulary (one sentence per failure, everywhere)</div>
+  <div class="panel panel--flush">
+    <div class="table-wrap">
+      <table class="hub-table">
+        <thead><tr><th>Failure</th><th>Title</th><th>What the user is told</th><th>Badge</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ev">network error</span></td><td>You're offline</td><td>No internet connection. Check your network and try again.</td><td><span class="status-chip st-warn">Offline styling</span></td></tr>
+          <tr><td><span class="ev">400</span></td><td>We couldn't do that</td><td>The request was rejected. Refresh and try again.</td><td><span class="status-chip st-danger">Error panel</span></td></tr>
+          <tr><td><span class="ev">401</span></td><td>Your session ended</td><td>Your session has expired. Please sign in again.</td><td><span class="status-chip st-danger">Error panel</span></td></tr>
+          <tr><td><span class="ev">403</span></td><td>Not your permission</td><td>You do not have permission to view this. Ask the shop owner to grant it.</td><td><span class="status-chip st-neutral">Info styling</span></td></tr>
+          <tr><td><span class="ev">500</span></td><td>We couldn't load it</td><td>The server could not complete this request (500). Nothing was changed.</td><td><span class="status-chip st-danger">Error panel</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="hub-section">What was actually broken in the live app (measured, 2026-10-13)</div>
+  <div class="panel">
+    <table class="hub-table">
+      <thead><tr><th>Surface</th><th>Measured behaviour</th><th>Fix this prototype assumes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Login</strong></td>
+          <td>Live API answers <span class="ev">400</span> in 2.6s; component state becomes
+            <span class="ev">loading:false, error:"Invalid login ID or password"</span> but the DOM still reads
+            <em>“Signing in…”</em>, button disabled, <span class="ev">role="alert"</span> count <span class="ev">0</span> — stuck forever.</td>
+          <td>One owner of the busy flag; every path clears it and renders the message + a way forward.</td>
+        </tr>
+        <tr>
+          <td><strong>Reports, Platform dashboard, Business settings</strong></td>
+          <td>Error content rendered inside <span class="ev">class="panel loading"</span> — failures are styled as loading.</td>
+          <td>Distinct <span class="ev">.state-panel</span> styling, never a loading class.</td>
+        </tr>
+        <tr>
+          <td><strong>Live Orders, Reports, Terminals, Feature flags</strong></td>
+          <td>Error block with no retry action; several without <span class="ev">role="alert"</span>.</td>
+          <td>Every error carries one primary action and is announced.</td>
+        </tr>
+        <tr>
+          <td><strong>Global interceptor</strong></td>
+          <td>Network and 5xx failures go to <span class="ev">console.error</span> only — the user sees nothing.</td>
+          <td>Toast + inline surface, with errors lingering 7s instead of 3.5s.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  var DESCRIPTIONS = {
+    dashboard: 'KPI bento row, service velocity curve, top dishes, live floor strip — plus the stale-refresh banner.',
+    orders: 'Live orders tab (status, channel filters, accept/void) and order history with date range.',
+    reports: 'Day summary, GST ledger, hourly and item-sales tabs with CSV export.',
+    'daily-closing': 'Drawer reconciliation: cash/UPI split, variance badges, unsettled-orders warning.',
+    menu: 'Menu items with availability toggles, price edits, and the AI menu-extraction upload.',
+    inventory: 'Materials, vendors, stock-in, wastage, physical count and variance.',
+    staff: 'Staff list, add/edit modal, read-only permission editor and the self-harm guards.',
+    terminals: 'Registered terminals, pending approval requests, rename/reactivate/reclaim flows.',
+    settings: 'Shop profile, payment/UPI onboarding, GST & FSSAI, agreement and password change.',
+    platform: 'Platform-wide KPIs, settlements, sub-merchants and transactions tabs.',
+    businesses: 'Tenant list with suspension state, KYC/settlement status and create-business flow.',
+    'feature-flags': 'Flag table with kill switch, defaults, overrides and pending changes.',
+    login: 'Credentials sign-in, Google sign-in and the full forgot-password recovery path.',
+    'limited-access': 'The screen a suspended/shopless account lands on.',
+    'not-found': '404 kitchen-ticket page.'
+  };
+  var buckets = { 'Owner console': 'gridOwner', 'Platform (KBOOK_ADMIN)': 'gridPlatform', 'Public & edge': 'gridPublic' };
+  Object.keys(buckets).forEach(function (section) {
+    var host = document.getElementById(buckets[section]);
+    Proto.PAGES.filter(function (p) { return p.section === section; }).forEach(function (p) {
+      var a = document.createElement('a');
+      a.className = 'panel hub-card';
+      a.href = p.file;
+      a.innerHTML =
+        '<div class="hub-card__top"><span class="hub-card__name">' + p.label + '</span>' +
+        (p.role ? '<span class="kpi-tag ' + (p.role === 'KBOOK_ADMIN' ? 'kpi-tag--amber' : 'kpi-tag--neutral') + '">' + p.role + '</span>' : '<span class="kpi-tag kpi-tag--neutral">public</span>') +
+        '</div>' +
+        '<span class="hub-card__path">' + p.file + '</span>' +
+        '<span class="hub-card__desc">' + (DESCRIPTIONS[p.key] || '') + '</span>';
+      host.appendChild(a);
+    });
+  });
+})();
+</script>
+</body>
+</html>

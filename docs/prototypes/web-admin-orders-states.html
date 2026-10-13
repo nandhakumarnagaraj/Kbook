@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Orders — KhanaBook web-admin prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Only the pieces this page introduces; everything else is the shared shell. */
+  .orders-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; max-width: 100%; }
+  .orders-tab { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: 0; border-radius: 999px; background: transparent; font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .orders-tab:hover { color: var(--ink-2); }
+  .orders-tab[aria-selected="true"] { background: #fff; color: var(--brand); box-shadow: var(--shadow-xs); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 14px; }
+  .order-card { display: grid; gap: 12px; }
+  .order-card__top { display: flex; align-items: flex-start; gap: 10px; }
+  .order-code { font-family: var(--kb-font-mono); font-size: 14px; font-weight: 700; }
+  .channel-tag { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .order-card__meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .payable { display: grid; gap: 2px; }
+  .payable strong { font-size: 20px; font-family: var(--font-display); }
+  .elapsed-pill { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--success-soft); color: var(--success); }
+  .elapsed-pill--urgent { background: var(--danger-soft); color: var(--danger); }
+  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-actions .ghost-btn { min-height: 32px; font-size: 12px; padding: 5px 10px; }
+  .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .search-wrap { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); min-width: 220px; }
+  .search-wrap input { border: 0; outline: 0; font: inherit; font-size: 13px; width: 100%; background: transparent; }
+  .range-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .range-bar .field-control { max-width: 170px; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .detail-lines { display: grid; gap: 8px; }
+  .detail-line { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; font-size: 13px; }
+  .detail-total { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  /* ── Page-local UI state. All of it survives a state switch, so flipping to
+        Error/Loading and back never silently resets the operator's filters. ── */
+  var ui = {
+    tab: 'live',
+    channel: 'ALL',
+    status: 'ALL',
+    query: '',
+    range: 'today',
+    from: '2026-10-13',
+    to: '2026-10-13',
+    page: 1,
+    perPage: 5
+  };
+
+  var LIVE = [
+    { id: 1042, code: '1042', channel: 'DINE_IN', table: '7', guest: 'Walk-in Guest', summary: '2× Hyderabadi Chicken Biryani, 1× Raita', total: 1240, status: 'Preparing', elapsedMins: 6, payment: 'pending' },
+    { id: 1041, code: '1041', channel: 'SWIGGY', table: '', guest: 'Rahul S.', summary: '1× Paneer Butter Masala, 3× Butter Naan', total: 860, status: 'Cooking', elapsedMins: 14, payment: 'paid' },
+    { id: 1040, code: '1040', channel: 'DINE_IN', table: '2', guest: 'Walk-in Guest', summary: '4× Masala Dosa, 2× Filter Coffee', total: 980, status: 'Served', elapsedMins: 22, payment: 'pending' },
+    { id: 1038, code: '1038', channel: 'TAKEAWAY', table: '', guest: 'Priya M.', summary: '2× Veg Thali', total: 640, status: 'Preparing', elapsedMins: 31, payment: 'paid' },
+    { id: 1037, code: '1037', channel: 'ZOMATO', table: '', guest: 'Zomato #51902', summary: '1× Chicken Biryani, 1× Kebab Platter', total: 1690, status: 'Cooking', elapsedMins: 27, payment: 'paid' },
+    { id: 1035, code: '1035', channel: 'DINE_IN', table: '4', guest: 'Walk-in Guest', summary: '3× Butter Chicken, 6× Tandoori Roti', total: 2130, status: 'Served', elapsedMins: 18, payment: 'pending' },
+    { id: 1033, code: '1033', channel: 'TAKEAWAY', table: '', guest: 'Arun K.', summary: '1× Mutton Rogan Josh, 2× Jeera Rice', total: 1120, status: 'Preparing', elapsedMins: 3, payment: 'pending' }
+  ];
+
+  var HISTORY = [
+    { id: 1039, code: '1039', time: '13:42', channel: 'Zomato · #51877', guest: 'Marketplace order', summary: '1× Chicken Biryani, 1× Kebab Platter', total: 1690, status: 'Completed', payment: 'UPI' },
+    { id: 1036, code: '1036', time: '13:08', channel: 'Dine-in · Table 9', guest: 'Walk-in Guest', summary: '2× Veg Biryani, 2× Lassi', total: 760, status: 'Completed', payment: 'UPI' },
+    { id: 1034, code: '1034', time: '12:51', channel: 'Takeaway · Counter', guest: 'Sneha R.', summary: '3× Chicken 65, 1× Lime Soda', total: 890, status: 'Completed', payment: 'Cash' },
+    { id: 1032, code: '1032', time: '12:34', channel: 'Swiggy · #88114', guest: 'Marketplace order', summary: '1× Paneer Tikka, 2× Butter Naan', total: 620, status: 'Completed', payment: 'UPI' },
+    { id: 1031, code: '1031', time: '12:20', channel: 'Dine-in · Table 3', guest: 'Walk-in Guest', summary: '4× Masala Dosa, 4× Filter Coffee', total: 1120, status: 'Completed', payment: 'Cash' },
+    { id: 1030, code: '1030', time: '12:02', channel: 'Dine-in · Table 6', guest: 'Walk-in Guest', summary: '1× Mutton Rogan Josh, 2× Jeera Rice', total: 1180, status: 'Cancelled', payment: 'Refunded' },
+    { id: 1029, code: '1029', time: '11:47', channel: 'Takeaway · Counter', guest: 'Vikram J.', summary: '2× Veg Thali', total: 640, status: 'Completed', payment: 'UPI' },
+    { id: 1028, code: '1028', time: '11:31', channel: 'Swiggy · #88091', guest: 'Marketplace order', summary: '2× Hyderabadi Chicken Biryani', total: 700, status: 'Completed', payment: 'UPI' },
+    { id: 1027, code: '1027', time: '11:12', channel: 'Dine-in · Table 1', guest: 'Walk-in Guest', summary: '1× Chicken Biryani, 1× Raita, 2× Naan', total: 980, status: 'Completed', payment: 'Cash' }
+  ];
+
+  var CANCEL_REASONS = [
+    'Customer requested cancellation',
+    'Kitchen unable to fulfill / Item out of stock',
+    'Duplicate order entry',
+    'Entered by mistake / Billing error',
+    'Other reason'
+  ];
+
+  var statusClass = function (s) {
+    if (s === 'Preparing') return 'st-preparing';
+    if (s === 'Cooking') return 'st-cooking';
+    if (s === 'Served') return 'st-served';
+    if (s === 'Completed') return 'st-completed';
+    if (s === 'Cancelled') return 'st-danger';
+    return 'st-neutral';
+  };
+  var channelLabel = function (c) {
+    return { DINE_IN: 'Dine-in', TAKEAWAY: 'Takeaway', SWIGGY: 'Swiggy', ZOMATO: 'Zomato' }[c] || c;
+  };
+  var elapsed = function (mins) {
+    if (mins < 60) return mins + 'm';
+    return Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  };
+  var isUrgent = function (o) { return o.elapsedMins > 25; };
+
+  var filteredLive = function () {
+    var q = ui.query.trim().toLowerCase();
+    return LIVE.filter(function (o) {
+      var byChannel = ui.channel === 'ALL' || o.channel === ui.channel;
+      var byQuery = !q || o.code.indexOf(q) >= 0 || o.summary.toLowerCase().indexOf(q) >= 0 || o.guest.toLowerCase().indexOf(q) >= 0;
+      return byChannel && byQuery;
+    });
+  };
+  var filteredHistory = function () {
+    var q = ui.query.trim().toLowerCase();
+    return HISTORY.filter(function (o) {
+      var byStatus = ui.status === 'ALL' || o.status === ui.status;
+      var byChannel = ui.channel === 'ALL'
+        || (ui.channel === 'DINE_IN' && o.channel.toLowerCase().indexOf('dine-in') === 0)
+        || (ui.channel === 'TAKEAWAY' && o.channel.toLowerCase().indexOf('takeaway') === 0)
+        || (ui.channel === 'SWIGGY' && o.channel.toLowerCase().indexOf('swiggy') === 0)
+        || (ui.channel === 'ZOMATO' && o.channel.toLowerCase().indexOf('zomato') === 0);
+      var byQuery = !q || o.code.indexOf(q) >= 0 || o.summary.toLowerCase().indexOf(q) >= 0 || o.guest.toLowerCase().indexOf(q) >= 0;
+      return byStatus && byChannel && byQuery;
+    });
+  };
+
+  var busyLabel = function (el, text) {
+    return '<span class="spinner-inline">' + text + '</span>';
+  };
+
+  /* ── live floor view ─────────────────────────────────────────────────── */
+  function liveView(ctx) {
+    var list = filteredLive();
+    if (ctx.mode === 'empty' || !list.length) {
+      var isFiltered = !!ui.query || ui.channel !== 'ALL';
+      return '<div class="stack">' +
+        (isFiltered && ctx.mode !== 'empty'
+          ? ctx.emptyBox('No orders match this view', 'Clear the search or channel filter to see the live floor again.', 'Clear filters').replace('data-action="refresh"', 'data-action="clearFilters"')
+          : '<div class="panel">' + ctx.emptyBox('All Tables & Orders Settled',
+              'There are no active unsettled orders right now. New orders taken from counter POS will stream here in real time.',
+              'Check for new orders') + '</div>') +
+      '</div>';
+    }
+
+    var floorValue = list.reduce(function (a, o) { return a + o.total; }, 0);
+    var tables = list.filter(function (o) { return o.channel === 'DINE_IN'; }).length;
+    var dineIn = tables;
+    var takeaway = list.filter(function (o) { return o.channel === 'TAKEAWAY'; }).length;
+    var urgent = list.filter(isUrgent).length;
+    var oldest = list.reduce(function (a, o) { return Math.max(a, o.elapsedMins); }, 0);
+
+    var telemetry =
+      '<section class="bento-kpi-grid bento-kpi-grid--3" aria-label="Floor load overview">' +
+        '<article class="bento-tile bento-tile--hero">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Running Floor Value</span></div>' +
+          '<div class="bento-tile__metric tabular" data-counter="' + floorValue + '" data-format="money">₹0</div>' +
+          '<span class="sub-caption" style="color:rgba(255,255,255,.85)">' + list.length + ' active bills awaiting final settlement</span>' +
+        '</article>' +
+        '<article class="bento-tile">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Occupied Tables &amp; Orders</span>' +
+            '<span class="kpi-tag kpi-tag--neutral">' + dineIn + ' Dine-in</span></div>' +
+          '<div class="bento-tile__metric tabular">' + tables + ' <span class="metric-sub" style="font-size:15px">Tables Occupied</span></div>' +
+          '<span class="sub-caption">' + takeaway + ' Takeaway · ' + dineIn + ' Dine-in</span>' +
+        '</article>' +
+        '<article class="bento-tile">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Oldest Waiting Ticket</span>' +
+            '<span class="kpi-tag ' + (urgent > 0 ? 'kpi-tag--danger' : 'kpi-tag--green') + '">' +
+              (urgent > 0 ? urgent + ' Overdue (&gt;25m)' : 'On Pace') + '</span></div>' +
+          '<div class="bento-tile__metric tabular">' + elapsed(oldest) + '</div>' +
+          '<span class="sub-caption ' + (urgent > 0 ? 'text-danger' : '') + '">' +
+            (urgent > 0 ? 'Orders exceeding 25m turnaround' : 'All floor orders progressing smoothly') + '</span>' +
+        '</article>' +
+      '</section>';
+
+    var cards = list.map(function (o) {
+      var key = 'order-' + o.code;
+      var isBusy = ctx.busy(key);
+      return '<article class="panel order-card"' + (isBusy ? ' aria-busy="true"' : '') + '>' +
+        '<div class="order-card__top">' +
+          '<div style="min-width:0;flex:1">' +
+            '<span class="order-code">#' + o.code + '</span>' +
+            '<span class="channel-tag">' + channelLabel(o.channel) + (o.table ? ' · Table ' + o.table : '') + '</span>' +
+          '</div>' +
+          '<span class="status-chip ' + statusClass(o.status) + '">' + (isBusy ? 'Working…' : o.status) + '</span>' +
+        '</div>' +
+        '<div class="order-card__meta">' +
+          '<span class="muted">' + ctx.esc(o.guest) + '</span>' +
+          '<span class="elapsed-pill ' + (isUrgent(o) ? 'elapsed-pill--urgent' : '') + '">⏱ ' + elapsed(o.elapsedMins) + '</span>' +
+        '</div>' +
+        '<p class="sub-caption">' + ctx.esc(o.summary) + '</p>' +
+        '<div class="order-card__meta">' +
+          '<span class="payable"><span class="sub-caption">Payable</span><strong class="tabular">' + ctx.money(o.total) + '</strong></span>' +
+          '<span class="kpi-tag ' + (o.payment === 'pending' ? 'kpi-tag--warn' : 'kpi-tag--green') + '">' + (o.payment === 'pending' ? 'Payment pending' : 'Paid') + '</span>' +
+        '</div>' +
+        '<div class="card-actions">' +
+          '<button class="ghost-btn" type="button" data-action="detail" data-order="' + o.code + '"' + (isBusy ? ' disabled' : '') + '>Details</button>' +
+          '<button class="ghost-btn" type="button" data-action="invoice" data-order="' + o.code + '"' + (isBusy ? ' disabled' : '') + '>Invoice</button>' +
+          '<button class="ghost-btn ghost-btn--success" type="button" data-action="accept" data-order="' + o.code + '"' + (isBusy ? ' disabled' : '') + '>' +
+            (isBusy ? busyLabel(null, 'Accepting…') : 'Accept') + '</button>' +
+          '<button class="ghost-btn ghost-btn--danger" type="button" data-action="void" data-order="' + o.code + '"' + (isBusy ? ' disabled' : '') + '>Void</button>' +
+        '</div>' +
+      '</article>';
+    }).join('');
+
+    return '<div class="stack">' + telemetry +
+      '<div class="card-grid">' + cards + '</div>' +
+    '</div>';
+  }
+
+  /* ── history view ────────────────────────────────────────────────────── */
+  function historyView(ctx) {
+    var list = filteredHistory();
+    var totalPages = Math.max(1, Math.ceil(list.length / ui.perPage));
+    if (ui.page > totalPages) ui.page = totalPages;
+    var start = (ui.page - 1) * ui.perPage;
+    var rows = list.slice(start, start + ui.perPage);
+
+    var rangeBar =
+      '<div class="range-bar">' +
+        '<span class="sub-caption">Period</span>' +
+        '<div class="chip-group" role="group" aria-label="Period presets">' +
+          ['today', 'yesterday', 'custom'].map(function (r) {
+            return '<button class="chip" type="button" data-action="range" data-range="' + r + '" aria-pressed="' + (r === ui.range) + '">' +
+              (r === 'today' ? 'Today' : r === 'yesterday' ? 'Yesterday' : 'Custom') + '</button>';
+          }).join('') +
+        '</div>' +
+        '<label class="field"><span class="field-label">From</span>' +
+          '<input class="field-control" type="date" data-input="from" value="' + ui.from + '" aria-label="From date" /></label>' +
+        '<label class="field"><span class="field-label">To</span>' +
+          '<input class="field-control" type="date" data-input="to" value="' + ui.to + '" aria-label="To date" /></label>' +
+        '<button class="ghost-btn" type="button" data-action="applyRange">Apply</button>' +
+      '</div>';
+
+    var body = rows.length
+      ? '<div class="table-wrap"><table class="data-table">' +
+          '<thead><tr><th>Order</th><th>Channel &amp; Table</th><th>Guest &amp; Summary</th><th class="num-cell">Total</th><th>Payment</th><th>Status</th><th>Time</th><th class="num-cell">Action</th></tr></thead>' +
+          '<tbody>' + rows.map(function (o) {
+            var key = 'history-' + o.code;
+            var isBusy = ctx.busy(key);
+            return '<tr' + (isBusy ? ' aria-busy="true"' : '') + '>' +
+              '<td><span class="order-code">#' + o.code + '</span></td>' +
+              '<td class="muted">' + ctx.esc(o.channel) + '</td>' +
+              '<td><strong>' + ctx.esc(o.guest) + '</strong><span class="sub-caption" style="display:block">' + ctx.esc(o.summary) + '</span></td>' +
+              '<td class="num-cell tabular font-bold">' + ctx.money(o.total) + '</td>' +
+              '<td class="muted">' + o.payment + '</td>' +
+              '<td><span class="status-chip ' + statusClass(o.status) + '">' + o.status + '</span></td>' +
+              '<td class="muted tabular">' + o.time + '</td>' +
+              '<td class="num-cell">' +
+                '<button class="ghost-btn" type="button" data-action="detail" data-order="' + o.code + '"' + (isBusy ? ' disabled' : '') + '>' +
+                  (isBusy ? 'Opening…' : 'View') + '</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('') + '</tbody></table></div>'
+      : '<div style="padding:16px">' + ctx.emptyBox('No settled orders in this period',
+          'Change the date range or clear the filters to see settled transactions for the selected day.', 'Clear filters').replace('data-action="refresh"', 'data-action="clearFilters"') + '</div>';
+
+    var pager =
+      '<div class="pager">' +
+        '<span>Showing ' + (rows.length ? start + 1 : 0) + '–' + (start + rows.length) + ' of ' + list.length + ' orders</span>' +
+        '<span class="chip-group">' +
+          '<button class="ghost-btn" type="button" data-action="page" data-page="' + (ui.page - 1) + '"' + (ui.page <= 1 ? ' disabled' : '') + '>← Newer</button>' +
+          '<span class="kpi-tag kpi-tag--neutral">Page ' + ui.page + ' / ' + totalPages + '</span>' +
+          '<button class="ghost-btn" type="button" data-action="page" data-page="' + (ui.page + 1) + '"' + (ui.page >= totalPages ? ' disabled' : '') + '>Older →</button>' +
+        '</span>' +
+      '</div>';
+
+    return '<section class="panel panel--flush" aria-label="Recent orders and transactions">' +
+      '<div style="padding:16px 16px 0">' +
+        '<div class="panel__head">' +
+          '<div>' +
+            '<h3 class="panel__title">Live Orders &amp; Recent Transactions</h3>' +
+            '<p class="sub-caption">Active dining tickets, takeaway pickups, and today\u2019s latest POS settlements.</p>' +
+          '</div>' +
+          '<div class="filter-bar">' +
+            '<div class="chip-group" role="group" aria-label="Filter by channel">' +
+              [['ALL', 'All'], ['DINE_IN', 'Dine In'], ['TAKEAWAY', 'Takeaway'], ['SWIGGY', 'Swiggy'], ['ZOMATO', 'Zomato']].map(function (c) {
+                return '<button class="chip" type="button" data-action="channel" data-channel="' + c[0] + '" aria-pressed="' + (ui.channel === c[0]) + '">' + c[1] + '</button>';
+              }).join('') +
+            '</div>' +
+            '<label class="search-wrap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+              '<input type="search" data-input="search" value="' + ctx.esc(ui.query) + '" placeholder="Search order #, items, guest…" aria-label="Filter recent orders" /></label>' +
+            '<select class="field-control" style="max-width:170px" data-input="status" aria-label="Filter by status">' +
+              ['ALL', 'Completed', 'Cancelled'].map(function (s) {
+                return '<option value="' + s + '"' + (ui.status === s ? ' selected' : '') + '>' + (s === 'ALL' ? 'All Statuses' : s) + '</option>';
+              }).join('') +
+            '</select>' +
+            '<span class="records-pill tabular">' + list.length + ' Orders</span>' +
+          '</div>' +
+        '</div>' +
+        rangeBar +
+      '</div>' +
+      body + pager +
+    '</section>';
+  }
+
+  /* ── order detail modal (shared OrderDetailModalComponent equivalent) ─── */
+  function openDetail(code) {
+    var order = LIVE.concat(HISTORY).filter(function (o) { return o.code === code; })[0];
+    if (!order) return;
+    var lines = [
+      { name: 'Hyderabadi Chicken Biryani', qty: 2, rate: 380 },
+      { name: 'Butter Naan', qty: 3, rate: 60 },
+      { name: 'Raita', qty: 1, rate: 80 }
+    ];
+    var subtotal = lines.reduce(function (a, l) { return a + l.qty * l.rate; }, 0);
+    var tax = Math.round(subtotal * 0.05);
+    var body =
+      '<div class="stack--tight">' +
+        '<div class="field-row"><span class="muted">Order</span><strong>#' + order.code + '</strong></div>' +
+        '<div class="field-row"><span class="muted">Channel</span><span>' + channelLabel(order.channel || 'DINE_IN') + '</span></div>' +
+        '<div class="field-row"><span class="muted">Guest</span><span>' + Proto.esc(order.guest) + '</span></div>' +
+        '<div class="field-row"><span class="muted">Status</span><span class="status-chip ' + statusClass(order.status) + '">' + order.status + '</span></div>' +
+      '</div>' +
+      '<div class="detail-lines">' +
+        lines.map(function (l) {
+          return '<div class="detail-line"><span>' + l.qty + '× ' + l.name + '</span><span class="muted tabular">' + Proto.money(l.rate) + '</span><strong class="tabular">' + Proto.money(l.qty * l.rate) + '</strong></div>';
+        }).join('') +
+      '</div>' +
+      '<div class="detail-total"><span>Subtotal</span><span class="tabular">' + Proto.money(subtotal) + '</span></div>' +
+      '<div class="detail-total" style="font-weight:600;font-size:12.5px"><span>GST (5% inclusive)</span><span class="tabular">' + Proto.money(tax) + '</span></div>' +
+      '<div class="detail-total"><span>Payable</span><span class="tabular">' + Proto.money(order.total) + '</span></div>' +
+      '<p class="inline-note">Read-only in the prototype. In the app this modal also corrects payment method and order status, with each change confirmed by a toast.</p>';
+    Proto.modal('Order #' + order.code, body,
+      '<button class="ghost-btn" type="button" data-close>Close</button>' +
+      '<button class="btn-primary" type="button" data-close>Open in POS view</button>', true);
+  }
+
+  /* ── void / cancel modal, mirroring the real reason presets ───────────── */
+  function openVoid(code) {
+    var order = LIVE.concat(HISTORY).filter(function (o) { return o.code === code; })[0] || { total: 0, guest: '' };
+    var body =
+      '<p class="inline-note">This cancels order <strong>#' + code + '</strong> for <strong>' + Proto.money(order.total) + '</strong> · ' + Proto.esc(order.guest || 'Walk-in customer') + '. The bill is voided on the POS and refunded if already paid.</p>' +
+      '<label class="field"><span class="field-label">Cancellation reason</span>' +
+        '<select class="field-control" id="voidReason">' + CANCEL_REASONS.map(function (r) { return '<option>' + r + '</option>'; }).join('') + '</select></label>' +
+      '<label class="field"><span class="field-label">Additional note (optional)</span>' +
+        '<input class="field-control" id="voidNote" type="text" placeholder="Optional explanation or reference note…" /></label>';
+    var overlay = Proto.modal('Void order #' + code, body,
+      '<button class="ghost-btn" type="button" data-close>Keep order</button>' +
+      '<button class="btn-danger" type="button" id="confirmVoid">Confirm cancellation</button>');
+    var confirm = overlay.querySelector('#confirmVoid');
+    confirm.addEventListener('click', function () {
+      var reason = overlay.querySelector('#voidReason').value;
+      overlay.remove();
+      Proto.setBusy('order-' + code, true);
+      Proto.render();
+      Proto.call('Void order #' + code, {
+        onOk: function () { Proto.toast('Order #' + code + ' cancelled and voided.', 'success', reason); }
+      });
+    });
+  }
+
+  Proto.boot({
+    page: 'orders',
+    eyebrow: 'Live Operations',
+    live: true,
+    title: 'Orders',
+    subtitle: 'Live floor board and settled transaction history in one workspace.',
+    headerExtra:
+      '<span class="header-pill"><span class="dot-beacon dot-beacon--active" aria-hidden="true"></span>' +
+        '<span><strong class="tabular">7</strong> live bills</span></span>' +
+      '<span class="header-pill header-pill--alert">' +
+        '<span><strong class="tabular">2</strong> Overdue &gt;25m</span></span>',
+
+    skeleton:
+      '<div class="stack">' +
+        '<div class="bento-kpi-grid bento-kpi-grid--3">' +
+          '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '</div>' +
+        '<div class="card-grid">' +
+          '<div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>' +
+          '<div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>' +
+        '</div>' +
+      '</div>',
+
+    render: function (ctx) {
+      var tabs =
+        '<nav class="orders-tabs" role="tablist" aria-label="Orders views">' +
+          '<button class="orders-tab" type="button" role="tab" id="tab-live" aria-selected="' + (ui.tab === 'live') + '" aria-controls="panel-live" data-action="tab" data-tab="live">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-7m5 7V8"/></svg>Live Floor</button>' +
+          '<button class="orders-tab" type="button" role="tab" id="tab-history" aria-selected="' + (ui.tab === 'history') + '" aria-controls="panel-history" data-action="tab" data-tab="history">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13a9 9 0 1 0 2.5-6.4L3 8"/><path d="M12 7v5l4 2"/></svg>History &amp; Settlements</button>' +
+        '</nav>';
+
+      var panel = ui.tab === 'live'
+        ? '<section id="panel-live" role="tabpanel" aria-labelledby="tab-live">' + liveView(ctx) + '</section>'
+        : '<section id="panel-history" role="tabpanel" aria-labelledby="tab-history">' + historyView(ctx) + '</section>';
+
+      return tabs + panel;
+    },
+
+    actions: {
+      tab: function (el) {
+        ui.tab = el.dataset.tab;
+        ui.page = 1;
+        Proto.render();
+      },
+      channel: function (el) {
+        ui.channel = el.dataset.channel;
+        ui.page = 1;
+        Proto.render();
+      },
+      status: function (el) { ui.status = el.value; ui.page = 1; Proto.render(); },
+      page: function (el) { ui.page = Number(el.dataset.page); Proto.render(); },
+      clearFilters: function () {
+        ui.channel = 'ALL';
+        ui.query = '';
+        ui.status = 'ALL';
+        ui.page = 1;
+        Proto.toast('Filters cleared', 'info');
+        Proto.render();
+      },
+      range: function (el) {
+        var r = el.dataset.range;
+        ui.range = r;
+        if (r === 'today') { ui.from = '2026-10-13'; ui.to = '2026-10-13'; }
+        if (r === 'yesterday') { ui.from = '2026-10-12'; ui.to = '2026-10-12'; }
+        ui.page = 1;
+        Proto.render();
+        if (r !== 'custom') Proto.toast('Showing ' + filteredHistory().length + ' settled orders for ' + (r === 'today' ? 'today' : 'yesterday'), 'info');
+      },
+      applyRange: function () {
+        ui.range = 'custom';
+        ui.page = 1;
+        Proto.setBusy('range', true);
+        Proto.render();
+        Proto.call('Load orders ' + ui.from + ' → ' + ui.to, {
+          onOk: function () { Proto.toast('Showing ' + filteredHistory().length + ' orders for ' + ui.from, 'success', 'GET /business/orders?page=0'); }
+        });
+      },
+      detail: function (el) { openDetail(el.dataset.order); },
+      void: function (el) { openVoid(el.dataset.order); },
+      invoice: function (el) {
+        var code = el.dataset.order;
+        Proto.setBusy('order-' + code, true);
+        Proto.render();
+        Proto.call('Fetch invoice link for #' + code, {
+          onOk: function () { Proto.toast('Invoice link for Order #' + code + ' copied!', 'success', 'khanabook.in/i/' + code); }
+        });
+      },
+      accept: function (el) {
+        var code = el.dataset.order;
+        Proto.setBusy('order-' + code, true);
+        Proto.render();
+        Proto.call('Accept order #' + code, {
+          onOk: function () {
+            var order = LIVE.filter(function (o) { return o.code === code; })[0];
+            if (order) order.status = 'Cooking';
+            Proto.toast('Order #' + code + ' accepted and sent to the kitchen.', 'success');
+          }
+        });
+      }
+    },
+
+    inputs: {
+      search: function (value) {
+        ui.query = value;
+        ui.page = 1;
+        Proto.render();
+        var input = document.querySelector('[data-input="search"]');
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+      },
+      status: function (value) { ui.status = value; ui.page = 1; Proto.render(); },
+      from: function (value) { ui.from = value; ui.range = 'custom'; },
+      to: function (value) { ui.to = value; ui.range = 'custom'; }
+    },
+
+    data: { live: LIVE, history: HISTORY }
+  });
+})();
+</script>
+</body>
+</html>

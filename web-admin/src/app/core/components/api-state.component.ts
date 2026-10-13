@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
@@ -28,14 +28,15 @@ import { CommonModule } from '@angular/common';
       <p class="loading-text">{{ loadingText }}</p>
     </div>
 
-    <section *ngIf="!loading && error" class="api-state-error" role="alert" aria-live="assertive">
-      <div class="error-icon" aria-hidden="true">!</div>
+    <section *ngIf="!loading && error" class="state-panel" [class.state-panel--offline]="isOffline" role="alert" aria-live="assertive" tabindex="-1">
+      <div class="state-panel__icon" aria-hidden="true">{{ isOffline ? '⚠' : '!' }}</div>
       <div>
-        <h3>We couldn't load this content</h3>
+        <h3>{{ title }}</h3>
         <p class="error-message">{{ error }}</p>
+        <span *ngIf="meta" class="state-panel__meta">{{ meta }}</span>
       </div>
-      <button *ngIf="showRetry" type="button" class="retry-btn" (click)="retry.emit()">
-        Try again
+      <button *ngIf="showRetry" type="button" class="btn-retry" (click)="retry.emit()">
+        {{ retryText }}
       </button>
     </section>
 
@@ -104,7 +105,22 @@ import { CommonModule } from '@angular/common';
 export class ApiStateComponent {
   @Input() loading = false;
   @Input() error: string | null = null;
+  @Input() set message(val: string | null) {
+    this.error = val;
+  }
+  get message(): string | null {
+    return this.error;
+  }
+  @Input() title = "We couldn't load this content";
+  @Input() meta: string | null = null;
   @Input() loadingText = 'Loading…';
   @Input() showRetry = true;
+  @Input() retryText = 'Try again';
   @Output() retry = new EventEmitter<void>();
+
+  get isOffline(): boolean {
+    if (!navigator.onLine) return true;
+    const err = (this.error || '').toLowerCase();
+    return err.includes('offline') || err.includes('network') || err.includes('internet');
+  }
 }

@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KhanaBook Web-Admin — Dashboard State Prototype</title>
+<!--
+  PROTOTYPE — not wired into the Angular app.
+  Mirrors the live web-admin dashboard (Owner surface, /business/dashboard):
+  same tokens, same layout, same copy — with the loading / error / success /
+  empty states rebuilt so they can be judged and agreed before touching app code.
+
+  Live evidence this prototype answers (captured 2026-10-13 from the running app
+  against kbook.iadv.cloud):
+    • POST /auth/login → 400 {"error":"Invalid login ID or password"} (curl: 2.6s, complete body)
+    • component state after the 400 ... loading:false, error:"Invalid login ID or password"
+    • rendered DOM after the 400 ....... button still "Signing in…" disabled, role="alert" count 0
+    → a failed sign-in showed the user nothing, forever. Same class of bug
+      (plain field mutated in an async callback on an OnPush component) affects
+      menu loadError and the password-change section.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Design tokens — copied verbatim from web-admin/src/styles.css (:root)
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg: #FAF7F2; --panel: #FFFFFF; --panel-2: #F8F5EF;
+  --ink: #1C1A17; --ink-2: #2A2A28; --muted: #6B655C; --muted-2: #9E9689;
+  --line: #EFE9DE; --line-strong: #E1D9CA;
+  --brand: #6C27D9; --brand-deep: #5B21B6; --brand-soft: #F5F3FF; --brand-ring: rgba(108,39,217,.35);
+  --gradient-primary: linear-gradient(135deg, #5D45FD 0%, #6C27D9 100%);
+  --accent: #0F766E; --accent-soft: #ECFDF5;
+  --danger: #C0392B; --danger-soft: #F9E7E3;
+  --success: #2F855A; --success-soft: #E7F4EC;
+  --warning: #B7791F; --warning-soft: #FBF3DF;
+  --info: #2B6CB0; --info-soft: #E5EEF7;
+  --shadow-xs: 0 1px 2px rgba(42,31,23,.04);
+  --shadow-md: 0 4px 12px rgba(42,31,23,.08);
+  --shadow-lg: 0 12px 32px rgba(42,31,23,.12);
+  --shadow-card: 0 1px 2px 0 rgba(42,31,23,.04), 0 4px 12px -2px rgba(42,31,23,.06);
+  --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 12px; --r-2xl: 16px;
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --kb-font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --kb-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --kb-space-1: 4px; --kb-space-2: 8px; --kb-space-3: 12px; --kb-space-4: 16px;
+  --kb-space-5: 20px; --kb-space-6: 24px; --kb-space-8: 32px; --kb-space-12: 48px;
+  --kb-ease-standard: cubic-bezier(.2,0,.2,1);
+  /* POS Command Center shell */
+  --pos-sidebar-bg: #181B34; --pos-sidebar-hover: #22274A; --pos-sidebar-text: #8E95A9;
+  --pos-purple: #6C27D9; --pos-purple-hover: #5B21B6; --pos-purple-soft: rgba(108,39,217,.12);
+  --pos-purple-gradient: linear-gradient(135deg, #5B21B6 0%, #6C27D9 100%);
+  --pos-bg-body: #F6F8FD; --pos-card-bg: #FFFFFF; --pos-card-border: #EEF0F7;
+  --pos-status-prep-bg: #FEE2E2; --pos-status-prep-text: #EF4444;
+  --pos-status-cook-bg: #FEF3C7; --pos-status-cook-text: #D97706;
+  --pos-status-serv-bg: #EDE9FE; --pos-status-serv-text: #7C3AED;
+  --pos-status-comp-bg: #D1FAE5; --pos-status-comp-text: #10B981;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--kb-font-sans);
+  background: var(--pos-bg-body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+h1,h2,h3,h4 { margin: 0; font-family: var(--font-display); letter-spacing: -.015em; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ── Shell ─────────────────────────────────────────────────────────────── */
+.shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+.sidebar {
+  background: var(--pos-sidebar-bg); color: var(--pos-sidebar-text);
+  padding: 18px 14px; display: flex; flex-direction: column; gap: 4px;
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 20px; }
+.brand__logo {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--pos-purple-gradient);
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px;
+  font-family: var(--font-display);
+}
+.brand__name { color: #fff; font-weight: 700; font-size: 15px; font-family: var(--font-display); }
+.brand__sub { display: block; font-size: 11px; color: var(--pos-sidebar-text); font-weight: 500; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 500; color: var(--pos-sidebar-text);
+  background: transparent; border: 0; width: 100%; text-align: left;
+  transition: background var(--kb-ease-standard) 120ms, color 120ms;
+}
+.nav-item:hover { background: var(--pos-sidebar-hover); color: #E9EBF5; }
+.nav-item[aria-current="page"] { background: var(--pos-purple-soft); color: #fff; font-weight: 600; }
+.nav-item svg { flex: none; opacity: .85; }
+.sidebar__foot { margin-top: auto; padding: 10px; font-size: 11px; line-height: 1.5; border-top: 1px solid rgba(255,255,255,.08); }
+
+.main { min-width: 0; padding: 18px 22px 40px; }
+
+/* Phones: the fixed 236px rail is what pushes content past the viewport, so the
+   shell stacks and the rail becomes a scrollable top bar. */
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar {
+    flex-direction: row; align-items: center; gap: 6px; padding: 10px 12px;
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+  }
+  .sidebar::-webkit-scrollbar { height: 0; }
+  .brand { padding: 0 12px 0 0; flex: none; }
+  .brand__sub, .sidebar__foot { display: none; }
+  .nav-item { width: auto; white-space: nowrap; padding: 8px 12px; flex: none; }
+  .main { padding: 14px 14px 36px; }
+  .bento-tile { min-width: 0; }
+  .bento-tile__metric { font-size: 30px; }
+  .hourly-track { height: 130px; gap: 3px; }
+  .bento-kpi-grid, .bento-intel-grid { gap: 10px; }
+  .toast-root { right: 12px; left: 12px; bottom: 12px; width: auto; }
+}
+@media (max-width: 520px) {
+  .bento-tile__head { flex-wrap: wrap; }
+  .page-title { font-size: 21px; }
+  .header-actions { gap: 6px; }
+  .floor-controls { width: 100%; }
+  .floor-search { flex: 1; min-width: 0; }
+  /* five channel chips in one non-wrapping row is what pushes a 360px viewport
+     43px wide — let them wrap onto a second line instead. */
+  .chip-group { flex-wrap: wrap; width: 100%; }
+  .chip { flex: 1 1 auto; }
+}
+
+/* ── Page header (shared PageHeaderComponent) ──────────────────────────── */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--brand); display: flex; align-items: center; gap: 7px;
+}
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 1.8s ease-in-out infinite; }
+.page-title { font-size: 25px; font-weight: 800; margin: 5px 0 3px; }
+.page-sub { margin: 0; color: var(--muted); font-size: 13.5px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.header-pill {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 7px 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2); box-shadow: var(--shadow-xs);
+}
+.header-pill:hover { border-color: var(--line-strong); }
+.header-pill--alert { color: var(--warning); border-color: var(--warning-soft); background: var(--warning-soft); }
+.dot-beacon { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); flex: none; }
+.dot-beacon--active { background: var(--success); box-shadow: 0 0 0 3px rgba(47,133,90,.16); }
+.icon-btn {
+  width: 36px; height: 36px; display: grid; place-items: center; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line); position: relative; box-shadow: var(--shadow-xs);
+}
+.icon-btn:hover { border-color: var(--line-strong); }
+.badge-count {
+  position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; font-weight: 700;
+  display: grid; place-items: center;
+}
+.refresh-btn {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 7px 14px;
+  border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
+  font-size: 13px; font-weight: 600; box-shadow: var(--shadow-xs);
+}
+.refresh-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.refresh-btn:disabled { opacity: .6; cursor: progress; }
+.freshness { font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.spinning { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ── Bento KPI grid ────────────────────────────────────────────────────── */
+.bento-kpi-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 14px; }
+@media (max-width: 1180px) { .bento-kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 700px)  { .bento-kpi-grid { grid-template-columns: 1fr; } }
+.bento-tile {
+  background: var(--pos-card-bg); border: 1px solid var(--pos-card-border);
+  border-radius: var(--r-2xl); padding: 16px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; gap: 12px; min-height: 158px;
+}
+.bento-tile--hero { background: var(--pos-purple-gradient); border-color: transparent; color: #fff; }
+.bento-tile__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bento-tile__eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; opacity: .8;
+}
+.bento-tile__metric { font-size: 34px; font-weight: 800; font-family: var(--font-display); line-height: 1; }
+.metric-sub { font-size: 15px; font-weight: 700; opacity: .7; margin-left: 2px; }
+.trend-badge {
+  font-size: 11.5px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
+  background: rgba(255,255,255,.18); color: #fff;
+}
+.trend-badge--neutral { background: rgba(255,255,255,.14); }
+.trend-badge--down { background: rgba(255,255,255,.2); }
+.kpi-tag { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
+.kpi-tag--green { background: var(--success-soft); color: var(--success); }
+.kpi-tag--amber { background: var(--warning-soft); color: var(--warning); }
+.kpi-tag--warn  { background: var(--warning-soft); color: var(--warning); }
+.kpi-tag--neutral { background: var(--panel-2); color: var(--muted); }
+.split-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+.split-pill { display: inline-flex; align-items: center; gap: 6px; }
+.split-legend { width: 9px; height: 9px; border-radius: 3px; background: rgba(255,255,255,.85); }
+.split-legend--upi { background: rgba(255,255,255,.45); }
+.split-divider { opacity: .4; }
+.split-val { font-weight: 700; }
+.progress-track { height: 8px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; background: var(--gradient-primary); transition: width 600ms var(--kb-ease-standard); }
+.meter-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.sub-caption { font-size: 12px; color: var(--muted); }
+.text-amber { color: var(--warning); }
+.tile-link {
+  display: inline-flex; align-items: center; gap: 4px; background: transparent; border: 0;
+  color: var(--brand); font-size: 12.5px; font-weight: 700; padding: 2px 0;
+}
+.tile-link:hover { text-decoration: underline; }
+
+/* ── Intel grid ────────────────────────────────────────────────────────── */
+.bento-intel-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 1020px) { .bento-intel-grid { grid-template-columns: 1fr; } }
+.intel-card {
+  background: var(--pos-card-bg); border: 1px solid var(--pos-card-border); border-radius: var(--r-2xl);
+  padding: 16px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: 14px;
+}
+.intel-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.intel-card__title { font-size: 15.5px; font-weight: 700; margin-top: 2px; }
+.rush-badge { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.hourly-track { display: flex; align-items: flex-end; gap: 5px; height: 168px; }
+.hourly-node { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; }
+.hourly-pill-track { flex: 1; width: 100%; display: flex; align-items: flex-end; background: var(--panel-2); border-radius: 7px; overflow: hidden; }
+.hourly-pill { width: 100%; background: var(--brand); border-radius: 7px; transition: height 500ms var(--kb-ease-standard); }
+.hourly-pill--peak { background: var(--warning); }
+.hourly-pill--current { background: var(--pos-purple-gradient); }
+.hourly-tick { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.hourly-tick--current { color: var(--brand); }
+.dish-stack { display: grid; gap: 12px; }
+.dish-row { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 11px; }
+.dish-rank {
+  width: 24px; height: 24px; border-radius: 7px; background: var(--brand-soft); color: var(--brand);
+  display: grid; place-items: center; font-size: 11.5px; font-weight: 800;
+}
+.dish-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.dish-name { font-size: 13.5px; font-weight: 600; }
+.dish-qty { font-size: 11.5px; color: var(--muted); }
+.dish-bar-track { height: 6px; border-radius: 999px; background: var(--panel-2); margin-top: 6px; overflow: hidden; }
+.dish-bar-fill { height: 100%; border-radius: 999px; background: var(--gradient-primary); transition: width 600ms var(--kb-ease-standard); }
+.dish-rev { font-size: 13px; font-weight: 700; }
+
+/* ── Live floor ────────────────────────────────────────────────────────── */
+.floor-strip {
+  margin-top: 14px; background: var(--pos-card-bg); border: 1px solid var(--pos-card-border);
+  border-radius: var(--r-2xl); padding: 16px; box-shadow: var(--shadow-card);
+}
+.floor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.floor-count { font-size: 11.5px; color: var(--muted); }
+.floor-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip-group { display: inline-flex; gap: 6px; }
+.chip {
+  min-height: 32px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 12.5px; font-weight: 600; color: var(--muted);
+}
+.chip:hover { border-color: var(--line-strong); color: var(--ink-2); }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.floor-search {
+  min-height: 32px; padding: 5px 12px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--panel); font-size: 12.5px; min-width: 168px; color: var(--ink);
+}
+.floor-search:focus-visible { outline: 2px solid var(--brand-ring); outline-offset: 1px; border-color: var(--brand); }
+.floor-list { display: grid; gap: 7px; }
+.floor-row {
+  display: grid; grid-template-columns: 82px minmax(0,1fr) 132px 96px auto;
+  align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 12px; border-radius: var(--r-xl); border: 1px solid var(--line);
+  background: var(--panel); transition: border-color 120ms, box-shadow 120ms, transform 120ms;
+}
+.floor-row:hover { border-color: var(--brand); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.floor-code { font-family: var(--kb-font-mono); font-size: 12.5px; font-weight: 600; }
+.floor-summary { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.floor-channel { font-size: 12px; color: var(--muted); }
+.floor-amount { font-size: 13.5px; font-weight: 700; text-align: right; }
+@media (max-width: 860px) { .floor-row { grid-template-columns: 1fr auto; row-gap: 6px; } .floor-summary, .floor-channel { grid-column: 1 / -1; } }
+.status-chip {
+  display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 700; width: fit-content;
+}
+.st-preparing { background: var(--pos-status-prep-bg); color: var(--pos-status-prep-text); }
+.st-cooking   { background: var(--pos-status-cook-bg); color: var(--pos-status-cook-text); }
+.st-served    { background: var(--pos-status-serv-bg); color: var(--pos-status-serv-text); }
+.st-completed { background: var(--pos-status-comp-bg); color: var(--pos-status-comp-text); }
+
+/* ── States ────────────────────────────────────────────────────────────── */
+.skeleton {
+  position: relative; overflow: hidden; background: var(--line); border-radius: var(--r-lg);
+}
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+  animation: shimmer 1.25s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.sk-tile { height: 158px; border-radius: var(--r-2xl); }
+.sk-card { height: 244px; border-radius: var(--r-2xl); }
+.sk-row  { height: 44px; border-radius: var(--r-xl); }
+.sk-line { height: 13px; border-radius: 6px; }
+
+.state-panel {
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 16px;
+  padding: 18px; border-radius: var(--r-2xl); border: 1px solid;
+  background: var(--danger-soft); border-color: rgba(192,57,43,.28); color: var(--danger);
+  box-shadow: var(--shadow-card);
+}
+.state-panel__icon {
+  width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--danger); color: #fff; font-weight: 800; font-size: 19px; flex: none;
+}
+.state-panel h3 { color: var(--ink); font-size: 15px; margin-bottom: 3px; }
+.state-panel p { margin: 0; font-size: 13px; line-height: 1.5; }
+.state-panel__meta { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.state-panel--offline { background: var(--warning-soft); border-color: rgba(183,121,31,.3); color: var(--warning); }
+.state-panel--offline .state-panel__icon { background: var(--warning); }
+.btn-retry {
+  min-height: 42px; padding: 9px 18px; border: 0; border-radius: 10px;
+  background: var(--danger); color: #fff; font-weight: 700; font-size: 13.5px; white-space: nowrap;
+}
+.state-panel--offline .btn-retry { background: var(--warning); }
+.btn-retry:hover { filter: brightness(.93); }
+.btn-retry:focus-visible { outline: 3px solid var(--brand-ring); outline-offset: 2px; }
+@media (max-width: 640px) { .state-panel { grid-template-columns: auto minmax(0,1fr); } .btn-retry { grid-column: 1 / -1; width: 100%; } }
+
+.stale-banner {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px;
+  border-radius: var(--r-xl); background: var(--warning-soft); border: 1px solid rgba(183,121,31,.32);
+  font-size: 13px; line-height: 1.45;
+}
+.stale-banner__icon {
+  width: 26px; height: 26px; border-radius: 999px; background: var(--warning); color: #fff;
+  display: grid; place-items: center; font-weight: 800; flex: none; font-size: 14px;
+}
+.stale-banner__spacer { margin-left: auto; }
+.ghost-btn {
+  min-height: 34px; padding: 6px 13px; border-radius: 9px; border: 1px solid currentColor;
+  background: transparent; font-size: 12.5px; font-weight: 700; color: inherit;
+}
+.ghost-btn:hover { background: rgba(0,0,0,.05); }
+
+.empty-box {
+  display: grid; justify-items: center; text-align: center; gap: 7px;
+  padding: 30px 20px; border: 1px dashed var(--line-strong); border-radius: var(--r-xl);
+  background: var(--panel-2); color: var(--muted);
+}
+.empty-box h4 { font-size: 14px; color: var(--ink-2); }
+.empty-box p { margin: 0; font-size: 12.5px; max-width: 420px; line-height: 1.5; }
+.empty-glyph { color: var(--muted-2); }
+
+/* ── Toasts (mirrors GlobalToastComponent, with the duration fix) ───────── */
+.toast-root { position: fixed; right: 20px; bottom: 20px; display: grid; gap: 10px; z-index: 9999; width: min(380px, calc(100vw - 32px)); }
+.toast {
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px; color: #fff; background: var(--ink);
+  border: 1px solid rgba(255,255,255,.14); box-shadow: 0 16px 36px rgba(36,23,15,.28);
+  animation: toastIn 260ms var(--kb-ease-standard);
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+.toast--success { background: #153f2d; border-color: var(--success); }
+.toast--error { background: #5c1a1a; border-color: var(--danger); }
+.toast--info { background: var(--ink); }
+.toast__mark { width: 26px; height: 26px; border-radius: 999px; background: rgba(255,255,255,.16); display: grid; place-items: center; font-weight: 800; }
+.toast__msg { font-size: 13px; line-height: 1.45; }
+.toast__meta { display: block; font-size: 11.5px; opacity: .78; margin-top: 2px; }
+.toast__close { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: #fff; font-size: 17px; line-height: 1; }
+.toast__close:hover { background: rgba(255,255,255,.14); }
+.toast__progress { position: absolute; left: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.4); }
+
+/* ── Prototype chrome (deliberately NOT part of the product UI) ─────────── */
+.proto-panel {
+  position: fixed; left: 20px; bottom: 20px; z-index: 9998; width: min(330px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px); overflow: auto;
+  background: #0F1020; color: #E7E9F5; border-radius: 16px; padding: 14px;
+  border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  font-size: 12.5px;
+}
+.proto-panel[hidden] { display: none; }
+.proto-title { display: flex; align-items: center; justify-content: space-between; font-family: var(--font-display); font-weight: 800; font-size: 13px; margin-bottom: 4px; }
+.proto-badge { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: rgba(255,255,255,.14); padding: 3px 7px; border-radius: 999px; }
+.proto-note { color: #9AA0BE; font-size: 11.5px; line-height: 1.5; margin: 0 0 10px; }
+.proto-group { margin-bottom: 10px; }
+.proto-label { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #9AA0BE; margin-bottom: 6px; }
+.proto-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.proto-btn {
+  min-height: 30px; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #E7E9F5;
+}
+.proto-btn:hover { background: rgba(255,255,255,.16); }
+.proto-btn[aria-pressed="true"] { background: var(--pos-purple); border-color: #8B5CF6; color: #fff; }
+.proto-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #C9CDE4; }
+.proto-toggle input { accent-color: var(--pos-purple); }
+.proto-open {
+  position: fixed; left: 20px; bottom: 20px; z-index: 9998; min-height: 40px; padding: 9px 15px;
+  border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: #0F1020; color: #fff;
+  font-weight: 700; font-size: 12.5px; box-shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+.proto-open[hidden] { display: none; }
+.proto-evidence { margin-top: 10px; border-top: 1px solid rgba(255,255,255,.12); padding-top: 10px; }
+.proto-evidence summary { cursor: pointer; font-weight: 700; font-size: 12px; }
+.proto-evidence ul { margin: 8px 0 0; padding-left: 16px; color: #B9BED8; line-height: 1.55; }
+.proto-evidence code { font-family: var(--kb-font-mono); font-size: 11px; color: #FFD166; }
+.proto-evidence .fix { color: #7EE2B8; }
+
+/* Modal — terminal fleet, kept for parity with the live dashboard */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(24,27,52,.55); display: grid; place-items: center;
+  padding: 20px; z-index: 9990; animation: fadeIn 150ms ease;
+}
+@keyframes fadeIn { from { opacity: 0; } }
+.modal-box { background: var(--panel); border-radius: var(--r-2xl); width: min(560px, 100%); box-shadow: var(--shadow-lg); overflow: hidden; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--line); }
+.modal-body { padding: 16px; display: grid; gap: 10px; }
+.modal-foot { padding: 14px 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
+.term-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-xl); }
+.term-name { font-size: 13.5px; font-weight: 600; }
+.term-tag { display: block; font-size: 11.5px; color: var(--muted); }
+.btn-primary {
+  min-height: 40px; padding: 9px 16px; border: 0; border-radius: 10px; background: var(--pos-purple);
+  color: #fff; font-weight: 700; font-size: 13px;
+}
+.btn-primary:hover { background: var(--pos-purple-hover); }
+.modal-close { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: transparent; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand__logo">KB</span>
+      <span>
+        <span class="brand__name">KhanaBook</span>
+        <span class="brand__sub">Spice Route Kitchen</span>
+      </span>
+    </div>
+    <button class="nav-item" aria-current="page">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+      Reports
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      Active Orders
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Menu
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+      Staff
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 20v2M18 20v2M7 9h10"/></svg>
+      Terminals
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12h5v4h-5a2 2 0 0 1 0-4z"/></svg>
+      Inventory
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+    <div class="sidebar__foot">
+      Prototype · mirrors <code>/business/dashboard</code><br />Data below is illustrative.
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <header class="page-header">
+      <div>
+        <span class="eyebrow"><span class="live-dot" aria-hidden="true"></span>Live Operations</span>
+        <h1 class="page-title">Spice Route Kitchen</h1>
+        <p class="page-sub">Real-time sales, order settlements, and terminal activity.</p>
+      </div>
+      <div class="header-actions">
+        <button class="header-pill" type="button" id="pillTerminals" data-action="terminals" aria-label="POS terminals">
+          <span class="dot-beacon" id="pillBeacon" aria-hidden="true"></span>
+          <span><strong class="tabular" id="pillTerminalText">—</strong> Terminals</span>
+        </button>
+        <button class="header-pill header-pill--alert" type="button" id="pillLowStock" data-action="lowstock" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
+          <span><strong class="tabular" id="pillLowStockText">0</strong> Low Stock</span>
+        </button>
+        <button class="icon-btn" type="button" id="bellBtn" data-action="bell" aria-label="Notifications">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="badge-count tabular" id="bellCount" hidden>0</span>
+        </button>
+        <button class="refresh-btn" type="button" id="refreshBtn" data-action="refresh">
+          <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          <span>Refresh</span>
+        </button>
+        <span class="freshness" id="freshness" role="status"></span>
+      </div>
+    </header>
+
+    <!-- Stale / offline banner: shown when a refresh fails but data is still on screen -->
+    <div id="staleBanner" hidden></div>
+
+    <!-- Everything below is owned by the state renderer -->
+    <div id="viewport"></div>
+  </main>
+</div>
+
+<div class="toast-root" id="toastRoot" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ── Prototype control panel ─────────────────────────────────────────── -->
+<button class="proto-open" id="protoOpen" type="button">⚙ Prototype states</button>
+<aside class="proto-panel" id="protoPanel" aria-label="Prototype state controls">
+  <div class="proto-title">
+    <span>Dashboard states</span>
+    <span class="proto-badge">Prototype</span>
+  </div>
+  <p class="proto-note">
+    Flip the same four states the real dashboard can be in, and watch the failure
+    paths that currently leave the live app blank or stuck.
+  </p>
+
+  <div class="proto-group">
+    <div class="proto-label">Screen state</div>
+    <div class="proto-btns" id="modeBtns">
+      <button class="proto-btn" type="button" data-mode="loading">Loading</button>
+      <button class="proto-btn" type="button" data-mode="loaded">Loaded</button>
+      <button class="proto-btn" type="button" data-mode="error">Error</button>
+      <button class="proto-btn" type="button" data-mode="empty">Empty (new shop)</button>
+    </div>
+  </div>
+
+  <div class="proto-group">
+    <div class="proto-label">Next API call returns</div>
+    <div class="proto-btns" id="failBtns">
+      <button class="proto-btn" type="button" data-fail="ok">200 OK</button>
+      <button class="proto-btn" type="button" data-fail="400">400</button>
+      <button class="proto-btn" type="button" data-fail="500">500</button>
+      <button class="proto-btn" type="button" data-fail="401">401</button>
+      <button class="proto-btn" type="button" data-fail="offline">Offline</button>
+    </div>
+  </div>
+
+  <div class="proto-group">
+    <div class="proto-label">Actions to try</div>
+    <div class="proto-btns">
+      <button class="proto-btn" type="button" data-action="refresh">Refresh</button>
+      <button class="proto-btn" type="button" data-action="markAllRead">Mark all read</button>
+      <button class="proto-btn" type="button" data-action="openOrder">Open order</button>
+      <button class="proto-btn" type="button" data-action="acceptOrder">Accept order</button>
+    </div>
+  </div>
+
+  <label class="proto-toggle">
+    <input type="checkbox" id="slowToggle" /> Add 1.8s latency to every call
+  </label>
+
+  <details class="proto-evidence">
+    <summary>What the live app does today</summary>
+    <ul>
+      <li>Failed sign-in hangs forever: internals go <code>loading:false, error:"Invalid login ID or password"</code> while the DOM still reads <em>“Signing in…”</em> and <code>role="alert"</code> count is <code>0</code>.</li>
+      <li>Error panels are styled as loading panels (<code>class="panel loading"</code>) on Reports, Platform dashboard and Business settings.</li>
+      <li>Live Orders, Reports, Terminals and Feature flags show an error with no retry button; some have no <code>role="alert"</code>.</li>
+      <li><code>jwt.interceptor</code> prints network / 5xx failures to the console only — the user sees nothing.</li>
+      <li class="fix">Prototype fix: one state owner per surface, error always has an action, loading always clears, failures announced to screen readers, success confirmed by toast.</li>
+    </ul>
+  </details>
+</aside>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   Prototype state machine.
+   Deliberately written the way the app SHOULD be written: every async
+   transition sets state in one place and repaints, so no path can leave
+   the UI "loading" with no data and no message.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const DATA = {
+  shopName: 'Spice Route Kitchen',
+  todayRevenue: 42850,
+  deltaToday: 12.4,
+  cash: 18420,
+  online: 24430,
+  posOrderCount: 128,
+  completedCount: 121,
+  unsettledOrders: 7,
+  terminalsOnline: 3,
+  terminalsTotal: 4,
+  lowStock: 2,
+  hourly: [
+    { label: '9a', items: 4 },  { label: '10a', items: 9 },  { label: '11a', items: 16 },
+    { label: '12p', items: 31 }, { label: '1p', items: 42 },  { label: '2p', items: 27 },
+    { label: '3p', items: 14 },  { label: '4p', items: 11 },  { label: '5p', items: 19 },
+    { label: '6p', items: 33 },  { label: '7p', items: 48 },  { label: '8p', items: 37 }
+  ],
+  peakHour: '7 PM',
+  dishes: [
+    { name: 'Hyderabadi Chicken Biryani', qty: 38, revenue: 13300 },
+    { name: 'Paneer Butter Masala',       qty: 26, revenue: 8060 },
+    { name: 'Masala Dosa',                qty: 22, revenue: 3300 },
+    { name: 'Butter Naan (2 pc)',         qty: 34, revenue: 2720 }
+  ],
+  orders: [
+    { code: '#1042', summary: '2× Biryani, 1× Raita', channel: 'Dine-in · Table 7', status: 'Preparing', amount: 1240 },
+    { code: '#1041', summary: '1× Paneer Butter Masala, 3× Naan', channel: 'Swiggy · #88214', status: 'Cooking', amount: 860 },
+    { code: '#1040', summary: '4× Masala Dosa, 2× Filter Coffee', channel: 'Dine-in · Table 2', status: 'Served', amount: 980 },
+    { code: '#1039', summary: '1× Chicken Biryani, 1× Kebab Platter', channel: 'Zomato · #51902', status: 'Completed', amount: 1690 },
+    { code: '#1038', summary: '2× Veg Thali', channel: 'Takeaway · Counter', status: 'Completed', amount: 640 }
+  ],
+  terminals: [
+    { name: 'Counter POS', series: 'POS-A1', active: true, updated: '2 min ago' },
+    { name: 'Kitchen Display', series: 'POS-A2', active: true, updated: 'just now' },
+    { name: 'Captain Tablet 1', series: 'POS-B7', active: true, updated: '6 min ago' },
+    { name: 'Captain Tablet 2', series: 'POS-B8', active: false, updated: '3 h ago' }
+  ],
+  lowStockItems: [
+    { name: 'Paneer', stock: 1.2, threshold: 4, unit: 'kg' },
+    { name: 'Basmati Rice', stock: 6, threshold: 12, unit: 'kg' }
+  ]
+};
+
+const state = {
+  mode: 'loaded',          // loading | loaded | error | empty
+  fail: 'ok',              // ok | 400 | 500 | 401 | offline
+  slow: false,
+  loaded: false,           // has data ever arrived?
+  error: '',               // blocking error message
+  errorKind: 'server',     // server | offline
+  staleError: '',          // non-blocking refresh failure
+  refreshing: false,
+  lastLoadedAt: null,
+  channel: 'all',
+  query: '',
+  filterState: {},         // per-action in-flight flags, e.g. { acceptOrder: true }
+  loadingActions: {},      // per-order in-flight flags
+  tables: []
+};
+
+/* ── tiny helpers ─────────────────────────────────────────────────────── */
+const $ = (s, r = document) => r.querySelector(s);
+const money = (n) => '₹' + n.toLocaleString('en-IN');
+const now = () => new Date();
+const fmtTime = (d) => d ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+function freshnessLabel() {
+  if (state.mode === 'loading' && !state.loaded) return 'Loading live data…';
+  if (!state.lastLoadedAt) return '';
+  const mins = Math.round((now() - state.lastLoadedAt) / 60000);
+  return mins < 1 ? 'Updated just now' : 'Updated ' + mins + ' min ago';
+}
+
+/* ── toasts: errors live longer than successes (the fix) ──────────────── */
+function toast(text, type = 'info', meta = '') {
+  const root = $('#toastRoot');
+  const mark = type === 'error' ? '!' : type === 'success' ? '✓' : 'i';
+  const node = el(`<div class="toast toast--${type}" role="${type === 'error' ? 'alert' : 'status'}"
+      aria-live="${type === 'error' ? 'assertive' : 'polite'}" aria-atomic="true">
+      <span class="toast__mark" aria-hidden="true">${mark}</span>
+      <span class="toast__msg">${text}${meta ? `<span class="toast__meta">${meta}</span>` : ''}</span>
+      <button class="toast__close" type="button" aria-label="Dismiss notification">×</button>
+    </div>`);
+  node.querySelector('.toast__close').addEventListener('click', () => node.remove());
+  root.appendChild(node);
+  // Errors get 7s so they can actually be read; successes 3.5s.
+  const life = type === 'error' ? 7000 : 3500;
+  setTimeout(() => node.remove(), life);
+}
+
+/* ── the one place that decides what a failed call means ─────────────── */
+function failureFrom(modeOverride) {
+  const f = modeOverride || state.fail;
+  if (f === 'offline') return { kind: 'offline', message: 'No internet connection. Check your network and try again.' };
+  if (f === '401') return { kind: 'server', message: 'Your session has expired. Please sign in again.' };
+  if (f === '500') return { kind: 'server', message: 'The server could not complete this request (500). Your data is unchanged.' };
+  if (f === '400') return { kind: 'server', message: 'Invalid request. Please refresh and try again.' };
+  return null;
+}
+
+/* ── async op: ALWAYS clears the spinner, success or failure ─────────── */
+function call(label, { onOk, failOverride, silent = false } = {}) {
+  return new Promise((resolve) => {
+    const wait = state.slow ? 1800 : 500;
+    setTimeout(() => {
+      const failure = failureFrom(failOverride);
+      if (failure && !silent) {
+        // Global surface: the failure is visible on the screen itself, not
+        // only in the console (the live app logs 5xx/network to console only).
+        state.errorKind = failure.kind;
+        if (state.loaded) {
+          // Data is already on screen: keep it, and say it is stale.
+          state.staleError = failure.message;
+          state.error = '';
+        } else {
+          // Nothing to show: the skeleton must become a real error, never stay
+          // a skeleton forever (this is the live sign-in bug reproduced).
+          state.error = failure.message;
+          state.mode = 'error';
+        }
+        toast(failure.message, 'error', label);
+        log('✗ ' + label + ' → ' + (failure.kind === 'offline' ? 'network error' : 'server error'));
+      } else if (!failure) {
+        state.error = '';
+        state.staleError = '';
+        if (onOk) onOk();
+        log('✓ ' + label);
+      }
+      state.refreshing = false;
+      state.loadingActions = {};
+      render();
+      resolve(!failure);
+    }, wait);
+  });
+}
+function log(line) {
+  const box = $('#protoLog');
+  if (box) { const li = document.createElement('div'); li.textContent = line; box.prepend(li); }
+}
+
+/* ── initial load / refresh ───────────────────────────────────────────── */
+function load({ isRefresh = false } = {}) {
+  if (state.refreshing) return;
+  state.refreshing = true;
+  if (!state.loaded) state.mode = 'loading';
+  render();
+  call(isRefresh ? 'Refresh dashboard' : 'Load dashboard', {
+    onOk: () => {
+      const wasEmpty = state.mode === 'empty';
+      state.loaded = true;
+      state.mode = wasEmpty ? 'empty' : 'loaded';
+      state.lastLoadedAt = now();
+      state.error = '';
+      state.staleError = '';
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Renderers — one function per state, so no state can render half of two
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function skeletonView() {
+  return el(`<div aria-busy="true" aria-live="polite">
+    <span class="visually-hidden" role="status">Loading dashboard data…</span>
+    <section class="bento-kpi-grid" aria-hidden="true">
+      <div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>
+      <div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>
+    </section>
+    <section class="bento-intel-grid" style="margin-top:14px" aria-hidden="true">
+      <div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>
+    </section>
+    <section class="floor-strip" aria-hidden="true">
+      <div class="skeleton sk-line" style="width:180px;margin-bottom:12px"></div>
+      <div style="display:grid;gap:7px">
+        <div class="skeleton sk-row"></div><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div>
+      </div>
+    </section>
+  </div>`);
+}
+
+function errorView() {
+  const offline = state.errorKind === 'offline';
+  const panel = el(`<section class="state-panel ${offline ? 'state-panel--offline' : ''}"
+      role="alert" aria-live="assertive" aria-atomic="true" tabindex="-1">
+    <div class="state-panel__icon" aria-hidden="true">${offline ? '⚠' : '!'}</div>
+    <div>
+      <h3>We couldn't load your dashboard</h3>
+      <p>${state.error}</p>
+      <span class="state-panel__meta">Nothing was changed. Your last known figures are safe.</span>
+    </div>
+    <button class="btn-retry" type="button" data-action="refresh">Try again</button>
+  </section>`);
+  setTimeout(() => panel.focus(), 0);
+  return panel;
+}
+
+function staleBannerView() {
+  return el(`<div class="stale-banner" role="alert" aria-live="assertive">
+    <span class="stale-banner__icon" aria-hidden="true">!</span>
+    <span><strong>Couldn't refresh.</strong> ${state.staleError}
+      <span class="state-panel__meta" style="display:inline"> Showing figures from ${fmtTime(state.lastLoadedAt)}.</span></span>
+    <span class="stale-banner__spacer"></span>
+    <button class="ghost-btn" type="button" data-action="refresh">Retry</button>
+  </div>`);
+}
+
+function kpiView(d) {
+  const completedRate = Math.round((d.completedCount / d.posOrderCount) * 100);
+  const empty = state.mode === 'empty';
+  const grid = el(`<section class="bento-kpi-grid" aria-label="Key performance indicators">
+    <article class="bento-tile bento-tile--hero">
+      <div class="bento-tile__head">
+        <span class="bento-tile__eyebrow">Today's Revenue</span>
+        <span class="trend-badge${d.deltaToday === 0 ? ' trend-badge--neutral' : ''}">
+          ${d.deltaToday > 0 ? '↑' : d.deltaToday < 0 ? '↓' : '•'} ${Math.abs(d.deltaToday)}% vs yest.
+        </span>
+      </div>
+      <div class="bento-tile__metric tabular" data-counter="${empty ? 0 : d.todayRevenue}" data-format="money">₹0</div>
+      <div class="split-bar">
+        <span class="split-pill"><span class="split-legend"></span>Cash: <strong class="split-val tabular">${money(empty ? 0 : d.cash)}</strong></span>
+        <span class="split-divider">|</span>
+        <span class="split-pill"><span class="split-legend split-legend--upi"></span>UPI/Online: <strong class="split-val tabular">${money(empty ? 0 : d.online)}</strong></span>
+      </div>
+    </article>
+
+    <article class="bento-tile">
+      <div class="bento-tile__head">
+        <span class="bento-tile__eyebrow">Settlement Rate</span>
+        <span class="kpi-tag ${completedRate >= 80 ? 'kpi-tag--green' : 'kpi-tag--amber'}">${empty ? 0 : completedRate}% Settled</span>
+      </div>
+      <div class="bento-tile__metric tabular"><span data-counter="${empty ? 0 : d.completedCount}">0</span><span class="metric-sub">/ <span class="tabular">${empty ? 0 : d.posOrderCount}</span></span></div>
+      <div>
+        <div class="progress-track" role="progressbar" aria-valuenow="${empty ? 0 : completedRate}" aria-valuemin="0" aria-valuemax="100" aria-label="Settlement rate">
+          <div class="progress-fill" style="width:${empty ? 0 : completedRate}%"></div>
+        </div>
+        <div class="meter-legend" style="margin-top:8px">
+          <span><strong class="tabular">${empty ? 0 : d.completedCount}</strong> Paid</span>
+          <span><strong class="tabular">${empty ? 0 : d.unsettledOrders}</strong> Unsettled</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="bento-tile">
+      <div class="bento-tile__head">
+        <span class="bento-tile__eyebrow">Active Orders</span>
+        <span class="kpi-tag ${!empty && d.unsettledOrders > 0 ? 'kpi-tag--warn' : 'kpi-tag--neutral'}">
+          ${!empty && d.unsettledOrders > 0 ? 'Pending Settlement' : 'All Clear'}
+        </span>
+      </div>
+      <div class="bento-tile__metric tabular"><span data-counter="${empty ? 0 : d.unsettledOrders}">0</span><span class="metric-sub">Unsettled</span></div>
+      <div class="tile-foot">
+        <span class="sub-caption">${empty ? 0 : d.orders.length} live orders</span>
+        <button class="tile-link" type="button" data-action="viewActive">View Active →</button>
+      </div>
+    </article>
+
+    <article class="bento-tile">
+      <div class="bento-tile__head">
+        <span class="bento-tile__eyebrow">Terminal Fleet</span>
+        <span class="kpi-tag kpi-tag--green">${empty ? 0 : d.terminalsOnline} Online</span>
+      </div>
+      <div class="bento-tile__metric tabular"><span data-counter="${empty ? 0 : d.terminalsOnline}">0</span><span class="metric-sub">/ <span class="tabular">${d.terminalsTotal}</span></span></div>
+      <div class="tile-foot">
+        <span class="sub-caption ${!empty && d.lowStock > 0 ? 'text-amber' : ''}">
+          ${!empty && d.lowStock > 0 ? d.lowStock + ' raw items low' : 'Inventory optimal'}
+        </span>
+        <button class="tile-link" type="button" data-action="terminals">Hardware →</button>
+      </div>
+    </article>
+  </section>`);
+  return grid;
+}
+
+function intelView(d) {
+  const empty = state.mode === 'empty';
+  const peak = Math.max(...d.hourly.map(h => h.items));
+  const maxRev = Math.max(...d.dishes.map(x => x.revenue), 1);
+  const nowHour = new Date().getHours();
+
+  const hourly = empty ? '' : `<div class="hourly-track" role="img" aria-label="Items sold per hour today">
+    ${d.hourly.map(h => {
+      const isPeak = h.items === peak;
+      const hour24 = { '9a':9,'10a':10,'11a':11,'12p':12,'1p':13,'2p':14,'3p':15,'4p':16,'5p':17,'6p':18,'7p':19,'8p':20 }[h.label];
+      const isCurrent = hour24 === nowHour;
+      return `<div class="hourly-node" title="${h.label}: ${h.items} items sold">
+        <div class="hourly-pill-track">
+          <div class="hourly-pill ${isPeak ? 'hourly-pill--peak' : ''} ${isCurrent ? 'hourly-pill--current' : ''}" style="height:${Math.max(6, Math.round(h.items / peak * 100))}%"></div>
+        </div>
+        <span class="hourly-tick ${isCurrent ? 'hourly-tick--current' : ''}">${h.label}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  const dishes = empty ? '' : `<div class="dish-stack">
+    ${d.dishes.map((dish, i) => `<div class="dish-row">
+      <div class="dish-rank">${i + 1}</div>
+      <div>
+        <div class="dish-top"><strong class="dish-name">${dish.name}</strong><span class="dish-qty">${dish.qty} sold</span></div>
+        <div class="dish-bar-track"><div class="dish-bar-fill" style="width:${Math.round(dish.revenue / maxRev * 100)}%"></div></div>
+      </div>
+      <strong class="dish-rev tabular">${money(dish.revenue)}</strong>
+    </div>`).join('')}
+  </div>`;
+
+  const emptyBox = (title, text) => `<div class="empty-box">
+      <svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+      <h4>${title}</h4><p>${text}</p>
+    </div>`;
+
+  return el(`<section class="bento-intel-grid" aria-label="Operational intelligence">
+    <article class="intel-card">
+      <div class="intel-card__head">
+        <div>
+          <span class="bento-tile__eyebrow" style="color:var(--muted)">Service Velocity</span>
+          <h3 class="intel-card__title">Peak Hour Traffic Curve</h3>
+        </div>
+        ${empty ? '' : `<span class="rush-badge">Rush hits ${d.peakHour}</span>`}
+      </div>
+      ${empty ? emptyBox('No sales velocity recorded yet today', 'Completed POS orders will plot hourly order volume and identify your peak dining rush here.') : hourly}
+    </article>
+
+    <article class="intel-card">
+      <div class="intel-card__head">
+        <div>
+          <span class="bento-tile__eyebrow" style="color:var(--muted)">Kitchen Velocity</span>
+          <h3 class="intel-card__title">Top Selling Dishes Today</h3>
+        </div>
+        <button class="tile-link" type="button" data-action="viewMenu">View Menu</button>
+      </div>
+      ${empty ? emptyBox('No dish sales recorded yet today', 'Top items ranked by volume and revenue will populate as dining tickets close.') : dishes}
+    </article>
+  </section>`);
+}
+
+function floorView(d) {
+  const empty = state.mode === 'empty';
+  const channels = [['all','All'],['dine','Dine-in'],['swiggy','Swiggy'],['zomato','Zomato'],['takeaway','Takeaway']];
+  const matches = (o) => {
+    const byChannel = state.channel === 'all'
+      || (state.channel === 'dine' && o.channel.toLowerCase().includes('dine'))
+      || (state.channel === 'swiggy' && o.channel.toLowerCase().includes('swiggy'))
+      || (state.channel === 'zomato' && o.channel.toLowerCase().includes('zomato'))
+      || (state.channel === 'takeaway' && o.channel.toLowerCase().includes('takeaway'));
+    const q = state.query.trim().toLowerCase();
+    const byQuery = !q || o.code.toLowerCase().includes(q) || o.summary.toLowerCase().includes(q);
+    return byChannel && byQuery;
+  };
+  const visible = empty ? [] : d.orders.filter(matches);
+  const statusClass = (s) => ({ Preparing: 'st-preparing', Cooking: 'st-cooking', Served: 'st-served', Completed: 'st-completed' }[s] || 'st-preparing');
+
+  const rows = visible.length
+    ? visible.map(o => {
+        const busy = state.loadingActions[o.code];
+        return `<button class="floor-row" type="button" data-order="${o.code}" ${busy ? 'aria-busy="true"' : ''}>
+          <span class="floor-code">${o.code}</span>
+          <span class="floor-summary">${o.summary}</span>
+          <span class="floor-channel">${o.channel}</span>
+          <span class="status-chip ${statusClass(o.status)}">${busy ? 'Working…' : o.status}</span>
+          <strong class="floor-amount tabular">${money(o.amount)}</strong>
+        </button>`;
+      }).join('')
+    : `<div class="empty-box">
+        <svg class="empty-glyph" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <h4>${empty ? 'No orders yet today' : 'No orders match this view'}</h4>
+        <p>${empty ? 'Orders from your POS terminals will appear here the moment the first bill is opened.' : 'Clear the search or channel filter to see recent orders from your POS terminals.'}</p>
+        ${empty ? '' : '<button class="ghost-btn" type="button" data-action="resetFilters">Clear filters</button>'}
+      </div>`;
+
+  return el(`<section class="floor-strip" aria-label="Live floor activity">
+    <div class="floor-head">
+      <div>
+        <span class="bento-tile__eyebrow" style="color:var(--muted)">Live Floor</span>
+        <h3 class="intel-card__title">Recent Orders</h3>
+        <span class="floor-count">${empty ? '0' : visible.length} of ${empty ? 0 : d.orders.length} shown</span>
+      </div>
+      <div class="floor-controls">
+        <div class="chip-group" role="group" aria-label="Filter orders by channel">
+          ${channels.map(([v, label]) => `<button class="chip" type="button" data-channel="${v}" aria-pressed="${state.channel === v}">${label}</button>`).join('')}
+        </div>
+        <input class="floor-search" type="search" id="floorSearch" placeholder="Search order #" aria-label="Search live orders" value="${state.query}" />
+        ${state.channel !== 'all' || state.query ? '<button class="ghost-btn" type="button" data-action="resetFilters">Reset</button>' : ''}
+      </div>
+    </div>
+    <div class="floor-list">${rows}</div>
+  </section>`);
+}
+
+/* ── render ───────────────────────────────────────────────────────────── */
+function render() {
+  const viewport = $('#viewport');
+
+  // Header affordances reflect state instead of guessing.
+  const refreshBtn = $('#refreshBtn');
+  refreshBtn.disabled = state.refreshing;
+  $('#refreshIcon').classList.toggle('spinning', state.refreshing);
+  refreshBtn.querySelector('span').textContent = state.refreshing ? 'Refreshing…' : 'Refresh';
+  $('#freshness').textContent = freshnessLabel();
+
+  // Header affordances must agree with the body: a new (empty) shop cannot show
+  // three online terminals, and an unloaded dashboard cannot show real counts.
+  const showHeaderData = state.loaded && state.mode !== 'empty';
+  const online = showHeaderData ? DATA.terminalsOnline : 0;
+  const total = showHeaderData ? DATA.terminalsTotal : 0;
+  $('#pillTerminalText').textContent = online + '/' + total;
+  $('#pillBeacon').classList.toggle('dot-beacon--active', online > 0);
+  const low = showHeaderData ? DATA.lowStock : 0;
+  $('#pillLowStock').hidden = low === 0;
+  $('#pillLowStockText').textContent = String(low);
+  const unread = showHeaderData ? 3 : 0;
+  $('#bellCount').hidden = unread === 0;
+  $('#bellCount').textContent = String(unread);
+  $('#bellBtn').setAttribute('aria-label', unread ? 'Notifications, ' + unread + ' unread' : 'Notifications');
+  const bellBusy = !!state.loadingActions.bell;
+  $('#bellBtn').disabled = bellBusy;
+  if (bellBusy) $('#bellBtn').setAttribute('aria-busy', 'true');
+  else $('#bellBtn').removeAttribute('aria-busy');
+
+  const banner = $('#staleBanner');
+  if (state.staleError && state.loaded && state.mode === 'loaded') {
+    banner.hidden = false;
+    banner.replaceChildren(staleBannerView());
+  } else {
+    banner.hidden = true;
+    banner.replaceChildren();
+  }
+
+  if (state.mode === 'loading' && !state.loaded) {
+    viewport.replaceChildren(skeletonView());
+  } else if (state.mode === 'error' && !state.loaded) {
+    viewport.replaceChildren(errorView());
+  } else {
+    const d = DATA;
+    const frag = document.createDocumentFragment();
+    if (state.mode === 'error') {
+      // Blocking error with no cached data → error panel replaces content.
+      frag.append(errorView());
+    } else {
+      frag.append(kpiView(d), intelView(d), floorView(d));
+    }
+    viewport.replaceChildren(frag);
+  }
+
+  animateCounters();
+}
+
+function animateCounters() {
+  document.querySelectorAll('[data-counter]').forEach((node) => {
+    const target = Number(node.dataset.counter || 0);
+    const asMoney = node.dataset.format === 'money';
+    const start = performance.now();
+    const dur = 900;
+    const step = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const val = Math.round(target * eased);
+      node.textContent = asMoney ? money(val) : String(val);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/* ── events (one delegated handler keeps the prototype honest) ────────── */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action],[data-order],[data-channel],[data-mode],[data-fail]');
+  if (!btn) return;
+
+  if (btn.dataset.mode) {
+    state.mode = btn.dataset.mode;
+    state.staleError = '';
+    if (state.mode === 'loading') {
+      // Chosen deliberately: show the cold-load skeleton, exactly what a first
+      // paint looks like before any data has arrived.
+      state.loaded = false;
+      state.error = '';
+    } else if (state.mode === 'error') {
+      state.loaded = false;
+      const f = failureFrom(state.fail === 'ok' ? '500' : state.fail);
+      state.error = f.message; state.errorKind = f.kind;
+    } else {
+      state.error = ''; state.errorKind = 'server';
+      state.loaded = true;
+      if (state.mode === 'loaded' && !state.lastLoadedAt) state.lastLoadedAt = now();
+    }
+    syncProto();
+    render();
+    return;
+  }
+  if (btn.dataset.fail) { state.fail = btn.dataset.fail; syncProto(); return; }
+  if (btn.dataset.channel) { state.channel = btn.dataset.channel; render(); return; }
+  if (btn.dataset.order) { openOrder(btn.dataset.order); return; }
+
+  switch (btn.dataset.action) {
+    case 'refresh': load({ isRefresh: state.loaded }); break;
+    case 'terminals': openTerminals(); break;
+    case 'lowstock': openLowStock(); break;
+    case 'bell': markAllRead(); break;
+    case 'markAllRead': markAllRead(); break;
+    case 'openOrder': openOrder('#1042'); break;
+    case 'acceptOrder': acceptOrder('#1041'); break;
+    case 'resetFilters': state.channel = 'all'; state.query = ''; render(); break;
+    case 'viewActive': toast('Opening Active Orders…', 'info'); break;
+    case 'viewMenu': toast('Opening Menu…', 'info'); break;
+  }
+});
+
+// search
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'floorSearch') {
+    state.query = e.target.value;
+    render();
+    const box = $('#floorSearch');
+    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+  }
+});
+
+/* ── actions ─────────────────────────────────────────────────────────── */
+function markAllRead() {
+  if (state.loadingActions.bell) return;
+  state.loadingActions.bell = true;
+  const bell = $('#bellBtn');
+  bell.disabled = true;
+  bell.setAttribute('aria-busy', 'true');
+  render();
+  call('Mark all notifications read', {
+    onOk: () => { toast('All notifications marked as read', 'success'); $('#bellCount').hidden = true; },
+    failOverride: state.fail
+  });
+}
+function openOrder(code) {
+  state.loadingActions[code] = true; render();
+  call('Open order ' + code, {
+    onOk: () => { toast('Order ' + code + ' loaded', 'success'); state.loadingActions = {}; },
+    failOverride: state.fail
+  });
+}
+function acceptOrder(code) {
+  state.loadingActions[code] = true; render();
+  call('Accept order ' + code, { onOk: () => toast('Order ' + code + ' accepted and sent to the kitchen', 'success') });
+}
+
+/* ── modals ──────────────────────────────────────────────────────────── */
+function modal(title, bodyHtml, footHtml) {
+  const overlay = el(`<div class="modal-overlay" role="dialog" aria-modal="true" aria-label="${title}">
+    <div class="modal-box">
+      <div class="modal-head"><h3>${title}</h3>
+        <button class="modal-close" type="button" data-close aria-label="Close dialog">✕</button></div>
+      <div class="modal-body">${bodyHtml}</div>
+      ${footHtml ? `<div class="modal-foot">${footHtml}</div>` : ''}
+    </div>
+  </div>`);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.dataset.close !== undefined) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+  const closeBtn = overlay.querySelector('[data-close]');
+  if (closeBtn) closeBtn.focus();
+}
+function openTerminals() {
+  modal('POS Hardware Terminals', DATA.terminals.map(t => `<div class="term-row">
+      <span><span class="dot-beacon ${t.active ? 'dot-beacon--active' : ''}" aria-hidden="true"></span>
+      <span class="term-name"> ${t.name}<span class="term-tag">Series: ${t.series}</span></span></span>
+      <span class="status-chip ${t.active ? 'st-completed' : 'st-preparing'}">${t.active ? 'Active' : 'Offline'}</span>
+    </div>`).join(''), '<button class="btn-primary" type="button" data-close>Manage Hardware Fleet</button>');
+}
+function openLowStock() {
+  modal('Low Stock Raw Ingredients', `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="text-align:left;color:var(--muted)"><th>Material</th><th>Current</th><th>Threshold</th><th>Unit</th></tr></thead>
+      <tbody>${DATA.lowStockItems.map(m => `<tr><td><strong>${m.name}</strong></td>
+        <td style="color:var(--danger);font-weight:700">${m.stock}</td><td>${m.threshold}</td><td>${m.unit}</td></tr>`).join('')}</tbody>
+    </table>`, '<button class="btn-primary" type="button" data-close>Update Inventory</button>');
+}
+
+/* ── prototype chrome ────────────────────────────────────────────────── */
+function syncProto() {
+  document.querySelectorAll('#modeBtns .proto-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+  document.querySelectorAll('#failBtns .proto-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fail === state.fail)));
+}
+$('#slowToggle').addEventListener('change', (e) => {
+  state.slow = e.target.checked;
+  toast(e.target.checked ? 'Latency on: every call now takes 1.8s' : 'Latency off', 'info');
+});
+$('#protoOpen').addEventListener('click', () => { $('#protoPanel').hidden = false; $('#protoOpen').hidden = true; });
+$('#protoPanel').addEventListener('dblclick', () => { $('#protoPanel').hidden = true; $('#protoOpen').hidden = false; });
+
+/* ── boot: show the finished state, having exercised the loading state ── */
+state.mode = 'loaded';
+state.loaded = true;
+state.lastLoadedAt = now();
+syncProto();
+render();
+setTimeout(() => {
+  toast('Dashboard loaded — 128 orders, 7 unsettled', 'success', 'GET /business/dashboard');
+}, 400);
+</script>
+</body>
+</html>

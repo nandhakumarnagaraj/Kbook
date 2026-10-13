@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Feature Flags — KhanaBook prototype</title>
+<!-- Mirrors web-admin/src/app/pages/feature-flags/feature-flags-page.component.ts
+     (same heading copy, same 6 columns, same ENABLED/DISABLED chips, same
+     "Change History" audit panel). Two additions the live page lacks: a
+     pending-changes review step before saving defaults, and a per-restaurant
+     override editor, so the whole flag lifecycle can be judged here. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* The toggle is the one control with no shared equivalent yet — it is copied
+     from the real page's own switch-track styles (40x22 track, 18px knob, brand
+     when on). Candidate for hoisting into _shared/proto.css: several pages need
+     a switch, not just this one. */
+  .switch { background: transparent; border: 0; padding: 0; display: inline-flex; align-items: center; gap: 8px; }
+  .switch__track { width: 40px; height: 22px; border-radius: 8px; background: var(--line-strong); position: relative; display: inline-block; transition: background .2s var(--kb-ease-standard); }
+  .switch__track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 6px; background: #fff; box-shadow: var(--shadow-xs); transition: transform .2s var(--kb-ease-standard); }
+  .switch[aria-checked="true"] .switch__track { background: var(--brand); }
+  .switch[aria-checked="true"] .switch__track::after { transform: translateX(18px); }
+  .switch[aria-checked="true"].switch--danger .switch__track { background: var(--danger); }
+  .switch-state { font-size: 12px; color: var(--muted); }
+  .switch--danger + .switch-state { color: var(--danger); font-weight: 600; }
+  .flag-key { font-family: var(--kb-font-mono); font-size: 12.5px; font-weight: 600; }
+  .pending-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--panel); }
+  .pending-arrow { font-family: var(--kb-font-mono); font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var FLAGS = [
+    { key: 'payments.upi_qr', description: 'Dynamic UPI QR collection at the billing counter (Easebuzz sub-merchant).', kill: false, def: true, updated: '2026-10-11T10:20:00' },
+    { key: 'menu.ai_extraction', description: 'Extract menu items from a photo or PDF upload instead of typing them in.', kill: false, def: true, updated: '2026-10-09T16:05:00' },
+    { key: 'inventory.tracking', description: 'Raw-material stock levels, low-stock thresholds and variance reporting.', kill: false, def: true, updated: '2026-10-08T09:12:00' },
+    { key: 'reports.export_csv', description: 'CSV export of day summary, GST ledger and item-wise sales.', kill: false, def: true, updated: '2026-10-12T18:40:00' },
+    { key: 'marketplace.swiggy', description: 'Swiggy order ingestion onto the live floor.', kill: false, def: true, updated: '2026-10-12T18:41:00' },
+    { key: 'marketplace.zomato', description: 'Zomato order ingestion onto the live floor.', kill: true, def: true, updated: '2026-10-13T08:02:00' },
+    { key: 'notifications.push', description: 'Browser push notifications for new orders and device approvals.', kill: false, def: true, updated: '2026-10-07T12:00:00' },
+    { key: 'settlements.instant', description: 'Instant settlement requests for eligible sub-merchants.', kill: false, def: false, updated: '2026-10-05T11:30:00' },
+    { key: 'kot.kitchen_display', description: 'Kitchen Display System ticket routing from the Android POS.', kill: false, def: true, updated: '2026-10-10T14:26:00' },
+    { key: 'billing.discount_approval', description: 'Require owner approval for discounts above the configured limit.', kill: false, def: false, updated: '2026-10-02T17:45:00' }
+  ];
+
+  var RESTAURANTS = [
+    { id: 1041, name: 'Spice Route Kitchen' },
+    { id: 1088, name: 'Cafe Mocha' },
+    { id: 1102, name: 'Biryani Junction' }
+  ];
+
+  /* Mock audit rows, shaped like FeatureFlagAuditItem (scope / restaurantId /
+     previousState / newState / actor / changedAt). */
+  var AUDIT = {
+    'marketplace.zomato': [
+      { changedAt: '2026-10-13T08:02:00', scope: 'KILL_SWITCH', restaurantId: null, previousState: 'ENABLED', newState: 'DISABLED', actor: 'platform.admin' },
+      { changedAt: '2026-10-12T19:15:00', scope: 'OVERRIDE', restaurantId: 1088, previousState: 'INHERIT', newState: 'DISABLED', actor: 'platform.admin' },
+      { changedAt: '2026-10-11T09:40:00', scope: 'DEFAULT', restaurantId: null, previousState: 'DISABLED', newState: 'ENABLED', actor: 'platform.admin' }
+    ],
+    'payments.upi_qr': [
+      { changedAt: '2026-10-11T10:20:00', scope: 'DEFAULT', restaurantId: null, previousState: 'DISABLED', newState: 'ENABLED', actor: 'platform.admin' },
+      { changedAt: '2026-10-06T15:02:00', scope: 'OVERRIDE', restaurantId: 1041, previousState: 'INHERIT', newState: 'ENABLED', actor: 'owner.ravi' }
+    ]
+  };
+
+  /* Per-restaurant overrides: 'inherit' | 'enabled' | 'disabled'. */
+  var OVERRIDES = {
+    'payments.upi_qr': { 1041: 'enabled', 1088: 'inherit', 1102: 'inherit' },
+    'marketplace.zomato': { 1041: 'inherit', 1088: 'disabled', 1102: 'inherit' },
+    'settlements.instant': { 1041: 'inherit', 1088: 'inherit', 1102: 'enabled' }
+  };
+
+  /* UI state survives the shared layer's re-renders (filters must not reset when
+     the user flips to Error and back). */
+  var ui = { search: '', pending: {}, historyKey: null, overrideKey: null, focusSearch: false };
+
+  var data = { flags: FLAGS };
+  var effective = function (f) { return !f.kill && f.def; };
+  var pendingCount = function () { return Object.keys(ui.pending).length; };
+  var flagByKey = function (k) { return data.flags.filter(function (f) { return f.key === k; })[0]; };
+
+  /* ── little renderers ─────────────────────────────────────────────────── */
+  function switchControl(action, key, checked, label, danger) {
+    return '<button class="switch' + (danger ? ' switch--danger' : '') + '" type="button" role="switch"' +
+      ' aria-checked="' + (checked ? 'true' : 'false') + '" aria-label="' + Proto.esc(label) + '"' +
+      ' data-action="' + action + '" data-key="' + Proto.esc(key) + '">' +
+      '<span class="switch__track" aria-hidden="true"></span></button>';
+  }
+  function stateChip(on) {
+    return '<span class="status-chip ' + (on ? 'st-completed' : 'st-danger') + '">' + (on ? 'ENABLED' : 'DISABLED') + '</span>';
+  }
+  function rows() {
+    var q = ui.search.trim().toLowerCase();
+    return data.flags.filter(function (f) {
+      return !q || f.key.toLowerCase().indexOf(q) >= 0 || f.description.toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  function pendingPanel() {
+    var keys = Object.keys(ui.pending);
+    if (!keys.length) return '';
+    var busy = Proto.busy('savePending');
+    return '<section class="panel" style="margin-bottom:14px" aria-labelledby="pendingTitle">' +
+      '<div class="panel__head">' +
+        '<div><span class="bento-tile__eyebrow" style="color:var(--muted)">Not saved yet</span>' +
+        '<h3 class="panel__title" id="pendingTitle">Pending changes (' + keys.length + ')</h3>' +
+        '<p class="inline-note">These defaults are staged only. Nothing changes for any restaurant until you save.</p></div>' +
+        '<div class="form-actions" style="margin:0">' +
+          '<button class="ghost-btn" type="button" data-action="discardPending"' + (busy ? ' disabled' : '') + '>Discard</button>' +
+          '<button class="btn-primary" type="button" data-action="savePending"' + (busy ? ' aria-busy="true" disabled' : '') + '>' +
+            (busy ? 'Saving…' : 'Save changes') + '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="stack--tight">' + keys.map(function (k) {
+        var f = flagByKey(k);
+        return '<div class="pending-row">' +
+          '<span class="flag-key">' + Proto.esc(k) + '</span>' +
+          '<span class="pending-arrow">Default ' + (f.def ? 'On' : 'Off') + ' → <strong>' + (ui.pending[k] ? 'On' : 'Off') + '</strong></span>' +
+          '<button class="ghost-btn" type="button" data-action="unqueue" data-key="' + Proto.esc(k) + '">Undo</button>' +
+        '</div>';
+      }).join('') + '</div>' +
+    '</section>';
+  }
+
+  function tablePanel() {
+    var list = rows();
+    if (!data.flags.length) {
+      return '<section class="panel">' + Proto.emptyBox('No feature flags configured.',
+        'Platform flags appear here once the server registry publishes them.', 'Reload flags') + '</section>';
+    }
+    var body = list.length ? list.map(function (f) {
+      var staged = Object.prototype.hasOwnProperty.call(ui.pending, f.key);
+      var shown = staged ? ui.pending[f.key] : f.def;
+      return '<tr>' +
+        '<td><span class="flag-key">' + Proto.esc(f.key) + '</span><span class="cell-sub">' + Proto.esc(f.description) + '</span>' +
+          (staged ? '<span class="kpi-tag kpi-tag--amber" style="margin-top:6px;display:inline-block">Staged change</span>' : '') + '</td>' +
+        '<td>' + switchControl('kill', f.key, f.kill, 'Kill switch for ' + f.key, true) +
+          '<span class="switch-state">' + (f.kill ? 'On — feature is off everywhere' : 'Off') + '</span></td>' +
+        '<td>' + switchControl('queueDefault', f.key, shown, 'Default state for ' + f.key, false) +
+          '<span class="switch-state">' + (shown ? 'On' : 'Off') + '</span></td>' +
+        '<td>' + stateChip(staged ? (!f.kill && shown) : effective(f)) + '</td>' +
+        '<td class="tabular">' + Proto.fmtDate(f.updated) + '</td>' +
+        '<td><span class="row-actions">' +
+          '<button class="ghost-btn" type="button" data-action="history" data-key="' + Proto.esc(f.key) + '">History</button>' +
+          '<button class="ghost-btn" type="button" data-action="override" data-key="' + Proto.esc(f.key) + '">Override</button>' +
+        '</span></td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="6" style="padding:0;border-bottom:0">' + Proto.emptyBox('No flags match “' + ui.search + '”',
+        'Clear the search to see every platform flag.', 'Clear search', 'clearSearch') + '</td></tr>';
+
+    return '<section class="panel panel--flush">' +
+      '<div style="padding:16px 16px 0">' +
+        '<div class="panel__head">' +
+          '<div><span class="bento-tile__eyebrow" style="color:var(--muted)">Flag State</span>' +
+          '<h3 class="panel__title">Global defaults</h3>' +
+          '<p class="inline-note">Effective state shown is what a restaurant <strong>without an override</strong> resolves to. The kill switch dominates every override.</p></div>' +
+          '<div class="form-actions" style="margin:0">' +
+            '<label class="visually-hidden" for="ffSearch">Search feature flags</label>' +
+            '<input class="field-control" id="ffSearch" type="search" data-input="search" style="min-width:230px" placeholder="Search flag or description" value="' + Proto.esc(ui.search) + '" />' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table class="data-table">' +
+          '<thead><tr><th>Flag</th><th>Kill Switch</th><th>Default</th><th>Effective</th><th>Updated</th><th>Action</th></tr></thead>' +
+          '<tbody>' + body + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function historyPanel() {
+    if (!ui.historyKey) {
+      return '<section class="panel" style="margin-top:14px"><p class="inline-note">Select <strong>History</strong> on a flag to see its change log.</p></section>';
+    }
+    /* While the request is in flight show rows-shaped skeletons — never the
+       "no changes recorded" message, which would be a lie about the data. */
+    if (Proto.busy('history')) {
+      return '<section class="panel panel--flush" style="margin-top:14px">' +
+        '<div style="padding:16px 16px 0">' +
+          '<div class="panel__head">' +
+            '<div><span class="bento-tile__eyebrow" style="color:var(--muted)">Audit</span>' +
+            '<h3 class="panel__title">Change History — ' + Proto.esc(ui.historyKey) + '</h3>' +
+            '<p class="inline-note">Every mutation writes an audit row (kill switch, default, override).</p></div>' +
+            '<button class="ghost-btn" type="button" data-action="closeHistory">Close</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:0 16px 16px"><div class="skeleton-stack" aria-busy="true">' +
+          '<span class="visually-hidden" role="status">Loading change history…</span>' +
+          Proto.skeletonRows(3, 'sk-table-row') + '</div></div>' +
+      '</section>';
+    }
+    var rowsFor = AUDIT[ui.historyKey] || [];
+    return '<section class="panel panel--flush" style="margin-top:14px">' +
+      '<div style="padding:16px 16px 0">' +
+        '<div class="panel__head">' +
+          '<div><span class="bento-tile__eyebrow" style="color:var(--muted)">Audit</span>' +
+          '<h3 class="panel__title">Change History — ' + Proto.esc(ui.historyKey) + '</h3>' +
+          '<p class="inline-note">Every mutation writes an audit row (kill switch, default, override).</p></div>' +
+          '<button class="ghost-btn" type="button" data-action="closeHistory">Close</button>' +
+        '</div>' +
+      '</div>' +
+      (rowsFor.length ?
+        '<div class="table-wrap"><table class="data-table"><thead><tr><th>When</th><th>Scope</th><th>Restaurant</th><th>From</th><th>To</th><th>Actor</th></tr></thead><tbody>' +
+        rowsFor.map(function (r) {
+          return '<tr><td class="tabular">' + Proto.fmtDate(r.changedAt) + '</td>' +
+            '<td><span class="status-chip st-neutral">' + Proto.esc(r.scope) + '</span></td>' +
+            '<td>' + (r.restaurantId === null ? '—' : Proto.esc(r.restaurantId)) + '</td>' +
+            '<td class="muted">' + Proto.esc(r.previousState) + '</td>' +
+            '<td>' + stateChip(r.newState === 'ENABLED') + '</td>' +
+            '<td>' + Proto.esc(r.actor) + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<div style="padding:0 16px 16px">' + Proto.emptyBox('No changes recorded for this flag yet.',
+            'Flip its default or kill switch and the audit row will appear here.', 'Reload history', 'reloadHistory') + '</div>') +
+    '</section>';
+  }
+
+  Proto.boot({
+    page: 'feature-flags',
+    title: 'Feature Flags',
+    subtitle: 'Control rollout of ported v2 features. The kill switch dominates every override (first rollback step).',
+    eyebrow: 'Platform',
+    live: false,
+    headerExtra:
+      '<span class="kpi-tag" id="ffFlagCount">—</span>' +
+      '<span class="kpi-tag kpi-tag--green" id="ffEnabledCount">—</span>',
+    data: data,
+
+    skeleton: '<div class="stack">' +
+      '<div class="skeleton sk-line" style="width:240px"></div>' +
+      '<div class="skeleton sk-line" style="width:400px"></div>' +
+      '<div class="skeleton sk-card" style="height:60px"></div>' +
+      '<div class="skeleton-stack">' + Proto.skeletonRows(7, 'sk-table-row') + '</div>' +
+    '</div>',
+
+    render: function (ctx) {
+      /* Header badges must agree with the body in every state. */
+      var flagCount = document.getElementById('ffFlagCount');
+      var enabledCount = document.getElementById('ffEnabledCount');
+      if (flagCount) {
+        var show = ctx.mode !== 'empty' && ctx.mode !== 'loading';
+        var onCount = data.flags.filter(effective).length;
+        flagCount.textContent = show ? data.flags.length + ' Flags' : (ctx.mode === 'empty' ? '0 Flags' : '—');
+        enabledCount.textContent = show ? onCount + ' Globally Effective' : (ctx.mode === 'empty' ? '0 Globally Effective' : '—');
+        enabledCount.className = show ? 'kpi-tag kpi-tag--green' : 'kpi-tag';
+      }
+
+      if (ctx.mode === 'empty') {
+        return '<section class="panel">' + Proto.emptyBox('No feature flags configured.',
+          'Platform flags appear here once the server registry publishes them.', 'Reload flags') + '</section>';
+      }
+
+      var html = pendingPanel() + tablePanel() + historyPanel();
+      if (ui.focusSearch) {
+        ui.focusSearch = false;
+        setTimeout(function () {
+          var box = document.getElementById('ffSearch');
+          if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+        });
+      }
+      return html;
+    },
+
+    inputs: {
+      search: function (value) {
+        ui.search = value;
+        ui.focusSearch = true;
+        Proto.render();
+      }
+    },
+
+    actions: {
+      /* Default toggles stage a change instead of saving straight away. */
+      queueDefault: function (el) {
+        var key = el.dataset.key;
+        var f = flagByKey(key);
+        var current = Object.prototype.hasOwnProperty.call(ui.pending, key) ? ui.pending[key] : f.def;
+        var next = !current;
+        if (next === f.def) delete ui.pending[key];
+        else ui.pending[key] = next;
+        Proto.render();
+        Proto.log('staged ' + key + ' default → ' + (next ? 'On' : 'Off'));
+      },
+
+      unqueue: function (el) {
+        delete ui.pending[el.dataset.key];
+        Proto.render();
+      },
+
+      discardPending: function () {
+        ui.pending = {};
+        Proto.render();
+        Proto.toast('Staged changes discarded. Nothing was saved.', 'info');
+      },
+
+      savePending: function () {
+        var keys = Object.keys(ui.pending);
+        if (!keys.length || Proto.busy('savePending')) return;
+        var desired = keys.map(function (k) { return { key: k, value: ui.pending[k] }; });
+        Proto.setBusy('savePending', true);
+        Proto.render();
+        Proto.call('Save ' + keys.length + ' flag default' + (keys.length === 1 ? '' : 's'), {
+          onOk: function () {
+            desired.forEach(function (d) {
+              var f = flagByKey(d.key);
+              if (f) { f.def = d.value; f.updated = new Date().toISOString(); }
+            });
+            ui.pending = {};
+            Proto.toast(keys.length + ' flag default' + (keys.length === 1 ? '' : 's') + ' saved. Restaurants without an override switch immediately.', 'success');
+          }
+        });
+      },
+
+      /* Kill switch is the dangerous direction, so it asks first — and only when
+         it is being turned ON. Turning it back off is the safe move. */
+      kill: function (el) {
+        var key = el.dataset.key;
+        var f = flagByKey(key);
+        if (f.kill) { commitKill(key, false); return; }
+        var overlay = Proto.modal('Enable the kill switch for ' + key + '?',
+          '<div class="state-panel state-panel--offline" role="alert" style="margin:0">' +
+            '<div class="state-panel__icon" aria-hidden="true">⚠</div>' +
+            '<div><h3>This disables the feature for every restaurant immediately</h3>' +
+            '<p>It overrides every per-restaurant override for <span class="flag-key">' + Proto.esc(key) + '</span>, ' +
+            'including restaurants that explicitly enabled it. This is the normal first rollback step when a feature misbehaves in production.</p></div>' +
+          '</div>',
+          '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+          '<button class="btn-danger" type="button" data-action="confirmKill" data-key="' + Proto.esc(key) + '">Enable kill switch</button>');
+        Proto.log('kill switch confirmation opened for ' + key);
+        return overlay;
+      },
+
+      confirmKill: function (el) {
+        var overlay = el.closest('.modal-overlay');
+        if (overlay) overlay.remove();
+        commitKill(el.dataset.key, true);
+      },
+
+      history: function (el) {
+        ui.historyKey = el.dataset.key;
+        /* setBusy is cleared by the shared layer on every path (success or
+           failure) before it re-renders, so the skeleton can never stick. */
+        Proto.setBusy('history', true);
+        Proto.render();
+        Proto.call('Load change history for ' + ui.historyKey, {
+          onOk: function () { Proto.log('history loaded for ' + ui.historyKey); }
+        });
+      },
+
+      reloadHistory: function () {
+        if (!ui.historyKey) return;
+        Proto.setBusy('history', true);
+        Proto.render();
+        Proto.call('Load change history for ' + ui.historyKey, {
+          onOk: function () { Proto.log('history reloaded for ' + ui.historyKey); }
+        });
+      },
+
+      closeHistory: function () {
+        ui.historyKey = null;
+        Proto.render();
+      },
+
+      override: function (el) {
+        var key = el.dataset.key;
+        ui.overrideKey = key;
+        var map = OVERRIDES[key] || {};
+        var body = '<p class="inline-note">Per-restaurant overrides for <span class="flag-key">' + Proto.esc(key) + '</span>. ' +
+          '<strong>Inherit</strong> follows the global default; a kill switch still wins over any override.</p>' +
+          '<div class="stack--tight">' + RESTAURANTS.map(function (r) {
+            var state = map[r.id] || 'inherit';
+            return '<div class="pending-row">' +
+              '<span><strong>' + Proto.esc(r.name) + '</strong><span class="cell-sub">Restaurant #' + r.id + '</span></span>' +
+              '<select class="field-control" data-override="' + r.id + '" aria-label="Override for ' + Proto.esc(r.name) + '" style="min-width:140px">' +
+                ['inherit', 'enabled', 'disabled'].map(function (v) {
+                  return '<option value="' + v + '"' + (state === v ? ' selected' : '') + '>' +
+                    (v === 'inherit' ? 'Inherit default' : v === 'enabled' ? 'Force enabled' : 'Force disabled') + '</option>';
+                }).join('') +
+              '</select></div>';
+          }).join('') + '</div>';
+
+        Proto.modal('Overrides — ' + key, body,
+          '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+          '<button class="btn-primary" type="button" data-action="applyOverride" data-key="' + Proto.esc(key) + '">Apply overrides</button>');
+      },
+
+      applyOverride: function (el) {
+        var key = el.dataset.key;
+        var overlay = el.closest('.modal-overlay');
+        var next = {};
+        Array.from(document.querySelectorAll('[data-override]')).forEach(function (sel) {
+          next[sel.dataset.override] = sel.value;
+        });
+        Proto.call('Apply overrides for ' + key, {
+          onOk: function () {
+            OVERRIDES[key] = next;
+            var forced = Object.keys(next).filter(function (id) { return next[id] !== 'inherit'; }).length;
+            Proto.toast('Overrides applied to ' + key + ' — ' + forced + ' restaurant' + (forced === 1 ? '' : 's') + ' forced.', 'success');
+            /* Only close on success: a failure keeps the dialog and the user's
+               selection so they can retry without re-picking three dropdowns. */
+            if (overlay) overlay.remove();
+          }
+        });
+      },
+
+      clearSearch: function () {
+        ui.search = '';
+        ui.focusSearch = true;
+        Proto.render();
+      }
+    },
+
+    onReady: function () {
+      Proto.toast('Feature flags loaded — 10 flags, 7 globally effective', 'success', 'GET /admin/feature-flags');
+    }
+  });
+
+  function commitKill(key, on) {
+    Proto.call((on ? 'Enable' : 'Disable') + ' kill switch for ' + key, {
+      onOk: function () {
+        var f = flagByKey(key);
+        if (f) { f.kill = on; f.updated = new Date().toISOString(); }
+        Proto.toast('Kill switch ' + (on ? 'enabled' : 'disabled') + ' for ' + key +
+          (on ? ' — the feature is now off for every restaurant.' : ' — restaurants resolve to their defaults again.'), 'success');
+      }
+    });
+  }
+
+})();
+</script>
+</body>
+</html>

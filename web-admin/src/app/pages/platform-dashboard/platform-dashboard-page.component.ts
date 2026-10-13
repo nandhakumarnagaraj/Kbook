@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
@@ -7,13 +7,14 @@ import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent],
+  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -149,14 +150,12 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
         </ng-container>
 
         <ng-template #loading>
-          <div *ngIf="!summaryError(); else summaryErrorState" class="kpi-row">
+          <div *ngIf="!summaryError(); else summaryErrorState" class="kpi-row" role="status" aria-busy="true">
+            <span class="sr-only">Loading platform summary...</span>
             <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
           <ng-template #summaryErrorState>
-            <div class="panel loading">
-              <p>{{ summaryError() }}</p>
-              <button class="primary-btn" (click)="refresh()">Retry</button>
-            </div>
+            <app-api-state [message]="summaryError()!" (retry)="refresh()"></app-api-state>
           </ng-template>
         </ng-template>
       </ng-container>
@@ -172,10 +171,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
             <span class="records-pill tabular-num">{{ settlements().length }} Restaurants</span>
           </header>
 
-          <div *ngIf="tabError()" class="panel loading">
-            <p>{{ tabError() }}</p>
-            <button class="primary-btn" (click)="loadSettlements()">Retry</button>
-          </div>
+          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSettlements()"></app-api-state>
 
           <div class="table-container" *ngIf="!tabError() && settlements().length > 0; else noSettlementsState">
             <table class="admin-table">
@@ -226,10 +222,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
             <span class="records-pill tabular-num">{{ subMerchants().length }} Sub-Merchants</span>
           </header>
 
-          <div *ngIf="tabError()" class="panel loading">
-            <p>{{ tabError() }}</p>
-            <button class="primary-btn" (click)="loadSubMerchants()">Retry</button>
-          </div>
+          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSubMerchants()"></app-api-state>
 
           <div class="table-container" *ngIf="!tabError() && subMerchants().length > 0; else noSubMerchantsState">
             <table class="admin-table">
@@ -285,10 +278,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
             <span class="records-pill tabular-num">{{ transactions().length }} Transactions</span>
           </header>
 
-          <div *ngIf="tabError()" class="panel loading">
-            <p>{{ tabError() }}</p>
-            <button class="primary-btn" (click)="loadTransactions()">Retry</button>
-          </div>
+          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadTransactions()"></app-api-state>
 
           <div class="table-container" *ngIf="!tabError() && transactions().length > 0; else noTransactionsState">
             <table class="admin-table">

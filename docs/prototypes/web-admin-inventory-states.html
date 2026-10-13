@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inventory — KhanaBook web-admin prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-specific only: the shared sheet owns tokens, shell, states and toasts. */
+  .row-low td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+  .low-flag { color: var(--danger); font-weight: 800; font-size: 10.5px; letter-spacing: .04em; margin-left: 6px; }
+  .preview-banner { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--warning-soft); border: 1px solid rgba(183,121,31,.28); margin-bottom: 16px; }
+  .preview-banner h4 { font-size: 14px; margin-bottom: 3px; }
+  .preview-banner p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .preview-pill { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; background: rgba(183,121,31,.18); color: var(--warning); white-space: nowrap; }
+  .qty-pos { color: var(--success); font-family: var(--kb-font-mono); font-weight: 700; }
+  .qty-neg { color: var(--danger); font-family: var(--kb-font-mono); font-weight: 700; }
+  .row-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── data (shapes mirror BusinessApiService.getInventoryMaterials()) ──── */
+  var MATERIALS = [
+    { id: 1, name: 'Paneer',          unit: 'kg', stockQuantity: 1.2,  lowStockThreshold: 4,   costPerUnit: 340, lastMovement: '2026-10-13T09:40:00' },
+    { id: 2, name: 'Basmati Rice',    unit: 'kg', stockQuantity: 6,    lowStockThreshold: 12,  costPerUnit: 120, lastMovement: '2026-10-13T08:05:00' },
+    { id: 3, name: 'Chicken',         unit: 'kg', stockQuantity: 18,   lowStockThreshold: 8,   costPerUnit: 260, lastMovement: '2026-10-13T11:20:00' },
+    { id: 4, name: 'Onions',          unit: 'kg', stockQuantity: 24,   lowStockThreshold: 10,  costPerUnit: 38,  lastMovement: '2026-10-12T19:30:00' },
+    { id: 5, name: 'Tomatoes',        unit: 'kg', stockQuantity: 7.5,  lowStockThreshold: 8,   costPerUnit: 42,  lastMovement: '2026-10-13T07:15:00' },
+    { id: 6, name: 'Refined Oil',     unit: 'L',  stockQuantity: 15,   lowStockThreshold: 6,   costPerUnit: 145, lastMovement: '2026-10-11T17:00:00' },
+    { id: 7, name: 'Garam Masala',    unit: 'g',  stockQuantity: 900,  lowStockThreshold: 400, costPerUnit: 1.2, lastMovement: '2026-10-10T12:00:00' },
+    { id: 8, name: 'Curd',            unit: 'kg', stockQuantity: 3,    lowStockThreshold: 5,   costPerUnit: 90,  lastMovement: '2026-10-13T06:50:00' }
+  ];
+
+  var MOVEMENTS = {
+    1: [
+      { kind: 'PURCHASE', quantity: 4,    reason: 'Sri Balaji Dairy',  createdAt: '2026-10-13T09:40:00' },
+      { kind: 'WASTAGE',  quantity: -0.5, reason: 'Expired',           createdAt: '2026-10-12T21:10:00' },
+      { kind: 'SALES_DEDUCT', quantity: -2.3, reason: 'Dinner service', createdAt: '2026-10-12T22:40:00' }
+    ],
+    3: [
+      { kind: 'PURCHASE', quantity: 12,   reason: 'Fresh Meat Co.',    createdAt: '2026-10-13T11:20:00' },
+      { kind: 'ADJUST',   quantity: -1,   reason: 'Physical count',    createdAt: '2026-10-12T23:05:00' }
+    ],
+    8: [
+      { kind: 'OPENING',  quantity: 10,   reason: 'Opening stock',     createdAt: '2026-10-09T06:00:00' },
+      { kind: 'SALES_DEDUCT', quantity: -7, reason: 'Lunch service',   createdAt: '2026-10-13T06:50:00' }
+    ]
+  };
+
+  var ui = {
+    tab: 'materials',
+    tabBusy: false,
+    movementsLoaded: false,
+    varianceLoaded: false,
+    selectedMaterialId: null,
+    varianceFrom: '2026-10-01',
+    varianceTo: '2026-10-13',
+    varianceRows: [],
+    detailTab: 'purchase',
+    modal: null,
+    modalBusy: false,
+    editingId: null,
+    detailId: null,
+    pendingDeleteId: null
+  };
+
+  var UNIT_OPTIONS = ['kg', 'g', 'L', 'ml', 'pcs', 'dozen'];
+  var MOVE_LABEL = { PURCHASE: 'Purchase', WASTAGE: 'Wastage', SALES_DEDUCT: 'Sales', ADJUST: 'Adjustment', OPENING: 'Opening' };
+
+  function materialById(id) {
+    for (var i = 0; i < MATERIALS.length; i++) if (MATERIALS[i].id === id) return MATERIALS[i];
+    return null;
+  }
+  function isLow(m) { return m.lowStockThreshold > 0 && m.stockQuantity <= m.lowStockThreshold; }
+  function fmtQty(n) { return (Math.round(n * 100) / 100).toLocaleString('en-IN'); }
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function el(id) { return ui.modal ? ui.modal.querySelector('#' + id) : null; }
+
+  /* ── modal plumbing ──────────────────────────────────────────────────── */
+  function setFormError(text) {
+    if (!ui.modal) return;
+    var body = ui.modal.querySelector('.modal-body');
+    var box = body.querySelector('[data-form-error]');
+    if (!text) { if (box) box.remove(); return; }
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'field-error';
+      box.setAttribute('data-form-error', '');
+      box.setAttribute('role', 'alert');
+      body.prepend(box);
+    }
+    box.textContent = text;
+  }
+  function setModalBusy(on, label) {
+    if (!ui.modal) return;
+    ui.modalBusy = on;
+    Array.prototype.forEach.call(ui.modal.querySelectorAll('[data-action]'), function (b) {
+      if (b.classList.contains('btn-primary') || b.classList.contains('btn-danger')) {
+        b.disabled = on;
+        if (on) { b.dataset.label = b.textContent; b.textContent = label || 'Working…'; }
+        else if (b.dataset.label) { b.textContent = b.dataset.label; }
+      }
+    });
+  }
+  function closeModal() { if (ui.modal) { ui.modal.remove(); } ui.modal = null; ui.modalBusy = false; }
+  function openModal(title, body, foot, wide) {
+    closeModal();
+    ui.modal = Proto.modal(title, body, foot, wide);
+    return ui.modal;
+  }
+
+  /* ── add / edit material ─────────────────────────────────────────────── */
+  function openMaterialModal(m) {
+    ui.editingId = m ? m.id : null;
+    var v = m || { name: '', unit: 'kg', stockQuantity: 0, lowStockThreshold: 0, costPerUnit: '' };
+    var units = UNIT_OPTIONS.map(function (u) {
+      return '<option value="' + u + '"' + (u === v.unit ? ' selected' : '') + '>' + u + '</option>';
+    }).join('');
+    openModal(m ? 'Edit material' : 'Add material',
+      '<div class="field"><label class="field-label" for="m-name">Name *</label>' +
+        '<input id="m-name" class="field-control" type="text" placeholder="e.g. Basmati Rice" value="' + Proto.esc(v.name) + '" /></div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label class="field-label" for="m-unit">Unit</label><select id="m-unit" class="field-control">' + units + '</select></div>' +
+        '<div class="field"><label class="field-label" for="m-stock">Stock quantity</label><input id="m-stock" class="field-control" type="number" min="0" step="0.01" value="' + v.stockQuantity + '" /></div>' +
+        '<div class="field"><label class="field-label" for="m-threshold">Low stock threshold</label><input id="m-threshold" class="field-control" type="number" min="0" step="0.01" value="' + v.lowStockThreshold + '" /></div>' +
+        '<div class="field"><label class="field-label" for="m-cost">Cost per unit (₹)</label><input id="m-cost" class="field-control" type="number" min="0" step="0.01" value="' + (v.costPerUnit === '' ? '' : v.costPerUnit) + '" /></div>' +
+      '</div>' +
+      '<p class="inline-note">Materials at or below their threshold are flagged on the list and counted in the header.</p>',
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-primary" type="button" data-action="saveMaterial">' + (m ? 'Update material' : 'Add material') + '</button>');
+  }
+
+  function saveMaterial() {
+    if (ui.modalBusy) return;
+    var name = (el('m-name').value || '').trim();
+    if (!name) { setFormError('Enter a material name — it is the only required field.'); el('m-name').focus(); return; }
+    var duplicate = MATERIALS.some(function (m) { return m.id !== ui.editingId && m.name.toLowerCase() === name.toLowerCase(); });
+    if (duplicate) { setFormError('“' + name + '” is already tracked. Edit the existing material instead.'); return; }
+    setFormError('');
+    var payload = {
+      name: name,
+      unit: el('m-unit').value,
+      stockQuantity: num(el('m-stock').value),
+      lowStockThreshold: num(el('m-threshold').value),
+      costPerUnit: num(el('m-cost').value)
+    };
+    var editing = materialById(ui.editingId);
+    setModalBusy(true, editing ? 'Updating…' : 'Adding…');
+    Proto.call(editing ? 'Update material' : 'Add material', {
+      onOk: function () {
+        if (editing) {
+          editing.name = payload.name; editing.unit = payload.unit;
+          editing.stockQuantity = payload.stockQuantity; editing.lowStockThreshold = payload.lowStockThreshold;
+          editing.costPerUnit = payload.costPerUnit; editing.lastMovement = new Date().toISOString();
+          Proto.toast('Material updated', 'success', payload.name);
+        } else {
+          var nextId = 1;
+          MATERIALS.forEach(function (m) { nextId = Math.max(nextId, m.id + 1); });
+          MATERIALS.push({
+            id: nextId, name: payload.name, unit: payload.unit, stockQuantity: payload.stockQuantity,
+            lowStockThreshold: payload.lowStockThreshold, costPerUnit: payload.costPerUnit,
+            lastMovement: new Date().toISOString()
+          });
+          Proto.toast('Material added', 'success', payload.name);
+        }
+        closeModal();
+      }
+    }).then(function (ok) {
+      if (!ok) { setModalBusy(false); setFormError('The save did not go through — nothing changed. Fix and try again.'); }
+    });
+  }
+
+  /* ── stock actions on one material ───────────────────────────────────── */
+  function openStockModal(id, tab) {
+    var m = materialById(id);
+    if (!m) return;
+    ui.detailId = id;
+    ui.detailTab = tab || 'purchase';
+    var low = isLow(m) ? ' <span class="low-flag">LOW</span>' : '';
+    var sub = function (key, label) {
+      return '<button class="tab" type="button" role="tab" data-action="detailTab" data-tab="' + key + '" aria-selected="' + (ui.detailTab === key) + '">' + label + '</button>';
+    };
+    var body =
+      '<p class="inline-note">Current stock: <strong class="tabular">' + fmtQty(m.stockQuantity) + ' ' + m.unit + '</strong>' +
+        (m.costPerUnit ? ' · Cost: ' + Proto.money(m.costPerUnit) + '/' + m.unit : '') +
+        (m.lowStockThreshold ? ' · Threshold: ' + fmtQty(m.lowStockThreshold) + ' ' + m.unit : '') + low + '</p>' +
+      '<div class="tab-bar" role="tablist" aria-label="Stock actions">' +
+        sub('purchase', 'Stock in') + sub('wastage', 'Wastage') + sub('count', 'Physical count') +
+      '</div>';
+
+    if (ui.detailTab === 'purchase') {
+      body +=
+        '<div role="tabpanel" aria-label="Stock in">' +
+          '<div class="form-grid">' +
+            '<div class="field"><label class="field-label" for="p-qty">Quantity *</label><input id="p-qty" class="field-control" type="number" min="0.01" step="0.01" placeholder="e.g. 5" /></div>' +
+            '<div class="field"><label class="field-label" for="p-cost">Unit cost (₹)</label><input id="p-cost" class="field-control" type="number" min="0" step="0.01" value="' + (m.costPerUnit || '') + '" /></div>' +
+            '<div class="field"><label class="field-label" for="p-vendor">Vendor</label><input id="p-vendor" class="field-control" type="text" placeholder="e.g. Sri Balaji Dairy" /></div>' +
+          '</div>' +
+        '</div>';
+    } else if (ui.detailTab === 'wastage') {
+      body +=
+        '<div role="tabpanel" aria-label="Wastage">' +
+          '<div class="form-grid">' +
+            '<div class="field"><label class="field-label" for="w-qty">Quantity *</label><input id="w-qty" class="field-control" type="number" min="0.01" step="0.01" /></div>' +
+            '<div class="field"><label class="field-label" for="w-reason">Reason *</label><input id="w-reason" class="field-control" type="text" placeholder="e.g. Expired, spillage" /></div>' +
+          '</div>' +
+          '<p class="inline-note">Wastage reduces stock immediately and is attributed to the signed-in owner.</p>' +
+        '</div>';
+    } else {
+      body +=
+        '<div role="tabpanel" aria-label="Physical count">' +
+          '<div class="field" style="max-width:240px"><label class="field-label" for="c-qty">Counted quantity *</label>' +
+            '<input id="c-qty" class="field-control" type="number" min="0" step="0.01" /></div>' +
+          '<p class="inline-note">System shows ' + fmtQty(m.stockQuantity) + ' ' + m.unit + '. Any variance creates an adjustment entry you can review in Stock movements.</p>' +
+        '</div>';
+    }
+
+    var primary = ui.detailTab === 'purchase' ? 'submitStockIn' : ui.detailTab === 'wastage' ? 'submitWastage' : 'submitCount';
+    var primaryLabel = ui.detailTab === 'purchase' ? 'Record purchase' : ui.detailTab === 'wastage' ? 'Record wastage' : 'Submit count';
+
+    openModal(m.name + (ui.detailTab === 'purchase' ? ' — stock in' : ui.detailTab === 'wastage' ? ' — wastage' : ' — physical count'),
+      body,
+      '<button class="ghost-btn" type="button" data-close>Close</button>' +
+      '<button class="ghost-btn ghost-btn--danger" type="button" data-action="deleteMaterial">Delete</button>' +
+      '<button class="btn-primary" type="button" data-action="' + primary + '">' + primaryLabel + '</button>',
+      true);
+  }
+
+  function pushMovement(id, kind, quantity, reason) {
+    MOVEMENTS[id] = MOVEMENTS[id] || [];
+    MOVEMENTS[id].unshift({ kind: kind, quantity: quantity, reason: reason, createdAt: new Date().toISOString() });
+    var m = materialById(id);
+    if (m) m.lastMovement = new Date().toISOString();
+  }
+
+  function submitStockIn() {
+    if (ui.modalBusy) return;
+    var m = materialById(ui.detailId);
+    var qty = num(el('p-qty').value);
+    var vendor = (el('p-vendor').value || '').trim();
+    if (qty <= 0) { setFormError('Enter a quantity greater than zero.'); el('p-qty').focus(); return; }
+    setFormError('');
+    setModalBusy(true, 'Recording…');
+    Proto.call('Record purchase', {
+      onOk: function () {
+        m.stockQuantity = Math.round((m.stockQuantity + qty) * 100) / 100;
+        if (num(el('p-cost').value) > 0) m.costPerUnit = num(el('p-cost').value);
+        pushMovement(m.id, 'PURCHASE', qty, vendor ? 'Vendor: ' + vendor : 'Purchase');
+        Proto.toast('Stock recorded', 'success', '+' + fmtQty(qty) + ' ' + m.unit + ' ' + m.name + (vendor ? ' from ' + vendor : ''));
+        closeModal();
+      }
+    }).then(function (ok) {
+      if (!ok) { setModalBusy(false); setFormError('The purchase was not recorded — stock is unchanged.'); }
+    });
+  }
+
+  function submitWastage() {
+    if (ui.modalBusy) return;
+    var m = materialById(ui.detailId);
+    var qty = num(el('w-qty').value);
+    var reason = (el('w-reason').value || '').trim();
+    if (qty <= 0) { setFormError('Enter a quantity greater than zero.'); el('w-qty').focus(); return; }
+    if (!reason) { setFormError('A reason is required so wastage can be reviewed later.'); el('w-reason').focus(); return; }
+    if (qty > m.stockQuantity) { setFormError('Only ' + fmtQty(m.stockQuantity) + ' ' + m.unit + ' is in stock — you cannot waste more than that.'); return; }
+    setFormError('');
+    setModalBusy(true, 'Recording…');
+    Proto.call('Record wastage', {
+      onOk: function () {
+        m.stockQuantity = Math.round((m.stockQuantity - qty) * 100) / 100;
+        pushMovement(m.id, 'WASTAGE', -qty, reason);
+        Proto.toast('Wastage recorded', 'success', '−' + fmtQty(qty) + ' ' + m.unit + ' ' + m.name + ' · ' + reason);
+        closeModal();
+      }
+    }).then(function (ok) {
+      if (!ok) { setModalBusy(false); setFormError('The wastage entry was not saved — stock is unchanged.'); }
+    });
+  }
+
+  function submitCount() {
+    if (ui.modalBusy) return;
+    var m = materialById(ui.detailId);
+    var field = el('c-qty');
+    if (field.value === '' || field.value === null) { setFormError('Enter the counted quantity (0 is allowed).'); field.focus(); return; }
+    var counted = num(field.value);
+    var variance = Math.round((counted - m.stockQuantity) * 100) / 100;
+    setFormError('');
+    setModalBusy(true, 'Submitting…');
+    Proto.call('Submit physical count', {
+      onOk: function () {
+        m.stockQuantity = counted;
+        pushMovement(m.id, 'ADJUST', variance, variance === 0 ? 'Physical count (match)' : 'Physical count adjustment');
+        if (variance === 0) {
+          Proto.toast('Count matches system', 'success', m.name + ' · ' + fmtQty(counted) + ' ' + m.unit);
+        } else if (variance > 0) {
+          Proto.toast('Surplus: +' + fmtQty(variance) + ' ' + m.unit, 'success', 'System adjusted up to the counted ' + fmtQty(counted) + ' ' + m.unit);
+        } else {
+          Proto.toast('Shortfall: ' + fmtQty(variance) + ' ' + m.unit, 'error', 'Stock adjusted down to ' + fmtQty(counted) + ' ' + m.unit + ' — review wastage and sales deduction');
+        }
+        closeModal();
+      }
+    }).then(function (ok) {
+      if (!ok) { setModalBusy(false); setFormError('The count was not submitted — system stock is unchanged.'); }
+    });
+  }
+
+  /* ── delete with confirmation ────────────────────────────────────────── */
+  function askDelete(id) {
+    var m = materialById(id);
+    if (!m) return;
+    ui.pendingDeleteId = id;
+    openModal('Delete material',
+      '<p>Delete <strong>“' + Proto.esc(m.name) + '”</strong>? This cannot be undone. Its ' +
+      ((MOVEMENTS[id] || []).length) + ' recorded stock movement(s) stay in the ledger for audit.</p>',
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-danger" type="button" data-action="confirmDeleteMaterial">Delete material</button>');
+  }
+
+  function confirmDelete() {
+    if (ui.modalBusy) return;
+    var id = ui.pendingDeleteId;
+    var m = materialById(id);
+    if (!m) return;
+    setModalBusy(true, 'Deleting…');
+    Proto.call('Delete material', {
+      onOk: function () {
+        MATERIALS = MATERIALS.filter(function (x) { return x.id !== id; });
+        Proto.toast('Material deleted', 'success', m.name + ' removed from inventory');
+        ui.pendingDeleteId = null;
+        closeModal();
+      }
+    }).then(function (ok) {
+      if (!ok) { setModalBusy(false); setFormError('The delete did not go through — the material is still tracked.'); }
+    });
+  }
+
+  /* ── render ──────────────────────────────────────────────────────────── */
+  function kpiRow(materials, mode) {
+    var low = materials.filter(isLow).length;
+    var value = materials.reduce(function (sum, m) { return sum + (m.stockQuantity * (m.costPerUnit || 0)); }, 0);
+    var isEmpty = mode === 'empty' || materials.length === 0;
+    return '<section class="bento-kpi-grid bento-kpi-grid--3" aria-label="Inventory summary" style="margin-bottom:14px">' +
+      '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">Materials tracked</span>' +
+        '<span class="kpi-tag kpi-tag--neutral">' + (isEmpty ? 'Empty' : 'Live') + '</span></div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + materials.length + '">0</div>' +
+        '<span class="sub-caption">Raw ingredients with a stock level and threshold</span></article>' +
+      '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">Below threshold</span>' +
+        '<span class="kpi-tag ' + (low > 0 ? 'kpi-tag--warn' : 'kpi-tag--green') + '">' + (low > 0 ? 'Reorder' : 'All stocked') + '</span></div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + low + '">0</div>' +
+        '<span class="sub-caption">' + (low > 0 ? 'Flagged rows need a purchase order' : 'No material is under its low-stock threshold') + '</span></article>' +
+      '<article class="bento-tile"><div class="bento-tile__head"><span class="bento-tile__eyebrow">Stock value</span>' +
+        '<span class="kpi-tag kpi-tag--neutral">At cost</span></div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + Math.round(value) + '" data-format="money">₹0</div>' +
+        '<span class="sub-caption">Current quantity × cost per unit</span></article>' +
+    '</section>';
+  }
+
+  function previewBanner() {
+    return '<div class="preview-banner" role="note">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--warning);flex:none;margin-top:2px" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>' +
+      '<div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+        '<h4>Inventory Management (feature preview)</h4><span class="preview-pill">Coming soon</span></div>' +
+        '<p>Raw material tracking and physical reconciliation are active in preview mode. Automated recipe BOM depletion and vendor purchase orders will be fully enabled soon.</p>' +
+      '</div></div>';
+  }
+
+  function tabBar() {
+    var t = function (key, label) {
+      return '<button class="tab" type="button" role="tab" data-action="tab" data-tab="' + key + '" aria-selected="' + (ui.tab === key) + '">' + label + '</button>';
+    };
+    return '<div class="tab-bar" role="tablist" aria-label="Inventory sections">' +
+      t('materials', 'Materials') + t('movements', 'Stock movements') + t('variance', 'Variance report') + '</div>';
+  }
+
+  function materialsPanel(materials) {
+    if (!materials.length) {
+      return '<div class="panel"><div class="empty-box">' +
+        '<svg class="empty-glyph" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">' +
+          '<path d="M21 8V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1"/><path d="M16 12h5v4h-5a2 2 0 0 1 0-4z"/></svg>' +
+        '<h4>No materials tracked yet</h4>' +
+        '<p>Add raw materials to track stock levels, wastage and low-stock alerts for this kitchen.</p>' +
+        '<button class="ghost-btn" type="button" data-action="addMaterial">+ Add material</button>' +
+      '</div></div>';
+    }
+    var rows = materials.map(function (m) {
+      var low = isLow(m);
+      return '<tr' + (low ? ' class="row-low"' : '') + '>' +
+        '<td><strong>' + Proto.esc(m.name) + '</strong>' + (low ? '<span class="low-flag">LOW</span>' : '') + '</td>' +
+        '<td class="muted">' + Proto.esc(m.unit) + '</td>' +
+        '<td class="tabular ' + (low ? 'text-danger font-bold' : '') + '">' + fmtQty(m.stockQuantity) + '</td>' +
+        '<td class="tabular muted">' + (m.lowStockThreshold ? fmtQty(m.lowStockThreshold) : '—') + '</td>' +
+        '<td class="tabular">' + Proto.money(Math.round(m.stockQuantity * (m.costPerUnit || 0))) + '</td>' +
+        '<td class="muted">' + Proto.fmtDate(m.lastMovement) + ' · ' + Proto.fmtTime(m.lastMovement) + '</td>' +
+        '<td><span class="row-actions">' +
+          '<button class="ghost-btn" type="button" data-action="stockActions" data-id="' + m.id + '">Stock</button>' +
+          '<button class="ghost-btn" type="button" data-action="editMaterial" data-id="' + m.id + '">Edit</button>' +
+        '</span></td>' +
+      '</tr>';
+    }).join('');
+    return '<div class="panel panel--flush">' +
+      '<div class="panel__head" style="padding:16px 16px 0"><div><h3 class="panel__title">Raw materials</h3>' +
+        '<p class="sub-caption">Rows at or below their threshold are flagged and counted above.</p></div>' +
+        '<span class="records-pill tabular">' + materials.length + ' materials</span></div>' +
+      '<div class="table-wrap"><table class="data-table">' +
+        '<thead><tr><th scope="col">Material</th><th scope="col">Unit</th><th scope="col">Current stock</th>' +
+        '<th scope="col">Threshold</th><th scope="col">Stock value</th><th scope="col">Last movement</th><th scope="col">Actions</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div></div>';
+  }
+
+  function movementsPanel() {
+    if (ui.tabBusy) {
+      return '<div class="panel"><div class="skeleton-stack">' + Proto.skeletonRows(5, 'sk-row') + '</div></div>';
+    }
+    var options = '<option value="">Select a material…</option>' + MATERIALS.map(function (m) {
+      return '<option value="' + m.id + '"' + (ui.selectedMaterialId === m.id ? ' selected' : '') + '>' + Proto.esc(m.name) + '</option>';
+    }).join('');
+    var body;
+    if (!ui.selectedMaterialId) {
+      body = '<div class="empty-box"><h4>No material selected</h4><p>Select a material above to view its stock movement history — purchases, wastage, sales deductions and count adjustments.</p></div>';
+    } else {
+      var list = MOVEMENTS[ui.selectedMaterialId] || [];
+      var m = materialById(ui.selectedMaterialId);
+      body = list.length
+        ? '<div class="stack--tight">' + list.map(function (mv) {
+            return '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)">' +
+              '<span><strong>' + (MOVE_LABEL[mv.kind] || mv.kind) + '</strong>' +
+                '<span class="muted" style="margin-left:8px;font-size:12px">' + Proto.fmtDate(mv.createdAt) + ' · ' + Proto.fmtTime(mv.createdAt) + '</span>' +
+                (mv.reason ? '<span class="muted" style="margin-left:8px;font-size:12px">— ' + Proto.esc(mv.reason) + '</span>' : '') + '</span>' +
+              '<span class="' + (mv.quantity > 0 ? 'qty-pos' : 'qty-neg') + '">' + (mv.quantity > 0 ? '+' : '') + fmtQty(mv.quantity) + ' ' + (m ? m.unit : '') + '</span>' +
+            '</div>';
+          }).join('') + '</div>'
+        : '<div class="empty-box"><h4>No movements recorded yet</h4><p>Purchases, wastage and count adjustments for this material will be listed here with who recorded them.</p></div>';
+    }
+    return '<div class="panel"><div class="field" style="max-width:320px">' +
+        '<label class="field-label" for="mv-material">Material</label>' +
+        '<select id="mv-material" class="field-control" data-input="selectMaterial" aria-label="Select material for stock movements">' + options + '</select>' +
+      '</div><div style="margin-top:14px">' + body + '</div></div>';
+  }
+
+  function variancePanel() {
+    if (ui.tabBusy) return '<div class="panel"><div class="skeleton-stack">' + Proto.skeletonRows(4, 'sk-row') + '</div></div>';
+    var rows = '';
+    if (!ui.varianceLoaded) {
+      rows = '<div class="empty-box"><h4>No report run yet</h4><p>Pick a date range and run the report to compare system stock against the last physical count for every material.</p></div>';
+    } else if (!ui.varianceRows.length) {
+      rows = '<div class="empty-box"><h4>No counts in this range</h4><p>No physical count was recorded between ' + Proto.fmtDate(ui.varianceFrom) + ' and ' + Proto.fmtDate(ui.varianceTo) + '. Submit a count from the Materials tab.</p></div>';
+    } else {
+      rows = '<div class="table-wrap"><table class="data-table">' +
+        '<thead><tr><th scope="col">Material</th><th scope="col" class="num-cell">System stock</th><th scope="col" class="num-cell">Physical count</th>' +
+        '<th scope="col" class="num-cell">Variance</th><th scope="col" class="num-cell">Variance %</th></tr></thead><tbody>' +
+        ui.varianceRows.map(function (v) {
+          var cls = v.variance < 0 ? 'text-danger font-bold' : v.variance > 0 ? 'text-success font-bold' : 'muted';
+          return '<tr><td><strong>' + Proto.esc(v.materialName) + '</strong></td>' +
+            '<td class="num-cell tabular">' + fmtQty(v.systemStock) + '</td>' +
+            '<td class="num-cell tabular">' + fmtQty(v.physicalCount) + '</td>' +
+            '<td class="num-cell tabular ' + cls + '">' + (v.variance > 0 ? '+' : '') + fmtQty(v.variance) + '</td>' +
+            '<td class="num-cell tabular ' + cls + '">' + (v.variancePct > 0 ? '+' : '') + v.variancePct.toFixed(1) + '%</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    return '<div class="panel">' +
+      '<div class="form-grid" style="max-width:520px;margin-bottom:14px">' +
+        '<div class="field"><label class="field-label" for="v-from">From</label>' +
+          '<input id="v-from" class="field-control" type="date" data-input="varianceFrom" value="' + ui.varianceFrom + '" /></div>' +
+        '<div class="field"><label class="field-label" for="v-to">To</label>' +
+          '<input id="v-to" class="field-control" type="date" data-input="varianceTo" value="' + ui.varianceTo + '" /></div>' +
+      '</div>' +
+      '<div class="form-actions" style="margin-bottom:14px">' +
+        '<button class="btn-primary" type="button" data-action="runVariance">Run report</button>' +
+        '<span class="inline-note">Positive variance is surplus found during counting; negative is shrinkage.</span>' +
+      '</div>' + rows + '</div>';
+  }
+
+  /* ── boot ────────────────────────────────────────────────────────────── */
+  Proto.boot({
+    page: 'inventory',
+    title: 'Inventory',
+    subtitle: 'Track raw materials, stock levels and low-stock alerts.',
+    eyebrow: 'Owner console',
+    live: false,
+    headerExtra: '<button class="btn-primary" type="button" data-action="addMaterial">+ Add material</button>',
+    data: {},
+    skeleton:
+      '<section class="bento-kpi-grid bento-kpi-grid--3" aria-hidden="true">' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+      '</section>' +
+      '<div class="panel panel--flush" aria-hidden="true" style="margin-top:14px">' +
+        '<div style="padding:16px"><div class="skeleton sk-line" style="width:180px;margin-bottom:8px"></div>' +
+        '<div class="skeleton sk-line" style="width:300px"></div></div>' +
+        '<div style="padding:0 16px 16px"><div class="skeleton sk-line" style="height:36px;margin-bottom:8px"></div>' +
+        Proto.skeletonRows(6, 'sk-table-row') + '</div>' +
+      '</div>',
+    render: function (ctx) {
+      var materials = ctx.mode === 'empty' ? [] : MATERIALS;
+      return kpiRow(materials, ctx.mode) + previewBanner() + tabBar() +
+        (ui.tab === 'materials' ? materialsPanel(materials) : ui.tab === 'movements' ? movementsPanel() : variancePanel());
+    },
+    actions: {
+      addMaterial: function () { openMaterialModal(null); },
+      editMaterial: function (el) { openMaterialModal(materialById(Number(el.dataset.id))); },
+      stockActions: function (el) { openStockModal(Number(el.dataset.id), 'purchase'); },
+      detailTab: function (el) { openStockModal(ui.detailId, el.dataset.tab); },
+      saveMaterial: saveMaterial,
+      submitStockIn: submitStockIn,
+      submitWastage: submitWastage,
+      submitCount: submitCount,
+      deleteMaterial: function () { askDelete(ui.detailId); },
+      confirmDeleteMaterial: confirmDelete,
+      tab: function (el) {
+        var next = el.dataset.tab;
+        if (next === ui.tab) return;
+        ui.tab = next;
+        if (next === 'movements' && !ui.movementsLoaded) {
+          // Lazy first load, the way the live page loads movements for a material.
+          ui.tabBusy = true; Proto.render();
+          Proto.call('Load stock movements', {
+            onOk: function () { ui.movementsLoaded = true; Proto.toast('Stock movements loaded', 'info'); }
+          }).then(function () { ui.tabBusy = false; Proto.render(); });
+          return;
+        }
+        if (next === 'variance' && !ui.varianceLoaded) {
+          ui.tabBusy = true; Proto.render();
+          Proto.call('Load variance report', {
+            onOk: function () { ui.varianceLoaded = true; }
+          }).then(function () { ui.tabBusy = false; Proto.render(); });
+          return;
+        }
+        Proto.render();
+      },
+      runVariance: function () {
+        if (ui.tabBusy) return;
+        ui.tabBusy = true; Proto.render();
+        Proto.call('Run variance report', {
+          onOk: function () {
+            ui.varianceLoaded = true;
+            ui.varianceRows = MATERIALS.filter(function (m) { return m.lowStockThreshold > 0; }).slice(0, 6).map(function (m) {
+              var physical = Math.round((m.stockQuantity + (m.stockQuantity >= m.lowStockThreshold ? -0.4 : 0.3)) * 100) / 100;
+              var variance = Math.round((physical - m.stockQuantity) * 100) / 100;
+              return { materialName: m.name, systemStock: m.stockQuantity, physicalCount: physical, variance: variance,
+                variancePct: m.stockQuantity ? (variance / m.stockQuantity) * 100 : 0 };
+            });
+            Proto.toast('Variance report ready', 'success', ui.varianceRows.length + ' materials compared');
+          }
+        }).then(function () { ui.tabBusy = false; Proto.render(); });
+      }
+    },
+    inputs: {
+      selectMaterial: function (value) {
+        ui.selectedMaterialId = value ? Number(value) : null;
+        Proto.render();
+      },
+      varianceFrom: function (value) { ui.varianceFrom = value; },
+      varianceTo: function (value) { ui.varianceTo = value; }
+    }
+  });
+})();
+</script>
+</body>
+</html>

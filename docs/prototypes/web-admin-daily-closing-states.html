@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Daily Closing — KhanaBook prototype</title>
+<!--
+  PROTOTYPE — not wired into the Angular app.
+  Mirrors web-admin/src/app/pages/daily-closing/daily-closing-page.component.ts:
+  same header badge + date control + Print/Export actions, the same draft-orders
+  warning banner, the same four KPI figures (net realised / gross billed /
+  refunds / open tables), the same drawer reconciliation (expected vs counted vs
+  variance with Balanced · Overage · Shortage), the same payment-channel
+  breakdown and the same "No sales recorded for this date" empty state.
+  Loading / error / empty / success behaviour comes from _shared/proto.js.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-specific geometry only — colours and components come from _shared/proto.css */
+  .recon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+  .recon-card { display: grid; gap: 8px; align-content: start; }
+  .recon-card--match  { background: var(--success-soft); border-color: rgba(47,133,90,.28); }
+  .recon-card--over   { background: var(--warning-soft); border-color: rgba(183,121,31,.3); }
+  .recon-card--short  { background: var(--danger-soft);  border-color: rgba(192,57,43,.28); }
+  .recon-value { font-size: 26px; font-weight: 800; font-family: var(--font-display); }
+  .audit-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .audit-stat { display: grid; gap: 4px; padding: 14px; border-radius: var(--r-xl); background: var(--panel-2); border: 1px solid var(--line); }
+  .audit-stat .stat-digit { font-size: 24px; font-weight: 800; font-family: var(--font-display); }
+  .split-card { display: flex; align-items: center; gap: 14px; }
+  .split-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; flex: none; }
+  .date-control { min-height: 36px; width: auto; padding: 6px 10px; }
+  @media (max-width: 640px) { .date-control { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var esc = Proto.esc;
+  var money = Proto.money;
+
+  function iso(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  var today = iso(new Date());
+
+  /* Figures for today and for any earlier day, so switching the date visibly
+     changes the reconciliation instead of repainting identical numbers. */
+  var TODAY_BOOK = {
+    totalOrders: 128, completedOrders: 121, cancelledOrders: 5, draftOrders: 2,
+    totalRevenue: 45200, refundedAmount: 2350, netRevenue: 42850,
+    splits: [
+      { mode: 'upi',  label: 'Dynamic UPI',           count: 61, total: 22030 },
+      { mode: 'cash', label: 'Cash Drawer',           count: 52, total: 18420 },
+      { mode: 'card', label: 'Card Terminal (POS)',   count: 15, total: 4750 }
+    ]
+  };
+  var EARLIER_BOOK = {
+    totalOrders: 104, completedOrders: 101, cancelledOrders: 2, draftOrders: 1,
+    totalRevenue: 36100, refundedAmount: 900, netRevenue: 35200,
+    splits: [
+      { mode: 'upi',  label: 'Dynamic UPI',         count: 54, total: 18300 },
+      { mode: 'cash', label: 'Cash Drawer',         count: 40, total: 14200 },
+      { mode: 'card', label: 'Card Terminal (POS)', count: 11, total: 3600 }
+    ]
+  };
+
+  var page = {
+    date: today,
+    counted: '',            // what the user typed into the drawer field
+    saved: null,            // last saved physical count for this date
+    savedFor: null,
+    closed: null            // ISO date of the last day this session closed
+  };
+
+  function book() {
+    var b = page.date === today ? TODAY_BOOK : EARLIER_BOOK;
+    return b;
+  }
+  function expectedCash() {
+    return book().splits.filter(function (s) { return s.mode.indexOf('cash') === 0; })
+      .reduce(function (sum, s) { return sum + s.total; }, 0);
+  }
+  function countValue() {
+    var raw = page.counted === '' ? page.saved : page.counted;
+    if (raw === null || raw === '' || raw === undefined) return null;
+    var n = Number(raw);
+    return isNaN(n) ? null : n;
+  }
+  function variance() {
+    var counted = countValue();
+    if (counted === null) {
+      return { state: 'pending', text: '—', badge: 'Pending Count', cls: 'st-neutral',
+        note: 'Enter your physical cash count to reconcile the drawer.' };
+    }
+    var delta = counted - expectedCash();
+    if (Math.abs(delta) < 1) {
+      return { state: 'match', text: money(0), badge: 'Balanced', cls: 'st-completed',
+        note: 'Counted cash matches the system total exactly.' };
+    }
+    if (delta > 0) {
+      return { state: 'over', text: '+' + money(delta), badge: 'Overage', cls: 'st-warn',
+        note: 'Counted ' + money(delta) + ' more than expected — check for unrecorded cash sales.' };
+    }
+    return { state: 'short', text: '−' + money(Math.abs(delta)), badge: 'Shortage', cls: 'st-danger',
+      note: 'Counted ' + money(Math.abs(delta)) + ' less than expected — check for change errors or an unbilled table.' };
+  }
+  var reconClass = { match: ' recon-card--match', over: ' recon-card--over', short: ' recon-card--short', pending: '' };
+
+  function draftBanner() {
+    var b = book();
+    if (!b.draftOrders || page.closed === page.date) return '';
+    return '<div class="stale-banner" role="alert">' +
+      '<span class="stale-banner__icon" aria-hidden="true">!</span>' +
+      '<span><strong>Action Required:</strong> ' + b.draftOrders + ' draft/open table order(s) remain unbilled for ' +
+      esc(page.date) + '. Please settle or void them in Active Orders to finalize drawer reconciliation.</span>' +
+      '</div>';
+  }
+
+  function kpiRow() {
+    var b = book();
+    return '<section class="bento-kpi-grid" aria-label="Closing summary">' +
+      '<article class="bento-tile bento-tile--hero">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Net Realized Revenue</span>' +
+        (page.closed === page.date ? '<span class="trend-badge">✓ Day closed</span>' : '') + '</div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + b.netRevenue + '" data-format="money">₹0</div>' +
+        '<span class="split-bar"><span class="split-pill">Gross billed minus refunded deductions</span></span>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Gross Billed</span>' +
+        '<span class="kpi-tag kpi-tag--neutral">' + b.completedOrders + ' completed</span></div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + b.totalRevenue + '" data-format="money">₹0</div>' +
+        '<span class="sub-caption">Tickets minted and settled today</span>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Refunds &amp; Cancellations</span>' +
+        (b.refundedAmount > 0 ? '<span class="kpi-tag kpi-tag--danger">Deduction</span>' : '') + '</div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + b.refundedAmount + '" data-format="money">₹0</div>' +
+        '<span class="sub-caption">' + b.cancelledOrders + ' orders cancelled or voided</span>' +
+      '</article>' +
+      '<article class="bento-tile">' +
+        '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Open Tables / Drafts</span>' +
+        (b.draftOrders > 0 ? '<span class="kpi-tag kpi-tag--warn">Must settle</span>' : '<span class="kpi-tag kpi-tag--green">All clear</span>') + '</div>' +
+        '<div class="bento-tile__metric tabular" data-counter="' + b.draftOrders + '">0</div>' +
+        '<span class="sub-caption">Must settle before closing the day</span>' +
+      '</article>' +
+    '</section>';
+  }
+
+  function reconciliation() {
+    var v = variance();
+    var saved = page.savedFor === page.date && page.saved !== null;
+    return '<section class="panel" aria-label="Physical cash drawer reconciliation">' +
+      '<div class="panel__head">' +
+        '<div><h3 class="panel__title">Physical Cash Drawer Reconciliation</h3>' +
+        '<p class="sub-caption">Compare physical counted cash against system recorded cash receipts.</p></div>' +
+        (saved ? '<span class="kpi-tag kpi-tag--green">Count saved for ' + esc(page.date) + '</span>' : '') +
+      '</div>' +
+      '<div class="recon-grid">' +
+        '<div class="panel recon-card">' +
+          '<span class="bento-tile__eyebrow" style="color:var(--muted)">Expected System Cash</span>' +
+          '<strong class="recon-value tabular">' + money(expectedCash()) + '</strong>' +
+          '<span class="sub-caption">Sum of cash-paid tickets for this date</span>' +
+        '</div>' +
+        '<div class="panel recon-card">' +
+          '<span class="bento-tile__eyebrow" style="color:var(--muted)">Counted Drawer Cash (₹)</span>' +
+          '<input class="field-control" type="number" min="0" step="1" id="countedCash" data-input="countedCash"' +
+            ' placeholder="0" value="' + esc(page.counted === '' ? (page.saved !== null && page.savedFor === page.date ? page.saved : '') : page.counted) + '"' +
+            ' aria-label="Counted drawer cash in rupees" aria-describedby="varianceNote" />' +
+          '<div class="form-actions">' +
+            '<button class="btn-primary" type="button" data-action="saveCount"' + (Proto.busy('saveCount') ? ' disabled aria-busy="true"' : '') + '>' +
+              (Proto.busy('saveCount') ? 'Saving…' : 'Save count') + '</button>' +
+            '<button class="ghost-btn" type="button" data-action="clearCount">Clear</button>' +
+          '</div>' +
+          '<span class="sub-caption">Enter your actual physical cash count</span>' +
+        '</div>' +
+        '<div class="panel recon-card' + reconClass[v.state] + '" aria-live="polite">' +
+          '<span class="bento-tile__eyebrow" style="color:var(--muted)">Drawer Variance</span>' +
+          '<strong class="recon-value tabular" id="varianceValue">' + esc(v.text) + '</strong>' +
+          '<span class="status-chip ' + v.cls + '" id="varianceBadge">' + esc(v.badge) + '</span>' +
+          '<span class="sub-caption" id="varianceNote">' + esc(v.note) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function splits() {
+    var b = book();
+    var icons = {
+      cash: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+      upi: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+      card: '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>'
+    };
+    return '<section class="panel" aria-label="Payment channel breakdown">' +
+      '<div class="panel__head"><div><h3 class="panel__title">Payment Channel Breakdown</h3>' +
+      '<p class="sub-caption">Digital collections are auto-settled via the payment gateway. Cash requires manual bank deposit.</p></div></div>' +
+      '<div class="bento-kpi-grid--3 bento-kpi-grid">' +
+        b.splits.map(function (s) {
+          return '<article class="bento-tile split-card">' +
+            '<span class="split-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (icons[s.mode] || icons.card) + '</svg></span>' +
+            '<span><span class="bento-tile__eyebrow" style="color:var(--muted)">' + esc(s.label) + '</span>' +
+            '<strong class="recon-value tabular" style="display:block;font-size:20px">' + money(s.total) + '</strong>' +
+            '<span class="sub-caption">' + s.count + ' transactions</span></span>' +
+          '</article>';
+        }).join('') +
+      '</div>' +
+    '</section>';
+  }
+
+  function audit() {
+    var b = book();
+    return '<section class="panel" aria-label="Ticket status audit">' +
+      '<div class="panel__head"><div><h3 class="panel__title">Ticket Status Audit</h3>' +
+      '<p class="sub-caption">Every ticket minted for ' + esc(page.date) + ', by final state.</p></div></div>' +
+      '<div class="audit-row">' +
+        '<div class="audit-stat"><span class="sub-caption">Total Tickets Minted</span><strong class="stat-digit tabular">' + b.totalOrders + '</strong></div>' +
+        '<div class="audit-stat"><span class="sub-caption">Settled &amp; Paid</span><strong class="stat-digit tabular text-success">' + b.completedOrders + '</strong></div>' +
+        '<div class="audit-stat"><span class="sub-caption">Cancelled / Voided</span><strong class="stat-digit tabular text-danger">' + b.cancelledOrders + '</strong></div>' +
+        '<div class="audit-stat"><span class="sub-caption">Unsettled / Draft</span><strong class="stat-digit tabular text-amber">' + b.draftOrders + '</strong></div>' +
+      '</div>' +
+      '<div class="form-actions" style="margin-top:16px">' +
+        '<button class="btn-danger" type="button" data-action="closeDay">' + (page.closed === page.date ? 'Reopen day' : 'Close the day') + '</button>' +
+        '<button class="ghost-btn" type="button" data-action="printSlip">Print slip</button>' +
+        '<button class="ghost-btn" type="button" data-action="exportCsv">Export CSV</button>' +
+        (page.closed === page.date ? '<span class="kpi-tag kpi-tag--green">Closed at ' + esc(Proto.fmtTime(page.closedAt)) + '</span>' : '') +
+      '</div>' +
+    '</section>';
+  }
+
+  function updateVarianceDom() {
+    var v = variance();
+    var value = document.getElementById('varianceValue');
+    var badge = document.getElementById('varianceBadge');
+    var note = document.getElementById('varianceNote');
+    var card = value && value.closest('.recon-card');
+    if (value) value.textContent = v.text;
+    if (badge) { badge.className = 'status-chip ' + v.cls; badge.textContent = v.badge; }
+    if (note) note.textContent = v.note;
+    if (card) card.className = 'panel recon-card' + reconClass[v.state];
+  }
+
+  Proto.boot({
+    page: 'daily-closing',
+    title: 'Daily Closing & Settlement',
+    subtitle: 'Count physical cash, audit payment splits, and verify recognized revenues.',
+    eyebrow: 'End of day',
+    live: true,
+    headerExtra:
+      '<span class="kpi-tag ' + (page.date === today ? 'kpi-tag--green' : 'kpi-tag--neutral') + '" id="closingBadge">' +
+        (page.date === today ? '● Live Session (Today)' : '✓ Closed Business Day') + '</span>' +
+      '<label class="visually-hidden" for="closingDate">Closing date</label>' +
+      '<input class="field-control date-control" type="date" id="closingDate" data-input="date" value="' + today + '" max="' + today + '" />',
+
+    skeleton:
+      '<section class="bento-kpi-grid" aria-hidden="true">' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+      '</section>' +
+      '<section class="panel" style="margin-top:14px" aria-hidden="true">' +
+        '<div class="skeleton sk-line" style="width:280px;margin-bottom:14px"></div>' +
+        '<div class="recon-grid">' +
+          '<div class="skeleton" style="height:150px"></div>' +
+          '<div class="skeleton" style="height:150px"></div>' +
+          '<div class="skeleton" style="height:150px"></div>' +
+        '</div>' +
+      '</section>' +
+      '<section class="panel" style="margin-top:14px" aria-hidden="true">' +
+        '<div class="skeleton sk-line" style="width:320px;margin-bottom:14px"></div>' +
+        '<div class="bento-kpi-grid bento-kpi-grid--3">' +
+          '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '</div>' +
+      '</section>',
+
+    render: function (ctx) {
+      if (ctx.mode === 'empty') {
+        return Proto.emptyBox(
+          'No sales recorded for this date',
+          'Closing figures appear once POS orders for the selected day are settled. Pick another date or refresh to try again.',
+          'Refresh'
+        );
+      }
+      return '<div class="stack">' + draftBanner() + kpiRow() + reconciliation() + splits() + audit() + '</div>';
+    },
+
+    inputs: {
+      /* Typing must not repaint the whole view or the field loses focus, so the
+         variance card is patched in place — same numbers, no re-render. */
+      countedCash: function (value) {
+        page.counted = value;
+        updateVarianceDom();
+      },
+      date: function (value) {
+        if (!value || value === page.date) return;
+        page.date = value;
+        page.counted = '';
+        var badge = document.getElementById('closingBadge');
+        if (badge) {
+          badge.className = 'kpi-tag ' + (value === today ? 'kpi-tag--green' : 'kpi-tag--neutral');
+          badge.textContent = value === today ? '● Live Session (Today)' : '✓ Closed Business Day';
+        }
+        Proto.load({}).then(function (ok) {
+          if (ok) Proto.toast('Closing figures loaded for ' + value, 'success', 'GET /business/daily-closing');
+        });
+      }
+    },
+
+    actions: {
+      saveCount: function () {
+        var counted = countValue();
+        if (counted === null) {
+          Proto.toast('Enter the counted drawer cash first.', 'error');
+          var field = document.getElementById('countedCash');
+          if (field) field.focus();
+          return;
+        }
+        Proto.setBusy('saveCount', true);
+        Proto.render();
+        Proto.call('Save drawer count', {
+          onOk: function () {
+            page.saved = counted;
+            page.savedFor = page.date;
+            var v = variance();
+            Proto.toast('Drawer count saved for ' + page.date + ' — variance ' + v.text, 'success', v.badge);
+          }
+        });
+      },
+      clearCount: function () {
+        page.counted = '';
+        page.saved = null;
+        page.savedFor = null;
+        Proto.render();
+        Proto.toast('Drawer count cleared', 'info');
+      },
+      closeDay: function () {
+        if (page.closed === page.date) {
+          page.closed = null;
+          Proto.render();
+          Proto.toast('Day reopened for corrections.', 'info');
+          return;
+        }
+        var b = book();
+        if (b.draftOrders > 0) {
+          /* The real page blocks closing while drafts are open — the warning
+             banner is not advisory, it is a precondition. */
+          Proto.toast('Settle the ' + b.draftOrders + ' draft order(s) before closing ' + page.date + '.', 'error', 'Blocked');
+          return;
+        }
+        var v = variance();
+        Proto.modal('Close ' + page.date + '?',
+          '<p>The drawer reconciliation will be locked with these figures and cannot be edited afterwards.</p>' +
+          '<div class="audit-row" style="margin-top:12px">' +
+            '<div class="audit-stat"><span class="sub-caption">Net realised</span><strong class="stat-digit">' + money(b.netRevenue) + '</strong></div>' +
+            '<div class="audit-stat"><span class="sub-caption">Expected cash</span><strong class="stat-digit">' + money(expectedCash()) + '</strong></div>' +
+            '<div class="audit-stat"><span class="sub-caption">Variance</span><strong class="stat-digit">' + esc(v.text) + '</strong></div>' +
+          '</div>',
+          '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+          '<button class="btn-danger" type="button" id="confirmClose">Close the day</button>');
+        var confirm = document.getElementById('confirmClose');
+        if (confirm) confirm.addEventListener('click', function () {
+          var overlay = confirm.closest('.modal-overlay');
+          if (overlay) overlay.remove();
+          Proto.call('Close ' + page.date, {
+            onOk: function () {
+              page.closed = page.date;
+              page.closedAt = new Date();
+              Proto.toast('Day ' + page.date + ' closed and locked.', 'success', 'Settlement recorded');
+            }
+          });
+        });
+      },
+      printSlip: function () {
+        Proto.toast('Closing slip ready to print', 'info', 'window.print() in the real page');
+      },
+      exportCsv: function () {
+        Proto.toast('CSV exported', 'success', 'daily-closing-' + page.date + '.csv');
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

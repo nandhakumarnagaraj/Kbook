@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Menu — KhanaBook prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Page-specific only: a dish thumbnail token, a sold-out row treatment, and an
+     inline price input. Everything else comes from _shared/proto.css. */
+  .dish-cell { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .dish-thumb {
+    width: 40px; height: 40px; border-radius: 11px; flex: none; display: grid; place-items: center;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted-2);
+  }
+  .dish-thumb svg { display: block; }
+  .food-dot { width: 9px; height: 9px; border-radius: 2px; background: var(--danger); display: inline-block; margin-right: 6px; vertical-align: 1px; }
+  .food-dot--veg { background: var(--success); }
+  .row--out td { opacity: .58; }
+  .price-cell { display: flex; align-items: center; gap: 6px; }
+  .price-input { min-height: 34px; padding: 5px 9px; width: 92px; font-variant-numeric: tabular-nums; }
+  .row-busy { opacity: .7; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── data (shapes mirror BusinessMenuItem in api.models.ts) ──────────── */
+  var DATA = {
+    items: [
+      { id: 1,  name: 'Hyderabadi Chicken Biryani', categoryName: 'Main Course', foodType: 'NON_VEG', price: 350, stockStatus: 'IN_STOCK',     available: true,  photo: true,  description: 'Dum-cooked basmati, slow-cooked with saffron and fried onion.' },
+      { id: 2,  name: 'Paneer Butter Masala',       categoryName: 'Main Course', foodType: 'VEG',     price: 310, stockStatus: 'IN_STOCK',     available: true,  photo: true,  description: 'Cottage cheese in a tomato-cashew gravy finished with butter.' },
+      { id: 3,  name: 'Masala Dosa',                categoryName: 'Main Course', foodType: 'VEG',     price: 150, stockStatus: 'IN_STOCK',     available: true,  photo: false, description: 'Crisp rice crepe with potato masala, sambar and chutney.' },
+      { id: 4,  name: 'Butter Naan',                categoryName: 'Breads',      foodType: 'VEG',     price: 60,  stockStatus: 'IN_STOCK',     available: true,  photo: true,  description: 'Tandoor-baked leavened bread brushed with butter.' },
+      { id: 5,  name: 'Fish Fry (Rava)',            categoryName: 'Starters',    foodType: 'NON_VEG', price: 290, stockStatus: 'RUNNING_LOW',  available: true,  photo: false, description: 'Semolina-crusted seer fish, curry leaf and lime.' },
+      { id: 6,  name: 'Black Pepper Chicken',       categoryName: 'Starters',    foodType: 'NON_VEG', price: 280, stockStatus: 'IN_STOCK',     available: true,  photo: false, description: 'Wok-tossed chicken in crushed Malabar pepper.' },
+      { id: 7,  name: 'Mushroom 65',                categoryName: 'Starters',    foodType: 'VEG',     price: 240, stockStatus: 'IN_STOCK',     available: false, photo: true,  description: 'Batter-fried button mushrooms with chilli and curry leaf.' },
+      { id: 8,  name: 'Gulab Jamun',                categoryName: 'Desserts',    foodType: 'VEG',     price: 90,  stockStatus: 'OUT_OF_STOCK', available: false, photo: false, description: 'Milk-solid dumplings soaked in cardamom syrup.' },
+      { id: 9,  name: 'Filter Coffee',              categoryName: 'Beverages',   foodType: 'VEG',     price: 40,  stockStatus: 'OUT_OF_STOCK', available: false, photo: true,  description: 'South Indian decoction with frothed milk.' },
+      { id: 10, name: 'Masala Chai',                categoryName: 'Beverages',   foodType: 'VEG',     price: 30,  stockStatus: 'IN_STOCK',     available: true,  photo: false, description: 'Assam tea brewed with ginger, cardamom and clove.' }
+    ],
+    extraction: { lastJobId: null }
+  };
+
+  var STOCK_LABEL = { ALL: 'All Dishes', IN_STOCK: 'In Stock', RUNNING_LOW: 'Running Low', OUT_OF_STOCK: 'Out of Stock' };
+
+  /* ── page UI state (render() is a pure function of this) ─────────────── */
+  var ui = {
+    items: DATA.items.map(function (i) { return Object.assign({}, i); }),
+    search: '',
+    stockFilter: 'ALL',
+    availabilityFilter: 'ALL',
+    priceDraft: {},        // id -> raw string while editing
+    editingId: null,       // row whose price input is open
+    extract: { status: 'idle', progress: 0, jobId: null, found: 0, error: '', fileName: '' }
+  };
+
+  var EXTRACT_STEPS = [
+    { at: 500,  status: 'queued' },
+    { at: 1200, status: 'processing' },
+    { at: 2600, status: 'done', found: 14 }
+  ];
+  var extractTimers = [];
+
+  function clearExtractTimers() {
+    extractTimers.forEach(clearTimeout);
+    extractTimers = [];
+  }
+
+  function counts() {
+    return {
+      all: ui.items.length,
+      inStock: ui.items.filter(function (i) { return i.available && i.stockStatus === 'IN_STOCK'; }).length,
+      runningLow: ui.items.filter(function (i) { return i.stockStatus === 'RUNNING_LOW'; }).length,
+      outOfStock: ui.items.filter(function (i) { return i.stockStatus === 'OUT_OF_STOCK'; }).length
+    };
+  }
+  function visibleItems() {
+    var q = ui.search.trim().toLowerCase();
+    return ui.items.filter(function (i) {
+      var matchesSearch = !q || [i.name, i.categoryName, i.description].some(function (v) {
+        return String(v || '').toLowerCase().indexOf(q) >= 0;
+      });
+      var matchesStock = ui.stockFilter === 'ALL' || i.stockStatus === ui.stockFilter;
+      var matchesAvailability =
+        ui.availabilityFilter === 'ALL' ||
+        (ui.availabilityFilter === 'AVAILABLE' && i.available) ||
+        (ui.availabilityFilter === 'UNAVAILABLE' && !i.available);
+      return matchesSearch && matchesStock && matchesAvailability;
+    });
+  }
+  function findItem(id) {
+    return ui.items.filter(function (i) { return i.id === Number(id); })[0];
+  }
+
+  /* ── markup helpers ──────────────────────────────────────────────────── */
+  function thumb(item) {
+    if (item.photo) {
+      return '<span class="dish-thumb" role="img" aria-label="' + Proto.esc(item.name) + ' photo">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">' +
+        '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5L5 19"/></svg></span>';
+    }
+    var veg = item.foodType === 'VEG';
+    return '<span class="dish-thumb" role="img" aria-label="' + (veg ? 'Veg' : 'Non-veg') + ', no photo added">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">' +
+      '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.4" fill="' +
+      (veg ? '#2F855A' : '#C0392B') + '" stroke="none"/></svg></span>';
+  }
+  function stockChip(item) {
+    var cls = item.stockStatus === 'OUT_OF_STOCK' ? 'st-danger'
+      : item.stockStatus === 'RUNNING_LOW' ? 'st-warn' : 'st-completed';
+    var label = item.available ? item.stockStatus.replace(/_/g, ' ') : 'Unavailable';
+    return '<span class="status-chip ' + (item.available ? cls : 'st-neutral') + '">' + Proto.esc(label) + '</span>';
+  }
+
+  function stockStrip() {
+    var c = counts();
+    var pills = [
+      ['ALL', c.all], ['IN_STOCK', c.inStock], ['RUNNING_LOW', c.runningLow], ['OUT_OF_STOCK', c.outOfStock]
+    ];
+    return '<nav class="chip-group" aria-label="Stock status quick filters" style="margin-bottom:14px">' +
+      pills.map(function (p) {
+        return '<button class="chip" type="button" data-action="setStock" data-value="' + p[0] + '" aria-pressed="' + (ui.stockFilter === p[0]) + '">' +
+          Proto.esc(STOCK_LABEL[p[0]]) + ' (' + p[1] + ')</button>';
+      }).join('') +
+    '</nav>';
+  }
+
+  function toolbar() {
+    return '<div class="panel__head">' +
+      '<div class="field" style="width:min(320px,100%)">' +
+        '<label class="field-label" for="menu-search">Search</label>' +
+        '<input id="menu-search" class="field-control" type="search" placeholder="Search dish, category or description" ' +
+          'value="' + Proto.esc(ui.search) + '" data-input="search" aria-label="Search menu items" />' +
+      '</div>' +
+      '<div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">' +
+        '<div class="field">' +
+          '<label class="field-label" for="menu-availability">Availability</label>' +
+          '<select id="menu-availability" class="field-control" data-input="availability" aria-label="Filter by availability">' +
+            ['ALL:All', 'AVAILABLE:Available only', 'UNAVAILABLE:Unavailable only'].map(function (o) {
+              var parts = o.split(':');
+              return '<option value="' + parts[0] + '"' + (ui.availabilityFilter === parts[0] ? ' selected' : '') + '>' + parts[1] + '</option>';
+            }).join('') +
+          '</select>' +
+        '</div>' +
+        '<span class="records-pill tabular">' + visibleItems().length + ' of ' + ui.items.length + ' dishes</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function table() {
+    var rows = visibleItems();
+    if (!rows.length) {
+      var filtered = ui.items.length > 0;
+      return filtered
+        ? Proto.emptyBox('No menu items match the current filters', 'Try a different search or clear the filters. Owners can also add a new item.')
+        : Proto.emptyBox('No dishes on your menu yet', 'Add your first dish, or import an existing menu card with a photo.');
+    }
+    return '<div class="table-wrap"><table class="data-table">' +
+      '<thead><tr>' +
+        '<th>Dish</th><th>Category</th><th>Type</th><th>Price</th><th>Stock</th><th>Availability</th><th>Actions</th>' +
+      '</tr></thead><tbody>' +
+      rows.map(function (item) {
+        var toggling = Proto.busy('avail-' + item.id);
+        var saving = Proto.busy('price-' + item.id);
+        var soldOut = !item.available;
+        var editing = ui.editingId === item.id;
+        var draft = ui.priceDraft[item.id] !== undefined ? ui.priceDraft[item.id] : String(item.price);
+        return '<tr class="' + (soldOut ? 'row--out ' : '') + (toggling || saving ? 'row-busy' : '') + '"' +
+            (toggling || saving ? ' aria-busy="true"' : '') + '>' +
+          '<td><div class="dish-cell">' + thumb(item) +
+            '<div style="min-width:0"><span class="food-dot ' + (item.foodType === 'VEG' ? 'food-dot--veg' : '') + '" role="img" aria-label="' +
+              (item.foodType === 'VEG' ? 'Veg' : 'Non-veg') + '"></span>' +
+            '<strong>' + Proto.esc(item.name) + '</strong>' +
+            '<div class="sub-caption" style="margin-top:3px">' + Proto.esc(item.description || 'No description added yet.') + '</div></div>' +
+          '</div></td>' +
+          '<td>' + Proto.esc(item.categoryName) + '</td>' +
+          '<td>' + (item.foodType === 'VEG' ? 'Veg' : 'Non-veg') + '</td>' +
+          '<td class="num-cell">' +
+            (editing
+              ? '<span class="price-cell"><input class="field-control price-input" data-input="price:' + item.id + '" ' +
+                  'value="' + Proto.esc(draft) + '" inputmode="decimal" aria-label="New price for ' + Proto.esc(item.name) + '" />' +
+                  '<button class="btn-primary" type="button" data-action="savePrice" data-id="' + item.id + '"' +
+                    (saving ? ' disabled' : '') + '>' + (saving ? 'Saving…' : 'Save') + '</button>' +
+                  '<button class="ghost-btn" type="button" data-action="cancelPrice" data-id="' + item.id + '">Cancel</button></span>'
+              : '<strong class="tabular">' + Proto.money(item.price) + '</strong>') +
+          '</td>' +
+          '<td>' + stockChip(item) + '</td>' +
+          '<td>' +
+            '<button class="ghost-btn ' + (soldOut ? 'ghost-btn--success' : '') + '" type="button" role="switch" ' +
+              'aria-checked="' + item.available + '" data-action="toggleAvailability" data-id="' + item.id + '"' +
+              (toggling ? ' disabled' : '') + '>' +
+              (toggling ? 'Updating…' : (soldOut ? 'Set available' : 'Set unavailable')) +
+            '</button>' +
+          '</td>' +
+          '<td><div class="row-actions" style="display:flex;gap:6px;flex-wrap:wrap">' +
+            '<button class="ghost-btn" type="button" data-action="editPrice" data-id="' + item.id + '"' +
+              (soldOut || editing ? ' disabled' : '') + '>Edit price</button>' +
+            '<button class="ghost-btn ghost-btn--danger" type="button" data-action="confirmDelete" data-id="' + item.id + '">Delete</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('') +
+    '</tbody></table></div>';
+  }
+
+  function extractionPanel() {
+    var e = ui.extract;
+    var jobLine = e.jobId ? '<span class="sub-caption">Job #' + Proto.esc(e.jobId) + '</span>' : '';
+    var body;
+    if (e.status === 'idle') {
+      body = '<div class="empty-box" style="padding:22px 18px">' +
+        '<svg class="empty-glyph" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>' +
+        '<h4>Import a printed menu card</h4>' +
+        '<p>Upload a clear photo or PDF of your menu and we read the dishes, categories and prices for you to review before anything is saved.</p>' +
+        '<button class="btn-primary" type="button" data-action="startExtract">Upload photo or PDF</button>' +
+      '</div>';
+    } else if (e.status === 'uploading') {
+      body = '<div aria-live="polite"><div class="inline-loading"><span class="spinning" aria-hidden="true">◠</span> Uploading ' +
+        Proto.esc(e.fileName || 'menu card') + '…</div>' +
+        '<div class="progress-track" style="margin-top:10px" role="progressbar" aria-valuenow="' + e.progress + '" aria-valuemin="0" aria-valuemax="100">' +
+        '<div class="progress-fill" style="width:' + e.progress + '%"></div></div></div>';
+    } else if (e.status === 'queued' || e.status === 'processing') {
+      body = '<div class="inline-loading" role="status" aria-live="polite"><span class="spinning" aria-hidden="true">◠</span> ' +
+        (e.status === 'queued' ? 'Queued \u2014 waiting for an extraction worker…' : 'Reading your menu card…') + '</div>' +
+        '<p class="inline-note" style="margin-top:8px">You can leave this page; we keep the job running and show the result when you come back.</p>';
+    } else if (e.status === 'done') {
+      body = '<div>' +
+        '<span class="status-chip st-completed">Ready to review</span>' +
+        '<p class="inline-note" style="margin-top:8px"><strong>' + e.found + ' dishes</strong> were read from your menu card. Nothing has been added to your menu yet \u2014 review the items and prices first.</p>' +
+        '<div class="form-actions"><button class="btn-primary" type="button" data-action="reviewExtract">Review ' + e.found + ' items</button>' +
+        '<button class="ghost-btn" type="button" data-action="resetExtract">Discard</button></div></div>';
+    } else {
+      body = '<div class="state-panel state-panel--offline" role="alert" style="padding:14px">' +
+        '<div class="state-panel__icon" aria-hidden="true">⚠</div>' +
+        '<div><h3>We couldn\u2019t read that file</h3><p>' + Proto.esc(e.error || 'The upload failed.') + '</p>' +
+        '<span class="state-panel__meta">Nothing was added to your menu. Your existing dishes are unchanged.</span></div>' +
+        '<button class="btn-retry" type="button" data-action="startExtract">Try again</button></div>';
+    }
+    return '<section class="panel" aria-label="Menu extraction">' +
+      '<div class="panel__head"><div>' +
+        '<span class="kpi-tag kpi-tag--neutral">AI extraction</span>' +
+        '<h3 class="panel__title">Extract menu from a photo or PDF</h3>' +
+      '</div>' + jobLine + '</div>' + body + '</section>';
+  }
+
+  /* ── boot ────────────────────────────────────────────────────────────── */
+  var inputs = { availability: function (v) { ui.availabilityFilter = v; Proto.render(); } };
+  inputs.search = function (v) {
+    ui.search = v;
+    Proto.render();
+    var el = document.getElementById('menu-search');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  };
+  // Per-row price drafts: the shared input router passes only the value, so each
+  // row gets its own keyed handler.
+  ui.items.forEach(function (item) {
+    inputs['price:' + item.id] = function (v) { ui.priceDraft[item.id] = v; };
+  });
+
+  Proto.boot({
+    page: 'menu',
+    title: 'Menu & Dishes Catalog',
+    subtitle: 'Manage dish descriptions, variant pricing, and real-time counter stock availability.',
+    eyebrow: 'Catalog',
+    headerExtra:
+      '<button class="header-pill" type="button" data-action="openCategories">Categories</button>' +
+      '<button class="header-pill" type="button" data-action="addDish">+ Add New Dish</button>',
+    skeleton:
+      '<div class="stack">' +
+        '<div class="panel">' +
+          '<div class="skeleton sk-line" style="width:260px"></div>' +
+          '<div class="skeleton sk-line" style="width:180px;margin-top:10px"></div>' +
+          '<div class="skeleton-stack" style="margin-top:14px">' + Proto.skeletonRows(6, 'sk-table-row') + '</div>' +
+        '</div>' +
+        '<div class="panel">' +
+          '<div class="skeleton sk-line" style="width:200px"></div>' +
+          '<div class="skeleton" style="height:118px;border-radius:12px;margin-top:12px"></div>' +
+        '</div>' +
+      '</div>',
+
+    render: function (ctx) {
+      if (ctx.mode === 'empty') {
+        return '<div class="stack">' +
+          '<section class="panel">' + Proto.emptyBox('No dishes on your menu yet', 'Add your first dish, or import an existing menu card with a photo.') + '</section>' +
+          extractionPanel() +
+        '</div>';
+      }
+      return '<div class="stack">' + stockStrip() +
+        '<section class="panel">' + toolbar() + table() + '</section>' +
+        extractionPanel() + '</div>';
+    },
+
+    actions: {
+      setStock: function (el) {
+        ui.stockFilter = el.dataset.value;
+        Proto.render();
+      },
+
+      /* Optimistic: flip the row now, revert with an explanation if the call fails. */
+      toggleAvailability: function (el) {
+        var item = findItem(el.dataset.id);
+        if (!item) return;
+        var before = item.available;
+        var next = !before;
+        item.available = next;
+        item.stockStatus = next ? 'IN_STOCK' : 'OUT_OF_STOCK';
+        Proto.setBusy('avail-' + item.id, true);
+        Proto.render();
+        Proto.call((next ? 'Set available: ' : 'Set unavailable: ') + item.name, {
+          meta: 'PATCH /business/menu/' + item.id + '/availability',
+          onOk: function () { Proto.toast(item.name + (next ? ' is now available on the POS' : ' is now hidden from the POS'), 'success'); }
+        }).then(function (ok) {
+          if (!ok) {
+            item.available = before;
+            item.stockStatus = before ? 'IN_STOCK' : 'OUT_OF_STOCK';
+            Proto.toast(item.name + ' was NOT changed \u2014 still ' + (before ? 'available' : 'unavailable') + '.', 'error', 'Reverted');
+            Proto.render();
+          }
+        });
+      },
+
+      editPrice: function (el) {
+        ui.editingId = Number(el.dataset.id);
+        Proto.render();
+      },
+      cancelPrice: function (el) {
+        delete ui.priceDraft[el.dataset.id];
+        ui.editingId = null;
+        Proto.render();
+      },
+      savePrice: function (el) {
+        var item = findItem(el.dataset.id);
+        if (!item) return;
+        var raw = ui.priceDraft[item.id] !== undefined ? String(ui.priceDraft[item.id]).trim() : String(item.price);
+        var next = Number(raw);
+        if (!raw || isNaN(next) || next <= 0) {
+          Proto.toast('Enter a price greater than zero.', 'error');
+          return;
+        }
+        var before = item.price;
+        Proto.setBusy('price-' + item.id, true);
+        Proto.render();
+        Proto.call('Save price: ' + item.name, {
+          meta: 'PUT /business/menu/' + item.id,
+          onOk: function () {
+            item.price = next;
+            ui.editingId = null;
+            delete ui.priceDraft[item.id];
+            Proto.toast(item.name + ': ' + Proto.money(before) + ' \u2192 ' + Proto.money(next), 'success');
+          }
+        });
+      },
+
+      confirmDelete: function (el) {
+        var item = findItem(el.dataset.id);
+        if (!item) return;
+        Proto.modal('Delete this dish?',
+          '<p class="inline-note">“' + Proto.esc(item.name) + '” will be removed from your menu and will stop appearing on every POS terminal.</p>' +
+          '<p class="inline-note">Past bills that already include it are not affected \u2014 reports keep their original sales figures.</p>',
+          '<button class="ghost-btn" type="button" data-close>Keep dish</button>' +
+          '<button class="btn-danger" type="button" data-action="deleteItem" data-id="' + item.id + '">Delete dish</button>');
+      },
+      deleteItem: function (el) {
+        var item = findItem(el.dataset.id);
+        if (!item) return;
+        var overlay = el.closest('.modal-overlay');
+        if (overlay) overlay.remove();
+        Proto.call('Delete dish: ' + item.name, {
+          meta: 'DELETE /business/menu/' + item.id,
+          onOk: function () {
+            ui.items = ui.items.filter(function (i) { return i.id !== item.id; });
+            delete ui.priceDraft[item.id];
+            Proto.toast(item.name + ' deleted from the menu', 'success');
+          }
+        });
+      },
+
+      addDish: function () {
+        Proto.toast('Opening the add-dish form…', 'info');
+      },
+      openCategories: function () {
+        Proto.modal('Manage Categories',
+          '<p class="inline-note">Categories group dishes on the POS and in reports. Renaming one here relabels it everywhere.</p>' +
+          '<div class="stack--tight">' +
+          ['Starters', 'Main Course', 'Breads', 'Desserts', 'Beverages'].map(function (c) {
+            return '<div class="field-row" style="border:1px solid var(--line);border-radius:12px;padding:10px 12px">' +
+              '<strong>' + Proto.esc(c) + '</strong>' +
+              '<button class="ghost-btn" type="button" data-close>Rename</button></div>';
+          }).join('') + '</div>',
+          '<button class="ghost-btn" type="button" data-close>Close</button>');
+      },
+
+      /* ── extraction flow: uploading → queued → processing → done ─────── */
+      startExtract: function () {
+        clearExtractTimers();
+        ui.extract = { status: 'uploading', progress: 0, jobId: null, found: 0, error: '', fileName: 'menu-card-oct.pdf' };
+        Proto.render();
+
+        // progress ticks while the (simulated) upload streams
+        [18, 41, 63, 82].forEach(function (p, i) {
+          extractTimers.push(setTimeout(function () {
+            if (ui.extract.status !== 'uploading') return;
+            ui.extract.progress = p;
+            Proto.render();
+          }, 220 * (i + 1)));
+        });
+
+        Proto.call('Extract menu from photo or PDF', {
+          meta: 'POST /menus/upload',
+          onOk: function () {
+            ui.extract.status = 'queued';
+            ui.extract.progress = 100;
+            ui.extract.jobId = String(4831 + Math.floor(Math.random() * 120));
+            Proto.toast('Upload accepted \u2014 extraction queued', 'success', 'Job #' + ui.extract.jobId);
+          }
+        }).then(function (ok) {
+          if (!ok) {
+            // The card must settle into a retryable error, never stay a spinner.
+            clearExtractTimers();
+            ui.extract = {
+              status: 'error', progress: 0, jobId: null, found: 0,
+              // The shared layer already decided the wording; the card repeats it
+              // next to the retry so the failure is local as well as global.
+              error: Proto.state.staleError || Proto.state.error,
+              fileName: ui.extract.fileName
+            };
+            Proto.render();
+            return;
+          }
+          EXTRACT_STEPS.forEach(function (step) {
+            extractTimers.push(setTimeout(function () {
+              if (ui.extract.status === 'error') return;
+              ui.extract.status = step.status;
+              if (step.found) ui.extract.found = step.found;
+              Proto.render();
+            }, step.at));
+          });
+        });
+      },
+      resetExtract: function () {
+        clearExtractTimers();
+        ui.extract = { status: 'idle', progress: 0, jobId: null, found: 0, error: '', fileName: '' };
+        Proto.render();
+      },
+      reviewExtract: function () {
+        Proto.toast('Opening the ' + ui.extract.found + ' extracted items for review', 'info');
+      }
+    },
+
+    inputs: inputs
+  });
+})();
+</script>
+</body>
+</html>

@@ -72,14 +72,48 @@ describe('jwtInterceptor', () => {
     req.flush({});
   });
 
-  it('on 401 clears session and redirects to /login', () => {
+  it('on 401 clears session, shows session expired toast, and redirects to /login', () => {
     tokenStorage.getToken.and.returnValue('tok');
     http.get(URL).subscribe({ error: () => {} });
 
     httpMock.expectOne(URL).flush({}, { status: 401, statusText: 'Unauthorized' });
 
+    expect(toast.show).toHaveBeenCalledWith('Your session has expired. Please sign in again.', 'error');
     expect(tokenStorage.clear).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('on network error (status 0) shows offline toast', () => {
+    tokenStorage.getToken.and.returnValue('tok');
+    http.get(URL).subscribe({ error: () => {} });
+
+    httpMock.expectOne(URL).error(new ProgressEvent('error'), { status: 0 });
+
+    expect(toast.show).toHaveBeenCalledWith(
+      'No internet connection. Check your network and try again.',
+      'error'
+    );
+  });
+
+  it('on 500 shows server error toast', () => {
+    tokenStorage.getToken.and.returnValue('tok');
+    http.get(URL).subscribe({ error: () => {} });
+
+    httpMock.expectOne(URL).flush({}, { status: 500, statusText: 'Server Error' });
+
+    expect(toast.show).toHaveBeenCalledWith(
+      'The server could not complete this request (500). Your data is unchanged.',
+      'error'
+    );
+  });
+
+  it('does not show toasts for /auth/* requests on error', () => {
+    const authUrl = '/auth/login';
+    http.post(authUrl, {}).subscribe({ error: () => {} });
+
+    httpMock.expectOne(authUrl).flush({ error: 'Invalid login' }, { status: 400, statusText: 'Bad Request' });
+
+    expect(toast.show).not.toHaveBeenCalled();
   });
 
   it('on 403 shows a permission-denied toast', () => {

@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -9,6 +9,7 @@ import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -41,7 +42,15 @@ interface RestaurantProfile {
   selector: 'app-business-settings-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TaxSettingsSectionComponent, PaymentMethodsSectionComponent, PasswordChangeSectionComponent, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TaxSettingsSectionComponent,
+    PaymentMethodsSectionComponent,
+    PasswordChangeSectionComponent,
+    PageHeaderComponent,
+    ApiStateComponent
+  ],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -72,10 +81,24 @@ interface RestaurantProfile {
         </button>
       </app-page-header>
 
-      <div class="panel loading" *ngIf="loading()" role="status">Loading settings...</div>
-      <div class="panel loading" *ngIf="!loading() && loadError() && !profile()" role="alert">
-        {{ loadError() }} <button class="ghost-btn" (click)="load()">Retry</button>
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="!loading() && loadError() && profile()" role="status" aria-live="polite">
+        <span>Couldn't update settings. {{ loadError() }}</span>
+        <button type="button" class="btn-retry" (click)="load()">Retry</button>
       </div>
+
+      <div class="panel loading" *ngIf="loading() && !profile()" role="status" aria-busy="true">
+        <span class="sr-only">Loading settings...</span>
+        <div class="skeleton-stack">
+          <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+        </div>
+      </div>
+
+      <app-api-state
+        *ngIf="!loading() && loadError() && !profile()"
+        [message]="loadError()"
+        (retry)="load()"
+      ></app-api-state>
 
       <ng-container *ngIf="profile() as p">
 

@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Platform Dashboard — KhanaBook web-admin prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Layout only — every state/feedback style comes from the shared shell. */
+  .mini-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  @media (max-width: 900px) { .mini-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .mini-row { grid-template-columns: 1fr; } }
+  .mini { display: grid; gap: 4px; padding: 13px 15px; }
+  .mini__label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .mini__value { font-size: 20px; font-weight: 800; font-family: var(--font-display); }
+  .focus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .code-badge { font-family: var(--kb-font-mono); font-size: 12px; padding: 3px 7px; border-radius: 6px; background: var(--panel-2); }
+  .tab-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .tab-toolbar .field-control { max-width: 210px; min-height: 36px; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-weight: 600; text-align: right; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Data mirrored from AdminApiService shapes ───────────────────────── */
+  var DATA = {
+    summary: {
+      totalRevenue: 4872650,
+      totalBusinesses: 42,
+      liveBusinesses: 37,
+      totalOrders: 128540,
+      totalStaff: 164,
+      refundedOrders: 23,
+      refundedAmount: 18420
+    },
+    settlements: [
+      { restaurantId: 1, shopName: 'Spice Route Kitchen', totalSettled: 482650, totalCommission: 48265, orderCount: 1284, lastSettledAt: '2026-10-13T23:10:00' },
+      { restaurantId: 2, shopName: 'Anandhas Veg',        totalSettled: 315240, totalCommission: 28372, orderCount: 864,  lastSettledAt: '2026-10-13T22:40:00' },
+      { restaurantId: 3, shopName: 'Biryani Junction',    totalSettled: 268900, totalCommission: 29579, orderCount: 712,  lastSettledAt: '2026-10-12T23:05:00' },
+      { restaurantId: 4, shopName: 'Cafe Mocha',          totalSettled: 184300, totalCommission: 14744, orderCount: 498,  lastSettledAt: '2026-10-12T22:15:00' },
+      { restaurantId: 5, shopName: 'Tandoor Nights',      totalSettled: 142780, totalCommission: 17134, orderCount: 386,  lastSettledAt: null },
+      { restaurantId: 6, shopName: 'Dosa Plaza',          totalSettled: 118420, totalCommission: 10658, orderCount: 342,  lastSettledAt: '2026-10-11T23:30:00' }
+    ],
+    subMerchants: [
+      { id: 1, restaurantId: 1, shopName: 'Spice Route Kitchen', subMerchantId: 'EZBSM10421', status: 'ACTIVE',  businessName: 'Spice Route Hospitality LLP', pan: 'AAJCS1234K', gst: '29AAJCS1234K1Z5', bankAccountNo: '50100234564218', ifsc: 'HDFC0001234', createdAt: '2026-08-04T10:20:00', commissionRate: 10 },
+      { id: 2, restaurantId: 2, shopName: 'Anandhas Veg',        subMerchantId: 'EZBSM10877', status: 'ACTIVE',  businessName: 'Anandhas Foods Pvt Ltd',      pan: 'AACCA5678M', gst: '29AACCA5678M1ZR', bankAccountNo: '91827364550012', ifsc: 'ICIC0000456', createdAt: '2026-08-19T14:05:00', commissionRate: 9 },
+      { id: 3, restaurantId: 3, shopName: 'Biryani Junction',    subMerchantId: 'EZBSM11093', status: 'PENDING', businessName: 'Biryani Junction',            pan: 'AFTPB9012Q', gst: '',                 bankAccountNo: '30298761452310', ifsc: 'SBIN0011223', createdAt: '2026-09-22T09:35:00', commissionRate: 11 },
+      { id: 4, restaurantId: 4, shopName: 'Cafe Mocha',          subMerchantId: '',           status: 'DRAFT',   businessName: 'Mocha Brews',                 pan: 'BKMPM3344L', gst: '',                 bankAccountNo: '',               ifsc: '',            createdAt: '2026-10-02T16:50:00', commissionRate: 8 },
+      { id: 5, restaurantId: 5, shopName: 'Tandoor Nights',      subMerchantId: 'EZBSM11981', status: 'ACTIVE',  businessName: 'Tandoor Nights Restaurants',  pan: 'AAGCT7788N', gst: '29AAGCT7788N1Z2', bankAccountNo: '60234519870044', ifsc: 'UTIB0000789', createdAt: '2026-09-11T11:15:00', commissionRate: 12 },
+      { id: 6, restaurantId: 6, shopName: 'Dosa Plaza',          subMerchantId: 'EZBSM12455', status: 'PENDING', businessName: 'Dosa Plaza Foods',            pan: 'AJLPD2233R', gst: '',                 bankAccountNo: '18479002341190', ifsc: 'KKBK0000456', createdAt: '2026-10-08T08:05:00', commissionRate: 9 }
+    ],
+    transactions: [
+      { id: 90231, txnId: 'TXN-90231', restaurantId: 1, shopName: 'Spice Route Kitchen', easebuzzId: 'E2419JDSK8', amount: 1690, status: 'success', receivedAt: '2026-10-13T23:04:00' },
+      { id: 90230, txnId: 'TXN-90230', restaurantId: 3, shopName: 'Biryani Junction',    easebuzzId: 'E2419JDR12', amount: 860,  status: 'success', receivedAt: '2026-10-13T22:58:00' },
+      { id: 90229, txnId: 'TXN-90229', restaurantId: 2, shopName: 'Anandhas Veg',        easebuzzId: 'E2419JDP77', amount: 640,  status: 'failure', receivedAt: '2026-10-13T22:47:00' },
+      { id: 90228, txnId: 'TXN-90228', restaurantId: 1, shopName: 'Spice Route Kitchen', easebuzzId: 'E2419JDM34', amount: 1240, status: 'success', receivedAt: '2026-10-13T22:31:00' },
+      { id: 90227, txnId: 'TXN-90227', restaurantId: 5, shopName: 'Tandoor Nights',      easebuzzId: 'E2419JDL90', amount: 2140, status: 'pending', receivedAt: '2026-10-13T22:12:00' },
+      { id: 90226, txnId: 'TXN-90226', restaurantId: 4, shopName: 'Cafe Mocha',          easebuzzId: 'E2419JDK45', amount: 420,  status: 'success', receivedAt: '2026-10-13T21:55:00' },
+      { id: 90225, txnId: 'TXN-90225', restaurantId: 6, shopName: 'Dosa Plaza',          easebuzzId: 'E2419JDJ03', amount: 980,  status: 'failure', receivedAt: '2026-10-13T21:38:00' },
+      { id: 90224, txnId: 'TXN-90224', restaurantId: 2, shopName: 'Anandhas Veg',        easebuzzId: 'E2419JDH61', amount: 320,  status: 'success', receivedAt: '2026-10-13T21:20:00' }
+    ]
+  };
+
+  var TAB_KEYS = ['overview', 'settlements', 'submerchants', 'transactions'];
+  var TAB_LABELS = {
+    overview: 'Platform Overview',
+    settlements: 'Settlements & Commissions',
+    submerchants: 'Sub-Merchants & KYC',
+    transactions: 'Gateway Transactions'
+  };
+  var ENDPOINTS = {
+    settlements: 'GET /admin/settlements',
+    submerchants: 'GET /admin/sub-merchants',
+    transactions: 'GET /admin/transactions?page=0&size=50'
+  };
+
+  /* Page-local UI state. Survives state switches on purpose: flipping the
+     prototype to Loading/Error and back must not silently reset the tab. */
+  var activeTab = 'overview';
+  var tabs = {
+    overview:     { loaded: true,  loading: false, error: '' },
+    settlements:  { loaded: false, loading: false, error: '', query: '' },
+    submerchants: { loaded: false, loading: false, error: '' },
+    transactions: { loaded: false, loading: false, error: '', status: 'ALL', page: 1, perPage: 5 }
+  };
+
+  /* ── per-tab load: lazy on first open, exactly like the real page ─────── */
+  function loadTab(key) {
+    var t = tabs[key];
+    if (!t || t.loading) return;
+    t.loading = true;
+    t.error = '';
+    Proto.setBusy('tab-' + key, true);
+    Proto.render();
+    Proto.call('Load ' + TAB_LABELS[key], { meta: ENDPOINTS[key] }).then(function (ok) {
+      t.loading = false;
+      if (ok) {
+        t.loaded = true;
+        t.error = '';
+      } else {
+        // The failure belongs to this tab, so it is shown *in the tab* rather
+        // than as a page-level banner. The live page instead renders the error
+        // text inside class="panel loading", which reads as a loading state.
+        t.error = Proto.state.staleError || Proto.state.error || 'Failed to load ' + TAB_LABELS[key] + '.';
+        Proto.state.staleError = '';
+      }
+      Proto.setBusy('tab-' + key, false);
+      Proto.render();
+    });
+  }
+
+  function totals() {
+    return DATA.settlements.reduce(function (acc, s) {
+      acc.settled += Number(s.totalSettled || 0);
+      acc.commission += Number(s.totalCommission || 0);
+      acc.orders += Number(s.orderCount || 0);
+      return acc;
+    }, { settled: 0, commission: 0, orders: 0 });
+  }
+
+  function visibleSettlements() {
+    var q = (tabs.settlements.query || '').trim().toLowerCase();
+    if (!q) return DATA.settlements;
+    return DATA.settlements.filter(function (s) { return s.shopName.toLowerCase().indexOf(q) >= 0; });
+  }
+  function visibleTransactions() {
+    var st = tabs.transactions.status;
+    return DATA.transactions.filter(function (tx) {
+      return st === 'ALL' || tx.status === st;
+    });
+  }
+  function pagedTransactions() {
+    var rows = visibleTransactions();
+    var t = tabs.transactions;
+    var pages = Math.max(1, Math.ceil(rows.length / t.perPage));
+    if (t.page > pages) t.page = pages;
+    var start = (t.page - 1) * t.perPage;
+    return { rows: rows.slice(start, start + t.perPage), total: rows.length, pages: pages, page: t.page };
+  }
+
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) + ', ' +
+      d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+  function statusChip(status) {
+    var s = String(status || '').toUpperCase();
+    var cls = (s === 'ACTIVE' || s === 'SUCCESS') ? 'st-completed'
+      : (s === 'PENDING' || s === 'DRAFT') ? 'st-warn'
+      : s === 'FAILURE' || s === 'FAILED' ? 'st-danger' : 'st-neutral';
+    return '<span class="status-chip ' + cls + '">' + Proto.esc(status) + '</span>';
+  }
+
+  /* In-place tab failure — the corrected treatment (never a loading class). */
+  function tabErrorHtml(key, message) {
+    return '<section class="state-panel" role="alert" aria-live="assertive" aria-atomic="true">' +
+      '<div class="state-panel__icon" aria-hidden="true">!</div>' +
+      '<div><h3>' + Proto.esc('Couldn\u2019t load ' + TAB_LABELS[key]) + '</h3>' +
+        '<p>' + Proto.esc(message) + '</p>' +
+        '<span class="state-panel__meta">The other tabs are unaffected \u2014 switch tabs or retry this one.</span></div>' +
+      '<button class="btn-retry" type="button" data-action="retryTab" data-tab="' + key + '">Try again</button>' +
+      '</section>';
+  }
+  function tabLoadingHtml() {
+    return '<div class="panel" aria-busy="true">' +
+      '<span class="visually-hidden" role="status">Loading tab data\u2026</span>' +
+      '<div class="skeleton sk-line" style="width:220px;margin-bottom:14px"></div>' +
+      '<div class="skeleton-stack">' + Proto.skeletonRows(5) + '</div></div>';
+  }
+
+  /* ── tab bodies ──────────────────────────────────────────────────────── */
+  function overviewView() {
+    var s = DATA.summary;
+    return '' +
+      '<section class="bento-kpi-grid" aria-label="Platform key figures">' +
+        '<article class="bento-tile bento-tile--hero">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Total Revenue</span>' +
+            '<span class="trend-badge">All Businesses</span></div>' +
+          '<div class="bento-tile__metric tabular" data-counter="' + s.totalRevenue + '" data-format="money">₹0</div>' +
+          '<div class="sub-caption" style="color:rgba(255,255,255,.85)">Recognized lifetime sales across every merchant.</div>' +
+        '</article>' +
+        '<article class="bento-tile">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Total Businesses</span>' +
+            '<span class="kpi-tag kpi-tag--green">' + s.liveBusinesses + ' Live</span></div>' +
+          '<div class="bento-tile__metric tabular"><span data-counter="' + s.totalBusinesses + '">0</span></div>' +
+          '<div class="sub-caption">Onboarded merchants</div>' +
+        '</article>' +
+        '<article class="bento-tile">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Total Orders</span>' +
+            '<span class="kpi-tag kpi-tag--neutral">POS + Online</span></div>' +
+          '<div class="bento-tile__metric tabular"><span data-counter="' + s.totalOrders + '">0</span></div>' +
+          '<div class="sub-caption">All-time volume</div>' +
+        '</article>' +
+        '<article class="bento-tile">' +
+          '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Refunds</span>' +
+            '<span class="kpi-tag ' + (s.refundedOrders > 0 ? 'kpi-tag--warn' : 'kpi-tag--neutral') + '">' + s.refundedOrders + ' Reversals</span></div>' +
+          '<div class="bento-tile__metric tabular" data-counter="' + s.refundedAmount + '" data-format="money">₹0</div>' +
+          '<div class="sub-caption">Reversed settle value</div>' +
+        '</article>' +
+      '</section>' +
+
+      '<section class="mini-row" aria-label="Secondary platform figures">' +
+        '<div class="panel mini"><span class="mini__label">Live storefronts</span>' +
+          '<span class="mini__value text-success tabular">' + s.liveBusinesses + '</span></div>' +
+        '<div class="panel mini"><span class="mini__label">Total staff</span>' +
+          '<span class="mini__value tabular">' + s.totalStaff + '</span></div>' +
+        '<div class="panel mini"><span class="mini__label">Refunded orders</span>' +
+          '<span class="mini__value tabular ' + (s.refundedOrders > 0 ? 'text-danger' : '') + '">' + s.refundedOrders + '</span></div>' +
+        '<div class="panel mini"><span class="mini__label">Refunded amount</span>' +
+          '<span class="mini__value tabular ' + (s.refundedOrders > 0 ? 'text-danger' : '') + '">' + Proto.money(s.refundedAmount) + '</span></div>' +
+      '</section>' +
+
+      '<section class="panel" style="margin-top:14px">' +
+        '<div class="panel__head"><div><h3 class="panel__title">Suggested focus</h3>' +
+          '<p class="muted" style="font-size:12.5px">Weekly checks to keep the platform view actionable.</p></div></div>' +
+        '<div class="focus-grid">' +
+          '<article class="panel" style="box-shadow:none">' +
+            '<span class="kpi-tag kpi-tag--amber">Weekly</span>' +
+            '<h4 style="margin:8px 0 4px;font-size:14px">Audit low-activity stores</h4>' +
+            '<p class="sub-caption">Review businesses that are configured but not actively transacting.</p></article>' +
+          '<article class="panel" style="box-shadow:none">' +
+            '<span class="kpi-tag kpi-tag--danger">Risk</span>' +
+            '<h4 style="margin:8px 0 4px;font-size:14px">Watch refund drift</h4>' +
+            '<p class="sub-caption">Track refunded orders beside revenue to catch payment issues early.</p></article>' +
+          '<article class="panel" style="box-shadow:none">' +
+            '<span class="kpi-tag kpi-tag--green">Ops</span>' +
+            '<h4 style="margin:8px 0 4px;font-size:14px">Review staffing spread</h4>' +
+            '<p class="sub-caption">Business growth with flat staff counts signals onboarding gaps.</p></article>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function settlementsView(ctx) {
+    var t = tabs.settlements;
+    var rows = visibleSettlements();
+    var sum = totals();
+    var body;
+    if (rows.length === 0) {
+      body = '<div class="panel">' + Proto.emptyBox(
+        t.query ? 'No settlements match this search' : 'No settlement records available yet',
+        t.query ? 'Clear the search to see every merchant again.' : 'Settlement rows appear once a merchant has settled volume for the period.',
+        t.query ? 'Clear search' : 'Refresh', t.query ? 'clearSettlementQuery' : 'refresh') + '</div>';
+    } else {
+      body =
+        '<div class="panel panel--flush">' +
+          '<div class="panel__head" style="padding:16px 16px 0">' +
+            '<div><h3 class="panel__title">Merchant Settlements &amp; Platform Commissions</h3>' +
+              '<p class="muted" style="font-size:12.5px">Realized merchant volumes and platform revenue retention per restaurant.</p></div>' +
+            '<div class="tab-toolbar">' +
+              '<span class="records-pill tabular">' + rows.length + ' Restaurants</span>' +
+              '<button class="ghost-btn" type="button" data-action="retryTab" data-tab="settlements">Reload</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="table-wrap" style="margin-top:12px">' +
+            '<table class="data-table">' +
+              '<thead><tr><th>Restaurant / Shop</th><th class="num-cell">Total Settled Volume</th>' +
+                '<th class="num-cell">Commission Earned</th><th class="num-cell">Orders Settled</th><th>Last Settlement</th>' +
+                '<th class="num-cell">Details</th></tr></thead>' +
+              '<tbody>' + rows.map(function (s) {
+                return '<tr>' +
+                  '<td class="font-bold">' + Proto.esc(s.shopName) + '</td>' +
+                  '<td class="num-cell tabular font-bold">' + ctx.money(s.totalSettled) + '</td>' +
+                  '<td class="num-cell tabular font-bold" style="color:var(--brand)">' + ctx.money(s.totalCommission) + '</td>' +
+                  '<td class="num-cell tabular">' + s.orderCount + '</td>' +
+                  '<td class="muted">' + (s.lastSettledAt ? fmtDateTime(s.lastSettledAt) : 'Pending settlement') + '</td>' +
+                  '<td class="num-cell"><button class="link-btn" type="button" data-action="settlement" data-id="' + s.restaurantId + '">View</button></td>' +
+                '</tr>';
+              }).join('') + '</tbody>' +
+              '<tfoot><tr><td><strong>Platform Total</strong></td>' +
+                '<td class="num-cell tabular font-bold">' + ctx.money(sum.settled) + '</td>' +
+                '<td class="num-cell tabular font-bold" style="color:var(--brand)">' + ctx.money(sum.commission) + '</td>' +
+                '<td class="num-cell tabular font-bold">' + sum.orders + '</td>' +
+                '<td colspan="2"></td></tr></tfoot>' +
+            '</table>' +
+          '</div>' +
+        '</div>';
+    }
+    return '' +
+      '<div class="panel" style="margin-bottom:14px">' +
+        '<div class="field" style="max-width:280px">' +
+          '<label class="field-label" for="settlementSearch">Filter by restaurant</label>' +
+          '<input class="field-control" id="settlementSearch" type="search" placeholder="Search merchant name" ' +
+            'data-input="settlementSearch" value="' + Proto.esc(t.query) + '" />' +
+        '</div>' +
+      '</div>' + body;
+  }
+
+  function subMerchantsView(ctx) {
+    var rows = DATA.subMerchants;
+    var pending = rows.filter(function (r) { return r.status !== 'ACTIVE'; }).length;
+    if (rows.length === 0) {
+      return '<div class="panel">' + Proto.emptyBox('No sub-merchant accounts created yet',
+        'Easebuzz sub-merchant accounts appear here once onboarding starts.', 'Refresh') + '</div>';
+    }
+    return '<div class="panel panel--flush">' +
+      '<div class="panel__head" style="padding:16px 16px 0">' +
+        '<div><h3 class="panel__title">Easebuzz Sub-Merchants &amp; KYC Onboarding</h3>' +
+          '<p class="muted" style="font-size:12.5px">Payment gateway sub-merchant IDs, bank account binding, and KYC compliance status.</p></div>' +
+        '<div class="tab-toolbar">' +
+          (pending ? '<span class="kpi-tag kpi-tag--amber">' + pending + ' awaiting KYC</span>' : '') +
+          '<span class="records-pill tabular">' + rows.length + ' Sub-Merchants</span>' +
+          '<button class="ghost-btn" type="button" data-action="retryTab" data-tab="submerchants">Reload</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap" style="margin-top:12px">' +
+        '<table class="data-table">' +
+          '<thead><tr><th>Restaurant / Shop</th><th>Sub-Merchant ID</th><th>Gateway Status</th>' +
+            '<th>Legal Entity</th><th>PAN / GST</th><th>Bank Details</th><th class="num-cell">Commission</th><th>Onboarded</th></tr></thead>' +
+          '<tbody>' + rows.map(function (sm) {
+            return '<tr>' +
+              '<td class="font-bold">' + Proto.esc(sm.shopName) + '</td>' +
+              '<td>' + (sm.subMerchantId ? '<code class="code-badge">' + Proto.esc(sm.subMerchantId) + '</code>' : '<span class="muted">Unassigned</span>') + '</td>' +
+              '<td>' + statusChip(sm.status) + '</td>' +
+              '<td>' + Proto.esc(sm.businessName || '—') + '</td>' +
+              '<td class="tabular">' + Proto.esc((sm.pan || '—') + ' / ' + (sm.gst || '—')) + '</td>' +
+              '<td class="tabular muted">' + (sm.bankAccountNo ? '••••' + sm.bankAccountNo.slice(-4) + ' (' + Proto.esc(sm.ifsc) + ')' : '—') + '</td>' +
+              '<td class="num-cell tabular font-bold">' + sm.commissionRate + '%</td>' +
+              '<td class="muted">' + ctx.fmtDate(sm.createdAt) + ' \u00b7 <button class="link-btn" type="button" data-action="submerchant" data-id="' + sm.id + '">View</button></td>' +
+            '</tr>';
+          }).join('') + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function transactionsView(ctx) {
+    var page = pagedTransactions();
+    if (visibleTransactions().length === 0) {
+      return '<div class="panel">' + Proto.emptyBox('No recent gateway transactions logged',
+        'Digital payment attempts appear here as webhooks arrive.',
+        tabs.transactions.status === 'ALL' ? 'Refresh' : 'Show all statuses',
+        tabs.transactions.status === 'ALL' ? 'refresh' : 'clearTxStatus') + '</div>';
+    }
+    return '<div class="panel panel--flush">' +
+      '<div class="panel__head" style="padding:16px 16px 0">' +
+        '<div><h3 class="panel__title">Live Gateway Transactions</h3>' +
+          '<p class="muted" style="font-size:12.5px">Recent digital payment attempts, gateway reference codes, and real-time webhook status.</p></div>' +
+        '<div class="tab-toolbar">' +
+          '<label class="visually-hidden" for="txStatus">Filter by status</label>' +
+          '<select class="field-control" id="txStatus" data-input="txStatus">' +
+            ['ALL', 'success', 'failure', 'pending'].map(function (s) {
+              return '<option value="' + s + '"' + (tabs.transactions.status === s ? ' selected' : '') + '>' +
+                (s === 'ALL' ? 'All statuses' : s) + '</option>';
+            }).join('') +
+          '</select>' +
+          '<span class="records-pill tabular">' + page.total + ' Transactions</span>' +
+          '<button class="ghost-btn" type="button" data-action="retryTab" data-tab="transactions">Reload</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="table-wrap" style="margin-top:12px">' +
+        '<table class="data-table">' +
+          '<thead><tr><th>Transaction ID</th><th>Restaurant / Shop</th><th>Easebuzz Ref</th>' +
+            '<th class="num-cell">Amount</th><th>Status</th><th>Received At</th></tr></thead>' +
+          '<tbody>' + page.rows.map(function (tx) {
+            return '<tr>' +
+              '<td><code class="code-badge">' + Proto.esc(tx.txnId) + '</code></td>' +
+              '<td class="font-bold">' + Proto.esc(tx.shopName) + '</td>' +
+              '<td class="muted">' + Proto.esc(tx.easebuzzId || '—') + '</td>' +
+              '<td class="num-cell tabular font-bold">' + ctx.money(tx.amount) + '</td>' +
+              '<td>' + statusChip(tx.status) + '</td>' +
+              '<td class="muted">' + fmtDateTime(tx.receivedAt) + '</td>' +
+            '</tr>';
+          }).join('') + '</tbody>' +
+        '</table>' +
+      '</div>' +
+      (page.pages > 1
+        ? '<div class="pager"><span>Showing ' + page.rows.length + ' of ' + page.total +
+            ' transactions &middot; page ' + page.page + ' of ' + page.pages + '</span>' +
+            '<span class="row-actions">' +
+              '<button class="ghost-btn" type="button" data-action="txPage" data-page="' + (page.page - 1) + '"' +
+                (page.page <= 1 ? ' disabled' : '') + '>Previous</button>' +
+              '<button class="ghost-btn" type="button" data-action="txPage" data-page="' + (page.page + 1) + '"' +
+                (page.page >= page.pages ? ' disabled' : '') + '>Next</button>' +
+            '</span></div>'
+        : '') +
+    '</div>';
+  }
+
+  /* ── detail + commission modals ─────────────────────────────────────── */
+  function openSettlement(id) {
+    var s = DATA.settlements.filter(function (r) { return r.restaurantId === Number(id); })[0];
+    if (!s) return;
+    var rate = Math.round((s.totalCommission / s.totalSettled) * 1000) / 10;
+    Proto.modal('Settlement — ' + s.shopName,
+      '<dl class="kv">' +
+        '<dt>Settled volume</dt><dd class="tabular">' + Proto.money(s.totalSettled) + '</dd>' +
+        '<dt>Commission earned</dt><dd class="tabular">' + Proto.money(s.totalCommission) + '</dd>' +
+        '<dt>Effective rate</dt><dd class="tabular">' + rate + '%</dd>' +
+        '<dt>Orders settled</dt><dd class="tabular">' + s.orderCount + '</dd>' +
+        '<dt>Last settlement</dt><dd>' + (s.lastSettledAt ? fmtDateTime(s.lastSettledAt) : 'Pending settlement') + '</dd>' +
+      '</dl>' +
+      '<p class="inline-note">Net payable to the merchant is the settled volume minus the commission retained by the platform.</p>',
+      '<button class="ghost-btn" type="button" data-close>Close</button>' +
+      '<button class="btn-primary" type="button" data-action="settlementCsv" data-id="' + s.restaurantId + '">Download statement</button>');
+  }
+
+  function openSubMerchant(id) {
+    var sm = DATA.subMerchants.filter(function (r) { return r.id === Number(id); })[0];
+    if (!sm) return;
+    Proto.modal('Sub-merchant — ' + sm.shopName,
+      '<dl class="kv">' +
+        '<dt>Sub-merchant ID</dt><dd>' + (sm.subMerchantId || 'Unassigned') + '</dd>' +
+        '<dt>Gateway status</dt><dd>' + statusChip(sm.status) + '</dd>' +
+        '<dt>Legal entity</dt><dd>' + Proto.esc(sm.businessName || '—') + '</dd>' +
+        '<dt>PAN</dt><dd>' + Proto.esc(sm.pan || '—') + '</dd>' +
+        '<dt>GST</dt><dd>' + Proto.esc(sm.gst || 'Not provided') + '</dd>' +
+        '<dt>Bank</dt><dd>' + (sm.bankAccountNo ? '••••' + sm.bankAccountNo.slice(-4) + ' (' + Proto.esc(sm.ifsc) + ')' : '—') + '</dd>' +
+      '</dl>' +
+      '<div class="field">' +
+        '<label class="field-label" for="commissionRate">Platform commission rate (%)</label>' +
+        '<input class="field-control" id="commissionRate" type="number" min="0" max="30" step="0.5" value="' + sm.commissionRate + '" />' +
+        '<span class="inline-note">Between 0 and 30%. Applies to future settlements for this merchant.</span>' +
+        '<span class="field-error" id="commissionError" role="alert" hidden></span>' +
+      '</div>',
+      '<button class="ghost-btn" type="button" data-close>Cancel</button>' +
+      '<button class="btn-primary" type="button" data-action="saveCommission" data-id="' + sm.id + '">Save commission rate</button>');
+  }
+
+  function saveCommission(el) {
+    var sm = DATA.subMerchants.filter(function (r) { return r.id === Number(el.dataset.id); })[0];
+    var input = document.getElementById('commissionRate');
+    var errorNode = document.getElementById('commissionError');
+    var value = Number(input ? input.value : NaN);
+    if (!(value >= 0 && value <= 30)) {
+      if (errorNode) {
+        errorNode.textContent = 'Enter a commission rate between 0 and 30%.';
+        errorNode.hidden = false;
+      }
+      if (input) input.focus();
+      return;
+    }
+    if (errorNode) errorNode.hidden = true;
+    el.disabled = true;
+    el.textContent = 'Saving…';
+    Proto.call('Update commission for ' + sm.shopName, { meta: 'PUT /admin/commission/' + sm.id }).then(function (ok) {
+      if (ok) {
+        sm.commissionRate = value;
+        var overlay = el.closest('.modal-overlay');
+        if (overlay) overlay.remove();
+        Proto.toast('Commission set to ' + value + '% for ' + sm.shopName, 'success', 'PUT /admin/commission/' + sm.id);
+      } else {
+        el.disabled = false;
+        el.textContent = 'Save commission rate';
+        if (errorNode) {
+          errorNode.textContent = Proto.state.staleError || 'Could not update the commission rate.';
+          errorNode.hidden = false;
+        }
+      }
+    });
+  }
+
+  /* ── boot ────────────────────────────────────────────────────────────── */
+  Proto.boot({
+    page: 'platform',
+    title: 'Platform Dashboard',
+    subtitle: 'Cross-business snapshot of revenue, settlements, merchant onboarding, and gateway health.',
+    eyebrow: 'Admin Platform Operations',
+    live: false,
+    headerExtra:
+      '<span class="header-pill" title="The live page renders each tab error inside class=\'panel loading\'; this prototype shows it as an error panel instead.">' +
+        '<span class="dot-beacon dot-beacon--active" aria-hidden="true"></span>' +
+        '<span>Tab errors ≠ loading panels</span></span>' +
+      '<span class="header-pill"><strong class="tabular">42</strong> merchants</span>',
+
+    skeleton:
+      '<section class="bento-kpi-grid">' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+      '</section>' +
+      '<div class="panel" style="margin-top:14px" aria-busy="true">' +
+        '<div class="skeleton sk-line" style="width:240px;margin-bottom:14px"></div>' +
+        '<div class="skeleton-stack">' + Proto.skeletonRows(5) + '</div>' +
+      '</div>',
+
+    render: function (ctx) {
+      var t = tabs[activeTab];
+
+      // Empty mode has to mean "a platform with nothing in it yet". Each view
+      // already knows how to render its own empty state, so blank the source
+      // data for the duration of the render rather than inventing a second
+      // empty treatment here.
+      var empty = ctx.mode === 'empty';
+      var stash = null;
+      if (empty) {
+        stash = { summary: DATA.summary, settlements: DATA.settlements, subMerchants: DATA.subMerchants, transactions: DATA.transactions };
+        DATA.summary = { totalRevenue: 0, liveBusinesses: 0, totalBusinesses: 0, totalOrders: 0, refundedOrders: 0, refundedAmount: 0, totalStaff: 0 };
+        DATA.settlements = []; DATA.subMerchants = []; DATA.transactions = [];
+      }
+
+      var tabBar =
+        '<nav class="tab-bar" role="tablist" aria-label="Platform sections">' +
+          TAB_KEYS.map(function (k) {
+            return '<button class="tab" type="button" role="tab" id="tab-' + k + '"' +
+              ' aria-selected="' + (activeTab === k) + '" aria-controls="panel-' + k + '"' +
+              ' data-action="tab" data-tab="' + k + '">' + TAB_LABELS[k] + '</button>';
+          }).join('') +
+        '</nav>';
+
+      var body;
+      if (activeTab === 'overview') {
+        body = (empty
+          ? '<div class="panel" style="margin-bottom:14px">' + Proto.emptyBox(
+              'No platform activity yet',
+              'Merchant settlements, orders and commissions appear here once the first business goes live.',
+              'Refresh') + '</div>'
+          : '') + overviewView();
+      } else if (t.loading) {
+        body = tabLoadingHtml();
+      } else if (t.error) {
+        body = tabErrorHtml(activeTab, t.error);
+      } else if (!t.loaded) {
+        body = tabLoadingHtml();
+      } else if (activeTab === 'settlements') {
+        body = settlementsView(ctx);
+      } else if (activeTab === 'submerchants') {
+        body = subMerchantsView(ctx);
+      } else {
+        body = transactionsView(ctx);
+      }
+
+      if (empty) {
+        DATA.summary = stash.summary;
+        DATA.settlements = stash.settlements;
+        DATA.subMerchants = stash.subMerchants;
+        DATA.transactions = stash.transactions;
+      }
+
+      return tabBar +
+        '<section id="panel-' + activeTab + '" role="tabpanel" aria-labelledby="tab-' + activeTab + '"' +
+          (t.loading ? ' aria-busy="true"' : '') + '>' + body + '</section>';
+    },
+
+    actions: {
+      tab: function (el) {
+        var key = el.dataset.tab;
+        if (!key || key === activeTab) return;
+        activeTab = key;
+        Proto.render();
+        if (key !== 'overview' && !tabs[key].loaded && !tabs[key].loading) loadTab(key);
+      },
+      retryTab: function (el) {
+        var key = el.dataset.tab || activeTab;
+        activeTab = key;
+        tabs[key].loaded = false;
+        tabs[key].error = '';
+        Proto.render();
+        loadTab(key);
+      },
+      settlement: function (el) { openSettlement(el.dataset.id); },
+      submerchant: function (el) { openSubMerchant(el.dataset.id); },
+      saveCommission: function (el) { saveCommission(el); },
+      settlementCsv: function (el) {
+        var s = DATA.settlements.filter(function (r) { return r.restaurantId === Number(el.dataset.id); })[0];
+        Proto.setBusy('statement', true);
+        Proto.render();
+        Proto.call('Generate statement for ' + (s ? s.shopName : 'merchant'), {
+          onOk: function () {
+            Proto.toast('Statement downloaded', 'success', 'settlement-' + (s ? s.restaurantId : '') + '-2026-10.csv');
+          }
+        });
+      },
+      clearSettlementQuery: function () {
+        tabs.settlements.query = '';
+        Proto.toast('Search cleared', 'info');
+        Proto.render();
+      },
+      clearTxStatus: function () {
+        tabs.transactions.status = 'ALL';
+        tabs.transactions.page = 1;
+        Proto.render();
+      },
+      txPage: function (el) {
+        var page = Number(el.dataset.page);
+        if (!page || page < 1) return;
+        tabs.transactions.page = page;
+        Proto.render();
+      }
+    },
+
+    inputs: {
+      settlementSearch: function (value) {
+        tabs.settlements.query = value;
+        Proto.render();
+        var input = document.getElementById('settlementSearch');
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+      },
+      txStatus: function (value) {
+        tabs.transactions.status = value;
+        tabs.transactions.page = 1;
+        Proto.render();
+      }
+    },
+
+    data: DATA
+    // Tabs lazy-load on first open, mirroring setTab() in the real page — so
+    // clicking Settlements shows the real loading path, not a faked one.
+  });
+})();
+</script>
+</body>
+</html>

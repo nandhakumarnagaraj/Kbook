@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -8,12 +8,13 @@ import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 
 @Component({
   selector: 'app-live-orders-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent],
   template: `
     <div class="tab-panel">
       <div class="tab-toolbar">
@@ -35,12 +36,23 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
       </div>
 
       <!-- Loading and Error States -->
-      <div class="panel loading" *ngIf="loading() && !activeOrders().length">
+      <div class="stale-banner" *ngIf="error() && activeOrders().length" role="status" aria-live="polite">
+        <span>Couldn't update live orders. {{ error() }}</span>
+        <button type="button" class="btn-retry" (click)="load()">Retry</button>
+      </div>
+
+      <div class="panel loading" *ngIf="loading() && !activeOrders().length" role="status" aria-busy="true">
+        <span class="sr-only">Loading live orders...</span>
         <div class="skeleton-stack">
           <div class="skeleton-row" *ngFor="let i of [1,2,3]"></div>
         </div>
       </div>
-      <div class="alert error" *ngIf="error()">{{ error() }}</div>
+
+      <app-api-state
+        *ngIf="error() && !activeOrders().length"
+        [message]="error()"
+        (retry)="load()"
+      ></app-api-state>
 
       <!-- In-Flight Floor Telemetry Strip for Restaurant Owner -->
       <section class="floor-telemetry-grid" *ngIf="activeOrders().length" aria-label="Floor load overview">

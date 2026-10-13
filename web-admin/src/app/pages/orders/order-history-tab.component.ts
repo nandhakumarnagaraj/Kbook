@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -381,7 +381,8 @@ export function filterBusinessOrders(
         </div>
 
         <ng-template #emptyOrLoadingOrders>
-          <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable">
+          <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable" role="status" aria-busy="true">
+            <span class="sr-only">Loading recent orders...</span>
             <div class="skeleton-stack">
               <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
             </div>

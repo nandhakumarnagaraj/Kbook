@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terminals — KhanaBook prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" data-proto-nav></aside>
+  <main class="main" data-proto-main></main>
+</div>
+
+<script src="_shared/proto.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Terminals — prototype of /business/terminals
+   Copy, columns, confirm messages and toast wording mirror
+   web-admin/src/app/pages/terminals/terminals-page.component.ts.
+   All state behaviour comes from _shared/proto.js (see Proto.boot below).
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var MAX_ACTIVE = 5;
+
+  var DATA = {
+    maxActive: MAX_ACTIVE,
+    terminals: [
+      { id: 1, terminalName: 'Counter POS',      terminalSeries: 'POS-A1', terminalType: 'BILLING', deviceId: 'kb-android-9f31c2ab77d4', status: 'ACTIVE',   isActive: true,  isPrimary: true,  updatedAt: Date.now() - 2 * 60 * 1000 },
+      { id: 2, terminalName: 'Kitchen Display', terminalSeries: 'POS-A2', terminalType: 'KOT',     deviceId: 'kb-android-4c88e01ba9f2', status: 'ACTIVE',   isActive: true,  isPrimary: false, updatedAt: Date.now() - 40 * 1000 },
+      { id: 3, terminalName: 'Captain Tablet 1', terminalSeries: 'POS-B7', terminalType: 'BILLING', deviceId: 'kb-android-71d5ae6c3301', status: 'ACTIVE',  isActive: true,  isPrimary: false, updatedAt: Date.now() - 6 * 60 * 1000 },
+      { id: 4, terminalName: 'Captain Tablet 2', terminalSeries: 'POS-B8', terminalType: 'BILLING', deviceId: 'kb-android-2ae90b7f6c58', status: 'INACTIVE', isActive: false, isPrimary: false, updatedAt: Date.now() - 3 * 60 * 60 * 1000 }
+    ],
+    requests: [
+      { id: 91, deviceName: 'Redmi Pad SE',     deviceModel: 'Redmi Pad SE',     deviceId: 'kb-android-8b12de4490af', requestType: 'PAIRING',  status: 'PENDING',  requestedAt: Date.now() - 4 * 60 * 1000,  challengeRequired: true,  activationToken: 'KB7F-2M4Q' },
+      { id: 92, deviceName: 'Samsung Tab A9',   deviceModel: 'Samsung Tab A9',   deviceId: 'kb-android-5d77c133b8e6', requestType: 'PAIRING',  status: 'PENDING',  requestedAt: Date.now() - 22 * 60 * 1000, challengeRequired: false, activationToken: 'KB9C-7X1B' },
+      { id: 90, deviceName: 'Counter POS',      deviceModel: 'Lava Z60',         deviceId: 'kb-android-9f31c2ab77d4', requestType: 'RECOVERY', status: 'APPROVED', requestedAt: Date.now() - 2 * 24 * 60 * 60 * 1000, challengeRequired: false, activationToken: 'KB1D-5R8Z' },
+      { id: 89, deviceName: 'Unknown device',   deviceModel: 'OnePlus Nord CE',  deviceId: 'kb-android-77aa01bb92c4', requestType: 'PAIRING',  status: 'REJECTED', requestedAt: Date.now() - 5 * 24 * 60 * 60 * 1000, challengeRequired: false, activationToken: 'KB4E-9T2M' }
+    ]
+  };
+
+  /* UI state lives outside render() so flipping a state or re-rendering after a
+     call never loses the operator's filters, inline edit or open dialog. */
+  var ui = {
+    statusFilter: 'ALL',
+    requestFilter: 'PENDING',
+    editingId: null,
+    editName: '',
+    recovery: null,   // { terminal, deviceId, error, result, saving }
+    approve: null,    // { request, code, error, expiresAt, timer }
+    modal: null       // the overlay element currently owned by this page
+  };
+
+  function copy(text, okMessage) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        Proto.toast(okMessage, 'success');
+      }, function () {
+        Proto.toast('Could not copy automatically. Select and copy the token manually.', 'error');
+      });
+    } else {
+      Proto.toast('Could not copy automatically. Select and copy the token manually.', 'error');
+    }
+  }
+  function nameOf(t) { return t.terminalName || t.terminalSeries || 'Unnamed Register'; }
+  function when(ts) { return Proto.fmtDate(ts) + ', ' + Proto.fmtTime(ts); }
+  function shortId(id) { return id ? id.slice(0, 13) + '…' : '—'; }
+  function keepFocus(id, caret) {
+    setTimeout(function () {
+      var el = document.getElementById(id);
+      if (el) { el.focus(); if (caret !== undefined && el.setSelectionRange) el.setSelectionRange(caret, caret); }
+    }, 0);
+  }
+  function closeModal() {
+    if (ui.modal) { ui.modal.remove(); ui.modal = null; }
+    if (ui.approve && ui.approve.timer) { clearInterval(ui.approve.timer); }
+  }
+  function busyRender(key) { Proto.setBusy(key, true); Proto.render(); }
+
+  function activeCount() { return DATA.terminals.filter(function (t) { return t.status === 'ACTIVE'; }).length; }
+  function pendingRequests() { return DATA.requests.filter(function (r) { return r.status === 'PENDING'; }); }
+  function visibleTerminals() {
+    if (ui.statusFilter === 'ACTIVE') return DATA.terminals.filter(function (t) { return t.status === 'ACTIVE'; });
+    if (ui.statusFilter === 'INACTIVE') return DATA.terminals.filter(function (t) { return t.status !== 'ACTIVE'; });
+    return DATA.terminals.slice();
+  }
+  function visibleRequests() {
+    if (ui.requestFilter === 'PENDING') return pendingRequests();
+    return DATA.requests.slice();
+  }
+  function statusChip(status) {
+    var map = { ACTIVE: 'st-completed', INACTIVE: 'st-neutral', PENDING: 'st-warn', APPROVED: 'st-completed', REJECTED: 'st-danger' };
+    return '<span class="status-chip ' + (map[status] || 'st-neutral') + '">' + Proto.esc(status) + '</span>';
+  }
+
+  /* ── the page ─────────────────────────────────────────────────────────── */
+  Proto.boot({
+    page: 'terminals',
+    title: 'POS Devices & Terminals',
+    subtitle: 'Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens.',
+    eyebrow: 'Hardware & Devices',
+    headerExtra: '<span class="kpi-tag kpi-tag--green" id="tOnlineBadge">— Online</span>',
+
+    data: DATA,
+
+    skeleton:
+      '<div class="stack">' +
+        '<section class="bento-kpi-grid bento-kpi-grid--3">' +
+          '<div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div><div class="skeleton sk-tile"></div>' +
+        '</section>' +
+        '<div class="panel">' +
+          '<div class="skeleton sk-line" style="width:220px;margin-bottom:12px"></div>' +
+          '<div class="skeleton-stack">' + Proto.skeletonRows(4) + '</div>' +
+        '</div>' +
+        '<div class="panel">' +
+          '<div class="skeleton sk-line" style="width:190px;margin-bottom:12px"></div>' +
+          '<div class="skeleton-stack">' + Proto.skeletonRows(2) + '</div>' +
+        '</div>' +
+      '</div>',
+
+    render: function (ctx) {
+      var empty = ctx.mode === 'empty';
+      var terminals = empty ? [] : visibleTerminals();
+      var requests = empty ? [] : visibleRequests();
+      var active = empty ? 0 : activeCount();
+      var pending = empty ? 0 : pendingRequests().length;
+      var overLimit = !empty && DATA.terminals.length > MAX_ACTIVE;
+
+      /* Header badge reflects the same numbers as the body (state-agnostic). */
+      var badge = document.getElementById('tOnlineBadge');
+      if (badge) {
+        badge.textContent = active + ' Online';
+        badge.className = 'kpi-tag ' + (active > 0 ? 'kpi-tag--green' : 'kpi-tag--neutral');
+      }
+
+      /* ── fleet summary ── */
+      var fleet =
+        '<section class="bento-kpi-grid bento-kpi-grid--3" aria-label="Terminal fleet overview">' +
+          '<article class="bento-tile">' +
+            '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Registered Fleet</span>' +
+              '<span class="kpi-tag ' + (overLimit ? 'kpi-tag--amber' : 'kpi-tag--neutral') + '">Max ' + MAX_ACTIVE + '</span></div>' +
+            '<div class="bento-tile__metric tabular">' + (empty ? 0 : DATA.terminals.length) +
+              '<span class="metric-sub">/ ' + MAX_ACTIVE + ' active max</span></div>' +
+            '<div class="tile-foot"><span class="sub-caption">' +
+              (overLimit ? DATA.terminals.length + ' devices registered — over your plan limit' : 'Within plan limit') +
+            '</span></div>' +
+          '</article>' +
+          '<article class="bento-tile">' +
+            '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Active Counter Terminals</span>' +
+              '<span class="kpi-tag ' + (active > 0 ? 'kpi-tag--green' : 'kpi-tag--neutral') + '">' + (active > 0 ? 'Online' : 'None online') + '</span></div>' +
+            '<div class="bento-tile__metric tabular" style="color:var(--success)">' + active + '</div>' +
+            '<div class="tile-foot"><span class="sub-caption">Accepting bills right now</span></div>' +
+          '</article>' +
+          '<article class="bento-tile">' +
+            '<div class="bento-tile__head"><span class="bento-tile__eyebrow">Pairing Requests</span>' +
+              '<span class="kpi-tag ' + (pending > 0 ? 'kpi-tag--warn' : 'kpi-tag--neutral') + '">' + (pending > 0 ? 'Needs review' : 'Clear') + '</span></div>' +
+            '<div class="bento-tile__metric tabular" style="' + (pending > 0 ? 'color:var(--warning)' : '') + '">' + pending +
+              '<span class="metric-sub">Pending</span></div>' +
+            '<div class="tile-foot"><span class="sub-caption">' + (empty ? 0 : DATA.requests.length) + ' requests all time</span></div>' +
+          '</article>' +
+        '</section>' +
+        (overLimit
+          ? '<div class="stale-banner" role="status" style="margin-top:14px">' +
+              '<span class="stale-banner__icon" aria-hidden="true">!</span>' +
+              '<span>You have more registered terminals (' + DATA.terminals.length + ') than your plan allows (' + MAX_ACTIVE + '). ' +
+              'Deactivate unused devices or upgrade your plan to avoid disruptions.</span></div>'
+          : '');
+
+      /* ── registered terminals ── */
+      var rows = terminals.map(function (t) {
+        var editing = ui.editingId === t.id;
+        var busy = ctx.busy('terminal-' + t.id);
+        return '<tr' + (busy ? ' aria-busy="true"' : '') + '>' +
+          '<td>' +
+            (editing
+              ? '<div class="field" style="gap:6px">' +
+                  '<label class="visually-hidden" for="rename-' + t.id + '">Terminal name</label>' +
+                  '<input id="rename-' + t.id + '" class="field-control" data-input="renameField" value="' + Proto.esc(ui.editName) + '" placeholder="Terminal name" />' +
+                  '<div class="row-actions">' +
+                    '<button class="btn-primary" style="min-height:32px;padding:5px 12px;font-size:12px" data-action="saveRename" data-id="' + t.id + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Save') + '</button>' +
+                    '<button class="ghost-btn" data-action="cancelEdit"' + (busy ? ' disabled' : '') + '>Cancel</button>' +
+                  '</div>' +
+                '</div>'
+              : '<div style="display:flex;align-items:center;gap:10px">' +
+                  '<span class="thumb" aria-hidden="true">' +
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>' +
+                  '</span>' +
+                  '<span><strong>' + Proto.esc(nameOf(t)) + '</strong>' +
+                    (t.isPrimary ? ' <span class="kpi-tag kpi-tag--green">Primary</span>' : '') +
+                  '</span>' +
+                '</div>') +
+          '</td>' +
+          '<td class="tabular">' + Proto.esc(t.terminalSeries || '-') + '</td>' +
+          '<td><span class="status-chip ' + (t.terminalType === 'KOT' ? 'st-cooking' : 'st-served') + '">' + Proto.esc(t.terminalType || 'BILLING') + '</span></td>' +
+          '<td>' + (t.deviceId
+            ? '<span style="display:inline-flex;align-items:center;gap:6px">' +
+                '<code title="' + Proto.esc(t.deviceId) + '">' + Proto.esc(shortId(t.deviceId)) + '</code>' +
+                '<button class="link-btn" data-action="copyDevice" data-id="' + t.id + '" aria-label="Copy full device ID for ' + Proto.esc(nameOf(t)) + '">Copy</button>' +
+              '</span>'
+            : '<span class="muted">-</span>') + '</td>' +
+          '<td>' + statusChip(t.status) + '</td>' +
+          '<td class="tabular muted">' + Proto.esc(when(t.updatedAt)) + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="ghost-btn" data-action="startEdit" data-id="' + t.id + '"' + (busy ? ' disabled' : '') + '>Rename</button>' +
+            '<button class="ghost-btn" data-action="startRecovery" data-id="' + t.id + '"' + (busy ? ' disabled' : '') + '>Recover</button>' +
+            (t.status !== 'INACTIVE'
+              ? '<button class="ghost-btn ghost-btn--danger" data-action="requestDeactivate" data-id="' + t.id + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Working…' : 'Deactivate') + '</button>'
+              : '<button class="ghost-btn ghost-btn--success" data-action="confirmReactivate" data-id="' + t.id + '"' + (busy ? ' disabled' : '') + '>Reactivate</button>') +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+
+      var terminalsPanel =
+        '<section class="panel" style="margin-top:14px">' +
+          '<div class="panel__head">' +
+            '<div><h3 class="panel__title">Assigned Register Hardware</h3>' +
+              '<p class="muted">Active and deactivated Android POS billing registers.</p></div>' +
+            '<div class="chip-group" role="group" aria-label="Filter terminals by status">' +
+              [['ALL', 'All', empty ? 0 : DATA.terminals.length],
+               ['ACTIVE', 'Active', active],
+               ['INACTIVE', 'Inactive', empty ? 0 : DATA.terminals.length - active]]
+                .map(function (f) {
+                  return '<button class="chip" data-action="statusFilter" data-value="' + f[0] + '" aria-pressed="' + (ui.statusFilter === f[0]) + '">' + f[1] + ' (' + f[2] + ')</button>';
+                }).join('') +
+            '</div>' +
+          '</div>' +
+          (terminals.length
+            ? '<div class="table-wrap"><table class="data-table">' +
+                '<thead><tr><th>Hardware / Terminal</th><th>Series</th><th>Role</th><th>Hardware ID</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+              '</table></div>'
+            : Proto.emptyBox(
+                empty ? 'No terminals registered yet' : 'No terminals in this filter',
+                empty ? 'New devices will appear here once they request access to this shop.' : 'Switch back to All to see the other registers.',
+                empty ? 'Check for new devices' : 'Show all terminals',
+                empty ? 'refresh' : 'statusFilter'
+              )) +
+        '</section>';
+
+      /* ── pairing requests ── */
+      var requestRows = requests.map(function (r) {
+        var busy = ctx.busy('request-' + r.id);
+        var done = r.status !== 'PENDING';
+        return '<tr' + (busy ? ' aria-busy="true"' : '') + '>' +
+          '<td><strong>' + Proto.esc(r.deviceName || r.deviceModel || 'Android Device') + '</strong>' +
+            '<span class="cell-sub">' + Proto.esc(shortId(r.deviceId)) + ' · token ' + Proto.esc(r.activationToken) + '</span></td>' +
+          '<td><span class="status-chip st-neutral">' + Proto.esc(r.requestType || 'PAIRING') + '</span></td>' +
+          '<td>' + statusChip(r.status) + '</td>' +
+          '<td class="tabular muted">' + Proto.esc(when(r.requestedAt)) + '</td>' +
+          '<td>' + (done
+            ? '<span class="muted">' + (r.status === 'APPROVED' ? 'Approved' : 'Rejected') + '</span>'
+            : '<div class="row-actions">' +
+                '<button class="btn-primary" style="min-height:32px;padding:5px 12px;font-size:12px" data-action="approve" data-id="' + r.id + '"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Approving…' : 'Approve') + '</button>' +
+                '<button class="ghost-btn" data-action="copyToken" data-id="' + r.id + '">Copy token</button>' +
+                '<button class="ghost-btn ghost-btn--danger" data-action="requestReject" data-id="' + r.id + '"' + (busy ? ' disabled' : '') + '>Reject</button>' +
+              '</div>') + '</td>' +
+        '</tr>';
+      }).join('');
+
+      var requestsPanel =
+        '<section class="panel" style="margin-top:14px">' +
+          '<div class="panel__head">' +
+            '<div><h3 class="panel__title">Device Pairing Requests' +
+              (pending ? ' <span class="kpi-tag kpi-tag--warn">' + pending + ' Pending</span>' : '') + '</h3>' +
+              '<p class="muted">Authorize new Android tablets and thermal billing registers seeking shop access.</p></div>' +
+            '<div class="chip-group" role="group" aria-label="Filter device requests">' +
+              '<button class="chip" data-action="requestFilter" data-value="PENDING" aria-pressed="' + (ui.requestFilter === 'PENDING') + '">Pending (' + pending + ')</button>' +
+              '<button class="chip" data-action="requestFilter" data-value="ALL" aria-pressed="' + (ui.requestFilter === 'ALL') + '">All (' + (empty ? 0 : DATA.requests.length) + ')</button>' +
+            '</div>' +
+          '</div>' +
+          (requests.length
+            ? '<div class="table-wrap"><table class="data-table">' +
+                '<thead><tr><th>Device Model / Hardware</th><th>Type</th><th>Status</th><th>Requested</th><th>Authorization</th></tr></thead>' +
+                '<tbody>' + requestRows + '</tbody>' +
+              '</table></div>'
+            : Proto.emptyBox(
+                empty ? 'No device requests' : 'No pending requests',
+                empty ? 'Pending and processed device access requests will appear here.' : 'Switch to All to review previously approved or rejected devices.',
+                empty ? 'Check for new devices' : 'Show all requests',
+                empty ? 'refresh' : 'requestFilter'
+              )) +
+        '</section>';
+
+      return fleet + terminalsPanel + requestsPanel;
+    },
+
+    inputs: {
+      renameField: function (value) { ui.editName = value; },
+      recoveryDeviceId: function (value) {
+        if (!ui.recovery) return;
+        ui.recovery.deviceId = value;
+        // Enable/disable the submit button without re-painting on every keystroke.
+        var foot = ui.modal && ui.modal.querySelector('.modal-foot');
+        var btn = foot && foot.querySelector('[data-action="doRecover"]');
+        if (btn) btn.disabled = !value.trim();
+      },
+      approveCode: function (value) {
+        if (!ui.approve) return;
+        ui.approve.code = value;
+        var foot = ui.modal && ui.modal.querySelector('.modal-foot');
+        var btn = foot && foot.querySelector('[data-action="submitApprove"]');
+        if (btn) btn.disabled = !value.trim();
+      }
+    },
+
+    actions: {
+      /* ── filters (instant, no API call). The empty-state buttons carry no
+             data-value, so they fall back to showing everything. ── */
+      statusFilter: function (el) { ui.statusFilter = el.dataset.value || 'ALL'; Proto.render(); },
+      requestFilter: function (el) { ui.requestFilter = el.dataset.value || 'ALL'; Proto.render(); },
+
+      /* ── rename ── */
+      startEdit: function (el) {
+        ui.editingId = Number(el.dataset.id);
+        ui.editName = nameOf(DATA.terminals.filter(function (t) { return t.id === ui.editingId; })[0] || {});
+        Proto.render();
+        keepFocus('rename-' + ui.editingId);
+      },
+      cancelEdit: function () { ui.editingId = null; ui.editName = ''; Proto.render(); },
+      saveRename: function (el) {
+        var id = Number(el.dataset.id);
+        var name = (ui.editName || '').trim();
+        if (!name) { Proto.toast('Terminal name cannot be empty.', 'error'); keepFocus('rename-' + id); return; }
+        busyRender('terminal-' + id);
+        Proto.call('Rename terminal', {
+          onOk: function () {
+            DATA.terminals.forEach(function (t) { if (t.id === id) { t.terminalName = name; t.updatedAt = Date.now(); } });
+            ui.editingId = null;
+            ui.editName = '';
+            Proto.toast('Terminal renamed to "' + name + '"', 'success');
+          }
+        });
+      },
+
+      /* ── clipboard ── */
+      copyDevice: function (el) {
+        var t = findTerminal(el.dataset.id);
+        if (t) copy(t.deviceId, 'Device ID copied');
+      },
+      copyToken: function (el) {
+        var r = findRequest(el.dataset.id);
+        if (r) copy(r.activationToken, 'Activation token copied');
+      },
+
+      /* ── deactivate / reactivate ── */
+      requestDeactivate: function (el) {
+        var t = findTerminal(el.dataset.id);
+        if (!t) return;
+        closeModal();
+        ui.modal = Proto.modal(
+          'Deactivate Terminal',
+          '<p class="muted">Deactivate terminal "' + Proto.esc(nameOf(t)) + '"? It will be marked inactive immediately. ' +
+          'The Android device keeps its credentials but stops being authorized to bill.</p>',
+          '<button class="ghost-btn" data-close>Cancel</button>' +
+          '<button class="btn-danger" data-action="doDeactivate" data-id="' + t.id + '">Deactivate</button>'
+        );
+      },
+      doDeactivate: function (el) {
+        var id = Number(el.dataset.id);
+        closeModal();
+        busyRender('terminal-' + id);
+        Proto.call('Deactivate terminal', {
+          onOk: function () {
+            DATA.terminals.forEach(function (t) {
+              if (t.id === id) { t.status = 'INACTIVE'; t.isActive = false; t.updatedAt = Date.now(); }
+            });
+            Proto.toast('Terminal deactivated', 'success');
+          }
+        });
+      },
+      confirmReactivate: function (el) {
+        var t = findTerminal(el.dataset.id);
+        if (!t) return;
+        closeModal();
+        ui.modal = Proto.modal(
+          'Reactivate Terminal',
+          '<p class="muted">Reactivate terminal "' + Proto.esc(nameOf(t)) + '"? It will become active and count toward the ' +
+          MAX_ACTIVE + ' active terminal limit.</p>',
+          '<button class="ghost-btn" data-close>Cancel</button>' +
+          '<button class="btn-primary" data-action="doReactivate" data-id="' + t.id + '">Reactivate</button>'
+        );
+      },
+      doReactivate: function (el) {
+        var id = Number(el.dataset.id);
+        closeModal();
+        busyRender('terminal-' + id);
+        Proto.call('Reactivate terminal', {
+          onOk: function () {
+            DATA.terminals.forEach(function (t) {
+              if (t.id === id) { t.status = 'ACTIVE'; t.isActive = true; t.updatedAt = Date.now(); }
+            });
+            Proto.toast('Terminal reactivated', 'success');
+          }
+        });
+      },
+
+      /* ── recovery (rebind to a replacement device) ── */
+      startRecovery: function (el) {
+        var t = findTerminal(el.dataset.id);
+        if (!t) return;
+        closeModal();
+        ui.recovery = { terminal: t, deviceId: '', error: '', result: null, saving: false };
+        ui.modal = Proto.modal('Recover ' + Proto.esc(nameOf(t)), recoveryBody(), recoveryFoot());
+        keepFocus('recovery-device-id');
+      },
+      doRecover: function () {
+        var r = ui.recovery;
+        if (!r) return;
+        var deviceId = (r.deviceId || '').trim();
+        if (!deviceId) { r.error = 'Enter the device ID shown on the new Android device.'; paintRecovery(); return; }
+        r.saving = true;
+        r.error = '';
+        paintRecovery();
+        Proto.call('Terminal recovery', {
+          onOk: function () {
+            r.result = {
+              terminalToken: 'TERM-' + deviceId.slice(-6).toUpperCase() + '-9F2C',
+              name: nameOf(r.terminal)
+            };
+            r.saving = false;
+            paintRecovery();
+            Proto.toast('Terminal recovered. Copy the new token now.', 'success');
+          },
+          onFail: function () {}
+        }).then(function (ok) {
+          if (!ok) {
+            r.saving = false;
+            r.error = 'Terminal recovery failed. Check the device ID and try again.';
+            paintRecovery();
+          }
+        });
+      },
+      copyRecoveryToken: function () {
+        if (ui.recovery && ui.recovery.result) copy(ui.recovery.result.terminalToken, 'Terminal token copied');
+      },
+      closeRecovery: function () { closeModal(); ui.recovery = null; },
+
+      /* ── approve / reject pairing ── */
+      approve: function (el) {
+        var r = findRequest(el.dataset.id);
+        if (!r) return;
+        if (r.challengeRequired) {
+          closeModal();
+          ui.approve = { request: r, code: '', error: '', expiresAt: Date.now() + 120000 };
+          ui.modal = Proto.modal('Confirm device number', approveBody(), approveFoot());
+          if (ui.approve.timer) clearInterval(ui.approve.timer);
+          ui.approve.timer = setInterval(function () {
+            var node = document.getElementById('challenge-countdown');
+            if (!node) { clearInterval(ui.approve.timer); return; }
+            node.textContent = countdown();
+          }, 1000);
+          keepFocus('approve-challenge');
+          return;
+        }
+        sendApprove(r, undefined);
+      },
+      submitApprove: function () {
+        var a = ui.approve;
+        if (!a) return;
+        var code = (a.code || '').trim();
+        if (!/^\d{1,2}$/.test(code)) {
+          a.error = 'Enter the 1–2 digit number shown on the device.';
+          paintApprove();
+          return;
+        }
+        sendApprove(a.request, code.length === 1 ? '0' + code : code);
+      },
+      closeApprove: function () { closeModal(); ui.approve = null; },
+
+      requestReject: function (el) {
+        var r = findRequest(el.dataset.id);
+        if (!r) return;
+        closeModal();
+        ui.modal = Proto.modal(
+          'Reject Device Request',
+          '<p class="muted">Reject the device request for "' + Proto.esc(r.deviceName || r.deviceId || 'this device') + '"? ' +
+          'The device must request access again to be approved.</p>',
+          '<button class="ghost-btn" data-close>Cancel</button>' +
+          '<button class="btn-danger" data-action="doReject" data-id="' + r.id + '">Reject</button>'
+        );
+      },
+      doReject: function (el) {
+        var id = Number(el.dataset.id);
+        closeModal();
+        busyRender('request-' + id);
+        Proto.call('Reject device request', {
+          onOk: function () {
+            DATA.requests.forEach(function (r) { if (r.id === id) r.status = 'REJECTED'; });
+            Proto.toast('Device request rejected', 'success');
+          }
+        });
+      }
+    },
+
+    onReady: function () { closeModal(); }
+  });
+
+  /* ── helpers used above ─────────────────────────────────────────────── */
+  function findTerminal(id) {
+    id = Number(id);
+    for (var i = 0; i < DATA.terminals.length; i++) if (DATA.terminals[i].id === id) return DATA.terminals[i];
+    return null;
+  }
+  function findRequest(id) {
+    id = Number(id);
+    for (var i = 0; i < DATA.requests.length; i++) if (DATA.requests[i].id === id) return DATA.requests[i];
+    return null;
+  }
+
+  function recoveryBody() {
+    var r = ui.recovery;
+    if (!r) return '';
+    if (r.result) {
+      return '<p class="muted">' + Proto.esc(r.result.name) + ' is now assigned to the new device.</p>' +
+        '<div class="field"><span class="field-label">One-time terminal token</span>' +
+        '<code class="field-control tabular" id="recovery-token" style="display:flex;align-items:center">' + Proto.esc(r.result.terminalToken) + '</code></div>' +
+        '<p class="inline-note" style="color:var(--warning);font-weight:600">Copy this token now and enter it on the Android device. It will not be shown again after closing.</p>';
+    }
+    return '<p class="muted">Rebind this terminal to a replacement Android device. Existing terminal credentials will stop working.</p>' +
+      '<div class="field"><label class="field-label" for="recovery-device-id">New device ID</label>' +
+      '<input id="recovery-device-id" class="field-control" data-input="recoveryDeviceId" value="' + Proto.esc(r.deviceId) + '" placeholder="Enter the ID shown on the new device" autocomplete="off" /></div>' +
+      (r.error ? '<p class="field-error" role="alert" id="recovery-error">' + Proto.esc(r.error) + '</p>' : '');
+  }
+  function recoveryFoot() {
+    var r = ui.recovery;
+    if (!r) return '';
+    if (r.result) {
+      return '<button class="ghost-btn" data-action="copyRecoveryToken">Copy token</button>' +
+        '<button class="btn-primary" data-action="closeRecovery">Done</button>';
+    }
+    return '<button class="ghost-btn" data-action="closeRecovery"' + (r.saving ? ' disabled' : '') + '>Cancel</button>' +
+      '<button class="btn-primary" data-action="doRecover"' + (r.saving || !(r.deviceId || '').trim() ? ' disabled' : '') + '>' +
+      (r.saving ? 'Recovering…' : 'Recover terminal') + '</button>';
+  }
+  function paintRecovery() {
+    if (!ui.modal || !ui.recovery) return;
+    ui.modal.querySelector('.modal-body').innerHTML = recoveryBody();
+    ui.modal.querySelector('.modal-foot').innerHTML = recoveryFoot();
+  }
+
+  function countdown() {
+    var a = ui.approve;
+    if (!a) return '';
+    var s = Math.max(0, Math.round((a.expiresAt - Date.now()) / 1000));
+    return 'Expires in ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  function approveBody() {
+    var a = ui.approve;
+    return '<p class="muted">Enter the number shown on "' + Proto.esc(a.request.deviceName || a.request.deviceId || 'the device') + '" to approve it.</p>' +
+      '<div class="field"><label class="field-label" for="approve-challenge">Number on device</label>' +
+      '<input id="approve-challenge" class="field-control" data-input="approveCode" value="' + Proto.esc(a.code) + '" inputmode="numeric" maxlength="2" placeholder="e.g. 52" autocomplete="off" /></div>' +
+      '<p class="inline-note" id="challenge-countdown" aria-live="polite">' + countdown() + '</p>' +
+      (a.error ? '<p class="field-error" role="alert" id="approve-error">' + Proto.esc(a.error) + '</p>' : '');
+  }
+  function approveFoot() {
+    var a = ui.approve;
+    var saving = Proto.busy('approve-' + a.request.id);
+    return '<button class="ghost-btn" data-action="closeApprove"' + (saving ? ' disabled' : '') + '>Cancel</button>' +
+      '<button class="btn-primary" data-action="submitApprove"' + (saving || !(a.code || '').trim() ? ' disabled' : '') + '>' +
+      (saving ? 'Approving…' : 'Approve device') + '</button>';
+  }
+  function paintApprove() {
+    if (!ui.modal || !ui.approve) return;
+    ui.modal.querySelector('.modal-body').innerHTML = approveBody();
+    ui.modal.querySelector('.modal-foot').innerHTML = approveFoot();
+  }
+
+  function sendApprove(req, challengeCode) {
+    busyRender('request-' + req.id);
+    Proto.setBusy('approve-' + req.id, true);
+    paintApprove();
+    Proto.call('Approve device request', {
+      onOk: function () {
+        DATA.requests.forEach(function (r) { if (r.id === req.id) r.status = 'APPROVED'; });
+        closeModal();
+        ui.approve = null;
+        Proto.toast('Device request approved', 'success');
+      }
+    }).then(function (ok) {
+      if (!ok && ui.approve) {
+        ui.approve.error = challengeCode
+          ? 'That number does not match the one on the device. Check and try again.'
+          : 'Approval failed. Try again.';
+        paintApprove();
+      }
+    });
+  }
+
+})();
+</script>
+</body>
+</html>

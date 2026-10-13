@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -7,6 +7,7 @@ import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { DateRangeSelectorComponent } from '../../shared/date-range-selector.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
 function todayStr(): string {
@@ -39,7 +40,14 @@ interface DailyClosingData {
   selector: 'app-daily-closing-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent, DateRangeSelectorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    EmptyStateComponent,
+    PageHeaderComponent,
+    DateRangeSelectorComponent,
+    ApiStateComponent
+  ],
   template: `
     <div class="page-shell">
       <!-- Operational Topbar (shared design system) -->
@@ -103,8 +111,24 @@ interface DailyClosingData {
         </span>
       </div>
 
-      <div class="panel loading" *ngIf="loading()">Calculating settlement figures...</div>
-      <div class="alert error" *ngIf="error()">{{ error() }} <button type="button" class="ghost-btn" (click)="load()">Retry</button></div>
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="error() && data()" role="status" aria-live="polite">
+        <span>Couldn't update closing figures. {{ error() }}</span>
+        <button type="button" class="btn-retry" (click)="load()">Retry</button>
+      </div>
+
+      <div class="panel loading" *ngIf="loading() && !data()" role="status" aria-busy="true">
+        <span class="sr-only">Calculating settlement figures...</span>
+        <div class="skeleton-stack">
+          <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+        </div>
+      </div>
+
+      <app-api-state
+        *ngIf="error() && !data()"
+        [message]="error()"
+        (retry)="load()"
+      ></app-api-state>
 
       <ng-container *ngIf="data() as d">
         <app-empty-state

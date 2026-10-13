@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -231,8 +231,14 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         </button>
       </nav>
 
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="loadError() && staff().length" role="status" aria-live="polite">
+        <span>Couldn't update staff accounts. {{ loadError() }}</span>
+        <button type="button" class="btn-retry" (click)="loadStaff()">Retry</button>
+      </div>
+
       <app-api-state
-        *ngIf="loadError()"
+        *ngIf="loadError() && !staff().length"
         [loading]="false"
         [error]="loadError()"
         (retry)="loadStaff()"
@@ -423,7 +429,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       </div>
 
       <ng-template #loading>
-        <div class="panel loading" *ngIf="!loaded(); else staffEmpty">
+        <div class="panel loading" *ngIf="!loaded() && !loadError(); else staffEmpty" role="status" aria-busy="true">
+          <span class="sr-only">Loading staff members...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>
@@ -670,7 +677,9 @@ export class StaffPageComponent {
         this.currentPage = 1;
       },
       error: () => {
-        this.staff.set([]);
+        if (!this.staff().length) {
+          this.staff.set([]);
+        }
         this.loadError.set('Unable to load staff accounts. Check your connection and try again.');
         this.loaded.set(true);
       }

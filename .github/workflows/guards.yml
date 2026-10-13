@@ -82,3 +82,19 @@ jobs:
             echo "$leak"
             exit 1
           fi
+
+  guard-web-admin-states:
+    name: Guard web-admin UI states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if class="panel loading" has role="alert"
+        run: |
+          if grep -rnEI --include='*.ts' --include='*.html' \
+              --exclude-dir=node_modules --exclude-dir=dist \
+              'class="panel loading".*role="alert"|role="alert".*class="panel loading"' \
+              web-admin/src; then
+            echo "::error::Found class='panel loading' combined with role='alert'"
+            exit 1
+          fi

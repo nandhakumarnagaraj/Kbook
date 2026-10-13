@@ -1,10 +1,9 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { combineLatest, of, Subject } from 'rxjs';
+import { combineLatest, of, Subject, Subscription } from 'rxjs';
 import { catchError, map, switchMap, startWith } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -131,6 +130,17 @@ function getTodayIsoDate(): string {
           </button>
           <span class="freshness-stamp" *ngIf="freshnessLabel()" role="status">{{ freshnessLabel() }}</span>
       </app-page-header>
+
+      <!-- Stale / offline banner: shown when a refresh fails but data is still on screen -->
+      <div *ngIf="staleError()" class="stale-banner" role="alert" aria-live="assertive">
+        <span class="stale-banner__icon" aria-hidden="true">!</span>
+        <span class="stale-banner__text">
+          <strong>Couldn't refresh.</strong> {{ staleError() }}
+          <span class="stale-banner__meta" *ngIf="lastLoadedTime()"> Showing figures from {{ lastLoadedTime() }}.</span>
+        </span>
+        <span class="stale-banner__spacer"></span>
+        <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
+      </div>
 
       <!-- ── Bento KPI Row (4 Key Metrics) ── -->
       <section class="bento-kpi-grid" aria-label="Key Performance Indicators">
@@ -457,14 +467,25 @@ function getTodayIsoDate(): string {
     <!-- Loading / Skeleton State -->
     <ng-template #loading>
       <div class="page-shell" *ngIf="dashboardError(); else posSkeleton">
-        <div class="intel-empty-box" style="margin-top: 3rem;">
-          <h4>Unable to Load Dashboard</h4>
-          <p>{{ dashboardError() }}</p>
-          <button class="header-action-btn header-action-btn--primary" (click)="refresh()">Retry</button>
-        </div>
+        <section
+          class="state-panel"
+          [class.state-panel--offline]="isOfflineError()"
+          role="alert"
+          aria-live="assertive"
+          tabindex="-1"
+          style="margin-top: 2rem;">
+          <div class="state-panel__icon" aria-hidden="true">{{ isOfflineError() ? '⚠' : '!' }}</div>
+          <div>
+            <h3>We couldn't load your dashboard</h3>
+            <p>{{ dashboardError() }}</p>
+            <span class="state-panel__meta">Nothing was changed. Your last known figures are safe.</span>
+          </div>
+          <button class="btn-retry" type="button" (click)="refresh()">Try again</button>
+        </section>
       </div>
       <ng-template #posSkeleton>
-        <div class="page-shell">
+        <div class="page-shell" aria-busy="true" aria-live="polite">
+          <span class="visually-hidden" role="status">Loading dashboard data…</span>
           <div class="skeleton-shimmer" style="height: 60px; border-radius: 16px; margin-bottom: 1.5rem;"></div>
           <div class="bento-kpi-grid">
             <div class="skeleton-shimmer" style="height: 140px; border-radius: 16px;" *ngFor="let i of [1,2,3,4]"></div>
@@ -810,6 +831,11 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   // State Signals
   readonly isRefreshing = signal(false);
   readonly dashboardError = signal('');
+  readonly staleError = signal('');
+  private readonly currentDashboard = signal<any>(null);
+  readonly dashboard = this.currentDashboard.asReadonly();
+
+  private refreshSubscription: Subscription | null = null;
 
   /** Wall-clock of the last successful dashboard load, and a coarse ticker that
    *  drives the relative "updated Xs ago" label. */
@@ -850,7 +876,20 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   readonly Math = Math;
 
+  readonly isOfflineError = computed(() => {
+    const err = (this.dashboardError() || this.staleError()).toLowerCase();
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+    return err.includes('offline') || err.includes('network') || err.includes('internet');
+  });
+
+  readonly lastLoadedTime = computed(() => {
+    const stamp = this.lastUpdatedAt();
+    if (!stamp) return '';
+    return new Date(stamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  });
+
   ngOnInit(): void {
+    this.initDashboardStream();
     this.loadSupplementaryData();
 
     // Poll for fresh numbers, but stand down while the tab is hidden so a
@@ -867,8 +906,10 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
     if (this.freshnessTimer) clearInterval(this.freshnessTimer);
+    if (this.refreshSubscription) this.refreshSubscription.unsubscribe();
     this.autoRefreshTimer = null;
     this.freshnessTimer = null;
+    this.refreshSubscription = null;
   }
 
   readonly freshnessLabel = computed(() => {
@@ -890,25 +931,28 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     this.searchQuery = value ?? '';
   }
 
-  // Primary Dashboard Data Stream
-  readonly dashboard = toSignal(
-    this.refresh$.pipe(
+  private initDashboardStream(): void {
+    this.refreshSubscription = this.refresh$.pipe(
       startWith(undefined),
       switchMap(() => {
         this.isRefreshing.set(true);
-        this.dashboardError.set('');
+        if (!this.currentDashboard()) {
+          this.dashboardError.set('');
+        }
 
         return combineLatest([
-          this.api.getDashboard().pipe(catchError(() => of({}))),
+          this.api.getDashboard(),
           this.api.getDashboardTrends().pipe(catchError(() => of({ yesterdayRevenue: 0, todayRevenue: 0 }))),
           this.api.getOrdersPaginated(0, 20).pipe(catchError(() => of({ content: [], totalElements: 0 })))
         ]).pipe(
           map(([dashboardData, trendsData, ordersData]) => {
             this.isRefreshing.set(false);
+            this.staleError.set('');
+            this.dashboardError.set('');
 
-            const data = dashboardData as any;
-            const trends = trendsData as any;
-            const orders = ordersData as any;
+            const data = (dashboardData || {}) as any;
+            const trends = (trendsData || {}) as any;
+            const orders = (ordersData || {}) as any;
 
             // Map live orders
             if (orders && Array.isArray(orders.content)) {
@@ -957,31 +1001,59 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
               ? Math.round(((todayRev - yestRev) / yestRev) * 100)
               : 0;
 
-            return {
+            const computedPayload = {
               ...data,
               shopName: data.shopName || this.auth.session()?.userName || 'KhanaBook',
               todayRevenueFormatted: formatCurrency(todayRev),
-              // Raw value for the animated counter; the formatted string above stays
-              // for any non-animated consumer.
               todayRevenueValue: todayRev,
               totalRevenueFormatted: formatCurrency(Number(data.totalRevenue) || 0),
               deltaToday,
               posOrderCount: Number(data.posOrderCount) || 0,
               pendingPosPayments: Number(data.pendingPosPayments) || 0
             };
+
+            this.currentDashboard.set(computedPayload);
+            return computedPayload;
           }),
           catchError((error: unknown) => {
             this.isRefreshing.set(false);
-            const response = error as { error?: { message?: string; error?: string } };
-            this.dashboardError.set(
-              response.error?.message || response.error?.error || 'Unable to load dashboard.'
-            );
+            const msg = this.formatErrorMessage(error);
+            if (this.currentDashboard()) {
+              this.staleError.set(msg);
+              this.toast.error(msg);
+            } else {
+              this.dashboardError.set(msg);
+              this.staleError.set('');
+            }
             return of(null);
           })
         );
       })
-    )
-  );
+    ).subscribe();
+  }
+
+  private formatErrorMessage(error: unknown): string {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return 'No internet connection. Check your network and try again.';
+    }
+    const resp = error as { status?: number; error?: { message?: string; error?: string } };
+    if (resp?.status === 0) {
+      return 'No internet connection. Check your network and try again.';
+    }
+    if (resp?.status === 401) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    if (resp?.status === 403) {
+      return 'You do not have permission to view this. Ask the shop owner to grant it.';
+    }
+    if (resp?.status === 500) {
+      return 'The server could not complete this request (500). Your data is unchanged.';
+    }
+    if (resp?.status === 400) {
+      return resp.error?.message || resp.error?.error || 'Invalid request. Please refresh and try again.';
+    }
+    return resp?.error?.message || resp?.error?.error || 'Unable to load dashboard.';
+  }
 
   // Load supplementary widgets from backend endpoints
   private loadSupplementaryData(): void {

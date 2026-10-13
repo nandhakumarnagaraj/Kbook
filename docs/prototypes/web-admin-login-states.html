@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login — KhanaBook prototype</title>
+<!--
+  PROTOTYPE — mirrors web-admin/src/app/pages/login/login-page.component.ts.
+
+  This page exists to show one measured bug fixed. On the live app (2026-10-13),
+  a wrong password gets HTTP 400 {"error":"Invalid login ID or password"} and the
+  component state does update to loading:false, error:"Invalid login ID or
+  password" — but the rendered DOM never repaints: the button stays "Signing in…"
+  and disabled, and role="alert" count stays 0, forever. Nothing here may ever be
+  left in that state.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_shared/proto.css" />
+<style>
+  /* Auth-card specifics only — everything else comes from _shared/proto.css */
+  .auth-frame { max-width: 1080px; margin: 0 auto; }
+  .auth-shell { display: grid; grid-template-columns: 1.05fr 1fr; border-radius: var(--r-2xl); overflow: hidden; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-md); }
+  .auth-brand { background: linear-gradient(145deg, #2A1F17 0%, #5B21B6 58%, #6C27D9 100%); color: #fff; padding: clamp(20px, 3vw, 34px); display: flex; flex-direction: column; gap: 20px; justify-content: space-between; }
+  .brand-hero { font-family: var(--font-display); font-size: clamp(23px, 2.4vw, 31px); line-height: 1.15; font-weight: 800; }
+  .brand-accent { font-style: italic; color: #E9D5FF; }
+  .brand-sub { color: rgba(255,255,255,.88); font-size: 14px; line-height: 1.55; }
+  .feature { display: flex; gap: 12px; align-items: flex-start; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 10px 12px; }
+  .feature__badge { width: 34px; height: 34px; border-radius: 10px; background: #fff; color: var(--kb-color-primary); display: grid; place-items: center; flex: none; }
+  .feature strong { display: block; font-size: 13.5px; line-height: 1.35; }
+  .feature span { font-size: 12px; color: rgba(255,255,255,.82); }
+  .brand-foot { font-size: 12px; color: rgba(255,255,255,.85); display: flex; justify-content: space-between; gap: 10px; }
+  .demo-hint { font-size: 11.5px; line-height: 1.65; color: rgba(255,255,255,.86); background: rgba(0,0,0,.2); border-radius: 10px; padding: 10px 12px; }
+  .demo-hint code { font-family: var(--kb-font-mono); }
+  .auth-card { padding: clamp(20px, 3vw, 34px); display: grid; gap: 15px; align-content: center; }
+  .auth-head h2 { font-size: 21px; margin-bottom: 4px; }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+  .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+  .alert-box { border-radius: 10px; padding: 11px 13px; font-size: 13px; line-height: 1.45; }
+  .alert-box.error { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(192,57,43,.25); }
+  .alert-box.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(47,133,90,.25); }
+  .google-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); font-weight: 600; font-size: 13.5px; }
+  .google-btn:hover:not(:disabled) { border-color: var(--brand); }
+  .google-btn:disabled { opacity: .6; cursor: progress; }
+  .btn-block { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
+  .pwd-wrap { position: relative; }
+  .pwd-toggle { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; background: transparent; border-radius: 8px; display: grid; place-items: center; color: var(--muted); }
+  .pwd-toggle:hover { color: var(--ink); }
+  .trust { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .back-link { color: var(--brand); font-weight: 600; font-size: 13px; background: transparent; border: 0; padding: 0; text-align: left; }
+  .back-link:hover { text-decoration: underline; }
+  .signed-in { display: grid; gap: 12px; justify-items: start; }
+  @media (max-width: 900px) { .auth-shell { grid-template-columns: 1fr; } .auth-brand { display: none; } }
+</style>
+</head>
+<body>
+<!-- Public page: no sidebar rail, only the main column -->
+<main class="main" data-proto-main></main>
+
+<script src="_shared/proto.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var YEAR = new Date().getFullYear();
+
+  /* Module scope: survives every re-render, so nothing typed is ever lost when a
+     state changes. The password is read from here — never from the DOM. */
+  var ui = {
+    step: 'none',            // none | phone | otp | password | done | signed-in
+    loginId: '', password: '', showPassword: false,
+    phone: '', otp: '', newPassword: '', confirmPassword: '',
+    inlineError: '', successMessage: '', googleError: '',
+    signedInRole: '', signedInPath: '', signedInName: ''
+  };
+
+  var GOOGLE_G = '<svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">' +
+    '<path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.8l7.8 6.1C12.3 13.9 17.6 9.5 24 9.5z"/>' +
+    '<path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.2 7-17.6z"/>' +
+    '<path fill="#FBBC05" d="M10.4 28.1c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.8-6.1C1 16.1 0 19.9 0 23.5s1 7.4 2.6 10.7l7.8-6.1z"/>' +
+    '<path fill="#34A853" d="M24 47c6.2 0 11.5-2 15.3-5.5l-7.6-5.9c-2.1 1.4-4.8 2.3-7.7 2.3-6.4 0-11.7-4.4-13.6-10.3l-7.8 6.1C6.5 41.6 14.6 47 24 47z"/></svg>';
+
+  var LOCK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  var EYE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10.73 5.08a10.74 10.74 0 0 1 11.2 6.57 1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.44 2.49m-6.41-.68a3 3 0 0 1-4.24-4.24"/><path d="M17.48 17.5a10.75 10.75 0 0 1-15.42-5.15 1 1 0 0 1 0-.7 10.75 10.75 0 0 1 4.45-5.14M2 2l20 20"/></svg>';
+  var SPIN = '<svg class="spinning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>';
+
+  function e(v) { return Proto.esc(v); }
+  function signInValid() { return ui.loginId.trim().length > 0 && ui.password.length > 0; }
+  function resetValid() { return ui.newPassword.length >= 6 && ui.confirmPassword.length >= 6 && ui.newPassword === ui.confirmPassword; }
+
+  /* The mock directory: which workspace the entered identity opens. */
+  function roleFor(loginId) {
+    var id = loginId.trim().toLowerCase();
+    if (id.indexOf('admin') >= 0) return 'KBOOK_ADMIN';
+    if (id.indexOf('staff') >= 0) return 'SHOP_STAFF';
+    return 'OWNER';
+  }
+
+  /* ── copy blocks ──────────────────────────────────────────────────────── */
+  function brandPanel() {
+    return '<aside class="auth-brand" aria-label="KhanaBook Restaurant Platform Overview">' +
+      '<div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span class="feature__badge" style="width:38px;height:38px;font-weight:800;font-family:var(--font-display)">KB</span>' +
+          '<strong style="font-family:var(--font-display);font-size:17px">KhanaBook</strong>' +
+        '</div>' +
+        '<h1 class="brand-hero" style="margin-top:22px">Run your restaurant<br>with <span class="brand-accent">confidence.</span></h1>' +
+        '<p class="brand-sub" style="margin-top:10px">One workspace for menu, orders, staff, and payments &mdash; built for restaurant owners.</p>' +
+        '<div class="stack--tight" style="margin-top:18px">' +
+          feature('<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>', 'Consolidated live sales across all POS terminals', 'Real-time insights for better decisions.') +
+          feature('<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>', 'Menu &amp; recipe stock control in seconds', 'Keep your kitchen and inventory in sync.') +
+          feature('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>', 'Daily revenue, settlements &amp; CA-ready tax reports', 'Save time. Stay compliant.') +
+        '</div>' +
+      '</div>' +
+      '<div class="stack--tight">' +
+        '<div class="demo-hint"><strong>Prototype sign-in</strong><br>' +
+          '<code>owner@spiceroute.in</code> &rarr; OWNER, opens /business/dashboard<br>' +
+          '<code>admin@khanabook.in</code> &rarr; KBOOK_ADMIN, opens /admin/dashboard<br>' +
+          '<code>staff@spiceroute.in</code> &rarr; rejected (staff are POS-only)<br>' +
+          'Password: any 6&plus; characters. Shorter is treated as a wrong password.' +
+        '</div>' +
+        '<div class="brand-foot"><span>&copy; ' + YEAR + ' KhanaBook. All rights reserved.</span>' +
+        '<a href="https://khanabook.in" target="_blank" rel="noopener" style="color:#fff">khanabook.in &#8599;</a></div>' +
+      '</div>' +
+    '</aside>';
+  }
+  function feature(paths, heading, sub) {
+    return '<div class="feature"><span class="feature__badge"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg></span>' +
+      '<span><strong>' + heading + '</strong><span>' + sub + '</span></span></div>';
+  }
+
+  function inlineError() {
+    if (!ui.inlineError) return '';
+    /* aria-live so the fix is announced, not just painted — the live app rendered
+       nothing at all here after a failed sign-in. */
+    return '<div class="alert-box error" role="alert" aria-live="assertive" aria-atomic="true">' + e(ui.inlineError) + '</div>';
+  }
+  function successNote() {
+    if (!ui.successMessage) return '';
+    return '<div class="alert-box success" role="status" aria-live="polite">' + e(ui.successMessage) + '</div>';
+  }
+
+  /* ── step: sign in ────────────────────────────────────────────────────── */
+  function signInStep(ctx) {
+    var busy = ctx.busy('signIn');
+    var disabled = busy || !signInValid();
+    return '<div class="auth-card">' +
+      '<header class="auth-head"><h2>Welcome back</h2><p class="muted">Sign in to your restaurant owner workspace.</p></header>' +
+      successNote() +
+      '<button class="google-btn" type="button" data-action="googleSignIn"' + (ctx.busy('google') ? ' disabled aria-busy="true"' : '') + '>' +
+        (ctx.busy('google') ? SPIN + ' Signing in with Google…' : GOOGLE_G + ' Continue with Google') +
+      '</button>' +
+      (ui.googleError ? '<div class="alert-box error" role="alert">' + e(ui.googleError) + '</div>' : '') +
+      '<div class="divider"><span>or with password</span></div>' +
+      '<form onsubmit="event.preventDefault(); var b=document.getElementById(\'signInBtn\'); if(!b.disabled) b.click(); return false;">' +
+        '<div class="field" style="margin-bottom:13px">' +
+          '<label class="field-label" for="login-id">PHONE NUMBER OR EMAIL</label>' +
+          '<input class="field-control" id="login-id" data-input="loginId" value="' + e(ui.loginId) + '" placeholder="e.g. 98765 43210 or owner@restaurant.com" autocomplete="username" autocapitalize="none" />' +
+        '</div>' +
+        '<div class="field">' +
+          '<div class="field-row">' +
+            '<label class="field-label" for="login-password">PASSWORD</label>' +
+            '<button class="back-link" type="button" data-action="forgotStart">Forgot password?</button>' +
+          '</div>' +
+          '<div class="pwd-wrap">' +
+            '<input class="field-control" id="login-password" data-input="loginPassword" type="' + (ui.showPassword ? 'text' : 'password') + '" value="' + e(ui.password) + '" placeholder="Enter password" autocomplete="current-password" style="padding-right:44px" />' +
+            '<button class="pwd-toggle" type="button" data-action="togglePassword" aria-pressed="' + (ui.showPassword ? 'true' : 'false') + '" aria-label="' + (ui.showPassword ? 'Hide password' : 'Show password') + '">' + (ui.showPassword ? EYE_OFF : EYE) + '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="margin-top:13px">' + inlineError() + '</div>' +
+        '<button class="btn-primary btn-block" id="signInBtn" type="button" data-action="signIn"' + (disabled ? ' disabled' : '') + (busy ? ' aria-busy="true"' : '') + ' style="margin-top:6px">' +
+          (busy ? SPIN + ' Signing in…' : 'Sign in &rarr;') +
+        '</button>' +
+      '</form>' +
+      '<div class="trust">' + LOCK + ' 256-bit SSL encrypted &bull; Restaurant Cloud</div>' +
+      '<div style="margin-top:4px">' +
+        '<p class="muted" style="font-size:12.5px">New to KhanaBook? ' +
+          '<a href="https://khanabook.in/get-started" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600;text-decoration:none">Get started</a> or ' +
+          '<a href="https://khanabook.in" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600;text-decoration:none">learn more</a>' +
+        '</p>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ── steps: forgot password ───────────────────────────────────────────── */
+  function phoneStep(ctx) {
+    var busy = ctx.busy('forgot');
+    return '<div class="auth-card">' +
+      '<header class="auth-head"><h2>Forgot password</h2><p class="muted">Enter your registered phone number to receive an OTP.</p></header>' +
+      '<div class="field">' +
+        '<label class="field-label" for="forgot-phone">PHONE NUMBER</label>' +
+        '<input class="field-control" id="forgot-phone" data-input="phone" value="' + e(ui.phone) + '" placeholder="10-digit mobile number" maxlength="10" inputmode="tel" autocomplete="tel" />' +
+      '</div>' +
+      inlineError() +
+      '<button class="btn-primary btn-block" type="button" data-action="sendOtp"' + (busy || ui.phone.length !== 10 ? ' disabled' : '') + (busy ? ' aria-busy="true"' : '') + '>' +
+        (busy ? SPIN + ' Sending OTP…' : 'Send OTP &rarr;') + '</button>' +
+      '<button class="back-link" type="button" data-action="backToLogin">&larr; Back to sign in</button>' +
+    '</div>';
+  }
+
+  function otpStep(ctx) {
+    var busy = ctx.busy('verifyOtp');
+    var resending = ctx.busy('resendOtp');
+    return '<div class="auth-card">' +
+      '<header class="auth-head"><h2>Enter OTP</h2><p class="muted">If this number is registered, you&rsquo;ll receive a 6-digit code shortly.</p></header>' +
+      '<div class="field">' +
+        '<label class="field-label" for="forgot-otp">OTP CODE</label>' +
+        '<input class="field-control" id="forgot-otp" data-input="otp" value="' + e(ui.otp) + '" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />' +
+      '</div>' +
+      '<p class="inline-note" role="status">Code sent to ' + e('+' + ui.phone) + '. It expires in 10 minutes.</p>' +
+      inlineError() +
+      '<button class="btn-primary btn-block" type="button" data-action="verifyOtp"' + (busy || ui.otp.length !== 6 ? ' disabled' : '') + (busy ? ' aria-busy="true"' : '') + '>' +
+        (busy ? SPIN + ' Verifying…' : 'Verify OTP &rarr;') + '</button>' +
+      '<button class="ghost-btn" type="button" data-action="resendOtp"' + (resending ? ' disabled aria-busy="true"' : '') + '>' +
+        (resending ? 'Sending a new code…' : 'Resend code') + '</button>' +
+      '<button class="back-link" type="button" data-action="backToLogin">&larr; Back to sign in</button>' +
+    '</div>';
+  }
+
+  function passwordStep(ctx) {
+    var busy = ctx.busy('resetPassword');
+    var mismatch = ui.confirmPassword.length > 0 && ui.newPassword !== ui.confirmPassword;
+    return '<div class="auth-card">' +
+      '<header class="auth-head"><h2>Reset password</h2><p class="muted">Enter a new password (minimum 6 characters).</p></header>' +
+      '<div class="field">' +
+        '<label class="field-label" for="reset-new">NEW PASSWORD</label>' +
+        '<input class="field-control" id="reset-new" data-input="newPassword" type="password" value="' + e(ui.newPassword) + '" placeholder="Min 6 characters" autocomplete="new-password" />' +
+      '</div>' +
+      '<div class="field">' +
+        '<label class="field-label" for="reset-confirm">CONFIRM PASSWORD</label>' +
+        '<input class="field-control" id="reset-confirm" data-input="confirmPassword" type="password" value="' + e(ui.confirmPassword) + '" placeholder="Re-enter password" autocomplete="new-password" aria-describedby="reset-cfm-error" />' +
+        (mismatch ? '<span class="field-error" id="reset-cfm-error" role="alert">Passwords do not match.</span>' : '') +
+      '</div>' +
+      inlineError() +
+      '<button class="btn-primary btn-block" type="button" data-action="resetPassword"' + (busy || !resetValid() ? ' disabled' : '') + (busy ? ' aria-busy="true"' : '') + '>' +
+        (busy ? SPIN + ' Updating…' : 'Update password') + '</button>' +
+      '<button class="back-link" type="button" data-action="backToLogin">&larr; Back to sign in</button>' +
+    '</div>';
+  }
+
+  function doneStep() {
+    return '<div class="auth-card">' +
+      '<div class="alert-box success" role="status"><strong>Password updated.</strong></div>' +
+      '<header class="auth-head"><h2>Password changed</h2><p class="muted">Your password has been changed. You can now sign in with your new password.</p></header>' +
+      '<button class="btn-primary btn-block" type="button" data-action="backToLogin">Sign in</button>' +
+    '</div>';
+  }
+
+  function signedInStep() {
+    return '<div class="auth-card">' +
+      '<div class="signed-in" role="status" aria-live="polite">' +
+        '<span class="status-chip st-completed">Signed in</span>' +
+        '<h2 style="font-size:20px">Welcome, ' + e(ui.signedInName || ui.loginId) + '</h2>' +
+        '<p class="muted">Role <strong>' + e(ui.signedInRole) + '</strong> &mdash; opening <code>' + e(ui.signedInPath) + '</code>.</p>' +
+        '<p class="inline-note">Routing by role: OWNER &rarr; /business/dashboard, KBOOK_ADMIN &rarr; /admin/dashboard, SHOP_STAFF &rarr; /limited-access (and rejected here by the server&rsquo;s surface=web rule).</p>' +
+      '</div>' +
+      '<button class="ghost-btn" type="button" data-action="signOut">Sign out</button>' +
+    '</div>';
+  }
+
+  /* Mirrors the real page: ngOnInit() prefills the identifier field from
+     sessionStorage['last_login_id'] — which is why a returning owner sees their
+     own number already in the field. Wrapped because file:// can deny storage. */
+  try {
+    var lastLoginId = sessionStorage.getItem('last_login_id');
+    if (lastLoginId) ui.loginId = lastLoginId;
+  } catch (err) { /* storage unavailable — never block sign-in */ }
+
+  Proto.boot({
+    page: 'login',
+    title: 'Sign in',
+    subtitle: 'Restaurant owner workspace — credential, Google, and password recovery flows.',
+    eyebrow: 'Authentication',
+    live: false,
+    skeleton:
+      '<div class="auth-frame"><div class="auth-shell">' +
+        '<div class="skeleton" style="min-height:400px;border-radius:0"></div>' +
+        '<div class="auth-card">' +
+          '<div class="skeleton sk-line" style="width:150px"></div>' +
+          '<div class="skeleton" style="height:44px"></div>' +
+          '<div class="skeleton" style="height:13px;width:120px"></div>' +
+          '<div class="skeleton" style="height:44px"></div>' +
+          '<div class="skeleton" style="height:46px"></div>' +
+        '</div>' +
+      '</div></div>',
+    data: {},
+    render: function (ctx) {
+      var body;
+      if (ui.step === 'signed-in') body = signedInStep();
+      else if (ui.step === 'done') body = doneStep();
+      else if (ui.step === 'phone') body = phoneStep(ctx);
+      else if (ui.step === 'otp') body = otpStep(ctx);
+      else if (ui.step === 'password') body = passwordStep(ctx);
+      else body = signInStep(ctx);
+      return '<div class="auth-frame"><div class="auth-shell">' + brandPanel() + body + '</div></div>';
+    },
+    inputs: {
+      loginId: function (v) { ui.loginId = v; ui.inlineError = ''; refreshSignInBtn(); },
+      loginPassword: function (v) { ui.password = v; ui.inlineError = ''; refreshSignInBtn(); },
+      phone: function (v) { ui.phone = v.replace(/[^0-9]/g, ''); ui.inlineError = ''; },
+      otp: function (v) { ui.otp = v.replace(/[^0-9]/g, ''); ui.inlineError = ''; },
+      newPassword: function (v) { ui.newPassword = v; ui.inlineError = ''; },
+      confirmPassword: function (v) { ui.confirmPassword = v; ui.inlineError = ''; }
+    },
+    actions: {
+      /* ── credentials ─────────────────────────────────────────────────── */
+      signIn: function () {
+        if (Proto.busy('signIn')) return;
+        ui.inlineError = ''; ui.successMessage = ''; ui.googleError = '';
+        Proto.setBusy('signIn', true);
+        /* Paint the in-flight button before the call resolves — without this the
+           button looked idle for the whole request, which is the same class of
+           bug this page exists to demonstrate. */
+        Proto.render();
+
+        /* The failure the panel asks for wins; otherwise the mock decides:
+           a short password is the wrong-password 400, a staff identity is the
+           server's POS-only rejection. */
+        var role = roleFor(ui.loginId);
+        /* The panel's failure wins. Otherwise the mock decides: fewer than 6
+           characters is the wrong-password 400 the live API returns, and a staff
+           identity is the server's surface=web rejection. */
+        var failMode;
+        if (Proto.state.fail !== 'ok') failMode = Proto.state.fail;
+        else if (ui.password.length < 6) failMode = '400';
+        else if (role === 'SHOP_STAFF') failMode = '403';
+        else failMode = 'ok';
+
+        var inline = failMode === '400' ? 'Invalid login ID or password'
+          : failMode === 'ok' ? '' : Proto.failureFor(failMode).message;
+
+        Proto.call('Sign in', {
+          failMode: failMode,
+          meta: 'POST /auth/login',
+          onOk: function () {
+            ui.signedInRole = role;
+            ui.signedInPath = role === 'KBOOK_ADMIN' ? '/admin/dashboard' : '/business/dashboard';
+            ui.signedInName = role === 'KBOOK_ADMIN' ? 'Platform admin' : 'Spice Route Kitchen';
+            ui.step = 'signed-in';
+            ui.password = '';
+            /* The real app persists the identifier so the next visit prefills it
+               (AuthService.logout writes 'last_login_id'; ngOnInit reads it). */
+            try { sessionStorage.setItem('last_login_id', ui.loginId.trim()); } catch (err) { /* storage blocked */ }
+            Proto.toast('Signed in as ' + role + ' — opening ' + ui.signedInPath, 'success');
+          }
+        }).then(function (ok) {
+          if (!ok) {
+            /* The fix in one line: the message lands in the card AND the busy flag
+               is already released by the shared call, so the button is usable. */
+            ui.inlineError = failMode === '403'
+              ? 'Staff accounts are POS-only. Please sign in from the Android POS app.'
+              : inline;
+            ui.password = '';
+            Proto.render();
+          }
+        });
+      },
+      togglePassword: function () {
+        ui.showPassword = !ui.showPassword;
+        Proto.render();
+      },
+      googleSignIn: function () {
+        if (Proto.busy('google')) return;
+        ui.googleError = ''; ui.inlineError = '';
+        Proto.setBusy('google', true);
+        Proto.render();
+        Proto.call('Continue with Google', {
+          meta: 'POST /auth/google',
+          onOk: function () {
+            ui.signedInRole = 'OWNER';
+            ui.signedInPath = '/business/dashboard';
+            ui.signedInName = 'Spice Route Kitchen';
+            ui.step = 'signed-in';
+            Proto.toast('Google sign-in complete — opening /business/dashboard', 'success');
+          }
+        }).then(function (ok) {
+          if (!ok) {
+            ui.googleError = 'Google sign-in failed. Use your password instead.';
+            Proto.render();
+          }
+        });
+      },
+      signOut: function () {
+        ui.step = 'none'; ui.loginId = ''; ui.password = '';
+        ui.inlineError = ''; ui.successMessage = '';
+        Proto.toast('Signed out', 'info');
+        Proto.render();
+      },
+
+      /* ── recovery ────────────────────────────────────────────────────── */
+      forgotStart: function () {
+        ui.step = 'phone'; ui.inlineError = ''; ui.googleError = '';
+        ui.phone = ''; ui.otp = ''; ui.newPassword = ''; ui.confirmPassword = '';
+        Proto.render();
+      },
+      backToLogin: function () {
+        ui.step = 'none'; ui.inlineError = ''; ui.otp = '';
+        ui.newPassword = ''; ui.confirmPassword = '';
+        Proto.render();
+      },
+      sendOtp: function () {
+        if (Proto.busy('forgot')) return;
+        ui.inlineError = '';
+        Proto.setBusy('forgot', true);
+        Proto.render();
+        Proto.call('Send OTP', {
+          meta: 'POST /auth/forgot-password/request-otp',
+          onOk: function () {
+            ui.step = 'otp';
+            Proto.toast('If this number is registered, a 6-digit code is on its way', 'success');
+          }
+        }).then(function (ok) {
+          if (!ok) {
+            var f = Proto.failureFor(Proto.state.fail);
+            if (f.kind === 'server' || f.kind === 'offline') {
+              /* The real page advances even when the server rejects the request,
+                 because the API answers 200 to avoid user enumeration. That is
+                 correct for a 200 — but a network/5xx failure must NOT claim a code
+                 was sent, so here the step stays put and says why. */
+              ui.inlineError = f.message;
+            } else {
+              ui.step = 'otp';
+            }
+            Proto.render();
+          }
+        });
+      },
+      resendOtp: function () {
+        if (Proto.busy('resendOtp')) return;
+        ui.inlineError = '';
+        Proto.setBusy('resendOtp', true);
+        Proto.render();
+        Proto.call('Resend OTP', { meta: 'POST /auth/forgot-password/request-otp' }).then(function (ok) {
+          if (ok) Proto.toast('A new 6-digit code is on its way to +' + ui.phone, 'success');
+          else {
+            var f = Proto.failureFor(Proto.state.fail);
+            ui.inlineError = f.message;
+          }
+          Proto.render();
+        });
+      },
+      verifyOtp: function () {
+        if (Proto.busy('verifyOtp')) return;
+        ui.inlineError = '';
+        Proto.setBusy('verifyOtp', true);
+        Proto.render();
+        Proto.call('Verify OTP', {
+          meta: 'POST /auth/forgot-password/verify-otp',
+          onOk: function () { ui.step = 'password'; }
+        }).then(function (ok) {
+          if (!ok) {
+            ui.inlineError = Proto.state.fail === '400'
+              ? 'Invalid or expired OTP. Please try again.'
+              : Proto.failureFor(Proto.state.fail).message;
+          }
+          Proto.render();
+        });
+      },
+      resetPassword: function () {
+        if (Proto.busy('resetPassword') || !resetValid()) return;
+        ui.inlineError = '';
+        Proto.setBusy('resetPassword', true);
+        Proto.render();
+        Proto.call('Update password', {
+          meta: 'POST /auth/forgot-password/reset-password',
+          onOk: function () {
+            ui.step = 'done';
+            ui.successMessage = 'Your password has been changed. You can now sign in with your new password.';
+          }
+        }).then(function (ok) {
+          if (!ok) {
+            ui.inlineError = Proto.state.fail === '400'
+              ? 'Failed to reset password. Please try again.'
+              : Proto.failureFor(Proto.state.fail).message;
+          }
+          Proto.render();
+        });
+      }
+    }
+  });
+
+  /* Enable/disable the sign-in button as the user types, without re-rendering
+     (which would drop focus mid-keystroke). */
+  function refreshSignInBtn() {
+    var b = document.getElementById('signInBtn');
+    if (!b) return;
+    if (Proto.busy('signIn')) {
+      /* In flight: keep it disabled and announced rather than returning early,
+         which used to leave a fully clickable button behind a pending call. */
+      b.disabled = true;
+      b.setAttribute('aria-busy', 'true');
+      return;
+    }
+    b.disabled = !signInValid();
+    b.removeAttribute('aria-busy');
+  }
+})();
+</script>
+</body>
+</html>

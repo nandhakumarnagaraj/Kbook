@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -8,13 +8,14 @@ import { BusinessTerminal, RecoverTerminalResponse, TerminalRequest } from '../.
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
   template: `
     <div class="page-shell">
       <!-- Operational Header (unified PageHeaderComponent) -->
@@ -102,10 +103,11 @@ import { formatDate } from '../../shared/formatters';
         </div>
 
         <div class="panel table-wrap" *ngIf="!terminalsLoading(); else loading">
-          <div class="alert error load-error" role="alert" *ngIf="terminalsError()">
-            <span>{{ terminalsError() }}</span>
-            <button type="button" class="ghost-btn" (click)="loadTerminals()">Try again</button>
-          </div>
+          <app-api-state
+            *ngIf="terminalsError()"
+            [message]="terminalsError()"
+            (retry)="loadTerminals()"
+          ></app-api-state>
 
           <table class="data-table" *ngIf="!terminalsError() && terminals().length; else noTerminals">
             <thead>
@@ -251,7 +253,8 @@ import { formatDate } from '../../shared/formatters';
       </section>
 
       <ng-template #loading>
-        <div class="panel loading">
+        <div class="panel loading" role="status" aria-busy="true">
+          <span class="sr-only">Loading terminals...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
@@ -286,11 +289,12 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </div>
 
-        <div class="loading compact-loading" role="status" *ngIf="requestsLoading()">Loading device requests...</div>
-        <div class="alert error load-error" role="alert" *ngIf="requestsError()">
-          <span>{{ requestsError() }}</span>
-          <button type="button" class="ghost-btn" (click)="loadRequests()">Try again</button>
-        </div>
+        <div class="loading compact-loading" role="status" aria-busy="true" *ngIf="requestsLoading()">Loading device requests...</div>
+        <app-api-state
+          *ngIf="requestsError()"
+          [message]="requestsError()"
+          (retry)="loadRequests()"
+        ></app-api-state>
 
         <div class="table-wrap" *ngIf="!requestsLoading() && !requestsError() && pendingOrAllRequests().length">
           <table class="data-table">
