@@ -31,11 +31,12 @@ export type OrdersTab = 'live' | 'history';
       <app-page-header
         title="Orders"
         subtitle="Live floor board and settled transaction history in one workspace.">
-        <app-date-range-selector
-          *ngIf="tab() === 'history'"
-          [initialRange]="historyDateRange()"
-          (rangeChanged)="onHistoryDateRangeChange($event)">
-        </app-date-range-selector>
+        <div class="orders-header-controls">
+          <app-date-range-selector
+            *ngIf="tab() === 'history'"
+            [initialRange]="historyDateRange()"
+            (rangeChanged)="onHistoryDateRangeChange($event)">
+          </app-date-range-selector>
         <button
           type="button"
           class="refresh-btn"
@@ -48,8 +49,9 @@ export type OrdersTab = 'live' | 'history';
             <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
             <path d="M16 21h5v-5" />
           </svg>
-          <span>Refresh</span>
-        </button>
+            <span>Refresh</span>
+          </button>
+        </div>
       </app-page-header>
 
       <nav class="orders-tabs" role="tablist" aria-label="Orders views">
@@ -105,6 +107,25 @@ export type OrdersTab = 'live' | 'history';
   `,
   styles: [
     `
+      .orders-header-controls {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.65rem;
+        flex-wrap: nowrap;
+      }
+
+      .orders-header-controls app-date-range-selector {
+        flex: 0 0 auto;
+      }
+
+      @media (max-width: 680px) {
+        .orders-header-controls {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
+      }
+
       .orders-tabs {
         display: flex;
         gap: 0.4rem;
