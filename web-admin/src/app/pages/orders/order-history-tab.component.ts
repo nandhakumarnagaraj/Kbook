@@ -67,6 +67,13 @@ export function filterBusinessOrders(
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent],
   template: `
+    <app-order-detail-modal
+      *ngIf="selectedOrderDetail"
+      [order]="selectedOrderDetail"
+      (billUpdated)="loadOrders()"
+      (closed)="closeOrderDetail()">
+    </app-order-detail-modal>
+
     <div class="tab-panel">
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
         <section
@@ -132,12 +139,6 @@ export function filterBusinessOrders(
         </section>
       </div>
 
-      <!-- Order Detail Modal -->
-      <app-order-detail-modal
-        [order]="selectedOrderDetail"
-        (billUpdated)="loadOrders()"
-        (closed)="closeOrderDetail()">
-      </app-order-detail-modal>
       <div class="panel loading" *ngIf="orderDetailLoading" role="status" aria-live="polite">
         Loading order details...
       </div>
