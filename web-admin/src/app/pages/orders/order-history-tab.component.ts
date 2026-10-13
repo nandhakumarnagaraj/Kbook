@@ -68,20 +68,6 @@ export function filterBusinessOrders(
   imports: [CommonModule, FormsModule, DateRangeSelectorComponent, OrderDetailModalComponent, ApiStateComponent],
   template: `
     <div class="tab-panel">
-      <div class="tab-toolbar">
-        <div class="tab-toolbar__actions">
-          <button type="button" class="header-action-btn" (click)="loadOrders()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
-        </div>
-      </div>
-
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
         <section
           class="modal-box"

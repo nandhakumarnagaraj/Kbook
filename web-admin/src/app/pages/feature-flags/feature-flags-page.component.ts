@@ -22,6 +22,15 @@ import { formatDate } from '../../shared/formatters';
       >
         <span kbHeaderBadge class="kpi-tag">{{ flags().length }} Flags</span>
         <span kbHeaderBadge class="kpi-tag kpi-tag--green">{{ enabledCount() }} Globally Effective</span>
+        <button type="button" class="refresh-btn" [disabled]="loading()" (click)="reload()" aria-label="Refresh feature flags">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()" aria-hidden="true">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+          </svg>
+          <span>Refresh</span>
+        </button>
       </app-page-header>
 
       <div class="toolbar">
@@ -29,7 +38,6 @@ import { formatDate } from '../../shared/formatters';
           <h3>Flag State</h3>
           <p class="muted">Effective state shown is what a restaurant <strong>without an override</strong> resolves to.</p>
         </div>
-        <button class="refresh-btn" (click)="reload()">Refresh</button>
       </div>
 
       <div class="panel table-wrap" *ngIf="!loading(); else loadingBlock">

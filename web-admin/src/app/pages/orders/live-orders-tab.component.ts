@@ -17,24 +17,6 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
   imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent],
   template: `
     <div class="tab-panel">
-      <div class="tab-toolbar">
-        <div class="tab-toolbar__actions">
-          <button
-            type="button"
-            class="header-action-btn"
-            [disabled]="loading()"
-            (click)="load()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
-        </div>
-      </div>
-
       <!-- Loading and Error States -->
       <div class="stale-banner" *ngIf="error() && activeOrders().length" role="status" aria-live="polite">
         <span>Couldn't update live orders. {{ error() }}</span>
@@ -195,9 +177,6 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         <p class="all-clear-sub">
           There are no active unsettled orders right now. New orders taken from counter POS will stream here in real time.
         </p>
-        <button type="button" class="refresh-btn" (click)="load()">
-          Check for New Orders
-        </button>
       </div>
 
       <!-- Order Detail Modal -->
