@@ -303,37 +303,30 @@ export function filterBusinessOrders(
                 </td>
                 <td class="text-right" (click)="$event.stopPropagation()">
                   <div class="action-btn-group">
-                    <a
-                      [href]="getInvoiceUrl(order)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn-micro"
-                      (click)="$event.stopPropagation()"
-                      title="View printable tax invoice">
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8m8 4H8m8 4H8"/></svg>
-                      Invoice
-                    </a>
                     <button
                       type="button"
                       class="btn-micro btn-micro--primary"
-                      (click)="openOrderDetail(order)">
-                      Details
+                      (click)="openOrderDetail(order)"
+                      aria-label="View order details">
+                      View
                     </button>
                     <button
                       *ngIf="order.manualRefundAllowed"
                       type="button"
                       class="btn-micro btn-micro--danger"
                       (click)="openManualRefund(order)"
-                      title="Issue refund">
+                      title="Issue refund"
+                      aria-label="Refund order">
                       Refund
                     </button>
                     <button
-                      *ngIf="order.orderStatus.toLowerCase() === 'draft' || order.orderStatus.toLowerCase() === 'completed'"
                       type="button"
-                      class="btn-micro btn-micro--danger"
-                      (click)="openCancelModal(order)"
-                      title="Cancel / Void order">
-                      Cancel
+                      class="btn-micro"
+                      (click)="shareInvoice(order)"
+                      title="Share invoice"
+                      aria-label="Share invoice">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4m-6.6 7 6.6 4.4"/></svg>
+                      Share
                     </button>
                   </div>
                 </td>
@@ -937,6 +930,29 @@ export class OrderHistoryTabComponent implements OnDestroy {
   getInvoiceUrl(order: BusinessOrder): string {
     const session = this.auth.session();
     return buildInvoiceLink(session?.restaurantId, order.orderId, order.publicToken);
+  }
+
+  async shareInvoice(order: BusinessOrder): Promise<void> {
+    const url = this.getInvoiceUrl(order);
+    const shareData = {
+      title: `KhanaBook invoice ${order.invoiceNumber || order.orderCode}`,
+      text: `Invoice for order ${order.orderCode}`,
+      url
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        this.toast.show('Invoice link copied to clipboard.', 'success');
+      } else {
+        this.toast.show('Sharing is not available in this browser.', 'error');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      this.toast.show('Unable to share the invoice link.', 'error');
+    }
   }
 
   get filteredOrders(): BusinessOrder[] {

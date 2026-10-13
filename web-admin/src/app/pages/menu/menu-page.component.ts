@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal, NgZone, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
@@ -218,12 +218,9 @@ import { environment } from '../../../environments/environment';
           </article>
         </div>
 
-        <div class="pagination-bar" *ngIf="filteredItems.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
+        <div #menuLoadMoreSentinel class="menu-load-more" aria-live="polite">
+          <span *ngIf="hasMoreItems">Scroll to load more menu items</span>
+          <span *ngIf="!hasMoreItems && filteredItems.length">All {{ filteredItems.length }} menu items loaded</span>
         </div>
       </div>
 
@@ -525,6 +522,13 @@ import { environment } from '../../../environments/environment';
   `,
   styles: [`
     .menu-header-search { width: min(15rem, 38vw); }
+    .menu-load-more {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.82rem;
+    }
     .photo-picker {
       display: flex;
       align-items: center;
@@ -656,13 +660,24 @@ export class MenuPageComponent implements OnDestroy {
   loaded = false;
   loadError = '';
   private readonly cdr = inject(ChangeDetectorRef);
+  private menuLoadMoreObserver?: IntersectionObserver;
+
+  @ViewChild('menuLoadMoreSentinel')
+  set menuLoadMoreSentinel(element: ElementRef<HTMLElement> | undefined) {
+    this.menuLoadMoreObserver?.disconnect();
+    if (!element || typeof IntersectionObserver === 'undefined') return;
+    this.menuLoadMoreObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) this.loadNextMenuItems();
+    }, { rootMargin: '120px 0px' });
+    this.menuLoadMoreObserver.observe(element.nativeElement);
+  }
 
   searchTerm = '';
   showSearchInput = false;
   stockFilter = 'ALL';
   availabilityFilter = 'ALL';
   pageSize = 10;
-  currentPage = 1;
+  visibleItemCount = 10;
 
   // Form modal state
   showFormModal = false;
@@ -741,12 +756,17 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   get pagedItems(): BusinessMenuItem[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredItems.slice(start, start + this.pageSize);
+    return this.filteredItems.slice(0, this.visibleItemCount);
   }
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
+  get hasMoreItems(): boolean {
+    return this.pagedItems.length < this.filteredItems.length;
+  }
+
+  loadNextMenuItems(): void {
+    if (!this.hasMoreItems) return;
+    this.visibleItemCount = Math.min(this.visibleItemCount + this.pageSize, this.filteredItems.length);
+    this.cdr.markForCheck();
   }
 
   get inStockCount(): number {
@@ -782,7 +802,7 @@ export class MenuPageComponent implements OnDestroy {
         this.categories = categories;
         this.loaded = true;
         this.loadError = '';
-        this.currentPage = 1;
+        this.visibleItemCount = this.pageSize;
         this.cdr.markForCheck();
       },
       error: () => {
@@ -1261,7 +1281,7 @@ export class MenuPageComponent implements OnDestroy {
   // --- Filters and Pagination ---
 
   resetPage(): void {
-    this.currentPage = 1;
+    this.visibleItemCount = this.pageSize;
   }
 
   clearFilters(): void {
@@ -1269,11 +1289,7 @@ export class MenuPageComponent implements OnDestroy {
     this.stockFilter = 'ALL';
     this.availabilityFilter = 'ALL';
     this.pageSize = 10;
-    this.currentPage = 1;
-  }
-
-  goToPage(page: number): void {
-    this.currentPage = Math.min(Math.max(1, page), this.totalPages);
+    this.visibleItemCount = this.pageSize;
   }
 
   formatCurrencyValue(value: number): string {
@@ -1393,6 +1409,7 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.menuLoadMoreObserver?.disconnect();
     this.stopPolling();
   }
 
