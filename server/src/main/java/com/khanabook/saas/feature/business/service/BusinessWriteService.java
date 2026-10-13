@@ -532,7 +532,9 @@ public class BusinessWriteService {
     @Transactional
     public void deleteVariant(Long restaurantId, Long menuItemId, Long variantId) {
         ItemVariant variant = itemVariantRepository.findById(variantId)
-                .filter(v -> restaurantId.equals(v.getRestaurantId()) && !Boolean.TRUE.equals(v.getIsDeleted()))
+                .filter(v -> restaurantId.equals(v.getRestaurantId())
+                        && menuItemId.equals(v.getMenuItemId())
+                        && !Boolean.TRUE.equals(v.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Variant not found"));
 
         long now = System.currentTimeMillis();

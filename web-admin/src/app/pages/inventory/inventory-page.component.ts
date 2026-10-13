@@ -66,6 +66,11 @@ import { ToastService } from '../../core/services/toast.service';
     .vendor-form { padding: 0.8rem; margin: 0 0 1rem; background: var(--kb-color-surface-2); border-radius: 8px; }
     .vendor-form__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
     .inventory-note { margin: 0 0 1rem; font-size: 0.8rem; color: var(--kb-color-muted-foreground); }
+    .workflow-form { display: flex; gap: 0.6rem; align-items: end; flex-wrap: wrap; margin-bottom: 1rem; }
+    .workflow-form .form-group { margin: 0; min-width: 150px; }
+    .workflow-list { display: grid; gap: 0.6rem; }
+    .workflow-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--kb-color-border); }
+    .workflow-row:last-child { border-bottom: 0; }
     @media (max-width: 560px) {
       .form-row { grid-template-columns: 1fr; gap: 0; }
       .material-card__actions button { flex: 1; }
@@ -89,9 +94,49 @@ import { ToastService } from '../../core/services/toast.service';
       <!-- Tabs -->
       <div class="tabs" role="tablist" aria-label="Inventory sections">
         <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'materials'" [class.active]="activeTab === 'materials'" (click)="activeTab='materials'">Materials</button>
+        <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'recipes'" [class.active]="activeTab === 'recipes'" (click)="openRecipesTab()">Item Recipes</button>
+        <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'purchaseOrders'" [class.active]="activeTab === 'purchaseOrders'" (click)="openPurchaseOrdersTab()">Purchase Orders</button>
         <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'movements'" [class.active]="activeTab === 'movements'" (click)="activeTab='movements'">Stock Movements</button>
         <button class="tab" role="tab" [attr.aria-selected]="activeTab === 'variance'" [class.active]="activeTab === 'variance'" (click)="activeTab='variance'">Variance Report</button>
       </div>
+
+      <section role="tabpanel" aria-label="Item recipes" *ngIf="activeTab === 'recipes' && !loading && !error" class="card">
+        <p class="inventory-note">Set ingredient quantities for each menu item. Finalized bills deduct these amounts from stock automatically.</p>
+        <div class="workflow-form">
+          <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" [(ngModel)]="selectedMenuItemId" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select></div>
+          <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" [(ngModel)]="recipeForm.rawMaterialId"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
+          <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" [(ngModel)]="recipeForm.quantityPerItem" /></div>
+          <button type="button" class="primary-btn" (click)="addRecipe()" [disabled]="!selectedMenuItemId || !recipeForm.rawMaterialId || !isPositive(recipeForm.quantityPerItem) || savingWorkflow">{{ savingWorkflow ? 'Saving…' : 'Add ingredient' }}</button>
+        </div>
+        <div *ngIf="!selectedMenuItemId" class="muted">Choose a menu item to view or configure its recipe.</div>
+        <div *ngIf="selectedMenuItemId && recipes.length === 0" class="muted">No ingredients configured for this menu item.</div>
+        <div class="workflow-list" *ngIf="recipes.length">
+          <div class="workflow-row" *ngFor="let recipe of recipes; trackBy: trackByIndex"><span><strong>{{ recipe.materialName }}</strong> · {{ recipe.quantityPerItem }} {{ recipe.unit }} per item</span><button type="button" class="ghost-btn" (click)="removeRecipe(recipe)">Remove</button></div>
+        </div>
+      </section>
+
+      <section role="tabpanel" aria-label="Purchase orders" *ngIf="activeTab === 'purchaseOrders' && !loading && !error" class="card">
+        <p class="inventory-note">Draft or send a supplier order. Receiving it records stock-in movements for every line.</p>
+        <div class="workflow-form">
+          <div class="form-group"><label for="po-vendor">Supplier</label><select id="po-vendor" class="field-select" [(ngModel)]="poForm.vendorId"><option [ngValue]="null">No supplier</option><option *ngFor="let vendor of vendors" [ngValue]="vendor.id">{{ vendor.name }}</option></select></div>
+          <div class="workflow-row" style="width:100%;justify-content:flex-start" *ngFor="let line of poForm.items; let i = index; trackBy: trackByIndex">
+            <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" [(ngModel)]="line.rawMaterialId"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
+            <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" [(ngModel)]="line.quantity" /></div>
+            <button *ngIf="poForm.items.length > 1" type="button" class="ghost-btn" (click)="removePoLine(i)" aria-label="Remove purchase order line">Remove</button>
+          </div>
+          <button type="button" class="ghost-btn" (click)="addPoLine()">+ Add another material</button>
+          <div class="form-group"><label for="po-note">Note</label><input id="po-note" class="field-control" [(ngModel)]="poForm.note" placeholder="Optional note" /></div>
+          <button type="button" class="ghost-btn" (click)="createPurchaseOrder(false)" [disabled]="!validPo || savingWorkflow">Save draft</button>
+          <button type="button" class="primary-btn" (click)="createPurchaseOrder(true)" [disabled]="!validPo || savingWorkflow">Send order</button>
+        </div>
+        <div *ngIf="purchaseOrders.length === 0" class="muted">No purchase orders yet.</div>
+        <div class="workflow-list" *ngIf="purchaseOrders.length">
+          <div class="workflow-row" *ngFor="let po of purchaseOrders; trackBy: trackByIndex">
+            <div><strong>PO #{{ po.id }}</strong> <span class="chip" [class.chip-green]="po.status === 'RECEIVED'">{{ po.status }}</span><div class="muted">{{ vendorName(po.vendorId) }} · {{ po.createdAt | date:'mediumDate' }}<span *ngIf="po.note"> · {{ po.note }}</span></div><div class="muted" *ngFor="let line of po.items">{{ line.materialName }}: {{ line.quantity }} {{ line.unit }}</div></div>
+            <div class="toolbar-actions" *ngIf="po.status === 'DRAFT' || po.status === 'SENT'"><button type="button" class="primary-btn" (click)="receivePurchaseOrder(po)" [disabled]="savingWorkflow">Receive</button><button type="button" class="ghost-btn" (click)="cancelPurchaseOrder(po)" [disabled]="savingWorkflow">Cancel</button></div>
+          </div>
+        </div>
+      </section>
 
       <app-api-state [loading]="loading" [error]="error" [attr.aria-busy]="loading"></app-api-state>
 
@@ -389,8 +434,15 @@ export class InventoryPageComponent implements OnInit {
   savingVendor = false;
   savingMaterial = false;
 
-  activeTab: 'materials' | 'movements' | 'variance' = 'materials';
+  activeTab: 'materials' | 'recipes' | 'purchaseOrders' | 'movements' | 'variance' = 'materials';
   materials: any[] = [];
+  menuItems: any[] = [];
+  recipes: any[] = [];
+  purchaseOrders: any[] = [];
+  selectedMenuItemId: number | null = null;
+  recipeForm: any = { rawMaterialId: null, quantityPerItem: null };
+  poForm: any = { vendorId: null, items: [{ rawMaterialId: null, quantity: null }], note: '' };
+  savingWorkflow = false;
   vendors: any[] = [];
   searchTerm = '';
   lowStockOnly = false;
@@ -448,6 +500,65 @@ export class InventoryPageComponent implements OnInit {
     return this.materials.reduce((total, material) =>
       total + (Number(material.stockQuantity) || 0) * (Number(material.costPerUnit) || 0), 0);
   }
+
+  get validPo(): boolean { return this.poForm.items.length > 0 && this.poForm.items.every((line: any) => !!line.rawMaterialId && this.isPositive(line.quantity)); }
+
+  openRecipesTab(): void {
+    this.activeTab = 'recipes';
+    if (!this.menuItems.length) this.api.getMenu().subscribe({ next: items => { this.menuItems = items || []; this.cdr.markForCheck(); }, error: () => this.toast.show('Could not load menu items for recipes.', 'error') });
+  }
+
+  openPurchaseOrdersTab(): void {
+    this.activeTab = 'purchaseOrders';
+    this.loadPurchaseOrders();
+  }
+
+  loadRecipes(): void {
+    this.recipes = [];
+    if (!this.selectedMenuItemId) return;
+    this.api.getRecipes(this.selectedMenuItemId).subscribe({ next: rows => { this.recipes = rows || []; this.cdr.markForCheck(); }, error: err => this.toast.show(err?.error?.error || 'Could not load recipe.', 'error') });
+  }
+
+  addRecipe(): void {
+    if (!this.selectedMenuItemId || !this.recipeForm.rawMaterialId || !this.isPositive(this.recipeForm.quantityPerItem)) return;
+    this.savingWorkflow = true;
+    this.api.addRecipe({ menuItemId: this.selectedMenuItemId, rawMaterialId: Number(this.recipeForm.rawMaterialId), quantityPerItem: Number(this.recipeForm.quantityPerItem) }).subscribe({
+      next: () => { this.savingWorkflow = false; this.recipeForm = { rawMaterialId: null, quantityPerItem: null }; this.loadRecipes(); this.toast.show('Recipe ingredient added.', 'success'); this.cdr.markForCheck(); },
+      error: err => { this.savingWorkflow = false; this.toast.show(err?.error?.error || 'Could not add recipe ingredient.', 'error'); this.cdr.markForCheck(); }
+    });
+  }
+
+  removeRecipe(recipe: any): void {
+    this.api.deleteRecipe(recipe.id).subscribe({ next: () => { this.loadRecipes(); this.toast.show('Recipe ingredient removed.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not remove ingredient.', 'error') });
+  }
+
+  loadPurchaseOrders(): void {
+    this.api.getPurchaseOrders().subscribe({ next: rows => { this.purchaseOrders = rows || []; this.cdr.markForCheck(); }, error: err => this.toast.show(err?.error?.error || 'Could not load purchase orders.', 'error') });
+  }
+
+  createPurchaseOrder(sendNow: boolean): void {
+    if (!this.validPo || this.savingWorkflow) return;
+    this.savingWorkflow = true;
+    const items = this.poForm.items.map((line: any) => ({ rawMaterialId: Number(line.rawMaterialId), quantity: Number(line.quantity) }));
+    this.api.createPurchaseOrder({ vendorId: this.poForm.vendorId || undefined, note: this.poForm.note.trim() || undefined, items, sendNow }).subscribe({
+      next: () => { this.savingWorkflow = false; this.poForm = { vendorId: null, items: [{ rawMaterialId: null, quantity: null }], note: '' }; this.loadPurchaseOrders(); this.toast.show(sendNow ? 'Purchase order sent.' : 'Purchase order saved as draft.', 'success'); this.cdr.markForCheck(); },
+      error: err => { this.savingWorkflow = false; this.toast.show(err?.error?.error || 'Could not create purchase order.', 'error'); this.cdr.markForCheck(); }
+    });
+  }
+
+  addPoLine(): void { this.poForm.items = [...this.poForm.items, { rawMaterialId: null, quantity: null }]; }
+
+  removePoLine(index: number): void { if (this.poForm.items.length > 1) this.poForm.items.splice(index, 1); }
+
+  receivePurchaseOrder(po: any): void {
+    this.api.receivePurchaseOrder(po.id).subscribe({ next: () => { this.loadPurchaseOrders(); this.loadMaterials(); this.toast.show('Purchase order received and stock updated.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not receive purchase order.', 'error') });
+  }
+
+  cancelPurchaseOrder(po: any): void {
+    this.api.cancelPurchaseOrder(po.id).subscribe({ next: () => { this.loadPurchaseOrders(); this.toast.show('Purchase order cancelled.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not cancel purchase order.', 'error') });
+  }
+
+  vendorName(vendorId: number | null): string { return this.vendors.find(v => v.id === vendorId)?.name || 'No supplier'; }
 
   isPositive(value: unknown): boolean {
     return Number.isFinite(Number(value)) && Number(value) > 0;

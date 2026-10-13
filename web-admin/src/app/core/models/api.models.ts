@@ -156,6 +156,7 @@ export interface BusinessMenuItem {
   available: boolean;
   stockStatus: string;
   variantCount: number;
+  variants?: BusinessItemVariant[];
   updatedAt: number | null;
   imageUrl?: string | null;
   imageVersion?: number;
@@ -167,7 +168,7 @@ export interface BusinessCategory {
 }
 
 export interface BusinessItemVariant {
-  id: number;
+  variantId: number;
   menuItemId: number;
   variantName: string;
   price: number;

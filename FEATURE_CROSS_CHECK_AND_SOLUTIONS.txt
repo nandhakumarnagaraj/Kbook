@@ -1,0 +1,64 @@
+Khanabook SaaS Feature Cross-Check
+Date: 2026-10-14
+
+Product roles and surfaces
+--------------------------
+- Android app: used by shop owners and shop staff. Their available actions may differ by role and permission; verify those rules in the app and server instead of assuming either role has full access.
+- Web admin: used by shop owners and KBook admins. These are distinct roles with potentially different tenant scope and administrative capabilities; verify actual authorization before describing access.
+- Server: shared APIs and business rules. Treat server-side authorization and tenant scoping as authoritative; client-side visibility alone does not prove access control.
+
+Scope
+-----
+Cross-checked menu variants, raw-material inventory, refunds, variant deletion, role/surface guidance, API routes, and project documentation. Android source was not changed in this work.
+
+Findings and Root Causes
+------------------------
+
+1. Android menu variants were not represented consistently in web admin
+   Finding: Android supports a base menu-item price plus variant prices, while the web-admin menu flow initially presented only the base price and did not reliably carry variant identifiers through UI operations.
+   Root cause: The web menu response omitted active variant details, and the UI/API model used an inconsistent variant identifier. The web creation flow also did not provide an equivalent way to configure variants.
+   Solution implemented: The business menu response now includes active variants. The web model uses variantId, and the menu UI displays variants and supports variant creation/deletion. Existing base-price behavior remains available.
+
+2. Inventory project guidance contradicted the current server and web implementation
+   Finding: Project guidance described inventory as removed, while the current server had raw-material tables, recipe endpoints, stock movements, purchase orders, and automatic stock deductions when bills are finalized. Android does not provide this raw-material inventory workflow.
+   Root cause: Guidance referred to Android's removed stock_logs/menu-item stock behavior, but did not distinguish that from the separate web-admin/server raw-material inventory feature.
+   Solution implemented: Updated docs/meta/AGENTS.md to clarify that raw-material inventory is active in web admin/server and is not an Android terminal feature. This does not imply Android has no inventory-related menu fields or that all owner/staff roles have identical permissions.
+
+3. Owners could not configure the recipe deduction pipeline through the web UI
+   Finding: The server automatically deducts ingredients on finalized bills, but the Inventory page did not expose recipe configuration. Without recipe lines, the automatic deduction has no ingredient quantities to apply.
+   Root cause: Recipe endpoints existed in the server but were not wired into the Inventory page or BusinessApiService.
+   Solution implemented: Added an Item Recipes tab where an authorized web-admin user can choose a menu item, assign raw materials and per-item quantities, and remove recipe lines. Server recipe creation now verifies that the menu item belongs to the active restaurant. Actual access is still subject to server authorization.
+
+4. Purchase-order endpoints were not available in the Inventory UI
+   Finding: The server supported creating, listing, receiving, and cancelling purchase orders, but the Inventory page did not connect to the purchase-order API.
+   Root cause: The existing web page supported direct stock-in but did not connect to the purchase-order API.
+   Solution implemented: Added multi-line purchase-order creation with draft/send actions and a list with receive/cancel actions. Purchase-order API responses now use DTOs, avoiding direct serialization of JPA entity relationships. Supplier and material ownership are checked against the restaurant. Endpoint authorization remains determined by the server's configured role rules.
+
+5. Manual refund validation was enforced only by the UI
+   Finding: The browser restricted invalid amounts, but the server previously accepted direct requests without equivalent checks.
+   Root cause: BusinessReadService.markManualRefund wrote the supplied amount and changed bill/payment state without validating eligibility or amount bounds.
+   Solution implemented: The server now checks refund eligibility, requires a positive amount, prevents refunds above the order total, and limits precision to two decimal places.
+
+6. Variant deletion did not verify the menu-item path parameter
+   Finding: The endpoint accepted both menuItemId and variantId, but the service only checked the restaurant and variant IDs before deleting. It could recompute the variant flag for a different menu item than the variant's actual parent.
+   Root cause: The service omitted the relationship check between the supplied menuItemId and the stored variant.
+   Solution implemented: Deletion now requires the variant's menuItemId to match the path menuItemId.
+
+7. Surface and role access must not be conflated
+   Finding: Android is used by both shop owners and shop staff. Web admin is used by owners and KBook admins. A surface-level statement such as "Android is staff-only" or "web admin is owner-only" is incorrect.
+   Root cause: The earlier summary collapsed product surfaces and user roles. It also did not establish KBook admin tenant scope or compare actual role permissions before describing them.
+   Solution: Corrected this report and the audit prompt. For authorization conclusions, inspect route guards, server role annotations/security configuration, tenant resolution, and any permission checks. Do not infer role access merely from a page appearing in a client.
+
+8. Android and web data visibility may differ by design
+   Finding: The project guidance describes Android views as terminal-scoped and web-admin views as restaurant-wide for some operational/reporting data. This is a data-visibility distinction, not a statement that owners cannot use Android or staff cannot use it.
+   Root cause: Different operational scopes on different product surfaces.
+   Solution: Preserve the documented distinction where confirmed, and verify it per feature and server endpoint before changing it.
+
+Verification
+------------
+- Server compile: passed (Maven, tests skipped).
+- Angular compiler check: passed (ngc --noEmit).
+- Angular production build: could not complete because Windows blocked esbuild subprocess startup with spawn EPERM.
+- Tests were not run.
+- Graphify's saved report was stale; a Graphify update attempt failed with a Python error: module 'http.client' has no attribute 'HTTPSConnection'.
+- No changes were pushed or deployed.

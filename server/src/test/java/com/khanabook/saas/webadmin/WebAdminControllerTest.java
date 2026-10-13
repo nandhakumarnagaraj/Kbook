@@ -8,6 +8,7 @@ import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.menu.data.CategoryRepository;
 import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
@@ -24,8 +25,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -305,6 +308,134 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         mockMvc.perform(get("/admin/feature-flags")
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isForbidden());
+    }
+
+    /** The server, not only the browser, decides what a manual refund may be. */
+    @Test
+    void manualRefund_rejectsAmountsTheOrderCannotSupport() throws Exception {
+        String ownerToken = persistUserAndGetToken("owner-refund-guard@test.com", RESTAURANT_ID, UserRole.OWNER);
+        Bill bill = seedRefundableBill("180.00");
+
+        // Above the order total.
+        refund(ownerToken, bill.getId(), "180.01").andExpect(status().isBadRequest());
+        // Zero and negative.
+        refund(ownerToken, bill.getId(), "0").andExpect(status().isBadRequest());
+        refund(ownerToken, bill.getId(), "-5").andExpect(status().isBadRequest());
+        // More precision than money carries.
+        refund(ownerToken, bill.getId(), "10.005").andExpect(status().isBadRequest());
+
+        assertThat(billRepository.findById(bill.getId()).orElseThrow().getRefundAmount()).isNull();
+    }
+
+    /** 180.000 is 180.00 written differently; the guard is about value, not scale. */
+    @Test
+    void manualRefund_acceptsAmountWrittenWithTrailingZeros() throws Exception {
+        String ownerToken = persistUserAndGetToken("owner-refund-trailing@test.com", RESTAURANT_ID, UserRole.OWNER);
+        Bill bill = seedRefundableBill("180.00");
+
+        refund(ownerToken, bill.getId(), "180.000").andExpect(status().isOk());
+
+        assertThat(billRepository.findById(bill.getId()).orElseThrow().getRefundAmount())
+                .isEqualByComparingTo("180.00");
+    }
+
+    @Test
+    void manualRefund_refusesBillsThatAreNotRefundable() throws Exception {
+        String ownerToken = persistUserAndGetToken("owner-refund-ineligible@test.com", RESTAURANT_ID, UserRole.OWNER);
+        Bill draft = seedRefundableBill("120.00", "draft", "pending");
+
+        refund(ownerToken, draft.getId(), "50").andExpect(status().isBadRequest());
+
+        assertThat(billRepository.findById(draft.getId()).orElseThrow().getRefundAmount()).isNull();
+    }
+
+    /** Deleting a variant through another menu item's path must not touch it. */
+    @Test
+    void variantDelete_refusesWhenThePathMenuItemIsNotTheParent() throws Exception {
+        String ownerToken = persistUserAndGetToken("owner-variant-guard@test.com", RESTAURANT_ID, UserRole.OWNER);
+        MenuItem parent = menuItemRepository.findAll().stream()
+                .filter(item -> RESTAURANT_ID.equals(item.getRestaurantId()))
+                .findFirst().orElseThrow();
+        ItemVariant variant = itemVariantRepository.findAll().stream()
+                .filter(v -> parent.getId().equals(v.getMenuItemId()))
+                .findFirst().orElseThrow();
+        MenuItem other = seedMenuItem("Masala Dosa", parent.getServerCategoryId());
+
+        mockMvc.perform(delete("/business/menu/" + other.getId() + "/variants/" + variant.getId())
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isBadRequest());
+        assertThat(itemVariantRepository.findById(variant.getId()).orElseThrow().getIsDeleted()).isFalse();
+
+        mockMvc.perform(delete("/business/menu/" + parent.getId() + "/variants/" + variant.getId())
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk());
+        assertThat(itemVariantRepository.findById(variant.getId()).orElseThrow().getIsDeleted()).isTrue();
+    }
+
+    /** The web menu model reads `variantId` and renders the variant prices it receives. */
+    @Test
+    void menuList_carriesActiveVariantsForTheWebModel() throws Exception {
+        String ownerToken = persistUserAndGetToken("owner-menu-variants@test.com", RESTAURANT_ID, UserRole.OWNER);
+
+        mockMvc.perform(get("/business/menu")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].variantCount").value(1))
+                .andExpect(jsonPath("$[0].variants[0].variantId").exists())
+                .andExpect(jsonPath("$[0].variants[0].id").doesNotExist())
+                .andExpect(jsonPath("$[0].variants[0].variantName").value("Full"))
+                .andExpect(jsonPath("$[0].variants[0].price").value(180.00));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions refund(String token, Long billId, String amount) throws Exception {
+        return mockMvc.perform(post("/business/bills/" + billId + "/manual-refund")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refundAmount\":" + amount + ",\"reason\":\"Customer request\"}"));
+    }
+
+    private Bill seedRefundableBill(String total) {
+        return seedRefundableBill(total, "completed", "Success");
+    }
+
+    private Bill seedRefundableBill(String total, String orderStatus, String paymentStatus) {
+        long now = System.currentTimeMillis();
+        Bill bill = new Bill();
+        bill.setRestaurantId(RESTAURANT_ID);
+        bill.setLocalId(91L);
+        bill.setDeviceId("ADMIN_TEST");
+        bill.setDailyOrderId(91L);
+        bill.setDailyOrderDisplay("ORD-REFUND");
+        bill.setLifetimeOrderId(191L);
+        bill.setOrderType("DINE_IN");
+        bill.setSubtotal(new BigDecimal(total));
+        bill.setTotalAmount(new BigDecimal(total));
+        bill.setPaymentMode("cash");
+        bill.setPaymentStatus(paymentStatus);
+        bill.setOrderStatus(orderStatus);
+        bill.setLastResetDate("2026-04-26");
+        bill.setCreatedAt(now);
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
+        return billRepository.save(bill);
+    }
+
+    private MenuItem seedMenuItem(String name, Long categoryId) {
+        long now = System.currentTimeMillis();
+        MenuItem item = new MenuItem();
+        item.setRestaurantId(RESTAURANT_ID);
+        item.setLocalId(50L);
+        item.setDeviceId("ADMIN_TEST");
+        item.setCategoryId(categoryId);
+        item.setServerCategoryId(categoryId);
+        item.setName(name);
+        item.setFoodType("veg");
+        item.setBasePrice(new BigDecimal("90.00"));
+        item.setIsAvailable(true);
+        item.setCreatedAt(now);
+        item.setUpdatedAt(now);
+        item.setServerUpdatedAt(now);
+        return menuItemRepository.save(item);
     }
 
     private void seedBusiness(Long restaurantId, String shopName, long now) {

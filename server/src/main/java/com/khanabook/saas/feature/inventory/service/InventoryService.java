@@ -316,13 +316,28 @@ public class InventoryService {
 				.compareTo(material.getLowStockThreshold()) <= 0;
 	}
 
+    // ── Recipes ───────────────────────────────────────────────────────────
+
+    /**
+     * Recipe lines of one menu item, with the ingredient named and unit-ed for the owner UI.
+     * Read inside a transaction so the lazy {@code rawMaterial} is initialized before mapping.
+     */
+    @Transactional(readOnly = true)
+    public List<com.khanabook.saas.feature.inventory.data.RecipeDtos.RecipeLineResponse> listRecipeLines(
+            Long restaurantId, Long menuItemId) {
+        return itemRecipeRepository.findByRestaurantIdAndMenuItemIdAndIsDeletedFalse(restaurantId, menuItemId)
+                .stream()
+                .map(com.khanabook.saas.feature.inventory.data.RecipeDtos.RecipeLineResponse::of)
+                .toList();
+    }
+
     // ── Purchase Orders ───────────────────────────────────────────────────
 
     /**
      * Creates a PO. If status SENT it is considered dispatched to the vendor.
      */
     @Transactional
-    public com.khanabook.saas.feature.inventory.data.PurchaseOrder createPurchaseOrder(
+    public com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoResponse createPurchaseOrder(
             Long restaurantId, Long vendorId, String note,
             List<com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoLine> lines, boolean sendNow) {
         if (lines == null || lines.isEmpty()) {
@@ -342,7 +357,7 @@ public class InventoryService {
                 throw new IllegalArgumentException("Line quantities must be positive");
             }
             RawMaterial material = rawMaterialRepository.findById(line.rawMaterialId())
-                    .filter(m -> m.getRestaurantId().equals(restaurantId))
+                    .filter(m -> m.getRestaurantId().equals(restaurantId) && !Boolean.TRUE.equals(m.getIsDeleted()))
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Material not found: " + line.rawMaterialId()));
             var item = new com.khanabook.saas.feature.inventory.data.PurchaseOrderItem();
@@ -351,7 +366,21 @@ public class InventoryService {
             item.setQuantity(line.quantity());
             po.getItems().add(item);
         }
-        return poRepository.save(po);
+        return toPoResponse(poRepository.save(po));
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoResponse> listPurchaseOrders(Long restaurantId) {
+        return poRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId).stream()
+                .map(this::toPoResponse).toList();
+    }
+
+    private com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoResponse toPoResponse(
+            com.khanabook.saas.feature.inventory.data.PurchaseOrder po) {
+        var items = po.getItems().stream().map(item -> new com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoItem(
+                item.getRawMaterial().getId(), item.getRawMaterial().getName(), item.getRawMaterial().getUnit(), item.getQuantity())).toList();
+        return new com.khanabook.saas.feature.inventory.data.PurchaseOrderDtos.PoResponse(
+                po.getId(), po.getVendorId(), po.getStatus(), po.getNote(), po.getCreatedAt(), items);
     }
 
     /** Marks a PO received: every line becomes a PURCHASE (stock-in). */

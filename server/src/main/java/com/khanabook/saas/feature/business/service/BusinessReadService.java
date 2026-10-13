@@ -191,9 +191,17 @@ public class BusinessReadService {
                 .filter(category -> !Boolean.TRUE.equals(category.getIsDeleted()))
                 .collect(Collectors.toMap(Category::getId, Category::getName, (left, right) -> left));
 
-        Map<Long, Long> variantCountByMenuId = itemVariantRepository.findByRestaurantIdAndServerUpdatedAtGreaterThan(restaurantId, 0L).stream()
+        List<ItemVariant> activeVariants = itemVariantRepository.findByRestaurantIdAndServerUpdatedAtGreaterThan(restaurantId, 0L).stream()
                 .filter(variant -> !Boolean.TRUE.equals(variant.getIsDeleted()))
+                .toList();
+        Map<Long, Long> variantCountByMenuId = activeVariants.stream()
                 .collect(Collectors.groupingBy(variant -> variant.getMenuItemId(), Collectors.counting()));
+
+        Map<Long, List<BusinessItemVariantResponse>> variantsByMenuId = activeVariants.stream()
+                .sorted(Comparator.comparing(ItemVariant::getSortOrder, Comparator.nullsLast(Integer::compareTo)))
+                .collect(Collectors.groupingBy(
+                        ItemVariant::getMenuItemId,
+                        Collectors.mapping(this::toBusinessItemVariantResponse, Collectors.toList())));
 
         return menuItems.stream()
                 .map(item -> BusinessMenuListItemResponse.builder()
@@ -207,6 +215,7 @@ public class BusinessReadService {
                         .available(Boolean.TRUE.equals(item.getIsAvailable()))
                         .stockStatus(item.getStockStatus().name())
                         .variantCount(variantCountByMenuId.getOrDefault(item.getId(), 0L))
+                        .variants(variantsByMenuId.getOrDefault(item.getId(), List.of()))
                         .imageUrl(item.getImageUrl())
                         .imageVersion(item.getImageVersion())
                         .updatedAt(item.getUpdatedAt())
@@ -270,6 +279,20 @@ public class BusinessReadService {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        if (!canManualRefund(bill)) {
+            throw new IllegalArgumentException("This order is not eligible for a manual refund.");
+        }
+        if (refundAmount == null || refundAmount.signum() <= 0) {
+            throw new IllegalArgumentException("Refund amount must be greater than zero.");
+        }
+        if (bill.getTotalAmount() == null || refundAmount.compareTo(bill.getTotalAmount()) > 0) {
+            throw new IllegalArgumentException("Refund amount cannot exceed the order total.");
+        }
+        // Compare value, not the literal the client happened to send: 180.000 is 180.00 and
+        // must not be refused for its scale alone.
+        if (refundAmount.stripTrailingZeros().scale() > 2) {
+            throw new IllegalArgumentException("Refund amount can have at most two decimal places.");
+        }
         long now = System.currentTimeMillis();
         bill.setRefundAmount(refundAmount);
         bill.setCancelReason(reason);
@@ -502,6 +525,12 @@ public class BusinessReadService {
         }
         long variantCount = itemVariantRepository
                 .countByMenuItemIdAndIsDeletedFalse(item.getId());
+        List<BusinessItemVariantResponse> variants = itemVariantRepository
+                .findByRestaurantIdAndServerUpdatedAtGreaterThan(item.getRestaurantId(), 0L).stream()
+                .filter(variant -> item.getId().equals(variant.getMenuItemId()) && !Boolean.TRUE.equals(variant.getIsDeleted()))
+                .sorted(Comparator.comparing(ItemVariant::getSortOrder, Comparator.nullsLast(Integer::compareTo)))
+                .map(this::toBusinessItemVariantResponse)
+                .toList();
         return BusinessMenuListItemResponse.builder()
                 .menuItemId(item.getId())
                 .categoryId(item.getCategoryId())
@@ -513,6 +542,7 @@ public class BusinessReadService {
                 .available(Boolean.TRUE.equals(item.getIsAvailable()))
                 .stockStatus(item.getStockStatus() != null ? item.getStockStatus().name() : "IN_STOCK")
                 .variantCount(variantCount)
+                .variants(variants)
                 .imageUrl(item.getImageUrl())
                 .imageVersion(item.getImageVersion())
                 .updatedAt(item.getUpdatedAt())
@@ -524,9 +554,14 @@ public class BusinessReadService {
         return itemVariantRepository.findByRestaurantIdAndServerUpdatedAtGreaterThan(restaurantId, 0L).stream()
                 .filter(v -> !Boolean.TRUE.equals(v.getIsDeleted()) && menuItemId.equals(v.getMenuItemId()))
                 .sorted(Comparator.comparing(ItemVariant::getSortOrder, Comparator.nullsLast(Integer::compareTo)))
-                .map(v -> new BusinessItemVariantResponse(
-                        v.getId(), v.getMenuItemId(), v.getVariantName(), v.getPrice(), v.getIsAvailable(), v.getSortOrder()))
+                .map(this::toBusinessItemVariantResponse)
                 .toList();
+    }
+
+    private BusinessItemVariantResponse toBusinessItemVariantResponse(ItemVariant variant) {
+        return new BusinessItemVariantResponse(
+                variant.getId(), variant.getMenuItemId(), variant.getVariantName(), variant.getPrice(),
+                variant.getIsAvailable(), variant.getSortOrder());
     }
 
     @Transactional(readOnly = true)

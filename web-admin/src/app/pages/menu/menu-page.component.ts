@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin } from 'rxjs';
+import { concatMap, forkJoin, from, tap, toArray } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -113,7 +113,14 @@ import { environment } from '../../../environments/environment';
               </td>
               <td>{{ item.categoryName || '-' }}</td>
               <td>{{ item.foodType || '-' }}</td>
-              <td>{{ formatCurrencyValue(item.basePrice) }}</td>
+              <td>
+                <div class="menu-price-list">
+                  <span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span>
+                  <span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId">
+                    <span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong>
+                  </span>
+                </div>
+              </td>
               <td>{{ item.variantCount }}</td>
               <td>
                 <span
@@ -170,7 +177,7 @@ import { environment } from '../../../environments/environment';
               <span class="chip" [class.success]="item.available" [class.danger]="!item.available">{{ item.available ? item.stockStatus : 'Unavailable' }}</span>
             </div>
             <p>{{ item.description || 'No description added yet.' }}</p>
-            <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd>{{ formatCurrencyValue(item.basePrice) }}</dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
+            <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
               <button class="ghost-btn" [disabled]="togglingId === item.menuItemId" (click)="toggleAvailability(item)">{{ item.available ? 'Set unavailable' : 'Set available' }}</button>
               <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
@@ -295,15 +302,17 @@ import { environment } from '../../../environments/environment';
             </select>
           </div>
           <div class="field">
-            <label>Base Price (₹) *</label>
+            <label>Base Price (₹)</label>
             <input
               type="number"
               class="field-control"
               [(ngModel)]="formBasePrice"
               placeholder="0.00"
-              min="0.01"
+              min="1"
+              max="100000"
               step="0.01"
             />
+            <span class="muted" *ngIf="!editingItem">Optional when variants are added; the lowest variant price becomes the base price.</span>
           </div>
           <div class="field">
             <label>Description</label>
@@ -331,16 +340,19 @@ import { environment } from '../../../environments/environment';
             </div>
           </div>
 
-          <!-- Portion / Size Variants Section (Available for existing dishes) -->
-          <div class="field" *ngIf="editingItem" style="margin-top: 1rem; border-top: 1px solid var(--kb-color-border); padding-top: 1rem;">
+          <!-- Portion / Size Variants -->
+          <div class="field" style="margin-top: 1rem; border-top: 1px solid var(--kb-color-border); padding-top: 1rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
               <label style="margin:0; font-weight:700;">Portion / Size Variants</label>
               <span class="muted" style="font-size:0.75rem;">(e.g., Half, Full, 250ml, 500ml)</span>
             </div>
 
             <!-- Existing Variants List -->
-            <div *ngIf="loadingVariants" class="panel loading" style="padding:0.75rem; font-size:0.82rem;">Loading variants...</div>
-            <div *ngIf="!loadingVariants && itemVariants.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom: 0.75rem;">
+            <div *ngIf="editingItem && loadingVariants" class="panel loading" style="padding:0.75rem; font-size:0.82rem;">Loading variants...</div>
+            <p *ngIf="editingItem && variantsLoadError" class="error-text" role="alert">
+              Couldn't load variant prices. <button type="button" class="ghost-btn" (click)="loadVariants(editingItem.menuItemId)">Retry</button>
+            </p>
+            <div *ngIf="editingItem && !loadingVariants && itemVariants.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom: 0.75rem;">
               <div *ngFor="let variant of itemVariants; trackBy: trackByVariantId" style="display:flex; align-items:center; justify-content:space-between; padding: 0.45rem 0.75rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 8px;">
                 <div>
                   <strong style="font-size:0.88rem;">{{ variant.variantName }}</strong>
@@ -350,14 +362,20 @@ import { environment } from '../../../environments/environment';
                   type="button"
                   class="ghost-btn danger-btn"
                   style="padding: 0.2rem 0.5rem; font-size: 0.75rem; min-height: 28px;"
-                  [disabled]="deletingVariantId === variant.id"
+                  [disabled]="deletingVariantId === variant.variantId"
                   (click)="deleteVariant(variant)"
                 >
-                  {{ deletingVariantId === variant.id ? 'Deleting...' : 'Remove' }}
+                  {{ deletingVariantId === variant.variantId ? 'Deleting...' : 'Remove' }}
                 </button>
               </div>
             </div>
-            <p class="muted" *ngIf="!loadingVariants && !itemVariants.length" style="font-size:0.82rem; margin:0 0 0.5rem;">No portion variants defined for this item yet. Base price applies.</p>
+            <p class="muted" *ngIf="editingItem && !loadingVariants && !itemVariants.length" style="font-size:0.82rem; margin:0 0 0.5rem;">No portion variants defined for this item yet. Base price applies.</p>
+            <div *ngIf="!editingItem && newMenuVariantDrafts.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem;">
+              <div *ngFor="let variant of newMenuVariantDrafts; let i = index" style="display:flex; align-items:center; justify-content:space-between; padding:0.45rem 0.75rem; background:var(--kb-color-surface-2); border:1px solid var(--kb-color-border); border-radius:8px;">
+                <span><strong>{{ variant.variantName }}</strong><span class="muted" style="margin-left:0.5rem;">{{ formatCurrencyValue(variant.price) }}</span></span>
+                <button type="button" class="ghost-btn danger-btn" style="padding:0.2rem 0.5rem; font-size:0.75rem; min-height:28px;" (click)="removeNewMenuVariant(i)">Remove</button>
+              </div>
+            </div>
 
             <!-- Add Variant Form -->
             <div style="display:flex; gap:0.4rem; align-items:center;">
@@ -373,14 +391,15 @@ import { environment } from '../../../environments/environment';
                 class="field-control"
                 [(ngModel)]="newVariantPrice"
                 placeholder="Price (₹)"
-                min="0.01"
+                min="1"
+                max="100000"
                 step="0.01"
                 style="flex: 1; min-height:36px; font-size:0.85rem;"
               />
               <button
                 type="button"
                 class="ghost-btn"
-                [disabled]="!newVariantName.trim() || !newVariantPrice || newVariantPrice <= 0 || addingVariant"
+                [disabled]="!newVariantName.trim() || !newVariantPrice || newVariantPrice < 1 || newVariantPrice > 100000 || addingVariant"
                 (click)="addVariant()"
                 style="min-height:36px; padding: 0 0.85rem; font-size:0.82rem;"
               >
@@ -522,6 +541,10 @@ import { environment } from '../../../environments/environment';
     .data-table td {
       font-variant-numeric: tabular-nums;
     }
+    .menu-price-list { display: grid; gap: 0.25rem; min-width: 112px; }
+    .menu-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+    .menu-price-label { color: var(--kb-color-muted-foreground); font-size: 0.78rem; }
+    .menu-price-row strong { white-space: nowrap; }
     .ocr-panel { margin-top: var(--kb-space-3); }
     .ocr-state {
       display: flex; align-items: flex-start; gap: var(--kb-space-2);
@@ -619,7 +642,9 @@ export class MenuPageComponent implements OnDestroy {
 
   // Portion variants state inside edit modal
   itemVariants: BusinessItemVariant[] = [];
+  newMenuVariantDrafts: Array<{ variantName: string; price: number }> = [];
   loadingVariants = false;
+  variantsLoadError = false;
   newVariantName = '';
   newVariantPrice: number | null = null;
   addingVariant = false;
@@ -640,6 +665,8 @@ export class MenuPageComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private pendingFormWarning = '';
+  private variantLoadSequence = 0;
 
   get isOwner(): boolean {
     return this.auth.session()?.role === 'OWNER';
@@ -836,37 +863,52 @@ export class MenuPageComponent implements OnDestroy {
 
   loadVariants(menuItemId: number): void {
     this.loadingVariants = true;
+    this.variantsLoadError = false;
+    const requestSequence = ++this.variantLoadSequence;
+    const requestedMenuItemId = menuItemId;
     this.api.getItemVariants(menuItemId).subscribe({
       next: (variants) => {
-        this.itemVariants = variants;
-        this.loadingVariants = false;
+        const index = this.items.findIndex(item => item.menuItemId === requestedMenuItemId);
+        if (index >= 0) {
+          this.items[index] = { ...this.items[index], variants, variantCount: variants.length };
+          if (this.editingItem?.menuItemId === requestedMenuItemId) {
+            this.editingItem = this.items[index];
+          }
+        }
+        if (requestSequence === this.variantLoadSequence) {
+          this.itemVariants = variants;
+          this.loadingVariants = false;
+        }
         this.cdr.markForCheck();
       },
       error: () => {
-        this.itemVariants = [];
-        this.loadingVariants = false;
+        if (requestSequence === this.variantLoadSequence) {
+          this.loadingVariants = false;
+          this.variantsLoadError = true;
+        }
         this.cdr.markForCheck();
       }
     });
   }
 
   addVariant(): void {
-    if (!this.editingItem || !this.newVariantName.trim() || !this.newVariantPrice || this.newVariantPrice <= 0) return;
+    const variantName = this.newVariantName.trim();
+    const price = Number(this.newVariantPrice);
+    if (!variantName || !Number.isFinite(price) || price < 1 || price > 100000) return;
+    if (!this.editingItem) {
+      this.newMenuVariantDrafts = [...this.newMenuVariantDrafts, { variantName, price }];
+      this.newVariantName = '';
+      this.newVariantPrice = null;
+      return;
+    }
     this.addingVariant = true;
-    this.api.createVariant(this.editingItem.menuItemId, this.newVariantName.trim(), Number(this.newVariantPrice)).subscribe({
+    this.api.createVariant(this.editingItem.menuItemId, variantName, price).subscribe({
       next: (variant) => {
         this.addingVariant = false;
         this.newVariantName = '';
         this.newVariantPrice = null;
         this.toast.show(`Variant ${variant.variantName} added`, 'success');
         this.loadVariants(this.editingItem!.menuItemId);
-        if (this.editingItem) {
-          this.editingItem.variantCount = (this.editingItem.variantCount || 0) + 1;
-        }
-        const idx = this.items.findIndex(i => i.menuItemId === this.editingItem?.menuItemId);
-        if (idx >= 0) {
-          this.items[idx].variantCount = (this.items[idx].variantCount || 0) + 1;
-        }
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -878,21 +920,18 @@ export class MenuPageComponent implements OnDestroy {
     });
   }
 
+  removeNewMenuVariant(index: number): void {
+    this.newMenuVariantDrafts = this.newMenuVariantDrafts.filter((_, i) => i !== index);
+  }
+
   deleteVariant(variant: BusinessItemVariant): void {
     if (!this.editingItem) return;
-    this.deletingVariantId = variant.id;
-    this.api.deleteVariant(this.editingItem.menuItemId, variant.id).subscribe({
+    this.deletingVariantId = variant.variantId;
+    this.api.deleteVariant(this.editingItem.menuItemId, variant.variantId).subscribe({
       next: () => {
         this.deletingVariantId = null;
         this.toast.show(`Variant ${variant.variantName} removed`, 'success');
         this.loadVariants(this.editingItem!.menuItemId);
-        if (this.editingItem) {
-          this.editingItem.variantCount = Math.max(0, (this.editingItem.variantCount || 1) - 1);
-        }
-        const idx = this.items.findIndex(i => i.menuItemId === this.editingItem?.menuItemId);
-        if (idx >= 0) {
-          this.items[idx].variantCount = Math.max(0, (this.items[idx].variantCount || 1) - 1);
-        }
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -904,7 +943,7 @@ export class MenuPageComponent implements OnDestroy {
     });
   }
 
-  trackByVariantId = (_: number, variant: BusinessItemVariant) => variant.id;
+  trackByVariantId = (_: number, variant: BusinessItemVariant) => variant.variantId;
 
   // --- Add/Edit Modal ---
 
@@ -919,6 +958,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formSaving = false;
     this.formAvailable = true;
     this.itemVariants = [];
+    this.newMenuVariantDrafts = [];
     this.newVariantName = '';
     this.newVariantPrice = null;
     this.resetFormPhoto();
@@ -936,6 +976,7 @@ export class MenuPageComponent implements OnDestroy {
     this.formSaving = false;
     this.formAvailable = item.available ?? true;
     this.itemVariants = [];
+    this.newMenuVariantDrafts = [];
     this.newVariantName = '';
     this.newVariantPrice = null;
     this.resetFormPhoto(item.imageUrl?.trim() || null);
@@ -947,6 +988,7 @@ export class MenuPageComponent implements OnDestroy {
     this.showFormModal = false;
     this.editingItem = null;
     this.itemVariants = [];
+    this.newMenuVariantDrafts = [];
     this.formError = '';
     this.resetFormPhoto();
   }
@@ -995,9 +1037,14 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   isFormValid(): boolean {
+    const basePrice = this.formBasePrice ?? 0;
+    const hasValidBasePrice = basePrice >= 1 && basePrice <= 100000;
+    const hasPositiveBasePrice = basePrice > 0;
+    const hasValidNewVariants = this.newMenuVariantDrafts.length > 0
+      && this.newMenuVariantDrafts.every(variant => variant.variantName.trim().length > 0 && variant.price >= 1 && variant.price <= 100000);
     return this.formName.trim().length > 0
       && this.formCategoryId !== null
-      && (this.formBasePrice ?? 0) > 0;
+      && (this.editingItem ? hasPositiveBasePrice : hasValidBasePrice || hasValidNewVariants);
   }
 
   submitForm(): void {
@@ -1033,14 +1080,39 @@ export class MenuPageComponent implements OnDestroy {
         name: this.formName.trim(),
         categoryId,
         foodType: this.formFoodType as 'veg' | 'non-veg',
-        basePrice: this.formBasePrice!,
+        basePrice: (this.formBasePrice != null && this.formBasePrice >= 1 && this.formBasePrice <= 100000)
+          ? this.formBasePrice
+          : Math.min(...this.newMenuVariantDrafts.map(variant => variant.price)),
         ...(this.formDescription.trim() ? { description: this.formDescription.trim() } : {})
       };
 
       this.api.createMenuItem(payload).subscribe({
         next: (created) => {
-          this.items = [created, ...this.items];
-          this.persistFormPhoto(created, 'Menu item added');
+          if (!this.newMenuVariantDrafts.length) {
+            this.items = [created, ...this.items];
+            this.persistFormPhoto(created, 'Menu item added');
+            return;
+          }
+
+          const savedVariants: BusinessItemVariant[] = [];
+          from(this.newMenuVariantDrafts).pipe(
+            concatMap(draft => this.api.createVariant(created.menuItemId, draft.variantName, draft.price).pipe(
+              tap(variant => savedVariants.push(variant))
+            )),
+            toArray()
+          ).subscribe({
+            next: (variants) => {
+              const itemWithVariants = { ...created, variants, variantCount: variants.length };
+              this.items = [itemWithVariants, ...this.items];
+              this.persistFormPhoto(itemWithVariants, 'Menu item added');
+            },
+            error: () => {
+              const itemWithSavedVariants = { ...created, variants: savedVariants, variantCount: savedVariants.length };
+              this.items = [itemWithSavedVariants, ...this.items];
+              this.pendingFormWarning = 'Dish was created, but some variants could not be saved. Edit the dish to add the missing variants.';
+              this.persistFormPhoto(itemWithSavedVariants, 'Menu item added');
+            }
+          });
         },
         error: (err) => {
           this.formSaving = false;
@@ -1105,7 +1177,9 @@ export class MenuPageComponent implements OnDestroy {
     this.formSaving = false;
     this.formPhotoBusy = false;
     this.closeFormModal();
-    this.showToast(successMessage);
+    const warning = this.pendingFormWarning;
+    this.pendingFormWarning = '';
+    this.showToast(warning || successMessage, warning ? 'error' : 'success');
   }
 
   // --- Delete ---

@@ -53,9 +53,10 @@ shop/payment/tax/printer configuration · sync · 5-terminal multi-device · Eas
 payments (testing phase) · reports · notifications.
 
 **Do NOT build (removed or never planned):** Zomato/Swiggy/marketplace integrations · storefront
-ordering · inventory/stock ledger (REMOVED 2026-09-29 — `stock_logs` table dropped in schema v78;
-menu-item stock *fields* remain as menu config) · staff management UI (permissions come from the
-server via PermissionManager) · payment links · kitchen display screen.
+ordering · Android raw-material inventory UI (not part of the terminal app) · staff management UI
+(permissions come from the server via PermissionManager) · payment links · kitchen display screen.
+The owner web admin and server currently implement a separate raw-material inventory ledger with
+recipes, stock movements, purchase orders, and automatic deductions when bills are finalized.
 
 **Data visibility model (do NOT re-implement in the wrong layer):**
 - **Android is terminal-scoped.** Each terminal sees ONLY its own bills — enforced in the DAO

@@ -5,6 +5,7 @@ import com.khanabook.saas.feature.inventory.data.RawMaterial;
 import com.khanabook.saas.feature.inventory.data.StockMovement;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.menu.data.ItemRecipeRepository;
+import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import com.khanabook.saas.feature.inventory.data.RawMaterialRepository;
 import com.khanabook.saas.feature.inventory.data.StockMovementRepository;
 import com.khanabook.saas.feature.inventory.data.VendorRepository;
@@ -28,22 +29,22 @@ public class InventoryController {
 
     private final RawMaterialRepository rawMaterialRepository;
     private final ItemRecipeRepository itemRecipeRepository;
+    private final MenuItemRepository menuItemRepository;
     private final StockMovementRepository stockMovementRepository;
     private final VendorRepository vendorRepository;
     private final InventoryService inventoryService;
-    private final com.khanabook.saas.feature.inventory.data.PurchaseOrderRepository purchaseOrderRepository;
 
     public InventoryController(RawMaterialRepository rawMaterialRepository,
                                ItemRecipeRepository itemRecipeRepository,
+                               MenuItemRepository menuItemRepository,
                                StockMovementRepository stockMovementRepository,
                                VendorRepository vendorRepository,
-                               com.khanabook.saas.feature.inventory.data.PurchaseOrderRepository purchaseOrderRepository,
                                InventoryService inventoryService) {
         this.rawMaterialRepository = rawMaterialRepository;
         this.itemRecipeRepository = itemRecipeRepository;
+        this.menuItemRepository = menuItemRepository;
         this.stockMovementRepository = stockMovementRepository;
         this.vendorRepository = vendorRepository;
-        this.purchaseOrderRepository = purchaseOrderRepository;
         this.inventoryService = inventoryService;
     }
 
@@ -127,10 +128,10 @@ public class InventoryController {
     // ── Recipes ───────────────────────────────────────────────────────────
 
     @GetMapping("/recipes/{menuItemId}")
-    public ResponseEntity<List<ItemRecipe>> listRecipes(@PathVariable Long menuItemId) {
+    public ResponseEntity<List<com.khanabook.saas.feature.inventory.data.RecipeDtos.RecipeLineResponse>> listRecipes(
+            @PathVariable Long menuItemId) {
         Long restaurantId = requireTenant();
-        return ResponseEntity.ok(itemRecipeRepository
-                .findByRestaurantIdAndMenuItemIdAndIsDeletedFalse(restaurantId, menuItemId));
+        return ResponseEntity.ok(inventoryService.listRecipeLines(restaurantId, menuItemId));
     }
 
     @PostMapping("/recipes")
@@ -150,6 +151,11 @@ public class InventoryController {
         if (material.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "rawMaterialId not found"));
         }
+        if (menuItemRepository.findById(menuItemId)
+                .filter(item -> item.getRestaurantId().equals(restaurantId)
+                        && !Boolean.TRUE.equals(item.getIsDeleted())).isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "menuItemId not found"));
+        }
         ItemRecipe recipe = new ItemRecipe();
         recipe.setRestaurantId(restaurantId);
         recipe.setMenuItemId(menuItemId);
@@ -158,7 +164,8 @@ public class InventoryController {
         long now = System.currentTimeMillis();
         recipe.setCreatedAt(now);
         recipe.setUpdatedAt(now);
-        return ResponseEntity.ok(itemRecipeRepository.save(recipe));
+        return ResponseEntity.ok(com.khanabook.saas.feature.inventory.data.RecipeDtos.RecipeLineResponse.of(
+                itemRecipeRepository.save(recipe)));
     }
 
     @DeleteMapping("/recipes/{id}")
@@ -288,8 +295,14 @@ public class InventoryController {
                             longOrNull(l.get("rawMaterialId")), decOrNull(l.get("quantity"))));
                 }
             }
+            Long vendorId = longOrNull(body.get("vendorId"));
+            if (vendorId != null && vendorRepository.findById(vendorId)
+                    .filter(v -> v.getRestaurantId().equals(restaurantId)
+                            && !Boolean.TRUE.equals(v.getIsDeleted())).isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Supplier not found"));
+            }
             return ResponseEntity.ok(inventoryService.createPurchaseOrder(restaurantId,
-                    longOrNull(body.get("vendorId")), str(body.get("note")),
+                    vendorId, str(body.get("note")),
                     lines, Boolean.TRUE.equals(body.get("sendNow"))));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -299,8 +312,7 @@ public class InventoryController {
     @GetMapping("/purchase-orders")
     public ResponseEntity<?> listPurchaseOrders() {
         Long restaurantId = requireTenant();
-        return ResponseEntity.ok(purchaseOrderRepository
-                .findByRestaurantIdOrderByCreatedAtDesc(restaurantId));
+        return ResponseEntity.ok(inventoryService.listPurchaseOrders(restaurantId));
     }
 
     /** Receive: every PO line becomes stock-in with PURCHASE ledger rows. */

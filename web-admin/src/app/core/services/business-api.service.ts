@@ -337,6 +337,34 @@ export class BusinessApiService {
     return this.http.get<any[]>(`${API_BASE_URL}/inventory/materials`);
   }
 
+  getRecipes(menuItemId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/inventory/recipes/${menuItemId}`);
+  }
+
+  addRecipe(body: { menuItemId: number; rawMaterialId: number; quantityPerItem: number }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/recipes`, body);
+  }
+
+  deleteRecipe(id: number): Observable<any> {
+    return this.http.delete(`${API_BASE_URL}/inventory/recipes/${id}`);
+  }
+
+  getPurchaseOrders(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE_URL}/inventory/purchase-orders`);
+  }
+
+  createPurchaseOrder(body: { vendorId?: number; note?: string; items: Array<{ rawMaterialId: number; quantity: number }>; sendNow: boolean }): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/purchase-orders`, body);
+  }
+
+  receivePurchaseOrder(id: number, unitCost?: number): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/purchase-orders/${id}/receive`, unitCost == null ? {} : { unitCost });
+  }
+
+  cancelPurchaseOrder(id: number): Observable<any> {
+    return this.http.post<any>(`${API_BASE_URL}/inventory/purchase-orders/${id}/cancel`, {});
+  }
+
   createMaterial(body: { name: string; unit?: string; stockQuantity?: number; lowStockThreshold?: number; costPerUnit?: number }): Observable<any> {
     return this.http.post<any>(`${API_BASE_URL}/inventory/materials`, body);
   }

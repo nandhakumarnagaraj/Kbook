@@ -3,6 +3,7 @@ package com.khanabook.saas.feature.business.dto;
 import lombok.Builder;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Builder
 public record BusinessMenuListItemResponse(
@@ -16,6 +17,7 @@ public record BusinessMenuListItemResponse(
         boolean available,
         String stockStatus,
         long variantCount,
+        List<BusinessItemVariantResponse> variants,
         String imageUrl,
         Integer imageVersion,
         Long updatedAt

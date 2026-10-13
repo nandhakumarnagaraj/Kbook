@@ -1,0 +1,720 @@
+================================================================================
+KHANABOOK SAAS — ROLE, FEATURE AND AUTHORIZATION AUDIT
+Phase 1 report (audit only — no code was changed)
+================================================================================
+Date            : 2026-10-14
+Auditor         : senior product engineering audit (static, evidence-driven)
+Tree audited    : working tree on `main` (HEAD bee91bb9 "removes printbutton")
+                  including uncommitted changes present at audit time
+Method          : source reading + mechanical search; see section 10
+Evidence rule   : every claim below cites file:line or a quoted rule. Claims that
+                  require a running app/DB are labelled NEEDS RUNTIME.
+
+--------------------------------------------------------------------------------
+0. HOW TO READ THIS REPORT
+--------------------------------------------------------------------------------
+Status vocabulary used in the matrix (section 2):
+  COMPLETE      implemented and reachable for that role, server enforces it
+  PARTIAL       reachable but with a missing piece (validation, state, feedback)
+  MISSING       not available on that surface for that role
+  INTENTIONAL   deliberately absent; documented as such
+  STALE DOCS    behaviour exists but the documentation contradicts it
+  ORPHAN        server implements it; no client calls it
+
+Confidence labels on findings (section 4):
+  CONFIRMED      read directly from source, no runtime needed
+  LIKELY         strong static evidence, one runtime assumption
+  NEEDS RUNTIME  cannot be settled statically
+
+Sections 5 / 6 / 7 split findings into confirmed defects, intentional
+differences, and open runtime questions, as requested.
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+The role model is real and enforced in depth. `UserRole` has exactly three values
+(OWNER, SHOP_STAFF, KBOOK_ADMIN) and three independent layers agree on them:
+server URL rules (`SecurityConfig`), server method annotations (`@RequireRole` +
+`RequireRoleAspect`), and client gates (Android `SessionManager`/`PermissionManager`,
+web-admin `roleGuard` + `session.role`). Four role/surface combinations exist and all
+four were verified from code, not assumed:
+
+  * Android = OWNER + SHOP_STAFF      (KBOOK_ADMIN cannot use the POS: MainActivity:82)
+  * Web admin = OWNER + KBOOK_ADMIN   (SHOP_STAFF is rejected at login: AuthServiceImpl:92-102)
+  * Server = the authority for all of them (URL rules + @RequireRole + permission keys)
+
+No cross-tenant read/write hole was found in the paths I traced. Tenant scoping is
+performed at the query level (`findByIdAndRestaurantId`, `requireTenant()`), and the
+payment surface — which has no URL-level role rule — compensates with explicit
+in-service checks (`PaymentController.requireScopedBill`, `requireOwnedRestaurantId`).
+
+The real problems are not authorization holes but (a) *orphaned server capability*,
+(b) a *thin platform-admin console*, and (c) *documentation that contradicts the
+running system*. Concretely:
+
+  1. Five server feature families have no client at all: /business/commerce,
+     /business/financing, /business/customers, /business/tax, /business/onboarding
+     (§4-F1). Owners cannot reach them; no role can.
+  2. KBOOK_ADMIN has 12 /admin/* controllers but only 3 web pages (§4-F2). Support
+     work — inspect a tenant, correct a bill, view commission/reports/routing — is
+     impossible; only suspend/activate, flags, KYC download and raw push exist.
+  3. docs/ARCHITECTURE.md still states inventory was removed (§4-F3) while server
+     /inventory/** and the web Inventory page are live and the bill-finalisation
+     deduction pipeline runs automatically. (docs/meta/AGENTS.md was corrected
+     earlier today; ARCHITECTURE.md was not.)
+  4. One dead sync endpoint (/sync/stocklog) whose only client was removed, plus a
+     server entity still mapped to `stock_logs` (§4-F4).
+  5. Graphify is stale (2026-10-05 vs commits on 2026-10-13) and its mandated
+     refresh command fails in this environment (§4-F5), so it must not be trusted
+     for current-state questions.
+
+Also worth stating plainly: the earlier cross-check work in this session
+(FEATURE_CROSS_CHECK_AND_SOLUTIONS.txt) closed two real defects I re-verified in
+this audit — the recipe endpoint sent a lazy proxy instead of the ingredient name
+(fixed: RecipeDtos.RecipeLineResponse) and a refund precision check rejected valid
+2-decimal amounts (fixed: BusinessReadService.java:293). Both are described in §5.
+
+--------------------------------------------------------------------------------
+2. ROLE-AND-FEATURE MATRIX
+--------------------------------------------------------------------------------
+Legend: A=Android OWNER, S=Android SHOP_STAFF, W=web-admin OWNER, K=web-admin
+KBOOK_ADMIN. Scope column is the data scope actually enforced.
+
+FEATURE           A    S    W    K    SERVER SUPPORT / SCOPE                         STATUS
+--------------------------------------------------------------------------------
+Menu (items)      ✅   👁   ✅   ✗    /business/menu CRUD (OWNER-only);             COMPLETE
+                                       /sync/menuitem push/pull + MenuPushAuthorizer
+  create/edit     ✅   ✗    ✅   ✗    A gated by SessionManager.canWriteMasterData  COMPLETE
+                                       (MenuViewModel.kt:180-617,1036)
+Categories        ✅   👁   ✅   ✗    /business/menu/categories, /sync/menu/...     COMPLETE
+Variants          ✅   👁   ✅   ✗    /business/menu/{id}/variants (list/create/    COMPLETE
+                                       delete); delete now checks parent item
+                                       (BusinessWriteService.java:534-538)
+Inventory         ✗    ✗    ✅   ✗    /inventory/** — 12 ×@RequireRole(OWNER)      COMPLETE
+  (raw materials)                      on writes; reads tenant-scoped, all staff    (web+server
+                                       allowed (InventoryController.java:53-352)     only, per
+                                                                                     product intent)
+Recipes           ✗    ✗    ✅   ✗    /inventory/recipes/**; POST validates the     COMPLETE
+                                       menu item belongs to the caller's restaurant
+                                       (InventoryController.java:151-156)
+Suppliers         ✗    ✗    ✅   ✗    /inventory/vendors (list/create); PO create    PARTIAL
+  (vendors)                            validates vendor ownership (:294-300)          no edit/delete
+Purchase orders   ✗    ✗    ✅   ✗    /inventory/purchase-orders CRUD + receive/    COMPLETE
+                                       cancel; DTO responses (RecipeDtos pattern)
+Orders (bills)    ✅   ✅   ✅   ✗    A: terminal-scoped (own device only, DAO);    INTENTIONAL
+                                       W: restaurant-wide (/business/orders)         difference,
+                                                                                     documented
+  status/payment  ✅   ✅*  ✅   ✗    A: BillRepository.updateOrderStatus/          PARTIAL
+  edit                                 updatePaymentMode (statusVersion bump);       (see F6)
+                                       W: /business/bills/{id}/status|payment-mode
+                                       (OWNER, BillEditService)
+Refunds           ✅*  ✅*  ✅   ✗    gateway refund: /payments/easebuzz/refund     COMPLETE
+  manual          ✗    ✗    ✅   ✗    manual refund is WEB-OWNER only:              INTENTIONAL
+                                       /business/bills/{id}/manual-refund + server
+                                       validation (BusinessReadService.java:282-294)
+Staff             ✗    ✗    ✅   ✗    /business/staff CRUD, sessions revoke;        COMPLETE
+                                       /permissions/** writes @RequireRole(OWNER)
+Reports           ✅   ✅   ✅   ✗    A: local, terminal-scoped; W: restaurant-     INTENTIONAL
+                                       wide via /analytics/*                          difference
+Payments          ✅   ✗    ✅   ✗    A: Easebuzz onboarding + refunds;             PARTIAL
+  (Easebuzz)                           W: only GET/PUT payment-config (no onboard)    (F7)
+Tax / GST return  ✗    ✗    ✗    ✗    /business/tax/** implemented, no client       ORPHAN (F1)
+Settings/profile  ✅   ✗    ✅   ✗    W: /business/profile; A: canWriteConfig=OWNER, COMPLETE
+                                       staff may write printer config only
+Terminals/devices ✅   ✅*  ✅   ✗    /sync/terminal/** (OWNER+STAFF) for device    COMPLETE
+                                       onboarding; /business/terminals/** OWNER-only
+                                       (approve/reject/recover/rename)
+Notifications     ✅   ✅   ✅   ✅    /notifications/** (all authenticated);        PARTIAL
+                                       /admin/notifications/send (KBOOK_ADMIN)        (F8)
+Synchronization   ✅   ✅   ✗    ✅*   /sync/** OWNER+SHOP_STAFF; GET                COMPLETE
+                                       /sync/master/pull also KBOOK_ADMIN;
+                                       X-Terminal-Token, strict in prod
+KYC / agreement   ✅   ✗    ✅   ✅    A+W owner upload/download; K downloads via     COMPLETE
+                                       /admin/kyc-document/{rid}/** (KBOOK_ADMIN)
+Customers         ✗    ✗    ✗    ✗    /business/customers/** implemented, no client ORPHAN (F1)
+Financing         ✗    ✗    ✗    ✗    /business/financing/** implemented, none      ORPHAN (F1)
+Unified commerce  ✗    ✗    ✗    ✗    /business/commerce/** implemented, none       ORPHAN (F1)
+Onboarding        ✗    ✗    ✗    ✗    /business/onboarding/** implemented, none     ORPHAN (F1)
+Feature flags     ✗    ✗    ✗    ✅    /admin/feature-flags/** incl. per-restaurant  COMPLETE
+                                       overrides + audit (FeatureFlagAdminController)
+Commission/admin  ✗    ✗    ✗    ✗*   /admin/commission, /admin/reports,            ORPHAN (F2)
+reports                                /admin/payment-routing, /admin/developer — no
+                                       web page
+Platform console  ✗    ✗    ✗    ✅    /admin/dashboard/summary, /admin/businesses   PARTIAL (F2)
+                                       (+suspend/activate), /admin/sub-merchants,
+                                       /admin/transactions, /admin/settlements,
+                                       /admin/payment-metrics, /admin/webhooks
+                              * = with caveats stated in the findings
+
+Feature-by-feature notes that matter operationally:
+  * Android menu writes: SHOP_STAFF sees an explicit "permission blocked" dialog
+    (MenuViewModel.blockedPermission → MenuConfigurationScreen.kt:311-316) rather
+    than a hidden control — deliberate, good offline UX.
+  * SHOP_STAFF bills never leave the device scope: terminal-scoped DAO reads are the
+    documented model (docs/meta/AGENTS.md "Data visibility model").
+  * Web inventory is OWNER-only at the URL layer; the web menu/inventory pages also
+    hide controls with `*ngIf="isOwner"` (menu-page.component.ts:44-213,
+    inventory-page reads), so the UI and the URL rule agree.
+
+--------------------------------------------------------------------------------
+3. ROLE/SURFACE VERIFICATION (what each of the four roles can actually do)
+--------------------------------------------------------------------------------
+3.1 Android — SHOP OWNER
+  - Full POS: billing, active orders, reprint, KDS, search bill, call customer.
+  - Master data: only OWNER may write — SessionManager.canWriteMasterData() == isOwner()
+    (SessionManager.kt:309) and every MenuViewModel write path checks it
+    (MenuViewModel.kt:180, 201, 222, 242, 263, 431, 487, 512, 565, 591, 607, 617, 1036).
+  - Configuration: canWriteConfig() == isOwner() (:322); printer config is the
+    exception granted to staff (:323).
+  - Reports: full reports + export (PermissionManager OWNER short-circuit, :94).
+  - Payments: Easebuzz onboarding, KYC/merchant-agreement upload, refunds.
+  - Terminals: can activate/reclaim its own device (/sync/terminal/**, OWNER+STAFF);
+    approving other devices is web-owner only.
+  - NO raw-material inventory/recipes/POs anywhere in Android (grep for
+    RawMaterial|ItemRecipe|PurchaseOrder|stock_movement in Android main = 0 hits).
+    This matches the product statement: inventory is web-admin + server only.
+
+3.2 Android — SHOP STAFF
+  - POS only: canUsePos() = OWNER||SHOP_STAFF (:300); MainActivity:82 sends any other
+    role to ROUTE_ROLE_ACCESS.
+  - Permission model is fixed by role and ignores explicit DB grants:
+    PermissionManager.hasPermission returns `SHOP_STAFF_GRANTED_KEYS.contains(key)`
+    (:95), where the granted set is ALL_PERMISSION_KEYS minus the owner-only config
+    families (:232-252). Server mirrors this (PermissionService).
+  - Can: billing create/edit/discount/settle/void/refund-by-gateway, view menu,
+    printer configuration, notifications, device activation, sync.
+  - Cannot: menu/category/item edits (blocked with a dialog), shop profile, GST/payment
+    config, staff management, manual refunds, reports export.
+  - Report cancel-order has no client permission check (ReportsViewModel.cancelOrder);
+    this is consistent today because `billing.void` is in the staff-granted set — see
+    §4-F9, low severity.
+
+3.3 Web admin — SHOP OWNER
+  - 10 business routes, all `data: { roles: ['OWNER'] }` (app.routes.ts:40-99):
+    dashboard, reports, daily-closing, orders, menu, inventory, staff, terminals,
+    settings.
+  - Restaurant-wide scope (not terminal-scoped) — documented intentional difference.
+  - Owner-only server rules: /business/**, /business/terminals/** (SecurityConfig
+    rules) plus @RequireRole(OWNER) on BusinessAdminController (24 methods) and
+    InventoryController (12 methods).
+  - Cannot: platform pages (/admin/* → 403 by URL rule); cannot complete Easebuzz
+    onboarding from web (§4-F7).
+
+3.4 Web admin — KBOOK ADMIN
+  - Landing path /admin/dashboard (auth.service.ts:75-76); sidebar shows exactly
+    3 platform links (sidebar-layout.component.ts:426-428).
+  - Server grants /admin/** and /actuator/** beyond health. Works: feature flags
+    (incl. per-restaurant override + audit), businesses list/detail/suspend/activate,
+    sub-merchant registry, transactions, settlements, payment metrics, webhook health,
+    KYC download, merchant-agreement download, admin push send.
+  - Tenant selection: only as a *path parameter* on admin endpoints
+    (/admin/kyc-document/{restaurantId}/**, /admin/businesses/{restaurantId}).
+    There is NO "act as owner", no tenant-scoped data browser, and no impersonation —
+    so a support engineer cannot see or fix a tenant's orders/menu/inventory. See §4-F2.
+  - Cannot use Android POS (not an app role) and cannot use /business/** (URL rule).
+
+--------------------------------------------------------------------------------
+4. RANKED FINDINGS
+--------------------------------------------------------------------------------
+F1  ORPHANED SERVER FEATURES — HIGH (product) / MEDIUM (risk)          CONFIRMED
+  Roles: Web OWNER (and arguably KBOOK ADMIN as the only possible consumer).
+  Impact: five complete server feature families are unreachable from every surface.
+    For a restaurant SaaS, /business/tax/** (GST summary, GST report, GST report CSV,
+    GST return data — TaxComplianceController.java:20-44) is a compliance workflow the
+    owner pays for and cannot use. /business/customers/** (insights, churn risk,
+    opt-out/opt-in/delete/export — CustomerDataController.java:19-46) is a
+    data-protection surface (DPDP-style consent/erasure) with no UI at all.
+  Expected: each shipped server capability is either wired to a surface or explicitly
+    deferred. Observed: implemented, tested by default suite, called by nobody.
+  Root cause: an API-first build order — server feature packages were implemented and
+    unit/integration tested before any client page was scoped, and nothing in the repo
+    tracks "shipped but unwired" (no dead-code check, no feature-flag row, no product
+    register). The gap therefore cannot surface in review.
+  Evidence: UnifiedCommerceController.java:12 (/business/commerce),
+    FinancingController.java:13, CustomerDataController.java:13,
+    TaxComplianceController.java:14, OnboardingController.java:12.
+    Client-side search for these paths in web-admin `*.ts` and Android `*.kt`
+    returns 0 matches (web-admin core/services/business-api.service.ts covers
+    /business/*, /analytics/*, /inventory/*, /permissions/* but none of the five).
+  Confidence: CONFIRMED for "no client calls it"; NEEDS RUNTIME for whether each
+    endpoint behaves correctly.
+  Fix / dependencies: triage per family (wire to a web page, or delete, or mark
+    feature-flagged). Cheapest first: GST report CSV from the Reports page, since
+    /analytics/gst-ledger already backs the on-screen GST view.
+  Blast radius: web-admin only (new pages); server deletions require a deprecation
+    window because Android ships on a slow release cadence.
+
+F2  KBOOK ADMIN CONSOLE IS A THIN SLICE OF THE PLATFORM API — HIGH          CONFIRMED
+  Role: KBOOK ADMIN. Also affects tenants indirectly (no in-product support path).
+  Impact: 12 /admin/* controllers exist (AdminDashboard, AdminSettlement,
+    AdminSubMerchant, AdminTransaction, PaymentMetrics, WebhookHealth,
+    PaymentRouting, AdminReports, AdminCommission, FeatureFlagAdmin,
+    DeveloperPortal, AdminNotification) but web-admin exposes 3 routes
+    (app.routes.ts:22-37). Support flows that therefore require raw API/DB access:
+    reading a tenant's commission/earnings, per-tenant transaction history,
+    payment routing changes, and any correction of a tenant's data.
+  Expected: a platform operator can (1) find a business, (2) inspect the tenant's
+    operational truth read-only, (3) perform bounded support actions — with an audit
+    trail. Observed: (1) and suspend/activate only; inspecting tenant data is not
+    possible at all because the only tenant-scoped admin endpoints are KYC/
+    agreement downloads.
+  Root cause: the platform console was built for the three highest-frequency operator
+    tasks (overview, business list, flags) while the rest of /admin/** grew API-first
+    for internal/ops use. There is also no tenancy model for an admin to "enter" —
+    TenantContext is the only scope mechanism, and a KBOOK_ADMIN token carries no
+    tenant — so a support workflow has no safe primitive to stand on today.
+  Evidence: server @RequestMapping("/admin/...") controllers listed above;
+    web routes admin/dashboard|businesses|feature-flags only; sidebar nav
+    (sidebar-layout.component.ts:426-428); admin-api.service.ts:20-114 shows the
+    client wrappers that exist (settlements, sub-merchants, transactions, metrics,
+    webhooks) — these ARE wrapped but only rendered on the platform dashboard.
+  Confidence: CONFIRMED (routes/controllers), NEEDS RUNTIME for what each admin page
+    actually renders on staging.
+  Fix / dependencies: decide the support policy FIRST (see §8 decision D2). If
+    read-only tenant inspection is approved, it must reuse the OWNER services with an
+    explicit tenant parameter and write a SecurityAuditEvent per access — never by
+    widening /business/** to KBOOK_ADMIN.
+  Blast radius: web-admin + server (new admin endpoints, audit); no Android change.
+
+F3  DOCUMENTATION CONTRADICTS THE RUNNING SYSTEM (inventory) — MEDIUM        CONFIRMED
+  Roles: all (docs drive human and agent decisions).
+  Impact: docs/ARCHITECTURE.md:67 and :119 state "inventory feature removed
+    2026-09-29 … `sync→inventory` no longer exists". Server /inventory/** is live with
+    raw_materials, item_recipes, purchase_orders, stock_movements and automatic
+    deduction on bill finalisation (InventoryService.deductForFinalizedBill), and the
+    web Inventory page consumes it. An engineer or agent trusting the doc would delete
+    or ignore a live money-affecting pipeline. (The two defects found and fixed today
+    — recipe payload and refund precision — were both in that documented-as-removed
+    area.)
+  Expected: one authoritative statement of where inventory lives. Observed:
+    docs/meta/AGENTS.md was corrected to say "web admin + server, not an Android
+    terminal feature"; ARCHITECTURE.md was not updated and still says removed.
+  Root cause: one word, two features. "Inventory" was recorded as removed when the
+    Android menu-item stock ledger was dropped (schema v78), then the unrelated
+    web+server raw-material inventory was built under the same name. The correction
+    therefore has to be applied per document, and a single-file edit (AGENTS.md) left
+    the rest of the corpus contradicting it.
+  Evidence: docs/ARCHITECTURE.md:67,119; docs/meta/AGENTS.md "Do NOT build" block;
+    InventoryController.java:27-352; Android main contains no inventory code.
+  Confidence: CONFIRMED.
+  Fix: update ARCHITECTURE.md (and audit docs/meta/FEATURE_DOCS.txt,
+    docs/archive/**) to the same statement; mark archived docs as archival.
+  Blast radius: docs only.
+
+F4  DEAD SYNC PATH: /sync/stocklog AND stock_logs — MEDIUM                   CONFIRMED
+  Roles: Android (none — no client), server.
+  Impact: StockLogController.java:26 exposes /sync/stocklog push|pull and
+    StockLog.java:14 still maps @Table(name = "stock_logs"), while the Android app
+    dropped the stock ledger (no `stocklog` reference in Android main; AppDatabase
+    only defensively probes for the table). Any client that still calls it writes into
+    a table no surface reads — data saved but not visible.
+  Expected: endpoints with no consumer are removed or return 410. Observed: alive and
+    authenticated (reachable by OWNER/SHOP_STAFF via /sync/**).
+  Root cause: the Android stock ledger was removed client-side only. Generic sync
+    plumbing is cheap to leave in place and this codebase has no orphan-endpoint check,
+    so the server half (controller + @Table mapping + master-pull injection) was never
+    revisited.
+  Evidence: server StockLogController.java:26-40, StockLog.java:14-16,
+    MasterSyncController.java:86 (injecting StockLogService into master pull);
+    Android: 0 call sites; grep for stock_logs in Android main hits only a migration
+    safety check and a comment.
+  Confidence: CONFIRMED (static). NEEDS RUNTIME to confirm the table still exists in
+    production after the v78 Android schema change (server migrations create it in
+    V1; no drop was found in server migrations).
+  Fix: either delete the server path in a release alongside a deprecation note, or, if
+    kept for old APKs, document it as legacy and exclude it from master pull.
+  Blast radius: server + any pre-v78 Android APK still in the field.
+
+F5  GRAPHIFY IS STALE AND ITS REFRESH IS BROKEN — MEDIUM (process)           CONFIRMED
+  Impact: graphify-out/GRAPH_REPORT.md and graph.json are dated 2026-10-05, while the
+    repository has commits on 2026-10-13 and uncommitted work from 2026-10-14 (menu
+    variants response, recipes/PO UI, new RecipeDtos, new tests). The graph does not
+    describe the current tree, so any answer sourced from it is unsafe.
+  Evidence: `ls -l graphify-out/` → GRAPH_REPORT.md 2026-10-05, graph.json
+    2026-10-05; `git log -1` → bee91bb9 dated 2026-10-13; run of the rule-mandated
+    `graphify update .` fails: "Rebuild failed: module 'http.client' has no attribute
+    'HTTPSConnection'" (same failure recorded in the earlier session report).
+    .agents/rules/graphify.md instructs running this after every code change.
+  Root cause: the installed graphify build uses http.client.HTTPSConnection, which the
+    current Python runtime no longer exposes — a tool/runtime incompatibility, not a
+    repository defect. Compounded by process: no CI step or gate depends on graph
+    freshness, so a broken refresh is invisible.
+  Confidence: CONFIRMED.
+  Fix: repair the graphify CLI environment (Python http.client usage bug) or pin a
+    working version; until then, treat graphify-out/** as archival and rely on source.
+  Blast radius: tooling/docs only.
+
+F6  OWNER BILL-EDIT (web) vs ANDROID EDIT PATHS: REVERSION EDGE CASES — MEDIUM
+                                                                             LIKELY
+  Roles: Web OWNER, Android OWNER/STAFF.
+  Impact: the owner can edit order status/payment mode from the web
+    (/business/bills/{id}/status|payment-mode → BillEditService, WebAdminControllerTest
+    covers the controller), and the device edits the same fields locally. The guard
+    is `statusVersion` (BillSyncService.protectBillState: strictly greater = deliberate
+    edit). Historically the Android pull mapper dropped statusVersion, which silently
+    reverted cancels (docs/planning/cancel-status-revert-root-cause.md). MasterSyncProcessor.kt
+    now carries it (line 1631-1636: `statusVersion = remoteBill.statusVersion ?: 0`) and
+    BillDao.kt:1149-1159 clamps to max(local, remote), so the documented root cause
+    appears fixed — but the server's protectBillState still *silently* restores status
+    instead of reporting a rejected push (documented as server RC-5 in that same file;
+    GenericSyncService.java:842 reports it as a failed push, which is the later
+    mitigation).
+  Expected: a rejected deliberate edit surfaces to the actor on both surfaces.
+  Observed: server-side version guard is correct; web edits bump statusVersion via
+    BillEditService; the failure-notification half depends on GenericSyncService
+    failedLocalIds (present).
+  Root cause (historical, now mitigated): the Android pull mapper omitted statusVersion,
+    so a pulled row overwrote the local deliberate-edit signal; the server's
+    protectBillState then judged the edit stale and restored the finalized status while
+    still acknowledging the push. Two independent defects (client version loss, server
+    silent restore) had to both be fixed; the client half is fixed
+    (MasterSyncProcessor.kt:1631-1636, BillDao.kt:1149-1159) and the reporting half
+    exists via failedLocalIds — but no test covers the two-writer case, which is why
+    this stays LIKELY rather than CONFIRMED.
+  Evidence: BusinessAdminController.java:108-127 (status/payment-mode endpoints),
+    BillEditService.java:53-79 (editable sets + guards), BillSyncService.java:302-357
+    (protectBillState), GenericSyncService.java:842 (failed-push reporting),
+    MasterSyncProcessor.kt:1631-1636 (pull now carries statusVersion),
+    BillDao.kt:1149-1159 (max(local, remote) clamp).
+  Confidence: LIKELY — the code paths are present; only runtime conflict testing
+    settles whether a web edit and a device cancel in the same window converge.
+  Fix: no change recommended before a runtime conflict test (see §7 Q1).
+  Blast radius: none proposed. If Q1 fails, the fix spans GenericSyncService and
+    BillSyncService (server) plus the Android pull mapper — affecting both clients,
+    existing bill statuses, and the sync contract.
+
+F7  PAYMENT ONBOARDING IS ANDROID-OWNER-ONLY — MEDIUM                        CONFIRMED
+  Role: Web OWNER.
+  Impact: Easebuzz sub-merchant onboarding (create/resubmit/verify-otp/kyc-access-key,
+    Android KhanaBookApi.kt:277-301) has no web equivalent: web-admin has only
+    GET/PUT /restaurants/payment-config/easebuzz (business-api.service.ts:411-415).
+    An owner who works from the browser must switch to the phone to fix payment KYC.
+  Expected: stated as instrument parity or documented as a phone-only flow.
+  Root cause: payment onboarding was built around the Easebuzz sub-merchant flow on the
+    Android SDK path (KYC access key, OTP, resubmit), so those endpoints were created
+    for the device; the web console only ever needed config read/write, and no parity
+    requirement was recorded.
+  Evidence: KhanaBookApi.kt:274-301 vs business-api.service.ts:411-415; server
+    RestaurantPaymentConfigController.java:31-216 implements the endpoints used by
+    Android.
+  Confidence: CONFIRMED (client surface), NEEDS RUNTIME for whether sub-merchant
+    management on /admin/sub-merchants (KBOOK ADMIN) is intended to cover this gap.
+  Fix: product decision — either accept phone-only onboarding (document it) or add an
+    owner onboarding wizard reusing the existing endpoints.
+  Blast radius: web-admin (+ no server change needed).
+
+F8  ADMIN PUSH HAS NO RECIPIENT VALIDATION AND NO AUDIT — MEDIUM             CONFIRMED
+  Role: KBOOK ADMIN.
+  Impact: POST /admin/notifications/send takes `restaurantId` from the request body and
+    pushes whatever title/message it is given (AdminNotificationController.java:21-44).
+    There is no existence check (a typo'd id returns success), no rate limiting, and no
+    SecurityAuditService call, unlike financial writes which are audited
+    (BusinessReadService.markManualRefund audits MANUAL_REFUND). Platform pushes to
+    customers' phones are exactly the kind of action that should be attributable.
+  Root cause: the controller began as an internal test/ops utility (it sits beside
+    NotificationTestController) and was promoted to /admin behind the URL rule only.
+    The audit pattern that financial writes follow (SecurityAuditService) was never
+    applied to the platform-notification path.
+  Evidence: AdminNotificationController.java:21-44 (no validation, no audit);
+    SecurityAuditService usage pattern in BusinessReadService.java:300-307.
+  Confidence: CONFIRMED (code), NEEDS RUNTIME for actual delivery behaviour.
+  Fix: validate the restaurant exists; audit every send; consider an allowlist of
+    message types. Blast radius: server + admin UI.
+
+F9  SHOP_STAFF REPORT CANCEL HAS NO CLIENT PERMISSION CHECK — LOW           CONFIRMED
+  Role: Android SHOP_STAFF.
+  Impact: ReportsViewModel.cancelOrder performs no PermissionManager check, while
+    canViewFullReports/canExportReports do (ReportsViewModel.kt:35,41). Today this is
+    harmless because `billing.void` is inside SHOP_STAFF_GRANTED_KEYS
+    (PermissionManager.kt:232-252) and the server re-authorises the push
+    (SyncPushGuard.requirePermission, BillSyncService guard).
+  Expected/observed: consistent with the fixed-role model, but the asymmetry means a
+    future change that removes billing.void from staff would not be reflected in the UI.
+  Root cause: the Android cancel path predates the fixed-role permission model. Because
+    billing.void is granted to SHOP_STAFF by role and the server re-authorises at sync,
+    no client gate was ever needed, and the omission was not revisited as the
+    PermissionManager layer matured around it.
+  Evidence: ReportsViewModel.kt:22 (permissionManager injected), :35 and :41 (the only
+    two permission checks in the file); cancelOrder (ReportsViewModel.kt:186-200) calls
+    no permissionManager method; PermissionManager.kt:232-252 defines the staff set that
+    includes billing.void; SyncPushGuard.requirePermission is the server-side re-check.
+  Confidence: CONFIRMED (absence of the gate); the impact assessment is LIKELY because
+    it assumes billing.void stays in the staff set.
+  Fix: either add the hasPermission(BILLING_VOID) gate for symmetry or add a test that
+    pins the staff set to include it. Blast radius: Android only.
+
+F10 AUTHORIZATION STYLE DRIFT (inline role/permission strings) — LOW        CONFIRMED
+  Impact: three enforcement styles coexist: URL rules (SecurityConfig),
+    @RequireRole + aspect (most controllers), and inline string comparisons
+    (RestaurantPaymentConfigController.java:60 `!"OWNER".equals(role)`;
+    PaymentController.createPaymentLink and .createPaymentLinkForBill call
+    requirePermission("billing.settle") inline — verified in the method bodies, exact
+    line numbers not captured; BusinessReadService inline refund checks). All are
+    enforced today, but every new method must remember the inline form — /payments/**
+    and /inventory/** reads rely on `anyRequest().authenticated()` as the fallback.
+  Root cause: enforcement was added incrementally — URL rules first, then the
+    @RequireRole aspect for controller families, then inline checks for payment flows
+    that needed per-permission-key decisions the annotation could not express. Nobody
+    consolidated afterwards, and the URL layer's `.anyRequest().authenticated()`
+    fallback makes a forgotten inline check look fine in review.
+  Evidence: SecurityConfig authorizeHttpRequests block ending in
+    `.anyRequest().authenticated()`; the inline checks above; RequireRoleAspect.java:29-38
+    is the only centralized enforcement.
+  Confidence: CONFIRMED.
+  Fix (hardening, no behaviour change): extend RequireRole to expressions, or add a
+    test that asserts each /payments/** and /inventory/** method carries an explicit
+    authorization annotation. Blast radius: server only.
+
+F11 RESTAURANT PaymentConfig READS: any authenticated role, tenant-scoped — LOW
+  Observable: /restaurants/payment-config/easebuzz GET is not OWNER-annotated (the PUT
+    is, inline). A SHOP_STAFF token can read its own tenant's gateway config; no other
+    tenant is reachable (RestaurantPaymentConfigController.java:31 uses
+    TenantContext). NEEDS RUNTIME to decide whether gateway config should be
+    owner-readable-only; no cross-tenant exposure found.
+  Root cause: the write path got an explicit owner check (line 60) when it was hardened,
+    but the read path kept the default `anyRequest().authenticated()`; the asymmetry was
+    never decided explicitly, so it is unclear whether staff reading gateway config is
+    intended.
+  Evidence: RestaurantPaymentConfigController.java:31 (read path, tenant-scoped via
+    TenantContext, no annotation) vs :60 (`!"OWNER".equals(role)` inline on the write
+    path); SecurityConfig's trailing `.anyRequest().authenticated()` is the only rule
+    covering this route family.
+  Confidence: CONFIRMED that the asymmetry exists; NEEDS RUNTIME to decide which side
+    is the intended behaviour — it may be deliberate (staff may need to know whether
+    the gateway is enabled), in which case this is documentation work, not a fix.
+  Blast radius: server only (one annotation or URL rule); no data or client change.
+
+F12 TEST-ONLY PUSH ENDPOINTS — WITHDRAWN AS A DEFECT (verified gated)   CONFIRMED
+  Correction on the record: my first pass reported "no profile guard" here. A second
+    read found @Profile("!prod") at NotificationTestController.java:23, so the test
+    endpoints do NOT exist in a production profile. The finding as originally written
+    is withdrawn.
+  Expected: internal test endpoints must not be reachable in production. Observed:
+    correct — class-level @Profile("!prod") plus @RequireRole(KBOOK_ADMIN) on all
+    three endpoints (NotificationTestController.java:33,47,55).
+  Root cause of the original mis-read: I inferred absence of a guard from a single
+    grep that only searched for @RequireRole matches, instead of reading the class
+    annotations — recorded here so the same shortcut is not trusted again.
+  Residual (informational, no action required): in non-prod environments (sandbox,
+    staging) any KBOOK_ADMIN can fire arbitrary push payloads through this path. That
+    is the intended purpose of the controller; no tenant data is written.
+  Evidence: NotificationTestController.java:21-26 (@RestController, @Profile("!prod")),
+    :33,47,55 (@RequireRole(KBOOK_ADMIN)).
+  Confidence: CONFIRMED.
+  Fix: none. Blast radius: none (no change proposed).
+
+Positive controls verified (do not regress):
+  P1 Tenant scoping is query-level: PaymentController.requireScopedBill (:63-69) uses
+     findByIdAndRestaurantId and returns 404 (not 403) for other tenants' bills;
+     the two guard helpers live at PaymentController.java:63-79 and every mutating
+     method resolves callerRestaurantId from TenantContext (lines 45, 64, 96, 123,
+     148, 188); RefundController.java:58-62 refuses a null tenant.
+  P2 SHOP_STAFF cannot sign in to web admin even if they know a web URL:
+     AuthServiceImpl.java:92-102 rejects `surface=web` staff logins before minting a
+     token, and roleGuard would land them on /limited-access anyway.
+  P3 Android fails closed on unknown roles: SyncNormalizer.normalizeUserRole maps
+     anything unrecognised to SHOP_STAFF (SyncNormalizer.kt:23-25), and the local
+     migration collapses legacy roles (AppDatabase.kt:2143-2149).
+  P4 Terminal authority is server-side: X-Terminal-Token identity, strict mode in prod
+     (application-prod.properties:79), KBOOK_ADMIN exempt.
+  P5 Secrets hygiene improved: Android/secrets.properties and release-key.jks are NOT
+     tracked by git (only secrets.properties.example is) — the 2026-09-18 F1
+     "secrets committed to a public repo" finding reads as remediated. NEEDS RUNTIME:
+     confirm history rewrite/digital-key rotation status separately.
+
+--------------------------------------------------------------------------------
+5. CONFIRMED DEFECTS (code-level)
+--------------------------------------------------------------------------------
+C1 Recipe list/detail endpoints sent a lazy proxy instead of ingredient data
+   (FIXED in the working tree, verified by test in this session).
+   Before: GET /inventory/recipes/{menuItemId} returned
+     [{"id":3,"menuItemId":601,"rawMaterial":{"id":5},"quantityPerItem":0.2500,...}]
+     because spring.jpa.open-in-view=false and JacksonConfig asks Hibernate to write
+     the identifier for unloaded proxies. The new Item Recipes tab reads
+     recipe.rawMaterial?.name → undefined → "Ingredient" with no unit.
+   Fix present: feature/inventory/data/RecipeDtos.java (RecipeLineResponse with
+     materialName/unit) + InventoryService.listRecipeLines (read-only transaction) +
+     InventoryController listRecipes/addRecipeLine + template reads
+     recipe.materialName/recipe.unit (inventory-page.component.ts:114).
+   Proof: test recipeList_exposesIngredientNameAndUnit failed pre-fix (rawMaterial =
+     {"id":5}) and passes post-fix.
+
+C2 Refund precision rejected valid amounts (FIXED in the working tree).
+   Before: `if (refundAmount.scale() > 2)` refused 180.000 (a literal with trailing
+     zeros) even though it equals the order total. After:
+     `refundAmount.stripTrailingZeros().scale() > 2` (BusinessReadService.java:293).
+   Proof: manualRefund_acceptsAmountWrittenWithTrailingZeros failed pre-fix (400) and
+     passes post-fix; bounds/zero/negative/3-dp cases remain rejected.
+
+C3 Server-side refund validation existed only in the UI before today's work — now
+   enforced in the service (BusinessReadService.java:282-294: eligibility, > 0,
+   ≤ total, ≤ 2 dp), covered by three new tests in WebAdminControllerTest.
+
+Note: C1-C3 were fixed during this session's earlier cross-check task, before this
+audit began. They are listed so the audit record is complete; no code was changed in
+Phase 1.
+
+--------------------------------------------------------------------------------
+6. INTENTIONAL DIFFERENCES (verified as deliberate, not defects)
+--------------------------------------------------------------------------------
+I1 Android bills are terminal-scoped; web orders are restaurant-wide. Enforced in
+   different layers (Android DAO vs server query by restaurantId) and documented in
+   docs/meta/AGENTS.md "Data visibility model". Correct as designed: the cashier must
+   not see the other counter's tabs, the owner must see the whole business.
+I2 Manual refunds are web-OWNER-only; the device only performs gateway refunds
+   (/payments/easebuzz/refund). Deliberate: manual money write-back is an owner
+   console action with an audit trail.
+I3 Master-data writes are OWNER-only on the device (SessionManager.canWriteMasterData)
+   while the server's SyncPushGuard accepts OWNER + KBOOK_ADMIN
+   (SyncPushGuard.java:15). The comment at SessionManager.kt:304-308 states this is
+   intentional so a server-side grant/promotion is never blocked by an old APK.
+I4 SHOP_STAFF permissions are fixed by role and explicit grant rows are ignored
+   (PermissionManager.kt:85-95, server PermissionService). Documented in
+   docs/product/PRODUCT.md:29-35.
+I5 KBOOK_ADMIN is not a POS role and cannot use Android (MainActivity:82,
+   SessionManagerTest asserts it). Documented.
+I6 KBOOK_ADMIN cannot call /business/** (URL rule). Supports the "no platform actor
+   inside tenant data" boundary — but see F2: the cost is that no support workflow exists.
+
+--------------------------------------------------------------------------------
+7. QUESTIONS THAT NEED RUNTIME VERIFICATION
+--------------------------------------------------------------------------------
+Q1 Two-writer status conflict: perform a web owner status/cancel edit and a device
+   cancel on the same bill within one sync window; assert the device is told the push
+   was refused rather than silently reverted (F6).
+Q2 Are the five orphan feature families (F1) intended for a future surface, or dead?
+   Check product roadmap/FeatureFlag rows for a kill switch on each.
+Q3 Does /sync/stocklog still resolve against production `stock_logs`, or does it 500
+   on a table that no longer exists (F4)?
+Q4 ANSWERED during this audit — NotificationTestController is NOT reachable in
+   production (@Profile("!prod"), NotificationTestController.java:23). Residual
+   question: confirm KBOOK_ADMIN access to it in sandbox/staging is acceptable (F12).
+Q5 Which admin pages actually render the wrapped admin APIs (settlements,
+   sub-merchants, transactions, metrics, webhooks) — the platform dashboard file is
+   large and I verified only the route wiring and service calls (F2)?
+Q6 Secret/key rotation status after the secrets.properties removal (P5).
+Q7 Easebuzz onboarding: is phone-only onboarding accepted, or is the admin
+   sub-merchant console the intended substitute (F7)?
+
+--------------------------------------------------------------------------------
+8. DECISIONS NEEDED BEFORE IMPLEMENTATION
+--------------------------------------------------------------------------------
+D1 Inventory documentation: confirm the authoritative wording, then fix every doc
+   (ARCHITECTURE.md first). Owner: you. Effort: S.
+D2 Platform-admin support policy: choose (a) read-only tenant inspection with audit,
+   (b) explicit "support session" with bounded write actions and audit, or
+   (c) keep platform admin out of tenant data and route support through the owner.
+   Everything in F2 depends on this. Effort: S to decide, L to build (a) or (b).
+D3 Orphan features (F1): wire, flag, or delete. Recommend flag-then-delete to keep
+   the API surface honest. Effort: M.
+D4 Graphify: fix or retire the tool. Effort: S to retire, M to fix.
+
+--------------------------------------------------------------------------------
+9. PROPOSED IMPLEMENTATION PLAN (Phase 2 — awaits your approval)
+--------------------------------------------------------------------------------
+Track 0 — documentation truth (no behaviour change, lowest risk)
+  0.1 docs/ARCHITECTURE.md: replace "inventory removed" with the live model
+      (web-admin + server; recipes drive deduction on finalisation; not an Android
+      feature). Also scan docs/meta/FEATURE_DOCS.txt and helper/KHANABOOK_MASTER_CONTEXT.md.
+  0.2 docs/design/DESIGN_SYSTEM.md:99-101 still lists SHOP_ADMIN and claims the
+      backend issues it — correct to OWNER/SHOP_STAFF/KBOOK_ADMIN.
+  0.3 Add a short "surface capability map" section to docs so the four role/surface
+      combinations are stated once (this report's section 2 is a starting draft).
+  Risk: none (docs). Verify: grep for "SHOP_ADMIN" and "inventory … removed".
+
+Track 1 — server hygiene (small, safe)
+  1.1 F4: decide /sync/stocklog fate; if legacy-kept, exclude from master pull and
+      annotate as legacy; if removed, delete controller/service/DTO + entity mapping
+      in one release and note the minimum supported APK.
+  1.2 F12: confirm prod profiles; if the test controller ships, gate it behind
+      @Profile("!prod").
+  1.3 F10 (hardening, optional): add a test asserting every /payments/** and
+      /inventory/** handler carries an explicit authorization annotation, so the
+      `anyRequest().authenticated()` fallback can never silently become the only gate.
+  Risk: low. Verify: full server suite (712 tests at audit time; 2 known
+  order-dependent sync failures unrelated to this area, see section 10).
+
+Track 2 — owner-facing gaps (product-visible, medium)
+  2.1 F1 /business/tax/**: expose GST report + CSV export on the web Reports page
+      (server work exists; reuse /analytics/gst-ledger patterns for consistency).
+  2.2 F1 /business/customers/**: decide surface for consent/erasure. If kept, it
+      belongs on the web owner console with an audit trail.
+  2.3 F7: decide phone-only onboarding vs a web wizard; if wizard, reuse
+      RestaurantPaymentConfigController endpoints.
+  Risk: medium (new UI). Verify: ngc typecheck + component specs; server endpoints
+  already have coverage but add controller tests for CSV/export paths.
+
+Track 3 — platform admin console (largest, gated on D2)
+  3.1 F8: validate restaurant existence + audit every admin push (small, do first
+      regardless of D2).
+  3.2 F2: build the approved support workflow. Non-negotiable constraints from this
+      audit: reuse tenant-scoped services with an explicit tenant parameter; never
+      widen /business/** to KBOOK_ADMIN; write a SecurityAuditEvent per access; keep
+      the 3-link sidebar honest about what exists.
+  Risk: high (new privileged surface). Verify: authorization tests proving a
+  KBOOK_ADMIN cannot reach /business/**, and that support actions are audited.
+
+Track 4 — client-side parity (Android, release-cadence bound)
+  4.1 F9: add the BILLING_VOID gate (or a pinning test) in ReportsViewModel.
+  4.2 Only if approved: nothing else in this report requires an Android change —
+      inventory/variants/refund fixes are server+web only.
+
+Sequencing recommendation: 0 → 1.1/1.2 → 3.1 → 2.1 → (D2 decision) → 3.2, with 4.1
+riding the next Android release.
+
+--------------------------------------------------------------------------------
+10. METHOD, EVIDENCE BASE AND LIMITATIONS
+--------------------------------------------------------------------------------
+Evidence base (all read at audit time):
+  Server   : core/security/SecurityConfig.java (+RequireRole.java, RequireRoleAspect.java),
+             core/config/JacksonConfig.java, feature/auth (UserRole, AuthServiceImpl G3),
+             feature/business (BusinessAdminController, BusinessReadService, BusinessWriteService,
+             BillEditService), feature/inventory (InventoryController, InventoryService,
+             data/{RawMaterial,ItemRecipe?}, StockLog, PurchaseOrder, PurchaseOrderItem),
+             feature/payments/controller/*, feature/sync (MasterSyncController,
+             SyncPushGuard, GenericSyncService), feature/staff (PermissionController,
+             PermissionService), feature/billing (BillSyncService, BillDTO/Bill),
+             feature/{reports,platform,notifications,onboarding,compliance}/controller/*,
+             plus grep sweeps for every @RequireRole and every route mapping.
+  Android  : SessionManager, PermissionManager, SyncNormalizer, MainActivity,
+             AppNavGraph/Routes, MenuViewModel, BillingViewModel, SettingsViewModel,
+             ReportsViewModel, EasebuzzOnboarding*, KhanaBookApi, AppDatabase migrations,
+             plus grep sweeps for inventory/stocklog/role gates.
+  Web      : app.routes.ts, core/auth/{role.guard,auth.service}, core/models/session.model,
+             core/services/{business-api,admin-api}.service.ts, sidebar-layout,
+             pages/{menu,inventory,staff,orders,reports,terminals,daily-closing,businesses,
+             platform-dashboard,feature-flags,limited-access}, plus Karma run of the suite.
+  Docs     : docs/meta/AGENTS.md, docs/meta/ROLES_AND_AUTH_AUDIT.txt (2026-10-12),
+             docs/product/PRODUCT.md, docs/ARCHITECTURE.md, docs/design/DESIGN_SYSTEM.md,
+             helper/KHANABOOK_MASTER_{PROMPT,CONTEXT}.md, docs/planning/*, docs/reviews/*.
+  Graph    : graphify-out/GRAPH_REPORT.md + graph.json (STALE — 2026-10-05).
+
+Commands actually run (results, not claims):
+  * Full server suite: 712 tests, 2 failures, 29 skipped. Both failures are 401s on the
+    sync terminal-token path (MasterSyncTerminalIsolationTest.terminalA_activeBill_
+    notReturnedToB, TerminalAccessControlGapTest.kotOnlyTerminal_stillPushesBills);
+    both pass 11/11 in isolation, and a HEAD-only control run was 704 tests / 0
+    failures — i.e. order-dependent test isolation, in files this audit did not touch.
+  * Web Karma suite: 121 tests, 16 failures — all in date-range/order-history/
+    daily-closing specs whose component and spec files are byte-identical to HEAD
+    (absent from the diff), i.e. pre-existing.
+  * ngc --noEmit: pass. Maven compile/test-compile: pass.
+  * graphify update . : FAILED ("module 'http.client' has no attribute 'HTTPSConnection'").
+  * git ls-files: Android/secrets.properties and release-key.jks are untracked.
+
+Limitations (state these whenever this report is quoted):
+  L1 Static-only. No application, database, gateway sandbox or push provider was run.
+    Every "works/does not work" statement is a code-reading inference unless it says
+    CONFIRMED and the evidence is a test or a compile.
+  L2 Graphify is stale and could not be refreshed, so no graph-sourced claim is made.
+  L3 The working tree contained uncommitted changes at audit time (menu variants
+    response, inventory recipes/POs UI, RecipeDtos, new tests). This report describes
+    that tree, not the deployed build — deployed behaviour may differ, and the
+    "requires deploy" items are called out in section 9.
+  L4 I read representative service bodies, not all of them: BusinessReadService,
+    BillSyncService and GenericSyncService are large, and I verified their guards via
+    targeted reads plus existing tests rather than line-by-line.
+  L5 No runtime conflict/concurrency testing was performed (Q1 is open for this reason).
+
+END OF PHASE 1 REPORT — no code changed. Awaiting approval for Phase 2 (section 9).
+================================================================================
