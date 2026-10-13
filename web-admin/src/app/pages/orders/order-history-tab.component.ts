@@ -313,7 +313,7 @@ export function filterBusinessOrders(
                     <button
                       *ngIf="order.manualRefundAllowed"
                       type="button"
-                      class="btn-micro btn-micro--danger"
+                      class="btn-micro btn-micro--refund"
                       (click)="openManualRefund(order)"
                       title="Issue refund"
                       aria-label="Refund order">
@@ -553,7 +553,6 @@ export function filterBusinessOrders(
       border: 1px solid var(--kb-color-border);
       border-radius: 18px;
       padding: 1.5rem;
-      margin-top: 1.5rem;
       box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03), 0 4px 12px rgba(28, 26, 23, 0.02);
     }
     .orders-head-bar {
@@ -786,6 +785,13 @@ export function filterBusinessOrders(
       font-size: 0.82rem;
     }
     .load-more-error { color: var(--kb-color-error); }
+    .btn-micro--refund,
+    .btn-micro--refund:hover {
+      color: #fff;
+      border-color: var(--kb-color-danger, #c0392b);
+      background: var(--kb-color-danger, #c0392b);
+    }
+    .btn-micro--refund:hover { filter: brightness(0.92); }
   `]
 })
 export class OrderHistoryTabComponent implements OnDestroy {

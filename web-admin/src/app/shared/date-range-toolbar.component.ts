@@ -66,11 +66,12 @@ import { DateRangeSelectorComponent } from './date-range-selector.component';
     .date-toolbar {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      gap: 0.4rem;
+      justify-content: flex-start;
+      gap: 8px;
       flex-wrap: nowrap;
     }
-    app-date-range-selector { flex: 0 0 auto; }
+    app-date-range-selector { flex: 0 0 auto; width: auto; }
+    .date-toolbar__button--refresh { margin-left: -2px; }
     .date-toolbar__button {
       display: grid;
       place-items: center;

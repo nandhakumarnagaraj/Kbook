@@ -101,7 +101,7 @@ export type OrdersTab = 'live' | 'history';
       .orders-tabs {
         display: flex;
         gap: 0.4rem;
-        padding: 0.3rem;
+        padding: 0.2rem;
         background: var(--kb-color-surface-2, #f4f4f5);
         border: 1px solid var(--kb-color-border);
         border-radius: 999px;
@@ -114,7 +114,7 @@ export type OrdersTab = 'live' | 'history';
         display: inline-flex;
         align-items: center;
         gap: 0.45rem;
-        padding: 0.5rem 1.05rem;
+        padding: 6px 12px;
         border: none;
         background: transparent;
         border-radius: 999px;
