@@ -348,7 +348,6 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
               <td *ngIf="isOwner">
                 <div class="action-cell">
                   <button class="small-action-btn" (click)="openEditModal(item)">Edit</button>
-                  <button class="small-action-btn" (click)="openPermissionsModal(item)" *ngIf="!isSelf(item) && item.role !== 'OWNER'">Permissions</button>
                   <button
                     class="small-action-btn"
                     *ngIf="item.active"
