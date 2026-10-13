@@ -804,13 +804,6 @@ export function filterBusinessOrders(
       font-weight: 600;
       margin-top: 0.1rem;
     }
-    .status-chip {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-    }
     .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
@@ -826,37 +819,6 @@ export function filterBusinessOrders(
       align-items: center;
       justify-content: flex-end;
       gap: 0.45rem;
-    }
-    .btn-micro {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 8px;
-      border: 1px solid var(--kb-color-border);
-      background: var(--kb-color-surface);
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 120ms ease;
-    }
-    .btn-micro:hover { background: var(--kb-color-surface-2); border-color: var(--kb-color-border-strong); }
-    .btn-micro--primary {
-      background: var(--kb-color-primary);
-      border-color: var(--kb-color-primary);
-      color: var(--kb-color-surface);
-    }
-    .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
-    .btn-micro--danger {
-      color: var(--kb-color-danger);
-      border-color: var(--kb-color-danger-soft);
-      background: var(--kb-color-danger-soft);
-    }
-    .btn-micro--danger:hover {
-      background: var(--kb-color-danger-soft);
-      border-color: var(--kb-color-danger);
     }
     .empty-orders-view {
       padding: 3rem 1.5rem;

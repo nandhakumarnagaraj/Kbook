@@ -45,7 +45,7 @@ import { formatDate } from '../../shared/formatters';
 
       <!-- Bento Terminal Stat Summary (bentogrids.com standard) -->
       <section class="terminals-bento-grid" aria-label="Terminal fleet overview">
-        <article class="bento-tile bento-tile--fleet" [class.bento-tile--alert]="fleetOverLimit()">
+        <article class="fleet-tile" [class.fleet-tile--alert]="fleetOverLimit()">
           <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="fleetOverLimit()">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
@@ -59,7 +59,7 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </article>
 
-        <article class="bento-tile bento-tile--active">
+        <article class="fleet-tile">
           <div class="tile-icon-wrap tile-icon-wrap--green">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
@@ -71,7 +71,7 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </article>
 
-        <article class="bento-tile bento-tile--pending" [class.bento-tile--alert]="pendingRequests().length > 0">
+        <article class="fleet-tile" [class.fleet-tile--alert]="pendingRequests().length > 0">
           <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="pendingRequests().length > 0">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -540,7 +540,9 @@ import { formatDate } from '../../shared/formatters';
     @media (max-width: 768px) {
       .terminals-bento-grid { grid-template-columns: 1fr; }
     }
-    .bento-tile {
+    /* Page-local fleet stat row. Deliberately NOT .bento-tile: that is the shared
+       KPI-card vocabulary (bento.css) and this row is a different component. */
+    .fleet-tile {
       display: flex;
       align-items: center;
       gap: var(--kb-space-3);
@@ -549,7 +551,7 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
     }
-    .bento-tile--alert {
+    .fleet-tile--alert {
       border-color: rgba(183, 121, 31, 0.4);
       background: rgba(183, 121, 31, 0.03);
     }

@@ -75,7 +75,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
             <article class="kpi-card">
               <div class="kpi-head">
                 <span class="kpi-label">Total Businesses</span>
-                <span class="kpi-tag kpi-tag--success">{{ data.liveBusinesses }} Live</span>
+                <span class="kpi-tag kpi-tag--green">{{ data.liveBusinesses }} Live</span>
               </div>
               <strong class="kpi-value">{{ data.totalBusinesses }}</strong>
               <div class="kpi-delta">
@@ -95,7 +95,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
             <article class="kpi-card" [class.kpi-card--warn]="data.refundedOrders > 0">
               <div class="kpi-head">
                 <span class="kpi-label">Refunds</span>
-                <span class="kpi-tag" [class.kpi-tag--danger]="data.refundedOrders > 0">{{ data.refundedOrders }} Reversals</span>
+                <span class="kpi-tag" [class.kpi-tag--warn]="data.refundedOrders > 0">{{ data.refundedOrders }} Reversals</span>
               </div>
               <strong class="kpi-value">{{ data.refundedAmountFormatted }}</strong>
               <div class="kpi-delta">
@@ -397,15 +397,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
 
     .kpi-head { display: flex; justify-content: space-between; align-items: center; }
-    .kpi-tag {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
-      padding: 0.2rem 0.55rem; border-radius: var(--kb-radius-full);
-      background: var(--kb-color-surface-2); color: var(--kb-color-muted-foreground);
-    }
     .kpi-tag--hero { background: rgba(255, 255, 255, 0.2); color: var(--kb-color-primary-foreground); }
-    .kpi-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-    .kpi-tag--brand { background: rgba(108, 39, 217, 0.1); color: var(--kb-color-primary); }
-    .kpi-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
+    .kpi-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
 
     .kpi-label {
       font-size: 0.78rem; color: var(--kb-color-muted-foreground);

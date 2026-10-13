@@ -705,6 +705,17 @@
 
 .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
 
+.btn-micro--danger {
+      color: var(--kb-color-danger);
+      border-color: var(--kb-color-danger-soft);
+      background: var(--kb-color-danger-soft);
+    }
+
+.btn-micro--danger:hover {
+      background: var(--kb-color-danger-soft);
+      border-color: var(--kb-color-danger);
+    }
+
 .empty-orders-view {
       padding: 3rem 1.5rem;
       display: flex;
