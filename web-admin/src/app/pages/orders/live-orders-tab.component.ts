@@ -36,37 +36,6 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
         (retry)="load()"
       ></app-api-state>
 
-      <!-- In-Flight Floor Telemetry Strip for Restaurant Owner -->
-      <section class="floor-telemetry-grid" *ngIf="activeOrders().length" aria-label="Floor load overview">
-        <article class="telemetry-card telemetry-card--hero">
-          <div class="telemetry-head">
-            <span class="telemetry-label">Running Floor Value</span>
-          </div>
-          <strong class="telemetry-val">{{ fmt(totalFloorValue()) }}</strong>
-          <span class="telemetry-sub">{{ activeOrders().length }} active bills awaiting final settlement</span>
-        </article>
-
-        <article class="telemetry-card">
-          <div class="telemetry-head">
-            <span class="telemetry-label">Occupied Tables &amp; Orders</span>
-            <span class="telemetry-mini-pill">{{ dineInCount() }} Dine-in</span>
-          </div>
-          <strong class="telemetry-val">{{ activeTableCount() }} Tables Occupied</strong>
-          <span class="telemetry-sub">{{ takeawayCount() }} Takeaway · {{ dineInCount() }} Dine-in</span>
-        </article>
-
-        <article class="telemetry-card" [class.telemetry-card--alert]="urgentCount() > 0">
-          <div class="telemetry-head">
-            <span class="telemetry-label">Oldest Waiting Ticket</span>
-            <span class="telemetry-mini-pill" [class.telemetry-mini-pill--red]="urgentCount() > 0">
-              {{ urgentCount() > 0 ? (urgentCount() + ' Overdue (>25m)') : 'On Pace' }}
-            </span>
-          </div>
-          <strong class="telemetry-val" [class.text-alert]="urgentCount() > 0">{{ oldestWaitFormatted() }}</strong>
-          <span class="telemetry-sub">{{ urgentCount() > 0 ? 'Orders exceeding 25m turnaround' : 'All floor orders progressing smoothly' }}</span>
-        </article>
-      </section>
-
       <!-- Bento Cards Grid (bentogrids.com standard) -->
       <div class="active-orders-grid" *ngIf="activeOrders().length">
         <article
@@ -271,90 +240,6 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       to { transform: rotate(360deg); }
     }
 
-    /* ── Floor Telemetry Grid ── */
-    .floor-telemetry-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    @media (max-width: 900px) {
-      .floor-telemetry-grid { grid-template-columns: 1fr; }
-    }
-    .telemetry-card {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.25rem 1.4rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      transition: transform 140ms ease, box-shadow 140ms ease;
-    }
-    .telemetry-card:hover {
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-    }
-    .telemetry-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 100%);
-      color: #FFFFFF;
-      border: none;
-      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
-    }
-    .telemetry-card--hero .telemetry-label {
-      color: rgba(255, 255, 255, 0.75);
-    }
-    .telemetry-card--hero .telemetry-val {
-      color: #FFFFFF;
-    }
-    .telemetry-card--hero .telemetry-sub {
-      color: rgba(255, 255, 255, 0.75);
-    }
-    .telemetry-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .telemetry-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .telemetry-val {
-      font-size: 1.65rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .telemetry-sub {
-      font-size: 0.78rem;
-      color: var(--kb-color-muted-foreground);
-      font-weight: 500;
-    }
-    .telemetry-mini-pill {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .telemetry-mini-pill--red {
-      background: var(--kb-color-danger-soft);
-      color: var(--kb-color-danger);
-    }
-    .telemetry-card--alert {
-      border-color: var(--kb-color-danger-soft);
-      background: var(--kb-color-surface);
-    }
-    .text-alert {
-      color: var(--kb-color-danger) !important;
-    }
-
     /* ── Bento Active Cards Grid (bentogrids.com standard) ── */
     .active-orders-grid {
       display: grid;
@@ -363,7 +248,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     }
 
     .pos-card-tactile {
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.35rem;
@@ -502,7 +387,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
 
     /* ── All Clear Dignified Empty State (404s.design standard) ── */
     .all-clear-card {
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       border: 1.5px dashed var(--kb-color-border-strong);
       border-radius: 20px;
       padding: 3.5rem 1.5rem;
@@ -559,7 +444,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       font-size: 0.76rem;
       font-weight: 600;
       border: 1px solid var(--kb-color-border);
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
       cursor: pointer;
       min-height: 36px;
@@ -637,7 +522,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       border-radius: 8px;
       font-size: 0.88rem;
       min-height: 40px;
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
       outline: none;
     }
@@ -654,7 +539,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       padding: 0.5rem 1rem;
       border-radius: 8px;
       border: 1px solid var(--kb-color-border-strong);
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;

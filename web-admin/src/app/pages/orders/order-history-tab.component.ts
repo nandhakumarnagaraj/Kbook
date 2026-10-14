@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, from, of } from 'rxjs';
 import { concatMap, finalize, reduce, switchMap } from 'rxjs/operators';
@@ -199,59 +199,7 @@ export function filterBusinessOrders(
       ></app-api-state>
 
       <!-- ── Live Orders & Recent Transactions Section ── -->
-      <section class="bento-orders-container" aria-label="Recent Orders and Transactions">
-        <div class="orders-head-bar">
-          <div class="orders-head-left">
-            <div class="orders-title-row">
-              <h3 class="orders-title">Live Orders &amp; Recent Transactions</h3>
-              <span class="counter-badge">{{ serverTotalElements || pagedOrders.length }} Orders</span>
-            </div>
-            <p class="orders-sub">Active dining tickets, takeaway pickups, and today's latest POS settlements.</p>
-          </div>
-
-          <!-- Channel Filter Tabs & Search -->
-          <div class="orders-head-controls">
-            <div class="channel-filter-tabs" role="tablist">
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="orderSourceFilter === 'ALL'"
-                (click)="setSourceFilter('ALL')">
-                All
-              </button>
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="orderSourceFilter === 'DINE_IN'"
-                (click)="setSourceFilter('DINE_IN')">
-                Dine In
-              </button>
-              <button
-                type="button"
-                class="channel-tab-btn"
-                [class.channel-tab-btn--active]="orderSourceFilter === 'TAKEAWAY'"
-                (click)="setSourceFilter('TAKEAWAY')">
-                Takeaway
-              </button>
-            </div>
-
-            <div class="order-search-box">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                type="text"
-                placeholder="Search order #, items, guest..."
-                [(ngModel)]="orderSearchTerm"
-                (ngModelChange)="onSearchChange($event)"
-                aria-label="Filter recent orders"
-              />
-            </div>
-
-          </div>
-        </div>
-
+      <section class="bento-orders-container" aria-label="Order history">
         <!-- Orders Tactile Table -->
         <div class="orders-table-wrapper" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
           <table class="orders-tactile-table">
@@ -556,97 +504,6 @@ export function filterBusinessOrders(
       padding: 1.5rem;
       box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03), 0 4px 12px rgba(28, 26, 23, 0.02);
     }
-    .orders-head-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
-      flex-wrap: wrap;
-    }
-    .orders-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-    .orders-title {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-    .counter-badge {
-      display: inline-block;
-      padding: 0.18rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .orders-sub {
-      margin: 0.2rem 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .orders-head-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .channel-filter-tabs {
-      display: inline-flex;
-      background: var(--kb-color-surface-2);
-      padding: 3px;
-      border-radius: 10px;
-      gap: 2px;
-    }
-    .channel-tab-btn {
-      padding: 0.4rem 0.75rem;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      transition: all 120ms ease;
-    }
-    .channel-tab-btn:hover { color: var(--kb-color-foreground); }
-    .channel-tab-btn--active {
-      background: var(--kb-color-surface);
-      color: var(--kb-color-foreground);
-      font-weight: 700;
-      box-shadow: 0 1px 3px rgba(28, 26, 23, 0.08);
-    }
-    .order-search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border);
-      border-radius: 10px;
-      padding: 0.45rem 0.75rem;
-      width: 220px;
-      transition: all 140ms ease;
-    }
-    .order-search-box:focus-within {
-      background: var(--kb-color-surface);
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
-    }
-    .order-search-box svg { color: var(--kb-color-muted-foreground); }
-    .order-search-box input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      font-size: 0.82rem;
-      color: var(--kb-color-foreground);
-    }
     .orders-table-wrapper {
       overflow-x: auto;
       border: 1px solid var(--kb-color-surface-2);
@@ -826,6 +683,19 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   orderSearchTerm = '';
   orderSourceFilter = 'ALL';
+
+  /**
+   * Search text owned by the parent page (the input lives in the page header
+   * next to the date picker). Two-way bound: typing flows in, Clear Filters
+   * flows back out so the header input clears too.
+   */
+  @Input() set searchQuery(value: string) {
+    const next = value ?? '';
+    if (next !== this.orderSearchTerm) {
+      this.onSearchChange(next);
+    }
+  }
+  @Output() searchQueryChange = new EventEmitter<string>();
   orderPageSize = 15;
   orderCurrentPage = 1;
   exportingCsv = false;
@@ -881,7 +751,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
   }
 
   onSearchChange(value: string): void {
-    this.searchSubject.next(value);
+    this.orderSearchTerm = value ?? '';
+    this.searchQueryChange.emit(this.orderSearchTerm);
+    this.searchSubject.next(this.orderSearchTerm);
   }
 
   get businessOrderSources(): string[] {
@@ -1166,6 +1038,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   clearOrderFilters(): void {
     this.orderSearchTerm = '';
+    this.searchQueryChange.emit('');
     this.orderSourceFilter = 'ALL';
     this.orderPageSize = 15;
     this.orderCurrentPage = 1;

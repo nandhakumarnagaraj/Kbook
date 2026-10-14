@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { DateRangeToolbarComponent } from '../../shared/date-range-toolbar.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { LiveOrdersTabComponent } from './live-orders-tab.component';
 import { OrderHistoryTabComponent } from './order-history-tab.component';
 import { readStoredDateRange } from '../../core/utils/date-range-storage.util';
@@ -25,7 +26,7 @@ export type OrdersTab = 'live' | 'history';
   selector: 'app-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, PageHeaderComponent, DateRangeToolbarComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
+  imports: [CommonModule, PageHeaderComponent, DateRangeToolbarComponent, HeaderSearchComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -43,6 +44,13 @@ export type OrdersTab = 'live' | 'history';
           (download)="orderHistoryTab?.exportCsv()"
           (refresh)="refreshActiveTab()">
         </app-date-range-toolbar>
+        <app-header-search
+          *ngIf="tab() === 'history'"
+          [(value)]="historySearch"
+          placeholder="Search order #, items, guest..."
+          ariaLabel="Filter order history"
+          inputId="order-history-search"
+        />
       </app-page-header>
 
       <nav class="orders-tabs" role="tablist" aria-label="Orders views">
@@ -92,12 +100,41 @@ export type OrdersTab = 'live' | 'history';
         role="tabpanel"
         aria-labelledby="orders-tab-history"
         *ngIf="tab() === 'history'">
-        <app-order-history-tab></app-order-history-tab>
+        <app-order-history-tab [(searchQuery)]="historySearch"></app-order-history-tab>
       </section>
     </div>
   `,
   styles: [
     `
+      /* ── Scoped dark-navy command-center theme (this route only).
+         CSS variables inherit through component boundaries, so every child
+         tab and shared widget that paints with tokens follows automatically.
+         Hardcoded hex surfaces were converted to tokens where they existed. */
+      :host {
+        display: block;
+        background: #14172B;
+        min-width: 0;
+        min-height: 100vh;
+
+        --kb-color-bg-app: #14172B;
+        --kb-color-surface: #1F2543;
+        --kb-color-surface-2: #2A3157;
+        --kb-color-foreground: #F3EFE4;
+        --kb-color-muted-foreground: #B4AD9F;
+        --kb-color-border: #2E3555;
+        --kb-color-border-strong: #3D4670;
+        --kb-color-input: #2A3157;
+
+        --bg: #14172B;
+        --panel: #1F2543;
+        --panel-2: #2A3157;
+        --ink: #F3EFE4;
+        --ink-2: #F3EFE4;
+        --muted: #B4AD9F;
+        --muted-2: #8E887B;
+        --line: #2E3555;
+        --line-strong: #3D4670;
+      }
       .orders-tabs {
         display: flex;
         gap: 0.4rem;
@@ -157,6 +194,9 @@ export class OrdersPageComponent {
 
   private readonly requestedTab = signal<OrdersTab>(this.readTabFromUrl());
   readonly tab = this.requestedTab.asReadonly();
+
+  /** History-tab search text, owned here so the input can live in the page header. */
+  historySearch = '';
 
   isRefreshing(): boolean {
     return this.tab() === 'live'
