@@ -310,11 +310,8 @@ export function filterBusinessOrders(
         </ng-template>
 
         <div #ordersLoadMoreSentinel class="orders-load-more" aria-live="polite">
-          <span *ngIf="loadingMoreOrders" role="status">Loading more orders…</span>
           <span *ngIf="!loadingMoreOrders && loadMoreOrdersError" class="load-more-error">{{ loadMoreOrdersError }}</span>
           <button *ngIf="!loadingMoreOrders && loadMoreOrdersError" type="button" class="ghost-btn" (click)="loadNextOrderPage()">Retry</button>
-          <span *ngIf="!loadingMoreOrders && !loadMoreOrdersError && hasMoreOrders">Scroll to load more orders</span>
-          <span *ngIf="ordersLoaded && !hasMoreOrders && serverTotalElements > 0">All {{ serverTotalElements }} orders loaded</span>
         </div>
       </section>
     </div>
