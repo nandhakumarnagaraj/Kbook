@@ -677,7 +677,7 @@ export class PlatformDashboardPageComponent {
     return this.settlements().reduce((sum, s) => sum + (Number(s.totalCommission) || 0), 0);
   }
 
-  trackByRestaurantId(_: number, item: AdminSettlement): number {
+  trackByRestaurantId(_: number, item: AdminSettlement): string {
     return item.restaurantId;
   }
 

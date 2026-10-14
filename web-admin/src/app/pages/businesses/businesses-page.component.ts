@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
-import { formatCurrency, formatDate } from '../../shared/formatters';
+import { formatAge, formatCurrency, formatDate } from '../../shared/formatters';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -21,22 +21,29 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         title="Businesses"
         subtitle="Platform directory with cleaner drill-down detail panel."
       >
-        <!-- Static labels, not status: the shared header-badge class (kpi-tag) so the
-             header slot means one thing app-wide. They restate the page's two panes and
-             carry no state, so the owner may want to drop them entirely. -->
-        <span kbHeaderBadge class="kpi-tag">Directory View</span>
-        <span kbHeaderBadge class="kpi-tag">Business Details</span>
       </app-page-header>
 
-      <div class="toolbar">
-        <div>
-          <h3>Business Directory</h3>
-          <p class="muted">Select a row to inspect revenue and business details.</p>
+      <div class="toolbar toolbar--inline">
+        <div class="toolbar__search">
+          <input
+            id="business-search"
+            class="field-control"
+            type="search"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="resetVisible()"
+            placeholder="Search by shop, owner, login, email, or id"
+            aria-label="Search businesses"
+          />
         </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div class="toolbar__actions">
           <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">+ Add Restaurant</button>
           <button class="header-action-btn" (click)="loadBusinesses()">Refresh</button>
         </div>
+      </div>
+
+      <div class="filter-summary-line" *ngIf="loaded && businesses.length">
+        <p class="muted">{{ filteredBusinesses.length }} of {{ businesses.length }} businesses · Showing {{ visibleBusinesses.length }}</p>
+        <button class="ghost-btn ghost-btn--sm" (click)="clearFilters()" *ngIf="searchTerm">Clear filters</button>
       </div>
 
       <!-- Stale refresh banner (prototype pattern) -->
@@ -52,36 +59,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         (retry)="loadBusinesses()"
       ></app-api-state>
 
-      <section class="panel filter-panel" *ngIf="loaded && businesses.length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="business-search">Search</label>
-            <input
-              id="business-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by shop, owner, login, email, or id"
-            />
-          </div>
-          <div class="filter-group">
-            <label for="business-size">Rows</label>
-            <select id="business-size" class="field-select" [(ngModel)]="pageSize" (ngModelChange)="resetPage()">
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-summary">
-          <p class="muted">{{ filteredBusinesses.length }} of {{ businesses.length }} businesses</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
-
-      <div class="panel table-wrap" *ngIf="loaded && pagedBusinesses.length; else loading">
+      <div class="panel table-wrap" *ngIf="loaded && visibleBusinesses.length; else loading">
         <table class="data-table">
           <thead>
             <tr>
@@ -90,12 +68,14 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
               <th>Orders</th>
               <th>Menu</th>
               <th>Staff</th>
+              <th>Joined</th>
+              <th>Last Used</th>
               <th>Updated</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId">
+            <tr *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId">
               <td (click)="showDetails(business)" style="cursor: pointer;">
                 <div class="stacked-meta">
                   <strong>{{ business.shopName || '-' }}</strong>
@@ -107,6 +87,19 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">
+                <div class="stacked-meta">
+                  <strong>{{ formatDateValue(business.createdAt) }}</strong>
+                  <span class="muted">{{ formatAgeValue(business.createdAt) }}</span>
+                </div>
+              </td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">
+                <div class="stacked-meta" *ngIf="business.lastUsedAt; else neverUsed">
+                  <strong>{{ formatAgeValue(business.lastUsedAt) }}</strong>
+                  <span class="muted">{{ formatDateValue(business.lastUsedAt) }}</span>
+                </div>
+                <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
+              </td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.updatedAt) }}</td>
               <td>
                 <button
@@ -127,12 +120,12 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         </table>
 
         <div class="mobile-data-list" aria-label="Businesses">
-          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
+          <article class="mobile-data-card" *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
             <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
               <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
             </button>
-            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div></dl>
+            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatAgeValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button *ngIf="!business.isSuspended" class="ghost-btn danger-btn" (click)="confirmSuspend(business)">Suspend</button>
               <button *ngIf="business.isSuspended" class="ghost-btn success-btn" (click)="activateBusiness(business)">Activate</button>
@@ -140,12 +133,14 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
           </article>
         </div>
 
-        <div class="pagination-bar" *ngIf="filteredBusinesses.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
+        <div class="infinite-footer" aria-live="polite">
+          <div #infiniteSentinel class="infinite-sentinel" aria-hidden="true"></div>
+          <p class="muted infinite-status" *ngIf="hasMore">
+            Showing {{ visibleBusinesses.length }} of {{ filteredBusinesses.length }} — scroll for more
+          </p>
+          <p class="muted infinite-status" *ngIf="!hasMore && filteredBusinesses.length > pageBatch">
+            All {{ filteredBusinesses.length }} businesses shown
+          </p>
         </div>
       </div>
 
@@ -339,9 +334,69 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       gap: 0.75rem;
       margin-top: 1.5rem;
     }
+    .toolbar--inline {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+    .toolbar__search {
+      flex: 1 1 280px;
+      min-width: 220px;
+    }
+    .toolbar__search .field-control {
+      width: 100%;
+    }
+    .toolbar__actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .filter-summary-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .filter-summary-line p {
+      margin: 0;
+      font-size: 0.83rem;
+    }
+    .ghost-btn--sm {
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+    }
+    .infinite-footer {
+      padding: 0.85rem 1rem 1rem;
+      text-align: center;
+    }
+    .infinite-sentinel {
+      height: 1px;
+    }
+    .infinite-status {
+      margin: 0.35rem 0 0;
+      font-size: 0.82rem;
+    }
+    @media (max-width: 640px) {
+      .toolbar--inline {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .toolbar__actions {
+        margin-left: 0;
+        width: 100%;
+      }
+      .toolbar__actions .header-action-btn {
+        flex: 1;
+      }
+    }
   `]
 })
-export class BusinessesPageComponent {
+export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   private readonly api = inject(AdminApiService);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
@@ -368,8 +423,11 @@ export class BusinessesPageComponent {
   });
 
   searchTerm = '';
-  pageSize = 10;
-  currentPage = 1;
+  pageBatch = 20;
+  visibleCount = 20;
+
+  @ViewChild('infiniteSentinel') private infiniteSentinel?: ElementRef<HTMLElement>;
+  private infiniteObserver?: IntersectionObserver;
 
   constructor() {
     this.loadBusinesses();
@@ -440,13 +498,54 @@ export class BusinessesPageComponent {
     });
   }
 
-  get pagedBusinesses(): AdminBusinessListItem[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredBusinesses.slice(start, start + this.pageSize);
+  get visibleBusinesses(): AdminBusinessListItem[] {
+    return this.filteredBusinesses.slice(0, this.visibleCount);
   }
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredBusinesses.length / this.pageSize));
+  get hasMore(): boolean {
+    return this.visibleCount < this.filteredBusinesses.length;
+  }
+
+  @HostListener('window:scroll', [])
+  onWindowScroll(): void {
+    if (!this.loaded || !this.hasMore) return;
+    // Fallback for browsers without IntersectionObserver + extra safety net.
+    const thresholdPx = 500;
+    const scrolledTo = window.innerHeight + window.scrollY;
+    const pageHeight = document.documentElement.scrollHeight;
+    if (pageHeight - scrolledTo < thresholdPx) {
+      this.loadMore();
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.observeInfiniteSentinel();
+  }
+
+  ngOnDestroy(): void {
+    this.infiniteObserver?.disconnect();
+  }
+
+  private observeInfiniteSentinel(): void {
+    if (typeof IntersectionObserver === 'undefined') return;
+    this.infiniteObserver?.disconnect();
+    const target = this.infiniteSentinel?.nativeElement;
+    if (!target) return;
+    this.infiniteObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          this.loadMore();
+        }
+      },
+      { rootMargin: '500px 0px' }
+    );
+    this.infiniteObserver.observe(target);
+  }
+
+  loadMore(): void {
+    if (!this.hasMore) return;
+    this.visibleCount = Math.min(this.visibleCount + this.pageBatch, this.filteredBusinesses.length);
+    this.cdr.markForCheck();
   }
 
   loadBusinesses(): void {
@@ -457,8 +556,10 @@ export class BusinessesPageComponent {
         this.businesses = data;
         this.loaded = true;
         this.loadError = '';
-        this.currentPage = 1;
+        this.visibleCount = this.pageBatch;
         this.cdr.markForCheck();
+        // Sentinel is re-created by *ngIf; observe on next tick.
+        setTimeout(() => this.observeInfiniteSentinel());
       },
       error: () => {
         if (!this.businesses.length) {
@@ -471,18 +572,16 @@ export class BusinessesPageComponent {
     });
   }
 
-  resetPage(): void {
-    this.currentPage = 1;
+  resetVisible(): void {
+    this.visibleCount = this.pageBatch;
+    // Re-arm sentinel after filter shrinks/grows the list.
+    setTimeout(() => this.observeInfiniteSentinel());
   }
 
   clearFilters(): void {
     this.searchTerm = '';
-    this.pageSize = 10;
-    this.currentPage = 1;
-  }
-
-  goToPage(page: number): void {
-    this.currentPage = Math.min(Math.max(1, page), this.totalPages);
+    this.visibleCount = this.pageBatch;
+    setTimeout(() => this.observeInfiniteSentinel());
   }
 
   showDetails(business: AdminBusinessListItem): void {
@@ -534,6 +633,7 @@ export class BusinessesPageComponent {
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }
+  formatAgeValue(value: number | null): string { return formatAge(value); }
   formatCurrencyValue(value: number): string { return formatCurrency(value); }
 
   trackByIndex = (_: number, __: unknown) => _;

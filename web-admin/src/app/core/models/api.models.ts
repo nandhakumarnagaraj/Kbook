@@ -21,7 +21,8 @@ export interface FeatureFlagAuditItem {
   id: number;
   flagKey: string;
   scope: 'KILL_SWITCH' | 'DEFAULT' | 'OVERRIDE';
-  restaurantId: number | null;
+  // String: 19-digit Snowflake-style IDs exceed Number.MAX_SAFE_INTEGER.
+  restaurantId: string | null;
   previousState: string | null;
   newState: string;
   actorUserId: number | null;
@@ -30,7 +31,9 @@ export interface FeatureFlagAuditItem {
 }
 
 export interface AdminBusinessListItem {
-  restaurantId: number;
+  // String: backend serializes large restaurantIds as JSON strings so the
+  // browser never routes them through lossy JS numbers.
+  restaurantId: string;
   shopName: string | null;
   ownerName: string | null;
   ownerLoginId: string | null;
@@ -41,6 +44,8 @@ export interface AdminBusinessListItem {
   menuCount: number;
   orderCount: number;
   updatedAt: number | null;
+  createdAt: number | null;
+  lastUsedAt: number | null;
   isSuspended: boolean;
 }
 
@@ -325,7 +330,7 @@ export interface OrderLineItem {
 
 export interface AdminTransaction {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   amount: number;
   status: string;
   paymentMethod?: string;
@@ -339,7 +344,7 @@ export interface AdminTransaction {
 
 export interface AdminSettlement {
   id?: number;
-  restaurantId: number;
+  restaurantId: string;
   shopName?: string | null;
   amount?: number;
   totalSettled?: number;
@@ -365,7 +370,7 @@ export interface AdminCommission {
 
 export interface EasebuzzSubMerchant {
   id: number;
-  restaurantId: number;
+  restaurantId: string;
   shopName: string | null;
   subMerchantId: string | null;
   status: string;
@@ -393,7 +398,7 @@ export interface EasebuzzSubMerchantRequest {
   phone?: string;
   accountNumber?: string;
   ifsc?: string;
-  restaurantId?: number;
+  restaurantId?: string | number;
   businessName?: string;
   businessType?: string;
   pan?: string;

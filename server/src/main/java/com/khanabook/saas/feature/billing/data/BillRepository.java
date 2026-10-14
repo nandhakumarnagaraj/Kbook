@@ -133,6 +133,9 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Query("SELECT b.restaurantId, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
     List<Object[]> countGroupedByRestaurant();
 
+    @Query("SELECT b.restaurantId, MAX(b.createdAt) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
+    List<Object[]> lastBillTimeGroupedByRestaurant();
+
     Optional<Bill> findByRestaurantIdAndPublicTokenAndIsDeletedFalse(Long restaurantId, java.util.UUID publicToken);
 
     Optional<Bill> findByRestaurantIdAndPublicToken(Long restaurantId, java.util.UUID publicToken);

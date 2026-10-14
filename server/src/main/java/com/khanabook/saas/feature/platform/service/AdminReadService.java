@@ -81,6 +81,12 @@ public class AdminReadService {
                         row -> (Long) row[0],
                         row -> (Long) row[1]));
 
+        Map<Long, Long> lastUsedByRestaurant = billRepository.lastBillTimeGroupedByRestaurant().stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1],
+                        (left, right) -> left));
+
         return profiles.stream()
                 .map(profile -> {
                     User owner = ownerByRestaurant.get(profile.getRestaurantId());
@@ -98,6 +104,8 @@ public class AdminReadService {
                             .menuCount(menuCount.getOrDefault(profile.getRestaurantId(), 0L))
                             .orderCount(orders)
                             .updatedAt(profile.getUpdatedAt())
+                            .createdAt(profile.getCreatedAt())
+                            .lastUsedAt(lastUsedByRestaurant.get(profile.getRestaurantId()))
                             .build();
                 })
                 .toList();

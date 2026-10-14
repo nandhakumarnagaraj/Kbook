@@ -28,15 +28,15 @@ export class AdminApiService {
     return this.http.post<AdminBusinessDetail>(`${API_BASE_URL}/admin/businesses`, payload);
   }
 
-  getBusinessDetail(restaurantId: number) {
+  getBusinessDetail(restaurantId: string | number) {
     return this.http.get<AdminBusinessDetail>(`${API_BASE_URL}/admin/businesses/${restaurantId}`);
   }
 
-  suspendBusiness(restaurantId: number) {
+  suspendBusiness(restaurantId: string | number) {
     return this.http.post<void>(`${API_BASE_URL}/admin/businesses/${restaurantId}/suspend`, null);
   }
 
-  activateBusiness(restaurantId: number) {
+  activateBusiness(restaurantId: string | number) {
     return this.http.post<void>(`${API_BASE_URL}/admin/businesses/${restaurantId}/activate`, null);
   }
 
@@ -56,11 +56,11 @@ export class AdminApiService {
     return this.http.put<void>(`${API_BASE_URL}/admin/feature-flags/${flagKey}/default`, { defaultEnabled });
   }
 
-  setFeatureFlagOverride(flagKey: string, restaurantId: number, enabled: boolean) {
+  setFeatureFlagOverride(flagKey: string, restaurantId: string | number, enabled: boolean) {
     return this.http.put<void>(`${API_BASE_URL}/admin/feature-flags/${flagKey}/restaurants/${restaurantId}`, { enabled });
   }
 
-  clearFeatureFlagOverride(flagKey: string, restaurantId: number) {
+  clearFeatureFlagOverride(flagKey: string, restaurantId: string | number) {
     return this.http.delete<void>(`${API_BASE_URL}/admin/feature-flags/${flagKey}/restaurants/${restaurantId}`);
   }
 
@@ -93,7 +93,7 @@ export class AdminApiService {
     return this.http.put<any>(`${API_BASE_URL}/admin/sub-merchants/${id}/status`, { status });
   }
 
-  getTransactions(page: number = 0, size: number = 20, status?: string, restaurantId?: number): Observable<AdminTransaction[]> {
+  getTransactions(page: number = 0, size: number = 20, status?: string, restaurantId?: string | number): Observable<AdminTransaction[]> {
     const params: Record<string, string | number> = { page, size };
     if (status) params['status'] = status;
     if (restaurantId) params['restaurantId'] = restaurantId;

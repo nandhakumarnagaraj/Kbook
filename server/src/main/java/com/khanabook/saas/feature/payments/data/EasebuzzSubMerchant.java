@@ -24,6 +24,7 @@ public class EasebuzzSubMerchant {
     private Long id;
 
     @Column(name = "restaurant_id", nullable = false)
+    @com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
     private Long restaurantId;
 
     @Column(name = "sub_merchant_id")

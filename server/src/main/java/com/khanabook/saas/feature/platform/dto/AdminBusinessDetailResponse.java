@@ -2,10 +2,15 @@ package com.khanabook.saas.feature.platform.dto;
 
 import lombok.Builder;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+
 import java.math.BigDecimal;
 
 @Builder
 public record AdminBusinessDetailResponse(
+        // See AdminBusinessListItemResponse: keep large IDs exact in browsers.
+        @JsonSerialize(using = ToStringSerializer.class)
         Long restaurantId,
         String shopName,
         String ownerName,
