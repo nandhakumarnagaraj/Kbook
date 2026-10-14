@@ -55,17 +55,17 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       ></app-api-state>
 
       <div class="panel table-wrap" *ngIf="loaded && visibleBusinesses.length; else loading">
-        <table class="data-table">
+        <table class="data-table businesses-table">
           <thead>
             <tr>
-              <th>Business</th>
-              <th>Owner</th>
-              <th>Orders</th>
-              <th>Menu</th>
-              <th>Staff</th>
-              <th>Joined</th>
-              <th>Last Used</th>
-              <th>Action</th>
+              <th class="business-col">Business</th>
+              <th class="owner-col">Owner</th>
+              <th class="num-col">Orders</th>
+              <th class="num-col">Menu</th>
+              <th class="num-col">Staff</th>
+              <th class="date-col">Joined</th>
+              <th class="date-col">Last Used</th>
+              <th class="action-col">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -83,15 +83,15 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
                   <span class="muted" *ngIf="business.ownerLoginId">{{ business.ownerLoginId }}</span>
                 </div>
               </td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.createdAt) }}</td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">
+              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
+              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
+              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
+              <td class="date-col" (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.createdAt) }}</td>
+              <td class="date-col" (click)="showDetails(business)" style="cursor: pointer;">
                 <span *ngIf="business.lastUsedAt; else neverUsed">{{ formatDateValue(business.lastUsedAt) }}</span>
                 <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
               </td>
-              <td>
+              <td class="action-col">
                 <button
                   *ngIf="!business.isSuspended"
                   class="ghost-btn ghost-btn--danger"
@@ -369,6 +369,41 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
     .infinite-status {
       margin: 0.35rem 0 0;
       font-size: 0.82rem;
+    }
+    /* ── Businesses table column rhythm ── */
+    .businesses-table th,
+    .businesses-table td {
+      padding: 0.8rem 1rem;
+      vertical-align: middle;
+    }
+    .businesses-table thead th {
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      font-weight: 700;
+      border-bottom: 2px solid var(--brand);
+    }
+    .businesses-table th.business-col {
+      min-width: 210px;
+    }
+    .businesses-table th.owner-col {
+      min-width: 170px;
+    }
+    .businesses-table th.num-col,
+    .businesses-table td.num-col {
+      width: 76px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .businesses-table th.date-col,
+    .businesses-table td.date-col {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .businesses-table th.action-col,
+    .businesses-table td.action-col {
+      text-align: right;
+      white-space: nowrap;
+      width: 110px;
     }
     @media (max-width: 640px) {
       .header-controls {
