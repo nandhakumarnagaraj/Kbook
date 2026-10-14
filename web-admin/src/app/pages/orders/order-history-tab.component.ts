@@ -198,8 +198,8 @@ export function filterBusinessOrders(
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <!-- ── Live Orders & Recent Transactions Section ── -->
-      <section class="bento-orders-container" aria-label="Order history">
+      <!-- ── Order History Table (no container chrome: bare table only) ── -->
+      <ng-container aria-label="Order history">
         <!-- Orders Tactile Table -->
         <div class="orders-table-wrapper" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
           <table class="orders-tactile-table">
@@ -313,7 +313,7 @@ export function filterBusinessOrders(
           <span *ngIf="!loadingMoreOrders && loadMoreOrdersError" class="load-more-error">{{ loadMoreOrdersError }}</span>
           <button *ngIf="!loadingMoreOrders && loadMoreOrdersError" type="button" class="ghost-btn" (click)="loadNextOrderPage()">Retry</button>
         </div>
-      </section>
+      </ng-container>
     </div>
   `,
   styles: [`
@@ -493,14 +493,7 @@ export function filterBusinessOrders(
       border: 1px solid var(--kb-color-success-soft);
     }
 
-    /* Bento Orders Container & Tactile Table */
-    .bento-orders-container {
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03), 0 4px 12px rgba(28, 26, 23, 0.02);
-    }
+    /* Tactile Table (bare: no container card around it) */
     .orders-table-wrapper {
       overflow-x: auto;
       border: 1px solid var(--kb-color-surface-2);
