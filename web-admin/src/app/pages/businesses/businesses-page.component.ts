@@ -96,13 +96,20 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
                   *ngIf="!business.isSuspended"
                   class="ghost-btn ghost-btn--danger"
                   (click)="confirmSuspend(business); $event.stopPropagation()">
-                  Suspend
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/>
+                  </svg>
+                  <span>Suspend</span>
                 </button>
                 <button
                   *ngIf="business.isSuspended"
                   class="ghost-btn ghost-btn--success"
                   (click)="activateBusiness(business); $event.stopPropagation()">
-                  Activate
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Activate</span>
                 </button>
               </td>
             </tr>
@@ -117,8 +124,19 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             </button>
             <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
-              <button *ngIf="!business.isSuspended" class="ghost-btn danger-btn" (click)="confirmSuspend(business)">Suspend</button>
-              <button *ngIf="business.isSuspended" class="ghost-btn success-btn" (click)="activateBusiness(business)">Activate</button>
+              <button *ngIf="!business.isSuspended" class="ghost-btn ghost-btn--danger" (click)="confirmSuspend(business)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/>
+                </svg>
+                <span>Suspend</span>
+              </button>
+              <button *ngIf="business.isSuspended" class="ghost-btn ghost-btn--success" (click)="activateBusiness(business)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Activate</span>
+              </button>
             </div>
           </article>
         </div>
@@ -272,6 +290,18 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
     </div>
   `,
   styles: [`
+    /* Sign-out twins: solid fill, icon + label, shadow-only hover. */
+    .ghost-btn--danger,
+    .ghost-btn--success {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
     .ghost-btn--danger {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
@@ -416,7 +446,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
     .businesses-table td.action-col {
       text-align: right;
       white-space: nowrap;
-      width: 110px;
+      width: 150px;
     }
     @media (max-width: 640px) {
       .header-controls {
