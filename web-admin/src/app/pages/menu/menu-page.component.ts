@@ -57,7 +57,7 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
-        <table class="data-table">
+        <table class="data-table menu-table">
           <thead>
             <tr>
               <th>Item</th>
@@ -487,6 +487,30 @@ import { environment } from '../../../environments/environment';
   `,
   styles: [`
     .menu-page-shell { gap: 1.25rem; }
+    /* ── Menu table column rhythm (same standard as orders history) ── */
+    .menu-table th,
+    .menu-table td {
+      padding: 0.85rem 1rem;
+      vertical-align: middle;
+    }
+    .menu-table th:nth-child(5),
+    .menu-table td:nth-child(5) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .menu-table th:nth-child(6),
+    .menu-table td:nth-child(6) {
+      text-align: center;
+    }
+    .menu-table th:nth-child(7),
+    .menu-table td:nth-child(7) {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .menu-table th:nth-child(8),
+    .menu-table td:nth-child(8) {
+      text-align: right;
+    }
     .menu-load-more {
       display: flex;
       justify-content: center;

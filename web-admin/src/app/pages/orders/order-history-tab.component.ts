@@ -506,7 +506,7 @@ export function filterBusinessOrders(
       text-align: left;
     }
     .orders-tactile-table th {
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       background: var(--kb-color-bg-app);
       font-size: 0.72rem;
       font-weight: 700;
@@ -514,12 +514,24 @@ export function filterBusinessOrders(
       letter-spacing: 0.05em;
       color: var(--kb-color-muted-foreground);
       border-bottom: 1px solid var(--kb-color-border);
+      vertical-align: middle;
     }
     .orders-tactile-table td {
       padding: 0.85rem 1rem;
       border-bottom: 1px solid var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
       vertical-align: middle;
+    }
+    /* Numeric total right-aligned, status centered, action right — header and
+       cells share the same alignment so columns read straight. */
+    .orders-tactile-table th:nth-child(4),
+    .orders-tactile-table td:nth-child(4) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .orders-tactile-table th:nth-child(5),
+    .orders-tactile-table td:nth-child(5) {
+      text-align: center;
     }
     .order-row-interactive {
       cursor: pointer;
