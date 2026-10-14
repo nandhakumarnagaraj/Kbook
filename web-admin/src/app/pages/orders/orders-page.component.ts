@@ -32,6 +32,13 @@ export type OrdersTab = 'live' | 'history';
       <app-page-header
         title="Orders"
         subtitle="Live floor board and settled transaction history in one workspace.">
+        <app-header-search
+          *ngIf="tab() === 'history'"
+          [(value)]="historySearch"
+          placeholder="Search order #, items, guest..."
+          ariaLabel="Filter order history"
+          inputId="order-history-search"
+        />
         <app-date-range-toolbar
           [initialRange]="historyDateRange()"
           [showDateSelector]="tab() === 'history'"
@@ -44,13 +51,6 @@ export type OrdersTab = 'live' | 'history';
           (download)="orderHistoryTab?.exportCsv()"
           (refresh)="refreshActiveTab()">
         </app-date-range-toolbar>
-        <app-header-search
-          *ngIf="tab() === 'history'"
-          [(value)]="historySearch"
-          placeholder="Search order #, items, guest..."
-          ariaLabel="Filter order history"
-          inputId="order-history-search"
-        />
       </app-page-header>
 
       <nav class="orders-tabs" role="tablist" aria-label="Orders views">
