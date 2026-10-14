@@ -31,15 +31,10 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             ariaLabel="Search businesses"
             inputId="business-search"
           />
-          <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">+ Add Restaurant</button>
+          <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">Add Restaurant</button>
           <app-refresh-button (refresh)="loadBusinesses()" [loading]="refreshing" ariaLabel="Refresh businesses" />
         </div>
       </app-page-header>
-
-      <div class="filter-summary-line" *ngIf="loaded && businesses.length">
-        <p class="muted">{{ filteredBusinesses.length }} of {{ businesses.length }} businesses · Showing {{ visibleBusinesses.length }}</p>
-        <button class="ghost-btn ghost-btn--sm" (click)="clearFilters()" *ngIf="searchTerm">Clear filters</button>
-      </div>
 
       <!-- Stale refresh banner (prototype pattern) -->
       <div class="stale-banner" *ngIf="loadError && businesses.length" role="status" aria-live="polite">
@@ -63,8 +58,18 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
               <th class="num-col">Orders</th>
               <th class="num-col">Menu</th>
               <th class="num-col">Staff</th>
-              <th class="date-col">Joined</th>
-              <th class="date-col">Last Used</th>
+              <th class="date-col" [attr.aria-sort]="sortKey === 'joined' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+                <button type="button" class="th-sort" (click)="toggleSort('joined')">
+                  Joined
+                  <span aria-hidden="true" *ngIf="sortKey === 'joined'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                </button>
+              </th>
+              <th class="date-col" [attr.aria-sort]="sortKey === 'lastUsed' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+                <button type="button" class="th-sort" (click)="toggleSort('lastUsed')">
+                  Last Used
+                  <span aria-hidden="true" *ngIf="sortKey === 'lastUsed'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                </button>
+              </th>
               <th class="action-col">Action</th>
             </tr>
           </thead>
@@ -96,10 +101,6 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
                   *ngIf="!business.isSuspended"
                   class="biz-action-btn biz-action-btn--danger"
                   (click)="confirmSuspend(business); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/>
-                  </svg>
                   <span>Suspend</span>
                 </button>
                 <button
@@ -125,10 +126,6 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button *ngIf="!business.isSuspended" class="biz-action-btn biz-action-btn--danger" (click)="confirmSuspend(business)">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/>
-                </svg>
                 <span>Suspend</span>
               </button>
               <button *ngIf="business.isSuspended" class="biz-action-btn biz-action-btn--success" (click)="activateBusiness(business)">
@@ -391,21 +388,6 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       gap: 0.5rem;
       flex-wrap: wrap;
     }
-    .filter-summary-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .filter-summary-line p {
-      margin: 0;
-      font-size: 0.83rem;
-    }
-    .ghost-btn--sm {
-      padding: 0.3rem 0.65rem;
-      font-size: 0.78rem;
-    }
     .infinite-footer {
       padding: 0.85rem 1rem 1rem;
       text-align: center;
@@ -445,6 +427,24 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
     .businesses-table td.date-col {
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
+    }
+    .th-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      font-weight: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+    }
+    .th-sort:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
     }
     .businesses-table th.action-col,
     .businesses-table td.action-col {
@@ -493,6 +493,8 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   searchTerm = '';
   pageBatch = 20;
   visibleCount = 20;
+  sortKey: 'joined' | 'lastUsed' | null = null;
+  sortDir: 'asc' | 'desc' = 'desc';
 
   @ViewChild('infiniteSentinel') private infiniteSentinel?: ElementRef<HTMLElement>;
   private infiniteObserver?: IntersectionObserver;
@@ -567,11 +569,40 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   }
 
   get visibleBusinesses(): AdminBusinessListItem[] {
-    return this.filteredBusinesses.slice(0, this.visibleCount);
+    return this.sortedBusinesses.slice(0, this.visibleCount);
   }
 
   get hasMore(): boolean {
-    return this.visibleCount < this.filteredBusinesses.length;
+    return this.visibleCount < this.sortedBusinesses.length;
+  }
+
+  /** Date-column sorting. Nulls (never-joined / never-used) always sink last. */
+  get sortedBusinesses(): AdminBusinessListItem[] {
+    const list = this.filteredBusinesses;
+    if (!this.sortKey) return list;
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+    const pick = this.sortKey === 'joined'
+      ? (b: AdminBusinessListItem) => b.createdAt
+      : (b: AdminBusinessListItem) => b.lastUsedAt;
+    return [...list].sort((a, b) => {
+      const va = pick(a);
+      const vb = pick(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * dir;
+    });
+  }
+
+  toggleSort(key: 'joined' | 'lastUsed'): void {
+    if (this.sortKey !== key) {
+      this.sortKey = key;
+      this.sortDir = 'desc';
+    } else {
+      this.sortDir = this.sortDir === 'desc' ? 'asc' : 'desc';
+    }
+    this.visibleCount = this.pageBatch;
+    setTimeout(() => this.observeInfiniteSentinel());
   }
 
   @HostListener('window:scroll', [])
@@ -650,12 +681,6 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   resetVisible(): void {
     this.visibleCount = this.pageBatch;
     // Re-arm sentinel after filter shrinks/grows the list.
-    setTimeout(() => this.observeInfiniteSentinel());
-  }
-
-  clearFilters(): void {
-    this.searchTerm = '';
-    this.visibleCount = this.pageBatch;
     setTimeout(() => this.observeInfiniteSentinel());
   }
 
