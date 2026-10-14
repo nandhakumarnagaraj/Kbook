@@ -140,7 +140,7 @@ public class SecurityConfig {
 							"/payments/easebuzz/webhook",
 							"/payments/easebuzz/*/webhook",
 							"/payments/easebuzz/return",
-							"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+							"/docs/**", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**", "/swagger-ui.html")
 					.permitAll()
 
 						// Actuator: health/readiness open, everything else authenticated

@@ -54,5 +54,11 @@ This writes compressed dumps to `backups/postgres/` and removes backups older th
 ## Cutover notes
 
 - Stop the current host-run `kbook-server.service` before binding the compose backend to `127.0.0.1:8081`.
-- Keep Apache unchanged if it already proxies to `127.0.0.1:8081`.
+- The edge proxy is nginx, not Apache (`apache2` is stopped). The canonical vhost is
+  tracked at `ops/nginx-kbook.iadv.cloud.conf` and installed at
+  `/etc/nginx/sites-enabled/kbook.iadv.cloud`. It proxies `/api/` to `127.0.0.1:8081`
+  and serves the web-admin SPA.
+- API and CDN locations must stay `^~` (e.g. `location ^~ /api/`). Otherwise the
+  static-asset regex location (`~* \.(js|css|...)$`) shadows them and returns 404 for
+  proxied assets like the Swagger UI bundle.
 - Do not expose PostgreSQL directly on `5432` unless there is a specific operational requirement.
