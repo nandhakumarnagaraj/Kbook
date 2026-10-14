@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { DateRangeSelectorComponent } from './date-range-selector.component';
+import { RefreshButtonComponent } from './refresh-button.component';
 
 /** Shared date and page-action strip used by date-filtered business pages. */
 @Component({
   selector: 'app-date-range-toolbar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DateRangeSelectorComponent],
+  imports: [CommonModule, DateRangeSelectorComponent, RefreshButtonComponent],
   template: `
     <div class="date-toolbar">
       <app-date-range-selector
@@ -32,20 +33,12 @@ import { DateRangeSelectorComponent } from './date-range-selector.component';
           <path d="M12 15V3" />
         </svg>
       </button>
-      <button
-        type="button"
-        class="date-toolbar__button date-toolbar__button--refresh"
+      <app-refresh-button
         [disabled]="refreshDisabled"
-        (click)="refresh.emit()"
-        aria-label="Refresh"
-        title="Refresh">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="refreshing" aria-hidden="true">
-          <path d="M20 7v5h-5" />
-          <path d="M4.9 9A8 8 0 0 1 18.3 6L20 7" />
-          <path d="M4 17v-5h5" />
-          <path d="M19.1 15A8 8 0 0 1 5.7 18L4 17" />
-        </svg>
-      </button>
+        [loading]="refreshing"
+        (refresh)="refresh.emit()"
+        ariaLabel="Refresh"
+      />
       <button
         *ngIf="showPrint"
         type="button"
@@ -71,7 +64,6 @@ import { DateRangeSelectorComponent } from './date-range-selector.component';
       flex-wrap: nowrap;
     }
     app-date-range-selector { flex: 0 0 auto; width: auto; }
-    .date-toolbar__button--refresh { margin-left: -2px; }
     .date-toolbar__button {
       display: grid;
       place-items: center;

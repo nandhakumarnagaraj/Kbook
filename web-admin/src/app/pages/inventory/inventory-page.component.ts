@@ -5,6 +5,8 @@ import { BusinessApiService } from '../../core/services/business-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -12,7 +14,7 @@ import { ToastService } from '../../core/services/toast.service';
   selector: 'app-inventory-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, RefreshButtonComponent, HeaderSearchComponent],
   styles: [`
     .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
     .materials-grid {
@@ -58,8 +60,6 @@ import { ToastService } from '../../core/services/toast.service';
     .inventory-summary { margin: 0.25rem 0 1rem; color: var(--kb-color-muted-foreground); font-size: 0.84rem; }
     .inventory-summary strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
     .materials-toolbar { justify-content: space-between; margin-bottom: 0.85rem; }
-    .materials-search { display: flex; align-items: center; flex: 1 1 260px; max-width: 420px; }
-    .materials-search input { width: 100%; min-height: 40px; }
     .low-stock-filter[aria-pressed="true"] { color: var(--kb-color-warning); border-color: var(--kb-color-warning); background: rgba(183,121,31,0.08); }
     .material-card__actions { display: flex; gap: 0.45rem; margin-top: 0.35rem; }
     .material-card__actions button { min-height: 34px; padding: 0.35rem 0.65rem; }
@@ -79,7 +79,7 @@ import { ToastService } from '../../core/services/toast.service';
   template: `
     <div class="page-shell">
       <app-page-header title="Inventory" subtitle="Track raw materials, stock levels and low-stock alerts.">
-        <button type="button" class="header-action-btn" (click)="loadMaterials()" [disabled]="loading">Refresh</button>
+        <app-refresh-button (refresh)="loadMaterials()" [disabled]="loading" [loading]="loading" ariaLabel="Refresh inventory" />
         <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">+ Add Material</button>
       </app-page-header>
 
@@ -143,10 +143,7 @@ import { ToastService } from '../../core/services/toast.service';
       <!-- Materials Tab -->
       <div role="tabpanel" aria-label="Materials" *ngIf="activeTab === 'materials' && !loading && !error">
         <div class="materials-toolbar" *ngIf="materials.length > 0">
-          <label class="materials-search">
-            <span class="sr-only">Search materials</span>
-            <input class="field-control" type="search" [(ngModel)]="searchTerm" placeholder="Search materials..." />
-          </label>
+          <app-header-search [(value)]="searchTerm" placeholder="Search materials..." ariaLabel="Search materials" inputId="materials-search" />
           <button type="button" class="ghost-btn low-stock-filter" (click)="lowStockOnly = !lowStockOnly" [attr.aria-pressed]="lowStockOnly">
             {{ lowStockOnly ? 'Showing low stock' : 'Low stock only' }}
           </button>

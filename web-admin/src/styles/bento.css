@@ -11,7 +11,7 @@
      Buttons    .header-action-btn  .header-pill-btn  .icon-action-btn
                 .btn-micro  .tile-action-link  .link-btn-text
      Chips      .kpi-tag  .status-chip  .badge-*  .channel-chip  .trend-badge
-     Tables     .orders-tactile-table  .orders-head-bar  .order-row-interactive
+     Tables     .orders-tactile-table  .order-row-interactive
      Modals     .tactile-modal-*  .modal-close-icon  .modal-lead-note
      Helpers    .visually-hidden  .skeleton-shimmer  .spinning  .sub-caption
    ============================================================================ */
@@ -447,118 +447,13 @@
 .intel-empty-box p { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
 
 /* ── Bottom Bento Card: Live Stream & Orders ── */
-    .bento-orders-container {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
-    }
-
-.orders-head-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
-      flex-wrap: wrap;
-    }
-
-.orders-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-
-.orders-title {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-    }
-
-.counter-badge {
-      display: inline-block;
-      padding: 0.18rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-
-.orders-sub {
-      margin: 0.2rem 0 0;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
-    }
-
-.orders-head-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-.channel-filter-tabs {
-      display: inline-flex;
-      background: var(--kb-color-surface-2);
-      padding: 3px;
-      border-radius: 10px;
-      gap: 2px;
-    }
-
-.channel-tab-btn {
-      padding: 0.4rem 0.75rem;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      transition: all 120ms ease;
-    }
-
-.channel-tab-btn:hover { color: var(--kb-color-foreground); }
-
-.channel-tab-btn--active {
-      background: #FFFFFF;
-      color: var(--kb-color-foreground);
-      font-weight: 700;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-    }
-
-.order-search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border);
-      border-radius: 10px;
-      padding: 0.45rem 0.75rem;
-      width: 220px;
-      transition: all 140ms ease;
-    }
-
-.order-search-box:focus-within {
-      background: #FFFFFF;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(108, 39, 217, 0.1);
-    }
-
-.order-search-box svg { color: var(--kb-color-muted-foreground); }
-
-.order-search-box input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      font-size: 0.82rem;
-      color: var(--kb-color-foreground);
-    }
+/* NOTE: the per-page rules that used to live here (.bento-orders-container,
+   .orders-head-bar and children, .channel-filter-tabs, .channel-tab-btn*,
+   .order-search-box*) were deleted — zero template consumers remain and the
+   history tab owns its own copies. Shared table primitives
+   (.orders-tactile-table, .order-row-interactive, .channel-chip,
+   .status-chip, .badge-*, .btn-micro) stay: business-dashboard and the
+   history tab both consume them. */
 
 /* Tactile Orders Table */
     .orders-table-wrapper {

@@ -9,6 +9,7 @@ import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { environment } from '../../../environments/environment';
 
@@ -49,7 +50,8 @@ interface RestaurantProfile {
     PaymentMethodsSectionComponent,
     PasswordChangeSectionComponent,
     PageHeaderComponent,
-    ApiStateComponent
+    ApiStateComponent,
+    RefreshButtonComponent
   ],
   template: `
     <div class="page-shell">
@@ -70,15 +72,7 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-        <button type="button" class="header-action-btn" (click)="load()" aria-label="Reload settings from server">
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-          Refresh
-        </button>
+        <app-refresh-button (refresh)="load()" [loading]="loading()" ariaLabel="Reload settings from server" />
       </app-page-header>
 
       <!-- Stale refresh banner (prototype pattern) -->

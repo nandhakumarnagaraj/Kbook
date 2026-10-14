@@ -7,6 +7,7 @@ import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../core/models/api.models';
 
@@ -14,7 +15,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
   selector: 'app-platform-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
+  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -22,9 +23,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
         title="Platform Dashboard"
         subtitle="Cross-business snapshot of revenue, settlements, merchant onboarding, and gateway health."
       >
-        <button class="header-action-btn" (click)="refreshActiveTab()" aria-label="Refresh platform dashboard">
-          Refresh
-        </button>
+        <app-refresh-button (refresh)="refreshActiveTab()" [loading]="loadingTab()" ariaLabel="Refresh platform dashboard" />
       </app-page-header>
 
       <!-- Operator Navigation Tabs -->

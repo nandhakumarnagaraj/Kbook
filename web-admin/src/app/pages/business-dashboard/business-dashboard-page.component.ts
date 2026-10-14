@@ -18,6 +18,8 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
 
@@ -71,7 +73,9 @@ function getTodayIsoDate(): string {
     OrderDetailModalComponent,
     PageHeaderComponent,
     AnimatedCounterComponent,
-    NotificationBellComponent
+    NotificationBellComponent,
+    RefreshButtonComponent,
+    HeaderSearchComponent
   ],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
@@ -112,20 +116,7 @@ function getTodayIsoDate(): string {
           </app-notification-bell>
 
           <!-- Refresh Button -->
-          <button
-            type="button"
-            class="refresh-btn"
-            [disabled]="isRefreshing()"
-            (click)="refresh()"
-            title="Refresh live metrics">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="isRefreshing()">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            <span>Refresh</span>
-          </button>
+          <app-refresh-button (refresh)="refresh()" [loading]="isRefreshing()" ariaLabel="Refresh live metrics" />
           <span class="freshness-stamp" *ngIf="freshnessLabel()" role="status">{{ freshnessLabel() }}</span>
       </app-page-header>
 
@@ -348,16 +339,13 @@ function getTodayIsoDate(): string {
                 {{ c.label }}
               </button>
             </div>
-            <label class="floor-search">
-              <span class="visually-hidden">Search live orders</span>
-              <input
-                type="search"
-                class="floor-search__input"
-                placeholder="Search order #"
-                [ngModel]="searchQuery"
-                (ngModelChange)="onSearchChange($event)"
-                aria-label="Search live orders" />
-            </label>
+            <app-header-search
+              [value]="searchQuery"
+              (valueChange)="onSearchChange($event)"
+              placeholder="Search order #"
+              ariaLabel="Search live orders"
+              inputId="floor-search"
+            />
             <button type="button" class="link-btn-text" (click)="resetFilters()" *ngIf="selectedChannel() !== 'all' || searchQuery">
               Reset
             </button>
@@ -603,22 +591,6 @@ function getTodayIsoDate(): string {
       background: #FFFFFF;
       color: var(--kb-color-primary);
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-    }
-
-    .floor-search__input {
-      min-height: 34px;
-      padding: 0.3rem 0.6rem;
-      border: 1px solid var(--kb-color-border-strong);
-      border-radius: 8px;
-      background: #FFFFFF;
-      color: var(--kb-color-foreground);
-      font-size: 0.82rem;
-    }
-
-    .floor-search__input:focus {
-      outline: none;
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 2px rgba(108, 39, 217, 0.15);
     }
 
     .floor-list {

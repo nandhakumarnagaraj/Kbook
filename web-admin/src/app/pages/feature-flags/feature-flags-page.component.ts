@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { FeatureFlagAdminItem, FeatureFlagAuditItem } from '../../core/models/api.models';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatDate } from '../../shared/formatters';
 
@@ -13,7 +14,7 @@ import { formatDate } from '../../shared/formatters';
   selector: 'app-feature-flags-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -22,15 +23,7 @@ import { formatDate } from '../../shared/formatters';
       >
         <span kbHeaderBadge class="kpi-tag">{{ flags().length }} Flags</span>
         <span kbHeaderBadge class="kpi-tag kpi-tag--green">{{ enabledCount() }} Globally Effective</span>
-        <button type="button" class="refresh-btn" [disabled]="loading()" (click)="reload()" aria-label="Refresh feature flags">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="loading()" aria-hidden="true">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-            <path d="M16 21h5v-5" />
-          </svg>
-          <span>Refresh</span>
-        </button>
+        <app-refresh-button (refresh)="reload()" [disabled]="loading()" [loading]="loading()" ariaLabel="Refresh feature flags" />
       </app-page-header>
 
       <div class="toolbar">

@@ -17,23 +17,10 @@
 .pagination-controls .ghost-btn { padding: 0.35rem 0.7rem; font-size: 0.82rem; }
 .pagination-controls .ghost-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
 
-/* Ghost button variants (Businesses list) */
-.ghost-btn--accent {
-  border-color: #d97706 !important;
-  color: #b45309 !important;
-}
-.ghost-btn--accent:hover:not(:disabled) {
-  background: #fffbeb !important;
-  border-color: #b45309 !important;
-}
-.ghost-btn--danger {
-  border-color: rgba(185, 28, 28, 0.4) !important;
-  color: #b91c1c !important;
-}
-.ghost-btn--danger:hover:not(:disabled) {
-  background: #fef2f2 !important;
-  border-color: #b91c1c !important;
-}
+/* Ghost button variants (Businesses list): DELETED — these carried !important
+   overrides that silently stripped any component-level solid fill on hover
+   (the Suspend-button red-loss). Pages now own uniquely-named action classes
+   (e.g. .biz-action-btn) instead of sharing these names. */
 
 /* Form primitives (Staff modal) */
 .form-group {
