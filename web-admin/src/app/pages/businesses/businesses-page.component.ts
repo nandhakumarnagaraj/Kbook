@@ -100,7 +100,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
                 </button>
                 <button
                   *ngIf="business.isSuspended"
-                  class="ghost-btn ghost-btn--accent"
+                  class="ghost-btn ghost-btn--success"
                   (click)="activateBusiness(business); $event.stopPropagation()">
                   Activate
                 </button>
@@ -273,10 +273,28 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
   `,
   styles: [`
     .ghost-btn--danger {
-      color: var(--kb-color-error); border-color: var(--kb-color-error);
+      background: var(--kb-color-error);
+      border-color: var(--kb-color-error);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
     }
-    .ghost-btn--accent {
-      color: var(--kb-color-primary); border-color: var(--kb-color-primary);
+    .ghost-btn--danger:hover {
+      background: var(--kb-color-error);
+      border-color: var(--kb-color-error);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
+    }
+    .ghost-btn--success {
+      background: var(--kb-color-success);
+      border-color: var(--kb-color-success);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(47, 133, 90, 0.25);
+    }
+    .ghost-btn--success:hover {
+      background: var(--kb-color-success);
+      border-color: var(--kb-color-success);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(47, 133, 90, 0.4);
     }
     .modal-backdrop {
       position: fixed;
