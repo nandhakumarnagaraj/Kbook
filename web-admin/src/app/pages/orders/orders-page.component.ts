@@ -186,7 +186,7 @@ export class OrdersPageComponent {
   }
 
   refreshActiveTab(): void {
-    if (this.tab() === 'live') this.liveOrdersTab?.load();
+    if (this.tab() === 'live') this.liveOrdersTab?.load(true);
     else this.orderHistoryTab?.loadOrders();
   }
 

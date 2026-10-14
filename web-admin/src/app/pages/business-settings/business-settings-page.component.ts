@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
@@ -81,7 +81,7 @@ interface RestaurantProfile {
         <button type="button" class="btn-retry" (click)="load()">Retry</button>
       </div>
 
-      <div class="panel loading" *ngIf="loading() && !profile()" role="status" aria-busy="true">
+      <div class="panel loading" *ngIf="loading()" role="status" aria-busy="true">
         <span class="visually-hidden">Loading settings...</span>
         <div class="skeleton-stack">
           <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
@@ -94,7 +94,7 @@ interface RestaurantProfile {
         (retry)="load()"
       ></app-api-state>
 
-      <ng-container *ngIf="profile() as p">
+      <ng-container *ngIf="viewProfile() as p">
 
         <!-- Shop Profile (unsection.com tonal layout) -->
         <section class="panel settings-section">
@@ -358,6 +358,13 @@ export class BusinessSettingsPageComponent {
   saving = signal(false);
   logoBusy = signal(false);
   profile = signal<RestaurantProfile | null>(null);
+
+  /**
+   * The settings form is withheld while a reload is in flight so the skeleton
+   * above takes over: a manual refresh then visibly reloads the page instead of
+   * leaving the old values on screen behind a spinning icon.
+   */
+  readonly viewProfile = computed(() => (this.loading() ? null : this.profile()));
 
   constructor() { this.load(); }
 

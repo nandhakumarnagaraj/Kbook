@@ -156,24 +156,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             inputId="staff-search"
           />
           <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openCreateModal()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
             Add Staff
-          </button>
-          <button
-            type="button"
-            class="header-action-btn danger-btn"
-            *ngIf="isOwner"
-            (click)="requestRevokeAll()"
-            title="Emergency sign out of all devices"
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-              <line x1="12" y1="2" x2="12" y2="12"/>
-            </svg>
-            Sign Out All Devices
           </button>
           <app-refresh-button (refresh)="loadStaff()" [loading]="refreshing()" ariaLabel="Refresh staff" />
       </app-page-header>
@@ -225,17 +208,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         (cancelled)="cancelRevoke()"
       ></app-confirm-dialog>
 
-      <!-- Revoke sessions for everyone, including the current user -->
-      <app-confirm-dialog
-        *ngIf="showRevokeAll"
-        title="Sign out all devices"
-        message="Every account in this restaurant will be signed out of every device, including you. Accounts stay active and everyone can sign in again. Use this if a terminal was lost or stolen."
-        confirmLabel="Sign out everyone"
-        cancelLabel="Cancel"
-        [confirmDanger]="true"
-        (confirmed)="confirmRevokeAll()"
-        (cancelled)="cancelRevokeAll()"
-      ></app-confirm-dialog>
+      <!-- Revoke sessions for one staff member is the only sign-out action on
+           this page: the bulk "sign out all devices" button was removed from the
+           header when staff was aligned with the other page headers. -->
 
       <div class="panel table-wrap" *ngIf="loaded() && pagedStaff.length; else loading">
         <table class="data-table">
@@ -396,7 +371,6 @@ export class StaffPageComponent {
 
   staffToDeactivate: BusinessStaffItem | null = null;
   staffToRevoke: BusinessStaffItem | null = null;
-  showRevokeAll = false;
 
   showPermissionsModal = signal(false);
   permissionsStaff = signal<BusinessStaffItem | null>(null);
@@ -507,32 +481,6 @@ export class StaffPageComponent {
     this.staffToRevoke = null;
   }
 
-  requestRevokeAll(): void {
-    this.showRevokeAll = true;
-  }
-
-  confirmRevokeAll(): void {
-    this.showRevokeAll = false;
-
-    this.api.revokeAllSessions().subscribe({
-      next: (result) => {
-        // The caller's own session is revoked too, so the next request 401s and the
-        // auth interceptor redirects to login. Show the count while we still can.
-        this.toast.show(
-          `${result.revoked} account(s) signed out of all devices. You will need to sign in again.`,
-          'success'
-        );
-      },
-      error: () => {
-        this.toast.show('Failed to sign all devices out. Please try again.', 'error');
-      }
-    });
-  }
-
-  cancelRevokeAll(): void {
-    this.showRevokeAll = false;
-  }
-
   get filteredStaff(): BusinessStaffItem[] {
     const search = this.searchTerm.trim().toLowerCase();
 
@@ -560,9 +508,9 @@ export class StaffPageComponent {
 
   loadStaff(): void {
     this.refreshing.set(true);
-    if (!this.staff().length) {
-      this.loaded.set(false);
-    }
+    // Clear the table on every load, including a manual refresh, so the
+    // skeletons take over and the reload is visible (as on Terminals).
+    this.loaded.set(false);
     this.loadError.set('');
     this.api.getStaff().subscribe({
       next: (data) => {

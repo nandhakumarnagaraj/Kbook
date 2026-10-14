@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -60,7 +60,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
 
       <!-- TAB 1: OVERVIEW -->
       <ng-container *ngIf="activeTab() === 'overview'">
-        <ng-container *ngIf="summary() as data; else loading">
+        <ng-container *ngIf="viewSummary() as data; else loading">
           <section class="kpi-row">
             <article class="kpi-card kpi-card--hero" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
               <div class="kpi-head">
@@ -575,20 +575,33 @@ export class PlatformDashboardPageComponent {
   readonly transactions = signal<AdminTransaction[]>([]);
   readonly loadingTab = signal(false);
   readonly tabError = signal('');
+  private readonly summaryLoading = signal(false);
+
+  /**
+   * The overview is withheld while a reload is in flight so the `#loading`
+   * skeleton takes over — a manual refresh then visibly reloads the page (as on
+   * Terminals) instead of leaving the old figures on screen behind a spinner.
+   */
+  readonly viewSummary = computed(() => (this.summaryLoading() ? null : this.summary()));
 
   readonly summary = toSignal(
     this.refresh$.pipe(
       startWith(undefined),
       switchMap(() => {
         this.summaryError.set('');
+        this.summaryLoading.set(true);
         return this.api.getDashboardSummary().pipe(
-          map((summary) => ({
-            ...summary,
-            totalRevenueFormatted: formatCurrency(summary.totalRevenue),
-            refundedAmountFormatted: formatCurrency(summary.refundedAmount),
-            liveBusinesses: summary.liveBusinesses ?? summary.totalBusinesses ?? 0,
-          })),
+          map((summary) => {
+            this.summaryLoading.set(false);
+            return {
+              ...summary,
+              totalRevenueFormatted: formatCurrency(summary.totalRevenue),
+              refundedAmountFormatted: formatCurrency(summary.refundedAmount),
+              liveBusinesses: summary.liveBusinesses ?? summary.totalBusinesses ?? 0,
+            };
+          }),
           catchError((error: unknown) => {
+            this.summaryLoading.set(false);
             const response = error as { error?: { message?: string; error?: string } };
             this.summaryError.set(
               response.error?.message || response.error?.error || 'Unable to load the platform dashboard.'

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, map, of, Subject, startWith, switchMap } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -91,7 +91,7 @@ function todayRange(): { from: string; to: string } {
         </button>
       </nav>
 
-      <ng-container *ngIf="report() as data; else reportState">
+      <ng-container *ngIf="viewReport() as data; else reportState">
 
         <!-- TAB 1: OVERVIEW -->
         <ng-container *ngIf="activeTab() === 'overview'">
@@ -676,6 +676,13 @@ export class ReportsPageComponent {
   readonly selectedRange = signal<{ from: string; to: string }>(readStoredDateRange() ?? todayRange());
   readonly activeTab = signal<'overview' | 'gst' | 'items'>('overview');
   readonly refreshing = signal(false);
+
+  /**
+   * The report is withheld while a reload is in flight so `#reportState` (the
+   * skeleton) takes over — a manual refresh then visibly reloads the page
+   * (as on Terminals) instead of silently swapping the figures underneath it.
+   */
+  readonly viewReport = computed(() => (this.refreshing() ? null : this.report()));
   readonly error = signal('');
   readonly report = toSignal(this.trigger$.pipe(startWith(undefined), switchMap(() => {
     this.refreshing.set(true); this.error.set('');

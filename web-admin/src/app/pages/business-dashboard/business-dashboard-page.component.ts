@@ -78,7 +78,7 @@ function getTodayIsoDate(): string {
     HeaderSearchComponent
   ],
   template: `
-    <div class="page-shell" *ngIf="dashboard() as data; else loading">
+    <div class="page-shell" *ngIf="viewDashboard() as data; else loading">
       <!-- ── Top Cockpit Header Bar (shared PageHeaderComponent) ── -->
       <app-page-header
         [title]="data.shopName || 'KhanaBook Restaurant'"
@@ -198,7 +198,7 @@ function getTodayIsoDate(): string {
             <span class="metric-unit-sub">Unsettled</span>
           </div>
           <div class="bento-tile__footer-action">
-            <span class="sub-caption">{{ filteredActiveOrders().length }} live orders</span>
+            <span class="sub-caption">{{ activeOrders().length }} live orders</span>
             <button type="button" class="tile-action-link" (click)="navigateToActiveOrders()">
               View Active
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
@@ -318,68 +318,6 @@ function getTodayIsoDate(): string {
         </article>
       </section>
 
-      <!-- ── Live Floor Activity ── -->
-      <section class="floor-strip" aria-label="Live floor activity">
-        <div class="floor-strip__head">
-          <div class="floor-strip__title-group">
-            <span class="intel-card__eyebrow">Live Floor</span>
-            <h3 class="intel-card__title">Recent Orders</h3>
-            <span class="floor-strip__count">{{ filteredActiveOrders().length }} of {{ activeOrders().length }} shown</span>
-          </div>
-
-          <div class="floor-strip__controls">
-            <div class="floor-chip-group" role="group" aria-label="Filter orders by channel">
-              <button
-                type="button"
-                class="floor-chip"
-                *ngFor="let c of channels"
-                [class.floor-chip--active]="selectedChannel() === c.value"
-                [attr.aria-pressed]="selectedChannel() === c.value"
-                (click)="setChannel(c.value)">
-                {{ c.label }}
-              </button>
-            </div>
-            <app-header-search
-              [value]="searchQuery"
-              (valueChange)="onSearchChange($event)"
-              placeholder="Search order #"
-              ariaLabel="Search live orders"
-              inputId="floor-search"
-            />
-            <button type="button" class="link-btn-text" (click)="resetFilters()" *ngIf="selectedChannel() !== 'all' || searchQuery">
-              Reset
-            </button>
-          </div>
-        </div>
-
-        <div class="floor-list" *ngIf="filteredActiveOrders().length > 0; else noLiveOrders">
-          <button
-            type="button"
-            class="floor-row"
-            *ngFor="let order of visibleActiveOrders(); trackBy: trackByOrderCode"
-            (click)="openOrderDetail(order.orderId)">
-            <span class="floor-row__code">{{ order.orderCode }}</span>
-            <span class="floor-row__summary">{{ order.itemsSummary }}</span>
-            <span class="floor-row__channel">{{ order.tableAndChannel }}</span>
-            <span class="status-chip" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
-            <strong class="floor-row__amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
-          </button>
-          <button type="button" class="tile-action-link floor-more" (click)="navigateToActiveOrders()">
-            View all on Active Orders
-            <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-          </button>
-        </div>
-        <ng-template #noLiveOrders>
-          <div class="intel-empty-box">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-              <rect x="9" y="3" width="6" height="4" rx="1"/>
-            </svg>
-            <h4>No orders match this view</h4>
-            <p>Clear the search or channel filter to see recent orders from your POS terminals.</p>
-          </div>
-        </ng-template>
-      </section>
     </div>
 
     <!-- ── Terminal Fleet Status Modal ── -->
@@ -526,138 +464,6 @@ function getTodayIsoDate(): string {
     .split-legend--upi { background: var(--kb-color-primary); }
     .split-val { color: #FFFFFF; font-weight: 600; }
     .split-divider { color: var(--kb-color-muted-foreground); }
-
-    /* ── Live Floor strip ── */
-    .floor-strip {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-border);
-      border-radius: 18px;
-      padding: 1.2rem 1.5rem 1.35rem;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03), 0 4px 12px rgba(15, 23, 42, 0.02);
-    }
-
-    .floor-strip__head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.9rem;
-    }
-
-    .floor-strip__title-group {
-      display: flex;
-      align-items: baseline;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-
-    .floor-strip__count {
-      font-size: 0.78rem;
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .floor-strip__controls {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-
-    /* Channel filter buttons for the Live Floor strip. These were previously
-       called .channel-chip, which collided with the .channel-chip table badge
-       (same class name, different element) — the badge rule silently overrode
-       the button padding. Renamed so each name means exactly one thing. */
-    .floor-chip-group {
-      display: inline-flex;
-      gap: 0.25rem;
-      padding: 0.15rem;
-      background: var(--kb-color-surface-2);
-      border-radius: 10px;
-    }
-
-    .floor-chip {
-      border: none;
-      background: transparent;
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 0.3rem 0.7rem;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .floor-chip--active {
-      background: #FFFFFF;
-      color: var(--kb-color-primary);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-    }
-
-    .floor-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    .floor-row {
-      display: grid;
-      grid-template-columns: 84px 1.4fr 1fr auto auto;
-      align-items: center;
-      gap: 0.75rem;
-      width: 100%;
-      padding: 0.55rem 0.7rem;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 10px;
-      text-align: left;
-      cursor: pointer;
-      transition: background 120ms ease, border-color 120ms ease;
-    }
-
-    .floor-row:hover {
-      background: var(--kb-color-surface-2);
-      border-color: var(--kb-color-border);
-    }
-
-    .floor-row__code {
-      font-weight: 700;
-      font-size: 0.82rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .floor-row__summary {
-      font-size: 0.82rem;
-      color: var(--kb-color-foreground);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .floor-row__channel {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .floor-row__amount {
-      font-size: 0.85rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .floor-more {
-      align-self: flex-start;
-      margin-top: 0.35rem;
-    }
-
-    @media (max-width: 860px) {
-      .floor-row {
-        grid-template-columns: 72px 1fr auto;
-        row-gap: 0.2rem;
-      }
-      .floor-row__channel { display: none; }
-    }
 
     /* Hourly Chart */
     .hourly-chart-wrapper {
@@ -811,6 +617,20 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   private readonly currentDashboard = signal<any>(null);
   readonly dashboard = this.currentDashboard.asReadonly();
 
+  /**
+   * True while a *user-requested* reload is in flight. The 60s auto-poll
+   * deliberately does not set it — swapping the figures someone is reading for
+   * skeletons every minute would be worse than no feedback at all.
+   */
+  private readonly manualReload = signal(false);
+
+  /**
+   * What the page renders: the payload is withheld during a manual reload so
+   * the skeleton (the `#loading` template) takes over and the reload is
+   * unmistakable, the same feedback the Terminals page gives.
+   */
+  readonly viewDashboard = computed(() => (this.manualReload() ? null : this.currentDashboard()));
+
   private refreshSubscription: Subscription | null = null;
 
   /** Wall-clock of the last successful dashboard load, and a coarse ticker that
@@ -824,14 +644,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   /** Auto-refresh cadence. The dashboard aggregates ~9 endpoints, so it polls
    *  slower than the Active Orders board (30s) and skips hidden tabs. */
   private static readonly AUTO_REFRESH_MS = 60_000;
-
-  readonly channels: ReadonlyArray<{ label: string; value: 'all' | 'dine_in' | 'takeaway' }> = [
-    { label: 'All', value: 'all' },
-    { label: 'Dine In', value: 'dine_in' },
-    { label: 'Takeaway', value: 'takeaway' }
-  ];
-  readonly selectedChannel = signal<'all' | 'dine_in' | 'takeaway'>('all');
-  searchQuery = '';
 
   readonly activeOrders = signal<PosActiveOrder[]>([]);
   readonly imageErrors = signal<Record<string, boolean>>({});
@@ -873,7 +685,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     // dashboard left open overnight is not hammering the API.
     this.autoRefreshTimer = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        this.refresh();
+        this.pollRefresh();
       }
     }, BusinessDashboardPageComponent.AUTO_REFRESH_MS);
 
@@ -901,13 +713,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     return `Updated ${hours}h ago`;
   });
 
-  /** Only the first few orders are rendered; the full list lives on Active Orders. */
-  readonly visibleActiveOrders = computed(() => this.filteredActiveOrders().slice(0, 5));
-
-  onSearchChange(value: string): void {
-    this.searchQuery = value ?? '';
-  }
-
   private initDashboardStream(): void {
     this.refreshSubscription = this.refresh$.pipe(
       startWith(undefined),
@@ -924,6 +729,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         ]).pipe(
           map(([dashboardData, trendsData, ordersData]) => {
             this.isRefreshing.set(false);
+            this.manualReload.set(false);
             this.staleError.set('');
             this.dashboardError.set('');
 
@@ -994,6 +800,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
           }),
           catchError((error: unknown) => {
             this.isRefreshing.set(false);
+            this.manualReload.set(false);
             const msg = this.formatErrorMessage(error);
             if (this.currentDashboard()) {
               this.staleError.set(msg);
@@ -1095,37 +902,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-  // Computed: Channel Label
-  readonly channelLabel = computed(() => {
-    switch (this.selectedChannel()) {
-      case 'dine_in': return 'Dine In';
-      case 'takeaway': return 'Takeaway';
-      default: return 'All Orders';
-    }
-  });
-
-  // Computed: Filtered Active Orders by Channel & Search Query
-  readonly filteredActiveOrders = computed(() => {
-    const channel = this.selectedChannel();
-    const query = (this.searchQuery || '').trim().toLowerCase();
-    const orders = this.activeOrders();
-
-    return orders.filter(order => {
-      if (channel !== 'all') {
-        const orderType = (order.orderType || '').toLowerCase();
-        if (channel === 'dine_in' && orderType !== 'dine_in') return false;
-        if (channel === 'takeaway' && orderType !== 'takeaway') return false;
-      }
-
-      if (!query) return true;
-      return (order.orderCode || '').toLowerCase().includes(query)
-        || (order.itemsSummary || '').toLowerCase().includes(query)
-        || (order.tableAndChannel || '').toLowerCase().includes(query)
-        || (order.sourceType || '').toLowerCase().includes(query)
-        || (order.status || '').toLowerCase().includes(query);
-    });
-  });
 
   // Computed: Terminal Counts
   readonly onlineTerminalsCount = computed(() => {
@@ -1239,15 +1015,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     return Math.min(100, Math.round((completed / total) * 100));
   });
 
-  setChannel(channel: 'all' | 'dine_in' | 'takeaway'): void {
-    this.selectedChannel.set(channel);
-  }
-
-  resetFilters(): void {
-    this.selectedChannel.set('all');
-    this.searchQuery = '';
-  }
-
   toggleTerminalsModal(): void {
     this.terminalsModalOpen.update(v => !v);
   }
@@ -1284,16 +1051,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  getStatusClass(status: PosActiveOrder['status']): string {
-    switch (status) {
-      case 'Preparing': return 'badge-preparing';
-      case 'Cooking': return 'badge-cooking';
-      case 'Served': return 'badge-served';
-      case 'Completed': return 'badge-completed';
-      default: return 'badge-preparing';
-    }
-  }
-
   handleImageError(orderCode: string): void {
     this.imageErrors.update(errs => ({ ...errs, [orderCode]: true }));
   }
@@ -1306,9 +1063,15 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     return formatDate(value ?? null);
   }
 
-  trackByOrderCode = (_: number, order: PosActiveOrder) => order.orderCode;
-
+  /** User-requested reload (header button, retry buttons). */
   refresh(): void {
+    this.manualReload.set(true);
+    this.refresh$.next();
+    this.loadSupplementaryData();
+  }
+
+  /** Background poll — silent, see `viewDashboard`. */
+  private pollRefresh(): void {
     this.refresh$.next();
     this.loadSupplementaryData();
   }

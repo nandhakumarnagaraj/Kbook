@@ -41,10 +41,6 @@ import { environment } from '../../../environments/environment';
             Categories
           </button>
           <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openAddModal()">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
             Add New Dish
           </button>
           <app-refresh-button (refresh)="loadMenu()" [loading]="refreshing" ariaLabel="Refresh menu" />
@@ -712,12 +708,10 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   loadMenu(): void {
-    // Same stale-while-refresh contract as Businesses: skeleton only when
-    // there is nothing on screen yet, spinner on the refresh button otherwise.
+    // Clear the list on every load, including a manual refresh, so the
+    // skeletons take over and the reload is visible (as on Terminals).
     this.refreshing = true;
-    if (!this.items.length) {
-      this.loaded = false;
-    }
+    this.loaded = false;
     this.loadError = '';
     forkJoin({
       items: this.api.getMenu(),

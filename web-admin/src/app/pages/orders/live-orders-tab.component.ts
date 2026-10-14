@@ -20,10 +20,10 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       <!-- Loading and Error States -->
       <div class="stale-banner" *ngIf="error() && activeOrders().length" role="status" aria-live="polite">
         <span>Couldn't update live orders. {{ error() }}</span>
-        <button type="button" class="btn-retry" (click)="load()">Retry</button>
+        <button type="button" class="btn-retry" (click)="load(true)">Retry</button>
       </div>
 
-      <div class="panel loading" *ngIf="loading() && !activeOrders().length" role="status" aria-busy="true">
+      <div class="panel loading" *ngIf="showReloadSkeleton()" role="status" aria-busy="true">
         <span class="visually-hidden">Loading live orders...</span>
         <div class="skeleton-stack">
           <div class="skeleton-row" *ngFor="let i of [1,2,3]"></div>
@@ -33,11 +33,11 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       <app-api-state
         *ngIf="error() && !activeOrders().length"
         [message]="error()"
-        (retry)="load()"
+        (retry)="load(true)"
       ></app-api-state>
 
       <!-- Bento Cards Grid (bentogrids.com standard) -->
-      <div class="active-orders-grid" *ngIf="activeOrders().length">
+      <div class="active-orders-grid" *ngIf="activeOrders().length && !showReloadSkeleton()">
         <article
           class="pos-card-tactile"
           *ngFor="let order of activeOrders(); trackBy: trackByOrderId"
@@ -569,6 +569,18 @@ export class LiveOrdersTabComponent implements OnDestroy {
   loading = signal(false);
   error = signal('');
   activeOrders = signal<BusinessOrder[]>([]);
+
+  /** Set only by a user-requested reload — see `showReloadSkeleton`. */
+  private readonly manualLoad = signal(false);
+
+  /**
+   * Skeleton on the first load and on any user-requested reload, so the reload
+   * is visible (as on Terminals). Deliberately false for the 30s poll: flashing
+   * skeletons over orders someone is reading would be worse than no feedback.
+   */
+  readonly showReloadSkeleton = computed(
+    () => this.manualLoad() || (this.loading() && !this.activeOrders().length),
+  );
   selectedOrderDetail = signal<OrderDetailResponse | null>(null);
 
   // Cancel order modal state
@@ -633,16 +645,20 @@ export class LiveOrdersTabComponent implements OnDestroy {
     if (this.pollInterval) clearInterval(this.pollInterval);
   }
 
-  load(): void {
+  /** `manual` = a user asked for this (header refresh, Retry). */
+  load(manual = false): void {
+    this.manualLoad.set(manual);
     this.loading.set(true);
     this.error.set('');
     this.api.getOrdersPaginated(0, 100, 'draft').subscribe({
       next: (res: PaginatedOrdersResponse) => {
         this.activeOrders.set(res.content);
         this.loading.set(false);
+        this.manualLoad.set(false);
       },
       error: () => {
         this.loading.set(false);
+        this.manualLoad.set(false);
         this.error.set('Unable to load active orders.');
       }
     });

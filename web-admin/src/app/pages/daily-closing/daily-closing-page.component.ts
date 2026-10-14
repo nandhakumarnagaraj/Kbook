@@ -96,7 +96,7 @@ interface DailyClosingData {
         <button type="button" class="btn-retry" (click)="load()">Retry</button>
       </div>
 
-      <div class="panel loading" *ngIf="loading() && !data()" role="status" aria-busy="true">
+      <div class="panel loading" *ngIf="loading()" role="status" aria-busy="true">
         <span class="visually-hidden">Calculating settlement figures...</span>
         <div class="skeleton-stack">
           <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
@@ -109,7 +109,7 @@ interface DailyClosingData {
         (retry)="load()"
       ></app-api-state>
 
-      <ng-container *ngIf="data() as d">
+      <ng-container *ngIf="viewData() as d">
         <app-empty-state
           *ngIf="!loading() && !error() && d.totalOrders === 0"
           icon="🧾"
@@ -593,6 +593,13 @@ export class DailyClosingPageComponent {
   loading = signal(false);
   error = signal('');
   data = signal<DailyClosingData | null>(null);
+
+  /**
+   * The closing figures are withheld while a reload is in flight so the
+   * skeleton above takes over — a manual refresh then visibly reloads the page
+   * (as on Terminals) instead of silently swapping the numbers underneath it.
+   */
+  readonly viewData = computed(() => (this.loading() ? null : this.data()));
   countedCash = signal<number | null>(null);
   countedCashSavedLocally = signal(false);
 

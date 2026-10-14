@@ -80,8 +80,8 @@ import { ToastService } from '../../core/services/toast.service';
   template: `
     <div class="page-shell">
       <app-page-header title="Inventory" subtitle="Track raw materials, stock levels and low-stock alerts.">
+        <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">Add Material</button>
         <app-refresh-button (refresh)="loadMaterials()" [disabled]="loading" [loading]="loading" ariaLabel="Refresh inventory" />
-        <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">+ Add Material</button>
       </app-page-header>
 
       <div class="inventory-summary" *ngIf="!loading && !error" aria-label="Inventory summary">
@@ -139,7 +139,16 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       </section>
 
-      <app-api-state [loading]="loading" [error]="error" [attr.aria-busy]="loading"></app-api-state>
+      <!-- The skeleton owns the screen on every load, including a manual
+           refresh, so the data visibly reloads (same feedback as Terminals). -->
+      <div class="panel loading" *ngIf="loading" role="status" aria-busy="true">
+        <span class="visually-hidden">Loading inventory...</span>
+        <div class="skeleton-stack">
+          <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+        </div>
+      </div>
+
+      <app-api-state [loading]="false" [error]="error" (retry)="loadMaterials()"></app-api-state>
 
       <!-- Materials Tab -->
       <div role="tabpanel" aria-label="Materials" *ngIf="activeTab === 'materials' && !loading && !error">

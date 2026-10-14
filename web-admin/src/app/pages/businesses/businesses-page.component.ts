@@ -648,12 +648,10 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   }
 
   loadBusinesses(): void {
-    // Keep stale rows on screen during a manual refresh: full skeleton only
-    // on the very first load when there is nothing to show yet.
+    // Clear the rows on every load, including a manual refresh, so the
+    // skeletons take over and the reload is visible (as on Terminals).
     this.refreshing = true;
-    if (!this.businesses.length) {
-      this.loaded = false;
-    }
+    this.loaded = false;
     this.loadError = '';
     this.api.getBusinesses().subscribe({
       next: (data) => {
