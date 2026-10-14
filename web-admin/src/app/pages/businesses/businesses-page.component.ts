@@ -21,25 +21,20 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         title="Businesses"
         subtitle="Platform directory with cleaner drill-down detail panel."
       >
-      </app-page-header>
-
-      <div class="toolbar toolbar--inline">
-        <div class="toolbar__search">
+        <div class="header-controls">
           <input
             id="business-search"
-            class="field-control"
+            class="field-control header-search"
             type="search"
             [(ngModel)]="searchTerm"
             (ngModelChange)="resetVisible()"
             placeholder="Search by shop, owner, login, email, or id"
             aria-label="Search businesses"
           />
-        </div>
-        <div class="toolbar__actions">
           <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">+ Add Restaurant</button>
           <button class="header-action-btn" (click)="loadBusinesses()">Refresh</button>
         </div>
-      </div>
+      </app-page-header>
 
       <div class="filter-summary-line" *ngIf="loaded && businesses.length">
         <p class="muted">{{ filteredBusinesses.length }} of {{ businesses.length }} businesses · Showing {{ visibleBusinesses.length }}</p>
@@ -83,7 +78,12 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
                   <span class="chip danger" *ngIf="business.isSuspended">Suspended</span>
                 </div>
               </td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.ownerName || '-' }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">
+                <div class="stacked-meta">
+                  <strong>{{ business.ownerName || '-' }}</strong>
+                  <span class="muted" *ngIf="business.ownerLoginId">{{ business.ownerLoginId }}</span>
+                </div>
+              </td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
@@ -341,19 +341,18 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       flex-wrap: wrap;
       margin-bottom: 0;
     }
-    .toolbar__search {
-      flex: 1 1 280px;
-      min-width: 220px;
-    }
-    .toolbar__search .field-control {
-      width: 100%;
-    }
-    .toolbar__actions {
+    /* Single-row header controls projected into app-page-header's right slot:
+       compact search + action buttons sit beside the title block. */
+    .header-controls {
       display: flex;
-      gap: 0.5rem;
       align-items: center;
-      margin-left: auto;
-      flex-shrink: 0;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .header-search {
+      width: 300px;
+      max-width: 100%;
+      flex: 0 1 auto;
     }
     .filter-summary-line {
       display: flex;
@@ -382,16 +381,16 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       font-size: 0.82rem;
     }
     @media (max-width: 640px) {
+      .header-controls {
+        width: 100%;
+      }
+      .header-search {
+        width: 100%;
+        flex: 1 1 auto;
+      }
       .toolbar--inline {
         flex-direction: column;
         align-items: stretch;
-      }
-      .toolbar__actions {
-        margin-left: 0;
-        width: 100%;
-      }
-      .toolbar__actions .header-action-btn {
-        flex: 1;
       }
     }
   `]
