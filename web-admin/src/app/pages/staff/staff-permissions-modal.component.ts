@@ -113,7 +113,17 @@ import { BusinessStaffItem } from '../../core/models/api.models';
         <h3 style="margin:0 0 1rem">Save as Role Template</h3>
         <div class="form-group">
           <label>Template Name *</label>
-          <input class="field-control" type="text" [(ngModel)]="templateName" placeholder="e.g. Senior Cashier" />
+            <!-- The template ref is what gives this field a touched state: the
+                 app's other forms are reactive and get theirs from the control,
+                 this one only has ngModel. It flags on the rule the Save button
+                 actually applies — a name that is only whitespace is not a name. -->
+          <input
+            class="field-control"
+            type="text"
+            #templateNameRef="ngModel"
+            [(ngModel)]="templateName"
+            [attr.aria-invalid]="templateNameRef.touched && !templateName.trim()"
+            placeholder="e.g. Senior Cashier" />
         </div>
         <div class="form-group">
           <label>Description</label>

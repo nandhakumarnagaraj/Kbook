@@ -118,10 +118,15 @@ import { formatDate } from '../../shared/formatters';
               <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
                 <td>
                   <ng-container *ngIf="editingId() === terminal.id; else nameCell">
+                    <!-- Flags on the rule the save actually applies — a name that
+                         is only whitespace is refused by saveRename() even though
+                         the required validator would call it non-empty. -->
                     <input
                       class="field-control"
+                      #editNameRef="ngModel"
                       [(ngModel)]="editName"
                       (keyup.enter)="saveRename(terminal)"
+                      [attr.aria-invalid]="editNameRef.touched && !editName.trim()"
                       placeholder="Terminal name"
                     />
                     <div class="row-actions">
@@ -410,7 +415,9 @@ import { formatDate } from '../../shared/formatters';
               <input
                 id="recovery-device-id"
                 class="field-control"
+                #recoveryDeviceRef="ngModel"
                 [(ngModel)]="recoveryDeviceId"
+                [attr.aria-invalid]="(recoveryDeviceRef.touched && !recoveryDeviceId.trim()) || !!recoveryError()"
                 placeholder="Enter the ID shown on the new device"
                 autocomplete="off"
                 autofocus
@@ -450,7 +457,9 @@ import { formatDate } from '../../shared/formatters';
             <input
               id="approve-challenge"
               class="field-control"
+              #challengeRef="ngModel"
               [(ngModel)]="challengeCode"
+              [attr.aria-invalid]="(challengeRef.touched && !challengeCode.trim()) || !!challengeError()"
               inputmode="numeric"
               maxlength="2"
               placeholder="e.g. 52"
@@ -655,7 +664,7 @@ import { formatDate } from '../../shared/formatters';
       font-weight: 500;
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
-      transition: all 120ms ease;
+      transition: all 150ms ease;
     }
     .filter-pill-tactile:active { transform: scale(0.97); }
     .filter-pill-tactile--active {
@@ -822,7 +831,7 @@ import { formatDate } from '../../shared/formatters';
       color: var(--kb-color-muted-foreground);
       display: inline-flex;
       align-items: center;
-      transition: color 0.15s ease, transform 0.12s ease;
+      transition: color 0.15s ease, transform 0.15s ease;
     }
     .device-copy-btn:hover { color: var(--kb-color-foreground); }
     .device-copy-btn:active { transform: scale(0.9); }

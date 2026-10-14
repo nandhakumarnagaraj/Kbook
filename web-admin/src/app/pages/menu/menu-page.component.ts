@@ -409,7 +409,7 @@ import { environment } from '../../../environments/environment';
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
-            <button type="button" class="close-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
+            <button type="button" class="icon-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
           </div>
           <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted.</p>
 
@@ -484,11 +484,8 @@ import { environment } from '../../../environments/environment';
   styles: [`
     .menu-page-shell { gap: 1.25rem; }
     /* ── Menu table column rhythm (same standard as orders history) ── */
-    .menu-table th,
-    .menu-table td {
-      padding: 0.85rem 1rem;
-      vertical-align: middle;
-    }
+    /* The table design is defined once in the global stylesheet (see the
+       "Tables" section of styles.css). Column alignment is layout and stays. */
     .menu-table th:nth-child(5),
     .menu-table td:nth-child(5) {
       text-align: right;
@@ -542,9 +539,6 @@ import { environment } from '../../../environments/environment';
     
     
     
-    .data-table td {
-      font-variant-numeric: tabular-nums;
-    }
     .menu-price-list { display: grid; gap: 0.25rem; min-width: 112px; }
     .menu-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
     .menu-price-label { color: var(--kb-color-muted-foreground); font-size: 0.78rem; }
@@ -575,7 +569,7 @@ import { environment } from '../../../environments/environment';
       font-size: 0.78rem;
       font-weight: 500;
       cursor: pointer;
-      transition: transform 120ms var(--ease-out, ease-out), background-color 150ms ease;
+      transition: transform 150ms var(--ease-out, ease-out), background-color 150ms ease;
     }
     .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }

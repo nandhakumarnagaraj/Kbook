@@ -238,8 +238,8 @@ function todayRange(): { from: string; to: string } {
                 <span class="records-pill tabular-num">{{ ledger.entries.length }} Invoices</span>
               </header>
 
-              <div class="table-container" *ngIf="ledger.entries.length > 0; else noGstEntries">
-                <table class="report-table">
+              <div class="table-wrap" *ngIf="ledger.entries.length > 0; else noGstEntries">
+                <table class="data-table">
                   <thead>
                     <tr>
                       <th>Invoice / Bill #</th>
@@ -304,8 +304,8 @@ function todayRange(): { from: string; to: string } {
                 <span class="records-pill tabular-num">{{ data.itemSales.length }} Menu Items</span>
               </header>
 
-              <div class="table-container" *ngIf="data.itemSales.length > 0; else noItemSales">
-                <table class="report-table">
+              <div class="table-wrap" *ngIf="data.itemSales.length > 0; else noItemSales">
+                <table class="data-table">
                   <thead>
                     <tr>
                       <th style="width: 60px;"># Rank</th>
@@ -566,7 +566,7 @@ function todayRange(): { from: string; to: string } {
       background: #FFFFFF;
       border: 1px solid var(--kb-color-border);
       cursor: pointer;
-      transition: all 140ms ease;
+      transition: all 150ms ease;
       white-space: nowrap;
       min-height: 40px;
     }
@@ -616,48 +616,8 @@ function todayRange(): { from: string; to: string } {
       font-size: 0.78rem;
       font-weight: 700;
     }
-    .table-container {
-      overflow-x: auto;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 12px;
-    }
-    .report-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      text-align: left;
-    }
-    .report-table th {
-      background: var(--kb-color-bg-app);
-      color: var(--kb-color-muted-foreground);
-      font-weight: 700;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-border);
-      white-space: nowrap;
-    }
-    .report-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      color: var(--kb-color-foreground);
-      min-height: 44px;
-    }
-    .report-table tbody tr:hover {
-      background: var(--kb-color-bg-app);
-    }
-    .num-cell {
-      text-align: right;
-    }
-    .table-totals-row td {
-      background: var(--kb-color-bg-app);
-      border-top: 2px solid var(--kb-color-border);
-      font-size: 0.92rem;
-    }
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .text-brand { color: var(--kb-color-primary); }
+    /* The table design is defined once in the global stylesheet (see the
+       "Tables" section of styles.css). Only column layout belongs here. */
     .empty-table-state {
       padding: 3rem 1.5rem;
       text-align: center;

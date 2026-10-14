@@ -279,7 +279,10 @@ describe('manual refresh visibly reloads the data', () => {
       },
       { provide: Router, useValue: { navigate: () => Promise.resolve(true) } },
     ]);
-    const table = () => host(fixture).querySelector('.orders-table-wrapper');
+    // The wrapper is the shared `.table-wrap`: the orders history table used to
+    // carry its own `.orders-table-wrapper`, which is part of why it looked
+    // different from every other table in the app.
+    const table = () => host(fixture).querySelector('.table-wrap');
     const skeletonRow = () => host(fixture).querySelector('.panel.loading .skeleton-row');
 
     expect(skeletonRow()).withContext('order history: the first load shows skeletons').toBeTruthy();

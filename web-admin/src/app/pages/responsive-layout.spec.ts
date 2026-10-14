@@ -216,7 +216,7 @@ describe('Responsive layout — inventory page', () => {
     expect(wrapper).withContext('the variance table needs its own horizontal scroll container').toBeTruthy();
     expect(getComputedStyle(wrapper).overflowX).toBe('auto');
 
-    const table = wrapper.querySelector('table.styled') as HTMLElement;
+    const table = wrapper.querySelector('table.data-table') as HTMLElement;
     expect(table).withContext('the variance table renders').toBeTruthy();
     expect(overflowOf(wrapper)).withContext('five nowrap columns are wider than a phone').toBeGreaterThan(0);
 
@@ -246,11 +246,11 @@ describe('Responsive layout — order history', () => {
     const fixture = mountOrderHistory([order()]);
     const host = fixture.nativeElement as HTMLElement;
 
-    const actionHeader = host.querySelector('.orders-tactile-table th.text-right') as HTMLElement;
+    const actionHeader = host.querySelector('.data-table th.text-right') as HTMLElement;
     expect(actionHeader).withContext('the Action header carries the alignment class').toBeTruthy();
     expect(getComputedStyle(actionHeader).textAlign).toBe('right');
 
-    const actionCell = host.querySelector('.orders-tactile-table tbody tr td:last-child') as HTMLElement;
+    const actionCell = host.querySelector('.data-table tbody tr td:last-child') as HTMLElement;
     expect(getComputedStyle(actionCell).textAlign).withContext('cells line up under their header').toBe('right');
   });
 
@@ -258,10 +258,10 @@ describe('Responsive layout — order history', () => {
     setViewport(DESKTOP);
     const host = mountOrderHistory([order()]).nativeElement as HTMLElement;
 
-    const total = host.querySelector('.orders-tactile-table tbody tr td:nth-child(4)') as HTMLElement;
-    const status = host.querySelector('.orders-tactile-table tbody tr td:nth-child(5)') as HTMLElement;
-    const totalHeader = host.querySelector('.orders-tactile-table thead th:nth-child(4)') as HTMLElement;
-    const statusHeader = host.querySelector('.orders-tactile-table thead th:nth-child(5)') as HTMLElement;
+    const total = host.querySelector('.data-table tbody tr td:nth-child(4)') as HTMLElement;
+    const status = host.querySelector('.data-table tbody tr td:nth-child(5)') as HTMLElement;
+    const totalHeader = host.querySelector('.data-table thead th:nth-child(4)') as HTMLElement;
+    const statusHeader = host.querySelector('.data-table thead th:nth-child(5)') as HTMLElement;
 
     expect(getComputedStyle(total).textAlign).toBe('right');
     expect(getComputedStyle(totalHeader).textAlign).toBe('right');

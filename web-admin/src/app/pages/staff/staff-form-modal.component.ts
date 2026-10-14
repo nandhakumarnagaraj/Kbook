@@ -73,13 +73,15 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
           <form [formGroup]="form" (ngSubmit)="submit()">
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-name' : 'staff-name'">Name *</label>
-              <input [id]="isEdit() ? 'edit-staff-name' : 'staff-name'" class="field-control" type="text" formControlName="name" placeholder="Full name" />
+              <input [id]="isEdit() ? 'edit-staff-name' : 'staff-name'" class="field-control" type="text" formControlName="name" placeholder="Full name"
+                     [attr.aria-invalid]="form.get('name')?.touched && form.get('name')?.invalid" />
               <div class="field-error" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">Name is required.</div>
             </div>
 
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-phone' : 'staff-phone'">Phone (10 digits) *</label>
-              <input [id]="isEdit() ? 'edit-staff-phone' : 'staff-phone'" class="field-control" type="text" formControlName="phone" placeholder="10-digit phone number" maxlength="10" />
+              <input [id]="isEdit() ? 'edit-staff-phone' : 'staff-phone'" class="field-control" type="text" formControlName="phone" placeholder="10-digit phone number" maxlength="10"
+                     [attr.aria-invalid]="form.get('phone')?.touched && form.get('phone')?.invalid" />
               <div class="field-error" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('required')">Phone is required.</div>
               <div class="field-error" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('pattern') && !form.get('phone')?.hasError('required')">Phone must be exactly 10 digits.</div>
             </div>
@@ -95,7 +97,8 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
 
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-email' : 'staff-email'">Email (optional)</label>
-              <input [id]="isEdit() ? 'edit-staff-email' : 'staff-email'" class="field-control" type="email" formControlName="email" placeholder="Email address" />
+              <input [id]="isEdit() ? 'edit-staff-email' : 'staff-email'" class="field-control" type="email" formControlName="email" placeholder="Email address"
+                     [attr.aria-invalid]="form.get('email')?.touched && form.get('email')?.invalid" />
               <div class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">Enter a valid email address.</div>
             </div>
 

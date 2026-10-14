@@ -467,7 +467,7 @@ interface DailyClosingData {
       background: #FFFFFF;
       font-variant-numeric: tabular-nums;
       outline: none;
-      transition: border-color 140ms ease;
+      transition: border-color 150ms ease;
     }
     .cash-count-field:focus {
       border-color: var(--kb-color-primary);

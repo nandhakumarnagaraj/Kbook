@@ -327,7 +327,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       font-weight: 600;
       font-size: 0.85rem;
       box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .logout-btn:hover {
       background: var(--kb-color-danger);

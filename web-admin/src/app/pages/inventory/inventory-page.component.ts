@@ -51,12 +51,9 @@ import { ToastService } from '../../core/services/toast.service';
     .movement-qty.positive { color: var(--kb-color-success); }
     .movement-qty.negative { color: var(--kb-color-danger); }
     .action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--kb-color-border); }
-    .table-wrap { overflow-x: auto; }
-    table.styled { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    table.styled th, table.styled td { text-align: center; vertical-align: middle; }
-    table.styled th { padding: 0.6rem 0.75rem; font-weight: 600; border-bottom: 2px solid var(--kb-color-border); white-space: nowrap; }
-    table.styled td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--kb-color-border); font-variant-numeric: tabular-nums; }
-    table.styled tr:hover td { background: rgba(0,0,0,0.02); }
+    /* The table design — padding, type, colours, header band, row feedback —
+       is defined once in the global stylesheet (see the "Tables" section of
+       styles.css). A page may lay its columns out, but must not restate it. */
     .inventory-summary, .materials-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
     .inventory-summary { margin: 0.25rem 0 1rem; color: var(--kb-color-muted-foreground); font-size: 0.84rem; }
     .inventory-summary strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
@@ -104,9 +101,9 @@ import { ToastService } from '../../core/services/toast.service';
       <section role="tabpanel" aria-label="Item recipes" *ngIf="activeTab === 'recipes' && !loading && !error" class="card">
         <p class="inventory-note">Set ingredient quantities for each menu item. Finalized bills deduct these amounts from stock automatically.</p>
         <div class="workflow-form">
-          <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" [(ngModel)]="selectedMenuItemId" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select></div>
-          <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" [(ngModel)]="recipeForm.rawMaterialId"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
-          <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" [(ngModel)]="recipeForm.quantityPerItem" /></div>
+          <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" required #recipeItemRef="ngModel" [(ngModel)]="selectedMenuItemId" [attr.aria-invalid]="recipeItemRef.invalid && recipeItemRef.touched" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select></div>
+          <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" required #recipeMaterialRef="ngModel" [(ngModel)]="recipeForm.rawMaterialId" [attr.aria-invalid]="recipeMaterialRef.invalid && recipeMaterialRef.touched"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
+          <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" #recipeQtyRef="ngModel" [(ngModel)]="recipeForm.quantityPerItem" [attr.aria-invalid]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)" /></div>
           <button type="button" class="primary-btn" (click)="addRecipe()" [disabled]="!selectedMenuItemId || !recipeForm.rawMaterialId || !isPositive(recipeForm.quantityPerItem) || savingWorkflow">{{ savingWorkflow ? 'Saving…' : 'Add ingredient' }}</button>
         </div>
         <div *ngIf="!selectedMenuItemId" class="muted">Choose a menu item to view or configure its recipe.</div>
@@ -121,8 +118,8 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="workflow-form">
           <div class="form-group"><label for="po-vendor">Supplier</label><select id="po-vendor" class="field-select" [(ngModel)]="poForm.vendorId"><option [ngValue]="null">No supplier</option><option *ngFor="let vendor of vendors" [ngValue]="vendor.id">{{ vendor.name }}</option></select></div>
           <div class="workflow-row" style="width:100%;justify-content:flex-start" *ngFor="let line of poForm.items; let i = index; trackBy: trackByIndex">
-            <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" [(ngModel)]="line.rawMaterialId"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
-            <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" [(ngModel)]="line.quantity" /></div>
+            <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" required #poLineMaterialRef="ngModel" [(ngModel)]="line.rawMaterialId" [attr.aria-invalid]="poLineMaterialRef.invalid && poLineMaterialRef.touched"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
+            <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" #poLineQtyRef="ngModel" [(ngModel)]="line.quantity" [attr.aria-invalid]="poLineQtyRef.touched && !isPositive(line.quantity)" /></div>
             <button *ngIf="poForm.items.length > 1" type="button" class="ghost-btn" (click)="removePoLine(i)" aria-label="Remove purchase order line">Remove</button>
           </div>
           <button type="button" class="ghost-btn" (click)="addPoLine()">+ Add another material</button>
@@ -250,7 +247,7 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="table-wrap" *ngIf="varianceData.length > 0">
-            <table class="styled">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th scope="col">Material</th>
@@ -283,7 +280,9 @@ import { ToastService } from '../../core/services/toast.service';
 
           <div class="form-group">
             <label for="material-name">Name *</label>
-            <input id="material-name" class="field-control" type="text" [(ngModel)]="materialForm.name" placeholder="e.g. Basmati Rice" />
+            <!-- Flags on what actually blocks Save: a name of spaces is not a name. -->
+            <input id="material-name" class="field-control" type="text" #materialNameRef="ngModel" [(ngModel)]="materialForm.name"
+                   [attr.aria-invalid]="materialNameRef.touched && !materialForm.name?.trim()" placeholder="e.g. Basmati Rice" />
           </div>
 
           <div class="form-row">
@@ -354,7 +353,8 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="vendor-form" *ngIf="showVendorForm">
               <div class="form-group">
                 <label for="vendor-name">Supplier name *</label>
-                <input id="vendor-name" class="field-control" type="text" [(ngModel)]="vendorForm.name" />
+                <input id="vendor-name" class="field-control" type="text" #vendorNameRef="ngModel" [(ngModel)]="vendorForm.name"
+                       [attr.aria-invalid]="vendorNameRef.touched && !vendorForm.name.trim()" />
               </div>
               <div class="form-group">
                 <label for="vendor-phone">Phone (optional)</label>
@@ -369,7 +369,8 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="form-row">
               <div class="form-group">
                 <label>Quantity *</label>
-                <input class="field-control" type="number" [(ngModel)]="purchaseForm.quantity" min="0.01" step="0.01" />
+                <input class="field-control" type="number" #purchaseQtyRef="ngModel" [(ngModel)]="purchaseForm.quantity"
+                       [attr.aria-invalid]="purchaseQtyRef.touched && !isPositive(purchaseForm.quantity)" min="0.01" step="0.01" />
               </div>
               <div class="form-group">
                 <label>Unit Cost (₹)</label>
@@ -385,11 +386,13 @@ import { ToastService } from '../../core/services/toast.service';
           <div role="tabpanel" aria-label="Wastage" *ngIf="detailTab === 'wastage'">
             <div class="form-group">
               <label>Quantity *</label>
-              <input class="field-control" type="number" [(ngModel)]="wastageForm.quantity" min="0.01" step="0.01" />
+              <input class="field-control" type="number" #wastageQtyRef="ngModel" [(ngModel)]="wastageForm.quantity"
+                     [attr.aria-invalid]="wastageQtyRef.touched && !isPositive(wastageForm.quantity)" min="0.01" step="0.01" />
             </div>
             <div class="form-group">
               <label>Reason *</label>
-              <input class="field-control" type="text" [(ngModel)]="wastageForm.reason" placeholder="e.g. Expired, spillage" />
+              <input class="field-control" type="text" #wastageReasonRef="ngModel" [(ngModel)]="wastageForm.reason"
+                     [attr.aria-invalid]="wastageReasonRef.touched && !wastageForm.reason?.trim()" placeholder="e.g. Expired, spillage" />
             </div>
             <button class="primary-btn" (click)="submitWastage()" [disabled]="!isPositive(wastageForm.quantity) || !wastageForm.reason?.trim() || savingStock">
               {{ savingStock ? 'Recording…' : 'Record wastage' }}
@@ -400,7 +403,8 @@ import { ToastService } from '../../core/services/toast.service';
           <div role="tabpanel" aria-label="Physical count" *ngIf="detailTab === 'count'">
             <div class="form-group">
               <label>Counted Quantity *</label>
-              <input class="field-control" type="number" [(ngModel)]="countForm.countedQty" min="0" step="0.01" />
+              <input class="field-control" type="number" #countQtyRef="ngModel" [(ngModel)]="countForm.countedQty"
+                     [attr.aria-invalid]="countQtyRef.touched && !isNonNegative(countForm.countedQty)" min="0" step="0.01" />
             </div>
             <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
               System shows {{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}. Any variance will create an adjustment entry.

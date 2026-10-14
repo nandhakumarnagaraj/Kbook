@@ -325,7 +325,7 @@ function getTodayIsoDate(): string {
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <h3>POS Hardware Terminals</h3>
-          <button type="button" class="modal-close-icon" (click)="toggleTerminalsModal()">✕</button>
+          <button type="button" class="icon-btn" (click)="toggleTerminalsModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
           <div class="terminal-item-row" *ngFor="let t of terminals()">
@@ -363,12 +363,12 @@ function getTodayIsoDate(): string {
             </span>
             <h3>Low Stock Raw Ingredients</h3>
           </div>
-          <button type="button" class="modal-close-icon" (click)="toggleLowStockModal()">✕</button>
+          <button type="button" class="icon-btn" (click)="toggleLowStockModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
           <p class="modal-lead-note">The following raw materials are currently below their minimum kitchen reserve threshold.</p>
-          <div class="tactile-table-wrapper">
-            <table class="orders-tactile-table">
+          <div class="table-wrap">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>Material</th>
@@ -503,7 +503,7 @@ function getTodayIsoDate(): string {
       width: 100%;
       background: var(--kb-color-border-strong);
       border-radius: 7px;
-      transition: height 240ms ease, background 140ms ease;
+      transition: height 240ms ease, background 150ms ease;
     }
     .bar-pill-fill--peak { background: var(--kb-color-primary); }
     .bar-pill-fill--current { background: var(--kb-color-burnt); }

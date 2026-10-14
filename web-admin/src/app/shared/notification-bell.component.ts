@@ -5,7 +5,10 @@ import {
   EventEmitter,
   HostListener,
   Input,
+  OnChanges,
+  OnDestroy,
   Output,
+  SimpleChanges,
   ViewChild,
   signal,
 } from '@angular/core';
@@ -47,7 +50,10 @@ import { formatDate } from './formatters';
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
-        <span class="notif-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+        <span
+          class="notif-badge"
+          [class.notif-badge--pop]="badgePop()"
+          *ngIf="unreadCount > 0">{{ unreadCount }}</span>
       </button>
 
       <div
@@ -114,6 +120,22 @@ import { formatDate } from './formatters';
         justify-content: center;
       }
 
+      /* A new alert arrives: the badge pops once, so the eye is drawn to the one
+         thing on the page that changed. The count itself is the primary signal —
+         the pop only makes it noticeable when the number is being replaced rather
+         than read. Reduced motion is handled by the global block in styles.css.
+         The badge stays in the DOM and the animation class is toggled off and on
+         again, so the keyframes replay on every arrival. */
+      .notif-badge--pop {
+        animation: notifBadgePop 240ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes notifBadgePop {
+        0% { transform: scale(1); }
+        45% { transform: scale(1.35); }
+        100% { transform: scale(1); }
+      }
+
       .notif-flyout {
         position: absolute;
         top: calc(100% + 8px);
@@ -128,7 +150,7 @@ import { formatDate } from './formatters';
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        animation: notifFlyoutIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
+        animation: notifFlyoutIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       @keyframes notifFlyoutIn {
@@ -167,7 +189,7 @@ import { formatDate } from './formatters';
         align-items: flex-start;
         gap: 0.65rem;
         cursor: pointer;
-        transition: background 120ms ease;
+        transition: background 150ms ease;
       }
 
       .notif-item:hover { background: var(--kb-color-bg-app); }
@@ -209,7 +231,7 @@ import { formatDate } from './formatters';
     `,
   ],
 })
-export class NotificationBellComponent {
+export class NotificationBellComponent implements OnChanges, OnDestroy {
   @Input() notifications: NotificationItem[] = [];
   @Input() unreadCount = 0;
 
@@ -217,6 +239,30 @@ export class NotificationBellComponent {
   @Output() markAllRead = new EventEmitter<void>();
 
   readonly open = signal(false);
+
+  /** Drives the one-off pop on the badge. */
+  readonly badgePop = signal(false);
+  private popTimer?: ReturnType<typeof setTimeout>;
+
+  /**
+   * Only an *increase* pops: that is a new alert arriving, which is the whole
+   * point of the motion. A poll returning the same count, someone reading a
+   * notification (a decrease) or the first render must not move anything — a
+   * badge that jumps for every refetch is noise, not feedback.
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    const change = changes['unreadCount'];
+    if (!change || change.firstChange) return;
+    if ((change.currentValue ?? 0) <= (change.previousValue ?? 0)) return;
+
+    this.badgePop.set(true);
+    if (this.popTimer) clearTimeout(this.popTimer);
+    this.popTimer = setTimeout(() => this.badgePop.set(false), 280);
+  }
+
+  ngOnDestroy(): void {
+    if (this.popTimer) clearTimeout(this.popTimer);
+  }
 
   @ViewChild('wrapper') private wrapper?: ElementRef<HTMLElement>;
   @ViewChild('bell') private bell?: ElementRef<HTMLButtonElement>;

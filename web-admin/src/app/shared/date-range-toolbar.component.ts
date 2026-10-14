@@ -74,7 +74,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
       border: 1px solid #1686f5;
       border-radius: 5px;
       cursor: pointer;
-      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
     }
     .date-toolbar__button--download { color: #fff; background: #1686f5; }
     .date-toolbar__button--download:hover:not(:disabled) { background: #0872dc; border-color: #0872dc; }
@@ -82,7 +82,11 @@ import { RefreshButtonComponent } from './refresh-button.component';
     .date-toolbar__button--secondary { color: #1686f5; background: #fff; }
     .date-toolbar__button--refresh:hover:not(:disabled),
     .date-toolbar__button--secondary:hover:not(:disabled) { background: #edf6ff; }
-    .date-toolbar__button:disabled { opacity: 0.55; cursor: default; }
+    /* Angular scopes this rule with its own attribute, which outranks the shared
+       layer's generic disabled rule in styles.css — so a component that paints
+       its own pointer cursor also states the disabled counterpart. Without this
+       line the button kept a pointer cursor while disabled. */
+    .date-toolbar__button:disabled { opacity: 0.55; cursor: not-allowed; }
     .date-toolbar__button:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
     @media (max-width: 680px) {
       .date-toolbar { justify-content: flex-start; flex-wrap: wrap; }

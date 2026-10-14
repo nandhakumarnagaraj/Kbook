@@ -154,7 +154,7 @@ export function filterBusinessOrders(
                 Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} · {{ orderToCancel.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
+            <button type="button" class="icon-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -201,8 +201,8 @@ export function filterBusinessOrders(
       <!-- ── Order History Table (no container chrome: bare table only) ── -->
       <ng-container aria-label="Order history">
         <!-- Orders Tactile Table -->
-        <div class="orders-table-wrapper" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
-          <table class="orders-tactile-table">
+        <div class="table-wrap" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Order</th>
@@ -217,8 +217,11 @@ export function filterBusinessOrders(
             <tbody>
               <tr
                 *ngFor="let order of pagedOrders; trackBy: trackByOrderId"
-                class="order-row-interactive"
-                (click)="openOrderDetail(order)">
+                class="clickable-row"
+                tabindex="0"
+                [attr.aria-label]="'View order #' + order.orderCode"
+                (click)="openOrderDetail(order)"
+                (keydown.enter)="openOrderDetail(order)">
                 <td>
                   <span class="order-hash-code">#{{ order.orderCode }}</span>
                   <div *ngIf="order.invoiceNumber && order.invoiceNumber !== order.orderCode" class="invoice-sub-badge font-mono">
@@ -319,9 +322,6 @@ export function filterBusinessOrders(
   styles: [`
     .refunded-label { color: var(--kb-color-error); font-weight: 500; }
     .refund-meta { font-size: 0.75rem; color: var(--kb-color-primary); }
-    .clickable-row { cursor: pointer; transition: background 0.15s; }
-    .clickable-row:hover { background: var(--kb-color-surface-2); }
-    .clickable-row:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
 
     .filter-group--full { grid-column: 1 / -1; }
 
@@ -406,7 +406,7 @@ export function filterBusinessOrders(
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
-      transition: all 120ms ease;
+      transition: all 150ms ease;
     }
     .preset-pill:hover { color: var(--kb-color-foreground); background: var(--kb-color-bg-app); }
     .preset-pill--active {
@@ -493,52 +493,19 @@ export function filterBusinessOrders(
       border: 1px solid var(--kb-color-success-soft);
     }
 
-    /* Tactile Table (bare: no container card around it) */
-    .orders-table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 12px;
-    }
-    .orders-tactile-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.84rem;
-      text-align: left;
-    }
-    .orders-tactile-table th {
-      padding: 0.85rem 1rem;
-      background: var(--kb-color-bg-app);
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--kb-color-muted-foreground);
-      border-bottom: 1px solid var(--kb-color-border);
-      vertical-align: middle;
-    }
-    .orders-tactile-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      vertical-align: middle;
-    }
+    /* The table design is defined once in the global stylesheet (see the
+       "Tables" section of styles.css). Column alignment is layout and stays. */
     /* Numeric total right-aligned, status centered, action right — header and
        cells share the same alignment so columns read straight. */
-    .orders-tactile-table th:nth-child(4),
-    .orders-tactile-table td:nth-child(4) {
+    .data-table th:nth-child(4),
+    .data-table td:nth-child(4) {
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
-    .orders-tactile-table th:nth-child(5),
-    .orders-tactile-table td:nth-child(5) {
+    .data-table th:nth-child(5),
+    .data-table td:nth-child(5) {
       text-align: center;
     }
-    .order-row-interactive {
-      cursor: pointer;
-      transition: background 120ms ease;
-    }
-    .order-row-interactive:hover { background: var(--kb-color-bg-app); }
-    .order-row-interactive:last-child td { border-bottom: none; }
     .order-hash-code {
       font-family: var(--kb-font-mono);
       font-weight: 700;

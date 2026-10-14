@@ -11,8 +11,8 @@
      Buttons    .header-action-btn  .header-pill-btn  .icon-action-btn
                 .btn-micro  .tile-action-link  .link-btn-text
      Chips      .kpi-tag  .status-chip  .badge-*  .channel-chip  .trend-badge
-     Tables     .orders-tactile-table  .order-row-interactive
-     Modals     .tactile-modal-*  .modal-close-icon  .modal-lead-note
+     Tables     .data-table  .table-wrap  .clickable-row (in styles.css; one design)
+     Modals     .tactile-modal-*  .icon-btn  .modal-lead-note
      Helpers    .visually-hidden  .skeleton-shimmer  .spinning  .sub-caption
    ============================================================================ */
 
@@ -53,7 +53,7 @@
       color: var(--kb-color-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
 .header-pill-btn:hover {
@@ -99,7 +99,7 @@
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms ease;
+      transition: all 150ms ease;
     }
 
 .icon-action-btn:hover { background: var(--kb-color-bg-app); border-color: var(--kb-color-border-strong); }
@@ -119,7 +119,7 @@
       color: var(--kb-color-foreground);
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
 .header-action-btn:hover {
@@ -170,7 +170,7 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 0.5rem;
-      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
     }
 
 .bento-tile:hover {
@@ -336,7 +336,7 @@
       font-weight: 700;
       cursor: pointer;
       padding: 0;
-      transition: color 140ms ease;
+      transition: color 150ms ease;
     }
 
 .tile-action-link:hover { color: var(--kb-color-primary-hover); }
@@ -425,7 +425,7 @@
       font-weight: 700;
       cursor: pointer;
       padding: 0;
-      transition: color 140ms ease;
+      transition: color 150ms ease;
     }
 
 .link-btn-text:hover { color: var(--kb-color-primary-hover); text-decoration: underline; }
@@ -450,53 +450,11 @@
 /* NOTE: the per-page rules that used to live here (.bento-orders-container,
    .orders-head-bar and children, .channel-filter-tabs, .channel-tab-btn*,
    .order-search-box*) were deleted — zero template consumers remain and the
-   history tab owns its own copies. Shared table primitives
-   (.orders-tactile-table, .order-row-interactive, .channel-chip,
-   .status-chip, .badge-*, .btn-micro) stay: business-dashboard and the
-   history tab both consume them. */
-
-/* Tactile Orders Table */
-    .orders-table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 12px;
-    }
-
-.orders-tactile-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.84rem;
-      text-align: left;
-    }
-
-.orders-tactile-table th {
-      padding: 0.75rem 1rem;
-      background: var(--kb-color-bg-app);
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--kb-color-muted-foreground);
-      border-bottom: 1px solid var(--kb-color-border);
-    }
-
-.orders-tactile-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
-      color: var(--kb-color-foreground);
-      vertical-align: middle;
-    }
-
-.order-row-interactive {
-      cursor: pointer;
-      transition: background 120ms ease;
-    }
-
-.order-row-interactive:hover {
-      background: var(--kb-color-bg-app);
-    }
-
-.order-row-interactive:last-child td { border-bottom: none; }
+   history tab owns its own copies. Shared primitives (.channel-chip, .status-chip,
+   .badge-*, .btn-micro) stay. The tactile table rules that used to live here are
+   gone as well, along with .order-row-interactive: every table — and every
+   clickable row — now takes its design and feedback from the one "Tables"
+   section of styles.css. */
 
 .order-hash-code {
       font-family: var(--kb-font-mono);
@@ -587,7 +545,7 @@
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 120ms ease;
+      transition: all 150ms ease;
     }
 
 .btn-micro:hover { background: var(--kb-color-surface-2); border-color: var(--kb-color-border-strong); }
@@ -694,17 +652,10 @@
       justify-content: center;
     }
 
-.modal-close-icon {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      padding: 0;
-      line-height: 1;
-    }
-
-.modal-close-icon:hover { color: var(--kb-color-foreground); }
+/* A modal's close cross is the shared global `.icon-btn` (styles.css, section
+   "Micro-interactions & Tactile Feedback"), so every cross — bento or classic —
+   has the same hover, press and focus ring. Only the glyph size is set here. */
+.tactile-modal-head .icon-btn { font-size: 1.1rem; }
 
 .tactile-modal-body {
       padding: 1.25rem 1.4rem;
@@ -817,7 +768,7 @@
   font-size: 13.5px;
   white-space: nowrap;
   cursor: pointer;
-  transition: filter 120ms ease;
+  transition: filter 150ms ease;
 }
 
 .state-panel--offline .btn-retry {
@@ -901,7 +852,7 @@
   font-weight: 700;
   color: var(--ink-2, #2A2A28);
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: all 150ms ease;
 }
 
 .ghost-btn:hover:not(:disabled) {

@@ -356,6 +356,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     formControlName="confirmPassword"
                     placeholder="Re-enter password"
                     autocomplete="new-password"
+                    [attr.aria-invalid]="passwordMismatch && passwordForm.get('confirmPassword')?.touched"
                   />
                 </div>
               </div>

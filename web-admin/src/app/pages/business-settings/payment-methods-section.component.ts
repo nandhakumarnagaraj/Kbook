@@ -45,7 +45,8 @@ export interface PaymentMethodsSettings {
         </div>
         <div class="field" *ngIf="settings().upiEnabled">
           <label>UPI Handle</label>
-          <input class="field-control" [ngModel]="settings().upiHandle" (ngModelChange)="onUpiHandleChange($event)" placeholder="yourname@upi" aria-label="UPI handle" aria-describedby="upi-feedback" />
+          <input class="field-control" [ngModel]="settings().upiHandle" (ngModelChange)="onUpiHandleChange($event)" placeholder="yourname@upi" aria-label="UPI handle" aria-describedby="upi-feedback"
+                 [attr.aria-invalid]="!!settings().upiHandle && upiValidation?.isValid === false" />
           <div *ngIf="upiValidation" class="upi-feedback" id="upi-feedback">
             <div *ngIf="upiValidation.isValid && upiValidation.isKnownBank" class="feedback-success" role="status">
               <span class="icon" aria-hidden="true">&#10003;</span> Verified Bank Handle (&#64;{{ upiValidation.suffix }})
@@ -75,14 +76,14 @@ export interface PaymentMethodsSettings {
       </div>
 
       <div class="flow-mode-cards" role="radiogroup" aria-label="Order payment flow mode">
-        <div class="flow-mode-card" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_before_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_before_food'" (click)="updateField('orderPaymentFlowMode', 'pay_before_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_before_food')">
+        <div class="flow-mode-card card-lift" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_before_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_before_food'" (click)="updateField('orderPaymentFlowMode', 'pay_before_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_before_food')">
           <div class="mode-header">
             <span class="mode-radio" aria-hidden="true"></span>
             <strong>Pay Before Food (Fast Counter / QSR)</strong>
           </div>
           <p class="muted">Customers settle payment at billing counter. Receipts print immediately upon payment success.</p>
         </div>
-        <div class="flow-mode-card" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_after_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_after_food'" (click)="updateField('orderPaymentFlowMode', 'pay_after_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_after_food')">
+        <div class="flow-mode-card card-lift" role="radio" tabindex="0" [attr.aria-checked]="settings().orderPaymentFlowMode === 'pay_after_food'" [class.active]="settings().orderPaymentFlowMode === 'pay_after_food'" (click)="updateField('orderPaymentFlowMode', 'pay_after_food')" (keydown.enter)="updateField('orderPaymentFlowMode', 'pay_after_food')">
           <div class="mode-header">
             <span class="mode-radio" aria-hidden="true"></span>
             <strong>Pay After Food (Dine-In Table Service)</strong>

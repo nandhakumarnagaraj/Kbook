@@ -55,8 +55,10 @@ interface VerificationState {
             <div class="input-with-action">
               <input
                 class="field-control tabular-num"
+                #gstinRef="ngModel"
                 [ngModel]="tax().gstin"
                 (ngModelChange)="onGstinChange($event)"
+                [attr.aria-invalid]="gstState().valid === false || (gstinRef.touched && !!tax().gstin && tax().gstin.length !== 15)"
                 placeholder="e.g. 29AAAAA0000A1Z5"
                 maxlength="15"
               />
@@ -126,8 +128,10 @@ interface VerificationState {
           <div class="input-with-action">
             <input
               class="field-control tabular-num"
+              #fssaiRef="ngModel"
               [ngModel]="tax().fssaiNumber"
               (ngModelChange)="onFssaiChange($event)"
+              [attr.aria-invalid]="fssaiState().valid === false || (fssaiRef.touched && !!tax().fssaiNumber && (tax().fssaiNumber?.length ?? 0) !== 14)"
               placeholder="e.g. 10020000000000"
               maxlength="14"
             />

@@ -119,7 +119,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
-      transition: transform 120ms ease, background-color 150ms ease;
+      transition: transform 150ms ease, background-color 150ms ease;
     }
     .small-action-btn:hover:not(:disabled) { background: var(--kb-color-surface-2); }
     .small-action-btn:active:not(:disabled) { transform: scale(0.97); }

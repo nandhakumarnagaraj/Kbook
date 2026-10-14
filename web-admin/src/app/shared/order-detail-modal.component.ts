@@ -165,7 +165,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
         <div class="order-modal__items">
           <h4 class="order-modal__subtitle">Line Items</h4>
           <div class="order-modal__table-wrap">
-            <table class="order-modal__table">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>Item</th>
@@ -413,31 +413,9 @@ import { BusinessApiService } from '../core/services/business-api.service';
       overflow-x: auto;
     }
 
-    .order-modal__table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-
-    .order-modal__table th {
-      text-align: left;
-      padding: 0.5rem 0.6rem;
-      border-bottom: 1px solid var(--line);
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
-    .order-modal__table td {
-      padding: 0.5rem 0.6rem;
-      border-bottom: 1px solid var(--line);
-      color: var(--ink);
-    }
-
-    .order-modal__table tr:last-child td {
-      border-bottom: none;
-    }
+    /* The table design is defined once in the global stylesheet (see the
+       "Tables" section of styles.css). Only the modal's own scroll box and its
+       variant line stay here. */
 
     .order-modal__variant {
       font-size: 0.8rem;
@@ -470,7 +448,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
       font-size: 0.82rem;
       font-weight: 600;
       text-decoration: none;
-      transition: background 0.15s, transform 0.1s;
+      transition: background 0.15s, transform 0.15s;
     }
 
     .action-btn-link.primary-action {

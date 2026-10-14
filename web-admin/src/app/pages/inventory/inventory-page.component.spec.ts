@@ -67,10 +67,15 @@ describe('InventoryPageComponent — empty materials state', () => {
 
 /**
  * The variance report is the one real table on this page, and its values are
- * read across a row (system stock vs physical count vs variance). Column labels
- * used to sit left-aligned above values that did not share their column's
- * alignment, so a row was hard to scan. These specs pin the alignment through
- * getComputedStyle, i.e. the real cascade of styles.css + this component.
+ * read across a row (system stock vs physical count vs variance). These specs
+ * pin its alignment through getComputedStyle, i.e. the real cascade of
+ * styles.css + this component.
+ *
+ * The page used to centre this table on its own — every header and every cell,
+ * horizontally and vertically — which is why a variance report looked nothing
+ * like the material list beside it. The design is defined once now (the "Tables"
+ * section of styles.css) and a page may only lay its columns out, so what is
+ * pinned here is that every cell keeps its column's alignment.
  */
 describe('InventoryPageComponent — variance table alignment', () => {
   let fixture: ComponentFixture<InventoryPageComponent>;
@@ -99,7 +104,7 @@ describe('InventoryPageComponent — variance table alignment', () => {
     ];
     fixture.detectChanges();
 
-    const table = fixture.nativeElement.querySelector('table.styled') as HTMLTableElement | null;
+    const table = fixture.nativeElement.querySelector('table.data-table') as HTMLTableElement | null;
     expect(table).withContext('variance table should render once rows exist').toBeTruthy();
     return table!;
   }
@@ -114,12 +119,12 @@ describe('InventoryPageComponent — variance table alignment', () => {
     }
   });
 
-  it('centers every header label', () => {
+  it('leaves every header label on the shared table design: left aligned', () => {
     const table = mountVariance();
     const headers = Array.from(table.querySelectorAll('thead th')) as Element[];
 
     expect(headers.length).toBe(5);
-    expect(alignments(headers)).toEqual(['center', 'center', 'center', 'center', 'center']);
+    expect(alignments(headers)).toEqual(['left', 'left', 'left', 'left', 'left']);
   });
 
   it('gives each column value the same alignment as its header', () => {
@@ -131,15 +136,22 @@ describe('InventoryPageComponent — variance table alignment', () => {
     expect(alignments(firstRow)).toEqual(alignments(headers));
   });
 
-  it('centers every body cell horizontally and vertically', () => {
+  it('keeps every body cell on its column alignment and vertically centred', () => {
     const table = mountVariance();
-    const cells = Array.from(table.querySelectorAll('tbody td')) as Element[];
+    const headers = Array.from(table.querySelectorAll('thead th')) as Element[];
+    const rows = Array.from(table.querySelectorAll('tbody tr')) as HTMLTableRowElement[];
 
-    expect(cells.length).withContext('two rows of five cells').toBe(10);
-    for (const cell of cells) {
-      const style = getComputedStyle(cell);
-      expect(style.textAlign).toBe('center');
-      expect(style.verticalAlign).toBe('middle');
+    expect(rows.length).withContext('two rows').toBe(2);
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll('td')) as Element[];
+      expect(cells.length).toBe(headers.length);
+      cells.forEach((cell, column) => {
+        const style = getComputedStyle(cell);
+        expect(style.textAlign)
+          .withContext(`row ${row.rowIndex} column ${column}: shares its header's alignment`)
+          .toBe(getComputedStyle(headers[column]).textAlign);
+        expect(style.verticalAlign).toBe('middle');
+      });
     }
   });
 });

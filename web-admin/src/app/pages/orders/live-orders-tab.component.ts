@@ -166,7 +166,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
                 Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} · {{ orderToCancel()?.customerName || 'Walk-in customer' }}
               </p>
             </div>
-            <button type="button" class="close-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
+            <button type="button" class="icon-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
           </div>
 
           <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
@@ -257,7 +257,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       gap: 0.85rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
       cursor: pointer;
-      transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .pos-card-tactile:hover {
       transform: translateY(-2px);
@@ -448,7 +448,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       color: var(--kb-color-foreground);
       cursor: pointer;
       min-height: 36px;
-      transition: all 120ms ease;
+      transition: all 150ms ease;
     }
     .card-action-btn:hover {
       background: var(--kb-color-bg-app);
@@ -485,14 +485,9 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       gap: 1rem;
       margin-bottom: 0.75rem;
     }
-    .close-btn {
-      background: transparent;
-      border: none;
-      font-size: 1.15rem;
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      padding: 0.25rem;
-    }
+    /* The close cross is the shared global icon-btn — see the
+       "Micro-interactions & Tactile Feedback" section of styles.css. */
+    .modal-header .icon-btn { font-size: 1.15rem; }
     .chip {
       display: inline-block;
       padding: 0.2rem 0.55rem;

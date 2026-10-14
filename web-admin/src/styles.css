@@ -190,9 +190,9 @@ a:hover { color: var(--brand-deep); }
   display: grid;
   /* minmax(0, 1fr), not the implicit `auto` track: an auto track is floored at
      the items' min-content width, so one nowrap table widened the column past
-     the viewport and the whole page scrolled sideways on a phone. Allowing the
-     track to shrink hands the scrolling back to the inner .table-wrap /
-     .table-container wrappers that were built for it. */
+     the     viewport and the whole page scrolled sideways on a phone. Allowing the
+     track to shrink hands the scrolling back to the inner .table-wrap wrappers
+     that were built for it. */
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
@@ -319,26 +319,59 @@ a:hover { color: var(--brand-deep); }
 .stat-card--clickable { cursor: pointer; }
 .stat-card--clickable:active { transform: translateY(0); }
 
-.clickable-row { cursor: pointer; transition: background 0.12s; }
-.clickable-row:hover { background: var(--panel-2); }
-.clickable-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* A row (or card) that acts on click is `.clickable-row`. Its whole treatment —
+   pointer, hover, press and focus ring — is defined once, together with every
+   other micro-interaction, in "Micro-interactions & Tactile Feedback" below. */
 
-/* ============ Tables ============ */
+/* ============ Tables ============
+   ONE table design. This block is the single source of truth: every table in the
+   app carries `.data-table`, and its chrome is `.table-wrap`. What a page adds on
+   top of that is *layout* — column widths and per-column alignment — and must not
+   restate paddings, type or colours. Restating them is exactly how sixteen tables
+   ended up with six different designs, so before adding a rule here ask whether
+   the change belongs to layout instead. */
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--line);
+  border: 1px solid var(--kb-color-border);
   border-radius: var(--r-xl);
 }
 table { width: 100%; border-collapse: collapse; }
 .data-table thead th {
   position: sticky;
   top: 0;
-  background: var(--panel-2);
+  background: var(--kb-color-surface-2);
   z-index: 1;
+}
+/* Totals row — one definition for every table that shows a running total. */
+.data-table .table-totals-row td {
+  background: var(--kb-color-surface-2);
+  border-top: 2px solid var(--kb-color-border);
+  font-weight: 700;
+}
+/* Micro-interactions every table shares. Sorting is the only interaction a
+   header has, and a sort affordance must not look different from table to
+   table, so it lives here rather than in whichever page happened to need it. */
+.data-table .th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.data-table .th-sort:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 th, td {
   padding: 0.7rem 0.85rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--kb-color-border);
   text-align: left;
   white-space: nowrap;
   vertical-align: middle;
@@ -347,16 +380,25 @@ th {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--kb-color-muted-foreground);
   font-weight: 600;
 }
+/* `--ink-2` (#2A2A28) is deliberately darker than the muted foreground used for
+   the header labels above it, and it has no semantic alias — swapping it for
+   `--kb-color-muted-foreground` would quietly lighten every table cell in the
+   app. The `.numbered`/`.muted` helpers do that on purpose, cell by cell. */
 td { color: var(--ink-2); font-size: 0.88rem; }
 tr:last-child td { border-bottom: none; }
-tbody tr { transition: background 0.12s ease; }
-tbody tr:hover { background: var(--panel-2); }
+tbody tr { transition: background 0.15s ease; }
+tbody tr:hover { background: var(--kb-color-surface-2); }
 .num-cell, .tabular-num, .tabular-nums, td.num {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+/* A numeric cell is read right-aligned. `.tabular-num` only switches the figures,
+   never the alignment, so it stays out of this rule. */
+.data-table .num-cell {
+  text-align: right;
 }
 /* Shared text helpers. .font-bold / .font-semibold / .text-brand used to exist
    only inside the reports and platform-dashboard components, so the same class
@@ -395,7 +437,7 @@ tbody tr:hover { background: var(--panel-2); }
   font-size: 0.86rem;
   letter-spacing: -0.005em;
   box-shadow: var(--shadow-xs);
-  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .primary-btn:hover {
   background: var(--brand-deep);
@@ -418,7 +460,7 @@ tbody tr:hover { background: var(--panel-2); }
   cursor: pointer;
   font-weight: 500;
   font-size: 0.84rem;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.1s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .ghost-btn:hover {
   background: var(--panel-2);
@@ -445,7 +487,7 @@ tbody tr:hover { background: var(--panel-2); }
   letter-spacing: -0.005em;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
-  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .refresh-btn:hover:not([disabled]) {
   background: var(--brand-deep);
@@ -518,6 +560,23 @@ tbody tr:hover { background: var(--panel-2); }
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-ring);
+}
+/* The other half of validation: the field says it is wrong the moment it is
+   rejected, not at submit. A form sets aria-invalid on the control and the
+   border turns danger, with the focus ring following it so the message beside
+   it has something to point at. One rule covers every field class in the app
+   (.field-control, .field-select, .field-input), and the change is animated by
+   the transition the field already carries. */
+.field-control[aria-invalid='true'],
+.field-select[aria-invalid='true'],
+.field-input[aria-invalid='true'] {
+  border-color: var(--kb-color-danger);
+}
+.field-control[aria-invalid='true']:focus,
+.field-select[aria-invalid='true']:focus,
+.field-input[aria-invalid='true']:focus {
+  border-color: var(--kb-color-danger);
+  box-shadow: 0 0 0 3px var(--kb-color-danger-soft);
 }
 .field-error { font-size: 0.78rem; color: var(--danger); }
 .hint-text { font-size: 0.78rem; color: var(--muted); }
@@ -713,7 +772,7 @@ tbody tr:hover { background: var(--panel-2); }
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .action-btn:hover {
   background: var(--panel-2);
@@ -757,13 +816,113 @@ tbody tr:hover { background: var(--panel-2); }
 }
 .toggle-btn.on .toggle-knob { transform: translateX(18px); }
 
-/* ============ Micro-interactions & Tactile Feedback ============ */
-.btn-press { transition: transform 0.12s var(--ease-out, ease-out), box-shadow 0.15s ease, background 0.15s ease; }
-.btn-press:active { transform: scale(0.97); }
+/* ============ Micro-interactions & Tactile Feedback ============
+   ONE behaviour for every control, wherever it lives. Feedback must not depend
+   on which page a button, row, card or tab happens to sit on, so the motion,
+   the press, the focus ring and the disabled handling are defined here and
+   nowhere else.
+
+   Nearly everything below is written inside `:where()`, which contributes zero
+   specificity. That is deliberate: a component that styles its own hover, press
+   or ring (`.primary-btn:hover`, a page's own `.tab-pill`, a local focus ring)
+   keeps doing exactly what it did, and this layer only fills the gaps — which is
+   how one block reaches every component stylesheet without editing any of them.
+   The press and inert-state rules are the exception, and say why where they
+   stand further down.
+
+   The contract each interactive element gets:
+     idle      a cursor and a transition, so feedback is animated, never instant
+     hover     the element's own treatment — or, if it defines none, the plain
+               darkening below, so nothing is inert under the pointer
+     active    a 3% press, or a deeper wash for a full-width row or card
+     focus     a brand ring, reachable from the keyboard
+     disabled  no pointer, no press
+   Anything that acts on click must also be reachable from the keyboard: a
+   <button> already is; every other element needs tabindex="0" plus a keydown
+   handler, otherwise its focus ring can never appear. */
+:where(button, [role="button"], [role="tab"], [role="radio"], [role="option"], summary, a[href],
+       .clickable-row, .card-lift, .tab-pill, .mobile-data-card__primary) {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+              box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+:where(button, [role="button"], [role="tab"], [role="radio"], [role="option"], summary, a[href],
+       .clickable-row, .card-lift, .tab-pill, .mobile-data-card__primary) {
+  cursor: pointer;
+}
+
+/* Hover fallback: a control that states no hover of its own still darkens, so
+   nothing is inert under the pointer. Zero specificity — every component's own
+   hover wins this, which is what keeps the uniform look from flattening the
+   deliberate ones. */
+:where(button:not([disabled]):hover,
+       [role="button"]:not([aria-disabled="true"]):hover,
+       [role="tab"]:not([aria-disabled="true"]):hover) {
+  filter: brightness(0.96);
+}
+
+/* The shared row / card treatments, opted into by class name. A row is a row
+   wherever it is: the order list and the business list used to be the same idea
+   built twice — one with a `clickable-row`, one with a click handler and an
+   inline cursor on every cell. */
+.clickable-row:hover { background: var(--kb-color-surface-2); }
+.clickable-row:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
+.clickable-row:active { background: var(--kb-color-border); }
+.card-lift:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.card-lift:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
+
+/* Press and the inert state are the two rules that must beat a component's
+   plain `.its-own-button { cursor: pointer }`. They carry one element or one
+   attribute selector for exactly that reason — everything else here stays at
+   zero specificity. A component that states its own state rule still wins. */
 button:active:not(:disabled),
+[role="button"]:not([aria-disabled="true"]):active,
+[role="tab"]:not([aria-disabled="true"]):active,
+[role="radio"]:not([aria-disabled="true"]):active,
+[role="option"]:not([aria-disabled="true"]):active,
 .kb-btn:active:not(:disabled) {
   transform: scale(0.97);
 }
+button:disabled,
+button[disabled],
+[role="button"][aria-disabled="true"],
+[role="tab"][aria-disabled="true"],
+[role="radio"][aria-disabled="true"],
+[role="option"][aria-disabled="true"],
+.kb-btn:disabled,
+.kb-btn[disabled] {
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Keyboard ring by default, in the one brand colour. A component that draws its
+   own ring wins, and the contrast theme below tightens it further. */
+:where(button, [role="button"], [role="tab"], [role="radio"], [role="option"], summary, a[href],
+       input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--kb-color-primary);
+  outline-offset: 2px;
+}
+
+/* The one icon-only control — a close cross in any modal is this and nothing
+   else. Before it, the unstyled `.close-btn` had no hover, no press and no
+   ring, so the cross in the orders dialog behaved differently from the one in
+   the dashboard's. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--kb-color-muted-foreground);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+.icon-btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 /* Tabular numerals for precise vertical alignment of metrics and currency */
 .kpi-value,
@@ -777,10 +936,6 @@ td.price,
   font-variant-numeric: tabular-nums;
 }
 
-.card-lift { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-.card-lift:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-.row-hover { transition: background 0.12s ease; }
-.row-hover:hover { background: var(--panel-2); }
 
 .stacked-meta { display: grid; gap: 0.15rem; line-height: 1.35; }
 .stacked-meta .small { font-size: 0.75rem; color: var(--muted); }

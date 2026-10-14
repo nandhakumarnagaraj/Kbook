@@ -62,7 +62,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       <ng-container *ngIf="activeTab() === 'overview'">
         <ng-container *ngIf="viewSummary() as data; else loading">
           <section class="kpi-row">
-            <article class="kpi-card kpi-card--hero" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
+            <article class="kpi-card card-lift kpi-card--hero" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
               <div class="kpi-head">
                 <span class="kpi-label">Total Revenue</span>
                 <span class="kpi-tag kpi-tag--hero">All Businesses</span>
@@ -172,8 +172,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
 
           <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSettlements()"></app-api-state>
 
-          <div class="table-container" *ngIf="!tabError() && settlements().length > 0; else noSettlementsState">
-            <table class="admin-table">
+          <div class="table-wrap" *ngIf="!tabError() && settlements().length > 0; else noSettlementsState">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>Restaurant / Shop</th>
@@ -223,8 +223,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
 
           <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSubMerchants()"></app-api-state>
 
-          <div class="table-container" *ngIf="!tabError() && subMerchants().length > 0; else noSubMerchantsState">
-            <table class="admin-table">
+          <div class="table-wrap" *ngIf="!tabError() && subMerchants().length > 0; else noSubMerchantsState">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>Restaurant / Shop</th>
@@ -279,8 +279,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
 
           <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadTransactions()"></app-api-state>
 
-          <div class="table-container" *ngIf="!tabError() && transactions().length > 0; else noTransactionsState">
-            <table class="admin-table">
+          <div class="table-wrap" *ngIf="!tabError() && transactions().length > 0; else noTransactionsState">
+            <table class="data-table">
               <thead>
                 <tr>
                   <th>Transaction ID</th>
@@ -346,7 +346,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       cursor: pointer;
-      transition: all 140ms ease;
+      transition: all 150ms ease;
       white-space: nowrap;
       min-height: 40px;
     }
@@ -476,43 +476,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       font-weight: 700;
       border: 1px solid var(--kb-color-border);
     }
-    .table-container {
-      overflow-x: auto;
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg);
-    }
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      text-align: left;
-    }
-    .admin-table th {
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-weight: 700;
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--kb-color-border);
-      white-space: nowrap;
-    }
-    .admin-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--kb-color-border);
-      color: var(--kb-color-foreground);
-      min-height: 44px;
-    }
-    .admin-table tbody tr:hover {
-      background: var(--kb-color-surface-2);
-    }
-    .num-cell { text-align: right; }
-    .table-totals-row td {
-      background: var(--kb-color-surface-2);
-      border-top: 2px solid var(--kb-color-border);
-      font-size: 0.92rem;
-    }
+    /* The table design is defined once in the global stylesheet (see the
+       "Tables" section of styles.css). Only column layout belongs here. */
     .font-bold { font-weight: 700; }
     .font-semibold { font-weight: 600; }
     .text-brand { color: var(--kb-color-primary); }

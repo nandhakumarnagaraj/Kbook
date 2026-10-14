@@ -74,25 +74,31 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId">
-              <td (click)="showDetails(business)" style="cursor: pointer;">
+            <tr
+              *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId"
+              class="clickable-row"
+              tabindex="0"
+              [attr.aria-label]="'View ' + business.shopName"
+              (click)="showDetails(business)"
+              (keydown.enter)="showDetails(business)">
+              <td>
                 <div class="stacked-meta">
                   <strong>{{ business.shopName || '-' }}</strong>
                   <span class="muted">#{{ business.restaurantId }}</span>
                   <span class="chip danger" *ngIf="business.isSuspended">Suspended</span>
                 </div>
               </td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">
+              <td>
                 <div class="stacked-meta">
                   <strong>{{ business.ownerName || '-' }}</strong>
                   <span class="muted" *ngIf="business.ownerLoginId">{{ business.ownerLoginId }}</span>
                 </div>
               </td>
-              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
-              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
-              <td class="num-col" (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
-              <td class="date-col" (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.createdAt) }}</td>
-              <td class="date-col" (click)="showDetails(business)" style="cursor: pointer;">
+              <td class="num-col">{{ business.orderCount }}</td>
+              <td class="num-col">{{ business.menuCount }}</td>
+              <td class="num-col">{{ business.staffCount }}</td>
+              <td class="date-col">{{ formatDateValue(business.createdAt) }}</td>
+              <td class="date-col">
                 <span *ngIf="business.lastUsedAt; else neverUsed">{{ formatDateValue(business.lastUsedAt) }}</span>
                 <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
               </td>
@@ -214,7 +220,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
           <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
             <div class="form-group">
               <label for="create-shop-name">Restaurant / Shop Name *</label>
-              <input id="create-shop-name" class="field-control" type="text" formControlName="shopName" placeholder="e.g. Sagar Ratna Cafe" />
+              <input id="create-shop-name" class="field-control" type="text" formControlName="shopName" placeholder="e.g. Sagar Ratna Cafe"
+                     [attr.aria-invalid]="createForm.get('shopName')?.touched && createForm.get('shopName')?.invalid" />
               <div class="field-error" *ngIf="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required')">
                 Restaurant name is required.
               </div>
@@ -222,7 +229,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
             <div class="form-group">
               <label for="create-owner-name">Owner Full Name *</label>
-              <input id="create-owner-name" class="field-control" type="text" formControlName="ownerName" placeholder="e.g. Ramesh Sharma" />
+              <input id="create-owner-name" class="field-control" type="text" formControlName="ownerName" placeholder="e.g. Ramesh Sharma"
+                     [attr.aria-invalid]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.invalid" />
               <div class="field-error" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required')">
                 Owner name is required.
               </div>
@@ -230,7 +238,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
             <div class="form-group">
               <label for="create-owner-phone">Owner Phone (10 digits) *</label>
-              <input id="create-owner-phone" class="field-control" type="text" formControlName="ownerPhone" placeholder="10-digit mobile number" maxlength="10" />
+              <input id="create-owner-phone" class="field-control" type="text" formControlName="ownerPhone" placeholder="10-digit mobile number" maxlength="10"
+                     [attr.aria-invalid]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.invalid" />
               <div class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required')">
                 Phone number is required.
               </div>
@@ -241,7 +250,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
             <div class="form-group">
               <label for="create-initial-pwd">Initial Password *</label>
-              <input id="create-initial-pwd" class="field-control" type="password" formControlName="initialPassword" placeholder="Minimum 6 characters" />
+              <input id="create-initial-pwd" class="field-control" type="password" formControlName="initialPassword" placeholder="Minimum 6 characters"
+                     [attr.aria-invalid]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.invalid" />
               <div class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required')">
                 Initial password is required.
               </div>
@@ -252,7 +262,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
             <div class="form-group">
               <label for="create-owner-email">Owner Email (optional)</label>
-              <input id="create-owner-email" class="field-control" type="email" formControlName="ownerEmail" placeholder="e.g. owner@example.com" />
+              <input id="create-owner-email" class="field-control" type="email" formControlName="ownerEmail" placeholder="e.g. owner@example.com"
+                     [attr.aria-invalid]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.invalid" />
               <div class="field-error" *ngIf="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email')">
                 Enter a valid email address.
               </div>
@@ -300,7 +311,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       font-weight: 600;
       font-size: 0.85rem;
       cursor: pointer;
-      transition: box-shadow 140ms ease;
+      transition: box-shadow 150ms ease;
       white-space: nowrap;
     }
     .biz-action-btn--danger {
@@ -399,18 +410,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       margin: 0.35rem 0 0;
       font-size: 0.82rem;
     }
-    /* ── Businesses table column rhythm ── */
-    .businesses-table th,
-    .businesses-table td {
-      padding: 0.8rem 1rem;
-      vertical-align: middle;
-    }
-    .businesses-table thead th {
-      background: var(--brand-soft);
-      color: var(--brand-deep);
-      font-weight: 700;
-      border-bottom: 2px solid var(--brand);
-    }
+    /* ── Businesses table column rhythm (layout only: the design itself lives
+       in the global stylesheet's "Tables" section) ── */
     .businesses-table th.business-col {
       min-width: 210px;
     }
@@ -428,24 +429,8 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
-    .th-sort {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0;
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
-      font-weight: inherit;
-      letter-spacing: inherit;
-      text-transform: inherit;
-      cursor: pointer;
-    }
-    .th-sort:focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
+    /* .th-sort (the sortable-header affordance) is defined once in the global
+       "Tables" section of styles.css. */
     .businesses-table th.action-col,
     .businesses-table td.action-col {
       text-align: right;

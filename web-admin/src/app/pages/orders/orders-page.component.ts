@@ -132,7 +132,7 @@ export type OrdersTab = 'live' | 'history';
         color: var(--kb-color-muted-foreground);
         cursor: pointer;
         white-space: nowrap;
-        transition: background 140ms ease, color 140ms ease;
+        transition: background 150ms ease, color 150ms ease;
       }
 
       .orders-tab:hover {

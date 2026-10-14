@@ -88,10 +88,28 @@ These are locked alongside the palette so pages cannot drift apart again:
 3. **One shared vocabulary.** Card/button/chip/table styles live in
    `web-admin/src/styles/bento.css`, loaded last so it wins everywhere.
    Use `.bento-tile`, `.intel-card`, `.header-action-btn`, `.btn-micro`,
-   `.kpi-tag`, `.status-chip`, `.orders-tactile-table`, `.tactile-modal-*`
-   instead of page-local equivalents. A class name must mean exactly one thing
-   across the app (for example `.channel-chip` is a table badge; the dashboard's
-   Live Floor filter buttons are `.floor-chip`).
+   `.kpi-tag`, `.status-chip`, `.tactile-modal-*` instead of page-local
+   equivalents. A class name must mean exactly one thing across the app (for
+   example `.channel-chip` is a table badge; the dashboard's Live Floor filter
+   buttons are `.floor-chip`).
+
+   > **Vocabulary revision (2026-10-14):** tables, clickable rows, cards and
+   > interactive chrome were unified, so the canonical names changed and the
+   > old ones no longer exist:
+   >
+   > | Was | Is now | Defined in |
+   > |---|---|---|
+   > | `.orders-tactile-table`, `.admin-table`, `.report-table`, `table.styled`, `.order-modal__table` | `.data-table`, with `.table-wrap` chrome, `.table-totals-row`, `.th-sort`, `.num-cell` | `styles.css`, section "Tables" |
+   > | `.order-row-interactive`, and per-cell click handlers with an inline `cursor: pointer` | `.clickable-row`, which also needs `tabindex="0"` plus a keydown handler | `styles.css`, section "Micro-interactions & Tactile Feedback" |
+   > | `.close-btn`, `.modal-close-icon` | `.icon-btn` | same section |
+   > | page-local card hover rules | `.card-lift` | same section |
+   >
+   > Motion, press, hover, focus-ring, disabled and invalid-field states are
+   > declared once in that section and reach every component stylesheet through
+   > zero-specificity `:where()` rules; interactive transitions are kept inside
+   > 150-300ms and `prefers-reduced-motion` is honoured globally. This revision
+   > added no palette, radius, spacing or typography token and changed no colour
+   > value.
 
 ---
 
