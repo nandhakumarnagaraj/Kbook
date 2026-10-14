@@ -4,7 +4,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
-import { formatAge, formatCurrency, formatDate } from '../../shared/formatters';
+import { formatCurrency, formatDate } from '../../shared/formatters';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -86,17 +86,9 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.orderCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.menuCount }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">{{ business.staffCount }}</td>
+              <td (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.createdAt) }}</td>
               <td (click)="showDetails(business)" style="cursor: pointer;">
-                <div class="stacked-meta">
-                  <strong>{{ formatDateValue(business.createdAt) }}</strong>
-                  <span class="muted">{{ formatAgeValue(business.createdAt) }}</span>
-                </div>
-              </td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">
-                <div class="stacked-meta" *ngIf="business.lastUsedAt; else neverUsed">
-                  <strong>{{ formatAgeValue(business.lastUsedAt) }}</strong>
-                  <span class="muted">{{ formatDateValue(business.lastUsedAt) }}</span>
-                </div>
+                <span *ngIf="business.lastUsedAt; else neverUsed">{{ formatDateValue(business.lastUsedAt) }}</span>
                 <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
               </td>
               <td>
@@ -123,7 +115,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
               <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
             </button>
-            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatAgeValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
+            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button *ngIf="!business.isSuspended" class="ghost-btn danger-btn" (click)="confirmSuspend(business)">Suspend</button>
               <button *ngIf="business.isSuspended" class="ghost-btn success-btn" (click)="activateBusiness(business)">Activate</button>
@@ -630,7 +622,6 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   }
 
   formatDateValue(value: number | null): string { return formatDate(value); }
-  formatAgeValue(value: number | null): string { return formatAge(value); }
   formatCurrencyValue(value: number): string { return formatCurrency(value); }
 
   trackByIndex = (_: number, __: unknown) => _;
