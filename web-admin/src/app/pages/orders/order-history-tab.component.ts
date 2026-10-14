@@ -977,6 +977,13 @@ export class OrderHistoryTabComponent implements OnDestroy {
     this.loadingMoreOrders = false;
     this.ordersLoaded = false;
     this.ordersError = '';
+    // The reload is triggered from outside this OnPush component — the page
+    // toolbar's Refresh button and its date range both call in here. Without
+    // this notification the "loading" transition never reaches the renderer, so
+    // the stale table stays on screen and the skeletons meant to replace it
+    // never appear: pressing Refresh looked like it did nothing at all until
+    // the response landed.
+    this.cdr.markForCheck();
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
     const search = this.orderSearchTerm?.trim() || undefined;

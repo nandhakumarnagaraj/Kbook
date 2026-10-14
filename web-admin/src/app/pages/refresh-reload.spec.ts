@@ -263,6 +263,49 @@ describe('manual refresh visibly reloads the data', () => {
     fixture.destroy();
   });
 
+  it('order history: the refresh button reloads the table visibly', () => {
+    const history = deferred<unknown>();
+    const api = jasmine.createSpyObj('BusinessApiService', ['getOrdersPaginated']);
+    api.getOrdersPaginated.and.returnValue(history.stream);
+
+    const fixture = mount<OrdersPageComponent>(OrdersPageComponent, [
+      { provide: BusinessApiService, useValue: api },
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          snapshot: { queryParamMap: convertToParamMap({ tab: 'history' }) },
+          queryParamMap: of(convertToParamMap({ tab: 'history' })),
+        },
+      },
+      { provide: Router, useValue: { navigate: () => Promise.resolve(true) } },
+    ]);
+    const table = () => host(fixture).querySelector('.orders-table-wrapper');
+    const skeletonRow = () => host(fixture).querySelector('.panel.loading .skeleton-row');
+
+    expect(skeletonRow()).withContext('order history: the first load shows skeletons').toBeTruthy();
+
+    history.subject.next({
+      content: [{ orderId: 1, orderCode: 'C01', orderStatus: 'COMPLETED', totalAmount: 100, createdAt: Date.now() }],
+      totalElements: 1,
+      totalPages: 1,
+      page: 0,
+      size: 20,
+    });
+    fixture.detectChanges();
+    expect(table()).withContext('order history: the table renders once loaded').toBeTruthy();
+    expect(skeletonRow()).toBeFalsy();
+
+    clickRefresh(fixture, 'app-date-range-toolbar app-refresh-button button');
+    expect(api.getOrdersPaginated.calls.count())
+      .withContext('order history: the refresh button refetches from the server')
+      .toBe(2);
+    expect(skeletonRow())
+      .withContext('order history: the refresh button must reload the table visibly')
+      .toBeTruthy();
+    expect(table()).withContext('order history: stale rows must not stay on screen').toBeFalsy();
+    fixture.destroy();
+  });
+
   it('reports: the report is withheld while reloading', () => {
     const report = deferred<unknown>();
     const api = jasmine.createSpyObj('BusinessApiService', ['getDashboard', 'getItemSales', 'getGstLedger']);
