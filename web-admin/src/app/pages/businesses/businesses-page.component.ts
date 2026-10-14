@@ -94,7 +94,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
               <td class="action-col">
                 <button
                   *ngIf="!business.isSuspended"
-                  class="ghost-btn ghost-btn--danger"
+                  class="biz-action-btn biz-action-btn--danger"
                   (click)="confirmSuspend(business); $event.stopPropagation()">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10"/>
@@ -104,7 +104,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
                 </button>
                 <button
                   *ngIf="business.isSuspended"
-                  class="ghost-btn ghost-btn--success"
+                  class="biz-action-btn biz-action-btn--success"
                   (click)="activateBusiness(business); $event.stopPropagation()">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="20 6 9 17 4 12"/>
@@ -124,14 +124,14 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             </button>
             <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
-              <button *ngIf="!business.isSuspended" class="ghost-btn ghost-btn--danger" (click)="confirmSuspend(business)">
+              <button *ngIf="!business.isSuspended" class="biz-action-btn biz-action-btn--danger" (click)="confirmSuspend(business)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/>
                 </svg>
                 <span>Suspend</span>
               </button>
-              <button *ngIf="business.isSuspended" class="ghost-btn ghost-btn--success" (click)="activateBusiness(business)">
+              <button *ngIf="business.isSuspended" class="biz-action-btn biz-action-btn--success" (click)="activateBusiness(business)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -290,37 +290,41 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
     </div>
   `,
   styles: [`
-    /* Sign-out twins: solid fill, icon + label, shadow-only hover. */
-    .ghost-btn--danger,
-    .ghost-btn--success {
+    /* Sign-out twins on unique class names: no global stylesheet defines
+       .biz-action-btn, so no ghost-btn variant collision can strip the fill. */
+    .biz-action-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
       border-radius: 12px;
+      border: 1px solid transparent;
       font-weight: 600;
       font-size: 0.85rem;
+      cursor: pointer;
+      transition: box-shadow 140ms ease;
+      white-space: nowrap;
     }
-    .ghost-btn--danger {
+    .biz-action-btn--danger {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
       color: #FFFFFF;
       box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
     }
-    .ghost-btn--danger:hover {
+    .biz-action-btn--danger:hover {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
       color: #FFFFFF;
       box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
-    .ghost-btn--success {
+    .biz-action-btn--success {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
       color: #FFFFFF;
       box-shadow: 0 2px 8px rgba(47, 133, 90, 0.25);
     }
-    .ghost-btn--success:hover {
+    .biz-action-btn--success:hover {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
       color: #FFFFFF;
