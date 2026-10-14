@@ -9,6 +9,13 @@ import { environment } from '../../../environments/environment';
 
 const API_BASE_URL = environment.apiBaseUrl;
 
+/**
+ * Written on logout and read by the login page to prefill the identifier. One
+ * literal, so the writer and the reader cannot drift apart and quietly forget
+ * the last login.
+ */
+export const LAST_LOGIN_ID_STORAGE_KEY = 'last_login_id';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -52,7 +59,7 @@ export class AuthService {
     // Preserve last login identifier for display on login page
     const session = this.session();
     if (session?.loginId) {
-      sessionStorage.setItem('last_login_id', session.loginId);
+      sessionStorage.setItem(LAST_LOGIN_ID_STORAGE_KEY, session.loginId);
     }
     // Send the refresh token so the server revokes it (LogoutBody.refreshToken).
     // Without this the refresh token stays valid until its 30-day expiry.

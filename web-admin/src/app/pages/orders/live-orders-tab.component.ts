@@ -24,7 +24,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       </div>
 
       <div class="panel loading" *ngIf="loading() && !activeOrders().length" role="status" aria-busy="true">
-        <span class="sr-only">Loading live orders...</span>
+        <span class="visually-hidden">Loading live orders...</span>
         <div class="skeleton-stack">
           <div class="skeleton-row" *ngFor="let i of [1,2,3]"></div>
         </div>

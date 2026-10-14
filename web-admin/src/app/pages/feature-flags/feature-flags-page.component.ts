@@ -131,7 +131,7 @@ import { formatDate } from '../../shared/formatters';
 
       <ng-template #loadingBlock>
         <div class="panel loading" role="status" aria-busy="true">
-          <span class="sr-only">Loading feature flags...</span>
+          <span class="visually-hidden">Loading feature flags...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
           </div>

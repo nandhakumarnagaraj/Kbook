@@ -250,7 +250,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       color: #FFFFFF;
       font-weight: 600;
       border: none;
-      box-shadow: 0 4px 14px rgba(108, 39, 217, 0.35);
+      box-shadow: 0 4px 14px rgba(var(--kb-color-primary-rgb), 0.35);
     }
     .nav-link.active-link .nav-link__icon {
       color: #FFFFFF;

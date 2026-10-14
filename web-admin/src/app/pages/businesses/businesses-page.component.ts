@@ -151,7 +151,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
       <ng-template #loading>
         <div class="panel loading" *ngIf="!loaded && !loadError; else businessesEmpty" role="status" aria-busy="true">
-          <span class="sr-only">Loading businesses...</span>
+          <span class="visually-hidden">Loading businesses...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>

@@ -247,7 +247,7 @@ import { formatDate } from '../../shared/formatters';
 
       <ng-template #loading>
         <div class="panel loading" role="status" aria-busy="true">
-          <span class="sr-only">Loading terminals...</span>
+          <span class="visually-hidden">Loading terminals...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
@@ -700,9 +700,9 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.2);
     }
     .role-pill--kot {
-      background: rgba(108, 39, 217, 0.08);
+      background: rgba(var(--kb-color-primary-rgb), 0.08);
       color: var(--kb-color-primary);
-      border: 1px solid rgba(108, 39, 217, 0.2);
+      border: 1px solid rgba(var(--kb-color-primary-rgb), 0.2);
     }
     .role-pill--req {
       background: var(--kb-color-surface-2);

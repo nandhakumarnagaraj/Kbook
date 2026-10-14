@@ -184,7 +184,7 @@ import { environment } from '../../../environments/environment';
           (retry)="loadMenu()"
         ></app-api-state>
         <div class="panel loading" *ngIf="!loaded && !loadError; else menuEmpty" role="status" aria-busy="true">
-          <span class="sr-only">Loading menu items...</span>
+          <span class="visually-hidden">Loading menu items...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>

@@ -337,7 +337,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
 
       <ng-template #loading>
         <div class="panel loading" *ngIf="!loaded() && !loadError(); else staffEmpty" role="status" aria-busy="true">
-          <span class="sr-only">Loading staff members...</span>
+          <span class="visually-hidden">Loading staff members...</span>
           <div class="skeleton-stack">
             <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
           </div>

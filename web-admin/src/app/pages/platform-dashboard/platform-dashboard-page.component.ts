@@ -150,7 +150,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
 
         <ng-template #loading>
           <div *ngIf="!summaryError(); else summaryErrorState" class="kpi-row" role="status" aria-busy="true">
-            <span class="sr-only">Loading platform summary...</span>
+            <span class="visually-hidden">Loading platform summary...</span>
             <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
           <ng-template #summaryErrorState>
@@ -358,7 +358,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-color-primary);
       color: var(--kb-color-primary-foreground);
       border-color: var(--kb-color-primary);
-      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.25);
+      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .tab-pill--active:hover {
       color: var(--kb-color-primary-foreground);

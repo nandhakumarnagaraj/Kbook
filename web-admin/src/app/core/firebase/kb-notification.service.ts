@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { FirebaseInitService } from './firebase.init';
+import { FCM_TOKEN_STORAGE_KEY, isFirebaseConfigured } from './firebase.config';
 
 declare const Notification: any;
 
@@ -67,7 +68,6 @@ const NOTIFICATION_COLOR_INTENSITY: Record<NotificationColor, number> = {
 export class KBNotificationService {
 
   private readonly NOTIFICATION_PERMISSION_KEY = 'kb_notification_permission';
-  private readonly FCM_TOKEN_KEY = 'kb_fcm_token';
 
   private firebaseInit = inject(FirebaseInitService);
   private platformId = inject(PLATFORM_ID);
@@ -79,6 +79,10 @@ export class KBNotificationService {
 
   async initialize(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
+
+    // With the template Firebase values still in place, asking here would
+    // prompt every visitor for a permission the app cannot use.
+    if (!isFirebaseConfigured()) return;
 
     const permission = await this.requestPermission();
     if (permission === 'granted') {
@@ -110,14 +114,14 @@ export class KBNotificationService {
 
   private async getFCMToken(): Promise<string | null> {
     try {
-      const storedToken = localStorage.getItem(this.FCM_TOKEN_KEY);
+      const storedToken = localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
       if (storedToken) {
         return storedToken;
       }
 
       const token = this.firebaseInit.getCurrentToken();
       if (token) {
-        localStorage.setItem(this.FCM_TOKEN_KEY, token);
+        localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
         return token;
       }
       return null;
@@ -193,7 +197,7 @@ export class KBNotificationService {
 
   getCurrentToken(): string | null {
     if (!isPlatformBrowser(this.platformId)) return null;
-    return localStorage.getItem(this.FCM_TOKEN_KEY) || null;
+    return localStorage.getItem(FCM_TOKEN_STORAGE_KEY) || null;
   }
 
   async requestAndTest(): Promise<void> {

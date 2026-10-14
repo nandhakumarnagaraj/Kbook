@@ -286,7 +286,7 @@ export function filterBusinessOrders(
 
         <ng-template #emptyOrLoadingOrders>
           <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable" role="status" aria-busy="true">
-            <span class="sr-only">Loading recent orders...</span>
+            <span class="visually-hidden">Loading recent orders...</span>
             <div class="skeleton-stack">
               <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
             </div>
@@ -351,7 +351,7 @@ export function filterBusinessOrders(
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: 0.35rem 0 0; }
     .toolbar-actions { display: flex; gap: var(--kb-space-3); align-items: center; }
-    .refund-review { display: grid; grid-template-columns: minmax(0, 111) auto; gap: var(--kb-space-3) var(--kb-space-2); margin: var(--kb-space-3) 0; padding: var(--kb-space-3); background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); }
+    .refund-review { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-3) var(--kb-space-2); margin: var(--kb-space-3) 0; padding: var(--kb-space-3); background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); }
     .refund-review span { color: var(--kb-color-muted-foreground); }
     .refund-review strong { text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
     .mobile-order-list { display: none; }
@@ -412,7 +412,7 @@ export function filterBusinessOrders(
     .preset-pill--active {
       background: var(--kb-color-primary) !important;
       color: var(--kb-color-surface) !important;
-      box-shadow: 0 2px 6px rgba(108, 39, 217, 0.25);
+      box-shadow: 0 2px 6px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .preset-pill--outline {
       border: 1px solid var(--kb-color-border);

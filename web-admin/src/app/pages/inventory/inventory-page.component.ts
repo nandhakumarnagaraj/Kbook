@@ -41,8 +41,8 @@ import { ToastService } from '../../core/services/toast.service';
     .form-group label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 500; }
     .form-group .field-control { width: 100%; box-sizing: border-box; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); }
-    .tab { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out); }
+    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tab { flex: 0 0 auto; white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out); }
     .tab:hover { color: var(--kb-color-foreground); }
     .tab.active { color: var(--kb-color-primary); border-bottom-color: var(--kb-color-primary); }
     .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--kb-color-border); font-size: 0.85rem; }
@@ -53,8 +53,9 @@ import { ToastService } from '../../core/services/toast.service';
     .action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--kb-color-border); }
     .table-wrap { overflow-x: auto; }
     table.styled { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    table.styled th { text-align: left; padding: 0.6rem 0.75rem; font-weight: 600; border-bottom: 2px solid var(--kb-color-border); white-space: nowrap; }
-    table.styled td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--kb-color-border); }
+    table.styled th, table.styled td { text-align: center; vertical-align: middle; }
+    table.styled th { padding: 0.6rem 0.75rem; font-weight: 600; border-bottom: 2px solid var(--kb-color-border); white-space: nowrap; }
+    table.styled td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--kb-color-border); font-variant-numeric: tabular-nums; }
     table.styled tr:hover td { background: rgba(0,0,0,0.02); }
     .inventory-summary, .materials-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
     .inventory-summary { margin: 0.25rem 0 1rem; color: var(--kb-color-muted-foreground); font-size: 0.84rem; }
@@ -152,8 +153,9 @@ import { ToastService } from '../../core/services/toast.service';
         <div *ngIf="materials.length === 0">
           <app-empty-state
             title="No materials"
-            description="Add raw materials to track stock levels."
-            icon="inventory_2"
+            text="Add raw materials to track stock levels."
+            icon="📦"
+            actionLabel="Add Material"
             (action)="openAddMaterial()">
           </app-empty-state>
         </div>
@@ -238,7 +240,7 @@ import { ToastService } from '../../core/services/toast.service';
             <button class="primary-btn" (click)="loadVariance()" [disabled]="!varianceFrom || !varianceTo">Run Report</button>
           </div>
 
-          <div *ngIf="varianceData.length > 0">
+          <div class="table-wrap" *ngIf="varianceData.length > 0">
             <table class="styled">
               <thead>
                 <tr>

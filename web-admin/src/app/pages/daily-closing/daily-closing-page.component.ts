@@ -97,7 +97,7 @@ interface DailyClosingData {
       </div>
 
       <div class="panel loading" *ngIf="loading() && !data()" role="status" aria-busy="true">
-        <span class="sr-only">Calculating settlement figures...</span>
+        <span class="visually-hidden">Calculating settlement figures...</span>
         <div class="skeleton-stack">
           <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
         </div>

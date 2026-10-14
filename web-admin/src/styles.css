@@ -188,6 +188,12 @@ a:hover { color: var(--brand-deep); }
   margin: 0 auto;
   padding: 1.75rem 2rem 3.5rem;
   display: grid;
+  /* minmax(0, 1fr), not the implicit `auto` track: an auto track is floored at
+     the items' min-content width, so one nowrap table widened the column past
+     the viewport and the whole page scrolled sideways on a phone. Allowing the
+     track to shrink hands the scrolling back to the inner .table-wrap /
+     .table-container wrappers that were built for it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -352,6 +358,16 @@ tbody tr:hover { background: var(--panel-2); }
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
+/* Shared text helpers. .font-bold / .font-semibold / .text-brand used to exist
+   only inside the reports and platform-dashboard components, so the same class
+   names in any other template (orders action column, dashboard low-stock table)
+   resolved to nothing — bold totals, brand colours and right-aligned cells
+   silently did not happen. Declared once, globally, they apply everywhere. */
+.text-right { text-align: right; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-mono { font-family: var(--kb-font-mono); }
+.text-brand { color: var(--kb-color-primary); }
 
 /* ============ Toolbar ============ */
 .toolbar {
@@ -846,6 +862,16 @@ td.price,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Progress indicators are the one kind of motion that has to survive this
+     block. 0.01ms + one iteration freezes them solid, and a frozen spinner is
+     indistinguishable from an idle one — the wait stops being communicated at
+     all. Keep them turning, just calmer and slower than the default. */
+  .spinning,
+  .spinner,
+  .skeleton::after {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 

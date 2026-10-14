@@ -26,6 +26,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
       (click)="refresh.emit()"
       [attr.aria-label]="ariaLabel"
       [attr.title]="ariaLabel"
+      [attr.aria-busy]="loading ? 'true' : null"
     >
       <svg
         viewBox="0 0 24 24"

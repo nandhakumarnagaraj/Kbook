@@ -355,7 +355,7 @@ function todayRange(): { from: string; to: string } {
         ></app-api-state>
         <ng-template #loadingState>
           <div class="reports-bento-grid" role="status" aria-busy="true" aria-label="Loading reports">
-            <span class="sr-only">Loading financial reports...</span>
+            <span class="visually-hidden">Loading financial reports...</span>
             <div class="skeleton skeleton-stat" *ngFor="let item of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
         </ng-template>

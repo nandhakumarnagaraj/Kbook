@@ -173,7 +173,7 @@ interface VerificationState {
       width: 32px;
       height: 32px;
       border-radius: var(--kb-radius-md);
-      background: rgba(108, 39, 217, 0.08);
+      background: rgba(var(--kb-color-primary-rgb), 0.08);
       color: var(--kb-color-primary);
       display: flex;
       align-items: center;

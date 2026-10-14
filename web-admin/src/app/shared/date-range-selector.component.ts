@@ -43,7 +43,7 @@ export function getPresetDateRange(
   template: `
     <div class="date-range" [class.date-range--single]="mode === 'single'">
       <label class="date-range__field">
-        <span class="sr-only">{{ mode === 'single' ? singleDateLabel : 'Start date' }}</span>
+        <span class="visually-hidden">{{ mode === 'single' ? singleDateLabel : 'Start date' }}</span>
         <input
           type="date"
           class="date-range__input"
@@ -56,7 +56,7 @@ export function getPresetDateRange(
       <ng-container *ngIf="mode !== 'single'">
         <span class="date-range__separator" aria-hidden="true">to</span>
         <label class="date-range__field">
-          <span class="sr-only">End date</span>
+          <span class="visually-hidden">End date</span>
           <input
             type="date"
             class="date-range__input"
@@ -102,17 +102,6 @@ export function getPresetDateRange(
       cursor: pointer;
     }
     .date-range__separator { color: #737b87; font-size: 0.78rem; }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
     @media (max-width: 680px) {
       .date-range { flex-wrap: wrap; white-space: normal; }
       .date-range__input { width: 138px; }

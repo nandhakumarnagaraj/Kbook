@@ -2,7 +2,7 @@ import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { firebaseConfig } from './firebase.config';
+import { FCM_TOKEN_STORAGE_KEY, firebaseConfig, isFirebaseConfigured } from './firebase.config';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -26,6 +26,13 @@ export class FirebaseInitService {
       return;
     }
 
+    // Without this the app prompts for notification permission on load and then
+    // fails to get a token, because the shipped config is still the template.
+    if (!isFirebaseConfigured()) {
+      console.warn('Firebase is not configured (template values in environment); skipping push setup');
+      return;
+    }
+
     try {
       this.firebaseApp = initializeApp(firebaseConfig);
       this.messaging = getMessaging(this.firebaseApp);
@@ -34,7 +41,7 @@ export class FirebaseInitService {
         .then(token => {
           if (token) {
             this.token = token;
-            localStorage.setItem('kb_fcm_token', token);
+            localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
             console.log('FCM token obtained and stored');
           }
         })
@@ -111,7 +118,7 @@ export class FirebaseInitService {
   }
 
   getCurrentToken(): string | null {
-    return this.token || localStorage.getItem('kb_fcm_token') || null;
+    return this.token || localStorage.getItem(FCM_TOKEN_STORAGE_KEY) || null;
   }
 
   isPermissionGranted(): boolean {

@@ -82,7 +82,7 @@ interface RestaurantProfile {
       </div>
 
       <div class="panel loading" *ngIf="loading() && !profile()" role="status" aria-busy="true">
-        <span class="sr-only">Loading settings...</span>
+        <span class="visually-hidden">Loading settings...</span>
         <div class="skeleton-stack">
           <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
         </div>

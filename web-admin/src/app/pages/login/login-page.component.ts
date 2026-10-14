@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, NgZone, inject, signal, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, LAST_LOGIN_ID_STORAGE_KEY } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 declare const google: any;
@@ -1180,7 +1180,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const lastLoginId = sessionStorage.getItem('last_login_id');
+    const lastLoginId = sessionStorage.getItem(LAST_LOGIN_ID_STORAGE_KEY);
     if (lastLoginId) {
       this.form.patchValue({ loginId: lastLoginId });
     }
