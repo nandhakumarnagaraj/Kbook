@@ -248,7 +248,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     }
 
     .pos-card-tactile {
-      background: var(--kb-color-surface);
+      background: #FFFFFF;
       border: 1px solid var(--kb-color-surface-2);
       border-radius: 18px;
       padding: 1.25rem 1.35rem;
@@ -387,7 +387,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
 
     /* ── All Clear Dignified Empty State (404s.design standard) ── */
     .all-clear-card {
-      background: var(--kb-color-surface);
+      background: #FFFFFF;
       border: 1.5px dashed var(--kb-color-border-strong);
       border-radius: 20px;
       padding: 3.5rem 1.5rem;
@@ -444,7 +444,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       font-size: 0.76rem;
       font-weight: 600;
       border: 1px solid var(--kb-color-border);
-      background: var(--kb-color-surface);
+      background: #FFFFFF;
       color: var(--kb-color-foreground);
       cursor: pointer;
       min-height: 36px;
@@ -522,7 +522,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       border-radius: 8px;
       font-size: 0.88rem;
       min-height: 40px;
-      background: var(--kb-color-surface);
+      background: #FFFFFF;
       color: var(--kb-color-foreground);
       outline: none;
     }
@@ -539,7 +539,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       padding: 0.5rem 1rem;
       border-radius: 8px;
       border: 1px solid var(--kb-color-border-strong);
-      background: var(--kb-color-surface);
+      background: #FFFFFF;
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
