@@ -65,7 +65,6 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
               <th>Staff</th>
               <th>Joined</th>
               <th>Last Used</th>
-              <th>Updated</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -100,7 +99,6 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
                 </div>
                 <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
               </td>
-              <td (click)="showDetails(business)" style="cursor: pointer;">{{ formatDateValue(business.updatedAt) }}</td>
               <td>
                 <button
                   *ngIf="!business.isSuspended"
