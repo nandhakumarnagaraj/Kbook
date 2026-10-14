@@ -10,6 +10,8 @@ import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtraction
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { environment } from '../../../environments/environment';
@@ -18,28 +20,19 @@ import { environment } from '../../../environments/environment';
   selector: 'app-menu-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent],
   template: `
     <div class="page-shell menu-page-shell">
       <!-- Canonical page header (shared design system) -->
       <app-page-header
         title="Menu &amp; Dishes Catalog"
         subtitle="Manage dish descriptions, variant pricing, and real-time counter stock availability.">
-          <button type="button" class="header-action-btn" (click)="showSearchInput = !showSearchInput" [attr.aria-expanded]="showSearchInput" aria-controls="menu-search">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
-            </svg>
-            Search
-          </button>
-          <input
-            *ngIf="showSearchInput"
-            id="menu-search"
-            class="field-control menu-header-search"
-            type="search"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="resetPage()"
+          <app-header-search
+            [(value)]="searchTerm"
+            (valueChange)="resetPage()"
             placeholder="Search menu items"
-            aria-label="Search menu items"
+            ariaLabel="Search menu items"
+            inputId="menu-search"
           />
           <button type="button" class="header-action-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -54,15 +47,7 @@ import { environment } from '../../../environments/environment';
             </svg>
             Add New Dish
           </button>
-          <button type="button" class="header-action-btn" (click)="loadMenu()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
+          <app-refresh-button (refresh)="loadMenu()" [loading]="refreshing" ariaLabel="Refresh menu" />
       </app-page-header>
 
       <!-- Stale refresh banner (prototype pattern) -->
@@ -502,7 +487,6 @@ import { environment } from '../../../environments/environment';
   `,
   styles: [`
     .menu-page-shell { gap: 1.25rem; }
-    .menu-header-search { width: min(15rem, 38vw); }
     .menu-load-more {
       display: flex;
       justify-content: center;
@@ -592,6 +576,7 @@ export class MenuPageComponent implements OnDestroy {
   items: BusinessMenuItem[] = [];
   categories: BusinessCategory[] = [];
   loaded = false;
+  refreshing = false;
   loadError = '';
   private readonly cdr = inject(ChangeDetectorRef);
   private menuLoadMoreObserver?: IntersectionObserver;
@@ -607,7 +592,6 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   searchTerm = '';
-  showSearchInput = false;
   pageSize = 10;
   visibleItemCount = 10;
 
@@ -704,7 +688,12 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   loadMenu(): void {
-    this.loaded = false;
+    // Same stale-while-refresh contract as Businesses: skeleton only when
+    // there is nothing on screen yet, spinner on the refresh button otherwise.
+    this.refreshing = true;
+    if (!this.items.length) {
+      this.loaded = false;
+    }
     this.loadError = '';
     forkJoin({
       items: this.api.getMenu(),
@@ -714,6 +703,7 @@ export class MenuPageComponent implements OnDestroy {
         this.items = items;
         this.categories = categories;
         this.loaded = true;
+        this.refreshing = false;
         this.loadError = '';
         this.visibleItemCount = this.pageSize;
         this.cdr.markForCheck();
@@ -725,6 +715,7 @@ export class MenuPageComponent implements OnDestroy {
         }
         this.loadError = 'Unable to load the menu. Check your connection and try again.';
         this.loaded = true;
+        this.refreshing = false;
         this.cdr.markForCheck();
       }
     });

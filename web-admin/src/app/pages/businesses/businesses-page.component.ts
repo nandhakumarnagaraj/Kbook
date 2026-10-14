@@ -9,12 +9,14 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -22,17 +24,15 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         subtitle="Platform directory with cleaner drill-down detail panel."
       >
         <div class="header-controls">
-          <input
-            id="business-search"
-            class="field-control header-search"
-            type="search"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="resetVisible()"
+          <app-header-search
+            [(value)]="searchTerm"
+            (valueChange)="resetVisible()"
             placeholder="Search by shop, owner, login, email, or id"
-            aria-label="Search businesses"
+            ariaLabel="Search businesses"
+            inputId="business-search"
           />
           <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">+ Add Restaurant</button>
-          <button class="header-action-btn" (click)="loadBusinesses()">Refresh</button>
+          <app-refresh-button (refresh)="loadBusinesses()" [loading]="refreshing" ariaLabel="Refresh businesses" />
         </div>
       </app-page-header>
 
@@ -339,11 +339,6 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       gap: 0.5rem;
       flex-wrap: wrap;
     }
-    .header-search {
-      width: 300px;
-      max-width: 100%;
-      flex: 0 1 auto;
-    }
     .filter-summary-line {
       display: flex;
       align-items: center;
@@ -409,10 +404,6 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       .header-controls {
         width: 100%;
       }
-      .header-search {
-        width: 100%;
-        flex: 1 1 auto;
-      }
       .toolbar--inline {
         flex-direction: column;
         align-items: stretch;
@@ -427,6 +418,7 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
 
   businesses: AdminBusinessListItem[] = [];
   loaded = false;
+  refreshing = false;
   private readonly cdr = inject(ChangeDetectorRef);
   loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
@@ -573,12 +565,18 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   }
 
   loadBusinesses(): void {
-    this.loaded = false;
+    // Keep stale rows on screen during a manual refresh: full skeleton only
+    // on the very first load when there is nothing to show yet.
+    this.refreshing = true;
+    if (!this.businesses.length) {
+      this.loaded = false;
+    }
     this.loadError = '';
     this.api.getBusinesses().subscribe({
       next: (data) => {
         this.businesses = data;
         this.loaded = true;
+        this.refreshing = false;
         this.loadError = '';
         this.visibleCount = this.pageBatch;
         this.cdr.markForCheck();
@@ -591,6 +589,7 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
         }
         this.loadError = 'Unable to load businesses. Check your connection and try again.';
         this.loaded = true;
+        this.refreshing = false;
         this.cdr.markForCheck();
       }
     });

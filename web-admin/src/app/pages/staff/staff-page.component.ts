@@ -7,6 +7,8 @@ import { BusinessStaffItem } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 import { formatDate } from '../../shared/formatters';
@@ -17,10 +19,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   selector: 'app-staff-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent, HeaderSearchComponent, RefreshButtonComponent],
   styles: [`
-    .staff-header-search { width: min(15rem, 38vw); }
-
     .danger-btn {
       color: var(--kb-color-danger);
       border-color: rgba(192, 57, 43, 0.25);
@@ -148,21 +148,12 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <span kbHeaderBadge class="kpi-tag" *ngIf="loaded()">
           {{ activeCount }}/{{ staff().length }} Active Accounts
         </span>
-          <button type="button" class="header-action-btn" (click)="showSearchInput = !showSearchInput" [attr.aria-expanded]="showSearchInput" aria-controls="staff-search">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
-            </svg>
-            Search
-          </button>
-          <input
-            *ngIf="showSearchInput"
-            id="staff-search"
-            class="field-control staff-header-search"
-            type="search"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="resetPage()"
+          <app-header-search
+            [(value)]="searchTerm"
+            (valueChange)="resetPage()"
             placeholder="Search staff"
-            aria-label="Search staff members"
+            ariaLabel="Search staff members"
+            inputId="staff-search"
           />
           <button type="button" class="header-action-btn header-action-btn--primary" *ngIf="isOwner" (click)="openCreateModal()">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -184,15 +175,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             </svg>
             Sign Out All Devices
           </button>
-          <button type="button" class="header-action-btn" (click)="loadStaff()">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-              <path d="M16 21h5v-5"/>
-            </svg>
-            Refresh
-          </button>
+          <app-refresh-button (refresh)="loadStaff()" [loading]="refreshing()" ariaLabel="Refresh staff" />
       </app-page-header>
 
       <!-- Stale refresh banner (prototype pattern) -->
@@ -388,10 +371,10 @@ export class StaffPageComponent {
 
   staff = signal<BusinessStaffItem[]>([]);
   loaded = signal(false);
+  refreshing = signal(false);
   loadError = signal('');
 
   searchTerm = '';
-  showSearchInput = false;
   pageSize = 10;
   currentPage = 1;
 
@@ -576,12 +559,16 @@ export class StaffPageComponent {
   }
 
   loadStaff(): void {
-    this.loaded.set(false);
+    this.refreshing.set(true);
+    if (!this.staff().length) {
+      this.loaded.set(false);
+    }
     this.loadError.set('');
     this.api.getStaff().subscribe({
       next: (data) => {
         this.staff.set(data);
         this.loaded.set(true);
+        this.refreshing.set(false);
         this.currentPage = 1;
       },
       error: () => {
@@ -590,6 +577,7 @@ export class StaffPageComponent {
         }
         this.loadError.set('Unable to load staff accounts. Check your connection and try again.');
         this.loaded.set(true);
+        this.refreshing.set(false);
       }
     });
   }
