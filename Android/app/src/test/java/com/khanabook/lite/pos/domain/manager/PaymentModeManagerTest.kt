@@ -84,7 +84,7 @@ class PaymentModeManagerTest {
     }
 
     @Test
-    fun `getEnabledModes hides Easebuzz payment link until launch`() {
+    fun `getEnabledModes lists every mode the profile has switched on`() {
         val profile = RestaurantProfileEntity(
             id = 1L,
             shopName = "Test Shop",
@@ -100,9 +100,27 @@ class PaymentModeManagerTest {
         assertTrue("Cash should be selectable", modes.contains(PaymentMode.CASH))
         assertTrue("UPI should be selectable", modes.contains(PaymentMode.UPI))
         assertTrue("POS should be selectable", modes.contains(PaymentMode.POS))
-        assertFalse(
-            "Payment Link must stay out of UI mode lists until launch",
+        assertTrue(
+            "Payment Link follows the owner's Easebuzz switch",
             modes.contains(PaymentMode.PAYMENT_LINK)
+        )
+    }
+
+    @Test
+    fun `getEnabledModes keeps payment link out while the Easebuzz switch is off`() {
+        val profile = RestaurantProfileEntity(
+            id = 1L,
+            shopName = "Test Shop",
+            restaurantId = 123L,
+            cashEnabled = true,
+            upiEnabled = true,
+            posEnabled = true,
+            easebuzzEnabled = false
+        )
+
+        assertFalse(
+            "Payment Link must not appear while the profile flag is off",
+            PaymentModeManager.getEnabledModes(profile).contains(PaymentMode.PAYMENT_LINK)
         )
     }
 

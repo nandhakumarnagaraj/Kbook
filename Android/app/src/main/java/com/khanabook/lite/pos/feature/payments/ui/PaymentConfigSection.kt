@@ -244,53 +244,37 @@ fun PaymentConfigView(
                 onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
                 enabled = !readOnly
             )
-            // Easebuzz hidden from UI until launch — profile flag, save flow and
-            // server contracts untouched. Restore the toggle + EasebuzzOnboardingHub
-            // call to bring the full setup back.
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = spacing.small),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                shape = KhanaRadii.card,
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CreditCard,
-                        contentDescription = null,
-                        tint = TextGold.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.medium))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Online Payments",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = TextLight
-                        )
-                    }
-                    Surface(
-                        color = PrimaryGold.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(4.dp),
-                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
-                    ) {
-                        Text(
-                            "coming soon",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryGold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+            PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
+            val readinessMessage = when (val state = paymentReadiness) {
+                PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
+                is PaymentReadinessUiState.Unavailable -> state.message
+                is PaymentReadinessUiState.Ready -> when {
+                    state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
+                    !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
+                    state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
+                    !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
+                    !state.readiness.easebuzzEnabled -> "Easebuzz Online is off. New payment links are blocked until the owner turns it on."
+                    !state.readiness.paymentLinkReady -> "The server has not confirmed payment-link readiness."
+                    else -> "Payment link setup is ready. Khanabook commission: 0%; Easebuzz processing fees may apply."
                 }
             }
+            Text(
+                text = readinessMessage,
+                color = if ((paymentReadiness as? PaymentReadinessUiState.Ready)?.readiness?.let {
+                        it.paymentLinkReady && it.easebuzzEnabled == easebuzzEnabled
+                    } == true)
+                    SuccessGreen else TextGold,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = spacing.extraSmall)
+            )
+            Spacer(modifier = Modifier.height(spacing.small))
+            EasebuzzOnboardingHub(
+                onNavigateToOnboarding = onNavigateToOnboarding,
+                onOpenAgreement = { onSectionSelected("merchant_agreement") },
+                onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
+                readOnly = readOnly,
+                easebuzzVm = easebuzzVm
+            )
 
             if (showTestQrDialog && upiHandle.isNotBlank()) {
                 AlertDialog(
