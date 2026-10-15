@@ -282,9 +282,10 @@ fun AboutAppView() {
 
         // Legal links (Play Store requirement: reachable privacy policy).
         // Open in the browser — kept on this single screen by design.
+        // The old /terms path returns 404 — the live page is /terms-and-conditions.
         listOf(
             "Privacy Policy" to "https://www.khanabook.in/privacy-policy",
-            "Terms of Use" to "https://www.khanabook.in/terms"
+            "Terms of Use" to "https://khanabook.in/terms-and-conditions"
         ).forEach { (label, url) ->
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
