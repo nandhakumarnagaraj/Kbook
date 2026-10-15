@@ -1290,6 +1290,14 @@ class MasterSyncProcessor @Inject constructor(
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,
                         posEnabled = remoteProfile.posEnabled ?: false,
+                        // The switch is owner-gated and confirmed server-side before it is
+                        // stored (RestaurantRepository.savePaymentProfile), so the server row
+                        // is the source of truth and this row mirrors it. Leaving it out of
+                        // the rebuild sent the column back to its `0` default on every sync
+                        // (insertSyncedRestaurantProfiles is a REPLACE), which silently
+                        // dropped "Send Payment Link" from billing and flipped the settings
+                        // toggle off while the server still reported the switch as on.
+                        easebuzzEnabled = remoteProfile.easebuzzEnabled,
 
                         printerEnabled = currentLocalProfile?.printerEnabled ?: (remoteProfile.printerEnabled ?: false),
                         printerName = currentLocalProfile?.printerName?.takeIf { it.isNotBlank() } ?: remoteProfile.printerName.orFallback(""),
