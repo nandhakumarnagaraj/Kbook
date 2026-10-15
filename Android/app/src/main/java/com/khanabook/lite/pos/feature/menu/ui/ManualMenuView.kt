@@ -781,6 +781,25 @@ fun MenuItemRow(
                                     onEditClick(itemWithVariants)
                                 }
                             )
+                            // Only offered when there is somewhere to move to: the dialog below
+                            // lists `otherCategories` (every category except the selected one),
+                            // so with none it would open on an empty list.
+                            if (otherCategories.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Move to Category") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.DriveFileMove,
+                                            null,
+                                            tint = TextGold
+                                        )
+                                    },
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        showMoveCategoryDialog = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
