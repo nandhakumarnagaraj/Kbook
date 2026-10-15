@@ -1321,6 +1321,18 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			// guard only fired when existing was "paid" AND incoming was not, so a device
 			// that pushed paymentStatus="paid" fell through and nulled the very fields
 			// reconciliation depends on.
+			// paid_at belongs to the gateway once the row is gateway-paid, and the device
+			// vocabulary (pending/success/failed) can never legitimately produce "paid" — so
+			// the restore above cannot be the only defence: a payload that itself carried
+			// "paid" fell through that condition and rewrote the authoritative payment time
+			// from a client clock, the same asymmetry that used to null the settlement fields
+			// below. Scoped to rows the server already holds a paid time for: a till collecting
+			// cash is still the first to stamp paid_at on a row the server has never seen paid,
+			// and must keep being able to.
+			if ("paid".equalsIgnoreCase(existingBill.getPaymentStatus())
+					&& existingBill.getPaidAt() != null) {
+				incomingBill.setPaidAt(existingBill.getPaidAt());
+			}
 			incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
 			incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
 			incomingBill.setRefundId(existingBill.getRefundId());

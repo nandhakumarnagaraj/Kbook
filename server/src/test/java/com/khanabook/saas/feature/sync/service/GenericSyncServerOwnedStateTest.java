@@ -2,6 +2,7 @@ package com.khanabook.saas.feature.sync.service;
 
 import com.khanabook.saas.feature.sync.service.GenericSyncService;
 
+import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
@@ -74,6 +75,59 @@ class GenericSyncServerOwnedStateTest {
         GenericSyncService.preserveServerOwnedState(incoming, existing);
 
         assertThat(incoming.getEasebuzzEnabled()).isTrue();
+    }
+
+    /**
+     * paymentStatus "paid" is unreachable from the device vocabulary, so a payload carrying it
+     * is not a device setting a payment — it is a client claiming a finalized state, and the
+     * paid time on the row is the gateway's. The restore above only fires when the incoming
+     * push is NOT paid, so before this scoped rule a payload that said "paid" kept whatever
+     * paidAt its own clock produced, overwriting the value reconciliation works from.
+     */
+    @Test
+    void gatewayPaidRowKeepsItsPaymentTimeEvenWhenThePushClaimsPaid() {
+        Bill existing = paidBill(1_800_000_000_000L);
+        Bill incoming = billWithPayment("paid", 1_800_000_999_000L);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getPaidAt()).isEqualTo(1_800_000_000_000L);
+    }
+
+    @Test
+    void gatewayPaidRowKeepsItsPaymentTimeWhenPushIsNotPaid() {
+        Bill existing = paidBill(1_800_000_000_000L);
+        Bill incoming = billWithPayment("success", 1_800_000_999_000L);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getPaymentStatus()).isEqualTo("paid");
+        assertThat(incoming.getPaidAt()).isEqualTo(1_800_000_000_000L);
+    }
+
+    /**
+     * The other direction, so the guard above cannot be widened later without noticing: a bill
+     * the server has never seen paid gets its paid time from the till that collected the cash.
+     */
+    @Test
+    void unpaidRowLetsTheTillStampPaidAt() {
+        Bill existing = billWithPayment("pending", null);
+        Bill incoming = billWithPayment("success", 1_800_000_999_000L);
+
+        GenericSyncService.preserveServerOwnedState(incoming, existing);
+
+        assertThat(incoming.getPaidAt()).isEqualTo(1_800_000_999_000L);
+    }
+
+    private static Bill paidBill(long paidAt) {
+        return billWithPayment("paid", paidAt);
+    }
+
+    private static Bill billWithPayment(String paymentStatus, Long paidAt) {
+        Bill bill = new Bill();
+        bill.setPaymentStatus(paymentStatus);
+        bill.setPaidAt(paidAt);
+        return bill;
     }
 
     @Test
