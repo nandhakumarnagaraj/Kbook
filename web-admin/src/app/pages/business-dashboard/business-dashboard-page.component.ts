@@ -22,6 +22,7 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
+import { animate, stagger } from 'animejs';
 
 export interface PosActiveOrder {
   orderId: number;
@@ -117,7 +118,6 @@ function getTodayIsoDate(): string {
 
           <!-- Refresh Button -->
           <app-refresh-button (refresh)="refresh()" [loading]="isRefreshing()" ariaLabel="Refresh live metrics" />
-          <span class="freshness-stamp" *ngIf="freshnessLabel()" role="status">{{ freshnessLabel() }}</span>
       </app-page-header>
 
       <!-- Stale / offline banner: shown when a refresh fails but data is still on screen -->
@@ -503,6 +503,7 @@ function getTodayIsoDate(): string {
       width: 100%;
       background: var(--kb-color-border-strong);
       border-radius: 7px;
+      transform-origin: bottom;
       transition: height 240ms ease, background 150ms ease;
     }
     .bar-pill-fill--peak { background: var(--kb-color-primary); }
@@ -632,6 +633,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly viewDashboard = computed(() => (this.manualReload() ? null : this.currentDashboard()));
 
   private refreshSubscription: Subscription | null = null;
+  private kpiEntranceDone = false;
 
   /** Wall-clock of the last successful dashboard load, and a coarse ticker that
    *  drives the relative "updated Xs ago" label. */
@@ -796,6 +798,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
             };
 
             this.currentDashboard.set(computedPayload);
+            this.playKpiEntrance();
             return computedPayload;
           }),
           catchError((error: unknown) => {
@@ -847,6 +850,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     // 1. Hourly Sales Curve (GET /analytics/hourly-sales)
     this.api.getHourlySales(today).pipe(catchError(() => of([]))).subscribe(data => {
       this.hourlySalesData.set(Array.isArray(data) ? data : []);
+      this.playHourlyBars();
     });
 
     // 2. Top Selling Dishes (GET /analytics/item-sales)
@@ -1066,8 +1070,47 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   /** User-requested reload (header button, retry buttons). */
   refresh(): void {
     this.manualReload.set(true);
+    this.kpiEntranceDone = false;
     this.refresh$.next();
     this.loadSupplementaryData();
+  }
+
+  /** Staggered KPI tile entrance — first paint + manual refresh only, never on 60s poll. */
+  private playKpiEntrance(): void {
+    if (this.kpiEntranceDone || typeof document === 'undefined') return;
+    this.kpiEntranceDone = true;
+    requestAnimationFrame(() => setTimeout(() => {
+      try {
+        const tiles = document.querySelectorAll('.bento-kpi-grid .bento-tile');
+        if (tiles.length) {
+          animate('.bento-kpi-grid .bento-tile', {
+            opacity: [0, 1],
+            y: [14, 0],
+            duration: 450,
+            delay: stagger(70),
+            ease: 'outQuad'
+          });
+        }
+      } catch { /* animation is progressive enhancement */ }
+    }, 30));
+  }
+
+  /** Hourly bars grow from baseline — runs when hourly data arrives. */
+  private playHourlyBars(): void {
+    if (typeof document === 'undefined') return;
+    requestAnimationFrame(() => setTimeout(() => {
+      try {
+        const fills = document.querySelectorAll('.hourly-bar-node .bar-pill-fill');
+        if (fills.length) {
+          animate('.hourly-bar-node .bar-pill-fill', {
+            scaleY: [0, 1],
+            duration: 600,
+            delay: stagger(35),
+            ease: 'outQuad'
+          });
+        }
+      } catch { /* noop */ }
+    }, 30));
   }
 
   /** Background poll — silent, see `viewDashboard`. */
