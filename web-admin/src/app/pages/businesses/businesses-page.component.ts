@@ -100,7 +100,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
               <td class="date-col">{{ formatDateValue(business.createdAt) }}</td>
               <td class="date-col">
                 <span *ngIf="business.lastUsedAt; else neverUsed">{{ formatDateValue(business.lastUsedAt) }}</span>
-                <ng-template #neverUsed><span class="muted">No orders yet</span></ng-template>
+                <ng-template #neverUsed><span class="muted">No settled orders</span></ng-template>
               </td>
               <td class="action-col">
                 <button
@@ -129,7 +129,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
               <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
             </button>
-            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No orders yet' }}</dd></div></dl>
+            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No settled orders' }}</dd></div></dl>
             <div class="mobile-data-card__actions">
               <button *ngIf="!business.isSuspended" class="biz-action-btn biz-action-btn--danger" (click)="confirmSuspend(business)">
                 <span>Suspend</span>

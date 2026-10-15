@@ -20,8 +20,9 @@ public record AdminBusinessListItemResponse(
             long menuCount,
             long orderCount,
             Long updatedAt,
-            // Joining date (profile createdAt) and last real activity (latest
-            // non-deleted bill). Epoch millis — safely below JS MAX_SAFE_INTEGER.
+            // Joining date (profile createdAt) and last real activity (latest bill the
+            // shop SETTLED — see BillRepository.lastBillTimeGroupedByRestaurant).
+            // Epoch millis — safely below JS MAX_SAFE_INTEGER.
             Long createdAt,
             Long lastUsedAt
 ) {

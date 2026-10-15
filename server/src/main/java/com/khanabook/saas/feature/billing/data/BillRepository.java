@@ -133,7 +133,22 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Query("SELECT b.restaurantId, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
     List<Object[]> countGroupedByRestaurant();
 
-    @Query("SELECT b.restaurantId, MAX(b.createdAt) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
+    /**
+     * Newest bill each business actually *settled*, keyed by restaurant.
+     *
+     * <p>Held to the same bar as {@link #sumCompletedRevenue()}: a bill counts as usage
+     * only once it is both closed (order_status completed/paid) and paid
+     * (payment_status success/paid). Previously EVERY non-deleted bill counted, so a
+     * still-open or cancelled order set the value — the admin "Last Used" column then
+     * reported "last time the till was touched", disagreed with the Revenue figure on
+     * the same screen, and let a shop whose newest order was unpaid look more recently
+     * active than one that had just been paid.
+     */
+    @Query("SELECT b.restaurantId, MAX(b.createdAt) FROM Bill b " +
+           "WHERE b.isDeleted = false " +
+           "AND LOWER(b.orderStatus) IN ('completed','paid') " +
+           "AND LOWER(b.paymentStatus) IN ('success','paid') " +
+           "GROUP BY b.restaurantId")
     List<Object[]> lastBillTimeGroupedByRestaurant();
 
     Optional<Bill> findByRestaurantIdAndPublicTokenAndIsDeletedFalse(Long restaurantId, java.util.UUID publicToken);
