@@ -300,6 +300,10 @@ class TenantMenuDao @Inject constructor(
     override suspend fun getItemByName(name: String, restaurantId: Long): MenuItemEntity? = dao.getItemByName(name, restaurantId)
     override suspend fun getItemByBarcode(barcode: String, restaurantId: Long): MenuItemEntity? = dao.getItemByBarcode(barcode, restaurantId)
     override suspend fun getAllMenuItemsOnce(restaurantId: Long): List<MenuItemEntity> = dao.getAllMenuItemsOnce(restaurantId)
+    override suspend fun upsertCategoryRepairs(repairs: List<com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity>) = dao.upsertCategoryRepairs(repairs)
+    override suspend fun getCategoryRepairs(restaurantId: Long): List<com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity> = dao.getCategoryRepairs(restaurantId)
+    override suspend fun deleteCategoryRepairs(restaurantId: Long, itemLocalIds: List<Long>) = dao.deleteCategoryRepairs(restaurantId, itemLocalIds)
+    override suspend fun repairItemCategory(itemId: Long, categoryId: Long, restaurantId: Long): Int = dao.repairItemCategory(itemId, categoryId, restaurantId)
     override suspend fun getAllVariantsOnce(restaurantId: Long): List<ItemVariantEntity> = dao.getAllVariantsOnce(restaurantId)
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {

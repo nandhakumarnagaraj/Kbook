@@ -20,6 +20,7 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
+import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
 import com.khanabook.lite.pos.feature.menu.domain.MenuPricingRules
 
 import android.util.Log
@@ -346,6 +347,52 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
+
+    /**
+     * Finishes moves an earlier pull had to park: a dish whose destination category had not
+     * reached this device kept the category it already had, and the intended category was stored
+     * instead of guessed (see [MenuItemCategoryRepairEntity]). Now that the pull has written this
+     * page's categories, any parked destination that resolves is applied.
+     *
+     * Repairs are also dropped when their item is gone from this device, so a deleted dish cannot
+     * leave a row behind. The move itself is guarded in SQL against rows still holding unpushed
+     * edits, so a drag performed on this till is never undone by a repair.
+     */
+    private suspend fun applyPendingCategoryRepairs(restaurantId: Long, categoryIdMap: Map<Long, Long>) {
+        val repairs = menuDao.getCategoryRepairs(restaurantId)
+        if (repairs.isEmpty()) return
+        val liveItemIds = menuDao.getAllMenuItemsOnce(restaurantId).map { it.id }.toSet()
+        val done = mutableListOf<Long>()
+        var moved = 0
+
+        for (repair in repairs) {
+            if (repair.itemLocalId !in liveItemIds) {
+                done += repair.itemLocalId
+                continue
+            }
+            val localCategoryId = categoryIdMap[repair.destinationServerCategoryId] ?: continue
+            moved += menuDao.repairItemCategory(repair.itemLocalId, localCategoryId, restaurantId)
+            done += repair.itemLocalId
+        }
+
+        if (done.isNotEmpty()) {
+            menuDao.deleteCategoryRepairs(restaurantId, done.distinct())
+        }
+        if (done.isNotEmpty()) {
+            Log.i(
+                "MasterSyncProcessor",
+                "Applied $moved parked category move(s); cleared ${done.size} repair record(s)"
+            )
+        }
+    }
+
+    /**
+     * Identifies a pulled dish whose destination category this device cannot resolve, for the
+     * warnings that must never let such a row look like an applied one.
+     */
+    private fun menuItemDestinationLabel(remote: MenuItemPullDto): String =
+        "menuItemId=${remote.localId ?: remote.serverId}, name='${remote.name}', " +
+            "localCategoryId=${remote.categoryId}, serverCategoryId=${remote.serverCategoryId}"
 
     private fun <T> logSkippedRecords(label: String, skipped: List<T>, describe: (T) -> String) {
         if (skipped.isEmpty()) return
@@ -1370,19 +1417,50 @@ class MasterSyncProcessor @Inject constructor(
         val allLocalCategories = categoryDao.getAllCategoriesOnce(restaurantId)
         val knownCategoryIds = (categoryIdMap.values + allLocalCategories.map { it.id }).toMutableSet()
 
+        // Dishes an earlier pull had to park because their destination category was not here yet.
+        // The categories above have just been written, so whatever can be applied now is, instead
+        // of waiting for an item row that only arrives again if its own serverUpdatedAt moves.
+        applyPendingCategoryRepairs(restaurantId, categoryIdMap)
+
         if (masterData.menuItems.isNotEmpty()) {
             val currentDeviceId = sessionManager.getDeviceId()
             val preferredMenuItemIdsByServerId = mutableMapOf<Long, Long>()
             val existingImageById = menuDao.getAllMenuItemImageInfo(restaurantId).associateBy { it.id }
+            // The category every local row holds right now. A dish whose destination category has
+            // not reached this device keeps this value instead of a guess (see below).
+            val existingCategoryIdByItemId = menuDao.getAllMenuItemsOnce(restaurantId)
+                .associate { it.id to it.categoryId }
+            val deferredDestinations = mutableListOf<String>()
+            val droppedDestinations = mutableListOf<String>()
+            val parkedRepairs = mutableListOf<MenuItemCategoryRepairEntity>()
             val resolvedMenuItems = masterData.menuItems.mapNotNull { remoteMenuItem ->
-                    // categoryIdMap keys are server IDs (Long). Only look up via serverCategoryId.
-                    // Falling back to categoryId (a foreign device's local ID) would look up the
-                    // wrong key and silently link the item to a wrong or non-existent category.
-                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { serverId ->
-                        categoryIdMap[serverId] ?: serverId
-                    } ?: remoteMenuItem.categoryId
+                    val isMyDevice = remoteMenuItem.deviceId == currentDeviceId
+                    val assignedId = when {
+                        isMyDevice && (remoteMenuItem.localId ?: 0L) > 0L -> remoteMenuItem.localId ?: 0L
+                        (remoteMenuItem.serverId ?: 0L) > 0L -> remoteMenuItem.serverId ?: 0L
+                        else -> remoteMenuItem.localId ?: 0L
+                    }
 
-                    if (localCategoryId !in knownCategoryIds) {
+                    // categoryIdMap keys are SERVER category ids, so a destination is only ever
+                    // serverCategoryId resolved through that map. The raw server number must never
+                    // be used as a local id: a category that merely happens to carry that number
+                    // locally (an unsynced category created on this device, for instance) would
+                    // then silently receive the dish - the dish lands in a category it does not
+                    // belong to and nothing about the row looks wrong afterwards. categoryId is
+                    // not looked up either: it can be a foreign device's local id, so a map hit on
+                    // it would be a coincidence rather than a match.
+                    val mappedCategoryId = remoteMenuItem.serverCategoryId?.let { categoryIdMap[it] }
+                    // Destination category has not arrived yet. Keep the dish in the category its
+                    // local row already holds - a category this device can prove - so the move is
+                    // deferred rather than guessed, and every other field still syncs.
+                    val localCategoryId = mappedCategoryId
+                        ?: existingCategoryIdByItemId[assignedId]?.takeIf { it in knownCategoryIds }
+
+                    if (localCategoryId == null) {
+                        // Unknown destination AND no local row to keep: skip instead of inventing a
+                        // placement. Collected here so the warning below reports exactly the rows
+                        // this decision dropped, and cannot drift from it.
+                        droppedDestinations += menuItemDestinationLabel(remoteMenuItem)
                         null
                     } else if (!MenuPricingRules.isSyncedPriceText(remoteMenuItem.basePrice?.toPlainString())) {
                         // Storing an out-of-band price locally would poison every later write
@@ -1394,18 +1472,24 @@ class MasterSyncProcessor @Inject constructor(
                         )
                         null
                     } else {
-                        val isMyDevice = remoteMenuItem.deviceId == currentDeviceId
-                        val assignedId = when {
-                            isMyDevice && (remoteMenuItem.localId ?: 0L) > 0L -> remoteMenuItem.localId ?: 0L
-                            (remoteMenuItem.serverId ?: 0L) > 0L -> remoteMenuItem.serverId ?: 0L
-                            else -> remoteMenuItem.localId ?: 0L
+                        if (mappedCategoryId == null) {
+                            deferredDestinations += menuItemDestinationLabel(remoteMenuItem)
+                            // Remember where the dish is meant to go, so a later pull can finish
+                            // this move once that category exists locally.
+                            remoteMenuItem.serverCategoryId?.let { destination ->
+                                parkedRepairs += MenuItemCategoryRepairEntity(
+                                    restaurantId = restaurantId,
+                                    itemLocalId = assignedId,
+                                    destinationServerCategoryId = destination
+                                )
+                            }
                         }
                         if (isMyDevice && (remoteMenuItem.serverId ?: 0L) > 0L && assignedId > 0L) {
                             preferredMenuItemIdsByServerId[remoteMenuItem.serverId ?: 0L] = assignedId
                         }
                         MenuItemEntity(
                         id = assignedId,
-                        categoryId = localCategoryId ?: 0L,
+                        categoryId = localCategoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
                         basePrice = remoteMenuItem.basePrice.toSafeString(),
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
@@ -1438,18 +1522,25 @@ class MasterSyncProcessor @Inject constructor(
                     )
                     }
                 }
-            logSkippedRecords(
-                label = "menu item",
-                skipped = masterData.menuItems.filter { remoteMenuItem ->
-                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { serverId ->
-                        categoryIdMap[serverId] ?: serverId
-                    } ?: remoteMenuItem.categoryId
-                    localCategoryId !in knownCategoryIds
-                }
-            ) { remoteMenuItem ->
-                "menuItemId=${remoteMenuItem.localId ?: remoteMenuItem.serverId}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
+            // A destination this device does not know is never resolved by guessing, so both
+            // outcomes are named here rather than only the dropped one - otherwise a deferred move
+            // would look exactly like a completed one in the logs.
+            if (deferredDestinations.isNotEmpty()) {
+                Log.w(
+                    "MasterSyncProcessor",
+                    "Deferred ${deferredDestinations.size} pulled menu item(s) to a category this " +
+                        "device does not have yet (keeping their current category): " +
+                        deferredDestinations.take(5).joinToString("; ")
+                )
             }
+            logSkippedRecords(
+                label = "menu item (destination category unknown)",
+                skipped = droppedDestinations
+            ) { it }
             menuDao.upsertSyncedMenuItems(resolvedMenuItems)
+            if (parkedRepairs.isNotEmpty()) {
+                menuDao.upsertCategoryRepairs(parkedRepairs.distinctBy { it.itemLocalId })
+            }
             // Dedup runs for EVERY pulled serverId, not only this device's rows.
             // After a reinstall the deviceId changes, so isMyDevice no longer
             // matches — a one-sided guard left shadow copies visible. The map

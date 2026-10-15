@@ -26,6 +26,7 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryDao
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
+import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
 
 @Database(
         entities =
@@ -41,13 +42,14 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         BillItemEntity::class,
                         BillPaymentEntity::class,
                         SyncQuarantineEntity::class,
+                        MenuItemCategoryRepairEntity::class,
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class,
                         NotificationEntity::class,
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 80,
+        version = 81,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -92,7 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
-            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80
+            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
@@ -2134,6 +2136,32 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 db.execSQL("ALTER TABLE `restaurant_profile_new` RENAME TO `restaurant_profile`")
 
                 android.util.Log.i("AppDatabase", "MIGRATION_78_79 complete: users+bills+bill_items+bill_payments+restaurant_profile rebuilt to current spec")
+            }
+        }
+
+        val MIGRATION_80_81 = object : Migration(80, 81) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Dishes parked by a pull whose destination category had not reached the device.
+                // The pull never guesses a placement, so the intended category is remembered
+                // here and applied once it exists locally (see MasterSyncProcessor
+                // .applyPendingCategoryRepairs and MenuItemCategoryRepairEntity for why this is
+                // a table of its own rather than a column on menu_items).
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `menu_item_category_repairs` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `item_local_id` INTEGER NOT NULL,
+                        `destination_server_category_id` INTEGER NOT NULL,
+                        `created_at` INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_menu_item_category_repairs_restaurant_id_item_local_id` " +
+                        "ON `menu_item_category_repairs` (`restaurant_id`, `item_local_id`)"
+                )
+                android.util.Log.i("AppDatabase", "MIGRATION_80_81 complete: created menu_item_category_repairs")
             }
         }
 

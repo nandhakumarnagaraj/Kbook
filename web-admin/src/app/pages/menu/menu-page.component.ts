@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { concatMap, forkJoin, from, tap, toArray } from 'rxjs';
+import { catchError, concatMap, forkJoin, from, map, of, tap, toArray } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
+import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtractionItem, MenuExtractionJob, UpdateMenuItemRequest } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
@@ -463,6 +463,7 @@ import { environment } from '../../../environments/environment';
               </div>
 
               <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; gap:0.35rem;">
+                <button type="button" class="ghost-btn" *ngIf="getItemsCountInCategory(cat.categoryId) > 0" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="startBulkMove(cat)" [title]="'Move every dish out of ' + cat.name + ' into another category'">Move dishes</button>
                 <button type="button" class="ghost-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="startRenameCategory(cat)">Rename</button>
                 <button type="button" class="ghost-btn danger-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="deleteCategoryPrompt(cat)" [disabled]="getItemsCountInCategory(cat.categoryId) > 0" [title]="getItemsCountInCategory(cat.categoryId) > 0 ? 'Cannot delete category containing dishes' : 'Delete category'">Delete</button>
               </div>
@@ -474,6 +475,46 @@ import { environment } from '../../../environments/environment';
 
           <div class="modal-actions" style="margin-top: 1.25rem;">
             <button type="button" class="ghost-btn" (click)="closeCategoriesModal()">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk move: the way out of "cannot delete a category containing dishes" -->
+      <div class="modal-backdrop" *ngIf="bulkMoveSource" (click)="cancelBulkMove()">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="bulk-move-title" (click)="$event.stopPropagation()" style="max-width: 520px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+            <h3 id="bulk-move-title" style="margin:0;">Move dishes out of '{{ bulkMoveSource.name }}'</h3>
+            <button type="button" class="icon-btn" (click)="cancelBulkMove()" aria-label="Close">✕</button>
+          </div>
+          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">
+            {{ bulkMoveItems.length }} dish(es) move to the category you pick. A category has to be empty before it can be deleted, so this is how one is retired.
+          </p>
+
+          <div class="form-group">
+            <label for="bulk-move-target">Move to</label>
+            <select id="bulk-move-target" class="field-select" [(ngModel)]="bulkMoveTargetCategoryId" [disabled]="bulkMoving">
+              <option [ngValue]="null">Choose category…</option>
+              <option *ngFor="let target of bulkMoveTargetCategories" [ngValue]="target.categoryId">{{ target.name }}</option>
+            </select>
+          </div>
+          <p class="error-text" *ngIf="!bulkMoveTargetCategories.length">No other category exists yet. Create one, then move the dishes into it.</p>
+
+          <!-- Per-dish result. An owner emptying a category has to see which dishes did not move and why. -->
+          <div *ngIf="bulkMoveSummary" style="margin-top: 0.9rem; font-size: 0.85rem;">
+            <p *ngIf="bulkMoveSummary.movedCount" class="muted" style="margin: 0 0 0.35rem;">
+              Moved {{ bulkMoveSummary.movedCount }} dish(es).
+            </p>
+            <ul *ngIf="bulkMoveSummary.failed.length" style="margin: 0; padding-left: 1.1rem;">
+              <li class="error-text" *ngFor="let failure of bulkMoveSummary.failed">{{ failure.name }} — {{ failure.reason }}</li>
+            </ul>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 1.25rem;">
+            <button class="ghost-btn" (click)="cancelBulkMove()" [disabled]="bulkMoving">Close</button>
+            <button class="ghost-btn danger-btn" *ngIf="bulkMoveCanDelete" (click)="deleteAfterBulkMove()">Delete empty category</button>
+            <button class="primary-btn" (click)="confirmBulkMove()" [disabled]="bulkMoving || bulkMoveTargetCategoryId == null || !bulkMoveItems.length">
+              {{ bulkMoving ? 'Moving…' : 'Move ' + bulkMoveItems.length + ' dish(es)' }}
+            </button>
           </div>
         </div>
       </div>
@@ -661,6 +702,12 @@ export class MenuPageComponent implements OnDestroy {
 
   // Delete state
   deleteTarget: BusinessMenuItem | null = null;
+
+  // Bulk move state: emptying a category so it can be deleted (see startBulkMove)
+  bulkMoveSource: BusinessCategory | null = null;
+  bulkMoveTargetCategoryId: number | null = null;
+  bulkMoving = false;
+  bulkMoveSummary: { movedCount: number; failed: Array<{ name: string; reason: string }> } | null = null;
 
   // Availability toggle state
   togglingId: number | null = null;
@@ -887,6 +934,124 @@ export class MenuPageComponent implements OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  /** Dishes still in the category being emptied. */
+  get bulkMoveItems(): BusinessMenuItem[] {
+    const source = this.bulkMoveSource;
+    return source ? this.items.filter(item => item.categoryId === source.categoryId) : [];
+  }
+
+  get bulkMoveTargetCategories(): BusinessCategory[] {
+    return this.categories.filter(cat => cat.categoryId !== this.bulkMoveSource?.categoryId);
+  }
+
+  /**
+   * The category is empty and something actually moved, so the delete that was impossible a
+   * moment ago is now the natural next step of the same flow.
+   */
+  get bulkMoveCanDelete(): boolean {
+    return !!this.bulkMoveSummary && this.bulkMoveSummary.movedCount > 0 && this.bulkMoveItems.length === 0;
+  }
+
+  startBulkMove(cat: BusinessCategory): void {
+    this.bulkMoveSource = cat;
+    this.bulkMoveTargetCategoryId = null;
+    this.bulkMoveSummary = null;
+    this.bulkMoving = false;
+    this.cdr.markForCheck();
+  }
+
+  cancelBulkMove(): void {
+    if (this.bulkMoving) return;
+    this.bulkMoveSource = null;
+    this.bulkMoveSummary = null;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Moves every dish out of the source category, one PUT at a time.
+   *
+   * Sequential on purpose: each update is its own server transaction with its own name-clash
+   * check, so firing them together would report an outcome for a dish whose destination another
+   * in-flight move had already changed. Each result is collected, success or failure, so the
+   * owner gets a per-dish answer instead of a single opaque error.
+   */
+  confirmBulkMove(): void {
+    const source = this.bulkMoveSource;
+    const targetCategoryId = this.bulkMoveTargetCategoryId;
+    if (!source || targetCategoryId == null || this.bulkMoving) return;
+    const dishes = this.bulkMoveItems;
+    if (!dishes.length) return;
+
+    this.bulkMoving = true;
+    this.bulkMoveSummary = null;
+    const failed: Array<{ name: string; reason: string }> = [];
+
+    from(dishes).pipe(
+      concatMap(dish => this.api.updateMenuItem(dish.menuItemId, this.bulkMovePayload(dish, targetCategoryId)).pipe(
+        map(updated => ({ dish, updated, reason: '' })),
+        catchError(error => of({
+          dish,
+          updated: null as BusinessMenuItem | null,
+          reason: error?.error?.message || error?.message || 'Failed to move this dish.'
+        }))
+      )),
+      toArray()
+    ).subscribe({
+      next: (results) => {
+        let movedCount = 0;
+        for (const result of results) {
+          if (result.updated) {
+            const index = this.items.findIndex(item => item.menuItemId === result.dish.menuItemId);
+            if (index >= 0) this.items[index] = result.updated;
+            movedCount++;
+          } else {
+            failed.push({ name: result.dish.name, reason: result.reason });
+          }
+        }
+        this.bulkMoving = false;
+        this.bulkMoveSummary = { movedCount, failed };
+        this.items = [...this.items];
+        const where = this.categories.find(cat => cat.categoryId === targetCategoryId)?.name;
+        if (!movedCount) {
+          this.toast.show('No dishes were moved. See the list for the reason.', 'error');
+        } else if (failed.length) {
+          this.toast.show(`Moved ${movedCount} of ${results.length} dishes${where ? ' to ' + where : ''}. ${failed.length} could not be moved.`, 'error');
+        } else {
+          this.toast.show(`Moved ${movedCount} dish(es)${where ? ' to ' + where : ''}`, 'success');
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.bulkMoving = false;
+        this.bulkMoveSummary = { movedCount: 0, failed };
+        this.toast.show('Failed to move the dishes. Please try again.', 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  deleteAfterBulkMove(): void {
+    const source = this.bulkMoveSource;
+    if (!source) return;
+    this.bulkMoveSource = null;
+    this.bulkMoveSummary = null;
+    this.deleteCategoryPrompt(source);
+  }
+
+  /**
+   * Only the category changes: this action moves dishes, it does not re-price or re-describe
+   * them, so every other field is carried over exactly as the dish already is.
+   */
+  private bulkMovePayload(dish: BusinessMenuItem, targetCategoryId: number): UpdateMenuItemRequest {
+    return {
+      name: dish.name,
+      categoryId: targetCategoryId,
+      foodType: dish.foodType === 'non-veg' ? 'non-veg' : 'veg',
+      basePrice: dish.basePrice,
+      ...(dish.description ? { description: dish.description } : {})
+    };
   }
 
   deleteCategoryPrompt(cat: BusinessCategory): void {

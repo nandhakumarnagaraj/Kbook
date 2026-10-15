@@ -238,6 +238,16 @@ public class MenuItemServiceImpl implements MenuItemService {
 		}
 
 		if (resolved.isEmpty()) {
+			// This push NAMES the category, so the client is moving the item, not editing it.
+			// Reusing the stored category here would discard the move and still answer 200 -
+			// the device would never learn the destination has not reached the server, and the
+			// next pull would quietly revert the dish. Leaving serverCategoryId null makes
+			// pushData report a reason instead, which the device retries once the category has
+			// landed. A push that does not name the category still reuses the stored one: an
+			// unrelated edit must not fail over a foreign key it never touched.
+			if (declaresCategoryChange(item)) {
+				return;
+			}
 			resolved = existingItemCategory(tenantId, item);
 		}
 
@@ -245,6 +255,29 @@ public class MenuItemServiceImpl implements MenuItemService {
 			item.setServerCategoryId(resolved.get().getId());
 			item.setCategoryId(resolved.get().getId());
 		}
+	}
+
+	/**
+	 * Whether the client's field mask names the category, i.e. this record is a deliberate move.
+	 *
+	 * <p>Same mask protocol as {@link GenericSyncService#applyChangedFieldsMerge}: null/blank is a
+	 * legacy whole-record push and {@code "all"} a brand-new record, and in both of those the
+	 * stored category is still the server's to keep - so neither counts as a move here. Only an
+	 * explicit {@code categoryId} / {@code serverCategoryId} token does, which is exactly what
+	 * the POS writes when the user moves a dish between categories.
+	 */
+	private boolean declaresCategoryChange(MenuItem item) {
+		String mask = item.getChangedFields();
+		if (mask == null || mask.isBlank() || "all".equalsIgnoreCase(mask.trim())) {
+			return false;
+		}
+		for (String field : mask.split(",")) {
+			String token = field == null ? "" : field.trim().toLowerCase(java.util.Locale.ROOT);
+			if ("categoryid".equals(token) || "servercategoryid".equals(token)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void reuseExistingItemCategory(Long tenantId, MenuItem item) {

@@ -280,6 +280,63 @@ class MenuItemServiceImplTest {
         verify(menuItemRepo, never()).saveAll(any());
     }
 
+    /**
+     * The move case, and the one the reuse fallback got wrong. The client's mask NAMES the
+     * category, so this is a deliberate move to a category the server cannot resolve from any
+     * id the payload carries - normally because that category's own push has not landed yet.
+     * Reusing the stored category answered 200 for a write that did not happen: the dish stayed
+     * where it was, the device recorded a success, and the user's move silently disappeared.
+     */
+    @Test
+    void moveWithUnresolvableDestination_isRejectedInsteadOfReusingStoredCategory() {
+        actAsOwner();
+        MenuItem existing = serverRow(503L, new BigDecimal("250"), true);
+        existing.setServerCategoryId(10L);
+        when(menuItemRepo.findById(503L)).thenReturn(Optional.of(existing));
+        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
+            .thenReturn(Optional.empty());
+        when(categoryRepo.findByRestaurantIdAndLocalIdIn(any(), anyList()))
+            .thenReturn(List.of());
+
+        MenuItem incoming = menuItem(4L, 999L); // destination the server has never seen
+        incoming.setId(503L);
+        incoming.setChangedFields("categoryId,name");
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).contains(4L);
+        assertThat(resp.getFailedReasons().get(4L)).contains("category could not be resolved");
+        assertThat(incoming.getServerCategoryId()).isNull();
+        verify(menuItemRepo, never()).saveAll(any());
+    }
+
+    /**
+     * The other half of the same rule: a push that does NOT name the category is still an edit,
+     * so it keeps landing on the server's own category instead of failing the record.
+     */
+    @Test
+    void editWithUnnamedCategory_stillReusesStoredCategory() {
+        actAsOwner();
+        MenuItem existing = serverRow(503L, new BigDecimal("250"), true);
+        existing.setServerCategoryId(10L);
+        when(menuItemRepo.findById(503L)).thenReturn(Optional.of(existing));
+        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
+            .thenReturn(Optional.empty());
+        when(categoryRepo.findByRestaurantIdAndLocalIdIn(any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+
+        MenuItem incoming = menuItem(4L, 999L);
+        incoming.setId(503L);
+        incoming.setChangedFields("basePrice,isAvailable"); // an edit, not a move
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).doesNotContain(4L);
+        assertThat(incoming.getServerCategoryId()).isEqualTo(10L);
+        verify(menuItemRepo).saveAll(any());
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private void actAsStaff() {

@@ -201,6 +201,29 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedMenuItems(restaurantId: Long): List<MenuItemEntity>
 
+    // ── parked category moves (see MenuItemCategoryRepairEntity) ───────────────
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCategoryRepairs(repairs: List<MenuItemCategoryRepairEntity>)
+
+    @Query("SELECT * FROM menu_item_category_repairs WHERE restaurant_id = :restaurantId")
+    suspend fun getCategoryRepairs(restaurantId: Long): List<MenuItemCategoryRepairEntity>
+
+    @Query("DELETE FROM menu_item_category_repairs WHERE restaurant_id = :restaurantId AND item_local_id IN (:itemLocalIds)")
+    suspend fun deleteCategoryRepairs(restaurantId: Long, itemLocalIds: List<Long>)
+
+    /**
+     * Moves a parked dish into the category it was waiting for. Guarded in SQL, not in the
+     * caller: a row this device still holds unpushed edits for (`is_synced = 0`) must not be
+     * dragged back, and the guard has to hold against a concurrent edit that lands between the
+     * read and the write. Returns the number of rows actually moved.
+     */
+    @Query(
+        "UPDATE menu_items SET category_id = :categoryId " +
+            "WHERE id = :itemId AND restaurant_id = :restaurantId AND is_synced = 1 AND category_id != :categoryId"
+    )
+    suspend fun repairItemCategory(itemId: Long, categoryId: Long, restaurantId: Long): Int
+
     @Query("UPDATE menu_items SET is_synced = 1, changed_fields = NULL WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markMenuItemsAsSynced(ids: List<Long>, restaurantId: Long)
 
