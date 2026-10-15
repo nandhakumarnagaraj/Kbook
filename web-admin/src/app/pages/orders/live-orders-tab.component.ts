@@ -122,12 +122,12 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
               type="button"
               class="card-action-btn card-action-btn--danger"
               (click)="openCancelModal(order, $event)"
-              title="Void or cancel this order"
+              title="Cancel this order"
             >
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
               </svg>
-              Void
+              Cancel
             </button>
           </div>
         </article>
@@ -467,14 +467,20 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       background: var(--kb-color-primary-soft);
       border-color: var(--kb-color-primary-soft);
     }
+    /* Solid danger fill, matching the sidebar's Sign out button: the cancel action is
+       destructive, so it reads as a filled red button with white content rather than a
+       tinted chip that blends into the Details / Invoice pair beside it. */
     .card-action-btn--danger {
-      background: var(--kb-color-danger-soft);
-      border-color: var(--kb-color-danger-soft);
-      color: var(--kb-color-danger);
+      background: var(--kb-color-danger);
+      border-color: var(--kb-color-danger);
+      color: var(--kb-color-on-primary);
+      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
     }
     .card-action-btn--danger:hover {
-      background: var(--kb-color-danger-soft);
-      border-color: var(--kb-color-danger-soft);
+      background: var(--kb-color-danger);
+      border-color: var(--kb-color-danger);
+      color: var(--kb-color-on-primary);
+      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
 
     /* ── Modal Layout ── */
