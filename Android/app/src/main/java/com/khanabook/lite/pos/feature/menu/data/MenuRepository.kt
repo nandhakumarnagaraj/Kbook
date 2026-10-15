@@ -246,10 +246,35 @@ class MenuRepository(
         }
     }
 
+    /**
+     * Every starred dish in the shop, for the billing screen's favourites view - the shop's
+     * pins first, then this till's own stars (see MenuDao.getFavouriteMenuWithVariantsFlow).
+     */
+    fun getFavouriteMenuWithVariants(): Flow<List<MenuWithVariants>> {
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.getFavouriteMenuWithVariantsFlow(restaurantId)
+        }.map { list ->
+            list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) }
+        }
+    }
+
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
         val restaurantId = sessionManager.getRestaurantId()
         val current = menuDao.getItemById(id, restaurantId) ?: return
         updateItem(current.copy(isAvailable = isAvailable), changedFields = "isAvailable")
+    }
+
+    /**
+     * The till's OWN star for a dish ("favourites first" inside a category).
+     *
+     * Deliberately does NOT go through [updateItem]: that would stamp a changed_fields mask and
+     * flip is_synced = 0, enqueuing a push for a column the server has no counterpart for. The
+     * push would report success while changing nothing, and the mask would widen what this
+     * device claims to own on its next whole-record write.
+     */
+    suspend fun setLocalFavourite(id: Long, isFavourite: Boolean) {
+        val restaurantId = sessionManager.getRestaurantId()
+        menuDao.setLocalFavourite(id, isFavourite, restaurantId)
     }
 
     suspend fun deleteItem(item: MenuItemEntity) {

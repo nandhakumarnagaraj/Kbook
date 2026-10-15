@@ -45,6 +45,9 @@ data class MenuItemPullDto(
     // re-publishes it. Reading it here used to also flip the local column on every pull.
     @SerializedName("barcode") val barcode: String? = null,
     @SerializedName("hasVariants") val hasVariants: Boolean? = null,
+    // The shop's pin for this dish (server-owned). Received, never sent back: the push DTO
+    // (MenuItemSyncDto) deliberately omits it, and the server restores its own value anyway.
+    @SerializedName("isFavourite") val isFavourite: Boolean? = null,
     @SerializedName("imageUrl") val imageUrl: String? = null,
     @SerializedName("imageVersion") val imageVersion: Int? = null,
     @SerializedName("createdAt") val createdAt: Long? = null,

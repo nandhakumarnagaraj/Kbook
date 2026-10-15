@@ -214,6 +214,23 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.mapMenuItemToResponse(item));
     }
 
+    /**
+     * Pin or unpin a dish so it leads its category on every surface. OWNER-only for the same
+     * reason as the other menu writes: this is the shop's list, not one till's.
+     */
+    @PutMapping("/menu/{menuItemId}/favourite")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessMenuListItemResponse> setMenuItemFavourite(
+            @PathVariable Long menuItemId, @RequestBody java.util.Map<String, Object> body) {
+        if (body == null || !body.containsKey("isFavourite")) {
+            // Refuse an empty body rather than silently treating a missing flag as "unpin".
+            throw new IllegalArgumentException("isFavourite is required");
+        }
+        boolean favourite = Boolean.TRUE.equals(body.get("isFavourite"));
+        var item = businessWriteService.setMenuItemFavourite(requireTenant(), menuItemId, favourite);
+        return ResponseEntity.ok(businessReadService.mapMenuItemToResponse(item));
+    }
+
     @PostMapping(value = "/menu/{menuItemId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequireRole(UserRole.OWNER)
     public ResponseEntity<AssetStorageService.AssetUploadResult> uploadMenuItemImage(

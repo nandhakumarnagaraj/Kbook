@@ -274,6 +274,9 @@ fun MenuConfigurationScreen(
                     onToggleCategoryFavourite = { category, isFavourite ->
                         viewModel.setCategoryFavourite(category, isFavourite)
                     },
+                    onToggleLocalFavourite = { item, isFavourite ->
+                        viewModel.setLocalFavourite(item, isFavourite)
+                    },
                     otherCategories = categories.filter { it.id != selectedCategoryId }
                 )
                 }

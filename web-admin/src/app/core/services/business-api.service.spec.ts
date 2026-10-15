@@ -69,3 +69,67 @@ describe('BusinessApiService category favourites', () => {
     expect(categories[1].isFavourite).toBe(false);
   });
 });
+
+/**
+ * The dish star is the second half of the same feature, and it has one extra failure mode the
+ * category star does not: the dish form PUTs name/price/description as one body, so a pin that
+ * travelled on that request could be overwritten by any unrelated edit. These tests pin the
+ * pin's own URL (the endpoint the server publishes it on) and that the flag survives the list
+ * response - without that the star renders as unstarred on every reload.
+ */
+describe('BusinessApiService dish favourites', () => {
+  let service: BusinessApiService;
+  let httpMock: HttpTestingController;
+
+  const MENU_URL = `${environment.apiBaseUrl}/business/menu`;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [BusinessApiService, provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(BusinessApiService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  it('stars a dish with a PUT to the dish favourite sub-resource', () => {
+    service.setMenuItemFavourite(11, true).subscribe();
+
+    const req = httpMock.expectOne(`${MENU_URL}/11/favourite`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ isFavourite: true });
+    req.flush({ menuItemId: 11, name: 'Tea', favourite: true });
+  });
+
+  it('unstars a dish by sending the flag as false', () => {
+    service.setMenuItemFavourite(11, false).subscribe();
+
+    const req = httpMock.expectOne(`${MENU_URL}/11/favourite`);
+    // The server refuses a body without the key rather than reading "absent" as "unstar".
+    expect(req.request.body).toEqual({ isFavourite: false });
+    req.flush({ menuItemId: 11, name: 'Tea', favourite: false });
+  });
+
+  it('surfaces the server-confirmed dish value to the caller', () => {
+    let result: { favourite?: boolean } | undefined;
+    service.setMenuItemFavourite(11, true).subscribe((r) => (result = r));
+
+    httpMock.expectOne(`${MENU_URL}/11/favourite`).flush({ menuItemId: 11, name: 'Tea', favourite: true });
+
+    expect(result?.favourite).toBe(true);
+  });
+
+  it('carries the dish favourite through the menu list response', () => {
+    let items: { name: string; favourite?: boolean }[] = [];
+    service.getMenu().subscribe((m) => (items = m));
+
+    httpMock.expectOne(MENU_URL).flush([
+      { menuItemId: 11, name: 'Tea', favourite: true },
+      { menuItemId: 12, name: 'Coffee', favourite: false },
+    ]);
+
+    expect(items[0].favourite).toBe(true);
+    expect(items[1].favourite).toBe(false);
+  });
+});

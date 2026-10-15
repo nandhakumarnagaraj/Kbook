@@ -34,6 +34,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -107,11 +108,20 @@ fun MenuSelectionStep(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val isMenuItemsLoading by menuViewModel.isMenuItemsLoading.collectAsStateWithLifecycle()
+    val favouritesOnly by menuViewModel.favouritesOnly.collectAsStateWithLifecycle()
+    val favouriteItems by menuViewModel.favouriteMenuItems.collectAsStateWithLifecycle()
     val connectionStatus by billingViewModel.connectionStatus.collectAsStateWithLifecycle()
     val isOffline = connectionStatus == ConnectionStatus.Unavailable
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
-    val displayItems = if (searchQuery.isNotBlank()) searchResults else items
+    // Favourites is a view of its own rather than a category filter: the list spans every
+    // category (the store's pins first, then this till's own stars), which is exactly what a
+    // cashier needs at the counter - one tap to the dishes this shop actually sells.
+    val displayItems = when {
+        searchQuery.isNotBlank() -> searchResults
+        favouritesOnly -> favouriteItems
+        else -> items
+    }
     // "Loaded" and the item count now come from one atomic emission, so this can no
     // longer be true while the count is still its initial zero.
     val hasNoMenuItems = catalog.loaded && catalog.totalItemCount == 0 && searchQuery.isBlank()
@@ -249,6 +259,55 @@ fun MenuSelectionStep(
                 shape = KhanaRadii.lg
             )
 
+            // The favourites toggle sits with the search bar rather than inside the category
+            // strip: it is not a category, and mixing it in would make the strip's index-based
+            // selection point at the wrong tab.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                FilterChip(
+                    selected = favouritesOnly,
+                    onClick = { menuViewModel.toggleFavouritesOnly() },
+                    label = {
+                        Text(
+                            if (favouriteItems.isEmpty()) "Favourites"
+                            else "Favourites (${favouriteItems.size})",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = if (favouritesOnly) FontWeight.Bold else FontWeight.Medium
+                            )
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (favouritesOnly) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = null,
+                            tint = if (favouritesOnly) PrimaryGold else TextGold.copy(alpha = 0.7f)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = DarkBrown2,
+                        labelColor = TextGold,
+                        selectedContainerColor = PrimaryGold.copy(alpha = 0.25f),
+                        selectedLabelColor = PrimaryGold,
+                        selectedLeadingIconColor = PrimaryGold
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = favouritesOnly,
+                        borderColor = BorderGold.copy(alpha = 0.4f),
+                        selectedBorderColor = PrimaryGold
+                    )
+                )
+            }
+
+            // The strip stays visible in the favourites view, because it is also the way out of
+            // it: the pinned categories sit at its head (they are sorted first), and tapping one
+            // returns to that category. Nothing is highlighted while the favourites list is up,
+            // so the strip never claims a category the list is not showing.
             if (searchQuery.isBlank() && categories.isNotEmpty()) {
                 val selectedIndex =
                         categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
@@ -259,7 +318,7 @@ fun MenuSelectionStep(
                         edgePadding = spacing.medium,
                         divider = {},
                         indicator = { tabPositions ->
-                            if (selectedIndex < tabPositions.size) {
+                            if (!favouritesOnly && selectedIndex < tabPositions.size) {
                                 TabRowDefaults.SecondaryIndicator(
                                         modifier =
                                                 Modifier.tabIndicatorOffset(
@@ -272,8 +331,11 @@ fun MenuSelectionStep(
                 ) {
                     categories.forEach { category ->
                         Tab(
-                                selected = category.id == selectedCategoryId,
-                                onClick = { menuViewModel.selectCategory(category.id) },
+                                selected = !favouritesOnly && category.id == selectedCategoryId,
+                                onClick = {
+                                    menuViewModel.setFavouritesOnly(false)
+                                    menuViewModel.selectCategory(category.id)
+                                },
                                 text = {
                                     Text(
                                             category.name,
@@ -289,7 +351,11 @@ fun MenuSelectionStep(
                 }
             }
 
-            val isInitialLoading = (!catalog.loaded || (isMenuItemsLoading && displayItems.isEmpty())) && searchQuery.isBlank()
+            // The per-category loading flag must not cover the favourites view: it is only ever true
+    // for the category query, so leaving it in would show a skeleton over a list that has
+    // already loaded (and could be legitimately empty).
+    val isInitialLoading =
+        (!catalog.loaded || (isMenuItemsLoading && displayItems.isEmpty() && !favouritesOnly)) && searchQuery.isBlank()
 
             if (isInitialLoading) {
                 SkeletonMenuScreen(modifier = Modifier.weight(1f))
@@ -309,8 +375,13 @@ fun MenuSelectionStep(
                         )
                         Spacer(Modifier.height(spacing.small))
                         Text(
-                            if (searchQuery.isNotBlank()) "No items match \"$searchQuery\""
-                            else "No items in this category",
+                            when {
+                                // Search wins: it replaces the list regardless of the view, so
+                                // its "no matches" message has to win the message too.
+                                searchQuery.isNotBlank() -> "No items match \"$searchQuery\""
+                                favouritesOnly -> "Nothing starred yet. Star a dish in Menu Configuration to see it here."
+                                else -> "No items in this category"
+                            },
                             color = TextGold.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.bodyMedium
                         )

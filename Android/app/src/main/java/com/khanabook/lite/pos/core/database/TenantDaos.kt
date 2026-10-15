@@ -319,6 +319,10 @@ class TenantMenuDao @Inject constructor(
         dao.toggleItemAvailability(id, isAvailable, restaurantId, updatedAt)
     }
 
+    override suspend fun setLocalFavourite(id: Long, isFavourite: Boolean, restaurantId: Long) {
+        dao.setLocalFavourite(id, isFavourite, restaurantId)
+    }
+
     override suspend fun updateImageMetadataLocally(
         id: Long,
         restaurantId: Long,
@@ -366,6 +370,7 @@ class TenantMenuDao @Inject constructor(
 
     override fun getVariantsForItemFlow(itemId: Long, restaurantId: Long): Flow<List<ItemVariantEntity>> = runFlow { it.menuDao().getVariantsForItemFlow(itemId, restaurantId) }
     override fun getMenuWithVariantsByCategoryFlow(categoryId: Long, restaurantId: Long): Flow<List<MenuWithVariants>> = runFlow { it.menuDao().getMenuWithVariantsByCategoryFlow(categoryId, restaurantId) }
+    override fun getFavouriteMenuWithVariantsFlow(restaurantId: Long): Flow<List<MenuWithVariants>> = runFlow { it.menuDao().getFavouriteMenuWithVariantsFlow(restaurantId) }
     override fun searchMenuWithVariants(query: String, restaurantId: Long): Flow<List<MenuWithVariants>> = runFlow { it.menuDao().searchMenuWithVariants(query, restaurantId) }
     override suspend fun getUnsyncedMenuItems(restaurantId: Long): List<MenuItemEntity> = dao.getUnsyncedMenuItems(restaurantId)
 

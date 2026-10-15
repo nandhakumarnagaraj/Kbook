@@ -137,6 +137,31 @@ class MenuViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    /**
+     * Whether the billing screen is showing the favourites list instead of a category.
+     *
+     * A view flag, not a filter: the category strip stays where it is, so leaving this view is
+     * one tap and never loses the category the cashier was on.
+     */
+    val favouritesOnly = MutableStateFlow(false)
+
+    /**
+     * The counter's "wishlist": every starred dish, the shop's pins first and this till's own
+     * stars after them. Not owner-gated, because the till's own stars are device-local and the
+     * shop's are only read here — nothing in this view writes master data.
+     */
+    val favouriteMenuItems: StateFlow<List<MenuWithVariants>> = menuRepository
+        .getFavouriteMenuWithVariants()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun toggleFavouritesOnly() {
+        favouritesOnly.value = !favouritesOnly.value
+    }
+
+    fun setFavouritesOnly(enabled: Boolean) {
+        favouritesOnly.value = enabled
+    }
+
     val searchQuery = MutableStateFlow("")
 
     val searchResults: StateFlow<List<MenuWithVariants>> = searchQuery
@@ -305,6 +330,31 @@ class MenuViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.e("MenuViewModel", "Error updating category favourite", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update favourite. Please try again."
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Stars or unstars a dish for THIS till only.
+     *
+     * Unlike [setCategoryFavourite] this is deliberately NOT owner-gated and makes no API call:
+     * the column never leaves the device (see MenuItemEntity.localFavourite), so the person at
+     * the counter can keep their own fast-pick list without touching a shop setting. That also
+     * keeps it out of the master-data write path entirely - a starred dish during billing can
+     * never 403 the way a category push would.
+     */
+    fun setLocalFavourite(item: MenuItemEntity, isFavourite: Boolean) {
+        viewModelScope.launch {
+            try {
+                menuRepository.setLocalFavourite(item.id, isFavourite)
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error updating dish favourite", e)
                 setError(
                     com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
                         e,

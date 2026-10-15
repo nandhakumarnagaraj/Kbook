@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,7 +158,9 @@ fun ManualMenuView(
     onReorderCategories: ((List<CategoryEntity>) -> Unit)? = null,
     onToggleCategory: ((CategoryEntity, Boolean) -> Unit)? = null,
     /** (category, pinned) — server-owned favourite, applied only once the API accepts it. */
-    onToggleCategoryFavourite: ((CategoryEntity, Boolean) -> Unit)? = null
+    onToggleCategoryFavourite: ((CategoryEntity, Boolean) -> Unit)? = null,
+    /** (dish, starred) — THIS till's own favourite. Device-local, so never owner-gated. */
+    onToggleLocalFavourite: ((MenuItemEntity, Boolean) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -448,6 +451,7 @@ fun ManualMenuView(
                             onDeleteItem = onDeleteItem,
                             onMoveItem = onMoveItem,
                             otherCategories = otherCategories,
+                            onToggleLocalFavourite = onToggleLocalFavourite,
                             onUploadPhotoClick = if (onQuickPhotoUpload != null) {
                                 {
                                     pendingPhotoItemId = itemWithVariants.menuItem.id
@@ -682,7 +686,8 @@ fun MenuItemRow(
     onUploadPhotoClick: (() -> Unit)? = null,
     onDeleteItem: ((MenuItemEntity) -> Unit)? = null,
     onMoveItem: ((MenuItemEntity, Long) -> Unit)? = null,
-    otherCategories: List<CategoryEntity> = emptyList()
+    otherCategories: List<CategoryEntity> = emptyList(),
+    onToggleLocalFavourite: ((MenuItemEntity, Boolean) -> Unit)? = null
 ) {
     val item = itemWithVariants.menuItem
     val variants = itemWithVariants.variants
@@ -741,6 +746,24 @@ fun MenuItemRow(
                         text = "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}",
                         color = TextGold,
                         style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            // Outside the canWrite block on purpose: this star is the counter's own list, not
+            // master data, so a cashier without menu-edit rights can still keep one. It sorts
+            // the dish to the top of its category everywhere the till lists dishes.
+            if (onToggleLocalFavourite != null) {
+                IconButton(
+                    onClick = { onToggleLocalFavourite(item, !item.localFavourite) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (item.localFavourite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (item.localFavourite)
+                            "Remove ${item.name} from this till's favourites"
+                        else
+                            "Add ${item.name} to this till's favourites",
+                        tint = if (item.localFavourite) PrimaryGold else TextGold.copy(alpha = 0.5f)
                     )
                 }
             }

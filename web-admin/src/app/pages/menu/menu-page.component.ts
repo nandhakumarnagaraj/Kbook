@@ -34,6 +34,23 @@ import { environment } from '../../../environments/environment';
             ariaLabel="Search menu items"
             inputId="menu-search"
           />
+          <!--
+            The "wishlist": one place that shows what the shop has starred, instead of making
+            the owner scroll the whole catalog looking for stars. Reads isFavourite from the
+            already-loaded lists - no extra request.
+          -->
+          <button
+            type="button"
+            class="header-action-btn fav-toggle"
+            [class.fav-toggle--on]="favouritesOnly"
+            [attr.aria-pressed]="favouritesOnly"
+            (click)="toggleFavouritesOnly()"
+            [title]="favouritesOnly ? 'Show the whole menu' : 'Show only starred dishes and pinned categories'"
+          >
+            <span aria-hidden="true">{{ favouritesOnly ? '★' : '☆' }}</span>
+            Favourites
+            <span class="fav-toggle__count" *ngIf="favouriteCount">{{ favouriteCount }}</span>
+          </button>
           <button type="button" class="header-action-btn" *ngIf="isOwner" (click)="openCategoriesModal()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16M4 18h7"/>
@@ -50,6 +67,23 @@ import { environment } from '../../../environments/environment';
       <div class="stale-banner" *ngIf="loadError && items.length" role="status" aria-live="polite">
         <span>Couldn't update menu. {{ loadError }}</span>
         <button type="button" class="btn-retry" (click)="loadMenu()">Retry</button>
+      </div>
+
+      <!-- Favourites panel: pinned categories first, then the starred dishes in the table below -->
+      <div class="panel fav-panel" *ngIf="favouritesOnly && loaded" aria-live="polite">
+        <div class="fav-panel__head">
+          <strong>Favourites</strong>
+          <span class="muted">
+            {{ favouriteItems.length }} starred {{ favouriteItems.length === 1 ? 'dish' : 'dishes' }} ·
+            {{ favouriteCategories.length }} pinned {{ favouriteCategories.length === 1 ? 'category' : 'categories' }}
+          </span>
+        </div>
+        <div class="fav-chips" *ngIf="favouriteCategories.length">
+          <span class="fav-chip" *ngFor="let cat of favouriteCategories; trackBy: trackByCategoryId">★ {{ cat.name }}</span>
+        </div>
+        <p class="fav-panel__hint" *ngIf="!favouriteItems.length && !favouriteCategories.length">
+          Nothing starred yet. Tap ☆ on a dish row to add it here, or pin a category from the Categories dialog.
+        </p>
       </div>
 
       <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
@@ -117,6 +151,16 @@ import { environment } from '../../../environments/environment';
               <td *ngIf="isOwner">
                 <div class="action-stack">
                   <button
+                    type="button"
+                    class="icon-btn fav-btn"
+                    [class.fav-btn--on]="item.favourite"
+                    [attr.aria-pressed]="!!item.favourite"
+                    [attr.aria-label]="item.favourite ? 'Remove ' + item.name + ' from favourites' : 'Mark ' + item.name + ' as favourite'"
+                    [title]="item.favourite ? 'Starred: leads its category at the counter' : 'Star this dish so it leads its category at the counter'"
+                    [disabled]="togglingItemFavouriteId === item.menuItemId"
+                    (click)="toggleItemFavourite(item)"
+                  >{{ item.favourite ? '★' : '☆' }}</button>
+                  <button
                     class="toggle-btn"
                     [class.toggle-btn--on]="item.available"
                     [class.toggle-btn--off]="!item.available"
@@ -160,6 +204,15 @@ import { environment } from '../../../environments/environment';
             <p>{{ item.description || 'No description added yet.' }}</p>
             <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
+              <button
+                type="button"
+                class="ghost-btn fav-btn"
+                [class.fav-btn--on]="item.favourite"
+                [attr.aria-pressed]="!!item.favourite"
+                [attr.aria-label]="item.favourite ? 'Remove ' + item.name + ' from favourites' : 'Mark ' + item.name + ' as favourite'"
+                [disabled]="togglingItemFavouriteId === item.menuItemId"
+                (click)="toggleItemFavourite(item)"
+              >{{ item.favourite ? '★ Starred' : '☆ Star' }}</button>
               <button class="ghost-btn" [disabled]="togglingId === item.menuItemId" (click)="toggleAvailability(item)">{{ item.available ? 'Set unavailable' : 'Set available' }}</button>
               <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
               <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
@@ -626,6 +679,51 @@ import { environment } from '../../../environments/environment';
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
     .toggle-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
     .toggle-btn--off { border-color: var(--kb-color-error); color: var(--kb-color-error); }
+    /* Star affordances: the wishlist toggle in the header, the per-dish star, and the panel
+       that collects them. Sizes match the category star in the Categories dialog so the two
+       stars read as the same control in two places. */
+    .fav-toggle { gap: 0.35rem; }
+    .fav-toggle--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
+    .fav-toggle__count {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0 0.35rem;
+      border-radius: 999px;
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+    }
+    .fav-btn {
+      min-width: 34px;
+      min-height: 34px;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .fav-btn:disabled { opacity: 0.5; cursor: default; }
+    .fav-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
+    .fav-panel {
+      display: grid;
+      gap: 0.6rem;
+      margin-bottom: var(--kb-space-3);
+    }
+    .fav-panel__head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+    .fav-panel__hint { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.85rem; }
+    .fav-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .fav-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--kb-color-primary);
+      color: var(--kb-color-primary);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
     @media (max-width: 480px) {
       .action-stack { flex-direction: column; align-items: stretch; }
     }
@@ -683,6 +781,10 @@ export class MenuPageComponent implements OnDestroy {
   newCategoryName = '';
   creatingCategory = false;
   togglingFavouriteId: number | null = null;
+  /** The dish whose star write is in flight, so a second tap cannot race the first. */
+  togglingItemFavouriteId: number | null = null;
+  /** The "wishlist": show only starred dishes and pinned categories. */
+  favouritesOnly = false;
 
   // Manage Categories modal state
   showCategoriesModal = false;
@@ -737,8 +839,22 @@ export class MenuPageComponent implements OnDestroy {
         item.description ?? ''
       ].some(v => v.toLowerCase().includes(search));
 
-      return matchesSearch;
+      return matchesSearch && (!this.favouritesOnly || !!item.favourite);
     });
+  }
+
+  /** The starred dishes, in the order the table already shows them. */
+  get favouriteItems(): BusinessMenuItem[] {
+    return this.items.filter(item => !!item.favourite);
+  }
+
+  /** The pinned categories, which `loadMenu` already sorts to the front. */
+  get favouriteCategories(): BusinessCategory[] {
+    return this.categories.filter(cat => !!cat.isFavourite);
+  }
+
+  get favouriteCount(): number {
+    return this.favouriteItems.length + this.favouriteCategories.length;
   }
 
   get pagedItems(): BusinessMenuItem[] {
@@ -871,6 +987,45 @@ export class MenuPageComponent implements OnDestroy {
    * restores this field rather than trusting them), so the response is applied rather than
    * optimistically flipping the star here.
    */
+  /**
+   * Shows or hides the favourites view. Paging is reset because the two views have different
+   * lengths: keeping the previous window would show only part of a short favourites list.
+   */
+  toggleFavouritesOnly(): void {
+    this.favouritesOnly = !this.favouritesOnly;
+    this.resetPage();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Stars or unstars a dish.
+   *
+   * The server is authoritative, so the row is only updated once the API answers - and a
+   * failed write deliberately leaves the star as it was rather than showing an optimistic lie
+   * that the next reload would reverse.
+   */
+  toggleItemFavourite(item: BusinessMenuItem): void {
+    if (this.togglingItemFavouriteId !== null) return;
+    const next = !item.favourite;
+    this.togglingItemFavouriteId = item.menuItemId;
+    this.api.setMenuItemFavourite(item.menuItemId, next).subscribe({
+      next: (updated) => {
+        item.favourite = updated?.favourite ?? next;
+        this.togglingItemFavouriteId = null;
+        this.toast.show(
+          item.favourite ? `'${item.name}' starred` : `'${item.name}' unstarred`,
+          'success',
+        );
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.togglingItemFavouriteId = null;
+        this.toast.show(err?.error?.message || 'Failed to update favourite.', 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   toggleCategoryFavourite(cat: BusinessCategory): void {
     if (this.togglingFavouriteId !== null) return;
     this.togglingFavouriteId = cat.categoryId;

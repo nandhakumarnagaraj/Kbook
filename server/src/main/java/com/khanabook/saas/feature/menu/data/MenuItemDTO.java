@@ -39,6 +39,12 @@ public class MenuItemDTO {
     private Integer imageVersion;
     private Boolean isVeg;
     private Boolean isAvailable;
+    /**
+     * Server-authoritative pin (see MenuItem#isFavourite). Delivered on pull so both
+     * surfaces can order a category "favourites first"; a device value is never the
+     * authority, so the sync path restores the stored one.
+     */
+    private Boolean isFavourite;
     private String description;
     private Integer sortOrder;
     private Boolean overwriteExisting;

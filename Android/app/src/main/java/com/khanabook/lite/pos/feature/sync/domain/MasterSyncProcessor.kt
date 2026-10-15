@@ -1443,8 +1443,13 @@ class MasterSyncProcessor @Inject constructor(
             val existingImageById = menuDao.getAllMenuItemImageInfo(restaurantId).associateBy { it.id }
             // The category every local row holds right now. A dish whose destination category has
             // not reached this device keeps this value instead of a guess (see below).
-            val existingCategoryIdByItemId = menuDao.getAllMenuItemsOnce(restaurantId)
-                .associate { it.id to it.categoryId }
+            val existingItemsById = menuDao.getAllMenuItemsOnce(restaurantId).associateBy { it.id }
+            val existingCategoryIdByItemId = existingItemsById.mapValues { it.value.categoryId }
+            // This till's OWN star for a dish, carried across the rebuild below. The pulled row
+            // is reconstructed from the wire and local_favourite is never on the wire, so
+            // without this the very next sync would erase a cashier's fast-pick star — the same
+            // failure class as the category pin a rebuild used to strip (bb94f328).
+            val existingLocalFavouriteById = existingItemsById.mapValues { it.value.localFavourite }
             val deferredDestinations = mutableListOf<String>()
             val droppedDestinations = mutableListOf<String>()
             val parkedRepairs = mutableListOf<MenuItemCategoryRepairEntity>()
@@ -1519,6 +1524,12 @@ class MasterSyncProcessor @Inject constructor(
                           hasVariants = remoteMenuItem.hasVariants
                               ?: existingImageById[assignedId]?.hasVariants
                               ?: false,
+                        // The shop's pin, delivered on this pull. Omitting it let the
+                        // constructor default (false) win, so the pull that was meant to
+                        // deliver a pin erased it instead.
+                        isFavourite = remoteMenuItem.isFavourite ?: false,
+                        // This device's own shortcut, preserved across the rebuild.
+                        localFavourite = existingLocalFavouriteById[assignedId] ?: false,
                         imageUrl = run {
                             val local = existingImageById[assignedId]
                             val remoteVer = remoteMenuItem.imageVersion ?: 0

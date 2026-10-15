@@ -300,6 +300,48 @@ Estimated total: **3–5 days** with the compatibility work in B2 done properly.
 
 ---
 
+## 6b. Shipped since this plan (2026-10-15, later the same day)
+
+Two things changed shape while being built, recorded here so the sections above are not read as
+the current design.
+
+**Favourites are two layers, not one.** B-owner (the shop's pin) is what this plan designed, and
+it is live for **categories and dishes**: `categories.is_favourite` (V108) and
+`menuitems.is_favourite` (V109), both server-owned and restored on every push by
+`GenericSyncService.preserveServerOwnedState`, both delivered on the pull, and both toggled from
+the web admin (`PUT /business/menu/categories/{id}/favourite`, `PUT /business/menu/{id}/favourite`,
+both `@RequireRole(OWNER)`).
+
+**B-cashier shipped too, as a device-local column** (option (c) in §3.3, which this plan set aside).
+`menu_items.local_favourite` (Room v82) is this till's own star: absent from `MenuItemSyncDto`,
+written only by `MenuDao.setLocalFavourite` (which deliberately leaves `is_synced` and
+`changed_fields` alone), and carried across every pull rebuild by `MasterSyncProcessor`. It exists
+because the plan's own §1.4 warning is decisive: a category mutation that a non-owner can reach
+403s the whole push batch and the worker reads that as deactivation, so a cashier's fast-pick list
+must never be a synced field.
+
+**The "wishlist" view** (asked for later, modelled on how a consumer app collects likes):
+
+| Surface | Where | What it lists |
+|---|---|---|
+| Web admin | `★ Favourites` toggle in the menu page header | Starred dishes (filtered table) + pinned categories as chips |
+| POS | `Favourites` filter chip above the billing category strip | Starred dishes across every category, shop pins first, then this till's stars; the pinned categories head the strip behind it |
+
+Both surfaces read the same flags, so a dish pinned in the admin leads both lists and a till star
+leads only that till's. Ordering is one expression, reused: `is_favourite DESC, local_favourite DESC,
+name ASC`.
+
+**Verified:** server 28 favourite tests green; web admin 207 specs green (including the new dish
+star + wishlist specs); Android 418 unit tests green; `MenuFavouriteOrderingTest` green on a
+physical device (moto g34 5G), which is what actually pins the SQL ordering and the exclusion of
+unstarred/soft-deleted dishes.
+
+**Not verified:** the POS favourites chip was not exercised end-to-end on a device (no Compose UI
+test for it), and the existing menu instrumentation tests (`MenuConfigurationTest`) were not re-run
+against the new star in the dish row.
+
+---
+
 ## 7. Honest limitations of this review
 
 - Static analysis only: **no server test suite, no Android build, and no live move were executed** for this document. Behaviour is inferred from code. The three things I would confirm at runtime before writing production changes are: (i) an actual web-admin move observed on a terminal; (ii) a POS-originated move on a device that has never set `serverCategoryId` (nothing on Android writes that column, so every terminal push sends it as `null`); (iii) the duplicate-name move, to confirm the exact response body the menu dialog receives.

@@ -196,6 +196,13 @@ public class SyncMapper {
                 if (dto.getIsAvailable() == null) {
                     entity.setIsAvailable(true);
                 }
+                // Same NOT NULL trap the category branch documents: absent on every client
+                // build that predates the column, and BeanUtils copies a null straight over
+                // the field initializer. The true value is restored server-side by
+                // GenericSyncService, so defaulting here is never what decides the pin.
+                if (dto.getIsFavourite() == null) {
+                    entity.setIsFavourite(false);
+                }
                 if (dto.getFoodType() == null || dto.getFoodType().isBlank()) {
                     entity.setFoodType("veg");
                 }

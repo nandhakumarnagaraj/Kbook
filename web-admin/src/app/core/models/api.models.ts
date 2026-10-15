@@ -165,6 +165,11 @@ export interface BusinessMenuItem {
   updatedAt: number | null;
   imageUrl?: string | null;
   imageVersion?: number;
+  /**
+   * The owner's pin for this dish (server V109). Optional so a response from an older API
+   * degrades to "unstarred" instead of rendering `undefined`.
+   */
+  favourite?: boolean;
 }
 
 export interface BusinessCategory {

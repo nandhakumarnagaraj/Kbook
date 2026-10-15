@@ -458,6 +458,33 @@ public class BusinessWriteService {
         return saved;
     }
 
+    /**
+     * Pin or unpin a dish. Owner-only (enforced at the controller), and deliberately the ONLY
+     * writer of {@code menuitems.is_favourite}: every dish write reaches the tills as a sync
+     * push, and {@code GenericSyncService} restores the stored value on both push paths, so a
+     * till can neither set the pin nor clear it. A counter's own shortcuts are device-local
+     * and never travel — this column is the shop's list, not one terminal's.
+     */
+    @Transactional
+    public MenuItem setMenuItemFavourite(Long restaurantId, Long menuItemId, boolean favourite) {
+        MenuItem item = menuItemRepository.findById(menuItemId)
+                .filter(m -> restaurantId.equals(m.getRestaurantId()) && !Boolean.TRUE.equals(m.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
+        if (Boolean.TRUE.equals(item.getIsFavourite()) == favourite) {
+            // Idempotent no-op, same contract as setCategoryFavourite: re-sending the same
+            // star must not publish a new server version, because every version bump wakes
+            // every terminal for nothing.
+            return item;
+        }
+        item.setIsFavourite(favourite);
+        // touch() keeps serverUpdatedAt strictly increasing, so two toggles inside the same
+        // millisecond cannot collide and be missed by a device's `> lastSyncTimestamp` pull.
+        touch(item, System.currentTimeMillis());
+        MenuItem saved = menuItemRepository.save(item);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
+    }
+
     // ─── Category CRUD ──────────────────────────────────────────────────────────
 
     @Transactional

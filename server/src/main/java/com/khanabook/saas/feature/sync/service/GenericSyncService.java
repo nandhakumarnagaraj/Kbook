@@ -1366,6 +1366,14 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			// and no variant push would arrive to correct it.
 			incomingItem.setHasVariants(
 					existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
+			// is_favourite (V109) is the owner's pin for a dish, and a till must be able to
+			// neither set nor clear it: the counter's own shortcuts are device-local and never
+			// travel. Restored unconditionally here for the same reason as the category block
+			// below — MenuItem has a field mask, but a legacy build that sends none would
+			// otherwise rewrite the column with whatever it believed, and one till's stale
+			// "false" would silently unpin a dish the owner featured everywhere.
+			incomingItem.setIsFavourite(
+					existingItem.getIsFavourite() != null ? existingItem.getIsFavourite() : false);
 		}
 		if (incoming instanceof Category incomingCategory && existing instanceof Category existingCategory) {
 			// is_favourite is server-authoritative, so it is restored unconditionally rather
@@ -1426,6 +1434,11 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("servercategoryid")) incomingItem.setServerCategoryId(existingItem.getServerCategoryId());
 		if (!changed.contains("categoryid")) incomingItem.setCategoryId(existingItem.getCategoryId());
 		if (!changed.contains("isavailable")) incomingItem.setIsAvailable(existingItem.getIsAvailable());
+		// is_favourite: deliberately NOT gated on the mask. A device cannot be the authority
+		// for it even by naming it, because the mask protocol exists to let clients keep the
+		// fields they own — and this is not one of them. Unconditional, so it holds whichever
+		// of this merge and preserveServerOwnedState runs first. See V109.
+		incomingItem.setIsFavourite(existingItem.getIsFavourite());
 		if (!changed.contains("isdeleted")) incomingItem.setIsDeleted(existingItem.getIsDeleted());
 		if (!changed.contains("imageurl")) incomingItem.setImageUrl(existingItem.getImageUrl());
 		if (!changed.contains("imageversion")) incomingItem.setImageVersion(existingItem.getImageVersion());

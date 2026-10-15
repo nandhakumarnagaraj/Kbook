@@ -132,6 +132,16 @@ class SyncDtoContractTest {
             // off the wire in BOTH directions; do not re-add them to the DTO without a
             // product decision that the till owns stock again.
             "currentStock", "lowStockThreshold",
+            // Server-owned pin for a dish: pulled, but deliberately NEVER sent on a push.
+            // the server restores the value it holds for every field a device does not name, so
+            // a terminal asserting it could only ever be ignored. Same class as
+            // CategoryEntity.isFavourite above.
+            "isFavourite",
+            // THIS TILL's own star for a dish. Never on the wire in either direction: it is not
+            // a shop setting, it is written only by MenuDao.setLocalFavourite (which also leaves
+            // is_synced alone), and MasterSyncProcessor carries it across every pull rebuild.
+            // Pushing it would put a 403-on-the-whole-batch failure class inside billing.
+            "localFavourite",
         ),
         "ItemVariantEntity" to setOf(
             "serverMenuItemId", // mirrored on push

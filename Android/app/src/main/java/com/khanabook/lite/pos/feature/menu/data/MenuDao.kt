@@ -47,10 +47,14 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId")
     fun getAllItemsFlow(restaurantId: Long): Flow<List<MenuItemEntity>>
 
-    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY name ASC")
+    // "Favourites first, then the owner's order": a dish pinned by the shop OR starred at this
+    // counter leads its category, the shop's pin ranks above the till's own, and everything
+    // else stays A-Z. Both flags are read-only here — is_favourite comes from the pull and
+    // local_favourite is set only by setLocalFavourite.
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY (is_favourite = 1 OR local_favourite = 1) DESC, is_favourite DESC, local_favourite DESC, name ASC")
     fun getItemsByCategoryFlow(categoryId: Long, restaurantId: Long): Flow<List<MenuItemEntity>>
 
-    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY name ASC")
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY (is_favourite = 1 OR local_favourite = 1) DESC, is_favourite DESC, local_favourite DESC, name ASC")
     suspend fun getItemsByCategoryOnce(categoryId: Long, restaurantId: Long): List<MenuItemEntity>
 
     @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND restaurant_id = :restaurantId AND is_deleted = 0))")
@@ -176,12 +180,35 @@ interface MenuDao {
     fun getVariantsForItemFlow(itemId: Long, restaurantId: Long): Flow<List<ItemVariantEntity>>
 
     @Transaction
-    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY name ASC")
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND restaurant_id = :restaurantId AND is_deleted = 0 ORDER BY (is_favourite = 1 OR local_favourite = 1) DESC, is_favourite DESC, local_favourite DESC, name ASC")
     fun getMenuWithVariantsByCategoryFlow(categoryId: Long, restaurantId: Long): Flow<List<MenuWithVariants>>
 
     @Transaction
-    @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND restaurant_id = :restaurantId AND is_deleted = 0)) ORDER BY name ASC")
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND restaurant_id = :restaurantId AND is_deleted = 0)) ORDER BY (is_favourite = 1 OR local_favourite = 1) DESC, is_favourite DESC, local_favourite DESC, name ASC")
     fun searchMenuWithVariants(query: String, restaurantId: Long): Flow<List<MenuWithVariants>>
+
+    /**
+     * The counter's "wishlist": every starred dish in the shop regardless of category, the
+     * shop's pins first, then this till's own stars, then A-Z.
+     *
+     * Deliberately the same ORDER BY as the per-category query, so a dish that leads its
+     * category also leads this list - two orderings that disagreed would be a bug the cashier
+     * cannot explain.
+     */
+    @Transaction
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND restaurant_id = :restaurantId AND (is_favourite = 1 OR local_favourite = 1) ORDER BY is_favourite DESC, local_favourite DESC, name ASC")
+    fun getFavouriteMenuWithVariantsFlow(restaurantId: Long): Flow<List<MenuWithVariants>>
+
+    /**
+     * The till's OWN star for a dish ("favourites first" in every category list).
+     *
+     * Deliberately touches neither `is_synced` nor `updated_at`: this column is device-local
+     * and must not enqueue a push. It also stays out of `changed_fields`, because a mask that
+     * named it would be meaningless to the server (the shop's pin is server-owned) and would
+     * only widen what this device claims to own on its next whole-record write.
+     */
+    @Query("UPDATE menu_items SET local_favourite = :isFavourite WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun setLocalFavourite(id: Long, isFavourite: Boolean, restaurantId: Long)
 
     @Query("SELECT * FROM menu_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedMenuItems(restaurantId: Long): List<MenuItemEntity>

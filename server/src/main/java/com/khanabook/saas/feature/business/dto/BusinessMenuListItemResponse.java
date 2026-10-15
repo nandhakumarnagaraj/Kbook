@@ -15,6 +15,8 @@ public record BusinessMenuListItemResponse(
         String foodType,
         BigDecimal basePrice,
         boolean available,
+        /** The owner's pin for this dish (V109). Delivered so both surfaces can show the star. */
+        boolean favourite,
         String stockStatus,
         long variantCount,
         List<BusinessItemVariantResponse> variants,

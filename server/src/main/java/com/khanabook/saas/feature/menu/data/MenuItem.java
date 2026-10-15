@@ -73,6 +73,15 @@ public class MenuItem extends BaseSyncEntity {
 	private Boolean hasVariants = false;
 
 	/**
+	 * Server-authoritative pin, changed only through the owner-gated favourite endpoint.
+	 * Deliberately not client-owned: see GenericSyncService, which restores this on every
+	 * push — masked or legacy whole-record — so a till can neither set nor clear it. The
+	 * till's OWN shortcuts are device-local and never reach this column.
+	 */
+	@Column(name = "is_favourite", nullable = false)
+	private Boolean isFavourite = false;
+
+	/**
 	 * Permission revision the acting user held on-device when this row was
 	 * created/edited (P1). Nullable: older clients that do not stamp it fall back
 	 * to the grant-only gate in {@link com.khanabook.saas.core.security.authz.MenuPushAuthorizer}.

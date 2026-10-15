@@ -49,7 +49,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 81,
+        version = 82,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -94,7 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
-            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81
+            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81, MIGRATION_81_82
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
@@ -2162,6 +2162,31 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                         "ON `menu_item_category_repairs` (`restaurant_id`, `item_local_id`)"
                 )
                 android.util.Log.i("AppDatabase", "MIGRATION_80_81 complete: created menu_item_category_repairs")
+            }
+        }
+
+        val MIGRATION_81_82 = object : Migration(81, 82) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Favourite dishes, both layers in one step.
+                //
+                // `is_favourite` is the SHOP's pin: server-owned (server V109), delivered on
+                // the pull, never asserted on a push — the server restores its own value on
+                // every push path, so a value sent from here could not stick anyway.
+                //
+                // `local_favourite` is THIS TILL's own star. Deliberately device-local: it is
+                // absent from the push DTO and setLocalFavourite never marks the row dirty, so
+                // a cashier can pin dishes for fast billing without the category-style hazard
+                // where a non-owner push 403s the whole batch and the sync worker reads that as
+                // deactivation and invalidates the session mid-bill.
+                //
+                // DEFAULT 0 keeps every existing row reading as "not a favourite" on both.
+                if (!db.hasColumn("menu_items", "is_favourite")) {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `is_favourite` INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!db.hasColumn("menu_items", "local_favourite")) {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `local_favourite` INTEGER NOT NULL DEFAULT 0")
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_81_82 complete: added is_favourite + local_favourite to menu_items")
             }
         }
 

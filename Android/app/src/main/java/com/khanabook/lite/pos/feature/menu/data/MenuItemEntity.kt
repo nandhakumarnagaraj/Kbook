@@ -68,5 +68,23 @@ data class MenuItemEntity(
     @SerializedName("serverCategoryId") @ColumnInfo(name = "server_category_id") val serverCategoryId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
     @ColumnInfo(name = "permission_revision_at_creation") val permissionRevisionAtCreation: Long? = null,
-    @ColumnInfo(name = "changed_fields") val changedFields: String? = null
+    @ColumnInfo(name = "changed_fields") val changedFields: String? = null,
+
+    /**
+     * The shop's pin for this dish, set by the owner in web admin and delivered on pull
+     * (MenuItemDTO.isFavourite). Server-owned: the till renders it and orders favourites
+     * first, but never asserts it on a push — the server restores its own value on every
+     * push path, so a star set here could not stick anyway.
+     */
+    @SerializedName("isFavourite") @ColumnInfo(name = "is_favourite", defaultValue = "0")
+    val isFavourite: Boolean = false,
+
+    /**
+     * THIS TILL's own shortcut, toggled at the counter and deliberately device-local: it is
+     * absent from MenuItemSyncDto so it is never pushed, and MasterSyncProcessor carries it
+     * across every rebuild of the row. A cashier's fast-pick list is not a shop setting, and
+     * pushing it would put a category-style 403-on-the-whole-batch inside the billing flow.
+     */
+    @ColumnInfo(name = "local_favourite", defaultValue = "0")
+    val localFavourite: Boolean = false
 )

@@ -240,6 +240,20 @@ export class BusinessApiService {
     );
   }
 
+  /**
+   * Pin or unpin a dish so it leads its category on every surface, including the POS.
+   *
+   * Its own sub-resource for the same reason as the category star: a pin is not part of the
+   * dish form, so it must not ride along on a PUT of name/price/description (which would let
+   * an unrelated edit overwrite the pin). Owner-only server-side.
+   */
+  setMenuItemFavourite(menuItemId: number, isFavourite: boolean): Observable<BusinessMenuItem> {
+    return this.http.put<BusinessMenuItem>(
+      `${API_BASE_URL}/business/menu/${menuItemId}/favourite`,
+      { isFavourite },
+    );
+  }
+
   // Variants
   getItemVariants(menuItemId: number): Observable<BusinessItemVariant[]> {
     return this.http.get<BusinessItemVariant[]>(`${API_BASE_URL}/business/menu/${menuItemId}/variants`);
