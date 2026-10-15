@@ -152,10 +152,9 @@ fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
     foodType         = foodType,
     description      = description,
     isAvailable      = isAvailable,
-    // currentStock / lowStockThreshold are String in the entity but Int? in DTO.
-    // Parse to Int safely; null if not parseable (server treats null as "untracked").
-    currentStock     = currentStock.toIntOrNull(),
-    lowStockThreshold = lowStockThreshold.toIntOrNull(),
+    // currentStock / lowStockThreshold are intentionally not pushed: stock is server-owned
+    // (web-admin inventory) and the server restores its own value for every field a device
+    // does not name in changedFields, so a pushed copy could only clobber it.
      barcode          = barcode,
      hasVariants      = hasVariants,
      createdAt        = createdAt,
@@ -178,8 +177,6 @@ fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(
     price            = price,
     isAvailable      = isAvailable,
     sortOrder        = sortOrder,
-    currentStock     = currentStock.toIntOrNull(),
-    lowStockThreshold = lowStockThreshold.toIntOrNull(),
     updatedAt        = updatedAt,
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,

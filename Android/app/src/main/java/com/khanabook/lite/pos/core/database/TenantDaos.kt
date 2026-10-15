@@ -319,10 +319,6 @@ class TenantMenuDao @Inject constructor(
         dao.toggleItemAvailability(id, isAvailable, restaurantId, updatedAt)
     }
 
-    override suspend fun updateLowStockThreshold(id: Long, threshold: Double, restaurantId: Long, updatedAt: Long) {
-        dao.updateLowStockThreshold(id, threshold, restaurantId, updatedAt)
-    }
-
     override suspend fun updateImageMetadataLocally(
         id: Long,
         restaurantId: Long,
@@ -346,10 +342,6 @@ class TenantMenuDao @Inject constructor(
     override suspend fun insertVariant(variant: ItemVariantEntity): Long = dao.insertVariant(variant)
     override suspend fun updateVariant(variant: ItemVariantEntity) = dao.updateVariant(variant)
     override suspend fun getVariantById(id: Long, restaurantId: Long): ItemVariantEntity? = dao.getVariantById(id, restaurantId)
-
-    override suspend fun updateVariantLowStockThreshold(id: Long, threshold: Double) {
-        dao.updateVariantLowStockThreshold(id, threshold)
-    }
 
     override suspend fun markVariantDeleted(id: Long, updatedAt: Long, restaurantId: Long) {
         dao.markVariantDeleted(id, updatedAt, restaurantId)

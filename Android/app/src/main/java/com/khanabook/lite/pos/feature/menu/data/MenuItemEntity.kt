@@ -31,6 +31,10 @@ data class MenuItemEntity(
     val description: String? = null,
     @ColumnInfo(name = "is_available", defaultValue = "1")
     val isAvailable: Boolean = true,
+    // LEGACY COLUMNS - kept only because the Room schema still declares them (removing them
+    // needs a table-rebuild migration for menu_items). Stock belongs to web-admin + the
+    // server: these two are off the sync wire in both directions and the master pull now
+    // leaves them at their schema defaults instead of storing the server's value.
     @ColumnInfo(name = "current_stock", defaultValue = "'0.0'")
     val currentStock: String = "0.0",
     @ColumnInfo(name = "low_stock_threshold", defaultValue = "'10.0'")

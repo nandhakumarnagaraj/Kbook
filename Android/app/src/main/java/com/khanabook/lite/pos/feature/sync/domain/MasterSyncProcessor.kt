@@ -1503,8 +1503,8 @@ class MasterSyncProcessor @Inject constructor(
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
                         description = remoteMenuItem.description,
                         isAvailable = remoteMenuItem.isAvailable ?: true,
-                        currentStock = remoteMenuItem.currentStock.toSafeString(),
-                        lowStockThreshold = remoteMenuItem.lowStockThreshold.toSafeString(),
+                        // Stock columns are left at their schema defaults: the server owns stock
+                        // (web-admin inventory) and Android no longer stores or publishes it.
                           barcode = remoteMenuItem.barcode,
                           // Older servers omit the flag. Prefer the server's answer, then
                           // whatever we already had locally, so pulling from a pre-V100 server
@@ -1610,8 +1610,8 @@ class MasterSyncProcessor @Inject constructor(
                         price = remoteVariant.price.toSafeString(),
                         isAvailable = remoteVariant.isAvailable ?: true,
                         sortOrder = remoteVariant.sortOrder ?: 0,
-                        currentStock = remoteVariant.currentStock.toSafeString(),
-                        lowStockThreshold = remoteVariant.lowStockThreshold.toSafeString(),
+                        // See the menu-item branch above: variant stock is server-owned too, and the
+                        // server's variant field is named "stock", so this never carried a value.
                         restaurantId = remoteVariant.restaurantId ?: 0L,
                         deviceId = remoteVariant.deviceId.orFallback(""),
                         isSynced = true,

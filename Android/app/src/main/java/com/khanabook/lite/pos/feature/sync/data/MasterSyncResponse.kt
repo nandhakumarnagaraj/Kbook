@@ -40,8 +40,9 @@ data class MenuItemPullDto(
     @SerializedName("foodType") val foodType: String? = null,
     @SerializedName("description") val description: String? = null,
     @SerializedName("isAvailable") val isAvailable: Boolean? = null,
-    @SerializedName("currentStock") val currentStock: BigDecimal? = null,
-    @SerializedName("lowStockThreshold") val lowStockThreshold: BigDecimal? = null,
+    // currentStock / lowStockThreshold deliberately absent: the server sends currentStock for
+    // menu items, but stock is owned by web-admin + the server, so the till neither stores nor
+    // re-publishes it. Reading it here used to also flip the local column on every pull.
     @SerializedName("barcode") val barcode: String? = null,
     @SerializedName("hasVariants") val hasVariants: Boolean? = null,
     @SerializedName("imageUrl") val imageUrl: String? = null,
@@ -63,8 +64,8 @@ data class ItemVariantPullDto(
     @SerializedName("price") val price: BigDecimal? = null,
     @SerializedName("isAvailable") val isAvailable: Boolean? = null,
     @SerializedName("sortOrder") val sortOrder: Int? = null,
-    @SerializedName("currentStock") val currentStock: BigDecimal? = null,
-    @SerializedName("lowStockThreshold") val lowStockThreshold: BigDecimal? = null,
+    // The server's variant stock is named "stock" (+ trackStock), never "currentStock" - the two
+    // fields that used to sit here read null on every pull and were written back as "0.00".
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @SerializedName("isDeleted") val isDeleted: Boolean? = null,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long? = null

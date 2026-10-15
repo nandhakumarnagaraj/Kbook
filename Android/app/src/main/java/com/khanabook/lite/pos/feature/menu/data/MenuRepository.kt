@@ -154,8 +154,9 @@ class MenuRepository(
             if (current.basePrice != newItem.basePrice) add("basePrice")
             if (current.categoryId != newItem.categoryId) add("categoryId")
             if (current.isAvailable != newItem.isAvailable) add("isAvailable")
-            if (current.currentStock != newItem.currentStock) add("currentStock")
-            if (current.lowStockThreshold != newItem.lowStockThreshold) add("lowStockThreshold")
+            // Stock is not a device field any more: naming it here would tell the server to
+            // accept the till's (stale) copy over its own. Omitting it makes the server keep
+            // the value web-admin owns.
             if (current.foodType != newItem.foodType) add("foodType")
             if (current.barcode != newItem.barcode) add("barcode")
             if (current.imageUrl != newItem.imageUrl) add("imageUrl")

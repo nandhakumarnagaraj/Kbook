@@ -125,10 +125,20 @@ class SyncDtoContractTest {
             "imageUrl", "imageVersion",     // mapped on DTO
             "createdAt",                    // mapped on DTO
             "overwriteExisting",            // request-scoped flag, not persisted state
+            // STOCK IS NOT A DEVICE FIELD (decided 2026-10-15): web-admin inventory owns
+            // menu-item stock, and the server's changedFields merge restores its own value
+            // for every field a device does not name - so a pushed copy could only ever
+            // clobber it. The two columns stay in the Room schema as legacy storage and are
+            // off the wire in BOTH directions; do not re-add them to the DTO without a
+            // product decision that the till owns stock again.
+            "currentStock", "lowStockThreshold",
         ),
         "ItemVariantEntity" to setOf(
             "serverMenuItemId", // mirrored on push
             "createdAt",        // mapped on DTO
+            // Same stock decision as MenuItemEntity. Note the server's variant field is
+            // named "stock" (+ trackStock), so these two never carried a value anyway.
+            "currentStock", "lowStockThreshold",
         ),
         "UserEntity" to setOf(
             "tokenInvalidatedAt", // local session bookkeeping

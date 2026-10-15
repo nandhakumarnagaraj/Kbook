@@ -130,8 +130,10 @@ data class MenuItemSyncDto(
     @SerializedName("foodType") val foodType: String,
     @SerializedName("description") val description: String?,
     @SerializedName("isAvailable") val isAvailable: Boolean,
-    @SerializedName("currentStock") val currentStock: Int?,
-    @SerializedName("lowStockThreshold") val lowStockThreshold: Int?,
+    // Stock is NOT part of this contract any more: the server owns menu-item stock
+    // (web-admin inventory writes current_stock) and restores its own value for any
+    // field a device does not name in changedFields. A till pushing its stale copy
+    // could only ever clobber it, so the two fields are gone from the wire.
     @SerializedName("barcode") val barcode: String?,
     @SerializedName("hasVariants") val hasVariants: Boolean? = null,
     @SerializedName("createdAt") val createdAt: Long,
@@ -154,8 +156,7 @@ data class ItemVariantSyncDto(
     @SerializedName("price") val price: String,
     @SerializedName("isAvailable") val isAvailable: Boolean,
     @SerializedName("sortOrder") val sortOrder: Int,
-    @SerializedName("currentStock") val currentStock: Int?,
-    @SerializedName("lowStockThreshold") val lowStockThreshold: Int?,
+    // Stock removed for the same reason as MenuItemSyncDto: server-owned, never device-written.
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,

@@ -1301,18 +1301,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun addItem(categoryId: Long, name: String, price: Double, type: String, stock: Double) {
-        viewModelScope.launch {
-            menuRepository.insertItem(MenuItemEntity(
-                categoryId = categoryId,
-                name = name,
-                basePrice = price.toString(),
-                foodType = type,
-                currentStock = stock.toString(),
-                createdAt = System.currentTimeMillis()
-            ))
-        }
-    }
+    // SettingsViewModel.addItem(categoryId, name, price, type, stock) was removed with the
+    // stock cleanup: it was the only remaining caller that wrote a stock value, and it had no
+    // call sites left (menu creation goes through MenuViewModel.addItem).
 
     fun updateItem(item: MenuItemEntity) {
         viewModelScope.launch {

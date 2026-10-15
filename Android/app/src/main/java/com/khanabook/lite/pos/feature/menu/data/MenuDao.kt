@@ -82,18 +82,6 @@ interface MenuDao {
     )
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean, restaurantId: Long, updatedAt: Long)
 
-    @Query(
-        """UPDATE menu_items SET low_stock_threshold = :threshold, is_synced = 0, updated_at = :updatedAt,
-        changed_fields = CASE
-            WHEN changed_fields IS NULL OR trim(changed_fields) = '' THEN 'lowStockThreshold'
-            WHEN lower(trim(changed_fields)) = 'all' OR changed_fields LIKE '%*%' THEN changed_fields
-            WHEN instr(',' || replace(lower(changed_fields), ' ', '') || ',', ',lowstockthreshold,') > 0 THEN changed_fields
-            ELSE changed_fields || ',lowStockThreshold'
-        END
-        WHERE id = :id AND restaurant_id = :restaurantId"""
-    )
-    suspend fun updateLowStockThreshold(id: Long, threshold: Double, restaurantId: Long, updatedAt: Long)
-
     // is_synced/changed_fields are passed in rather than forced to 1: the caller acknowledges
     // the PHOTO, and forcing the row acked here would hide any field edit still pending in
     // changed_fields from getUnsyncedMenuItems, which filters on is_synced = 0. Both flags are
@@ -147,9 +135,6 @@ interface MenuDao {
 
     @Query("SELECT * FROM item_variants WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getVariantById(id: Long, restaurantId: Long): ItemVariantEntity?
-
-    @Query("UPDATE item_variants SET low_stock_threshold = :threshold WHERE id = :id")
-    suspend fun updateVariantLowStockThreshold(id: Long, threshold: Double)
 
     @Query(
         "UPDATE item_variants SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :id AND restaurant_id = :restaurantId"

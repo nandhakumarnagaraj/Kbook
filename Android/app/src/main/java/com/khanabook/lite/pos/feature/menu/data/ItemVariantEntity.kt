@@ -27,6 +27,9 @@ data class ItemVariantEntity(
     val isAvailable: Boolean = true,
     @ColumnInfo(name = "sort_order", defaultValue = "0")
     val sortOrder: Int = 0,
+    // LEGACY COLUMNS - kept only for the Room schema (see MenuItemEntity). Stock is owned by
+    // web-admin + the server, and the server's variant field is named "stock", so the two
+    // fields that used to be read here arrived null and were rewritten as "0.00" on every pull.
     @ColumnInfo(name = "current_stock", defaultValue = "'0.0'")
     val currentStock: String = "0.0",
     @ColumnInfo(name = "low_stock_threshold", defaultValue = "'10.0'")
