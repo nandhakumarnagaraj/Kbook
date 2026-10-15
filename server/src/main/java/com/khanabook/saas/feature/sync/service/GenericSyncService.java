@@ -484,6 +484,15 @@ public class GenericSyncService {
 					}
 
 					incomingRecord.setRestaurantId(tenantId);
+
+					// The device's claim about which server revision it last pulled for this row has
+					// to be read BEFORE the stamp below. handlePushSync writes serverTime into
+					// serverUpdatedAt here (and re-stamps it further down), while the stale-push guard
+					// compares the existing row against that same field — so comparing it after the
+					// stamp tested serverTime > serverTime, which is never true and made
+					// STALE_PUSH_CONFLICT unreachable. A superseded edit then overwrote newer state by
+					// last-write-wins instead of being quarantined.
+					Long deviceServerRevision = incomingRecord.getServerUpdatedAt();
 					incomingRecord.setServerUpdatedAt(serverTime);
 
 					if (incomingRecord.getCreatedAt() == null) {
@@ -684,6 +693,9 @@ public class GenericSyncService {
 					}
 				}
 
+				// Re-stamp only; the device's original claim was captured at the top of the loop,
+				// before this field was first overwritten, so a saved row still never carries a
+				// client clock.
 				incomingRecord.setServerUpdatedAt(serverTime);
 					if (incomingRecord.getIsDeleted() == null) {
 						incomingRecord.setIsDeleted(false);
@@ -723,16 +735,25 @@ public class GenericSyncService {
 						if (incomingRecord.getUpdatedAt() >= existingRecord.getUpdatedAt()) {
 
 							// Phase 3: Stale-push conflict detection for categories, variants,
-							// and profiles. When the device's serverUpdatedAt is older than the
-							// server's current serverUpdatedAt, another device has already pushed
-							// a newer version. Quarantine instead of silently overwriting (LWW
-							// would let the stale push win by timestamp alone).
+							// and profiles. When the device's CLAIMED revision — the serverUpdatedAt
+							// it last pulled for this row, captured before this push stamped that
+							// field with the server clock — is older than the row's actual revision,
+							// another device has already pushed a newer version. Quarantine instead
+							// of silently overwriting (LWW would let the stale push win by timestamp
+							// alone).
+							//
+							// A claim of 0/null carries no information — a device that has never
+							// pulled this row — and is deliberately NOT read as "revision zero":
+							// that would reject the first settings push from every fresh install
+							// whose pull has not returned yet, turning a working install into one
+							// stuck on "pull the latest version" until that pull finally lands.
 							if ((incomingRecord instanceof Category
 									|| incomingRecord instanceof ItemVariant
 									|| incomingRecord instanceof RestaurantProfile)
 									&& existingRecord.getServerUpdatedAt() != null
-									&& incomingRecord.getServerUpdatedAt() != null
-									&& existingRecord.getServerUpdatedAt() > incomingRecord.getServerUpdatedAt()) {
+									&& deviceServerRevision != null
+									&& deviceServerRevision > 0L
+									&& existingRecord.getServerUpdatedAt() > deviceServerRevision) {
 								failedLocalIds.add(incomingRecord.getLocalId());
 								failedReasons.put(incomingRecord.getLocalId(),
 										"STALE_PUSH_CONFLICT: another device updated this "
