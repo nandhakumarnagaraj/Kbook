@@ -850,10 +850,7 @@ public class GenericSyncService {
 									}
 								}
 
-								incomingRecord.setId(existingRecord.getId());
-							// Preserve the current row version so sync updates don't trip optimistic locking
-							// when the client payload carries a stale/default version value.
-							incomingRecord.setVersion(existingRecord.getVersion());
+								preserveRowIdentity(incomingRecord, existingRecord);
 
 							T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
 							if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
@@ -1203,6 +1200,28 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			incoming.setLastResetDate(existing.getLastResetDate());
 			incoming.setLastResetDateProper(existing.getLastResetDateProper());
 		}
+	}
+
+	/**
+	 * Row identity and creation time belong to the server, never to the pushing device.
+	 *
+	 * <p>The till's profile payload carries no {@code createdAt} — {@code RestaurantProfileSyncDto}
+	 * has no such field — so the mapped entity arrives with the field null and the pre-lookup
+	 * normalisation in {@link #handlePushSync} fills it from the device's {@code updatedAt}. Left
+	 * alone, every POS settings save rewrote {@code restaurantprofiles.created_at}, which is what
+	 * the admin "Joined" column shows: the joining date drifted to the shop's last settings edit.
+	 * Nothing restored it afterwards either — neither {@link #preserveServerOwnedState} nor the
+	 * profile field masks name it — and the column is NOT NULL, so the overwrite always succeeded
+	 * silently instead of failing.
+	 *
+	 * <p>Restored for every entity on the update path: the row key the existing record already has,
+	 * its version (so a stale or default payload value cannot trip optimistic locking), and its
+	 * original creation time.
+	 */
+	static void preserveRowIdentity(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		incoming.setId(existing.getId());
+		incoming.setVersion(existing.getVersion());
+		incoming.setCreatedAt(existing.getCreatedAt());
 	}
 
 	static void preserveServerOwnedState(BaseSyncEntity incoming, BaseSyncEntity existing) {
