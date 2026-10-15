@@ -101,9 +101,9 @@ import { ToastService } from '../../core/services/toast.service';
       <section role="tabpanel" aria-label="Item recipes" *ngIf="activeTab === 'recipes' && !loading && !error" class="card">
         <p class="inventory-note">Set ingredient quantities for each menu item. Finalized bills deduct these amounts from stock automatically.</p>
         <div class="workflow-form">
-          <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" required #recipeItemRef="ngModel" [(ngModel)]="selectedMenuItemId" [attr.aria-invalid]="recipeItemRef.invalid && recipeItemRef.touched" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select></div>
-          <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" required #recipeMaterialRef="ngModel" [(ngModel)]="recipeForm.rawMaterialId" [attr.aria-invalid]="recipeMaterialRef.invalid && recipeMaterialRef.touched"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
-          <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" #recipeQtyRef="ngModel" [(ngModel)]="recipeForm.quantityPerItem" [attr.aria-invalid]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)" /></div>
+          <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" required #recipeItemRef="ngModel" [(ngModel)]="selectedMenuItemId" [attr.aria-invalid]="recipeItemRef.invalid && recipeItemRef.touched" [attr.aria-describedby]="recipeItemRef.invalid && recipeItemRef.touched ? 'recipe-menu-item-error' : null" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select><div class="field-error" id="recipe-menu-item-error" *ngIf="recipeItemRef.invalid && recipeItemRef.touched">Choose the menu item this recipe belongs to.</div></div>
+          <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" required #recipeMaterialRef="ngModel" [(ngModel)]="recipeForm.rawMaterialId" [attr.aria-invalid]="recipeMaterialRef.invalid && recipeMaterialRef.touched" [attr.aria-describedby]="recipeMaterialRef.invalid && recipeMaterialRef.touched ? 'recipe-material-error' : null"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select><div class="field-error" id="recipe-material-error" *ngIf="recipeMaterialRef.invalid && recipeMaterialRef.touched">Choose the ingredient this recipe uses.</div></div>
+          <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" #recipeQtyRef="ngModel" [(ngModel)]="recipeForm.quantityPerItem" [attr.aria-invalid]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)" [attr.aria-describedby]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem) ? 'recipe-quantity-error' : null" /><div class="field-error" id="recipe-quantity-error" *ngIf="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)">Enter a quantity greater than zero.</div></div>
           <button type="button" class="primary-btn" (click)="addRecipe()" [disabled]="!selectedMenuItemId || !recipeForm.rawMaterialId || !isPositive(recipeForm.quantityPerItem) || savingWorkflow">{{ savingWorkflow ? 'Saving…' : 'Add ingredient' }}</button>
         </div>
         <div *ngIf="!selectedMenuItemId" class="muted">Choose a menu item to view or configure its recipe.</div>
@@ -118,8 +118,8 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="workflow-form">
           <div class="form-group"><label for="po-vendor">Supplier</label><select id="po-vendor" class="field-select" [(ngModel)]="poForm.vendorId"><option [ngValue]="null">No supplier</option><option *ngFor="let vendor of vendors" [ngValue]="vendor.id">{{ vendor.name }}</option></select></div>
           <div class="workflow-row" style="width:100%;justify-content:flex-start" *ngFor="let line of poForm.items; let i = index; trackBy: trackByIndex">
-            <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" required #poLineMaterialRef="ngModel" [(ngModel)]="line.rawMaterialId" [attr.aria-invalid]="poLineMaterialRef.invalid && poLineMaterialRef.touched"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select></div>
-            <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" #poLineQtyRef="ngModel" [(ngModel)]="line.quantity" [attr.aria-invalid]="poLineQtyRef.touched && !isPositive(line.quantity)" /></div>
+            <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" required #poLineMaterialRef="ngModel" [(ngModel)]="line.rawMaterialId" [attr.aria-invalid]="poLineMaterialRef.invalid && poLineMaterialRef.touched" [attr.aria-describedby]="poLineMaterialRef.invalid && poLineMaterialRef.touched ? 'po-material-' + i + '-error' : null"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select><div class="field-error" [id]="'po-material-' + i + '-error'" *ngIf="poLineMaterialRef.invalid && poLineMaterialRef.touched">Choose a material for this line.</div></div>
+            <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" #poLineQtyRef="ngModel" [(ngModel)]="line.quantity" [attr.aria-invalid]="poLineQtyRef.touched && !isPositive(line.quantity)" [attr.aria-describedby]="poLineQtyRef.touched && !isPositive(line.quantity) ? 'po-quantity-' + i + '-error' : null" /><div class="field-error" [id]="'po-quantity-' + i + '-error'" *ngIf="poLineQtyRef.touched && !isPositive(line.quantity)">Enter a quantity greater than zero.</div></div>
             <button *ngIf="poForm.items.length > 1" type="button" class="ghost-btn" (click)="removePoLine(i)" aria-label="Remove purchase order line">Remove</button>
           </div>
           <button type="button" class="ghost-btn" (click)="addPoLine()">+ Add another material</button>
@@ -282,7 +282,9 @@ import { ToastService } from '../../core/services/toast.service';
             <label for="material-name">Name *</label>
             <!-- Flags on what actually blocks Save: a name of spaces is not a name. -->
             <input id="material-name" class="field-control" type="text" #materialNameRef="ngModel" [(ngModel)]="materialForm.name"
-                   [attr.aria-invalid]="materialNameRef.touched && !materialForm.name?.trim()" placeholder="e.g. Basmati Rice" />
+                   [attr.aria-invalid]="materialNameRef.touched && !materialForm.name?.trim()"
+                   [attr.aria-describedby]="materialNameRef.touched && !materialForm.name?.trim() ? 'material-name-error' : null" placeholder="e.g. Basmati Rice" />
+            <div class="field-error" id="material-name-error" *ngIf="materialNameRef.touched && !materialForm.name?.trim()">Material name is required.</div>
           </div>
 
           <div class="form-row">
@@ -354,7 +356,9 @@ import { ToastService } from '../../core/services/toast.service';
               <div class="form-group">
                 <label for="vendor-name">Supplier name *</label>
                 <input id="vendor-name" class="field-control" type="text" #vendorNameRef="ngModel" [(ngModel)]="vendorForm.name"
-                       [attr.aria-invalid]="vendorNameRef.touched && !vendorForm.name.trim()" />
+                       [attr.aria-invalid]="vendorNameRef.touched && !vendorForm.name.trim()"
+                       [attr.aria-describedby]="vendorNameRef.touched && !vendorForm.name.trim() ? 'vendor-name-error' : null" />
+                <div class="field-error" id="vendor-name-error" *ngIf="vendorNameRef.touched && !vendorForm.name.trim()">Supplier name is required.</div>
               </div>
               <div class="form-group">
                 <label for="vendor-phone">Phone (optional)</label>
@@ -370,7 +374,9 @@ import { ToastService } from '../../core/services/toast.service';
               <div class="form-group">
                 <label>Quantity *</label>
                 <input class="field-control" type="number" #purchaseQtyRef="ngModel" [(ngModel)]="purchaseForm.quantity"
-                       [attr.aria-invalid]="purchaseQtyRef.touched && !isPositive(purchaseForm.quantity)" min="0.01" step="0.01" />
+                       [attr.aria-invalid]="purchaseQtyRef.touched && !isPositive(purchaseForm.quantity)"
+                       [attr.aria-describedby]="purchaseQtyRef.touched && !isPositive(purchaseForm.quantity) ? 'purchase-quantity-error' : null" min="0.01" step="0.01" />
+                <div class="field-error" id="purchase-quantity-error" *ngIf="purchaseQtyRef.touched && !isPositive(purchaseForm.quantity)">Enter a quantity greater than zero.</div>
               </div>
               <div class="form-group">
                 <label>Unit Cost (₹)</label>
@@ -387,12 +393,16 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="form-group">
               <label>Quantity *</label>
               <input class="field-control" type="number" #wastageQtyRef="ngModel" [(ngModel)]="wastageForm.quantity"
-                     [attr.aria-invalid]="wastageQtyRef.touched && !isPositive(wastageForm.quantity)" min="0.01" step="0.01" />
+                     [attr.aria-invalid]="wastageQtyRef.touched && !isPositive(wastageForm.quantity)"
+                     [attr.aria-describedby]="wastageQtyRef.touched && !isPositive(wastageForm.quantity) ? 'wastage-quantity-error' : null" min="0.01" step="0.01" />
+              <div class="field-error" id="wastage-quantity-error" *ngIf="wastageQtyRef.touched && !isPositive(wastageForm.quantity)">Enter a quantity greater than zero.</div>
             </div>
             <div class="form-group">
               <label>Reason *</label>
               <input class="field-control" type="text" #wastageReasonRef="ngModel" [(ngModel)]="wastageForm.reason"
-                     [attr.aria-invalid]="wastageReasonRef.touched && !wastageForm.reason?.trim()" placeholder="e.g. Expired, spillage" />
+                     [attr.aria-invalid]="wastageReasonRef.touched && !wastageForm.reason?.trim()"
+                     [attr.aria-describedby]="wastageReasonRef.touched && !wastageForm.reason?.trim() ? 'wastage-reason-error' : null" placeholder="e.g. Expired, spillage" />
+              <div class="field-error" id="wastage-reason-error" *ngIf="wastageReasonRef.touched && !wastageForm.reason?.trim()">Give a reason for writing this stock off.</div>
             </div>
             <button class="primary-btn" (click)="submitWastage()" [disabled]="!isPositive(wastageForm.quantity) || !wastageForm.reason?.trim() || savingStock">
               {{ savingStock ? 'Recording…' : 'Record wastage' }}
@@ -404,7 +414,9 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="form-group">
               <label>Counted Quantity *</label>
               <input class="field-control" type="number" #countQtyRef="ngModel" [(ngModel)]="countForm.countedQty"
-                     [attr.aria-invalid]="countQtyRef.touched && !isNonNegative(countForm.countedQty)" min="0" step="0.01" />
+                     [attr.aria-invalid]="countQtyRef.touched && !isNonNegative(countForm.countedQty)"
+                     [attr.aria-describedby]="countQtyRef.touched && !isNonNegative(countForm.countedQty) ? 'count-quantity-error' : null" min="0" step="0.01" />
+              <div class="field-error" id="count-quantity-error" *ngIf="countQtyRef.touched && !isNonNegative(countForm.countedQty)">A counted quantity cannot be negative.</div>
             </div>
             <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
               System shows {{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}. Any variance will create an adjustment entry.

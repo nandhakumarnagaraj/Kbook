@@ -47,6 +47,7 @@ import com.khanabook.saas.feature.auth.entity.OtpRequest;
 import com.khanabook.saas.feature.auth.entity.RateLimitAttempt;
 import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.core.exception.DuplicateStaffPhoneException;
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.menu.data.CategoryRepository;
 import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
@@ -118,6 +119,7 @@ public class BusinessWriteService {
     private final PermissionService permissionService;
     private final com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService;
     private final com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository;
+    private final PushNotificationService pushNotificationService;
 
     @org.springframework.beans.factory.annotation.Autowired
     public BusinessWriteService(UserRepository userRepository,
@@ -128,7 +130,8 @@ public class BusinessWriteService {
                                 RestaurantProfileRepository profileRepository,
                                 PermissionService permissionService,
                                 com.khanabook.saas.feature.auth.service.PasswordResetOtpService passwordResetOtpService,
-                                com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository) {
+                                com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository,
+                                PushNotificationService pushNotificationService) {
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
@@ -138,6 +141,7 @@ public class BusinessWriteService {
         this.permissionService = permissionService;
         this.passwordResetOtpService = passwordResetOtpService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.pushNotificationService = pushNotificationService;
     }
 
     // ─── Staff CRUD ──────────────────────────────────────────────────────────────
@@ -393,7 +397,12 @@ public class BusinessWriteService {
         item.setCreatedAt(now);
         touch(item, now);
 
-        return menuItemRepository.save(item);
+        MenuItem saved = menuItemRepository.save(item);
+        // Near-real-time propagation, same contract as MenuItemServiceImpl: the web admin
+        // writes the rows the tills sync, so without this nudge an edit here waits for the
+        // next periodic sync window instead of landing within seconds.
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
     }
 
     @Transactional
@@ -416,7 +425,11 @@ public class BusinessWriteService {
         }
         touch(item, System.currentTimeMillis());
 
-        return menuItemRepository.save(item);
+        // A move between categories lands on the tills through this same nudge, so the
+        // dish leaves its old category in the POS within seconds rather than minutes.
+        MenuItem saved = menuItemRepository.save(item);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
     }
 
     @Transactional
@@ -429,6 +442,7 @@ public class BusinessWriteService {
         item.setIsAvailable(false);
         touch(item, System.currentTimeMillis());
         menuItemRepository.save(item);
+        pushNotificationService.pushSyncNow(restaurantId);
     }
 
     @Transactional
@@ -439,7 +453,9 @@ public class BusinessWriteService {
 
         item.setIsAvailable(!Boolean.TRUE.equals(item.getIsAvailable()));
         touch(item, System.currentTimeMillis());
-        return menuItemRepository.save(item);
+        MenuItem saved = menuItemRepository.save(item);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
     }
 
     // ─── Category CRUD ──────────────────────────────────────────────────────────
@@ -462,7 +478,9 @@ public class BusinessWriteService {
         category.setUpdatedAt(now);
         category.setServerUpdatedAt(now);
         category.setSortOrder((int) categoryRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId));
-        return categoryRepository.save(category);
+        Category saved = categoryRepository.save(category);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
     }
 
     @Transactional
@@ -476,7 +494,33 @@ public class BusinessWriteService {
         category.setName(name.trim());
         category.setUpdatedAt(now);
         category.setServerUpdatedAt(now);
-        return categoryRepository.save(category);
+        Category saved = categoryRepository.save(category);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
+    }
+
+    /**
+     * Pin or unpin a category. Owner-only (enforced at the controller), and deliberately the
+     * ONLY writer of is_favourite: every menu and category write reaches the tills as a
+     * whole-record sync push, so a field a terminal does not know about has to be restored
+     * server-side instead of round-tripped. See GenericSyncService.preserveServerOwnedState.
+     */
+    @Transactional
+    public Category setCategoryFavourite(Long restaurantId, Long categoryId, boolean favourite) {
+        Category category = categoryRepository.findByIdAndRestaurantIdAndIsDeletedFalse(categoryId, restaurantId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+        if (Boolean.TRUE.equals(category.getIsFavourite()) == favourite) {
+            // Idempotent no-op: re-sending the same star must not publish a new server
+            // version, which would push a pointless wake-up to every terminal.
+            return category;
+        }
+        category.setIsFavourite(favourite);
+        // touch() keeps serverUpdatedAt strictly increasing, so two toggles inside the same
+        // millisecond cannot collide and get missed by a device's `> lastSyncTimestamp` pull.
+        touch(category, System.currentTimeMillis());
+        Category saved = categoryRepository.save(category);
+        pushNotificationService.pushSyncNow(restaurantId);
+        return saved;
     }
 
     @Transactional
@@ -492,6 +536,7 @@ public class BusinessWriteService {
         category.setUpdatedAt(now);
         category.setServerUpdatedAt(now);
         categoryRepository.save(category);
+        pushNotificationService.pushSyncNow(restaurantId);
     }
 
     // ─── Variant CRUD ───────────────────────────────────────────────────────────

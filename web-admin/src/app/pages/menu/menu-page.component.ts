@@ -411,7 +411,7 @@ import { environment } from '../../../environments/environment';
             <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
             <button type="button" class="icon-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
           </div>
-          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted.</p>
+          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted. Star a category to pin it to the top of the list on the POS terminals.</p>
 
           <!-- Add new category inline -->
           <div style="display:flex; gap:0.5rem; margin-bottom: 1.25rem;">
@@ -437,6 +437,16 @@ import { environment } from '../../../environments/environment';
           <div class="cat-list-wrap" style="max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
             <div *ngFor="let cat of categories; trackBy: trackByCategoryId" class="cat-list-row" style="display:flex; align-items:center; justify-content:space-between; padding: 0.6rem 0.85rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 10px;">
               <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:0;">
+                <button
+                  type="button"
+                  class="icon-btn cat-fav-btn"
+                  [class.cat-fav-btn--on]="cat.isFavourite"
+                  [attr.aria-pressed]="!!cat.isFavourite"
+                  [attr.aria-label]="cat.isFavourite ? 'Remove ' + cat.name + ' from favourites' : 'Mark ' + cat.name + ' as favourite'"
+                  [title]="cat.isFavourite ? 'Pinned to the top of the POS list' : 'Pin to the top of the POS list'"
+                  [disabled]="togglingFavouriteId === cat.categoryId"
+                  (click)="toggleCategoryFavourite(cat)"
+                >{{ cat.isFavourite ? '★' : '☆' }}</button>
                 <strong style="font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ cat.name }}</strong>
                 <span class="chip" style="font-size:0.7rem;">{{ getItemsCountInCategory(cat.categoryId) }} items</span>
               </div>
@@ -631,6 +641,7 @@ export class MenuPageComponent implements OnDestroy {
   showNewCategoryInput = false;
   newCategoryName = '';
   creatingCategory = false;
+  togglingFavouriteId: number | null = null;
 
   // Manage Categories modal state
   showCategoriesModal = false;
@@ -714,6 +725,7 @@ export class MenuPageComponent implements OnDestroy {
       next: ({ items, categories }) => {
         this.items = items;
         this.categories = categories;
+        this.sortCategoriesFavouritesFirst();
         this.loaded = true;
         this.refreshing = false;
         this.loadError = '';
@@ -803,6 +815,41 @@ export class MenuPageComponent implements OnDestroy {
         this.toast.show(msg, 'error');
         this.cdr.markForCheck();
       }
+    });
+  }
+
+  /**
+   * Pin or unpin a category so it sorts to the top of the category list everywhere.
+   * isFavourite is server-authoritative (terminals push whole category rows and the server
+   * restores this field rather than trusting them), so the response is applied rather than
+   * optimistically flipping the star here.
+   */
+  toggleCategoryFavourite(cat: BusinessCategory): void {
+    if (this.togglingFavouriteId !== null) return;
+    this.togglingFavouriteId = cat.categoryId;
+    this.api.setCategoryFavourite(cat.categoryId, !cat.isFavourite).subscribe({
+      next: (updated) => {
+        cat.isFavourite = updated.isFavourite;
+        this.togglingFavouriteId = null;
+        this.sortCategoriesFavouritesFirst();
+        this.toast.show(
+          updated.isFavourite ? `'${updated.name}' pinned to the top` : `'${updated.name}' unpinned`,
+          'success');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.togglingFavouriteId = null;
+        this.toast.show(err?.error?.message || 'Failed to update favourite.', 'error');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Mirrors the server ordering so a newly starred row visibly moves to the top. */
+  private sortCategoriesFavouritesFirst(): void {
+    this.categories = [...this.categories].sort((a, b) => {
+      const byFavourite = Number(!!b.isFavourite) - Number(!!a.isFavourite);
+      return byFavourite !== 0 ? byFavourite : a.name.localeCompare(b.name);
     });
   }
 

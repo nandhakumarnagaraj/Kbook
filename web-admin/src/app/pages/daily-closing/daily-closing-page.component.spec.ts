@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 
 import { DailyClosingPageComponent } from './daily-closing-page.component';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { formatLocalDate } from '../../shared/date-range-selector.component';
 import { DATE_RANGE_STORAGE_KEY, readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
@@ -32,7 +33,13 @@ describe('DailyClosingPageComponent — the day it opens on', () => {
 
     TestBed.configureTestingModule({
       imports: [DailyClosingPageComponent],
-      providers: [{ provide: BusinessApiService, useValue: api }],
+      providers: [
+        { provide: BusinessApiService, useValue: api },
+        // The page reads the signed-in restaurant for its cash-count storage key. Real
+        // AuthService injects HttpClient, so without this stint the whole fixture fails
+        // to construct with NullInjectorError.
+        { provide: AuthService, useValue: { session: () => null } },
+      ],
     });
   });
 
@@ -45,43 +52,55 @@ describe('DailyClosingPageComponent — the day it opens on', () => {
     fixture.detectChanges();
   }
 
-  function pills(): HTMLButtonElement[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.date-range__preset-btn'));
-  }
-
-  function inputs(): HTMLInputElement[] {
+  /**
+   * Closing is a one-day view, so its control is the single-date picker: exactly one
+   * input, seeded with the day on screen and bounded so a future day cannot be picked.
+   * The pills this spec used to drive are gone (commit 1e94bdc5 "date picker").
+   */
+  function dateInputs(): HTMLInputElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll('.date-range__input'));
   }
 
-  function label(): string {
-    return fixture.nativeElement.querySelector('.date-range__label')?.textContent?.trim() ?? '';
+  function inputValue(): string {
+    return dateInputs()[0]?.value ?? '';
   }
 
-  it('opens on the day the shared period ends', () => {
+  function pick(day: string): void {
+    const input = dateInputs()[0];
+    input.value = day;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  it('opens on the day the shared period ends', async () => {
     storeDateRange({ from: daysAgo(5), to: daysAgo(3) });
 
     mount();
+    // NgModel writes the model into the DOM one microtask after the view updates.
+    await fixture.whenStable();
 
     expect(fixture.componentInstance.selectedDate()).toBe(daysAgo(3));
     expect(api.getDailyClosing).toHaveBeenCalledWith(daysAgo(3));
-    // One day, one control: a custom closing day opens exactly one input, labelled by day.
-    expect(pills()[2].classList).toContain('date-range__preset-btn--active');
-    expect(inputs().length).toBe(1);
-    expect(label()).toBe(daysAgo(3));
+    // One day, one control: the input names the day the page is closing, and cannot be
+    // moved to the future.
+    expect(dateInputs().length).toBe(1);
+    expect(inputValue()).toBe(daysAgo(3));
+    expect(dateInputs()[0].getAttribute('max')).toBe(daysAgo(0));
   });
 
-  it('opens on Today when nothing has been picked yet', () => {
+  it('opens on Today when nothing has been picked yet', async () => {
     mount();
+    await fixture.whenStable();
 
     expect(fixture.componentInstance.selectedDate()).toBe(daysAgo(0));
-    expect(pills()[0].classList).toContain('date-range__preset-btn--active');
+    expect(inputValue()).toBe(daysAgo(0));
   });
 
-  it('publishes the chosen closing day so the other views open on it', () => {
+  it('publishes the chosen closing day so the other views open on it', async () => {
     mount();
+    await fixture.whenStable();
 
-    pills()[1].click();
-    fixture.detectChanges();
+    pick(daysAgo(1));
 
     expect(fixture.componentInstance.selectedDate()).toBe(daysAgo(1));
     expect(api.getDailyClosing).toHaveBeenCalledWith(daysAgo(1));
@@ -92,6 +111,7 @@ describe('DailyClosingPageComponent — the day it opens on', () => {
     storeDateRange({ from: daysAgo(-1), to: daysAgo(-1) });
 
     mount();
+
 
     expect(fixture.componentInstance.selectedDate()).toBe(daysAgo(0));
   });

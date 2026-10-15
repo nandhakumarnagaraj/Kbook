@@ -73,17 +73,21 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
           <form [formGroup]="form" (ngSubmit)="submit()">
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-name' : 'staff-name'">Name *</label>
+              <!-- The field names the message beside it (see businesses-page for the same rule):
+                   same condition on the id as on the message, so it never points at nothing. -->
               <input [id]="isEdit() ? 'edit-staff-name' : 'staff-name'" class="field-control" type="text" formControlName="name" placeholder="Full name"
-                     [attr.aria-invalid]="form.get('name')?.touched && form.get('name')?.invalid" />
-              <div class="field-error" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">Name is required.</div>
+                     [attr.aria-invalid]="form.get('name')?.touched && form.get('name')?.invalid"
+                     [attr.aria-describedby]="form.get('name')?.touched && form.get('name')?.hasError('required') ? (isEdit() ? 'edit-staff-name-error' : 'staff-name-error') : null" />
+              <div class="field-error" [id]="isEdit() ? 'edit-staff-name-error' : 'staff-name-error'" *ngIf="form.get('name')?.touched && form.get('name')?.hasError('required')">Name is required.</div>
             </div>
 
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-phone' : 'staff-phone'">Phone (10 digits) *</label>
               <input [id]="isEdit() ? 'edit-staff-phone' : 'staff-phone'" class="field-control" type="text" formControlName="phone" placeholder="10-digit phone number" maxlength="10"
-                     [attr.aria-invalid]="form.get('phone')?.touched && form.get('phone')?.invalid" />
-              <div class="field-error" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('required')">Phone is required.</div>
-              <div class="field-error" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('pattern') && !form.get('phone')?.hasError('required')">Phone must be exactly 10 digits.</div>
+                     [attr.aria-invalid]="form.get('phone')?.touched && form.get('phone')?.invalid"
+                     [attr.aria-describedby]="phoneErrorId()" />
+              <div class="field-error" [id]="isEdit() ? 'edit-staff-phone-error-required' : 'staff-phone-error-required'" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('required')">Phone is required.</div>
+              <div class="field-error" [id]="isEdit() ? 'edit-staff-phone-error-pattern' : 'staff-phone-error-pattern'" *ngIf="form.get('phone')?.touched && form.get('phone')?.hasError('pattern') && !form.get('phone')?.hasError('required')">Phone must be exactly 10 digits.</div>
             </div>
 
             <div class="form-group">
@@ -98,8 +102,9 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-email' : 'staff-email'">Email (optional)</label>
               <input [id]="isEdit() ? 'edit-staff-email' : 'staff-email'" class="field-control" type="email" formControlName="email" placeholder="Email address"
-                     [attr.aria-invalid]="form.get('email')?.touched && form.get('email')?.invalid" />
-              <div class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">Enter a valid email address.</div>
+                     [attr.aria-invalid]="form.get('email')?.touched && form.get('email')?.invalid"
+                     [attr.aria-describedby]="form.get('email')?.touched && form.get('email')?.hasError('email') ? (isEdit() ? 'edit-staff-email-error' : 'staff-email-error') : null" />
+              <div class="field-error" [id]="isEdit() ? 'edit-staff-email-error' : 'staff-email-error'" *ngIf="form.get('email')?.touched && form.get('email')?.hasError('email')">Enter a valid email address.</div>
             </div>
 
             <div class="modal-actions">
@@ -138,6 +143,20 @@ private readonly toast = inject(ToastService);
     role: ['', [Validators.required]],
     email: ['', [Validators.email]]
   });
+
+  /**
+   * The id of the message the phone field is showing, if any: only one of the two
+   * rules can fail at a time (an empty value fails `required`, and Angular's minLength
+   * style validators skip empty values), so the field names exactly one message. The id
+   * carries the create/edit prefix because the same form renders under two ids.
+   */
+  phoneErrorId(): string | null {
+    const phone = this.form.get('phone');
+    if (!phone?.touched) return null;
+    if (phone.hasError('required')) return this.isEdit() ? 'edit-staff-phone-error-required' : 'staff-phone-error-required';
+    if (phone.hasError('pattern')) return this.isEdit() ? 'edit-staff-phone-error-pattern' : 'staff-phone-error-pattern';
+    return null;
+  }
 
   constructor() {
     // allowSignalWrites: this effect reacts to input signals (editItem/isEdit) and

@@ -235,7 +235,8 @@ public class BusinessAdminController {
     public ResponseEntity<BusinessCategoryResponse> createCategory(@RequestBody java.util.Map<String, String> body) {
         String name = body != null ? body.get("name") : null;
         var cat = businessWriteService.createCategory(requireTenant(), name);
-        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName()));
+        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName(),
+                Boolean.TRUE.equals(cat.getIsFavourite())));
     }
 
     @PutMapping("/menu/categories/{categoryId}")
@@ -244,7 +245,27 @@ public class BusinessAdminController {
             @PathVariable Long categoryId, @RequestBody java.util.Map<String, String> body) {
         String name = body != null ? body.get("name") : null;
         var cat = businessWriteService.updateCategory(requireTenant(), categoryId, name);
-        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName()));
+        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName(),
+                Boolean.TRUE.equals(cat.getIsFavourite())));
+    }
+
+    /**
+     * Pin or unpin a category so it sorts to the top of the category list on every surface.
+     * OWNER-only for the same reason as the other category writes: favourites are a
+     * business-wide setting, not a per-till preference.
+     */
+    @PutMapping("/menu/categories/{categoryId}/favourite")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessCategoryResponse> setCategoryFavourite(
+            @PathVariable Long categoryId, @RequestBody java.util.Map<String, Object> body) {
+        if (body == null || !body.containsKey("isFavourite")) {
+            // Refuse an empty body rather than silently treating a missing flag as "unstar".
+            throw new IllegalArgumentException("isFavourite is required");
+        }
+        boolean favourite = Boolean.TRUE.equals(body.get("isFavourite"));
+        var cat = businessWriteService.setCategoryFavourite(requireTenant(), categoryId, favourite);
+        return ResponseEntity.ok(new BusinessCategoryResponse(cat.getId(), cat.getName(),
+                Boolean.TRUE.equals(cat.getIsFavourite())));
     }
 
     @DeleteMapping("/menu/categories/{categoryId}")

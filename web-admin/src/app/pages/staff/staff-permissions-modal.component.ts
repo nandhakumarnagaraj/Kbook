@@ -123,7 +123,9 @@ import { BusinessStaffItem } from '../../core/models/api.models';
             #templateNameRef="ngModel"
             [(ngModel)]="templateName"
             [attr.aria-invalid]="templateNameRef.touched && !templateName.trim()"
+            [attr.aria-describedby]="templateNameRef.touched && !templateName.trim() ? 'template-name-error' : null"
             placeholder="e.g. Senior Cashier" />
+          <div class="field-error" id="template-name-error" *ngIf="templateNameRef.touched && !templateName.trim()">Template name is required.</div>
         </div>
         <div class="form-group">
           <label>Description</label>

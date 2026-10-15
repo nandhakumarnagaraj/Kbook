@@ -155,7 +155,9 @@ fun ManualMenuView(
     onDeleteCategory: ((CategoryEntity) -> Unit)? = null,
     onAddCategoryWithSort: ((String, Int) -> Unit)? = null,
     onReorderCategories: ((List<CategoryEntity>) -> Unit)? = null,
-    onToggleCategory: ((CategoryEntity, Boolean) -> Unit)? = null
+    onToggleCategory: ((CategoryEntity, Boolean) -> Unit)? = null,
+    /** (category, pinned) — server-owned favourite, applied only once the API accepts it. */
+    onToggleCategoryFavourite: ((CategoryEntity, Boolean) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -602,6 +604,9 @@ fun ManualMenuView(
             onReorderCategories = { ordered ->
                 onReorderCategories?.invoke(ordered)
                 showManageCategories = false
+            },
+            onToggleFavourite = { category, isFavourite ->
+                onToggleCategoryFavourite?.invoke(category, isFavourite)
             },
             onDismiss = { showManageCategories = false }
         )

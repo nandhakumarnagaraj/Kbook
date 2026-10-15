@@ -27,4 +27,7 @@ jobs:
           cache-dependency-path: web-admin/package-lock.json
       - run: npm ci
       - run: npm test -- --watch=false --browsers=ChromeHeadless
+      # The motion band is a whole-app rule, and a Karma run only sees the pages a spec
+      # happens to mount — this reads every stylesheet and component template instead.
+      - run: npm run check:motion
       - run: npm run build

@@ -57,7 +57,8 @@ class MenuTerminalProperties {
                 mock(com.khanabook.saas.feature.menu.data.ItemVariantRepository.class),
                 terminalRepository, profileRepository, mock(com.khanabook.saas.feature.staff.service.PermissionService.class),
                 mock(com.khanabook.saas.feature.auth.service.PasswordResetOtpService.class),
-                mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class));
+                mock(com.khanabook.saas.feature.auth.repository.RefreshTokenRepository.class),
+                mock(com.khanabook.saas.feature.notifications.service.PushNotificationService.class));
     }
 
     // ─── Property 11: Terminal Reactivation State Transition ─────────────────────

@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build --configuration production",
     "build:dev": "ng build --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "check:motion": "node scripts/check-motion.mjs"
   },
   "dependencies": {
     "@angular/animations": "^18.2.0",

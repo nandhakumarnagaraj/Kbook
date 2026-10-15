@@ -1,4 +1,4 @@
 package com.khanabook.saas.feature.business.dto;
 
-public record BusinessCategoryResponse(Long categoryId, String name) {
+public record BusinessCategoryResponse(Long categoryId, String name, boolean isFavourite) {
 }

@@ -177,6 +177,13 @@ public class SyncMapper {
                 if (dto.getIsActive() == null) {
                     entity.setIsActive(true);
                 }
+                // is_favourite is NOT NULL. BeanUtils copies a null straight over the field
+                // initializer, and a client build predating the column never sends the field,
+                // so without this guard every category created by such a build would fail the
+                // not-null constraint and take its whole push batch with it.
+                if (dto.getIsFavourite() == null) {
+                    entity.setIsFavourite(false);
+                }
             } else if (source instanceof MenuItemDTO dto) {
                 MenuItem entity = (MenuItem) target;
                 entity.setId(dto.getId());

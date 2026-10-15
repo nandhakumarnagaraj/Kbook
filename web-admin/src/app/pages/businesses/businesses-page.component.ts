@@ -220,9 +220,13 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
           <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
             <div class="form-group">
               <label for="create-shop-name">Restaurant / Shop Name *</label>
+              <!-- A flagged field also names the message beside it, so the rule the red border
+                   shows is the rule a screen reader reads. The id is bound on the same
+                   condition that renders the message, so a control never points at nothing. -->
               <input id="create-shop-name" class="field-control" type="text" formControlName="shopName" placeholder="e.g. Sagar Ratna Cafe"
-                     [attr.aria-invalid]="createForm.get('shopName')?.touched && createForm.get('shopName')?.invalid" />
-              <div class="field-error" *ngIf="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required')">
+                     [attr.aria-invalid]="createForm.get('shopName')?.touched && createForm.get('shopName')?.invalid"
+                     [attr.aria-describedby]="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required') ? 'create-shop-name-error-required' : null" />
+              <div id="create-shop-name-error-required" class="field-error" *ngIf="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required')">
                 Restaurant name is required.
               </div>
             </div>
@@ -230,8 +234,9 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             <div class="form-group">
               <label for="create-owner-name">Owner Full Name *</label>
               <input id="create-owner-name" class="field-control" type="text" formControlName="ownerName" placeholder="e.g. Ramesh Sharma"
-                     [attr.aria-invalid]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.invalid" />
-              <div class="field-error" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required')">
+                     [attr.aria-invalid]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.invalid"
+                     [attr.aria-describedby]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required') ? 'create-owner-name-error-required' : null" />
+              <div id="create-owner-name-error-required" class="field-error" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required')">
                 Owner name is required.
               </div>
             </div>
@@ -239,11 +244,12 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             <div class="form-group">
               <label for="create-owner-phone">Owner Phone (10 digits) *</label>
               <input id="create-owner-phone" class="field-control" type="text" formControlName="ownerPhone" placeholder="10-digit mobile number" maxlength="10"
-                     [attr.aria-invalid]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.invalid" />
-              <div class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required')">
+                     [attr.aria-invalid]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.invalid"
+                     [attr.aria-describedby]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required') ? 'create-owner-phone-error-required' : createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') ? 'create-owner-phone-error-pattern' : null" />
+              <div id="create-owner-phone-error-required" class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required')">
                 Phone number is required.
               </div>
-              <div class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') && !createForm.get('ownerPhone')?.hasError('required')">
+              <div id="create-owner-phone-error-pattern" class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') && !createForm.get('ownerPhone')?.hasError('required')">
                 Must be exactly 10 digits.
               </div>
             </div>
@@ -251,11 +257,12 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             <div class="form-group">
               <label for="create-initial-pwd">Initial Password *</label>
               <input id="create-initial-pwd" class="field-control" type="password" formControlName="initialPassword" placeholder="Minimum 6 characters"
-                     [attr.aria-invalid]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.invalid" />
-              <div class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required')">
+                     [attr.aria-invalid]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.invalid"
+                     [attr.aria-describedby]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required') ? 'create-initial-pwd-error-required' : createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength') ? 'create-initial-pwd-error-minlength' : null" />
+              <div id="create-initial-pwd-error-required" class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required')">
                 Initial password is required.
               </div>
-              <div class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength')">
+              <div id="create-initial-pwd-error-minlength" class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength')">
                 Password must be at least 6 characters.
               </div>
             </div>
@@ -263,8 +270,9 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
             <div class="form-group">
               <label for="create-owner-email">Owner Email (optional)</label>
               <input id="create-owner-email" class="field-control" type="email" formControlName="ownerEmail" placeholder="e.g. owner@example.com"
-                     [attr.aria-invalid]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.invalid" />
-              <div class="field-error" *ngIf="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email')">
+                     [attr.aria-invalid]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.invalid"
+                     [attr.aria-describedby]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email') ? 'create-owner-email-error-email' : null" />
+              <div id="create-owner-email-error-email" class="field-error" *ngIf="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email')">
                 Enter a valid email address.
               </div>
             </div>

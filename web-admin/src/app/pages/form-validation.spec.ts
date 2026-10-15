@@ -1,14 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { StaffFormModalComponent } from './staff/staff-form-modal.component';
 import { StaffPermissionsModalComponent } from './staff/staff-permissions-modal.component';
 import { TerminalsPageComponent } from './terminals/terminals-page.component';
 import { TaxSettingsSectionComponent } from './business-settings/tax-settings-section.component';
 import { InventoryPageComponent } from './inventory/inventory-page.component';
+import { BusinessesPageComponent } from './businesses/businesses-page.component';
 import { BusinessApiService } from '../core/services/business-api.service';
+import { AdminApiService } from '../core/services/admin-api.service';
 import { AuthService } from '../core/auth/auth.service';
 import { ToastService } from '../core/services/toast.service';
 
@@ -154,7 +156,9 @@ describe('field-level invalid feedback, remaining forms', () => {
     fixture.detectChanges();
     expect(flagged(field)).toBeTrue();
     expect(borderAfterRecalc(field)).toBe(FLAGGED_BORDER);
+    expect(messageFor(field)).withContext('and the flag explains itself').toBe('Template name is required.');
 
+    expect(danglingReferences(fixture.nativeElement)).toEqual([]);
     fixture.destroy();
   });
 
@@ -184,6 +188,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     fixture.detectChanges();
     expect(flagged(rename)).withContext('a blank name flags itself').toBeTrue();
     expect(borderAfterRecalc(rename)).toBe(FLAGGED_BORDER);
+    expect(messageFor(rename)).withContext('and says what is missing').toBe('Terminal name is required.');
 
     fixture.componentInstance.cancelEdit();
     fixture.detectChanges();
@@ -199,12 +204,17 @@ describe('field-level invalid feedback, remaining forms', () => {
     fixture.detectChanges();
     expect(flagged(deviceId)).toBeTrue();
     expect(borderAfterRecalc(deviceId)).toBe(FLAGGED_BORDER);
+    expect(messageFor(deviceId)).toBe('Enter the device ID shown on the new device.');
 
     type(deviceId, 'dev-2');
     fixture.detectChanges();
     expect(flagged(deviceId)).toBeFalse();
     expect(borderAfterRecalc(deviceId)).toBe(RESTING_BORDER);
+    expect(deviceId.getAttribute('aria-describedby'))
+      .withContext('a filled-in device id has nothing to answer for')
+      .toBeNull();
 
+    expect(danglingReferences(fixture.nativeElement)).toEqual([]);
     fixture.destroy();
   });
 
@@ -273,6 +283,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     fixture.detectChanges();
     expect(flagged(name)).toBeTrue();
     expect(borderAfterRecalc(name)).toBe(FLAGGED_BORDER);
+    expect(messageFor(name)).withContext('the flag explains itself').toBe('Material name is required.');
 
     type(name, 'Basmati Rice');
     fixture.detectChanges();
@@ -302,12 +313,230 @@ describe('field-level invalid feedback, remaining forms', () => {
     fixture.detectChanges();
     expect(flagged(stockInQty)).withContext('zero is not a stock-in quantity').toBeTrue();
     expect(borderAfterRecalc(stockInQty)).toBe(FLAGGED_BORDER);
+    expect(messageFor(stockInQty))
+      .withContext('a disabled button is not an explanation')
+      .toBe('Enter a quantity greater than zero.');
 
     type(stockInQty, '12');
     fixture.detectChanges();
     expect(flagged(stockInQty)).toBeFalse();
     expect(borderAfterRecalc(stockInQty)).toBe(RESTING_BORDER);
 
+    expect(danglingReferences(host)).toEqual([]);
+    fixture.destroy();
+  });
+});
+
+/**
+ * The other half of field-level feedback: a flagged field has to say *which* rule it
+ * broke. The red border marks the control, but only a message -- named by the control's
+ * `aria-describedby` -- tells a screen reader why. The UPI handle already worked this
+ * way; these specs pin that every field with a message beside it names it, and that no
+ * field ever names an element that is not in the document.
+ */
+function describedByIds(el: Element): string[] {
+  return (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+}
+
+/** What a screen reader resolves from the field, or null when it names nothing usable. */
+function messageFor(el: Element): string | null {
+  const ids = describedByIds(el);
+  if (!ids.length) return null;
+  const texts = ids.map((id) => document.getElementById(id)?.textContent?.replace(/\s+/g, ' ').trim() ?? null);
+  return texts.every((text) => text) ? texts.join(' ') : null;
+}
+
+/** A reference to an id that is not on screen announces nothing. */
+function danglingReferences(host: HTMLElement): string[] {
+  return Array.from(host.querySelectorAll('[aria-describedby]'))
+    .filter((el) => describedByIds(el).some((id) => !document.getElementById(id)))
+    .map((el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''} names "${el.getAttribute('aria-describedby')}"`);
+}
+
+describe('a flagged field names the rule it broke', () => {
+  it('staff form modal: the name and the phone each name their own message', () => {
+    const fixture = mount<StaffFormModalComponent>(StaffFormModalComponent);
+    fixture.componentRef.setInput('open', true);
+    fixture.detectChanges();
+
+    const name = fixture.nativeElement.querySelector('#staff-name') as HTMLInputElement;
+    expect(name.getAttribute('aria-describedby'))
+      .withContext('a resting field names nothing')
+      .toBeNull();
+
+    leave(name);
+    fixture.detectChanges();
+    expect(messageFor(name)).toBe('Name is required.');
+
+    const phone = fixture.nativeElement.querySelector('#staff-phone') as HTMLInputElement;
+    leave(phone);
+    fixture.detectChanges();
+    expect(messageFor(phone)).withContext('the empty rule').toBe('Phone is required.');
+
+    type(phone, '12345');
+    fixture.detectChanges();
+    expect(messageFor(phone)).withContext('the ten-digit rule replaces it').toBe('Phone must be exactly 10 digits.');
+
+    type(phone, '9876543210');
+    fixture.detectChanges();
+    expect(phone.getAttribute('aria-describedby'))
+      .withContext('a field that has nothing to answer for names nothing')
+      .toBeNull();
+
+    expect(danglingReferences(fixture.nativeElement)).toEqual([]);
+    fixture.destroy();
+  });
+
+  it('businesses: every field in the create form names its message', () => {
+    const admin = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
+    admin.getBusinesses.and.returnValue(of([]));
+
+    const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, [
+      { provide: AdminApiService, useValue: admin },
+    ]);
+    // Opened through the real control: this page is OnPush, so assigning the flag does
+    // not mark the view dirty and the modal would never be stamped into the DOM.
+    const host = fixture.nativeElement as HTMLElement;
+    (host.querySelector('button.header-action-btn--primary') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const shop = host.querySelector('#create-shop-name') as HTMLInputElement;
+    leave(shop);
+    fixture.detectChanges();
+    expect(messageFor(shop)).toBe('Restaurant name is required.');
+
+    const phone = host.querySelector('#create-owner-phone') as HTMLInputElement;
+    leave(phone);
+    fixture.detectChanges();
+    expect(messageFor(phone)).toBe('Phone number is required.');
+    type(phone, '12345');
+    fixture.detectChanges();
+    expect(messageFor(phone)).toBe('Must be exactly 10 digits.');
+
+    const password = host.querySelector('#create-initial-pwd') as HTMLInputElement;
+    leave(password);
+    fixture.detectChanges();
+    expect(messageFor(password)).toBe('Initial password is required.');
+    type(password, '12345');
+    fixture.detectChanges();
+    expect(messageFor(password)).toBe('Password must be at least 6 characters.');
+
+    const email = host.querySelector('#create-owner-email') as HTMLInputElement;
+    type(email, 'not-an-email');
+    leave(email);
+    fixture.detectChanges();
+    expect(messageFor(email)).toBe('Enter a valid email address.');
+
+    expect(danglingReferences(host)).toEqual([]);
+    fixture.destroy();
+  });
+
+  it('terminals: a refused recovery names the reason the server gave', () => {
+    const api = jasmine.createSpyObj('BusinessApiService', ['getTerminals', 'getTerminalRequests', 'recoverTerminal']);
+    api.getTerminals.and.returnValue(of([
+      { id: 1, terminalName: 'Front Counter', status: 'ACTIVE', isActive: true, deviceId: 'dev-1', terminalSeries: 'T-1', isPrimary: true },
+    ]));
+    api.getTerminalRequests.and.returnValue(of([]));
+    api.recoverTerminal.and.returnValue(
+      throwError(() => ({ error: { message: 'Device already bound to another terminal.' } }))
+    );
+
+    const fixture = mount<TerminalsPageComponent>(TerminalsPageComponent, [
+      { provide: BusinessApiService, useValue: api },
+    ]);
+    const terminal = fixture.componentInstance.terminals()[0];
+    fixture.componentInstance.startRecovery(terminal);
+    fixture.detectChanges();
+
+    const deviceId = fixture.nativeElement.querySelector('#recovery-device-id') as HTMLInputElement;
+    type(deviceId, 'dev-2');
+    fixture.detectChanges();
+    expect(deviceId.getAttribute('aria-describedby'))
+      .withContext('nothing has failed yet, so the field names nothing')
+      .toBeNull();
+
+    const dialog = deviceId.closest('.modal-box') as HTMLElement;
+    (dialog.querySelector('.modal-actions .primary-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(messageFor(deviceId)).toContain('Device already bound to another terminal.');
+    expect(danglingReferences(fixture.nativeElement)).toEqual([]);
+    fixture.destroy();
+  });
+
+  it('inventory workflows: the recipe and purchase-order fields name their messages', () => {
+    const api = jasmine.createSpyObj('BusinessApiService', [
+      'getInventoryMaterials',
+      'getVendors',
+      'getMenu',
+      'getPurchaseOrders',
+    ]);
+    api.getInventoryMaterials.and.returnValue(of([
+      { id: 1, name: 'Rice', unit: 'kg', stockQuantity: 5, lowStockThreshold: 1, costPerUnit: 90 },
+    ]));
+    api.getVendors.and.returnValue(of([]));
+    api.getMenu.and.returnValue(of([{ menuItemId: 7, name: 'Paneer Tikka' }]));
+    api.getPurchaseOrders.and.returnValue(of([]));
+
+    const fixture = mount<InventoryPageComponent>(InventoryPageComponent, [
+      { provide: BusinessApiService, useValue: api },
+    ]);
+    const host = fixture.nativeElement as HTMLElement;
+    const tab = (label: string) =>
+      Array.from(host.querySelectorAll('button.tab'))
+        .find((button) => (button.textContent || '').trim() === label) as HTMLButtonElement;
+
+    // The two required selects on the recipes tab: a control with no value yet is only
+    // marked once the user has been through it, and then it has to say what to choose.
+    tab('Item Recipes').click();
+    fixture.detectChanges();
+    const menuItem = host.querySelector('#recipe-menu-item') as HTMLSelectElement;
+    expect(menuItem).withContext('the recipes tab renders its menu-item select').toBeTruthy();
+
+    leave(menuItem);
+    fixture.detectChanges();
+    expect(flagged(menuItem)).toBeTrue();
+    expect(messageFor(menuItem)).toBe('Choose the menu item this recipe belongs to.');
+
+    const ingredient = host.querySelector('#recipe-material') as HTMLSelectElement;
+    leave(ingredient);
+    fixture.detectChanges();
+    expect(messageFor(ingredient)).toBe('Choose the ingredient this recipe uses.');
+
+    tab('Purchase Orders').click();
+    fixture.detectChanges();
+    const poMaterial = host.querySelector('#po-material-0') as HTMLSelectElement;
+    expect(poMaterial).withContext('the purchase-order tab renders its first line').toBeTruthy();
+
+    leave(poMaterial);
+    fixture.detectChanges();
+    expect(flagged(poMaterial)).toBeTrue();
+    expect(messageFor(poMaterial)).toBe('Choose a material for this line.');
+
+    expect(danglingReferences(host)).toEqual([]);
+    fixture.destroy();
+  });
+
+  it('tax settings: a rejected GSTIN names the rejection it came back with', () => {
+    const rejected = jasmine.createSpyObj('BusinessApiService', ['lookupGst']);
+    rejected.lookupGst.and.returnValue(of({ valid: false, error: 'GSTIN is invalid or unregistered.' }));
+
+    const fixture = mount<TaxSettingsSectionComponent>(TaxSettingsSectionComponent, [
+      { provide: BusinessApiService, useValue: rejected },
+    ], false);
+    fixture.componentRef.setInput('tax', { gstEnabled: true, gstin: '29AAAAA0000A1Z5' });
+    fixture.detectChanges();
+
+    const field = fixture.nativeElement.querySelector('input.field-control') as HTMLInputElement;
+    expect(field.getAttribute('aria-describedby'))
+      .withContext('an unverified GSTIN names nothing')
+      .toBeNull();
+
+    (fixture.nativeElement.querySelector('button.action-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(messageFor(field)).toContain('GSTIN is invalid or unregistered.');
+    expect(danglingReferences(fixture.nativeElement)).toEqual([]);
     fixture.destroy();
   });
 });

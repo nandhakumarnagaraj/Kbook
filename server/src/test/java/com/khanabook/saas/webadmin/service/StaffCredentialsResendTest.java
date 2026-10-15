@@ -59,7 +59,8 @@ class StaffCredentialsResendTest {
                 mock(RestaurantProfileRepository.class),
                 mock(PermissionService.class),
                 otpService,
-                refreshTokenRepository);
+                refreshTokenRepository,
+                mock(com.khanabook.saas.feature.notifications.service.PushNotificationService.class));
     }
 
     private User staffAccount() {

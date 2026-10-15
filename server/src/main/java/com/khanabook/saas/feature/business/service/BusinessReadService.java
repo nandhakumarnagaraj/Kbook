@@ -228,7 +228,12 @@ public class BusinessReadService {
     public List<BusinessCategoryResponse> getCategories(Long restaurantId) {
         return categoryRepository.findByRestaurantIdAndIsDeletedFalseAndIsActiveTrueOrderByNameAsc(restaurantId)
                 .stream()
-                .map(category -> new BusinessCategoryResponse(category.getId(), category.getName()))
+                // Favourites pin to the top, then alphabetical as before. Sorted here rather
+                // than in the repository so the existing name-ordered query is untouched.
+                .sorted(Comparator.comparing((Category c) -> !Boolean.TRUE.equals(c.getIsFavourite()))
+                        .thenComparing(Category::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(category -> new BusinessCategoryResponse(category.getId(), category.getName(),
+                        Boolean.TRUE.equals(category.getIsFavourite())))
                 .toList();
     }
 

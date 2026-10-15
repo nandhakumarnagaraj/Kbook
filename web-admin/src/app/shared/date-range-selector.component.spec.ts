@@ -8,139 +8,129 @@ function daysAgo(days: number): string {
   return formatLocalDate(date);
 }
 
+/**
+ * The control is the picker the pages actually ship: one date input per end of the
+ * period, bounded to each other (a range cannot run backwards) and to `maxDate` in
+ * single mode. It used to render Today / Yesterday / Custom pills plus a range label,
+ * which commit 1e94bdc5 replaced; these specs pin the picker so that a spec can no
+ * longer pass while the template has moved on.
+ */
 describe('DateRangeSelectorComponent', () => {
   let fixture: ComponentFixture<DateRangeSelectorComponent>;
 
-  function create(mode: 'range' | 'single', initialRange: { from: string; to: string } | null, maxDate?: string): void {
+  function create(
+    mode: 'range' | 'single',
+    initialRange: { from: string; to: string } | null,
+    options: { maxDate?: string; singleDateLabel?: string } = {}
+  ): void {
     fixture = TestBed.createComponent(DateRangeSelectorComponent);
     fixture.componentInstance.mode = mode;
-    fixture.componentInstance.maxDate = maxDate;
+    fixture.componentInstance.maxDate = options.maxDate;
+    fixture.componentInstance.singleDateLabel = options.singleDateLabel ?? 'Select date';
     fixture.componentInstance.initialRange = initialRange;
     fixture.detectChanges();
-  }
-
-  function pills(): HTMLButtonElement[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.date-range__preset-btn'));
   }
 
   function inputs(): HTMLInputElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll('.date-range__input'));
   }
 
-  function label(): string {
-    return fixture.nativeElement.querySelector('.date-range__label')?.textContent?.trim() ?? '';
+  /** Typing into an input the way a browser does, then letting Angular catch up. */
+  function type(index: number, value: string): void {
+    const input = inputs()[index];
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
   }
 
-  it('offers the same three pills in both modes', () => {
+  it('range mode opens a start and an end input', () => {
     create('range', null);
-    const rangeLabels = pills().map((p) => p.textContent?.trim());
-    create('single', null);
-    const singleLabels = pills().map((p) => p.textContent?.trim());
 
-    expect(rangeLabels).toEqual(['Today', 'Yesterday', 'Custom']);
-    expect(singleLabels).toEqual(rangeLabels);
-  });
-
-  it('marks Today and Yesterday active from the incoming range', () => {
-    create('range', { from: daysAgo(0), to: daysAgo(0) });
-    expect(pills()[0].classList).toContain('date-range__preset-btn--active');
-
-    create('range', { from: daysAgo(1), to: daysAgo(1) });
-    expect(pills()[1].classList).toContain('date-range__preset-btn--active');
-    expect(pills()[0].classList).not.toContain('date-range__preset-btn--active');
-  });
-
-  it('range mode opens two inputs for a window', () => {
-    create('range', { from: daysAgo(5), to: daysAgo(3) });
-
-    expect(pills()[2].classList).toContain('date-range__preset-btn--active');
     expect(inputs().length).toBe(2);
-    expect(label()).toBe(`${daysAgo(5)} → ${daysAgo(3)}`);
+    expect(inputs()[0].getAttribute('aria-label')).toBe('Start date');
+    expect(inputs()[1].getAttribute('aria-label')).toBe('End date');
   });
 
-  it('single mode opens exactly one input and emits a one-day range', () => {
-    const emitted: { from: string; to: string }[] = [];
-    create('single', { from: daysAgo(4), to: daysAgo(4) });
-    fixture.componentInstance.rangeChanged.subscribe((range) => emitted.push(range));
-
-    expect(inputs().length).toBe(1);
-
-    const chosen = daysAgo(9);
-    inputs()[0].value = chosen;
-    inputs()[0].dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(emitted).toEqual([{ from: chosen, to: chosen }]);
-    // One day must not read back as "from → to".
-    expect(label()).toBe(chosen);
-  });
-
-  it('single mode respects maxDate so a future closing day cannot be picked', () => {
-    const today = daysAgo(0);
-    // A past day is custom, so the input is rendered (Today hides it and needs no bound).
-    create('single', { from: daysAgo(4), to: daysAgo(4) }, today);
-
-    expect(inputs().length).toBe(1);
-    expect(inputs()[0].getAttribute('max')).toBe(today);
-  });
-
-  it('opening Custom in single mode reveals one input already seeded and bounded', async () => {
-    const today = daysAgo(0);
-    create('single', { from: today, to: today }, today);
-    // Today is a preset, so its input stays hidden until Custom is chosen.
-    expect(inputs().length).toBe(0);
-
-    pills()[2].click();
-    fixture.detectChanges();
-    // NgModel writes the model into the DOM one microtask after the view updates.
+  it('single mode offers one input, named by the day it selects', async () => {
+    create('single', { from: daysAgo(4), to: daysAgo(4) }, { singleDateLabel: 'Closing date' });
     await fixture.whenStable();
 
-    const el = inputs()[0];
     expect(inputs().length).toBe(1);
-    expect(el.value).toBe(today);
-    expect(el.getAttribute('max')).toBe(today);
+    expect(inputs()[0].getAttribute('aria-label')).toBe('Closing date');
+    expect(inputs()[0].value).toBe(daysAgo(4));
   });
 
-  it('selecting a preset emits that preset range without touching the inputs', () => {
+  it('seeds both inputs from the incoming range and bounds the second by the first', async () => {
+    create('range', { from: daysAgo(5), to: daysAgo(3) });
+    await fixture.whenStable();
+
+    expect(inputs()[0].value).toBe(daysAgo(5));
+    expect(inputs()[1].value).toBe(daysAgo(3));
+    expect(inputs()[1].getAttribute('min')).toBe(daysAgo(5));
+  });
+
+  it('single mode emits a one-day range and respects maxDate', async () => {
     const emitted: { from: string; to: string }[] = [];
-    create('single', { from: daysAgo(4), to: daysAgo(4) });
+    const today = daysAgo(0);
+    create('single', { from: daysAgo(4), to: daysAgo(4) }, { maxDate: today });
+    fixture.componentInstance.rangeChanged.subscribe((range) => emitted.push(range));
+    await fixture.whenStable();
+
+    // A future closing day cannot be picked.
+    expect(inputs()[0].getAttribute('max')).toBe(today);
+
+    const chosen = daysAgo(9);
+    type(0, chosen);
+
+    expect(emitted).toEqual([{ from: chosen, to: chosen }]);
+  });
+
+  it('range mode emits only a complete, ordered window', () => {
+    const emitted: { from: string; to: string }[] = [];
+    create('range', null);
     fixture.componentInstance.rangeChanged.subscribe((range) => emitted.push(range));
 
-    pills()[1].click();
-    fixture.detectChanges();
+    // Half a window is not a filter.
+    type(0, daysAgo(5));
+    expect(emitted).toEqual([]);
 
-    expect(emitted).toEqual([{ from: daysAgo(1), to: daysAgo(1) }]);
+    // ...and neither is a backwards one.
+    type(1, daysAgo(7));
+    expect(emitted).toEqual([]);
+
+    type(1, daysAgo(3));
+    expect(emitted).toEqual([{ from: daysAgo(5), to: daysAgo(3) }]);
   });
 
-  it('follows the parent when the parent moves the range itself', () => {
+  it('follows the parent when the parent moves the range itself', async () => {
     create('range', { from: daysAgo(0), to: daysAgo(0) });
-    expect(pills()[0].classList).toContain('date-range__preset-btn--active');
+    await fixture.whenStable();
+    expect(inputs()[0].value).toBe(daysAgo(0));
 
     // A page that resets its own filter (Clear Filters, a restored range) must take the
-    // control with it, otherwise the pills keep naming a day the table is not showing.
+    // control with it, otherwise the inputs keep naming a window the table is not showing.
     fixture.componentInstance.initialRange = { from: daysAgo(6), to: daysAgo(2) };
     fixture.detectChanges();
+    await fixture.whenStable();
 
-    expect(pills()[2].classList).toContain('date-range__preset-btn--active');
-    expect(pills()[0].classList).not.toContain('date-range__preset-btn--active');
-    expect(label()).toBe(`${daysAgo(6)} → ${daysAgo(2)}`);
+    expect(inputs()[0].value).toBe(daysAgo(6));
+    expect(inputs()[1].value).toBe(daysAgo(2));
   });
 
-  it('ignores the echo of its own emission so an in-progress input is never reset', () => {
+  it('ignores the echo of its own emission so an in-progress input is never reset', async () => {
     const to = daysAgo(3);
     create('range', { from: daysAgo(9), to });
     // A page bound to a getter hands the same values straight back on the next cycle.
     fixture.componentInstance.rangeChanged.subscribe((range) => {
       fixture.componentInstance.initialRange = { ...range };
     });
+    await fixture.whenStable();
 
     const typed = daysAgo(5);
-    inputs()[0].value = typed;
-    inputs()[0].dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    type(0, typed);
 
     expect(fixture.componentInstance.customFrom()).toBe(typed);
     expect(inputs()[0].value).toBe(typed);
-    expect(label()).toBe(`${typed} → ${to}`);
+    expect(fixture.componentInstance.customTo()).toBe(to);
   });
 });

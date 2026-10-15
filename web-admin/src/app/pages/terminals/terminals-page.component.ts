@@ -127,8 +127,12 @@ import { formatDate } from '../../shared/formatters';
                       [(ngModel)]="editName"
                       (keyup.enter)="saveRename(terminal)"
                       [attr.aria-invalid]="editNameRef.touched && !editName.trim()"
+                      [attr.aria-describedby]="editNameRef.touched && !editName.trim() ? 'terminal-name-error' : null"
                       placeholder="Terminal name"
                     />
+                    <!-- A name of spaces is refused by saveRename(), so the message says what
+                         the rule is rather than leaving the red border to explain itself. -->
+                    <div class="field-error" id="terminal-name-error" *ngIf="editNameRef.touched && !editName.trim()">Terminal name is required.</div>
                     <div class="row-actions">
                       <button class="primary-btn small-btn" [disabled]="saving()" (click)="saveRename(terminal)">Save</button>
                       <button class="ghost-btn small-btn" (click)="cancelEdit()">Cancel</button>
@@ -418,12 +422,16 @@ import { formatDate } from '../../shared/formatters';
                 #recoveryDeviceRef="ngModel"
                 [(ngModel)]="recoveryDeviceId"
                 [attr.aria-invalid]="(recoveryDeviceRef.touched && !recoveryDeviceId.trim()) || !!recoveryError()"
+                [attr.aria-describedby]="recoveryError() ? 'recovery-error' : (recoveryDeviceRef.touched && !recoveryDeviceId.trim() ? 'recovery-device-id-error' : null)"
                 placeholder="Enter the ID shown on the new device"
                 autocomplete="off"
                 autofocus
               />
             </div>
-            <p class="error-text" role="alert" *ngIf="recoveryError()">{{ recoveryError() }}</p>
+            <!-- A refusal from the server outranks the empty-field hint, so it is named first;
+                 both can be on screen at once if a rejected value is cleared. -->
+            <div class="field-error" id="recovery-device-id-error" *ngIf="recoveryDeviceRef.touched && !recoveryDeviceId.trim()">Enter the device ID shown on the new device.</div>
+            <p class="error-text" id="recovery-error" role="alert" *ngIf="recoveryError()">{{ recoveryError() }}</p>
             <div class="modal-actions">
               <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeRecovery()">Cancel</button>
               <button
@@ -460,15 +468,17 @@ import { formatDate } from '../../shared/formatters';
               #challengeRef="ngModel"
               [(ngModel)]="challengeCode"
               [attr.aria-invalid]="(challengeRef.touched && !challengeCode.trim()) || !!challengeError()"
+              [attr.aria-describedby]="challengeError() ? 'challenge-error' : (challengeRef.touched && !challengeCode.trim() ? 'challenge-code-error' : null)"
               inputmode="numeric"
               maxlength="2"
               placeholder="e.g. 52"
               autocomplete="off"
               autofocus
             />
+            <div class="field-error" id="challenge-code-error" *ngIf="challengeRef.touched && !challengeCode.trim()">Enter the number shown on the device.</div>
           </div>
           <p class="muted" *ngIf="challengeSecondsLeft() as _left">Expires in {{ challengeCountdown() }}</p>
-          <p class="error-text" role="alert" *ngIf="challengeError()">{{ challengeError() }}</p>
+          <p class="error-text" id="challenge-error" role="alert" *ngIf="challengeError()">{{ challengeError() }}</p>
           <div class="modal-actions">
             <button type="button" class="ghost-btn" [disabled]="saving()" (click)="closeApprove()">Cancel</button>
             <button

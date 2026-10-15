@@ -924,6 +924,19 @@ button[disabled],
 .icon-btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
 .icon-btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+/* The favourite star in Manage Categories. Widened past the 32px icon button so the
+   outlined ☆ and the filled ★ occupy the same box and the list does not shift when a
+   category is pinned. Colour is the only difference between the two states. */
+.cat-fav-btn {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+  line-height: 1;
+  border-radius: 50%;
+}
+.cat-fav-btn--on { color: var(--kb-color-primary); }
+
 /* Tabular numerals for precise vertical alignment of metrics and currency */
 .kpi-value,
 .kpi-val,

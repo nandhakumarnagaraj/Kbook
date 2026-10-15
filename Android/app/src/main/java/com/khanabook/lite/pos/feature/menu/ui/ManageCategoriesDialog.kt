@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,6 +78,7 @@ fun ManageCategoriesDialog(
     onRenameCategory: (CategoryEntity) -> Unit,
     onDeleteCategory: (CategoryEntity) -> Unit,
     onReorderCategories: (List<CategoryEntity>) -> Unit,
+    onToggleFavourite: (CategoryEntity, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -201,6 +204,22 @@ fun ManageCategoriesDialog(
                             )
                         }
                         if (canWrite) {
+                            // Pin to the top of the billing strip. Server-owned: this calls the
+                            // owner-gated API rather than queueing a category push, so the star
+                            // is applied only once the server has accepted it.
+                            IconButton(onClick = {
+                                onToggleFavourite(category, !category.isFavourite)
+                            }) {
+                                Icon(
+                                    if (category.isFavourite) Icons.Filled.Star
+                                    else Icons.Outlined.StarBorder,
+                                    contentDescription =
+                                        if (category.isFavourite) "Unpin ${category.name}"
+                                        else "Pin ${category.name} to the top",
+                                    tint = if (category.isFavourite) PrimaryGold
+                                    else TextGold.copy(alpha = 0.45f)
+                                )
+                            }
                             IconButton(onClick = { onRenameCategory(category) }) {
                                 Icon(
                                     Icons.Default.Edit,

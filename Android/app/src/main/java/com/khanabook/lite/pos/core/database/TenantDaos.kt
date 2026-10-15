@@ -249,6 +249,10 @@ class TenantCategoryDao @Inject constructor(
         dao.toggleActive(id, isActive, restaurantId)
     }
 
+    override suspend fun setFavouriteWithoutMarkingDirty(id: Long, isFavourite: Boolean, restaurantId: Long) {
+        dao.setFavouriteWithoutMarkingDirty(id, isFavourite, restaurantId)
+    }
+
     override suspend fun markDeleted(id: Long, updatedAt: Long, restaurantId: Long) {
         dao.markDeleted(id, updatedAt, restaurantId)
     }

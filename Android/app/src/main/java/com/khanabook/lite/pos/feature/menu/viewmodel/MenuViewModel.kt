@@ -259,6 +259,62 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Pins or unpins a category so it leads the billing strip on every surface.
+     *
+     * Goes through the API rather than the sync push on purpose: is_favourite is
+     * server-owned, so a category push carrying it is ignored by the server, and a category
+     * push batch is owner-gated as a whole (a non-owner push 403s the entire batch, which the
+     * sync worker answers by invalidating the auth session). Only after the server has
+     * accepted the change is it applied locally, and without marking the row dirty.
+     */
+    fun setCategoryFavourite(category: CategoryEntity, isFavourite: Boolean) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
+        val serverId = category.serverId
+        if (serverId == null) {
+            setError("Sync this category before pinning it.")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val response = khanaBookApi.setCategoryFavourite(
+                    serverId,
+                    com.khanabook.lite.pos.core.network.CategoryFavouriteRequest(isFavourite)
+                )
+                if (response.isFavourite == null) {
+                    setError("Failed to update favourite. Please try again.")
+                    return@launch
+                }
+                categoryRepository.applyServerFavourite(category.id, response.isFavourite)
+                setSuccess(
+                    if (response.isFavourite) "'${category.name}' pinned to the top"
+                    else "'${category.name}' unpinned"
+                )
+            } catch (e: retrofit2.HttpException) {
+                Log.e("MenuViewModel", "Error updating category favourite", e)
+                // A 403 here is the owner gate, not a stale session: this is a direct call, so
+                // it must NOT be reported in a way that suggests the terminal was signed out.
+                setError(
+                    if (e.code() == 403) "Only the owner can change favourites."
+                    else com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e, "Failed to update favourite. Please try again."
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e("MenuViewModel", "Error updating category favourite", e)
+                setError(
+                    com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to update favourite. Please try again."
+                    )
+                )
+            }
+        }
+    }
+
     fun reorderCategories(ordered: List<CategoryEntity>) {
         if (!canWriteMasterData()) {
             blockMasterDataWrite()

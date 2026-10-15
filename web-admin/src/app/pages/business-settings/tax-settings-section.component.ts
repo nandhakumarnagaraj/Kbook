@@ -59,6 +59,7 @@ interface VerificationState {
                 [ngModel]="tax().gstin"
                 (ngModelChange)="onGstinChange($event)"
                 [attr.aria-invalid]="gstState().valid === false || (gstinRef.touched && !!tax().gstin && tax().gstin.length !== 15)"
+                [attr.aria-describedby]="gstState().valid === false ? 'gstin-verify-error' : null"
                 placeholder="e.g. 29AAAAA0000A1Z5"
                 maxlength="15"
               />
@@ -77,7 +78,7 @@ interface VerificationState {
               <span><strong>Verified:</strong> {{ gstState().businessName || 'Active GSTIN' }}</span>
               <span class="badge-sub">(Valid to: {{ gstState().expiryDate || tax().gstExpiryDate }})</span>
             </div>
-            <div *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger" role="alert">
+            <div id="gstin-verify-error" *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger" role="alert">
               <span class="badge-icon" aria-hidden="true">✕</span>
               <span>{{ gstState().message || 'GSTIN verification failed.' }}</span>
             </div>
@@ -132,6 +133,7 @@ interface VerificationState {
               [ngModel]="tax().fssaiNumber"
               (ngModelChange)="onFssaiChange($event)"
               [attr.aria-invalid]="fssaiState().valid === false || (fssaiRef.touched && !!tax().fssaiNumber && (tax().fssaiNumber?.length ?? 0) !== 14)"
+              [attr.aria-describedby]="fssaiState().valid === false ? 'fssai-verify-error' : null"
               placeholder="e.g. 10020000000000"
               maxlength="14"
             />
@@ -150,7 +152,7 @@ interface VerificationState {
             <span><strong>Verified:</strong> {{ fssaiState().businessName || 'Active FSSAI License' }}</span>
             <span class="badge-sub">(Expiry: {{ fssaiState().expiryDate || tax().fssaiExpiryDate }})</span>
           </div>
-          <div *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger" role="alert">
+          <div id="fssai-verify-error" *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger" role="alert">
             <span class="badge-icon" aria-hidden="true">✕</span>
             <span>{{ fssaiState().message || 'FSSAI verification failed.' }}</span>
           </div>

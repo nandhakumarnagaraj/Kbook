@@ -357,10 +357,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     placeholder="Re-enter password"
                     autocomplete="new-password"
                     [attr.aria-invalid]="passwordMismatch && passwordForm.get('confirmPassword')?.touched"
+                    [attr.aria-describedby]="passwordMismatch && passwordForm.get('confirmPassword')?.touched ? 'reset-confirm-password-error' : null"
                   />
                 </div>
               </div>
-              <div *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error" role="alert">
+              <div id="reset-confirm-password-error" *ngIf="passwordMismatch && passwordForm.get('confirmPassword')?.touched" class="alert-box error" role="alert">
                 Passwords do not match.
               </div>
               <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>

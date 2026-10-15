@@ -111,6 +111,11 @@ class SyncDtoContractTest {
             // the test documents reality; fix by adding isActive to CategorySyncDto +
             // the server DTO and REMOVING this line.
             "isActive",
+            // Server-owned pin, pulled (MasterSyncResponse deserializes straight into
+            // CategoryEntity) but deliberately NEVER pushed: every category push is a
+            // whole-row write and the server restores the value it holds rather than
+            // trusting a device, so a terminal asserting it could only ever be ignored.
+            "isFavourite",
             "createdAt",    // mapped on DTO
         ),
         "MenuItemEntity" to setOf(

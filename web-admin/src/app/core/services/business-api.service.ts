@@ -229,6 +229,17 @@ export class BusinessApiService {
     return this.http.delete<void>(`${API_BASE_URL}/business/menu/categories/${categoryId}`);
   }
 
+  /**
+   * Pin or unpin a category so it sorts to the top of the category list on every surface,
+   * including the POS. Owner-only server-side.
+   */
+  setCategoryFavourite(categoryId: number, isFavourite: boolean): Observable<BusinessCategory> {
+    return this.http.put<BusinessCategory>(
+      `${API_BASE_URL}/business/menu/categories/${categoryId}/favourite`,
+      { isFavourite },
+    );
+  }
+
   // Variants
   getItemVariants(menuItemId: number): Observable<BusinessItemVariant[]> {
     return this.http.get<BusinessItemVariant[]>(`${API_BASE_URL}/business/menu/${menuItemId}/variants`);

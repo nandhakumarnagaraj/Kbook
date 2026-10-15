@@ -25,8 +25,23 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE name = :name AND restaurant_id = :restaurantId COLLATE NOCASE LIMIT 1")
     suspend fun getCategoryByName(name: String, restaurantId: Long): CategoryEntity?
 
-    @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY sort_order ASC")
+    // Favourites first, then the owner's saved order: a pinned category leads the billing
+    // strip. is_favourite is server-owned (pulled, never pushed), so this ordering cannot be
+    // disturbed by a terminal's own edits.
+    @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY is_favourite DESC, sort_order ASC")
     fun getActiveCategoriesFlow(restaurantId: Long): Flow<List<CategoryEntity>>
+
+    /**
+     * Applies a SERVER-CONFIRMED favourite locally. Deliberately leaves `is_synced` and
+     * `updated_at` alone: a category push is a whole-row write into a batch that is gated on
+     * the owner role, and a non-owner push is a 403 for the entire batch — which the sync
+     * worker reads as "possible role change or terminal deactivation" and answers by
+     * invalidating the auth session. So a favourite toggle must never enqueue a push; the
+     * value arrives here from the API response and lands on the next pull for every other
+     * terminal.
+     */
+    @Query("UPDATE categories SET is_favourite = :isFavourite WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun setFavouriteWithoutMarkingDirty(id: Long, isFavourite: Boolean, restaurantId: Long)
 
     @Query("UPDATE categories SET is_active = :isActive WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun toggleActive(id: Long, isActive: Boolean, restaurantId: Long)

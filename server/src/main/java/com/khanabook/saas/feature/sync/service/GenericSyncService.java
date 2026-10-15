@@ -1315,6 +1315,17 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			incomingItem.setHasVariants(
 					existingItem.getHasVariants() != null ? existingItem.getHasVariants() : false);
 		}
+		if (incoming instanceof Category incomingCategory && existing instanceof Category existingCategory) {
+			// is_favourite is server-authoritative, so it is restored unconditionally rather
+			// than only when absent. Categories carry no field mask, which means a terminal
+			// pushes the whole row (rename, reorder, active toggle) and its payload either
+			// omits the field (a build predating the column) or carries a stale local copy of
+			// it. Honouring either would silently clear a pin that the owner set in web admin,
+			// and because both surfaces render the same synced row the star would vanish on the
+			// till too. The owner-gated favourite endpoint is the only writer.
+			incomingCategory.setIsFavourite(
+					existingCategory.getIsFavourite() != null ? existingCategory.getIsFavourite() : false);
+		}
 	}
 
 	/**

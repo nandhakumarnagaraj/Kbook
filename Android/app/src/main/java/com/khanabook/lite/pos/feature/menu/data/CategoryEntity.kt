@@ -18,6 +18,17 @@ data class CategoryEntity(
     val sortOrder: Int = 0,
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
+
+    /**
+     * Favourite (pinned) category, delivered on pull and rendered as a star. Server-owned:
+     * the owner pins categories in web admin, and the server restores this value on every
+     * category push instead of trusting the device (see
+     * GenericSyncService.preserveServerOwnedState). Deliberately NOT part of
+     * CategorySyncDto — see SyncDtoContractTest.
+     */
+    @SerializedName("isFavourite")
+    @ColumnInfo(name = "is_favourite", defaultValue = "0")
+    val isFavourite: Boolean = false,
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

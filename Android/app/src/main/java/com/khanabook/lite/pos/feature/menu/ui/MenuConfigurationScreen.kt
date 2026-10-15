@@ -271,6 +271,9 @@ fun MenuConfigurationScreen(
                             item.copy(categoryId = targetCategoryId, updatedAt = System.currentTimeMillis())
                         )
                     },
+                    onToggleCategoryFavourite = { category, isFavourite ->
+                        viewModel.setCategoryFavourite(category, isFavourite)
+                    },
                     otherCategories = categories.filter { it.id != selectedCategoryId }
                 )
                 }

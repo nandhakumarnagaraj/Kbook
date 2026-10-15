@@ -27,4 +27,11 @@ public class Category extends BaseSyncEntity {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
+
+	/**
+	 * Server-authoritative pin, changed only through the owner-gated favourite endpoint.
+	 * Deliberately not client-owned: see GenericSyncService.preserveServerOwnedState.
+	 */
+	@Column(name = "is_favourite", nullable = false)
+	private Boolean isFavourite = false;
 }

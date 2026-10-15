@@ -95,6 +95,18 @@ class CategoryRepository(
         triggerBackgroundSync()
     }
 
+    /**
+     * Records a favourite the SERVER has already accepted. Unlike every other write here this
+     * does not touch `is_synced`, because is_favourite is server-owned: the API call is the
+     * write path, and queueing a category push as well would put a whole-row write into an
+     * owner-gated batch (a non-owner push 403s the entire batch, which the sync worker treats
+     * as a deactivated terminal and logs out). Pull delivers the value to the other terminals.
+     */
+    suspend fun applyServerFavourite(categoryId: Long, isFavourite: Boolean) {
+        val restaurantId = sessionManager.getRestaurantId()
+        categoryDao.setFavouriteWithoutMarkingDirty(categoryId, isFavourite, restaurantId)
+    }
+
     suspend fun reorderCategories(ordered: List<CategoryEntity>) {
         val now = System.currentTimeMillis()
         ordered.forEachIndexed { index, category ->

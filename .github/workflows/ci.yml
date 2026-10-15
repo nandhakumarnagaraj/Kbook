@@ -155,3 +155,9 @@ jobs:
       - name: Run Angular tests (headless Chrome)
         working-directory: web-admin
         run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      # The motion band is a whole-app rule, and a Karma run only sees the pages a spec
+      # happens to mount — this reads every stylesheet and component template instead.
+      - name: Check the motion band (150-300ms)
+        working-directory: web-admin
+        run: npm run check:motion

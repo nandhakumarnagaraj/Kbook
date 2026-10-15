@@ -170,6 +170,11 @@ export interface BusinessMenuItem {
 export interface BusinessCategory {
   categoryId: number;
   name: string;
+  /**
+   * Server-authoritative pin. Optional so an older API response (before the column
+   * shipped) degrades to "unstarred" instead of rendering `undefined`.
+   */
+  isFavourite?: boolean;
 }
 
 export interface BusinessItemVariant {

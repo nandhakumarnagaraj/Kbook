@@ -47,7 +47,7 @@ import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 79,
+        version = 80,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -92,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
-            MIGRATION_77_78, MIGRATION_78_79
+            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
@@ -2134,6 +2134,21 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 db.execSQL("ALTER TABLE `restaurant_profile_new` RENAME TO `restaurant_profile`")
 
                 android.util.Log.i("AppDatabase", "MIGRATION_78_79 complete: users+bills+bill_items+bill_payments+restaurant_profile rebuilt to current spec")
+            }
+        }
+
+        val MIGRATION_79_80 = object : Migration(79, 80) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Favourite (pinned) menu categories. Server-owned: the till renders the star
+                // and sorts pinned categories first, but never asserts this column on a push.
+                // A category push is a whole-row write, and the server restores the value it
+                // holds (GenericSyncService.preserveServerOwnedState) rather than trusting a
+                // terminal that may not know the field yet. DEFAULT 0 keeps every existing row
+                // reading as "not a favourite".
+                if (!db.hasColumn("categories", "is_favourite")) {
+                    db.execSQL("ALTER TABLE `categories` ADD COLUMN `is_favourite` INTEGER NOT NULL DEFAULT 0")
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_79_80 complete: added is_favourite to categories")
             }
         }
 

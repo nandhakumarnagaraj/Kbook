@@ -31,6 +31,17 @@ data class MenuItemImageUploadResponse(
         @com.google.gson.annotations.SerializedName("version") val imageVersion: Int = 0
 )
 
+data class CategoryFavouriteRequest(
+        @SerializedName("isFavourite") val isFavourite: Boolean
+)
+
+/** Mirror of the server's BusinessCategoryResponse for the favourite endpoint. */
+data class CategoryFavouriteResponse(
+        @SerializedName("categoryId") val categoryId: Long = 0L,
+        @SerializedName("name") val name: String? = null,
+        @SerializedName("isFavourite") val isFavourite: Boolean? = null
+)
+
 data class ExtractTextRequest(
         val rawText: String
 )
@@ -103,6 +114,22 @@ interface KhanaBookApi {
 
         @POST("api/v1/sync/menu/categories/push")
         suspend fun pushCategories(@Body categories: List<CategorySyncDto>): PushSyncResponse
+
+        /**
+         * Pin or unpin a category (owner-only server-side).
+         *
+         * This is the ONLY write path for is_favourite. A category SYNC push is a whole-row
+         * write, and the server restores the value it already holds rather than trusting the
+         * device — so a terminal asserting the field on push would simply be ignored, while
+         * adding it to the batch would risk 403-ing that whole batch for a non-owner and
+         * having the sync worker treat the terminal as deactivated. CategorySyncDto therefore
+         * deliberately omits the field (see SyncDtoContractTest).
+         */
+        @PUT("api/v1/business/menu/categories/{categoryId}/favourite")
+        suspend fun setCategoryFavourite(
+                @Path("categoryId") categoryId: Long,
+                @Body body: CategoryFavouriteRequest
+        ): CategoryFavouriteResponse
 
         @POST("api/v1/sync/menuitem/push")
         suspend fun pushMenuItems(@Body items: List<MenuItemSyncDto>): PushSyncResponse
