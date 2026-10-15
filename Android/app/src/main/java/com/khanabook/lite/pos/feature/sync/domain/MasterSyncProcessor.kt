@@ -1407,6 +1407,13 @@ class MasterSyncProcessor @Inject constructor(
                         isVeg = remoteCategory.isVeg,
                         sortOrder = remoteCategory.sortOrder ?: 0,
                         isActive = remoteCategory.isActive,
+                        // Server-owned pin, delivered on this pull (CategoryDTO.isFavourite) and
+                        // never pushed (CategorySyncDto omits it; the server restores its own
+                        // value on a category push). Omitting it here let the constructor
+                        // default (false) win, so the pull that was meant to deliver a pin - the
+                        // favourite endpoint touches serverUpdatedAt and wakes every terminal -
+                        // was the one that erased it.
+                        isFavourite = remoteCategory.isFavourite,
                         createdAt = remoteCategory.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteCategory.restaurantId ?: 0L,
                         deviceId = remoteCategory.deviceId.orFallback(""),
