@@ -73,8 +73,8 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
               <span class="channel-tag" [class.channel-tag--takeaway]="isTakeaway(order)">{{ formatOrderType(order) }}</span>
             </div>
 
-            <span class="status-pill" [class.status-pill--warn]="order.orderStatus === 'draft'" [class.status-pill--pending]="order.paymentStatus === 'pending'">
-              {{ order.orderStatus === 'draft' ? 'Open Bill' : order.paymentStatus }}
+            <span class="status-pill" [class.status-pill--warn]="isOpenBill(order)" [class.status-pill--pending]="isPendingPayment(order)">
+              {{ isOpenBill(order) ? 'Preparing' : order.paymentStatus }}
             </span>
           </div>
 
@@ -678,6 +678,21 @@ export class LiveOrdersTabComponent implements OnDestroy {
 
   closeOrderDetail(): void {
     this.selectedOrderDetail.set(null);
+  }
+
+  /**
+   * The API sends title-cased status labels ("Draft", "Pending" — see
+   * BusinessReadService.normalizeLabel) while these tests used to compare against the
+   * lowercase stored value, so both were always false: an open bill's pill fell through to
+   * printing the payment status, which is why the live board read "Pending" (the money's
+   * word) instead of the order's own state. Every status test here is case-insensitive.
+   */
+  isOpenBill(order: BusinessOrder): boolean {
+    return (order.orderStatus || '').trim().toLowerCase() === 'draft';
+  }
+
+  isPendingPayment(order: BusinessOrder): boolean {
+    return (order.paymentStatus || '').trim().toLowerCase() === 'pending';
   }
 
   getElapsed(order: BusinessOrder): string {

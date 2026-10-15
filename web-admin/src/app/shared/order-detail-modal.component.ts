@@ -529,7 +529,7 @@ export class OrderDetailModalComponent implements OnChanges, OnDestroy {
   readonly reason = signal('');
 
   readonly statusOptions = [
-    { value: 'draft', label: 'Pending (open bill)' },
+    { value: 'draft', label: 'Preparing (open bill)' },
     { value: 'completed', label: 'Completed / paid' },
     { value: 'cancelled', label: 'Cancelled' },
   ];

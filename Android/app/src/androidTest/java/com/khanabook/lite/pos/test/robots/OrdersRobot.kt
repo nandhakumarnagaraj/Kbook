@@ -8,7 +8,9 @@ class OrdersRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val ordersListMatcher = hasText("Orders", substring = true)
     private val orderItemMatcher = hasText("Order #", substring = true)
-    private val pendingStatusMatcher = hasText("Pending", substring = true)
+    // The counter's word for an open bill is "Preparing" (OrderStatus.DRAFT.displayLabel);
+    // "Pending" is the payment wording and no longer appears on a status chip.
+    private val pendingStatusMatcher = hasText("Preparing", substring = true)
     private val completedStatusMatcher = hasText("Completed", substring = true)
     private val filterButtonMatcher = hasContentDescription("Filter").or(hasText("Filter"))
     private val searchMatcher = hasTestTag("search").or(hasText("Search", substring = true))

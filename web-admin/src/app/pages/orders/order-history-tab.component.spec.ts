@@ -1,7 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { of } from 'rxjs';
 
-import { OrderHistoryTabComponent } from './order-history-tab.component';
+import { OrderHistoryTabComponent, orderStatusLabel } from './order-history-tab.component';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -109,5 +109,33 @@ describe('OrderHistoryTabComponent — the period it opens on', () => {
     expect(requestedPeriod()).toEqual([daysAgo(0), daysAgo(0)]);
     expect(shownPeriod()).toEqual({ from: daysAgo(0), to: daysAgo(0) });
     expect(readStoredDateRange()).toEqual({ from: daysAgo(0), to: daysAgo(0) });
+  });
+});
+
+/**
+ * The Status column prints this, and the API sends the stored value title-cased ("Draft") —
+ * accounting jargon no counter uses. The open-bill state is the one the POS labels
+ * "Preparing", so the two surfaces must say the same word for the same row.
+ */
+describe('OrderHistoryTabComponent — the status column wording', () => {
+  it('calls the open-bill state Preparing, whatever case the API sends', () => {
+    expect(orderStatusLabel('Draft')).toBe('Preparing');
+    expect(orderStatusLabel('draft')).toBe('Preparing');
+    expect(orderStatusLabel('DRAFT')).toBe('Preparing');
+    // A row already carrying the counter's word must not come back as "Preparing" twice
+    // or fall through to the raw value.
+    expect(orderStatusLabel('Preparing')).toBe('Preparing');
+  });
+
+  it('leaves the terminal states — and the legacy paid alias — alone', () => {
+    expect(orderStatusLabel('Completed')).toBe('Completed');
+    expect(orderStatusLabel('Cancelled')).toBe('Cancelled');
+    expect(orderStatusLabel('Paid')).toBe('Paid');
+  });
+
+  it('never renders an empty chip', () => {
+    expect(orderStatusLabel(null)).toBe('');
+    expect(orderStatusLabel(undefined)).toBe('');
+    expect(orderStatusLabel('  ')).toBe('');
   });
 });

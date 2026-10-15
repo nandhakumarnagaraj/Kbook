@@ -509,12 +509,7 @@ fun OrderRowItem(
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)
                 ) {
                     Text(
-                        text = when (row.orderStatus) {
-                            OrderStatus.COMPLETED -> "Completed"
-                            OrderStatus.CANCELLED -> "Cancelled"
-                            OrderStatus.DRAFT -> "Pending"
-                            else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                        },
+                        text = row.orderStatus.displayLabel,
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = layout.tableCellFontSize,
@@ -539,11 +534,11 @@ fun OrderRowItem(
                         )
                     }
                     // Mirror of the guard above: a completed order is settled, so it
-                    // must not be demoted back to Pending. Together the two rules
-                    // mean no row can move backwards through the status flow.
+                    // must not be demoted back to the open-bill state. Together the two
+                    // rules mean no row can move backwards through the status flow.
                     if (row.orderStatus != OrderStatus.COMPLETED && row.orderStatus != OrderStatus.DRAFT) {
                         DropdownMenuItem(
-                            text = { Text("Pending", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            text = { Text(OrderStatus.DRAFT.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }
                         )
                     }

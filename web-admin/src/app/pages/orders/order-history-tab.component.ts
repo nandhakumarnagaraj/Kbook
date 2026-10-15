@@ -61,6 +61,21 @@ export function filterBusinessOrders(
   });
 }
 
+/**
+ * What the history table prints in its Status column. The API sends the stored value
+ * title-cased ("Draft"), which is accounting jargon the counter never reads: the open-bill
+ * state is the same state the POS labels "Preparing", so both surfaces say the same word.
+ * Anything else is passed through unchanged (underscores spaced out), so a status this
+ * table has never seen still renders as something rather than an empty chip.
+ */
+export function orderStatusLabel(status: string | null | undefined): string {
+  const value = (status || '').trim();
+  if (!value) return '';
+  const lower = value.toLowerCase();
+  if (lower === 'draft' || lower === 'preparing') return 'Preparing';
+  return value.replace('_', ' ');
+}
+
 @Component({
   selector: 'app-order-history-tab',
   standalone: true,
@@ -247,7 +262,7 @@ export function filterBusinessOrders(
                 </td>
                 <td>
                   <span class="status-chip" [ngClass]="getOrderStatusClass(order.orderStatus)">
-                    {{ order.orderStatus }}
+                    {{ orderStatusLabel(order.orderStatus) }}
                   </span>
                 </td>
                 <td>
@@ -753,6 +768,13 @@ export class OrderHistoryTabComponent implements OnDestroy {
   setSourceFilter(channel: 'ALL' | 'DINE_IN' | 'TAKEAWAY'): void {
     this.orderSourceFilter = channel;
   }
+
+  /**
+   * The Status column's wording. Exposed on the component so the template can call it; the
+   * property spec imports the same standalone function rather than a copy, so the word the
+   * table prints and the word the test pins cannot drift apart.
+   */
+  readonly orderStatusLabel = orderStatusLabel;
 
   getOrderStatusClass(status: string): string {
     const s = (status || '').toLowerCase();

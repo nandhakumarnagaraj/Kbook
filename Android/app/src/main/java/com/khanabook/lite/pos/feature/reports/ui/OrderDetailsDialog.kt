@@ -165,10 +165,7 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.small))
 
                     val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
-                    val statusText = when (statusValue) {
-                        OrderStatus.DRAFT -> "Pending"
-                        else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
-                    }
+                    val statusText = statusValue.displayLabel
                     val statusColor = when (statusValue) {
                         OrderStatus.COMPLETED -> VegGreen
                         OrderStatus.CANCELLED -> DangerRed

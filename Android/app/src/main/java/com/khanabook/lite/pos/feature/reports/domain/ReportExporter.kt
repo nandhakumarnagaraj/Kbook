@@ -455,10 +455,7 @@ class ReportExporter(private val context: Context) {
                     sectionStartY = y
                 }
 
-                val status = when (row.orderStatus) {
-                    OrderStatus.DRAFT -> "Pending"
-                    else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                }
+                val status = row.orderStatus.displayLabel
 
                 val rowBg = if (idx % 2 == 0)
                     Paint().apply { color = Color.rgb(250, 250, 250) }

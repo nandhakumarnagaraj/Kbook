@@ -234,12 +234,7 @@ fun OrderTableRow(
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)
                 ) {
                     Text(
-                        text = when (row.orderStatus) {
-                            OrderStatus.COMPLETED -> "Completed"
-                            OrderStatus.CANCELLED -> "Cancelled"
-                            OrderStatus.DRAFT -> "Pending"
-                            else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                        },
+                        text = row.orderStatus.displayLabel,
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
@@ -260,7 +255,7 @@ fun OrderTableRow(
                         }
                         if (row.orderStatus != OrderStatus.DRAFT) {
                             DropdownMenuItem(
-                                text = { Text("Pending", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                                text = { Text(OrderStatus.DRAFT.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                                 onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }
                             )
                         }

@@ -19,10 +19,17 @@ enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     }
 }
 
-enum class OrderStatus(val dbValue: String) {
-    DRAFT("draft"),
-    COMPLETED("completed"),
-    CANCELLED("cancelled");
+/**
+ * `dbValue` is the stored contract and must never change; `displayLabel` is the wording the
+ * counter reads. The open-bill state (DRAFT) is shown as "Preparing" rather than "Pending"
+ * because "Pending" is also the payment wording, and an owner reading a row could not tell
+ * whether the bill or the money was pending. Every surface renders `displayLabel` instead of
+ * spelling its own word, so a future rename happens here once.
+ */
+enum class OrderStatus(val dbValue: String, val displayLabel: String) {
+    DRAFT("draft", "Preparing"),
+    COMPLETED("completed", "Completed"),
+    CANCELLED("cancelled", "Cancelled");
 
     companion object {
         fun fromDbValue(value: String?): OrderStatus = 

@@ -237,7 +237,7 @@ class ReportsViewModel @Inject constructor(
                         if (row.billId == billId)
                             row.copy(
                                 payMode = modeEnum,
-                                currentStatus = "Order ${row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }} [${modeEnum.displayLabel}]"
+                                currentStatus = "Order ${row.orderStatus.displayLabel} [${modeEnum.displayLabel}]"
                             )
                         else row
                     }
