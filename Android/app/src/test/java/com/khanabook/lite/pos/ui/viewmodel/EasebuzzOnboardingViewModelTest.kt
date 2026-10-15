@@ -7,11 +7,15 @@ import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewM
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRepository
+import com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentReadiness
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -285,5 +289,109 @@ class EasebuzzOnboardingViewModelTest {
         assertTrue(state is com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable)
         val message = (state as com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable).message
         assertFalse(message.isNullOrBlank())
+    }
+
+    // ── The readiness response is the server's word on the Easebuzz switch ────────────────
+    //
+    // The server row owns the switch (owner-gated, confirmed there before it is stored) and the
+    // till's copy only mirrors it. The mirror can lag - a web-admin change, or a till whose
+    // master sync has not run yet - and until 2026-10-15 a stale copy kept offering "Send
+    // Payment Link" in billing. Opening payment settings is the moment the server's answer is
+    // in hand, so the view model has to correct the mirror, not just display it.
+
+    private fun readiness(easebuzzEnabled: Boolean) = EasebuzzPaymentReadiness(
+        paymentLinkReady = easebuzzEnabled,
+        easebuzzEnabled = easebuzzEnabled,
+        agreementRequired = false,
+        subMerchantActive = true,
+        subMerchantStatus = "ACTIVE"
+    )
+
+    private fun localProfile(easebuzzEnabled: Boolean) = RestaurantProfileEntity(
+        id = 1L,
+        restaurantId = 7L,
+        easebuzzEnabled = easebuzzEnabled
+    )
+
+    private fun onboardingStatus() = EasebuzzOnboardingStatusResponse(
+        status = "ACTIVE",
+        hasSubMerchant = true,
+        isActive = true
+    )
+
+    @Test
+    fun `loadPaymentReadiness mirrors a server-enabled switch onto a stale local profile`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.success(readiness(true))
+        every { restaurantRepository.getProfileFlow() } returns flowOf(localProfile(easebuzzEnabled = false))
+        val saved = slot<RestaurantProfileEntity>()
+        coEvery { restaurantRepository.saveProfileLocally(capture(saved)) } returns Unit
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        assertTrue("the stale local row should have been corrected", saved.isCaptured)
+        assertTrue(saved.captured.easebuzzEnabled)
+    }
+
+    @Test
+    fun `loadPaymentReadiness turns a server-disabled switch off on the device`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.success(readiness(false))
+        every { restaurantRepository.getProfileFlow() } returns flowOf(localProfile(easebuzzEnabled = true))
+        val saved = slot<RestaurantProfileEntity>()
+        coEvery { restaurantRepository.saveProfileLocally(capture(saved)) } returns Unit
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        assertTrue("the stale local row should have been corrected", saved.isCaptured)
+        assertFalse(saved.captured.easebuzzEnabled)
+    }
+
+    @Test
+    fun `loadPaymentReadiness writes nothing when the local switch already matches the server`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.success(readiness(true))
+        every { restaurantRepository.getProfileFlow() } returns flowOf(localProfile(easebuzzEnabled = true))
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { restaurantRepository.saveProfileLocally(any()) }
+    }
+
+    @Test
+    fun `loadPaymentReadiness writes nothing when the server cannot be reached`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.failure(RuntimeException("Network error"))
+        every { restaurantRepository.getProfileFlow() } returns flowOf(localProfile(easebuzzEnabled = true))
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        // An unanswered question must not switch online payments off on the till.
+        coVerify(exactly = 0) { restaurantRepository.saveProfileLocally(any()) }
+        assertTrue(
+            viewModel.paymentReadiness.value is
+                com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState.Unavailable
+        )
+    }
+
+    @Test
+    fun `loadPaymentReadiness writes nothing when the device has no profile row yet`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.getPaymentReadiness() } returns Result.success(readiness(true))
+        every { restaurantRepository.getProfileFlow() } returns flowOf(null)
+
+        val viewModel = createViewModel()
+        viewModel.loadPaymentReadiness()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { restaurantRepository.saveProfileLocally(any()) }
     }
 }

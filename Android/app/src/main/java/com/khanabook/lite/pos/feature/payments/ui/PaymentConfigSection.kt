@@ -124,8 +124,12 @@ fun PaymentConfigView(
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
+    // Set once the owner moves the switch themselves. The profile also changes when the readiness
+    // check mirrors the server's value into the local row, and that must not silently undo an
+    // edit the owner has not saved yet.
+    var easebuzzTouched by remember { mutableStateOf(false) }
     LaunchedEffect(profile?.easebuzzEnabled) {
-        easebuzzEnabled = profile?.easebuzzEnabled ?: false
+        if (!easebuzzTouched) easebuzzEnabled = profile?.easebuzzEnabled ?: false
     }
     val paymentReadiness by easebuzzVm.paymentReadiness.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { easebuzzVm.loadPaymentReadiness() }
@@ -244,7 +248,12 @@ fun PaymentConfigView(
                 onCheckedChange = { feedbackPrefs.setVoiceAnnouncementEnabled(it) },
                 enabled = !readOnly
             )
-            PaymentToggle("Easebuzz Online", easebuzzEnabled, onCheckedChange = { easebuzzEnabled = it }, enabled = !readOnly)
+            PaymentToggle(
+                "Easebuzz Online",
+                easebuzzEnabled,
+                onCheckedChange = { easebuzzEnabled = it; easebuzzTouched = true },
+                enabled = !readOnly
+            )
             val readinessMessage = when (val state = paymentReadiness) {
                 PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
                 is PaymentReadinessUiState.Unavailable -> state.message

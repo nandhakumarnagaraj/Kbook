@@ -64,13 +64,34 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             _paymentReadiness.value = PaymentReadinessUiState.Loading
             repository.getPaymentReadiness()
-                .onSuccess { _paymentReadiness.value = PaymentReadinessUiState.Ready(it) }
+                .onSuccess { readiness ->
+                    _paymentReadiness.value = PaymentReadinessUiState.Ready(readiness)
+                    mirrorEasebuzzSwitch(readiness.easebuzzEnabled)
+                }
                 .onFailure { e ->
                     _paymentReadiness.value = PaymentReadinessUiState.Unavailable(
                         UserMessageSanitizer.sanitize(e, "Cannot verify online payment setup. Reconnect and open this screen again.")
                     )
                 }
         }
+    }
+
+    /**
+     * The server row owns the Easebuzz switch: it is owner-gated and confirmed server-side before
+     * it is stored (RestaurantRepository.savePaymentProfile), so the local row only mirrors it.
+     *
+     * The mirror can lag - a web-admin change, or a till whose master sync has not run yet - and a
+     * stale copy keeps offering "Send Payment Link" in billing. Opening payment settings is the
+     * moment the server's answer is in hand, so correct the mirror here rather than only printing
+     * a sentence about the disagreement.
+     *
+     * saveProfileLocally, not saveProfile: this is the server's value being mirrored, not a local
+     * edit, so the row must not be marked unsynced and no push may be triggered.
+     */
+    private suspend fun mirrorEasebuzzSwitch(serverEnabled: Boolean) {
+        val profile = restaurantRepository.getProfileFlow().firstOrNull() ?: return
+        if (profile.easebuzzEnabled == serverEnabled) return
+        restaurantRepository.saveProfileLocally(profile.copy(easebuzzEnabled = serverEnabled))
     }
 
     private val _events = MutableSharedFlow<OnboardingEvent>()
