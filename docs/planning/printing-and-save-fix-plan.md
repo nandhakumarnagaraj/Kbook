@@ -16,14 +16,14 @@
 
 Both paths use **the same transport, the same stored profile, the same socket code** — only the payload differs.
 
-**Test print** — `SettingsViewModel.testPrint(role)` (`Android/app/src/main/java/com/khanabook/lite/pos/feature/settings/viewmodel/SettingsViewModel.kt`, lines 601–633):
+**Test print** — `SettingsViewModel.testPrint(role)` (`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/settings/viewmodel/SettingsViewModel.kt`, lines 601–633):
 
 - Loads the stored profile by role.
 - Builds ~45 bytes of US-ASCII: `ESC @` + `ESC a 1` + `"KHANABOOK\n{ROLE} PRINTER TEST OK\n"` + dashes + `GS V B 0` (cut).
 - `printerTransport.print(printer, testData)` → same dispatcher, same socket code as live.
 - Reports `PrinterUiEvent.TestPrintSent` / `TestPrintFailed`.
 
-**Live receipt** — `PrintRouter.printBill` → `InvoiceFormatter.formatForThermalPrinter` (`Android/app/src/main/java/com/khanabook/lite/pos/feature/billing/domain/InvoiceFormatter.kt`, line 97+):
+**Live receipt** — `PrintRouter.printBill` → `InvoiceFormatter.formatForThermalPrinter` (`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/billing/domain/InvoiceFormatter.kt`, line 97+):
 
 - Every text string encoded with `Charset.forName("GBK")` (line 115) — not US-ASCII.
 - Logo bitmap embedded when `includeLogoInPrint` is set: `loadLogoBitmap` (local disk or Coil network load, synchronously before the socket write) → `decodeBitmapToESC_POS(bitmap, targetWidth)` where targetWidth is 384 px (80 mm) or 256 px (58 mm).

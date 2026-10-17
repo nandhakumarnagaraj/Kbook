@@ -16,7 +16,7 @@ end-to-end on the device path. The gap is *reach*, not foundations.
 
 | Behaviour | Where |
 |---|---|
-| A deliberate edit passes the terminal-state guard only when it carries a **strictly newer `statusVersion`** (equal-version *forward* transitions allowed; never rolls the version backwards) | `BillSyncService.protectBillState` — `server/.../billing/service/BillSyncService.java:318-354` |
+| A deliberate edit passes the terminal-state guard only when it carries a **strictly newer `statusVersion`** (equal-version *forward* transitions allowed; never rolls the version backwards) | `BillSyncService.protectBillState` — `services/server/.../billing/service/BillSyncService.java:318-354` |
 | A **stale** push is restored *and* loudly rejected: `STALE_STATUS_PUSH` + audit row naming device vs server version | `GenericSyncService.java:814-851` |
 | Every device-originated status/mode change is **already audited**: `BILL_STATUS_CHANGE old->new` and `BILL_PAYMODE_CHANGE old->new`, keyed by bill `publicToken` + terminal id | `GenericSyncService.auditBillEdits` — `GenericSyncService.java:178-203` |
 | `paymentStatus="paid"` is terminal and gateway-owned; gateway txn/status, `refundId`, `settledAmount/At`, `commissionAmount` and `inventoryDeducted` are restored unconditionally so a push can never un-settle money or double-deduct stock | `GenericSyncService.java:1255-1294` |
@@ -157,7 +157,7 @@ this area got hard to reason about):
 
 - **Server**: unit + property tests for the two new endpoints — version bump, audit row
   emitted, paid-bill refusal, inventory not double-deducted, and a following stale device
-  push losing to the server. Existing property tests in `server/src/test/.../webadmin/`
+  push losing to the server. Existing property tests in `services/server/src/test/.../webadmin/`
   show the house style.
 - **Android — harness reality check.** The pure-JUnit tests here are *logic simulations*:
   `BillingLogicTest` re-implements the guards with local variables (e.g. it asserts a

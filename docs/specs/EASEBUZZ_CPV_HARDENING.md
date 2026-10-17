@@ -74,9 +74,9 @@ record — NOT part of the Easebuzz onboarding API payload).
 ```
 
 ## Files expected to change
-- `server/.../service/SubMerchantService.java` — submit-gate validations (Changes 1–3).
-- `server/.../service/EasebuzzApiClient.java` — fallback becomes unreachable for valid submits (Change 1).
-- `server/.../service/EasebuzzIntegrationTest.java` — new tests: legal-name-required,
+- `services/server/.../service/SubMerchantService.java` — submit-gate validations (Changes 1–3).
+- `services/server/.../service/EasebuzzApiClient.java` — fallback becomes unreachable for valid submits (Change 1).
+- `services/server/.../service/EasebuzzIntegrationTest.java` — new tests: legal-name-required,
   mandatory-fields-missing, distinct-proofs (mirror existing proof test style).
 - (Follow-up, separate change) Android `EasebuzzOnboardingViewModel`/screen — surface new
   error codes; make legal entity name a required form field client-side.

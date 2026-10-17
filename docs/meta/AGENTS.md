@@ -7,7 +7,7 @@
 
 ## Build Commands
 
-### Android (workdir: `Android/`)
+### Android (workdir: `apps/android/`)
 | Task | Command |
 |---|---|
 | Debug APK | `./gradlew.bat assembleDebug` |
@@ -16,7 +16,7 @@
 | Clean | `./gradlew.bat clean` |
 | Lint | `./gradlew.bat lint` |
 
-### Server (workdir: `server/`)
+### Server (workdir: `services/server/`)
 | Task | Command |
 |---|---|
 | Build | `mvn clean package` |
@@ -24,7 +24,7 @@
 | Run (dev) | `mvn spring-boot:run -Dspring-boot.run.profiles=dev` |
 | Run (prod) | `mvn spring-boot:run -Dspring-boot.run.profiles=prod` |
 
-### Web Admin (workdir: `web-admin/`)
+### Web Admin (workdir: `apps/web-admin/`)
 | Task | Command |
 |---|---|
 | Install deps | `npm install` |
@@ -303,11 +303,11 @@ Live Floor filter buttons are `.floor-chip`, not `.channel-chip`).
 - **Landscape**: Avoid fixed-height containers (`height(56.dp)` is fine for buttons, but avoid `.fillMaxHeight()` without scroll context)
 
 ## Key Paths
-- Android app: `Android/app/src/main/java/com/khanabook/lite/pos/`
-- Server source: `server/src/main/java/com/khanabook/saas/`
-- Web admin source: `web-admin/src/`
-- Android tests: `Android/app/src/test/` (unit), `Android/app/src/androidTest/` (instrumented)
-- Server tests: `server/src/test/java/com/khanabook/saas/`
+- Android app: `apps/android/app/src/main/java/com/khanabook/lite/pos/`
+- Server source: `services/server/src/main/java/com/khanabook/saas/`
+- Web admin source: `apps/web-admin/src/`
+- Android tests: `apps/android/app/src/test/` (unit), `apps/android/app/src/androidTest/` (instrumented)
+- Server tests: `services/server/src/test/java/com/khanabook/saas/`
 - **Android UI Rules: `ANDROID_UI_RULES.md`** — MUST be followed for all new Android screens
 
 ## Deployment (live VPS — Docker Compose)
@@ -355,7 +355,7 @@ git pull
 # override docroot: WEB_ROOT=/path/to/docroot ./ops/deploy-web.sh
 # reuse existing build: SKIP_BUILD=1 ./ops/deploy-web.sh
 ```
-- Build output: `web-admin/dist/khanabook-web-admin/browser/` (Angular 18, `base href="/"`).
+- Build output: `apps/web-admin/dist/khanabook-web-admin/browser/` (Angular 18, `base href="/"`).
 - `deploy-web.sh` backs up the current docroot to `<docroot>.bak.<timestamp>` before syncing.
 - Frontend API base is hardcoded to `https://kbook.iadv.cloud/api/v1` in `environment.prod.ts`.
 

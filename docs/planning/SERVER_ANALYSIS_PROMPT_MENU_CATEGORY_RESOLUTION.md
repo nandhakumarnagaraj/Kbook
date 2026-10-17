@@ -88,7 +88,7 @@ CLIENT FAILURE SEMANTICS (why this is destructive, not just noisy):
 ──────────────────────────────────────────────────────────────────────────────
 3. SERVER CODE PATH TO START FROM
 ──────────────────────────────────────────────────────────────────────────────
-  server/src/main/java/com/khanabook/saas/feature/menu/service/MenuItemServiceImpl.java
+  services/server/src/main/java/com/khanabook/saas/feature/menu/service/MenuItemServiceImpl.java
     pushData(tenantId, payload)  — lines ~35-100
     The rejection string is emitted at line ~83.
 

@@ -25,7 +25,7 @@ primitives** — reusable scaffolds sitting between the design-system atoms
 
 ## Layout primitives
 
-All live in `Android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/`.
+All live in `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/`.
 
 ### StickyBottomScaffold
 

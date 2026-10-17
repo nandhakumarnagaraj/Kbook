@@ -2,7 +2,7 @@
 
 **Created:** 2026-08-21  
 **Status:** PLANNING (do NOT refactor without full test coverage)  
-**File:** `Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`  
+**File:** `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`  
 **Current size:** ~1,600 lines (69KB+)
 
 ---

@@ -14,7 +14,7 @@ set -euo pipefail
 #
 # Usage:
 #   ops/flyway_reconcile_checksums.sh              # uses REMOTE_DIR + compose .env
-#   MIGRATION_DIR=server/src/main/resources/db/migration ./...  # local dev override
+#   MIGRATION_DIR=services/server/src/main/resources/db/migration ./...  # local dev override
 #
 # Requires: bash, a running `postgres` container (or psql in PATH when
 # MIGRATION_DIR + a connection string are supplied directly), and python3 for
@@ -28,7 +28,7 @@ set -euo pipefail
 ROOT_DIR="${ROOT_DIR:-/var/www/kbook.iadv.cloud}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/ops/docker-compose.production.yml}"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
-MIGRATION_DIR="${MIGRATION_DIR:-server/src/main/resources/db/migration}"
+MIGRATION_DIR="${MIGRATION_DIR:-services/server/src/main/resources/db/migration}"
 
 if [ -f "$ENV_FILE" ]; then
   set -a

@@ -80,6 +80,6 @@ hardware-sensitive.
 
 ## License
 
-KhanaBook Server is licensed under the MIT License. See `server/LICENSE`.
+KhanaBook Server is licensed under the MIT License. See `services/server/LICENSE`.
 
 KhanaBook Lite Android app is an internal/private project. All rights reserved.

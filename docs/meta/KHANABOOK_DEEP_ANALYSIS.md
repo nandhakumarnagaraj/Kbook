@@ -54,7 +54,7 @@ SMTP (email notifications)
 
 ## 3. CORE DATA MODEL (VERIFIED FROM SOURCE)
 
-**Server entities** (`server/src/main/java/com/khanabook/saas/entity/`)
+**Server entities** (`services/server/src/main/java/com/khanabook/saas/entity/`)
 - `Bill`, `BillItem`, `BillPayment`
 - `Category`, `MenuItem`, `ItemVariant`
 - `RestaurantProfile` (business profile + `EasebuzzEnabled` flag)
@@ -68,7 +68,7 @@ SMTP (email notifications)
 - `FssaiTracker`, `FssaiRenewal`
 - `SyncQuarantine` equivalent on server: `SyncQuarantineEntity` (Android); conflict resolution via `GenericSyncService.saveAll()` per-record fallback.
 
-**Android entities** (`Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/`)
+**Android entities** (`apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/`)
 - `BillEntity`, `BillItemEntity`, `BillPaymentEntity`
 - `CategoryEntity`, `MenuItemEntity`
 - `KitchenPrintQueueEntity`, `KotEventEntity` (no server migration — deferred)
@@ -260,26 +260,26 @@ mvn test → package JAR → PostgreSQL backup (ops/backup_postgres.sh)
 ## 11. KEY FILE INVENTORY (VERIFIED PATHS)
 
 ```
-Billing ................ server/src/main/java/com/khanabook/saas/controller/BillController.java
-Payment Service ......... server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java (750 lines)
-Sub-Merchant Service ..... server/src/main/java/com/khanabook/saas/service/SubMerchantService.java (698 lines)
-Onboarding Service ....... server/src/main/java/com/khanabook/saas/service/OnboardingService.java
-Public QR Order ......... server/src/main/java/com/khanabook/saas/controller/PublicOrderController.java
-Marketplace Webhook ..... server/src/main/java/com/khanabook/saas/controller/MarketplaceWebhookController.java
-Menu OCR ................. server/src/main/java/com/khanabook/saas/controller/MenuExtractionController.java
-Inventory Controller ..... server/src/main/java/com/khanabook/saas/controller/InventoryController.java
-Web Admin Terminals ..... server/src/main/java/com/khanabook/saas/webadmin/controller/TerminalManagementController.java
-Web Admin Sub-Merchants .. server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java
-Web Admin Onboarding ... server/src/main/java/com/khanabook/saas/webadmin/controller/OnboardingController.java
-Web Admin Dashboard ..... server/src/main/java/com/khanabook/saas/webadmin/controller/AdminDashboardController.java
-Android Billing .......... Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/newbill/
-Android Payment Link ..... Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentLinkScreen.kt
-Android Inventory ........ Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/InventoryScreen.kt
-Android Reports .......... Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/reports/ReportViews.kt
-Android App Lock ......... Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/applock/AppLockView.kt
-Android Sync .............. Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt
-Android Entities .......... Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/
-Server Entities ........... server/src/main/java/com/khanabook/saas/entity/
+Billing ................ services/server/src/main/java/com/khanabook/saas/controller/BillController.java
+Payment Service ......... services/server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java (750 lines)
+Sub-Merchant Service ..... services/server/src/main/java/com/khanabook/saas/service/SubMerchantService.java (698 lines)
+Onboarding Service ....... services/server/src/main/java/com/khanabook/saas/service/OnboardingService.java
+Public QR Order ......... services/server/src/main/java/com/khanabook/saas/controller/PublicOrderController.java
+Marketplace Webhook ..... services/server/src/main/java/com/khanabook/saas/controller/MarketplaceWebhookController.java
+Menu OCR ................. services/server/src/main/java/com/khanabook/saas/controller/MenuExtractionController.java
+Inventory Controller ..... services/server/src/main/java/com/khanabook/saas/controller/InventoryController.java
+Web Admin Terminals ..... services/server/src/main/java/com/khanabook/saas/webadmin/controller/TerminalManagementController.java
+Web Admin Sub-Merchants .. services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java
+Web Admin Onboarding ... services/server/src/main/java/com/khanabook/saas/webadmin/controller/OnboardingController.java
+Web Admin Dashboard ..... services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminDashboardController.java
+Android Billing .......... apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/newbill/
+Android Payment Link ..... apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentLinkScreen.kt
+Android Inventory ........ apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/InventoryScreen.kt
+Android Reports .......... apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/reports/ReportViews.kt
+Android App Lock ......... apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/applock/AppLockView.kt
+Android Sync .............. apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt
+Android Entities .......... apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/
+Server Entities ........... services/server/src/main/java/com/khanabook/saas/entity/
 Plan / Deferred .......... docs/planning/PLAN.md (line 17: deferred list)
 Product Definition ........ docs/product/PRODUCT.md
 Web Admin Spec ............ docs/specs/web-admin-v1-features.md

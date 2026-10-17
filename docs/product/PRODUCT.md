@@ -8,13 +8,13 @@
 
 KhanaBook is an offline-first restaurant billing & operations SaaS: Android POS
 terminals that keep working with zero connectivity, a web-admin console for the
-owner, and a multi-tenant Spring Boot backend (`server/`) in production on
+owner, and a multi-tenant Spring Boot backend (`services/server/`) in production on
 PostgreSQL. Billing, payments, menu, inventory, reports, staff and notifications
 all flow through a batch-based, conflict-safe sync engine.
 
 ## Roles
 
-Canonical source: `server/.../feature/auth/entity/UserRole.java`
+Canonical source: `services/server/.../feature/auth/entity/UserRole.java`
 (`OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN`); Android mirrors the first two via
 `feature/auth/domain/SessionManager.kt`.
 
@@ -29,11 +29,11 @@ Canonical source: `server/.../feature/auth/entity/UserRole.java`
 - SHOP_STAFF get exactly `SHOP_STAFF_GRANTED_KEYS` — no per-operation grant/revoke
   rows are honored, on either side:
   - Server: `PermissionService.hasPermission` / `getGrantedPermissions` return the fixed
-    role set only for SHOP_STAFF (`server/.../staff/service/PermissionService.java`).
+    role set only for SHOP_STAFF (`services/server/.../staff/service/PermissionService.java`).
   - Android: `PermissionManager.hasPermission` pins staff to the fixed set and ignores
-    synced explicit grants (`Android/.../staff/domain/PermissionManager.kt`).
+    synced explicit grants (`apps/android/.../staff/domain/PermissionManager.kt`).
 - Web-admin permission editor is read-only for SHOP_STAFF
-  (`web-admin/.../staff/staff-permissions-modal.component.ts`).
+  (`apps/web-admin/.../staff/staff-permissions-modal.component.ts`).
 - The owner CANNOT give a staff member "extra permissions". Role-set changes require
   a code change + redeploy (editing the config/grant sets).
 
@@ -41,9 +41,9 @@ Canonical source: `server/.../feature/auth/entity/UserRole.java`
 
 | Platform | Stack | Purpose |
 |---|---|---|
-| **Android POS** (`Android/`) | Kotlin, Jetpack Compose, Room, Retrofit, WorkManager | On-device billing terminals; single-user POS; works offline |
-| **Web-admin** (`web-admin/`) | Angular | Owner console: staff, reports, business/KYC, permissions, templates, notifications |
-| **Backend** (`server/`) | Spring Boot, PostgreSQL, docker-compose (prod/staging) | Multi-tenant API + sync engine (source of truth) |
+| **Android POS** (`apps/android/`) | Kotlin, Jetpack Compose, Room, Retrofit, WorkManager | On-device billing terminals; single-user POS; works offline |
+| **Web-admin** (`apps/web-admin/`) | Angular | Owner console: staff, reports, business/KYC, permissions, templates, notifications |
+| **Backend** (`services/server/`) | Spring Boot, PostgreSQL, docker-compose (prod/staging) | Multi-tenant API + sync engine (source of truth) |
 
 ### Access by role × platform
 
@@ -128,7 +128,7 @@ offline forever). Permission cache survives process death (Room `permission_cach
 | `terminal_daily_counter` | Per-terminal, per-day bill numbering. Rebuilt/seeded from synced bills. |
 | `sync_quarantine_records`, `permission_cache`, `notifications` | Sync sandbox, offline-authorization mirror, local notification log. |
 
-### PostgreSQL (production, `server/`)
+### PostgreSQL (production, `services/server/`)
 
 Bills, bill items & bill payments (**KOT state rides on bill items** as
 `kotState`/`kotStatus`), menu (categories/items/variants), restaurant profile,

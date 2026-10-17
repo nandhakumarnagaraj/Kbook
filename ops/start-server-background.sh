@@ -1,5 +1,5 @@
 #!/bin/bash
-cd "$(dirname "$0")/server"
+cd "$(dirname "$0")/services/server"
 export DB_URL=jdbc:postgresql://localhost:5432/kbook_saas
 export DB_USERNAME=postgres
 export DB_PASSWORD=root

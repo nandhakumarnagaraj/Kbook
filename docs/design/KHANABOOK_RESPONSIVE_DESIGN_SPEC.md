@@ -359,7 +359,7 @@ All interactive controls meet the 48dp minimum touch target requirement.
 - `docs/design/ResponsiveLayoutMigration.md` — Migration history and primitive usage examples
 - `docs/design/DESIGN_SYSTEM_FREEZE.md` — Locked palette, typography, shapes, spacing
 - `docs/meta/ANDROID_UI_RULES.md` — Existing UI pattern preservation rules
-- `Android/.../ui/theme/Responsive.kt` — Token implementation
-- `Android/.../ui/designsystem/StickyBottomScaffold.kt` — Scaffold implementation
-- `Android/.../ui/designsystem/ScrollableCenteredLayout.kt` — Centered layout implementation
-- `Android/.../ui/designsystem/ListLayout.kt` — List layout implementation
+- `apps/android/.../ui/theme/Responsive.kt` — Token implementation
+- `apps/android/.../ui/designsystem/StickyBottomScaffold.kt` — Scaffold implementation
+- `apps/android/.../ui/designsystem/ScrollableCenteredLayout.kt` — Centered layout implementation
+- `apps/android/.../ui/designsystem/ListLayout.kt` — List layout implementation

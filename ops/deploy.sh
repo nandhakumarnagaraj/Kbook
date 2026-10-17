@@ -5,9 +5,9 @@
 set -e
 
 SERVICE=khanabook
-JAR=/var/www/kbook.iadv.cloud/server/target/saas-backend-0.0.1-SNAPSHOT.jar
+JAR=/var/www/kbook.iadv.cloud/services/server/target/saas-backend-0.0.1-SNAPSHOT.jar
 JAR_PREV="${JAR}.prev"
-SERVER_DIR=/var/www/kbook.iadv.cloud/server
+SERVER_DIR=/var/www/kbook.iadv.cloud/services/server
 HEALTH_URL=http://localhost:8080/actuator/health
 OPENAPI_URL=http://localhost:8080/v3/api-docs
 MAX_WAIT=60   # seconds to wait for startup before declaring failure

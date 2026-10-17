@@ -8,7 +8,7 @@ ENV_FILE="$ROOT_DIR/.env"
 cd "$ROOT_DIR"
 
 # Stamp the build with the identity of the checked-out commit before building. The
-# Maven build context is server/, so the builder cannot read the repository itself;
+# Maven build context is services/server/, so the builder cannot read the repository itself;
 # without these args the jar ships with an empty git.properties and the running
 # version becomes unidentifiable.
 GIT_COMMIT_ID="$(git rev-parse HEAD)"

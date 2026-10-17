@@ -5,7 +5,7 @@ Requirements: Baseline Precondition (Requirement 1.6)
 
 | Field | Value |
 |---|---|
-| Module path set | `Android/` |
+| Module path set | `apps/android/` |
 | Recorded on | 2026-08-05 |
 | Branch under audit | `v3` (cut from `origin/main` @ `3b47c39c`, plus a Maven wrapper commit and spec/provenance docs commits) |
 | `git status --porcelain` at time of recording | `M .kiro/specs/v2-feature-integration/tasks.md` only — verified below, not assumed |
@@ -36,13 +36,13 @@ directly.
 
 | Path | Original concern | Comparison result | Decision | Action taken |
 |---|---|---|---|---|
-| `Android/.../data/local/dao/TenantDaos.kt` | Uncommitted edit on `main`, unknown provenance | File does not exist in `archive` or in `v2` at all (`fatal: path ... exists on disk, but not in 'archive/v2-wip-v1-backport'` / same for `v2`) — it is a `main`-only file with no v2 counterpart | **DISCARD** (nothing to port; no v2-side content exists to compare against) | None. File is untouched on `v3` and identical to `origin/main`. |
-| `Android/.../data/local/dao/BillDao.kt` | Uncommitted edit, unknown provenance | `archive` blob SHA `782f438f...` == `v2` blob SHA `782f438f...` (byte-identical). Diff vs `origin/main`: 112 insertions / 1169 deletions — the archived version is `v2`'s file verbatim | **DISCARD** | None. `v2`'s `BillDao.kt` predates `main`'s terminal-scoped, multi-payment-mode, quarantine-aware implementation (Req 4, 9); wholesale adoption would regress it. |
-| `Android/.../data/local/dao/RestaurantDao.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`37199c08...`) | **DISCARD** | None. |
-| `Android/.../data/repository/RestaurantRepository.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`50483b92...`) | **DISCARD** | None. |
-| `Android/.../ui/screens/NewBillScreen.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`65595ff3...`) | **DISCARD** | None. This is `v2`'s screen, predating `main`'s payment-mode/terminal/KOT integration (Req 4, 8, 20). |
-| `Android/.../ui/screens/SettingsScreen.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`6282d9b3...`) | **DISCARD** | None. |
-| `Android/.../ui/viewmodel/BillingViewModel.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`07479861...`) | **DISCARD** | None. `v2`'s view model predates `main`'s hardened sync/payment-set-validation logic (Req 9). |
+| `apps/android/.../data/local/dao/TenantDaos.kt` | Uncommitted edit on `main`, unknown provenance | File does not exist in `archive` or in `v2` at all (`fatal: path ... exists on disk, but not in 'archive/v2-wip-v1-backport'` / same for `v2`) — it is a `main`-only file with no v2 counterpart | **DISCARD** (nothing to port; no v2-side content exists to compare against) | None. File is untouched on `v3` and identical to `origin/main`. |
+| `apps/android/.../data/local/dao/BillDao.kt` | Uncommitted edit, unknown provenance | `archive` blob SHA `782f438f...` == `v2` blob SHA `782f438f...` (byte-identical). Diff vs `origin/main`: 112 insertions / 1169 deletions — the archived version is `v2`'s file verbatim | **DISCARD** | None. `v2`'s `BillDao.kt` predates `main`'s terminal-scoped, multi-payment-mode, quarantine-aware implementation (Req 4, 9); wholesale adoption would regress it. |
+| `apps/android/.../data/local/dao/RestaurantDao.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`37199c08...`) | **DISCARD** | None. |
+| `apps/android/.../data/repository/RestaurantRepository.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`50483b92...`) | **DISCARD** | None. |
+| `apps/android/.../ui/screens/NewBillScreen.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`65595ff3...`) | **DISCARD** | None. This is `v2`'s screen, predating `main`'s payment-mode/terminal/KOT integration (Req 4, 8, 20). |
+| `apps/android/.../ui/screens/SettingsScreen.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`6282d9b3...`) | **DISCARD** | None. |
+| `apps/android/.../ui/viewmodel/BillingViewModel.kt` | Uncommitted edit, unknown provenance | `archive` == `v2` byte-identical (`07479861...`) | **DISCARD** | None. `v2`'s view model predates `main`'s hardened sync/payment-set-validation logic (Req 9). |
 
 **Finding.** For every protected file that exists on both sides, the file committed onto
 `archive/v2-wip-v1-backport` is byte-for-byte identical to the corresponding file on `v2`
@@ -71,7 +71,7 @@ or any branch currently carries them, and there is no artifact to recover them f
 
 | Path / category | Original concern | Comparison result | Decision | Action taken |
 |---|---|---|---|---|
-| `Android/app/src/main/res/mipmap-*/ic_launcher*.{webp,png}` | "Half-finished launcher-icon webp→png migration" in the original dirty tree | `origin/main` (`v3`'s base) carries **only** `.png` launcher icons across all five densities (`mipmap-hdpi/mdpi/xhdpi/xxhdpi/xxxhdpi`) — zero `.webp` files remain anywhere under `Android/app/src/main/res`. `archive/v2-wip-v1-backport` carries the same 15 icon files but all as `.webp` — `v2`'s original, unmigrated state. | **CLOSED — already resolved on `v3`'s base, no action needed** | None. The migration this concern describes is complete on `origin/main`/`v3` already; the archive simply reflects `v2`'s pre-migration state, which is irrelevant since `v3` doesn't descend from `v2`. |
+| `Android/app/src/main/res/mipmap-*/ic_launcher*.{webp,png}` | "Half-finished launcher-icon webp→png migration" in the original dirty tree | `origin/main` (`v3`'s base) carries **only** `.png` launcher icons across all five densities (`mipmap-hdpi/mdpi/xhdpi/xxhdpi/xxxhdpi`) — zero `.webp` files remain anywhere under `apps/android/app/src/main/res`. `archive/v2-wip-v1-backport` carries the same 15 icon files but all as `.webp` — `v2`'s original, unmigrated state. | **CLOSED — already resolved on `v3`'s base, no action needed** | None. The migration this concern describes is complete on `origin/main`/`v3` already; the archive simply reflects `v2`'s pre-migration state, which is irrelevant since `v3` doesn't descend from `v2`. |
 
 The original precondition in `requirements.md` was written against `main`'s state at spec
 authoring time, when the migration was mid-flight in the uncommitted tree. That
@@ -84,10 +84,10 @@ There is nothing to reconcile.
 
 | Path | Original concern | Comparison result | Decision | Action taken |
 |---|---|---|---|---|
-| `Android/app/build.gradle.kts` | Build-config drift | `git diff origin/main archive/v2-wip-v1-backport` — **no output, byte-identical** | **CLOSED — no drift exists** | None. |
-| `Android/build.gradle.kts` (root) | Build-config drift | Byte-identical, same check | **CLOSED — no drift exists** | None. |
-| `Android/gradle/libs.versions.toml` | Build-config drift | Byte-identical (`agp = "8.9.1"`, `kotlin = "2.0.21"` on both sides). Confirmed this is `main`'s AGP version, not `v2`'s (`v2` pins `agp = "8.7.3"` directly) — the archive did not carry `v2`'s catalog for this file. | **CLOSED — no drift exists** | None. |
-| `Android/gradle/wrapper/gradle-wrapper.properties` | Build-config drift | **Differs.** `origin/main`/`v3`: Gradle `8.11.1` (`distributionSha256Sum=f397b287...`). `archive`: Gradle `9.2.1` (`distributionSha256Sum=72f44c9f...`), byte-identical to `v2`'s own wrapper file. | **DISCARD** | None. This is `v2`-authored wrapper-version drift (an upgrade attempt made on the `v2`-derived working tree), not a v1 config fix `v3` is missing. Bumping `v3`'s wrapper to Gradle 9.2.1 unilaterally, outside of any specified task, risks an unreviewed toolchain change (AGP 8.9.1 compatibility with Gradle 9.x was not verified here) and isn't something this task's scope authorizes. |
+| `apps/android/app/build.gradle.kts` | Build-config drift | `git diff origin/main archive/v2-wip-v1-backport` — **no output, byte-identical** | **CLOSED — no drift exists** | None. |
+| `apps/android/build.gradle.kts` (root) | Build-config drift | Byte-identical, same check | **CLOSED — no drift exists** | None. |
+| `apps/android/gradle/libs.versions.toml` | Build-config drift | Byte-identical (`agp = "8.9.1"`, `kotlin = "2.0.21"` on both sides). Confirmed this is `main`'s AGP version, not `v2`'s (`v2` pins `agp = "8.7.3"` directly) — the archive did not carry `v2`'s catalog for this file. | **CLOSED — no drift exists** | None. |
+| `apps/android/gradle/wrapper/gradle-wrapper.properties` | Build-config drift | **Differs.** `origin/main`/`v3`: Gradle `8.11.1` (`distributionSha256Sum=f397b287...`). `archive`: Gradle `9.2.1` (`distributionSha256Sum=72f44c9f...`), byte-identical to `v2`'s own wrapper file. | **DISCARD** | None. This is `v2`-authored wrapper-version drift (an upgrade attempt made on the `v2`-derived working tree), not a v1 config fix `v3` is missing. Bumping `v3`'s wrapper to Gradle 9.2.1 unilaterally, outside of any specified task, risks an unreviewed toolchain change (AGP 8.9.1 compatibility with Gradle 9.x was not verified here) and isn't something this task's scope authorizes. |
 
 Three of the four build-config paths named in the original concern have no drift at all
 between `origin/main` and the archived snapshot — the "drift" the precondition described
@@ -100,7 +100,7 @@ reason as the protected files above.
 
 | Path | Original concern | Comparison result | Decision | Action taken |
 |---|---|---|---|---|
-| `Android/app/google-services.json` | "Modified tracked `google-services.json`" of unknown intent | **Differs.** `archive`'s copy is byte-identical to `v2`'s copy. The diff against `origin/main` adds five extra OAuth client entries under the debug package (`com.piquantservices.khanabooklite.debug`), each with a different `certificate_hash`, and changes the debug variant's `mobilesdk_app_id` suffix from `...c64c771a037239514e8bd5` to `...b1f82aa6c065ebcb4e8bd5`. `project_info` (project id/number) is unchanged on both sides. | **DEFER** | None — see below. |
+| `apps/android/app/google-services.json` | "Modified tracked `google-services.json`" of unknown intent | **Differs.** `archive`'s copy is byte-identical to `v2`'s copy. The diff against `origin/main` adds five extra OAuth client entries under the debug package (`com.piquantservices.khanabooklite.debug`), each with a different `certificate_hash`, and changes the debug variant's `mobilesdk_app_id` suffix from `...c64c771a037239514e8bd5` to `...b1f82aa6c065ebcb4e8bd5`. `project_info` (project id/number) is unchanged on both sides. | **DEFER** | None — see below. |
 
 This one cannot be closed with the same confidence as the others. The extra OAuth client
 entries are plausible legitimate additions — Google Sign-In is genuinely used in
@@ -344,7 +344,7 @@ addition in an uncommitted tree.
 
 ### 7.1 Field catalog — current `v3` file
 
-`Android/app/google-services.json` contains three `client` blocks (one per
+`apps/android/app/google-services.json` contains three `client` blocks (one per
 `applicationId` variant built from this module: release `com.piquantservices.khanabook`,
 lite-release `com.piquantservices.khanabooklite`, and lite-debug
 `com.piquantservices.khanabooklite.debug`), plus one shared `project_info` block and a
@@ -380,7 +380,7 @@ PS> Select-String -Path .gitignore -Pattern "google-services"
 (no match)
 ```
 
-Neither `.gitignore` (root or `Android/`) excludes `google-services.json`. Both do exclude
+Neither `.gitignore` (root or `apps/android/`) excludes `google-services.json`. Both do exclude
 genuine secrets in the same area — `*.jks`, `*.keystore`, `keystore.properties`,
 `signing.properties`, `secrets.properties`, `local.properties` — which shows the project's
 `.gitignore` authors deliberately distinguish "things that must never be committed"
@@ -451,7 +451,7 @@ authorize the entries.
 
 ### 7.4 Determination — current `v3` file
 
-**Yes.** `v3`'s current, already-committed `Android/app/google-services.json` is intended
+**Yes.** `v3`'s current, already-committed `apps/android/app/google-services.json` is intended
 client configuration and contains no server-side credential.
 
 Reasoning: every field present (7.1) is either a public project/app identifier, an

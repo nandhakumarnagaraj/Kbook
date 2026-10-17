@@ -40,7 +40,7 @@ set -euo pipefail
 ROOT_DIR="${ROOT_DIR:-/var/www/kbook.iadv.cloud}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/ops/docker-compose.production.yml}"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
-MIGRATION_DIR="${MIGRATION_DIR:-server/src/main/resources/db/migration}"
+MIGRATION_DIR="${MIGRATION_DIR:-services/server/src/main/resources/db/migration}"
 TARGET_VERSION="${TARGET_VERSION:-82}"
 # Rows used to prove the checksum implementation is correct before writing.
 SELFCHECK_VERSIONS="${SELFCHECK_VERSIONS:-1 26 106}"

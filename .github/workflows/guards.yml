@@ -28,7 +28,7 @@ jobs:
               --exclude-dir=node_modules --exclude-dir=build \
               --exclude-dir=target --exclude-dir=dist --exclude-dir=.gradle \
               -e 'DbCheck' -e 'QuickDbCheck' -e 'dev-debug' -e 'dev-refresh' \
-              Android server web-admin; then
+              apps/android services/server apps/web-admin; then
             echo "::error::v2 debris found: DbCheck/QuickDbCheck/dev-debug/dev-refresh"
             exit 1
           fi
@@ -36,9 +36,9 @@ jobs:
       - name: Grep Storefront-named source files
         run: |
           # v1-legit exception list (must not be re-flagged):
-          #   Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/StorefrontOrderDtos.kt
-          #   server/src/main/resources/db/migration/V8__add_storefront_customer_orders.sql
-          bad=$(find Android server web-admin -type f \
+          #   apps/android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/StorefrontOrderDtos.kt
+          #   services/server/src/main/resources/db/migration/V8__add_storefront_customer_orders.sql
+          bad=$(find apps/android services/server apps/web-admin -type f \
               \( -name '*.kt' -o -name '*.java' -o -name '*.ts' -o -name '*.sql' \) \
               -iname '*storefront*' \
               -not -path '*/node_modules/*' -not -path '*/build/*' \
@@ -94,7 +94,7 @@ jobs:
           if grep -rnEI --include='*.ts' --include='*.html' \
               --exclude-dir=node_modules --exclude-dir=dist \
               'class="panel loading".*role="alert"|role="alert".*class="panel loading"' \
-              web-admin/src; then
+              apps/web-admin/src; then
             echo "::error::Found class='panel loading' combined with role='alert'"
             exit 1
           fi

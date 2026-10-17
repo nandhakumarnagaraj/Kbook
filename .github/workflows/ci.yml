@@ -34,7 +34,7 @@ jobs:
       # They are excluded so CI starts green; REMOVE them from this list as each
       # is fixed — do not add new ones.
       - name: Run server tests
-        working-directory: server
+        working-directory: services/server
         run: >
           ./mvnw -B test
           -Dtest='!EasebuzzWebhookTest,!EasebuzzWebhookServiceTest'
@@ -62,7 +62,7 @@ jobs:
       # Two clients are required: the release id, and the debug id, because the
       # debug build type adds an applicationIdSuffix of ".debug".
       - name: Create stub google-services.json
-        working-directory: Android/app
+        working-directory: apps/android/app
         run: |
           cat > google-services.json <<'JSON'
           {
@@ -132,7 +132,7 @@ jobs:
           JSON
 
       - name: Run Android unit tests
-        working-directory: Android
+        working-directory: apps/android
         run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
 
   web-admin:
@@ -146,18 +146,18 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: web-admin/package-lock.json
+          cache-dependency-path: apps/web-admin/package-lock.json
 
       - name: Install dependencies
-        working-directory: web-admin
+        working-directory: apps/web-admin
         run: npm ci
 
       - name: Run Angular tests (headless Chrome)
-        working-directory: web-admin
+        working-directory: apps/web-admin
         run: npm test -- --watch=false --browsers=ChromeHeadless
 
       # The motion band is a whole-app rule, and a Karma run only sees the pages a spec
       # happens to mount — this reads every stylesheet and component template instead.
       - name: Check the motion band (150-300ms)
-        working-directory: web-admin
+        working-directory: apps/web-admin
         run: npm run check:motion

@@ -9,7 +9,7 @@
 
 ### Current layout evidence
 
-`Android/app/src/main/java/com/khanabook/lite/pos/feature/menu/ui/ManualMenuView.kt`
+`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/menu/ui/ManualMenuView.kt`
 
 - Items list is a `LazyColumn` with `weight(1f)` (line 310-317):
   ```kotlin
@@ -23,7 +23,7 @@
   )
   ```
 - Fixed footer `Surface` with the "Add New Item" button sits directly below the list (line 372-410). Footer internal padding: `padding(horizontal = spacing.medium, vertical = spacing.smallMedium)` (line 378-380) plus a `Spacer(modifier = Modifier.height(spacing.small))` (line 384) above the button.
-- `bottomListPadding` is a hard-coded **88.dp** token: `Android/app/src/main/java/com/khanabook/lite/pos/core/theme/Spacing.kt:22` (`val bottomListPadding: Dp = 88.dp`, scaled per type tier at line 105).
+- `bottomListPadding` is a hard-coded **88.dp** token: `apps/android/app/src/main/java/com/khanabook/lite/pos/core/theme/Spacing.kt:22` (`val bottomListPadding: Dp = 88.dp`, scaled per type tier at line 105).
 
 ### Root cause
 
@@ -44,7 +44,7 @@ Not applied (still open): deriving the inset from the measured footer height, an
 
 ### 2a. New Bill menu-selection bottom spacing
 
-`Android/app/src/main/java/com/khanabook/lite/pos/feature/billing/ui/MenuSelectionStep.kt`
+`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/billing/ui/MenuSelectionStep.kt`
 
 - Grid: `LazyVerticalGrid(columns = GridCells.Fixed(paneColumns), modifier = Modifier.fillMaxSize().padding(spacing.medium), ...)` (line 320-325) — 16dp inset on **all four sides**.
 - Trailing full-span spacer item (line 467-469):
@@ -72,11 +72,11 @@ Not applied (still open): the shared footer-height-derived helper proposed below
 
 Two different loaders exist in the codebase:
 
-**Loader A — `ShopLogoLoader`** (`Android/app/src/main/java/com/khanabook/lite/pos/core/util/ShopLogoLoader.kt:20-55`):
+**Loader A — `ShopLogoLoader`** (`apps/android/app/src/main/java/com/khanabook/lite/pos/core/util/ShopLogoLoader.kt:20-55`):
 tries remote `logoUrl` via Coil (memory+disk cache) → local `logoPath` via `AppAssetStore.resolveAssetPath` → app default `R.drawable.khanabook_logo`.
 Used by: UPI test-QR (`feature/payments/ui/PaymentConfigSection.kt:143`), payment/confirmation sections (`feature/billing/ui/PaymentSection.kt:121`, `OrderConfirmationSection.kt:520`), invoice text/PDF (`feature/billing/domain/InvoiceFormatter.kt:55`, `feature/printing/domain/InvoicePDFGenerator.kt:80`), report export (`feature/reports/domain/ReportExporter.kt:93`).
 
-**Loader B — inline `AsyncImage`** in the settings Shop Profile screen (`Android/app/src/main/java/com/khanabook/lite/pos/feature/settings/ui/ShopConfigSection.kt:299-339`):
+**Loader B — inline `AsyncImage`** in the settings Shop Profile screen (`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/settings/ui/ShopConfigSection.kt:299-339`):
 ```kotlin
 val logoModel = pendingLogoUri?.toString()
     ?: logoUrl?.takeIf { it.isNotBlank() }
@@ -188,7 +188,7 @@ The **Order Details dialog is read-only** — it *displays* the mode (`OrderDeta
    - `activePayments = billDao.getActivePaymentsForBill(id, restaurantId)` (`:469`; query `BillDao.kt:153-158`); **only if exactly 1 record** → `billDao.updateBillPayments(...)` with the new mode (`:470-482`; `@Update` `BillDao.kt:150-151`).
    - `triggerBackgroundSync()` (`:484`) → `workManager.enqueueMasterSyncOnce()` (`:116-118`).
 4. Sync push: `MasterSyncProcessor.pushSingleBill` (`feature/sync/domain/MasterSyncProcessor.kt:381-442`).
-5. Server apply: `BillSyncService.protectBillState` (`server/.../billing/service/BillSyncService.java:314-354`) — a **strictly greater `statusVersion`** is treated as a deliberate edit and applied (`isDeliberateStatusEdit`, `:361-363`).
+5. Server apply: `BillSyncService.protectBillState` (`services/server/.../billing/service/BillSyncService.java:314-354`) — a **strictly greater `statusVersion`** is treated as a deliberate edit and applied (`isDeliberateStatusEdit`, `:361-363`).
 
 ### Read path (why the row shows what it shows)
 
@@ -274,6 +274,6 @@ Dialog composable: `feature/billing/ui/OrderTableComponents.kt:279-326`, built o
 
 ### Additional working-tree changes observed (uncommitted, same batch)
 
-- `Android/app/proguard-rules.pro` — keep rules for the renamed SQLCipher package `net.zeteta.**` (alongside the now-dead `net.sqlcipher.**` rules) + Room/`androidx.room.**`/`androidx.sqlite.db.**`/`androidx.security.crypto.**` hardening.
+- `apps/android/app/proguard-rules.pro` — keep rules for the renamed SQLCipher package `net.zeteta.**` (alongside the now-dead `net.sqlcipher.**` rules) + Room/`androidx.room.**`/`androidx.sqlite.db.**`/`androidx.security.crypto.**` hardening.
 - `core/database/DatabaseProvider.kt` — log-string `expectedRoomVersion` bump 78 → 79 (matches `AppDatabase` version 79).
 - `DatabaseMigrationListConsistencyTest.kt` — rewritten from source-text scraping to a behavioural chain test asserting every step 17→18 … 78→79 exists in `AppDatabase.ALL_MIGRATIONS`.

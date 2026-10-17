@@ -182,7 +182,7 @@ Billing and payment consistency improved; crash-safe inventory recovery deferred
 Developer backend commands:
 
 ```bash
-cd server
+cd services/server
 mvn test -Dtest=BillServiceTest,BillServiceImplTest,BillDependencyResolutionTest,SyncPushStrictModeTest,GenericSyncServerOwnedStateTest,BillPublicTokenTest
 mvn test
 ```

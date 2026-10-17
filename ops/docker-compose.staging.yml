@@ -34,7 +34,7 @@ services:
 
   server:
     build:
-      context: ../server
+      context: ../services/server
       dockerfile: Dockerfile
     container_name: kbook-staging-server
     restart: unless-stopped

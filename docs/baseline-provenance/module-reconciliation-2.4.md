@@ -5,8 +5,8 @@ Requirements: 1.7, 1.8, 1.9, 1.10, 1.11
 
 | Field | Value |
 |---|---|
-| Task | 2.4 — Diff each module's paths (`Android/`, `server/`, `web-admin/`) at Baseline_Candidate against its Deployed_Module_Representation; port any content present in production and absent at the candidate, advancing the candidate and re-running the diff until reconciled |
-| Module path sets (criterion 8) | `Android/`, `server/`, `web-admin/` |
+| Task | 2.4 — Diff each module's paths (`apps/android/`, `services/server/`, `apps/web-admin/`) at Baseline_Candidate against its Deployed_Module_Representation; port any content present in production and absent at the candidate, advancing the candidate and re-running the diff until reconciled |
+| Module path sets (criterion 8) | `apps/android/`, `services/server/`, `apps/web-admin/` |
 | Baseline_Candidate at time of recording | `v3` @ `98577de1fa168573606b7f348829168f8fad7cb7` before this task's commit |
 | Recorded on | 2026-08-05 |
 | Overall status | **PARTIAL — 2 of 3 modules addressed.** Web_Admin reconciled. Android cannot be reconciled (its Deployed_Module_Representation is unresolved, per task 1.1). Server is explicitly **BLOCKED**, not attempted (task 1.2 unresolved). |
@@ -17,7 +17,7 @@ Server is deferred by design, per the explicit instruction accompanying this tas
 
 ---
 
-## 1. Android (`Android/`)
+## 1. Android (`apps/android/`)
 
 **Status: CANNOT BE RECONCILED — Deployed_Module_Representation is unresolved.**
 
@@ -26,9 +26,9 @@ provenance resolution status is **UNRESOLVED — narrowed to a 6-commit candidat
 and its provenance kind is **Undetermined**: neither criterion 2 (a resolved commit SHA)
 nor criterion 3 (an artifact-derived snapshot) has been satisfied. The Play Console
 artifact was never reachable from the recording environment, so no `Deployed_Module_Representation`
-exists yet for `Android/` to diff against.
+exists yet for `apps/android/` to diff against.
 
-Criterion 7 requires comparing Baseline_Candidate's `Android/` paths against "the same
+Criterion 7 requires comparing Baseline_Candidate's `apps/android/` paths against "the same
 paths in that module's Deployed_Module_Representation." There is no representation —
 resolved commit or artifact-derived snapshot — to serve as the right-hand side of that
 comparison. Task 1.1 §4 lists six operator-only action items (A through F: confirming the
@@ -62,7 +62,7 @@ been completed and recorded elsewhere, and is not re-litigated here:
 
 - No `git diff <Android_Baseline_Commit> HEAD -- Android/` can be run, because there is
   no resolved commit to diff against.
-- No artifact-derived structural comparison (decompiled APK vs. `Android/` tree) can be
+- No artifact-derived structural comparison (decompiled APK vs. `apps/android/` tree) can be
   run, because no artifact has been downloaded or decompiled.
 - Consequently, no content can be identified as "present in production and absent at the
   candidate" (criterion 10) or vice versa (criterion 12) for this module. Porting cannot
@@ -84,7 +84,7 @@ comparison against the materialised artifact-derived snapshot per task 1.1 §4.D
 
 ---
 
-## 2. Web_Admin (`web-admin/`)
+## 2. Web_Admin (`apps/web-admin/`)
 
 **Status: RECONCILED — one file ported, diff now empty.**
 
@@ -94,7 +94,7 @@ provenance is **artifact-derived**: production runs commit
 (`docs/baseline-provenance/web-admin-artifact-derived.patch`), which changes the
 `sessionStorage` key in `token-storage.service.ts` from `khanabook.webAdmin.session` to
 `khanabook.webAdmin.v1.session`. That combination — commit + patch — is the comparable
-Deployed_Module_Representation for `web-admin/`.
+Deployed_Module_Representation for `apps/web-admin/`.
 
 ### 2.1 Diff before porting
 
@@ -102,7 +102,7 @@ Deployed_Module_Representation for `web-admin/`.
 git diff ad0d2623050c6cef61ffcbd87042f8a60bb7d6b2 HEAD -- web-admin/
 ```
 
-Result: **empty.** `v3`'s `web-admin/` tree at Baseline_Candidate was byte-identical to
+Result: **empty.** `v3`'s `apps/web-admin/` tree at Baseline_Candidate was byte-identical to
 raw commit `ad0d2623` — i.e. identical to the *pre-patch* state, not the deployed state.
 The patch's one line was present in production but absent from Baseline_Candidate: a
 straightforward instance of criterion 10 ("content present in a module's
@@ -123,7 +123,7 @@ matched Baseline_Candidate exactly and the only difference was the one line it c
 
 | Path | Change | Reconciliation decision |
 |---|---|---|
-| `web-admin/src/app/core/auth/token-storage.service.ts` | `STORAGE_KEY` changed from `'khanabook.webAdmin.session'` to `'khanabook.webAdmin.v1.session'` | Port verbatim (criterion 10) — applies the same one-line patch task 1.3 already isolated and verified byte-for-byte against the live docroot bundle |
+| `apps/web-admin/src/app/core/auth/token-storage.service.ts` | `STORAGE_KEY` changed from `'khanabook.webAdmin.session'` to `'khanabook.webAdmin.v1.session'` | Port verbatim (criterion 10) — applies the same one-line patch task 1.3 already isolated and verified byte-for-byte against the live docroot bundle |
 
 Applied directly (equivalent to applying `web-admin-artifact-derived.patch`), not
 re-implemented, since the patch is already the exact, verified diff.
@@ -152,14 +152,14 @@ index 6b7e460e..6db76732 100644
 ```
 
 This diff is expected and correct: it is the same one-line patch, now present at
-Baseline_Candidate. It represents Baseline_Candidate's `web-admin/` tree now being
+Baseline_Candidate. It represents Baseline_Candidate's `apps/web-admin/` tree now being
 content-equivalent to commit `ad0d2623` **plus the patch**, i.e. equivalent to the true
 Deployed_Module_Representation — not to raw `ad0d2623` alone. Diffing against raw
 `ad0d2623` will always show this one line; that is exactly what "reconciled against the
 Deployed_Module_Representation" means for an artifact-derived baseline whose
 representation is commit-plus-patch, not a bare commit.
 
-The correct reconciliation check is therefore: does Baseline_Candidate's `web-admin/`
+The correct reconciliation check is therefore: does Baseline_Candidate's `apps/web-admin/`
 tree match `ad0d2623` with the patch applied? Verified directly:
 
 ```
@@ -169,7 +169,7 @@ diff /tmp/kbook-web-repro/web-admin/src/app/core/auth/token-storage.service.ts \
      web-admin/src/app/core/auth/token-storage.service.ts
 ```
 
-No difference. **No further criterion-10 gaps remain for `web-admin/`.**
+No difference. **No further criterion-10 gaps remain for `apps/web-admin/`.**
 
 ### 2.4 Verification
 
@@ -178,12 +178,12 @@ No difference. **No further criterion-10 gaps remain for `web-admin/`.**
 - `npx tsc --noEmit` (TypeScript type-check, per `AGENTS.md`'s web-admin test commands):
   no errors.
 - `get_diagnostics` on the changed file: no diagnostics.
-- No other file under `web-admin/` differs from `ad0d2623` (confirmed by the full-module
+- No other file under `apps/web-admin/` differs from `ad0d2623` (confirmed by the full-module
   diff in §2.1/§2.3 being scoped to this one file only).
 
 ### 2.5 Outcome
 
-**Web_Admin is reconciled.** Baseline_Candidate's `web-admin/` tree is now
+**Web_Admin is reconciled.** Baseline_Candidate's `apps/web-admin/` tree is now
 content-equivalent to its Deployed_Module_Representation (`ad0d2623` + the one-line
 patch). Criterion 9 is satisfied for this module. No content was found present at
 Baseline_Candidate and absent in production for this module (criterion 12 does not apply
@@ -191,7 +191,7 @@ here) — the only difference was the one item ported above.
 
 ---
 
-## 3. Server (`server/`) — BLOCKED, not attempted
+## 3. Server (`services/server/`) — BLOCKED, not attempted
 
 **Status: EXPLICITLY BLOCKED. No diff was run. This is deferred by design, not a silent skip.**
 
@@ -199,7 +199,7 @@ Task 1.2 (`Record Server_Baseline_Commit from authenticated /api/v1/actuator/inf
 git.commit.id`) is still **in progress / unresolved**. It is blocked on authenticated
 production actuator access, which is being obtained out-of-band by the project owner.
 Without that, no `Server_Baseline_Commit` exists, and therefore no
-`Deployed_Module_Representation` exists for `server/` — there is nothing to diff
+`Deployed_Module_Representation` exists for `services/server/` — there is nothing to diff
 Baseline_Candidate against.
 
 Per `residual-provenance-risk.md` §2, even once task 1.2 resolves, the server's residual
@@ -214,10 +214,10 @@ selected, no `git diff` was run against any commit standing in for
 1. Task 1.2 resolves `Server_Baseline_Commit` (commit SHA) or, failing that, an
    artifact-derived server snapshot per Requirement 1.3, following the same
    resolved-commit-or-snapshot branching Requirement 1 defines for every module.
-2. Once resolved, re-run this task's procedure for `server/`:
+2. Once resolved, re-run this task's procedure for `services/server/`:
    `git diff <Server_Baseline_Commit> HEAD -- server/` (or the artifact-derived
    structural equivalent), following criteria 7/9/10/11 the same way §2 above did for
-   `web-admin/`.
+   `apps/web-admin/`.
 3. Port any content criterion 10 identifies, advance Baseline_Candidate, and re-run the
    diff until it reports no difference (criterion 9), or record any criterion 12 content
    (present at candidate, absent in production) for that module's first-phase smoke
@@ -233,9 +233,9 @@ of the other two modules alone.
 
 | Module | Deployed_Module_Representation available? | Diff run? | Content ported | Reconciled (criterion 9)? |
 |---|---|---|---|---|
-| Android (`Android/`) | No — provenance UNRESOLVED (task 1.1) | No — no comparison target exists | None | **No — cannot be determined** |
-| Web_Admin (`web-admin/`) | Yes — artifact-derived, `ad0d2623` + patch (task 1.3) | Yes | 1 file: `token-storage.service.ts` `STORAGE_KEY` value | **Yes** |
-| Server (`server/`) | No — task 1.2 unresolved (in progress) | No — deliberately deferred | None | **No — blocked, not silently skipped** |
+| Android (`apps/android/`) | No — provenance UNRESOLVED (task 1.1) | No — no comparison target exists | None | **No — cannot be determined** |
+| Web_Admin (`apps/web-admin/`) | Yes — artifact-derived, `ad0d2623` + patch (task 1.3) | Yes | 1 file: `token-storage.service.ts` `STORAGE_KEY` value | **Yes** |
+| Server (`services/server/`) | No — task 1.2 unresolved (in progress) | No — deliberately deferred | None | **No — blocked, not silently skipped** |
 
 Task 2.4 is therefore **partially complete**: Web_Admin's reconciliation loop (criteria
 7/9/10/11) ran to completion. Android's cannot run until task 1.1 resolves provenance.
@@ -248,7 +248,7 @@ task and are not resolved by it.
 - That Server is reconciled, skipped as unimportant, or acceptable to leave unresolved
   indefinitely. It is blocked on task 1.2, tracked, and must be revisited.
 - That task 2.4 as a whole is complete. Two of three modules were addressed; the task
-  remains open against `server/` until task 1.2 closes.
+  remains open against `services/server/` until task 1.2 closes.
 - That Web_Admin's reconciliation covers paths a bundle cannot reproduce (source maps,
   non-bundled test/editor paths). Those remain listed under `residual-provenance-risk.md`
   §3 (W2, W4) regardless of this section's outcome.
@@ -291,7 +291,7 @@ Baseline_Candidate but **absent** in a module's Deployed_Module_Representation? 
 content needs recording, and adding to that module's first-phase smoke checklist (since
 it exists only at the candidate and its behaviour in production was never verified).
 
-### Web_Admin (`web-admin/`)
+### Web_Admin (`apps/web-admin/`)
 
 Re-checked:
 
@@ -308,7 +308,7 @@ actual Deployed_Module_Representation) already found **no difference**. That is 
 correct criterion-12 comparison, and it returned nothing.
 
 **No content was found present at Baseline_Candidate and absent in production for
-`web-admin/`.**
+`apps/web-admin/`.**
 
 ### Android / Server
 
@@ -322,9 +322,9 @@ with §1 and §3 above.
 
 | Module | Candidate-only content found | Added to smoke checklist |
 |---|---|---|
-| Android (`Android/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.1 unresolved) | **Blocked** — pending task 1.1 |
-| Web_Admin (`web-admin/`) | None | No smoke checklist entry needed |
-| Server (`server/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.2 unresolved) | **Blocked** — pending task 1.2 |
+| Android (`apps/android/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.1 unresolved) | **Blocked** — pending task 1.1 |
+| Web_Admin (`apps/web-admin/`) | None | No smoke checklist entry needed |
+| Server (`services/server/`) | Cannot be evaluated — no Deployed_Module_Representation (task 1.2 unresolved) | **Blocked** — pending task 1.2 |
 
 Task 2.5 is therefore complete for the one module where it could run (Web_Admin, with a
 plain "nothing found" result) and blocked for the other two, for the same upstream reasons

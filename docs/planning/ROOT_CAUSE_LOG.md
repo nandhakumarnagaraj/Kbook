@@ -79,9 +79,9 @@ Working rule
   - Never enable a second terminal before offline collision, migration,
     reconciliation, and physical printing tests pass.
 - Code locations:
-  - `Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`
-  - `Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt`
-  - `Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/BillDao.kt`
-  - `server/src/main/java/com/khanabook/saas/sync/service/GenericSyncService.java`
-  - `server/src/main/java/com/khanabook/saas/repository/BillRepository.java`
-  - `server/src/main/resources/db/migration/V22__bill_number_uniqueness_hardening.sql`
+  - `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`
+  - `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt`
+  - `apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/BillDao.kt`
+  - `services/server/src/main/java/com/khanabook/saas/sync/service/GenericSyncService.java`
+  - `services/server/src/main/java/com/khanabook/saas/repository/BillRepository.java`
+  - `services/server/src/main/resources/db/migration/V22__bill_number_uniqueness_hardening.sql`

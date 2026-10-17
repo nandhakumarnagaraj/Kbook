@@ -5,7 +5,7 @@
 **Scope:** All mockup screens (already exist in code) → redesign to match.
 **Decisions:** Build order = Phases A→F. Fidelity = **match structure/sections/components, keep existing design tokens** (shapes, spacing, type scale, colors). Light-theme correctness is a cross-cutting requirement (mockups show both themes).
 
-App root: `Android/app/src/main/java/com/khanabook/lite/pos/ui`. Stack: Jetpack Compose, complete `theme/Kb*` token system already exists.
+App root: `apps/android/app/src/main/java/com/khanabook/lite/pos/ui`. Stack: Jetpack Compose, complete `theme/Kb*` token system already exists.
 
 ---
 

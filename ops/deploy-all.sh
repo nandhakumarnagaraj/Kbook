@@ -9,7 +9,7 @@
 # "Invalid role: MANAGER" incident happened on 2026-09-16 — server collapsed
 # roles on Sep 7, dashboard kept offering MANAGER until Sep 16).
 #
-# Use this for any deploy that touches web-admin/ OR server/ — i.e. use this
+# Use this for any deploy that touches apps/web-admin/ OR services/server/ — i.e. use this
 # by default. The individual scripts remain available for targeted deploys.
 set -euo pipefail
 

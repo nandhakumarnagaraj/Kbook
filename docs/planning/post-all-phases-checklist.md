@@ -27,7 +27,7 @@ Before starting close-out, verify every task in `tasks.md` is `[x]`, including:
 
 Prove no v2 behaviour was dropped and no v1-only feature was regressed.
 
-- [ ] Re-diff every v2 feature module path (`server/`, `Android/`, `web-admin/`) against v3;
+- [ ] Re-diff every v2 feature module path (`services/server/`, `apps/android/`, `apps/web-admin/`) against v3;
       confirm each ported feature from Requirements 17–20, 24, 25 exists in v3
 - [ ] Confirm every v1-only feature (added to `main` after v2 forked) is present in v3 and was
       NOT overwritten by a v2 version — consult the conflict register (Req 29.3)

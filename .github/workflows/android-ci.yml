@@ -4,18 +4,18 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Android/**'
+      - 'apps/android/**'
   pull_request:
     branches: [ main ]
     paths:
-      - 'Android/**'
+      - 'apps/android/**'
 
 jobs:
   android-unit-tests:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Android
+        working-directory: apps/android
     steps:
       - uses: actions/checkout@v4
 
@@ -42,14 +42,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-test-results
-          path: Android/app/build/reports/tests/
+          path: apps/android/app/build/reports/tests/
           retention-days: 7
 
   android-lint:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Android
+        working-directory: apps/android
     steps:
       - uses: actions/checkout@v4
 
@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-lint-results
-          path: Android/app/build/reports/lint-results-debug.html
+          path: apps/android/app/build/reports/lint-results-debug.html
           retention-days: 7
 
   # The app/src/androidTest suite (30 files: menu config, part payment, new bill, KDS,
@@ -91,7 +91,7 @@ jobs:
     continue-on-error: true
     defaults:
       run:
-        working-directory: Android
+        working-directory: apps/android
     steps:
       - uses: actions/checkout@v4
 
@@ -132,6 +132,6 @@ jobs:
         with:
           name: android-instrumented-results
           path: |
-            Android/app/build/reports/androidTests/
-            Android/app/build/outputs/androidTest-results/
+            apps/android/app/build/reports/androidTests/
+            apps/android/app/build/outputs/androidTest-results/
           retention-days: 7

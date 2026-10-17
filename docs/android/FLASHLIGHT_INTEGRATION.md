@@ -31,7 +31,7 @@ Download from: https://fbflipper.com/
 ### 3. Run Your Debug Build
 
 ```bash
-cd Android
+cd apps/android
 ./gradlew installDebug
 ```
 

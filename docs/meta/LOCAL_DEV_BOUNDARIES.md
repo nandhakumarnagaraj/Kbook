@@ -18,10 +18,10 @@ competitor analysis, feature-design checklists and the evidence standard — see
 
 | # | Finding | Evidence |
 |---|---|---|
-| 1 | The Android `BACKEND_URL` fallback **is the production URL**, so an unconfigured build targets prod. | `Android/app/build.gradle.kts:38` — `configValue("BACKEND_URL", "https://kbook.iadv.cloud/")` |
-| 2 | The HTTPS + host-must-be-`kbook.iadv.cloud` guard is **release-only**, inside `gradle.taskGraph.whenReady`. Debug builds bypass it entirely. | `Android/app/build.gradle.kts:203-218` |
-| 3 | The per-machine value file has **every** `BACKEND_URL` line commented out, so finding 1 currently applies to local builds. | `Android/local.properties:8,12,16` (all `#`) |
-| 4 | `Android/secrets.properties` carries `BACKEND_URL`, but **no Gradle build file reads that file** — editing it has no effect on the app. | grep for `secrets` in `app/build.gradle.kts`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties` → no matches |
+| 1 | The Android `BACKEND_URL` fallback **is the production URL**, so an unconfigured build targets prod. | `apps/android/app/build.gradle.kts:38` — `configValue("BACKEND_URL", "https://kbook.iadv.cloud/")` |
+| 2 | The HTTPS + host-must-be-`kbook.iadv.cloud` guard is **release-only**, inside `gradle.taskGraph.whenReady`. Debug builds bypass it entirely. | `apps/android/app/build.gradle.kts:203-218` |
+| 3 | The per-machine value file has **every** `BACKEND_URL` line commented out, so finding 1 currently applies to local builds. | `apps/android/local.properties:8,12,16` (all `#`) |
+| 4 | `apps/android/secrets.properties` carries `BACKEND_URL`, but **no Gradle build file reads that file** — editing it has no effect on the app. | grep for `secrets` in `app/build.gradle.kts`, `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties` → no matches |
 | 5 | This machine **cannot run the local/staging stacks**: docker is not installed. | `command -v docker` → not found |
 | 6 | Consequence: a debug build tested here writes real bills/menu rows into `kbook_saas` and drives the real 5-terminal limit and real permission revisions. | observed: `Master pull complete: pages=1, totalRecords=1507`, real terminal id 66, real bill repairs |
 
@@ -41,13 +41,13 @@ Effective `configValue` precedence (`app/build.gradle.kts:16-20`):
   These are VPS-side operations. Run them on the VPS, after a backup, deliberately.
 - Touching the production CDN dirs, private-document dirs, Apache prod vhost, or
   production Easebuzz keys (see runbook §16 for the exact forbidden identifiers).
-- Committing or copying `.env`, `Android/secrets.properties`, keystores,
+- Committing or copying `.env`, `apps/android/secrets.properties`, keystores,
   `google-services.json`.
 - Production credentials in a local shell profile, so an agent or a stray script
   inherits them.
 
 ### B1 — Allowed on this machine (no external side effects)
-- Android unit tests: `cd Android && ./gradlew testDebugUnitTest`
+- Android unit tests: `cd apps/android && ./gradlew testDebugUnitTest`
 - Android lint / assemble Debug with an explicitly non-production `BACKEND_URL`.
 - Server unit tests that run on in-memory H2 (`BaseIntegrationTest` →
   `jdbc:h2:mem:khanabook_test;MODE=PostgreSQL`).
@@ -71,8 +71,8 @@ Rule: when a check falls in B2, report it as **not executed**. Never present it 
 
 ## 3. How to point a debug build at non-production
 
-Edit **`Android/local.properties`** (gitignored — correct place for a per-machine value).
-`Android/secrets.properties` is *not* read by the build, so putting it there does nothing.
+Edit **`apps/android/local.properties`** (gitignored — correct place for a per-machine value).
+`apps/android/secrets.properties` is *not* read by the build, so putting it there does nothing.
 
 ```properties
 # local dev backend (LAN server) — uncomment one, never leave prod here by accident
@@ -114,7 +114,7 @@ current situation.
 
 ## 6. Quick checklist before any test run
 
-- [ ] Which backend does this build point at? (`Android/local.properties`)
+- [ ] Which backend does this build point at? (`apps/android/local.properties`)
 - [ ] Is that non-production? If not, stop — move to B3.
 - [ ] Does this test write data? If yes, it must target staging, never prod.
 - [ ] Am I about to run anything from the B0 script list? If yes, run it on the VPS instead.

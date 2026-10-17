@@ -6,7 +6,7 @@ KhanaBook is an offline-first restaurant billing and POS Android app with integr
 
 **Brand**: Premium Saffron (#F97316 primary), Midnight Purple (#1E1035→#0F081D headers), Warm neutral backgrounds (#FAF8F5 light / #0F081D dark). Font: Poppins. All corners rounded (6dp–50dp).
 
-**Design System Location**: `Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/`
+**Design System Location**: `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/theme/`
 - `Color.kt` — Full palette, MaterialTheme extension properties (kbTextPrimary, kbBgCard, kbHeaderGradient, etc.)
 - `Theme.kt` — Dark + Light color schemes, theme provider
 - `Type.kt` — Poppins font, Material 3 type scale
@@ -184,14 +184,14 @@ Use the MCP tools to read and write files:
 - `search_code(pattern: "Color\\(0xFF", flags: "-g *.kt")` — find hardcoded colors
 - `search_code(pattern: "DarkBrown1|DarkBrown2|BorderGold|TextGold", flags: "-g *.kt")` — find legacy aliases
 - `write_file(path: "Android/app/src/...", content: "...")` — write changes
-- `run_shell(command: "cd Android && bash gradlew compileDebugKotlin 2>&1 | tail -40")` — verify compilation
+- `run_shell(command: "cd apps/android && bash gradlew compileDebugKotlin 2>&1 | tail -40")` — verify compilation
 
 ---
 
 ## Quality Checks
 
 After each change:
-1. Run `cd Android && bash gradlew compileDebugKotlin 2>&1 | tail -40` — must say BUILD SUCCESSFUL
+1. Run `cd apps/android && bash gradlew compileDebugKotlin 2>&1 | tail -40` — must say BUILD SUCCESSFUL
 2. Fix any Unresolved reference errors by adding missing imports
 3. Fix any @Composable invocation errors by adding/removing @Composable annotations
 4. Never modify `Color.kt` or `Theme.kt` — only screen/component files
@@ -200,8 +200,8 @@ After each change:
 ---
 
 ## IMPORTANT: DO NOT CHANGE
-- Server code (Java files in `server/`)
-- Web admin (files in `web-admin/`)
+- Server code (Java files in `services/server/`)
+- Web admin (files in `apps/web-admin/`)
 - Android theme files (`Color.kt`, `Theme.kt`, `Type.kt`, `Shape.kt`, `Spacing.kt`, `KbTokens.kt`)
 - Android data layer (`data/`, `domain/`, `worker/`, `viewmodel/` directories)
 - MainActivity.kt, Navigation setup, DI modules

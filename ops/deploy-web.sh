@@ -12,8 +12,8 @@ ROOT_DIR="/var/www/kbook.iadv.cloud"
 # Apache DocumentRoot for kbook.iadv.cloud is the Angular build output itself
 # (see /etc/apache2/sites-enabled/kbook.iadv.cloud-le-ssl.conf: DocumentRoot ...browser).
 # Override WEB_ROOT only if the vhost points somewhere else.
-WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/web-admin/dist/khanabook-web-admin/browser}"
-WEB_SRC="$ROOT_DIR/web-admin"
+WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/apps/web-admin/dist/khanabook-web-admin/browser}"
+WEB_SRC="$ROOT_DIR/apps/web-admin"
 DIST_DIR="$WEB_SRC/dist/khanabook-web-admin/browser"
 HEALTH_URL="https://kbook.iadv.cloud/api/v1/actuator/health"
 

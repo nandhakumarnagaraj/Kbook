@@ -17,7 +17,7 @@ new server write APIs and were never claimed as v1 web features).
 ## 1. Why
 
 The Android POS (v1) supports device/terminal management, bill invoicing, and OCR
-menu import, but the web-admin (Angular, `web-admin/`) cannot do any of these from
+menu import, but the web-admin (Angular, `apps/web-admin/`) cannot do any of these from
 the browser. The owner/shop-admin has no way to manage their registered devices,
 view/re-send an invoice, or upload a menu PDF from the web. Separately, the existing
 marketplace setup page calls `POST /marketplace/config`, which **does not exist on
@@ -46,12 +46,12 @@ marketplace page saves successfully (or is clearly read-only if deferred).
 ## 2. In scope (server-ready)
 
 ### 2.1 Device / Terminal Management page (OWNER + SHOP_ADMIN)
-- New route `business/terminals` in `web-admin/src/app/app.routes.ts`, gated by
+- New route `business/terminals` in `apps/web-admin/src/app/app.routes.ts`, gated by
   `roleGuard` with `roles: ['OWNER', 'SHOP_ADMIN']`.
-- New standalone page `web-admin/src/app/pages/terminals/terminals-page.component.ts`
+- New standalone page `apps/web-admin/src/app/pages/terminals/terminals-page.component.ts`
   following the existing `sidebar-layout` + `api-state` (loading/error/retry) pattern.
-- New service methods in `web-admin/src/app/core/services/business-api.service.ts`
-  against `TerminalManagementController` (`server/.../webadmin/controller/TerminalManagementController.java`,
+- New service methods in `apps/web-admin/src/app/core/services/business-api.service.ts`
+  against `TerminalManagementController` (`services/server/.../webadmin/controller/TerminalManagementController.java`,
   path `/business/terminals`):
   - `GET /business/terminals` -> list of terminals (id, name, status, lastActive, deviceId)
   - `POST /business/terminals/{id}/rename` (body: name)
@@ -102,7 +102,7 @@ marketplace page saves successfully (or is clearly read-only if deferred).
 
 ### 2.4 Marketplace config fix (server-side)
 - Build `MarketplaceConfigController` (`@RequestMapping("/marketplace")`) in
-  `server/src/main/java/com/khanabook/saas/webadmin/controller/` with:
+  `services/server/src/main/java/com/khanabook/saas/webadmin/controller/` with:
   - `GET /marketplace/config` -> `MarketplaceConfig` (api.models.ts:114; return
     masked keys, never raw secrets)
   - `POST /marketplace/config` -> accept `MarketplaceConfigRequest` (api.models.ts:125),
@@ -159,17 +159,17 @@ If any of these become v1, open a separate spec rather than expanding this one.
 ## 5. Files to touch (concrete)
 
 **Web-admin (frontend):**
-- `web-admin/src/app/app.routes.ts` — add `business/terminals`, `business/menu/upload`
-- `web-admin/src/app/pages/terminals/terminals-page.component.ts` (NEW)
-- `web-admin/src/app/pages/menu/menu-page.component.ts` — add upload section/modal
-- `web-admin/src/app/pages/orders/orders-page.component.ts` — invoice actions
-- `web-admin/src/app/core/services/business-api.service.ts` — terminals + OCR + invoice token
-- `web-admin/src/app/core/models/api.models.ts` — `BusinessTerminal`, `TerminalRequest`, `MenuExtractionJob`, `MenuExtractionResult`
-- `web-admin/src/app/layout/sidebar-layout/sidebar-layout.component.ts` — terminal link
+- `apps/web-admin/src/app/app.routes.ts` — add `business/terminals`, `business/menu/upload`
+- `apps/web-admin/src/app/pages/terminals/terminals-page.component.ts` (NEW)
+- `apps/web-admin/src/app/pages/menu/menu-page.component.ts` — add upload section/modal
+- `apps/web-admin/src/app/pages/orders/orders-page.component.ts` — invoice actions
+- `apps/web-admin/src/app/core/services/business-api.service.ts` — terminals + OCR + invoice token
+- `apps/web-admin/src/app/core/models/api.models.ts` — `BusinessTerminal`, `TerminalRequest`, `MenuExtractionJob`, `MenuExtractionResult`
+- `apps/web-admin/src/app/layout/sidebar-layout/sidebar-layout.component.ts` — terminal link
 
 **Server (Java):**
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/MarketplaceConfigController.java` (NEW)
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/BusinessAdminController.java` — optional `GET /bills/{billId}/invoice-token`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/MarketplaceConfigController.java` (NEW)
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/BusinessAdminController.java` — optional `GET /bills/{billId}/invoice-token`
 - New DTOs as needed (reuse `MarketplaceConfig`/`MarketplaceConfigRequest` models)
 
 **Deploy:**

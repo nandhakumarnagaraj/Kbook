@@ -17,7 +17,7 @@ PetPooja + Offline Shop = Flutter shells (Dart logic not in decompile). EZO = sy
 
 ## KhanaBook baseline (already at parity — no work needed)
 
-Verified in `Android/app/src/main/java/com/khanabook/lite/pos/feature/menu/ui/`:
+Verified in `apps/android/app/src/main/java/com/khanabook/lite/pos/feature/menu/ui/`:
 
 - **Item availability toggle + dimmed card** — `ManualMenuView.kt:583` dims unavailable cards (alpha 0.5), edit dialog switch at `:629`, `Available`/`Unavailable` pill at `:713`. Matches AROW's dimmed-inactive pattern.
 - **Delete-category warning with item counts** — `ManualMenuView.kt:436-457`: `Delete "X" and all N item(s) inside it? This cannot be undone.`

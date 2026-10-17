@@ -229,4 +229,4 @@ For any future responsive change:
 - `docs/design/ResponsiveLayoutMigration.md` — Migration history
 - `docs/design/DESIGN_SYSTEM_FREEZE.md` — Locked palette, typography, shapes
 - `docs/meta/ANDROID_UI_RULES.md` — Existing pattern preservation
-- `Android/.../ui/theme/Responsive.kt` — Token implementation (source of truth)
+- `apps/android/.../ui/theme/Responsive.kt` — Token implementation (source of truth)

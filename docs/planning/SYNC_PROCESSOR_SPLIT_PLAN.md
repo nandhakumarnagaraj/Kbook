@@ -1,7 +1,7 @@
 # MasterSyncProcessor Split Plan
 
 > Status: **PROPOSED** · Created: 2026-08-21
-> File: `Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt`
+> File: `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/MasterSyncProcessor.kt`
 > Size: ~1503 lines / 78KB+
 
 ---

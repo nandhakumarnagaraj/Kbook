@@ -5,7 +5,7 @@ Requirements: Baseline Precondition criteria 1–5
 
 | Field | Value |
 |---|---|
-| Module path set | `web-admin/` |
+| Module path set | `apps/web-admin/` |
 | Recorded on | 2026-08-01 |
 | Production docroot | `https://kbook.iadv.cloud/` (VPS path `/var/www/kbook.iadv.cloud/web`) |
 | Resolution status | **ESTABLISHED — no repository commit is content-equivalent** |
@@ -24,7 +24,7 @@ The production bundle was built from commit
 
 The patch is materialised at
 `docs/baseline-provenance/web-admin-artifact-derived.patch`. Applying it to the recorded
-commit reconstructs the comparable `web-admin/` tree that generated the deployed bundle.
+commit reconstructs the comparable `apps/web-admin/` tree that generated the deployed bundle.
 
 The session-key value `khanabook.webAdmin.v1.session` has never existed in repository
 history. The only commits touching `token-storage.service.ts` both contain the unversioned
@@ -105,5 +105,5 @@ The expected entry assets are `main-PWLFC7TN.js`, `chunk-7MINFAET.js`,
 
 - That `ad0d2623` alone is content-equivalent to production.
 - That the dirty source tree used for deployment contained no changes outside
-  `web-admin/`; this record is module-scoped.
+  `apps/web-admin/`; this record is module-scoped.
 - That non-bundled test or development-only paths can be recovered from the docroot.

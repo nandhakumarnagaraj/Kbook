@@ -5,6 +5,17 @@
 
 KhanaBook is an offline-first restaurant billing and operations system for small food businesses (Android POS + Spring Boot backend + Angular web admin).
 
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `apps/android/` | Kotlin/Compose POS app (self-contained Gradle project) |
+| `apps/web-admin/` | Angular admin console |
+| `services/server/` | Spring Boot API and Flyway migrations |
+| `docs/` | All documentation — start at [`docs/README.md`](docs/README.md) |
+| `ops/` | Deploy scripts, Docker Compose files, Apache/nginx configs, backups |
+| `specs/` · `mcp/` · `cdn/` | Local tooling and runtime uploads (git-ignored) |
+
 See [`docs/README.md`](docs/README.md) for the full documentation index.
 
 ## Quick links
@@ -21,8 +32,8 @@ MIT + Commons Clause + Attribution licence:
 
 | Adapted | Where |
 |---|---|
-| `animated-counter` — the KPI values roll to their new value | `web-admin/src/app/shared/animated-counter.component.ts` |
-| `notification-bell` — bell, unread badge and flyout | `web-admin/src/app/shared/notification-bell.component.ts` |
+| `animated-counter` — the KPI values roll to their new value | `apps/web-admin/src/app/shared/animated-counter.component.ts` |
+| `notification-bell` — bell, unread badge and flyout | `apps/web-admin/src/app/shared/notification-bell.component.ts` |
 
 Copyright (c) 2026 Swami Malode. Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated documentation files (the

@@ -5,7 +5,7 @@ Requirements: Baseline Precondition criterion 5 (Requirement 1.5)
 
 | Field | Value |
 |---|---|
-| Module path sets covered | `Android/`, `server/`, `web-admin/` |
+| Module path sets covered | `apps/android/`, `services/server/`, `apps/web-admin/` |
 | Recorded on | 2026-08-05 |
 | Depends on | Task 1.1 (`android-baseline-commit.md`), Task 1.2 (`server-baseline-commit.md`, currently UNRESOLVED), Task 1.3 (`web-admin-baseline-commit.md`) |
 | Purpose | Enumerate, per module, every path/category an artifact-derived snapshot fundamentally cannot reproduce byte-for-byte from compiled output, so criterion 9 ("reconciled") is never claimed for these paths |
@@ -29,7 +29,7 @@ equivalent must present new evidence, not rely on this record.
 
 ---
 
-## 1. Android (`Android/`)
+## 1. Android (`apps/android/`)
 
 Provenance kind for Android is currently **undetermined** (task 1.1): no Play
 artifact was reachable, so neither a resolved commit nor a materialised
@@ -52,12 +52,12 @@ task 1.1 §4.D specifies *structural*, not *bitwise*, comparison.
 **Net effect for Android:** even after task 1.1 resolves to a specific commit or a
 materialised snapshot, A1, A3, and A6 remain permanently unverifiable unless a
 retained mapping file or build log surfaces. The comparison in task 2.4 for
-`Android/` must be read as "structurally consistent with," never "byte-identical
+`apps/android/` must be read as "structurally consistent with," never "byte-identical
 to," the deployed artifact.
 
 ---
 
-## 2. Server (`server/`)
+## 2. Server (`services/server/`)
 
 Task 1.2 is **UNRESOLVED** — no server artifact (JAR, image, or authenticated
 `git.commit.id`) has been captured yet. The categories below therefore describe
@@ -67,7 +67,7 @@ resolves and this table is revisited against the actual captured artifact.
 
 | # | Path / category | Why the artifact cannot reproduce it | Mitigated by | Status |
 |---|---|---|---|---|
-| S1 | `git.properties` / `build-info.properties` baked by `git-commit-id-maven-plugin` and the Spring Boot `build-info` goal | These files capture the git SHA, branch, and dirty-state flag, and the build timestamp, *of the machine that ran the build* — not of a clean checkout of the resolved commit. `server/Dockerfile` copies only `pom.xml` and `src/` into the build stage (no `.git`), and the plugin is configured `failOnNoGitDirectory=false`, so the file may be **absent entirely** from the compose-built image (`server-baseline-commit.md` "Build-metadata risk"). | Authenticated `/api/v1/actuator/info`, if the field is present. Task 1.2 exists specifically to capture this. | Open — blocked on 1.2 |
+| S1 | `git.properties` / `build-info.properties` baked by `git-commit-id-maven-plugin` and the Spring Boot `build-info` goal | These files capture the git SHA, branch, and dirty-state flag, and the build timestamp, *of the machine that ran the build* — not of a clean checkout of the resolved commit. `services/server/Dockerfile` copies only `pom.xml` and `src/` into the build stage (no `.git`), and the plugin is configured `failOnNoGitDirectory=false`, so the file may be **absent entirely** from the compose-built image (`server-baseline-commit.md` "Build-metadata risk"). | Authenticated `/api/v1/actuator/info`, if the field is present. Task 1.2 exists specifically to capture this. | Open — blocked on 1.2 |
 | S2 | Environment-baked runtime configuration (DB credentials, JWT secret, Firebase service-account, Easebuzz keys, SMTP credentials) | These are supplied via `.env` / mounted files / environment variables at container start, never committed, and by design cannot be recovered from either source or the compiled JAR. | N/A — this is intentionally not reproducible; it is a secret-handling boundary, not a provenance gap to close. | Not a gap — correctly out of scope; listed so no one later treats a running container's effective config as source-derivable |
 | S3 | `MANIFEST.MF` build timestamps (`Created-By`, `Build-Jdk-Spec`, `Implementation-Version`) and Docker image layer timestamps | Regenerated on every build regardless of source identity; two builds from the same commit differ here. | N/A — excluded from content comparison. | Not a gap — correctly out of scope |
 | S4 | `.class` file bytecode reproducibility across JDK vendor/minor versions | Unlike Android, the server has no obfuscation step (no ProGuard/R8 equivalent), so `javac` output for identical source and an identical JDK is close to deterministic. However, constant-pool ordering and embedded debug line-number tables can still differ across JDK distributions/minor versions even for byte-identical source, so bitwise JAR equality across environments should not be assumed. | Compare decompiled class structure / method signatures rather than raw bytes, matching the approach already used for Android. | Open, environmental — lower risk than Android since no renaming occurs |
@@ -81,7 +81,7 @@ correct closure path for S1; nothing in this task substitutes for it.
 
 ---
 
-## 3. Web_Admin (`web-admin/`)
+## 3. Web_Admin (`apps/web-admin/`)
 
 Provenance kind for Web_Admin is **artifact-derived**, already established (task
 1.3) against commit `ad0d2623050c6cef61ffcbd87042f8a60bb7d6b2` plus a one-line

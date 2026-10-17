@@ -3,7 +3,7 @@
 Complete inventory of every third-party integration shipped on the `v2` branch, with the actual
 code implementation files (server / Android / web-admin). This is the deletion safety net: before
 `v2` is deleted from GitHub, every integration below must be present and proven in `v3`
-(`docs/post-all-phases-checklist.md` §1, §3).
+(`docs/planning/post-all-phases-checklist.md` §1, §3).
 
 Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-install`.
 
@@ -14,52 +14,52 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 **SDK/deps:** `in.easebuzz:android-v2:1.0.6` (Android), none server-side (REST client).
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/config/EasebuzzProperties.java`
-- `server/src/main/java/com/khanabook/saas/service/EasebuzzApiClient.java`
-- `server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java`
-- `server/src/main/java/com/khanabook/saas/service/EasebuzzWebhookService.java`
-- `server/src/main/java/com/khanabook/saas/service/EasebuzzWireApiClient.java`
-- `server/src/main/java/com/khanabook/saas/service/PaymentRoutingService.java`
-- `server/src/main/java/com/khanabook/saas/service/InstantSettlementService.java`
-- `server/src/main/java/com/khanabook/saas/service/RefundService.java`
-- `server/src/main/java/com/khanabook/saas/service/PostSplitService.java`
-- `server/src/main/java/com/khanabook/saas/entity/EasebuzzPayout.java`
-- `server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchant.java`
-- `server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchantWebhookEvent.java`
-- `server/src/main/java/com/khanabook/saas/entity/EasebuzzWebhookEvent.java`
-- `server/src/main/java/com/khanabook/saas/repository/EasebuzzPayoutRepository.java`
-- `server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantRepository.java`
-- `server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantWebhookEventRepository.java`
-- `server/src/main/java/com/khanabook/saas/repository/EasebuzzWebhookEventRepository.java`
-- `server/src/main/java/com/khanabook/saas/exception/EasebuzzApiException.java`
-- `server/src/main/java/com/khanabook/saas/controller/PaymentController.java`
-- `server/src/main/java/com/khanabook/saas/controller/GstFssaiController.java` (renewal Pay Now path)
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/RestaurantPaymentConfigController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/AdminTransactionController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/service/PaymentMetricsService.java`
-- `server/src/main/java/com/khanabook/saas/service/ChargebackPreventionService.java`
+- `services/server/src/main/java/com/khanabook/saas/config/EasebuzzProperties.java`
+- `services/server/src/main/java/com/khanabook/saas/service/EasebuzzApiClient.java`
+- `services/server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/EasebuzzWebhookService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/EasebuzzWireApiClient.java`
+- `services/server/src/main/java/com/khanabook/saas/service/PaymentRoutingService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/InstantSettlementService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/RefundService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/PostSplitService.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/EasebuzzPayout.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchant.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchantWebhookEvent.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/EasebuzzWebhookEvent.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/EasebuzzPayoutRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantWebhookEventRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/EasebuzzWebhookEventRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/exception/EasebuzzApiException.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/PaymentController.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/GstFssaiController.java` (renewal Pay Now path)
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/RestaurantPaymentConfigController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminTransactionController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/service/PaymentMetricsService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/ChargebackPreventionService.java`
 
 **Android files**
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/EasebuzzPaymentDtos.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzPaymentRepository.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzSdkPaymentRepository.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzPaymentScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/worker/EasebuzzPaymentRecoveryWorker.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentConfigSection.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/PaymentModeManager.kt` (EASEBUZZ modes)
-- `Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/PaymentGatewayHelper.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/BillDao.kt` (pending-online-bill queries)
-- `Android/app/src/main/java/com/khanabook/lite/pos/domain/model/Enums.kt` (PaymentMode values)
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NewBillScreen.kt` (PaymentStep SDK launch)
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/EasebuzzPaymentDtos.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzPaymentRepository.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzSdkPaymentRepository.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzPaymentScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/worker/EasebuzzPaymentRecoveryWorker.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentConfigSection.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/PaymentModeManager.kt` (EASEBUZZ modes)
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/PaymentGatewayHelper.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/BillDao.kt` (pending-online-bill queries)
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/model/Enums.kt` (PaymentMode values)
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NewBillScreen.kt` (PaymentStep SDK launch)
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/BillingViewModel.kt`
 
 **Web-admin files**
-- `web-admin/src/app/pages/transaction-monitor/transaction-monitor-page.component.ts`
-- `web-admin/src/app/pages/settlement-reports/settlement-reports-page.component.ts`
-- `web-admin/src/app/pages/sub-merchants/sub-merchants-page.component.ts`
-- `web-admin/src/app/pages/commission-config/commission-config-page.component.ts`
-- `web-admin/src/app/core/services/admin-api.service.ts`
+- `apps/web-admin/src/app/pages/transaction-monitor/transaction-monitor-page.component.ts`
+- `apps/web-admin/src/app/pages/settlement-reports/settlement-reports-page.component.ts`
+- `apps/web-admin/src/app/pages/sub-merchants/sub-merchants-page.component.ts`
+- `apps/web-admin/src/app/pages/commission-config/commission-config-page.component.ts`
+- `apps/web-admin/src/app/core/services/admin-api.service.ts`
 
 **Migrations:** V6, V7 (orphan tables on v1; NOT adopted — see V48 comment)
 
@@ -70,26 +70,26 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 **Deps:** `com.google.firebase:firebase-admin` (server), `firebase-messaging:24.1.1` (Android).
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/config/FirebaseConfig.java`
-- `server/src/main/java/com/khanabook/saas/service/PushNotificationService.java`
-- `server/src/main/java/com/khanabook/saas/entity/NotificationEvent.java`
-- `server/src/main/java/com/khanabook/saas/repository/NotificationEventRepository.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/NotificationController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/AdminNotificationController.java`
+- `services/server/src/main/java/com/khanabook/saas/config/FirebaseConfig.java`
+- `services/server/src/main/java/com/khanabook/saas/service/PushNotificationService.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/NotificationEvent.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/NotificationEventRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/NotificationController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminNotificationController.java`
 
 **Android files**
-- `Android/app/src/main/java/com/khanabook/lite/pos/worker/KhanaBookFirebaseMessagingService.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/worker/NotificationHelper.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/worker/NotificationActionReceiver.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/NotificationEntity.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/NotificationDao.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/repository/NotificationRepository.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NotificationsScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NotificationReliabilityScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/NotificationViewModel.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/KhanaBookNotificationPanel.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt` (Room 62→63)
-- `Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/worker/KhanaBookFirebaseMessagingService.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/worker/NotificationHelper.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/worker/NotificationActionReceiver.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/NotificationEntity.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/NotificationDao.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/repository/NotificationRepository.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NotificationsScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NotificationReliabilityScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/NotificationViewModel.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/KhanaBookNotificationPanel.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt` (Room 62→63)
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt`
 
 **Migration:** V36 `device_token`/notification tables, V39 custom notification messages
 
@@ -98,20 +98,20 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 ## 3. FSSAI / GST Compliance
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/entity/FssaiTracker.java`
-- `server/src/main/java/com/khanabook/saas/entity/FssaiRenewal.java`
-- `server/src/main/java/com/khanabook/saas/repository/FssaiTrackerRepository.java`
-- `server/src/main/java/com/khanabook/saas/repository/FssaiRenewalRepository.java`
-- `server/src/main/java/com/khanabook/saas/service/FssaiTrackerService.java`
-- `server/src/main/java/com/khanabook/saas/service/ComplianceAlertService.java`
-- `server/src/main/java/com/khanabook/saas/service/GstFssaiLookupService.java`
-- `server/src/main/java/com/khanabook/saas/service/TaxComplianceService.java`
-- `server/src/main/java/com/khanabook/saas/controller/GstFssaiController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/TaxComplianceController.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/dto/AdminBusinessDetailResponse.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/FssaiTracker.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/FssaiRenewal.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/FssaiTrackerRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/FssaiRenewalRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/service/FssaiTrackerService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/ComplianceAlertService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/GstFssaiLookupService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/TaxComplianceService.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/GstFssaiController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/TaxComplianceController.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/dto/AdminBusinessDetailResponse.java`
 
 **Android files**
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/FssaiRenewalScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/FssaiRenewalScreen.kt`
 
 **Migrations:** V28 (tracker), V37, V38 (renewals)
 
@@ -120,28 +120,28 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 ## 4. Marketplace Orders (Swiggy / Zomato)
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/entity/MarketplaceOrder.java`
-- `server/src/main/java/com/khanabook/saas/entity/MarketplaceOrderItem.java`
-- `server/src/main/java/com/khanabook/saas/repository/MarketplaceOrderRepository.java`
-- `server/src/main/java/com/khanabook/saas/service/MarketplaceOrderService.java`
-- `server/src/main/java/com/khanabook/saas/controller/MarketplaceOrderController.java`
-- `server/src/main/java/com/khanabook/saas/controller/MarketplaceWebhookController.java`
-- `server/src/main/java/com/khanabook/saas/controller/MarketplaceConfigController.java`
-- `server/src/main/java/com/khanabook/saas/service/UnifiedCommerceService.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/dto/AdminMarketplaceWebhookEventResponse.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/dto/BusinessMarketplaceSetupResponse.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/dto/UpdateBusinessIntegrationsRequest.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/MarketplaceOrder.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/MarketplaceOrderItem.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/MarketplaceOrderRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/service/MarketplaceOrderService.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/MarketplaceOrderController.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/MarketplaceWebhookController.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/MarketplaceConfigController.java`
+- `services/server/src/main/java/com/khanabook/saas/service/UnifiedCommerceService.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/dto/AdminMarketplaceWebhookEventResponse.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/dto/BusinessMarketplaceSetupResponse.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/dto/UpdateBusinessIntegrationsRequest.java`
 
 **Android files**
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/MarketplaceOrderDtos.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/data/repository/MarketplaceOrderRepository.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MarketplaceOrdersScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/HomeScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/MarketplaceOrderDtos.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/data/repository/MarketplaceOrderRepository.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MarketplaceOrdersScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/HomeScreen.kt`
 
 **Web-admin files**
-- `web-admin/src/app/pages/marketplace-setup/marketplace-setup-page.component.ts`
-- `web-admin/src/app/pages/orders/orders-page.component.ts`
+- `apps/web-admin/src/app/pages/marketplace-setup/marketplace-setup-page.component.ts`
+- `apps/web-admin/src/app/pages/orders/orders-page.component.ts`
 
 **Migrations:** V25, V27 (marketplace integration fields), V8 (orphan storefront table)
 
@@ -150,20 +150,20 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 ## 5. Sub-Merchant Onboarding (Easebuzz KYC)
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/service/SubMerchantService.java`
-- `server/src/main/java/com/khanabook/saas/service/OnboardingService.java`
-- `server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchant.java`
-- `server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantRepository.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java`
-- `server/src/main/java/com/khanabook/saas/controller/RestaurantAssetController.java` (KYC docs)
+- `services/server/src/main/java/com/khanabook/saas/service/SubMerchantService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/OnboardingService.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/EasebuzzSubMerchant.java`
+- `services/server/src/main/java/com/khanabook/saas/repository/EasebuzzSubMerchantRepository.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/AdminSubMerchantController.java`
+- `services/server/src/main/java/com/khanabook/saas/controller/RestaurantAssetController.java` (KYC docs)
 
 **Android files**
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzKycScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzOnboardingScreen.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/EasebuzzOnboardingViewModel.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzKycScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzOnboardingScreen.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/EasebuzzOnboardingViewModel.kt`
 
 **Web-admin files**
-- `web-admin/src/app/pages/sub-merchants/sub-merchants-page.component.ts`
+- `apps/web-admin/src/app/pages/sub-merchants/sub-merchants-page.component.ts`
 
 **Migrations:** V22, V23, V24, V26, V34, V35
 
@@ -174,7 +174,7 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 **Deps:** `spring-boot-starter-mail`
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/service/EmailNotificationService.java`
+- `services/server/src/main/java/com/khanabook/saas/service/EmailNotificationService.java`
 
 **Migrations:** none
 
@@ -185,28 +185,28 @@ Inventory taken from `origin/v2` (0df0098a) via worktree `C:\tmp\KhanaBook-v2-in
 **Deps:** `spring-boot-starter-thymeleaf`
 
 **Server files**
-- `server/src/main/java/com/khanabook/saas/controller/InvoiceController.java`
-- Template resources under `server/src/main/resources/templates/` (invoice.html)
+- `services/server/src/main/java/com/khanabook/saas/controller/InvoiceController.java`
+- Template resources under `services/server/src/main/resources/templates/` (invoice.html)
 
 **Android files (invoice rendering parity)**
-- `Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InvoicePDFGenerator.kt`
-- `Android/app/src/main/java/com/khanabook/lite/pos/domain/util/InvoiceFormatter.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/manager/InvoicePDFGenerator.kt`
+- `apps/android/app/src/main/java/com/khanabook/lite/pos/domain/util/InvoiceFormatter.kt`
 
 ---
 
 ## 8. Webhooks / Retry plumbing (shared infra)
 
-- `server/src/main/java/com/khanabook/saas/config/WebhookRetryConfig.java`
-- `server/src/main/java/com/khanabook/saas/entity/Chargeback.java`
+- `services/server/src/main/java/com/khanabook/saas/config/WebhookRetryConfig.java`
+- `services/server/src/main/java/com/khanabook/saas/entity/Chargeback.java`
 
 ---
 
 ## Cross-cutting platform services (not 3rd-party, but v2-only code)
 
-- `server/src/main/java/com/khanabook/saas/service/DeveloperPortalService.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/service/BusinessReadService.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/service/AdminReadService.java`
-- `server/src/main/java/com/khanabook/saas/webadmin/controller/BusinessAdminController.java`
+- `services/server/src/main/java/com/khanabook/saas/service/DeveloperPortalService.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/service/BusinessReadService.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/service/AdminReadService.java`
+- `services/server/src/main/java/com/khanabook/saas/webadmin/controller/BusinessAdminController.java`
 - `server/src/main/java/com/khanabook/saas/webadmin/dto/*` (business profile/staff responses)
 - Android: `SettingsHomeSection.kt`, `SettingsSupportSections.kt`, `ShopConfigSection.kt`,
   `TaxConfigSection.kt`, `AppLockConfigSection.kt`, `PaymentConfigSection.kt`

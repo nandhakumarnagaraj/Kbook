@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-27
 **Status:** Analysis complete. P0 recommendations partially implemented (see §7).
-**Related:** `../reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md` — the crash that
+**Related:** `../evidence/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md` — the crash that
 prompted this.
 
 ---
@@ -274,5 +274,5 @@ confirm they match.
 - `station` and `priceTiers` are single-source (Arow), and only the call sites were read, not the
   full flows.
 - Field-presence counts for KhanaBook were taken across all 271 `.kt` files under
-  `Android/app/src/main/java`. An earlier pass used a non-recursive glob and reported a false zero
+  `apps/android/app/src/main/java`. An earlier pass used a non-recursive glob and reported a false zero
   for every field — a reminder to verify negative results.

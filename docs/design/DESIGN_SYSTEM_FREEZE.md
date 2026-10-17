@@ -41,7 +41,7 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 > **Palette revision (2026-10-13):** the ship palette is **purple `#6C27D9`**, not the
 > warm brown `#b56a2d` this table previously listed. The brown entry was stale — the
-> code (`web-admin/src/styles.css`, `index.html` favicon) had already moved to purple
+> code (`apps/web-admin/src/styles.css`, `index.html` favicon) had already moved to purple
 > and the doc had not been updated. Purple is canonical; the brown values below are
 > recorded only for the migration history.
 >
@@ -80,13 +80,13 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 These are locked alongside the palette so pages cannot drift apart again:
 
 1. **One page shell.** Every routed page wraps its content in `.page-shell`
-   (defined once in `web-admin/src/styles.css`: max-width 1440px, padding
+   (defined once in `apps/web-admin/src/styles.css`: max-width 1440px, padding
    `1.75rem 2rem 3.5rem`, grid gap `1.5rem`). Pages must **not** override it.
 2. **One page header.** Use the shared `PageHeaderComponent`
    (`app-page-header`). Do not hand-roll `.header-left` / `.header-title-row` /
    `.header-sub` / `.header-right` markup or the `.dash-header*` variant.
 3. **One shared vocabulary.** Card/button/chip/table styles live in
-   `web-admin/src/styles/bento.css`, loaded last so it wins everywhere.
+   `apps/web-admin/src/styles/bento.css`, loaded last so it wins everywhere.
    Use `.bento-tile`, `.intel-card`, `.header-action-btn`, `.btn-micro`,
    `.kpi-tag`, `.status-chip`, `.tactile-modal-*` instead of page-local
    equivalents. A class name must mean exactly one thing across the app (for
