@@ -7,6 +7,7 @@ import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.EasebuzzWebhookService;
+import com.khanabook.saas.feature.payments.service.PaymentLogMasker;
 import com.khanabook.saas.feature.staff.service.PermissionService;
 import com.khanabook.saas.feature.payments.service.RefundService;
 import lombok.RequiredArgsConstructor;
@@ -226,7 +227,8 @@ public class PaymentController {
     @GetMapping("/return")
     public ResponseEntity<Void> handleReturn(
             @RequestParam Map<String, String> params) {
-        log.debug("Easebuzz return redirect received: {}", params);
+        // Payloads carry the payer's name/email/phone — mask before they reach a log file.
+        log.debug("Easebuzz return redirect received: {}", PaymentLogMasker.mask(params));
         String txnid = params.get("txnid");
         String status = params.get("status");
         String hash = params.get("hash");
@@ -256,7 +258,7 @@ public class PaymentController {
 
     @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> paymentWebhookJson(@RequestBody Map<String, Object> payload) {
-        log.debug("Payment webhook (JSON) received: {}", payload);
+        log.debug("Payment webhook (JSON) received: {}", PaymentLogMasker.mask(payload));
         if (payload.containsKey("event") && "MERCHANT_KYC_APPROVAL".equalsIgnoreCase(String.valueOf(payload.get("event")))) {
             Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
             if ("hash_mismatch".equals(result.get("status"))) {
@@ -277,7 +279,7 @@ public class PaymentController {
 
     @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Map<String, Object>> paymentWebhookForm(@RequestParam Map<String, String> params) {
-        log.debug("Payment webhook (form-url-encoded) received: {}", params);
+        log.debug("Payment webhook (form-url-encoded) received: {}", PaymentLogMasker.mask(params));
         Map<String, Object> result = webhookService.handlePaymentWebhook(params);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
@@ -287,7 +289,7 @@ public class PaymentController {
 
     @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> refundWebhookJson(@RequestBody Map<String, String> payload) {
-        log.debug("Refund webhook (JSON) received: {}", payload);
+        log.debug("Refund webhook (JSON) received: {}", PaymentLogMasker.mask(payload));
         Map<String, Object> result = webhookService.handleRefundWebhook(payload);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
@@ -297,7 +299,7 @@ public class PaymentController {
 
     @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Map<String, Object>> refundWebhookForm(@RequestParam Map<String, String> params) {
-        log.debug("Refund webhook (form-url-encoded) received: {}", params);
+        log.debug("Refund webhook (form-url-encoded) received: {}", PaymentLogMasker.mask(params));
         Map<String, Object> result = webhookService.handleRefundWebhook(params);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
@@ -344,7 +346,7 @@ public class PaymentController {
 
     @PostMapping(value = "/payout/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> payoutWebhookJson(@RequestBody Map<String, Object> payload) {
-        log.debug("Payout webhook (JSON) received: {}", payload);
+        log.debug("Payout webhook (JSON) received: {}", PaymentLogMasker.mask(payload));
         Map<String, Object> result = webhookService.handlePayoutWebhook(payload);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
@@ -354,7 +356,7 @@ public class PaymentController {
 
     @PostMapping(value = "/payout/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     public ResponseEntity<Map<String, Object>> payoutWebhookForm(@RequestParam Map<String, String> params) {
-        log.debug("Payout webhook (form-url-encoded) received: {}", params);
+        log.debug("Payout webhook (form-url-encoded) received: {}", PaymentLogMasker.mask(params));
         // Preserve the outer webhook fields (especially hash and payout
         // identifiers) while decoding the nested JSON data object.
         Map<String, Object> payload = new HashMap<>(params);

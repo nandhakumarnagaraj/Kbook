@@ -168,6 +168,24 @@ secrets as environment variables.
 | `easebuzz.webhook-url` | `EASEBUZZ_WEBHOOK_URL` | registered webhook |
 | `easebuzz.wire-api-key` | `EASEBUZZ_WIRE_API_KEY` | sub-merchant/split APIs |
 | `easebuzz.reconciliation-enabled` | `EASEBUZZ_RECONCILIATION_ENABLED` | default `false` |
+| `easebuzz.webhook.allowed-ips` | `EASEBUZZ_WEBHOOK_ALLOWED_IPS` | CSV of IPs/CIDRs allowed to POST webhooks; empty = disabled (startup WARN), `*` = explicitly off |
+
+### 8a. Webhook hardening
+
+The four webhook paths (`/payments/easebuzz/webhook`, `/refund/webhook`,
+`/sub-merchant/webhook`, `/payout/webhook`) are `permitAll` and carry three layers:
+
+| Layer | Where | Behaviour |
+|---|---|---|
+| Reverse-hash verification | `EasebuzzWebhookService` | 401 on mismatch; the redirect is never trusted on its own |
+| Source-IP allowlist | `WebhookIpAllowlistFilter`, `ops/nginx-easebuzz-webhooks.conf.example` | 403 outside the configured ranges. **Disabled until Easebuzz confirms its published callback ranges** — a wrong list drops real SUCCESS notifications |
+| PII masking | `PaymentLogMasker` | masks email / phone / payer name / account fields before DEBUG logging; `hash`, `txnid` and `easebuzz_id` stay readable for signature debugging |
+
+**Retries.** `EasebuzzApiClient` retries 5xx, 429 and transport failures up to 3 attempts
+(250 ms → 500 ms, jittered) — but only for read-only lookups and calls that carry a
+caller-generated idempotency key (`merchant_refund_id`, `merchant_request_id`).
+Sub-merchant creation, KYC upload and payment-link creation are attempted exactly once,
+because a timed-out call there may still have committed at the gateway.
 
 ## 9. Status and known gaps
 
@@ -181,6 +199,8 @@ secrets as environment variables.
 | Per-mode live evidence (cards/UPI/NB/wallet) | Tracked in the go-live mapping doc; not all scenarios have production evidence |
 | EMI | Deliberately excluded (low-ticket restaurant bills) |
 | CPV hardening spec | Implemented in code; the spec header still says "PLAN" |
+| Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
+| Gateway call retries | Implemented for idempotent/read-only calls only |
 
 ## 10. Document index
 

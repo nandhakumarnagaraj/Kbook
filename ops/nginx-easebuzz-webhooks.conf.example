@@ -1,0 +1,70 @@
+# Easebuzz webhook source-IP allowlist at the edge (optional).
+#
+# Include from the https server block in kbook.iadv.cloud:
+#     include /etc/nginx/snippets/easebuzz-webhooks.conf;
+#
+# WHY THIS IS NOT ENABLED BY DEFAULT
+# ----------------------------------
+# Easebuzz has not published a stable list of callback source addresses to us yet.
+# Guessing (or copying another PSP's ranges) silently drops real payment
+# notifications, and a dropped SUCCESS webhook is a paid bill that stays unpaid in
+# our books until reconciliation runs. Get the ranges from the Easebuzz dashboard /
+# support@easebuzz.in first, then fill them in below.
+#
+# Each webhook path needs its own exact-match (`=`) location. A regex location would
+# never fire: `location ^~ /api/` above has the ^~ modifier, so nginx skips regex
+# matching entirely for these requests. Exact-match locations are also safer than
+# allowlisting the whole /api/v1/payments/easebuzz/ prefix, which would block the
+# app's own authenticated calls to /status and /verify.
+#
+# The Spring-side filter (WebhookIpAllowlistFilter, property
+# easebuzz.webhook.allowed-ips) enforces the same list for deployments that do not
+# sit behind this nginx. Keep the two lists identical.
+
+# ── Fill in from Easebuzz before uncommenting ──────────────────────────────
+# allow 203.0.113.0/24;
+# allow 2001:db8::/32;
+# deny all;
+# ───────────────────────────────────────────────────────────────────────────
+
+# Shared proxy settings, duplicated per location because nginx has no
+# "inherit from another location" for exact-match blocks.
+location = /api/v1/payments/easebuzz/webhook {
+    # allow <easebuzz-range>;
+    # deny all;
+    proxy_pass http://127.0.0.1:8081/api/v1/payments/easebuzz/webhook;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /api/v1/payments/easebuzz/refund/webhook {
+    # allow <easebuzz-range>;
+    # deny all;
+    proxy_pass http://127.0.0.1:8081/api/v1/payments/easebuzz/refund/webhook;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /api/v1/payments/easebuzz/sub-merchant/webhook {
+    # allow <easebuzz-range>;
+    # deny all;
+    proxy_pass http://127.0.0.1:8081/api/v1/payments/easebuzz/sub-merchant/webhook;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /api/v1/payments/easebuzz/payout/webhook {
+    # allow <easebuzz-range>;
+    # deny all;
+    proxy_pass http://127.0.0.1:8081/api/v1/payments/easebuzz/payout/webhook;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}

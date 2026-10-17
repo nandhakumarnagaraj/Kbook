@@ -10,6 +10,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
@@ -18,11 +20,27 @@ import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class EasebuzzApiClient {
 
 	private static final Logger log = LoggerFactory.getLogger(EasebuzzApiClient.class);
+
+	//
+	// Retry policy for calls that are safe to repeat.
+	//
+	// Only read-only lookups and operations that carry a caller-generated idempotency
+	// key (merchant_refund_id, merchant_request_id) are retried. Creating a sub-merchant,
+	// uploading KYC, or opening a new payment link is *not* retried: a transport timeout
+	// there may still mean the gateway acted, and a blind repeat creates a duplicate
+	// entity rather than a duplicate answer. Three attempts with a jittered exponential
+	// backoff keeps the worst case (3 x 30s read timeout + ~1.1s of sleep) inside the
+	// client's own request budget.
+	private static final int MAX_ATTEMPTS = 3;
+	private static final long BASE_BACKOFF_MS = 250L;
+	private static final long MAX_BACKOFF_MS = 1_000L;
+	private static final int RETRYABLE_STATUS_TOO_MANY_REQUESTS = 429;
 	private final RestTemplate restTemplate;
 	private final EasebuzzProperties props;
 
@@ -146,7 +164,8 @@ public class EasebuzzApiClient {
 		params.add("txnid", txnid);
 		params.add("hash", generateHash(props.getMerchantKey(), txnid));
 
-		Map<String, Object> raw = post(props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve", params);
+		// Read-only lookup: safe to repeat.
+		Map<String, Object> raw = post(props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve", params, true);
 		return raw;
 	}
 
@@ -171,7 +190,8 @@ public class EasebuzzApiClient {
 		body.put("refund_amount", refundAmount);
 		body.put("hash", hash);
 
-		return postJson(props.getDashboardBaseUrl() + "/transaction/v2/refund", body);
+		// Idempotent at the gateway via merchant_refund_id: a retry cannot double-refund.
+		return postJson(props.getDashboardBaseUrl() + "/transaction/v2/refund", body, true);
 	}
 
 	/**
@@ -195,7 +215,7 @@ public class EasebuzzApiClient {
 		}
 		params.put("hash", hash);
 
-		return postJson(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params);
+		return postJson(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params, true);
 	}
 
 	public Map<String, Object> verifyOtp(String subMerchantId, String otp) {
@@ -234,7 +254,8 @@ public class EasebuzzApiClient {
 		body.put("amount", amount);
 		body.put("hash", hash);
 		body.putAll(beneficiaryDetails);
-		return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer", body);
+		// Idempotent at the gateway via merchant_request_id.
+		return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer", body, true);
 	}
 
 	public Map<String, Object> initiateOnDemandSettlement(String merchantRequestId, String amount) {
@@ -245,7 +266,8 @@ public class EasebuzzApiClient {
 		body.put("merchant_request_id", merchantRequestId);
 		body.put("amount", amount);
 		body.put("hash", hash);
-		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body);
+		// Idempotent at the gateway via merchant_request_id.
+		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body, true);
 	}
 
 	private String normalizeDate(String date) {
@@ -294,7 +316,7 @@ public class EasebuzzApiClient {
 			body.put("submerchant_id", subMerchantId);
 		}
 
-		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body);
+		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body, true);
 	}
 
 	public Map<String, Object> createPaymentLink(Map<String, String> data) {
@@ -529,7 +551,9 @@ return result;
 		body.put("key", props.getMerchantKey());
 		body.put("merchant_request_id", merchantRequestId);
 		body.put("hash", hash);
-		return postJson(props.getDashboardBaseUrl() + "/post-split/v1/retrieve/", body);
+		// Read-only; the post-split *create* call is left un-retried because
+		// PostSplitService already schedules its own +5m/+15m retry ladder.
+		return postJson(props.getDashboardBaseUrl() + "/post-split/v1/retrieve/", body, true);
 	}
 
 	private String generateRandomPassword() {
@@ -541,6 +565,10 @@ return result;
 	}
 
 	private Map<String, Object> post(String url, MultiValueMap<String, String> bodyMap) {
+		return post(url, bodyMap, false);
+	}
+
+	private Map<String, Object> post(String url, MultiValueMap<String, String> bodyMap, boolean retryable) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		
@@ -557,8 +585,7 @@ return result;
 		
 		HttpEntity<String> request = new HttpEntity<>(sb.toString(), headers);
 		try {
-			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request,
-					new ParameterizedTypeReference<Map<String, Object>>() {});
+			ResponseEntity<Map<String, Object>> response = exchangeWithRetry(url, request, retryable);
 			log.debug("Easebuzz API {} success: {}", url, response.getStatusCode());
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
@@ -571,12 +598,15 @@ return result;
 	}
 
 	private Map<String, Object> postJson(String url, Map<String, Object> data) {
+		return postJson(url, data, false);
+	}
+
+	private Map<String, Object> postJson(String url, Map<String, Object> data, boolean retryable) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(data, headers);
 		try {
-			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request,
-					new ParameterizedTypeReference<Map<String, Object>>() {});
+			ResponseEntity<Map<String, Object>> response = exchangeWithRetry(url, request, retryable);
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
 			log.error("Easebuzz JSON API {} error {}", url, e.getStatusCode());
@@ -584,6 +614,58 @@ return result;
 		} catch (Exception e) {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());
+		}
+	}
+
+	/**
+	 * Performs the POST, retrying only transient failures when the caller declared the
+	 * operation safe to repeat.
+	 *
+	 * <p>Retried: transport failures (connect/read timeout, reset) and 5xx / 429
+	 * responses. Not retried: 4xx, which means the request itself was rejected and a
+	 * repeat would fail identically. A 5xx may have been emitted before the gateway
+	 * committed anything, so it is treated as transient — callers that opt in are the
+	 * ones whose repeat is harmless.
+	 *
+	 * <p>Backoff is exponential with jitter (250ms, 500ms, capped at 1s) so a gateway
+	 * incident does not synchronise every in-flight request into a thundering herd.
+	 */
+	private ResponseEntity<Map<String, Object>> exchangeWithRetry(String url, HttpEntity<?> request, boolean retryable) {
+		int maxAttempts = retryable ? MAX_ATTEMPTS : 1;
+		for (int attempt = 1; ; attempt++) {
+			try {
+				return restTemplate.exchange(url, HttpMethod.POST, request,
+						new ParameterizedTypeReference<Map<String, Object>>() {});
+			} catch (RestClientResponseException e) {
+				int statusCode = e.getStatusCode().value();
+				if (!isRetryableStatus(statusCode) || attempt >= maxAttempts) {
+					throw e;
+				}
+				log.warn("Easebuzz API {} returned {} (attempt {}/{}), retrying",
+						url, statusCode, attempt, maxAttempts);
+			} catch (ResourceAccessException e) {
+				if (attempt >= maxAttempts) {
+					throw e;
+				}
+				log.warn("Easebuzz API {} transport failure (attempt {}/{}): {} — retrying",
+						url, attempt, maxAttempts, e.getMessage());
+			}
+			sleepBeforeRetry(attempt);
+		}
+	}
+
+	private static boolean isRetryableStatus(int statusCode) {
+		return statusCode >= 500 || statusCode == RETRYABLE_STATUS_TOO_MANY_REQUESTS;
+	}
+
+	private static void sleepBeforeRetry(int attempt) {
+		long base = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS << (attempt - 1));
+		long delay = base + ThreadLocalRandom.current().nextLong(base / 4 + 1);
+		try {
+			Thread.sleep(delay);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new EasebuzzApiException("Interrupted while waiting to retry an Easebuzz API call", e);
 		}
 	}
 
