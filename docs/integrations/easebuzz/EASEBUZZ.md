@@ -90,6 +90,20 @@ Notes verified from code and the ERA-confirmed doc:
   documents in the owner's name are accepted for the business. `Public Limited` / OPC are
   supported (ERA, 2026-10-17); they are simply absent from the matrix table above.
   CPV liability sits with the restaurant; KhanaBook carries due diligence as parent.
+- **Document handoff is metadata-only (2026-10-18).** Because there is no document-ingest API,
+  the app sends no bytes. Picking a document posts `{docType, proofType}` to
+  `POST /api/v1/restaurants/payment-config/easebuzz/kyc-portal-link`, which records
+  `KYC_UPLOAD_DEFERRED_TO_PORTAL:<TYPE>` on the row, marks nothing as present, and returns
+  `{status: "portal_required", documentType, kycUrl, message}`. The POS turns that into a
+  snackbar whose action opens `kycUrl` through `BrowserLauncher`, which reports the failure
+  instead of crashing when the terminal has no browser handler. If the request itself fails
+  (older server, dropped connection) the app falls back to the `kycUrl` already present in the
+  onboarding status, so the merchant still reaches the portal.
+
+  The multipart route `POST /api/v1/restaurants/kyc-document` still exists, still validates then
+  discards, and is retained only for app builds already in the field — new builds never call it.
+  In every case the document slot stays empty, which is what the authenticated download
+  endpoints report as "no local file".
 - **MCC is NOT controllable at create** (corrected 2026-10-18). Easebuzz assigns the code
   internally and documents no create-time MCC field: ERA first said it travels in
   `business_details.sub_merchant_business_nature`, then confirmed that key carries the entity
@@ -244,8 +258,9 @@ The four webhook paths (`/payments/easebuzz/webhook`, `/refund/webhook`,
 **Retries.** `EasebuzzApiClient` retries 5xx, 429 and transport failures up to 3 attempts
 (250 ms → 500 ms, jittered) — but only for read-only lookups and calls that carry a
 caller-generated idempotency key (`merchant_refund_id`, `merchant_request_id`).
-Sub-merchant creation, KYC upload and payment-link creation are attempted exactly once,
-because a timed-out call there may still have committed at the gateway.
+Sub-merchant creation and payment-link creation are attempted exactly once, because a timed-out
+call there may still have committed at the gateway. The KYC handoff carries no document and is
+not retried at the gateway at all — it only records intent and returns the portal link.
 
 ## 9. Status and known gaps
 
@@ -265,6 +280,8 @@ because a timed-out call there may still have committed at the gateway.
 | KYC expiry / re-verification | Stored from the approval webhook (V111) and enforced daily by `SubMerchantKycExpiryService`, which moves lapsed rows to `KYC_EXPIRED` so payment creation refuses them (Easebuzz sends no expiry webhook). The POS shows a dedicated "KYC Expired" state with the portal and a resubmit action |
 | Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
 | Gateway call retries | Implemented for idempotent/read-only calls only |
+| KYC document handoff | **Metadata-only** (2026-10-18): the app posts `{docType, proofType}` and opens the portal; no bytes are stored or forwarded. The multipart route survives only for older builds |
+| Payment link sweep | Unconfirmed links are re-queried every 2 minutes and expired after 30 (`StuckPaymentSweepService`, V113). A gateway outage leaves the link untouched for the next run rather than marking it `error` |
 
 ## 10. Document index
 

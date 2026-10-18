@@ -160,7 +160,7 @@ FROM easebuzz_sub_merchant;
 |---|---|---|
 | `accepted_by_easebuzz > 0` | The endpoint has worked in production | Keep the call; the portal fallback stays as the safety net |
 | `accepted = 0`, `slots_marked = 0` | No evidence it ever worked. Before this release a failure threw, so absence proves little | Go to 11.2 |
-| `deferred_since_release` rising | Every attempt is being refused | Treat the endpoint as dead (11.2 confirms) |
+| `deferred_since_release` rising | **Expected since 2026-10-18**: the app records the document type instead of uploading, so this counter grows with every document a merchant picks | Not a failure signal — see 11.5 |
 
 ### 11.2 One sandbox call (writes only to a sandbox sub-merchant)
 
@@ -200,6 +200,7 @@ audit trail of what we transmitted.
 | 11.2 route existence, sandbox | 2026-10-18 | `PROBE_NONEXISTENT` | `upload_kyc_documents` → **404 HTML**; control route → **400 JSON**; negative control → 404 HTML | **ROUTE ABSENT** |
 | 11.2 route existence, production | 2026-10-18 | `PROBE_NONEXISTENT` | identical to sandbox | **ROUTE ABSENT** |
 | 11.3 MCC on dashboard | | | | PENDING |
+| 11.5 client now sends metadata only | 2026-10-18 | — | Code shipped with tests; not yet exercised against a deployed server | **PENDING DEPLOY** |
 
 A 404 that is byte-identical to a known-bogus route, next to a documented route answering with
 application JSON, is a stronger signal than any credentialled attempt: it needs no account and
@@ -208,3 +209,30 @@ cannot be confused with an auth or payload error.
 The route test above uses fake ids and no credentials. It creates nothing. A credentialled
 upload to a **live** sub-merchant must never be used to test this — that submission cannot be
 withdrawn.
+
+### 11.5 Client contract after the route was ruled absent
+
+The 11.2 result (`ROUTE ABSENT` on both hosts) was acted on. What the app does now, and what an
+operator should expect to see:
+
+| | Before 2026-10-18 | Now |
+|---|---|---|
+| Document picked in the POS | Multipart POST of the file to `POST /api/v1/restaurants/kyc-document`; server validated, discarded, returned the portal link | `POST /api/v1/restaurants/payment-config/easebuzz/kyc-portal-link` with `{docType, proofType}`; no bytes leave the device |
+| Response | `{status: "portal_required", kycUrl, message}` | Same shape, same `portal_required` status |
+| Row marker | `KYC_UPLOAD_DEFERRED_TO_PORTAL:<TYPE>` | Same — 11.1 still works |
+| Document slot | Empty (`EASEBUZZ_HOSTED` from legacy rows only) | Empty; download endpoints still report no local file |
+| Merchant's next step | Message only | Snackbar action opens `kycUrl`; if the terminal has no browser the app shows the link instead of crashing |
+
+**Deployment order matters.** The new APK calls an endpoint that did not exist before this
+release. Ship the server first; an app released ahead of it has no metadata path (it falls back
+to the `kycUrl` already in the onboarding status, so the merchant is not stranded, but the
+intent is not recorded).
+
+**Verification after deploy (read-only):**
+
+1. Pick a document in the POS for a test merchant.
+2. `SELECT easebuzz_response FROM easebuzz_sub_merchant WHERE restaurant_id = <id>;` →
+   `KYC_UPLOAD_DEFERRED_TO_PORTAL:<TYPE>`.
+3. Confirm no `id_proof_key` / `bank_proof_key` / `business_proof_*_key` was written.
+4. Server log line: `KYC document deferred to portal restaurantId=<id> … (no bytes sent)`.
+5. Tap the snackbar action → the Easebuzz portal opens in the device browser.
