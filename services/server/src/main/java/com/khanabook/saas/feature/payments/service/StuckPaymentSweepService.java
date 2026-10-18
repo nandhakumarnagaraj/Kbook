@@ -109,7 +109,9 @@ public class StuckPaymentSweepService {
         for (Bill candidate : candidates) {
             Long billId = candidate.getId();
             try {
-                paymentService.verifyPayment(billId);
+                // false: a gateway outage must not relabel the link as errored, or it would drop
+                // out of the candidate set and never be confirmed once the gateway recovers.
+                paymentService.verifyPayment(billId, false);
 
                 Bill fresh = billRepo.findById(billId).orElse(null);
                 if (fresh == null || isSettled(fresh)) {

@@ -69,9 +69,25 @@ public class EasebuzzPaymentService {
         );
     }
 
-    @SuppressWarnings("unchecked")
     @Transactional
     public Map<String, Object> verifyPayment(Long billId) {
+        return verifyPayment(billId, true);
+    }
+
+    /**
+     * Confirms a bill against the gateway.
+     *
+     * <p>{@code markErrorOnFailure} exists for the periodic sweep. The status call does not
+     * distinguish "the gateway says this failed" from "we could not reach the gateway": the
+     * client returns {@code status=failure} for transport exceptions too. Writing that as
+     * {@code gatewayStatus=error} is acceptable when a human asked for the answer, but a sweep
+     * during an outage would relabel every open link as errored and then stop tracking it — the
+     * links would never be confirmed even after the gateway recovered. The sweep passes
+     * {@code false} so a transient failure leaves the link exactly as it was for the next run.
+     */
+    @SuppressWarnings("unchecked")
+    @Transactional
+    public Map<String, Object> verifyPayment(Long billId, boolean markErrorOnFailure) {
         Bill bill = billRepo.findById(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
 
@@ -91,8 +107,10 @@ public class EasebuzzPaymentService {
         // v2.1 response has top-level status (API call success) and nested msg with transaction data
         if (!toBool(raw.get("status"))) {
             String err = str(raw.getOrDefault("error", "Transaction status check failed"));
-            bill.setGatewayStatus("error");
-            billRepo.save(bill);
+            if (markErrorOnFailure) {
+                bill.setGatewayStatus("error");
+                billRepo.save(bill);
+            }
             return Map.of("status", "failure", "error", err);
         }
 

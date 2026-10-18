@@ -1020,6 +1020,36 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("link_created", billRepository.findById(bill.getId()).orElseThrow().getGatewayStatus());
     }
 
+    @Test
+    void sweepDoesNotWriteOffALinkWhenTheGatewayCallFails() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PLSWEEP0004");
+        bill.setGatewayStatus("link_created");
+        bill.setPaymentStatus("link_sent");
+        bill.setGatewayLinkCreatedAt(System.currentTimeMillis() - 10 * 60_000L);
+        billRepository.save(bill);
+        // The client maps a transport failure to status=failure. Writing that as gatewayStatus
+        // 'error' would hide the link from every later sweep.
+        when(easebuzzApi.getTransactionStatus("PLSWEEP0004"))
+                .thenReturn(Map.of("status", false, "error", "connect timed out"));
+
+        sweepService.sweepUnconfirmedLinks();
+
+        Bill afterOutage = billRepository.findById(bill.getId()).orElseThrow();
+        assertEquals("link_created", afterOutage.getGatewayStatus(),
+                "a transient gateway failure must leave the link visible to the next sweep");
+        assertEquals("link_sent", afterOutage.getPaymentStatus());
+
+        // Recovery: the next run confirms the same bill.
+        when(easebuzzApi.getTransactionStatus("PLSWEEP0004")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PLSWEEP0004",
+                        "amount", "100.00", "easepayid", "E_SWEEP_4")));
+        sweepService.sweepUnconfirmedLinks();
+
+        assertEquals("paid", billRepository.findById(bill.getId()).orElseThrow().getPaymentStatus());
+    }
+
     // --- Helpers ---
 
     private EasebuzzSubMerchant createActiveSubMerchant() {
