@@ -94,7 +94,7 @@ Notes verified from code and the ERA-confirmed doc:
   the app sends no bytes. Picking a document posts `{docType, proofType}` to
   `POST /api/v1/restaurants/payment-config/easebuzz/kyc-portal-link`, which records
   `KYC_UPLOAD_DEFERRED_TO_PORTAL:<TYPE>` on the row, marks nothing as present, and returns
-  `{status: "portal_required", documentType, kycUrl, message}`. The POS turns that into a
+  `{status: "portal_required", subMerchantId, documentType, kycUrl, message}`. The POS turns that into a
   snackbar whose action opens `kycUrl` through `BrowserLauncher`, which reports the failure
   instead of crashing when the terminal has no browser handler. If the request itself fails
   (older server, dropped connection) the app falls back to the `kycUrl` already present in the
