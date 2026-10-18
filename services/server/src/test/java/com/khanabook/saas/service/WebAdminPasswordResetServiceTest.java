@@ -77,9 +77,18 @@ class WebAdminPasswordResetServiceTest {
         doNothing().when(passwordResetOtpService).validateWebAdminOtpOrThrow(PHONE, "123456");
         String tempToken = service.verifyOtp(PHONE, "123456");
 
-        // Flip the final character of the signature segment.
-        String tampered = tempToken.substring(0, tempToken.length() - 1)
-                + (tempToken.endsWith("A") ? "B" : "A");
+        // Flip a character of the signature segment, but not the last one.
+        //
+        // The signature is a 32-byte HMAC in unpadded base64url, so it ends with 43 characters
+        // whose final character carries only two significant bits. "A" -> "B" flips a padding
+        // bit, decodes to the same 32 bytes, and the token still verifies — which surfaced as
+        // "User not found" instead of "Invalid or expired reset token" whenever the random test
+        // signing key happened to end the signature in "A". The second-to-last character carries
+        // a full six bits, so changing it always changes the decoded signature.
+        int tamperAt = tempToken.length() - 2;
+        char original = tempToken.charAt(tamperAt);
+        char replacement = original == 'A' ? 'B' : 'A';
+        String tampered = tempToken.substring(0, tamperAt) + replacement + tempToken.substring(tamperAt + 1);
 
         assertThatThrownBy(() -> service.resetPassword(tampered, "newPass1"))
                 .isInstanceOf(IllegalArgumentException.class)
