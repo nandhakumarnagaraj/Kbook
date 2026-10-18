@@ -300,7 +300,7 @@ public class SubMerchantService {
                 "subMerchantId", sm.getSubMerchantId(),
                 "documentType", documentType,
                 "kycUrl", sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "",
-                "message", "Easebuzz does not accept KYC documents through its API. Upload this document on the Easebuzz portal.");
+                "message", "Upload this document on the Easebuzz portal to finish verification.");
     }
 
     /**
@@ -485,7 +485,8 @@ public class SubMerchantService {
                     statusMessage = "Rejected/Needs attention ⚠️";
                 } else {
                     statusMessage = "Pending Verification ⏳";
-                }                pushNotificationService.pushToRestaurant(
+                }
+                pushNotificationService.pushToRestaurant(
                 sm.getRestaurantId(),
                 "KYC Status Update",
                 "Your sub-merchant KYC status is now: " + statusMessage,

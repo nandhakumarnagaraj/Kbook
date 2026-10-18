@@ -40,7 +40,14 @@ sealed class OnboardingUiState {
 }
 
 sealed class OnboardingEvent {
-    data class Toast(val message: String, val isError: Boolean = false) : OnboardingEvent()
+    data class Toast(
+        val message: String,
+        val isError: Boolean = false,
+        /** Snackbar action label. When set the snackbar stays until dismissed or tapped. */
+        val actionLabel: String? = null,
+        /** URL opened when the action is tapped. */
+        val actionUrl: String? = null,
+    ) : OnboardingEvent()
     data object OnboardingComplete : OnboardingEvent()
     data class OpenFile(val file: File) : OnboardingEvent()
 }
@@ -412,9 +419,16 @@ class EasebuzzOnboardingViewModel @Inject constructor(
             repository.uploadKycDocument(docType, file, proofType)
                 .onSuccess { result ->
                     if (result["status"] == UPLOAD_STATUS_PORTAL_REQUIRED) {
+                        // The message is only useful if it can be acted on: without a portal
+                        // link this leaves the merchant on a screen with no way forward, which
+                        // is exactly what the upload path used to do.
+                        val kycUrl = result["kycUrl"]?.takeIf { it.isNotBlank() }
                         _events.emit(OnboardingEvent.Toast(
-                            result["message"] ?: "Finish KYC on the Easebuzz portal.",
-                            isError = true
+                            result["message"]
+                                ?: "Upload this document on the Easebuzz portal to finish verification.",
+                            isError = true,
+                            actionLabel = if (kycUrl != null) "Open portal" else null,
+                            actionUrl = kycUrl
                         ))
                     } else {
                         _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))

@@ -458,12 +458,13 @@ class EasebuzzOnboardingViewModelTest {
     }
 
     @Test
-    fun `a refused upload points at the portal instead of claiming success`() = runTest(testScheduler) {
+    fun `picking a document offers an actionable portal link instead of claiming success`() = runTest(testScheduler) {
         coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
         coEvery { onboardingRepository.uploadKycDocument(any(), any(), any()) } returns Result.success(
             mapOf(
                 "status" to EasebuzzOnboardingViewModel.UPLOAD_STATUS_PORTAL_REQUIRED,
-                "message" to "Easebuzz did not accept the document upload. Finish KYC on the Easebuzz portal."
+                "message" to "Upload this document on the Easebuzz portal to finish verification.",
+                "kycUrl" to "https://kyc.easebuzz.in/session/abc"
             )
         )
 
@@ -478,13 +479,18 @@ class EasebuzzOnboardingViewModelTest {
 
         val toasts = events.filterIsInstance<OnboardingEvent.Toast>()
         assertEquals(1, toasts.size)
-        assertTrue("the fallback must be surfaced as an error", toasts.single().isError)
+        val toast = toasts.single()
+        assertTrue("the fallback must be surfaced as an error", toast.isError)
         assertTrue(
             "the message must name the portal",
-            toasts.single().message.contains("portal", ignoreCase = true)
+            toast.message.contains("portal", ignoreCase = true)
         )
+        // The message is only actionable if it carries the link: this screen has no portal
+        // button of its own, so without these the merchant is stranded.
+        assertEquals("Open portal", toast.actionLabel)
+        assertEquals("https://kyc.easebuzz.in/session/abc", toast.actionUrl)
         assertFalse(
-            "a refused upload must never be reported as success",
+            "picking a document must never be reported as a completed upload",
             toasts.any { it.message == "Document uploaded successfully" }
         )
     }

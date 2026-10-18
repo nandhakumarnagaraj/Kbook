@@ -52,6 +52,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     
     @MockBean private EasebuzzApiClient easebuzzApi;
     @MockBean private MerchantAgreementService merchantAgreementService;
+    @MockBean private com.khanabook.saas.feature.notifications.service.PushNotificationService pushNotificationService;
 
     private static final java.util.concurrent.atomic.AtomicLong TEST_SEQ =
             new java.util.concurrent.atomic.AtomicLong();
@@ -555,6 +556,15 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Expired: off ACTIVE, which is what makes payment creation refuse the merchant.
         assertEquals("KYC_EXPIRED", subMerchantRepo.findById(expired.getId()).orElseThrow().getStatus());
+
+        // Silence is the bug this covers: Easebuzz sends no expiry webhook, so without a push the
+        // owner learns only when a customer cannot pay.
+        verify(pushNotificationService).pushToRestaurant(
+                eq(expired.getRestaurantId()), any(), any(), any(), any(), any(), any());
+        verify(pushNotificationService, never()).pushToRestaurant(
+                eq(stillValid.getRestaurantId()), any(), any(), any(), any(), any(), any());
+        verify(pushNotificationService, never()).pushToRestaurant(
+                eq(unparseable.getRestaurantId()), any(), any(), any(), any(), any(), any());
         // A future date must not be touched.
         assertEquals("ACTIVE", subMerchantRepo.findById(stillValid.getId()).orElseThrow().getStatus());
         // A date we cannot read must not silently cut a merchant off.

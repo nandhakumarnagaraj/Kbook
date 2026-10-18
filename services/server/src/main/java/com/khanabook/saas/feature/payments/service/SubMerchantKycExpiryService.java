@@ -1,5 +1,6 @@
 package com.khanabook.saas.feature.payments.service;
 
+import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class SubMerchantKycExpiryService {
     private static final ZoneId EASEBUZZ_ZONE = ZoneId.of("Asia/Kolkata");
 
     private final EasebuzzSubMerchantRepository subMerchantRepo;
+    private final PushNotificationService pushNotificationService;
 
     @Scheduled(cron = "${easebuzz.kyc-expiry-check.cron:0 30 6 * * *}", zone = "Asia/Kolkata")
     public void flagExpiredKyc() {
@@ -69,6 +71,7 @@ public class SubMerchantKycExpiryService {
                 expired++;
                 log.warn("Sub-merchant {} KYC expired at {} - moved to KYC_EXPIRED, payments blocked",
                         sm.getSubMerchantId(), raw);
+                notifyExpired(sm);
             } catch (DateTimeParseException e) {
                 unparseable++;
                 log.warn("Unparseable kyc_expiry_date '{}' for sub-merchant {} - left ACTIVE",
@@ -81,5 +84,28 @@ public class SubMerchantKycExpiryService {
 
         log.info("KYC expiry check finished: {} checked, {} expired, {} unparseable",
                 active.size(), expired, unparseable);
+    }
+
+    /**
+     * Tells the merchant their payments just stopped. Without this the status changes silently:
+     * Easebuzz sends no expiry webhook, so the app is closed and nobody is watching the row.
+     *<p>
+     * Deliberately swallows its own failures. A dropped push must not undo a status change that
+     * already happened, nor abort the rest of the batch.
+     */
+    private void notifyExpired(EasebuzzSubMerchant sm) {
+        try {
+            pushNotificationService.pushToRestaurant(
+                    sm.getRestaurantId(),
+                    "KYC Expired",
+                    "Your KYC has lapsed, so online payments are paused. Re-verify with Easebuzz to resume.",
+                    "kyc",
+                    String.valueOf(sm.getId()),
+                    "submerchant",
+                    null);
+        } catch (Exception e) {
+            log.warn("Failed to push KYC expiry notification for sub-merchant {}: {}",
+                    sm.getSubMerchantId(), e.getMessage());
+        }
     }
 }

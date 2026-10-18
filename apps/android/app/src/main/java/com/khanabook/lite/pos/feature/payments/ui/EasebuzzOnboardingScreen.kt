@@ -57,15 +57,29 @@ fun EasebuzzOnboardingScreen(
     val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is OnboardingEvent.Toast -> {
-                    KhanaToast.show(
+                    val result = KhanaToast.show(
                         event.message,
-                        if (event.isError) ToastKind.Error else ToastKind.Success
+                        if (event.isError) ToastKind.Error else ToastKind.Success,
+                        event.actionLabel
                     )
+                    // An actionable message must actually be actionable: tapping opens the
+                    // portal instead of leaving the merchant to hunt for a button.
+                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                        event.actionUrl?.let { url ->
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                            )
+                        }
+                    }
                 }
                 is OnboardingEvent.OnboardingComplete -> onBack()
                 is OnboardingEvent.OpenFile -> { /* handled in ComplianceDocumentsScreen */ }

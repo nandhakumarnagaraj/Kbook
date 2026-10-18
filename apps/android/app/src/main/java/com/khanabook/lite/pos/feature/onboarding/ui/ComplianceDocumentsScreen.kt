@@ -115,7 +115,25 @@ fun ComplianceDocumentsScreen(
         events.collect { event ->
             when (event) {
                 is OnboardingEvent.Toast -> {
-                    toastScope.launch { KhanaToast.show(event.message, if (event.isError) ToastKind.Error else ToastKind.Success) }
+                    // This screen has no portal button of its own, so the message carries the
+                    // only way forward: a snackbar action that opens the Easebuzz portal.
+                    toastScope.launch {
+                        val result = KhanaToast.show(
+                            event.message,
+                            if (event.isError) ToastKind.Error else ToastKind.Success,
+                            event.actionLabel
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            event.actionUrl?.let { url ->
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(url)
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
                 is OnboardingEvent.OpenFile -> PdfOpener.open(context, event.file)
                 else -> {}
