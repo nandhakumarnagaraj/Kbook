@@ -557,6 +557,8 @@ public class EasebuzzPaymentService {
             bill.setGatewayStatus("link_created");
             bill.setPaymentStatus("link_sent");
             bill.setPaymentMode("payment_link");
+            // The sweep's clock: set once here, never touched by bill edits.
+            bill.setGatewayLinkCreatedAt(System.currentTimeMillis());
             billRepo.save(bill);
             log.info("Payment link created for billId={} merchantTxn={} amount={}", billId, merchantTxn, amount);
         } else {

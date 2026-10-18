@@ -41,6 +41,10 @@ public interface EasebuzzWebhookEventRepository extends JpaRepository<EasebuzzWe
     @Query("SELECT e FROM EasebuzzWebhookEvent e WHERE e.status IN ('failure', 'failed') ORDER BY e.receivedAt DESC")
     List<EasebuzzWebhookEvent> findFailedTransactions();
 
+    /** Newest accepted webhook, in epoch millis, or 0 when we have never received one. */
+    @Query("SELECT COALESCE(MAX(e.receivedAt), 0) FROM EasebuzzWebhookEvent e")
+    long findLatestReceivedAt();
+
     @Query("SELECT e FROM EasebuzzWebhookEvent e WHERE e.status IN ('failure', 'failed') AND e.receivedAt >= :since ORDER BY e.receivedAt DESC")
     List<EasebuzzWebhookEvent> findFailedTransactionsSince(@Param("since") Long since);
 }

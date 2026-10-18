@@ -496,4 +496,28 @@ class EasebuzzOnboardingViewModelTest {
         // be a multi-megabyte transfer that the server is required to throw away.
         coVerify(exactly = 1) { onboardingRepository.requestKycPortalLink("id_proof", null) }
     }
+
+    @Test
+    fun `a failed link request still hands over the cached portal link`() = runTest(testScheduler) {
+        // An app that ships before the server does hits a 404 here. The merchant must not be
+        // stranded on the screen that exists to send them to the portal.
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
+            onboardingStatus().copy(kycUrl = "https://kyc.easebuzz.in/session/cached")
+        )
+        coEvery { onboardingRepository.requestKycPortalLink(any(), any()) } returns
+            Result.failure(IllegalStateException("HTTP 404"))
+
+        val events = mutableListOf<OnboardingEvent>()
+        val viewModel = createViewModel()
+        val collected = launch(testDispatcher) { viewModel.events.collect { events.add(it) } }
+        advanceUntilIdle()
+
+        viewModel.requestKycPortalLink("bank_proof")
+        advanceUntilIdle()
+        collected.cancel()
+
+        val toast = events.filterIsInstance<OnboardingEvent.Toast>().last()
+        assertEquals("Open portal", toast.actionLabel)
+        assertEquals("https://kyc.easebuzz.in/session/cached", toast.actionUrl)
+    }
 }

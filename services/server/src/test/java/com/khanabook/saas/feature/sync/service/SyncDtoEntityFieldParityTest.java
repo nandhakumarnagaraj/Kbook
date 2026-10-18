@@ -64,6 +64,8 @@ class SyncDtoEntityFieldParityTest {
 	private static final Set<String> SERVER_OWNED = Set.of(
 			// Set by the gateway webhook / settlement, never by the till.
 			"gatewayTxnId", "gatewayStatus", "refundId",
+			// Stamped when the payment link is created; the stuck-link sweep expires on it.
+			"gatewayLinkCreatedAt",
 			"settledAmount", "settledAt", "commissionAmount",
 			// Set by InventoryService.deductForFinalizedBill. If a push reset this to false
 			// the bill would be deducted a second time.

@@ -129,6 +129,14 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "gateway_status")
 	private String gatewayStatus;
 
+	/**
+	 * When the payment link was created. Sweep-only: a link with no confirmation after a few
+	 * minutes gets re-queried, and after {@code payments.sweep.expire-after-ms} is expired.
+	 * Separate from {@code updatedAt}, which every edit moves.
+	 */
+	@Column(name = "gateway_link_created_at")
+	private Long gatewayLinkCreatedAt;
+
 	@Column(name = "refund_id")
 	private String refundId;
 

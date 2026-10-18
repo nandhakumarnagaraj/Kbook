@@ -49,6 +49,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
     @Autowired private EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     @Autowired private com.khanabook.saas.feature.payments.service.SubMerchantKycExpiryService kycExpiryService;
+    @Autowired private com.khanabook.saas.feature.payments.service.StuckPaymentSweepService sweepService;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
     @MockBean private MerchantAgreementService merchantAgreementService;
@@ -956,6 +957,67 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant unchanged = subMerchantRepo.findById(sm.getId()).orElseThrow();
         assertEquals("sm_" + testSubMerchantId, unchanged.getSplitLabel());
         assertEquals(Integer.valueOf(1), unchanged.getSplitLabelVersion());
+    }
+
+    // --- Stuck payment sweep ---
+
+    @Test
+    void sweepConfirmsAPaymentWhoseWebhookNeverArrived() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PLSWEEP0001");
+        bill.setGatewayStatus("link_created");
+        bill.setPaymentStatus("link_sent");
+        bill.setGatewayLinkCreatedAt(System.currentTimeMillis() - 10 * 60_000L);
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PLSWEEP0001")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "success", "txnid", "PLSWEEP0001",
+                        "amount", "100.00", "easepayid", "E_SWEEP_1")));
+
+        // A lost webhook used to mean the bill stayed unpaid until the 06:00 reconciliation.
+        sweepService.sweepUnconfirmedLinks();
+
+        Bill after = billRepository.findById(bill.getId()).orElseThrow();
+        assertEquals("paid", after.getPaymentStatus());
+        assertEquals("success", after.getGatewayStatus());
+        assertNotNull(after.getPaidAt());
+    }
+
+    @Test
+    void sweepExpiresALinkNobodyPaid() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PLSWEEP0002");
+        bill.setGatewayStatus("link_created");
+        bill.setPaymentStatus("link_sent");
+        bill.setGatewayLinkCreatedAt(System.currentTimeMillis() - 45 * 60_000L);
+        billRepository.save(bill);
+        when(easebuzzApi.getTransactionStatus("PLSWEEP0002")).thenReturn(Map.of(
+                "status", true,
+                "msg", Map.of("status", "pending", "txnid", "PLSWEEP0002", "amount", "100.00")));
+
+        sweepService.sweepUnconfirmedLinks();
+
+        Bill after = billRepository.findById(bill.getId()).orElseThrow();
+        assertEquals("link_expired", after.getGatewayStatus());
+        // Expiry must never claim the customer paid.
+        assertEquals("link_sent", after.getPaymentStatus());
+        assertNull(after.getPaidAt());
+    }
+
+    @Test
+    void sweepLeavesFreshLinksAlone() {
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
+        bill.setGatewayTxnId("PLSWEEP0003");
+        bill.setGatewayStatus("link_created");
+        bill.setPaymentStatus("link_sent");
+        bill.setGatewayLinkCreatedAt(System.currentTimeMillis() - 60_000L);
+        billRepository.save(bill);
+
+        sweepService.sweepUnconfirmedLinks();
+
+        // A link the customer may still be paying is not worth a gateway round trip.
+        verify(easebuzzApi, never()).getTransactionStatus(any());
+        assertEquals("link_created", billRepository.findById(bill.getId()).orElseThrow().getGatewayStatus());
     }
 
     // --- Helpers ---

@@ -1335,6 +1335,9 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			}
 			incomingBill.setGatewayTxnId(existingBill.getGatewayTxnId());
 			incomingBill.setGatewayStatus(existingBill.getGatewayStatus());
+			// The sweep's clock. Absent from BillDTO, so without this restore every device push
+			// would null it and the link would look fresh forever.
+			incomingBill.setGatewayLinkCreatedAt(existingBill.getGatewayLinkCreatedAt());
 			incomingBill.setRefundId(existingBill.getRefundId());
 			incomingBill.setSettledAmount(existingBill.getSettledAmount());
 			incomingBill.setSettledAt(existingBill.getSettledAt());

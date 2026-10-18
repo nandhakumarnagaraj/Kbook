@@ -243,6 +243,44 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     // --- Easebuzz / metrics queries (v2 port) ---
     Optional<Bill> findByGatewayTxnId(String gatewayTxnId);
 
+    /**
+     * Payment links whose outcome the gateway has not confirmed for us. Ordered oldest first so
+     * a backlog drains in the order customers are waiting, and capped by the caller's page size
+     * so one run can never sweep the whole estate.
+     *
+     * <p>Both {@code link_created} (no verdict yet) and {@code pending} (gateway says "not yet")
+     * are candidates: a link that stays pending is exactly the case a daily reconciliation would
+     * leave invisible for a day.
+     */
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.gatewayStatus IN ('link_created', 'pending')
+              AND b.paymentStatus NOT IN ('paid', 'success')
+              AND b.gatewayLinkCreatedAt IS NOT NULL
+              AND b.gatewayLinkCreatedAt < :cutoff
+              AND b.isDeleted = false
+            ORDER BY b.gatewayLinkCreatedAt ASC
+            """)
+    List<Bill> findUnconfirmedPaymentLinks(@Param("cutoff") long cutoff, Pageable pageable);
+
+    /**
+     * Expires a link that has been open too long, atomically.
+     *
+     * <p>Guarded on the same conditions the sweep read: a webhook can mark the bill paid between
+     * the gateway call and this update, and expiring a paid bill would be worse than leaving a
+     * stale one. Returns 0 when the bill moved on, which is a normal race, not an error.
+     */
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("""
+            UPDATE Bill b
+            SET b.gatewayStatus = 'link_expired', b.updatedAt = :now
+            WHERE b.id = :id
+              AND b.gatewayStatus IN ('link_created', 'pending')
+              AND b.paymentStatus NOT IN ('paid', 'success')
+            """)
+    int expireUnconfirmedLink(@Param("id") Long id, @Param("now") long now);
+
     @org.springframework.data.jpa.repository.Query(value = """
             SELECT b.restaurant_id, COUNT(b.id) AS order_count,
                    COALESCE(SUM(b.commission_amount), 0) AS total_commission,

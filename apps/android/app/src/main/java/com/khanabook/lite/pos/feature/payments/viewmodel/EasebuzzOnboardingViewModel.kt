@@ -431,14 +431,37 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                     loadStatus()
                 }
                 .onFailure { e ->
-                    _events.emit(OnboardingEvent.Toast(
-                        UserMessageSanitizer.sanitize(e, "Could not open the Easebuzz portal. Please try again."),
-                        isError = true
-                    ))
+                    // The status payload already carries the portal link. When the link request
+                    // fails — an older server that has no such endpoint, or a dropped
+                    // connection — the merchant must still get a way forward instead of a dead
+                    // end on the one screen that exists to unblock them.
+                    val cachedUrl = cachedKycPortalUrl()
+                    if (cachedUrl != null) {
+                        _events.emit(OnboardingEvent.Toast(
+                            "Upload this document on the Easebuzz portal to finish verification.",
+                            isError = true,
+                            actionLabel = "Open portal",
+                            actionUrl = cachedUrl
+                        ))
+                    } else {
+                        _events.emit(OnboardingEvent.Toast(
+                            UserMessageSanitizer.sanitize(e, "Could not open the Easebuzz portal. Please try again."),
+                            isError = true
+                        ))
+                    }
                 }
             _isSubmitting.value = false
         }
     }
+
+    /** Portal link from the last loaded status, usable when the link request itself fails. */
+    private fun cachedKycPortalUrl(): String? = when (val state = _uiState.value) {
+        is OnboardingUiState.AwaitingKyc -> state.status.kycUrl
+        is OnboardingUiState.Active -> state.status.kycUrl
+        is OnboardingUiState.Rejected -> state.status.kycUrl
+        is OnboardingUiState.Expired -> state.status.kycUrl
+        else -> null
+    }?.takeIf { it.isNotBlank() }
 
     fun downloadKycDocument(docType: String) {
         viewModelScope.launch {
