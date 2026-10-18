@@ -31,7 +31,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -460,9 +459,9 @@ class EasebuzzOnboardingViewModelTest {
     @Test
     fun `picking a document offers an actionable portal link instead of claiming success`() = runTest(testScheduler) {
         coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
-        coEvery { onboardingRepository.uploadKycDocument(any(), any(), any()) } returns Result.success(
+        coEvery { onboardingRepository.requestKycPortalLink(any(), any()) } returns Result.success(
             mapOf(
-                "status" to EasebuzzOnboardingViewModel.UPLOAD_STATUS_PORTAL_REQUIRED,
+                "status" to "portal_required",
                 "message" to "Upload this document on the Easebuzz portal to finish verification.",
                 "kycUrl" to "https://kyc.easebuzz.in/session/abc"
             )
@@ -473,7 +472,7 @@ class EasebuzzOnboardingViewModelTest {
         val collected = launch(testDispatcher) { viewModel.events.collect { events.add(it) } }
         advanceUntilIdle()
 
-        viewModel.uploadKycDocument("id_proof", File("pan.pdf"))
+        viewModel.requestKycPortalLink("id_proof")
         advanceUntilIdle()
         collected.cancel()
 
@@ -493,5 +492,8 @@ class EasebuzzOnboardingViewModelTest {
             "picking a document must never be reported as a completed upload",
             toasts.any { it.message == "Document uploaded successfully" }
         )
+        // Only the document type crosses the wire: Easebuzz accepts no bytes, so an upload would
+        // be a multi-megabyte transfer that the server is required to throw away.
+        coVerify(exactly = 1) { onboardingRepository.requestKycPortalLink("id_proof", null) }
     }
 }

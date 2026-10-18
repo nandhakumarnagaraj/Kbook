@@ -11,9 +11,6 @@ import com.khanabook.lite.pos.feature.payments.data.EasebuzzOtpRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,26 +72,23 @@ class EasebuzzOnboardingRepository @Inject constructor(
     suspend fun lookupFssai(fssaiNo: String): Result<com.khanabook.lite.pos.feature.payments.data.FssaiLookupResponse> =
         runApi { api.lookupFssai(fssaiNo) }
 
-    suspend fun uploadKycDocument(
+    /**
+     * Asks the server where to upload [docType] and returns the portal link.
+     *
+     * No file is sent: Easebuzz has no document-ingest API, so the server could only validate
+     * and discard the bytes. Sending them meant buffering an entire document in memory and
+     * spending the terminal's bandwidth on an upload that could never succeed.
+     */
+    suspend fun requestKycPortalLink(
         docType: String,
-        file: File,
         proofType: String? = null
-    ): Result<Map<String, String>> {
-        return runApi {
-            val extension = file.extension.lowercase()
-            val mimeType = when (extension) {
-                "pdf" -> "application/pdf"
-                "png" -> "image/png"
-                "jpg", "jpeg" -> "image/jpeg"
-                "webp" -> "image/webp"
-                else -> "application/octet-stream"
+    ): Result<Map<String, String>> = runApi {
+        api.requestKycPortalLink(
+            buildMap {
+                put("docType", docType)
+                if (!proofType.isNullOrBlank()) put("proofType", proofType)
             }
-            val requestBody = file.readBytes().toRequestBody(mimeType.toMediaTypeOrNull())
-            val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
-            val typePart = MultipartBody.Part.createFormData("type", docType)
-            val proofTypePart = proofType?.let { MultipartBody.Part.createFormData("proofType", it) }
-            api.uploadKycDocument(filePart, typePart, proofTypePart)
-        }
+        )
     }
 
     suspend fun downloadKycDocument(docType: String): Result<File> = withContext(Dispatchers.IO) {

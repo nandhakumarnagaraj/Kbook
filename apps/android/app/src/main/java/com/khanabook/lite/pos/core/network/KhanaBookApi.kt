@@ -326,12 +326,17 @@ interface KhanaBookApi {
 
         // ── Easebuzz KYC documents (incl. 2 address/business proofs) ───────
 
-        @Multipart
-        @POST("api/v1/restaurants/kyc-document")
-        suspend fun uploadKycDocument(
-            @Part file: MultipartBody.Part,
-            @Part type: MultipartBody.Part,
-            @Part proofType: MultipartBody.Part? = null
+        /**
+         * Records the document type and returns the portal link.
+         *
+         * The file is deliberately not sent: Easebuzz accepts no documents through its API, so
+         * the server validates and discards them. Uploading the bytes cost the merchant a
+         * multi-megabyte transfer on a POS terminal and made the app look like it had submitted
+         * the document.
+         */
+        @POST("api/v1/restaurants/payment-config/easebuzz/kyc-portal-link")
+        suspend fun requestKycPortalLink(
+            @Body request: Map<String, String>
         ): Map<String, String>
 
         @GET("api/v1/business/kyc-document/{docType}/download")

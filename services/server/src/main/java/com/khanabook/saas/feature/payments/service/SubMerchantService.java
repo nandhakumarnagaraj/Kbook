@@ -133,7 +133,8 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         log.info("Sub-merchant {} assigned Easebuzz ID: {} for restaurant {}; KYC activation remains pending", id, subMerchantId, sm.getRestaurantId());
         
-        try {                pushNotificationService.pushToRestaurant(
+        try {
+            pushNotificationService.pushToRestaurant(
                 sm.getRestaurantId(),
                 "Sub-Merchant Linked",
                 "Easebuzz sub-merchant account linked successfully. KYC verification is pending.",
@@ -141,7 +142,6 @@ public class SubMerchantService {
                 String.valueOf(sm.getId()),
                 "submerchant",
                 null
-
             );
         } catch (Exception e) {
             log.warn("Failed to push submerchant link notification: {}", e.getMessage());
@@ -267,19 +267,14 @@ public class SubMerchantService {
      * {@code proofType} is still accepted for wire compatibility with the app, but is no longer
      * recorded: storing a proof type without a proof would tell the status endpoint a document
      * exists when none does.
+     * <p>
+     * Kept for app builds that still ship the bytes; new builds use
+     * {@link #requestKycPortalLink(Long, String)} and send no file at all.
      */
     @Transactional
     public Map<String, Object> submitKycDocument(Long restaurantId, String docType, String proofType, MultipartFile file) {
-        EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
-                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", "restaurantId=" + restaurantId));
-        if (sm.getSubMerchantId() == null || sm.getSubMerchantId().isBlank()) {
-            throw new BusinessRuleException("Restaurant is not registered with Easebuzz yet. Complete registration first.",
-                    "sub_merchant_not_registered");
-        }
-        String documentType = easebuzzDocumentType(docType);
-        if (documentType == null) {
-            throw new IllegalArgumentException("Unknown KYC document type: " + docType);
-        }
+        EasebuzzSubMerchant sm = registeredSubMerchant(restaurantId);
+        String documentType = requireDocumentType(docType);
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty");
         }
@@ -289,9 +284,44 @@ public class SubMerchantService {
         if (file.getSize() > KYC_FILE_MAX_BYTES) {
             throw new IllegalArgumentException("File too large; max " + (KYC_FILE_MAX_BYTES / (1024 * 1024)) + " MB");
         }
+        return deferToPortal(sm, documentType, file.getSize() + " bytes received and discarded");
+    }
 
-        log.info("KYC document received restaurantId={} docType={} easebuzzType={} subMerchant={} — Easebuzz has no document API; returning the portal link instead",
-                restaurantId, docType, documentType, sm.getSubMerchantId());
+    /**
+     * Records that the merchant has this document and hands back the portal link to upload it.
+     * <p>
+     * This is what the app calls. Sending the bytes to an endpoint that is forbidden to keep
+     * them cost an upload on a POS terminal, a heap-sized byte array on low-end hardware, and
+     * left the merchant believing the document had been submitted. The document type is the
+     * only thing this server can act on.
+     */
+    @Transactional
+    public Map<String, Object> requestKycPortalLink(Long restaurantId, String docType) {
+        EasebuzzSubMerchant sm = registeredSubMerchant(restaurantId);
+        return deferToPortal(sm, requireDocumentType(docType), "no bytes sent");
+    }
+
+    private EasebuzzSubMerchant registeredSubMerchant(Long restaurantId) {
+        EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
+                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", "restaurantId=" + restaurantId));
+        if (sm.getSubMerchantId() == null || sm.getSubMerchantId().isBlank()) {
+            throw new BusinessRuleException("Restaurant is not registered with Easebuzz yet. Complete registration first.",
+                    "sub_merchant_not_registered");
+        }
+        return sm;
+    }
+
+    private String requireDocumentType(String docType) {
+        String documentType = easebuzzDocumentType(docType);
+        if (documentType == null) {
+            throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+        }
+        return documentType;
+    }
+
+    private Map<String, Object> deferToPortal(EasebuzzSubMerchant sm, String documentType, String detail) {
+        log.info("KYC document deferred to portal restaurantId={} easebuzzType={} subMerchant={} ({}) — Easebuzz has no document API",
+                sm.getRestaurantId(), documentType, sm.getSubMerchantId(), detail);
         sm.setEasebuzzResponse("KYC_UPLOAD_DEFERRED_TO_PORTAL:" + documentType);
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);

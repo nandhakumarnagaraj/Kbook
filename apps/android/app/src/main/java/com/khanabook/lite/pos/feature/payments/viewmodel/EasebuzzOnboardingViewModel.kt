@@ -233,12 +233,6 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         fun isValidPan(pan: String): Boolean = PAN_REGEX.matches(pan)
         fun isValidIfsc(ifsc: String): Boolean = IFSC_REGEX.matches(ifsc)
 
-        /**
-         * Status returned for every document the merchant picks: Easebuzz has no document-ingest
-         * API (the endpoint our client used answers 404), so the document is always uploaded on
-         * the hosted portal. This is the expected outcome, not a transient failure.
-         */
-        const val UPLOAD_STATUS_PORTAL_REQUIRED = "portal_required"
     }
 
     fun loadStatus() {
@@ -413,31 +407,32 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         startOnboardingFlow(resubmit = true)
     }
 
-    fun uploadKycDocument(docType: String, file: java.io.File, proofType: String? = null) {
+    /**
+     * Records which document the merchant has and hands them the Easebuzz portal, the only place
+     * a document can go: Easebuzz has no document-ingest API. Nothing is uploaded, so there is
+     * no "uploaded successfully" outcome to report.
+     */
+    fun requestKycPortalLink(docType: String, proofType: String? = null) {
         viewModelScope.launch {
             _isSubmitting.value = true
-            repository.uploadKycDocument(docType, file, proofType)
+            repository.requestKycPortalLink(docType, proofType)
                 .onSuccess { result ->
-                    if (result["status"] == UPLOAD_STATUS_PORTAL_REQUIRED) {
-                        // The message is only useful if it can be acted on: without a portal
-                        // link this leaves the merchant on a screen with no way forward, which
-                        // is exactly what the upload path used to do.
-                        val kycUrl = result["kycUrl"]?.takeIf { it.isNotBlank() }
-                        _events.emit(OnboardingEvent.Toast(
-                            result["message"]
-                                ?: "Upload this document on the Easebuzz portal to finish verification.",
-                            isError = true,
-                            actionLabel = if (kycUrl != null) "Open portal" else null,
-                            actionUrl = kycUrl
-                        ))
-                    } else {
-                        _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))
-                    }
+                    // The message is only useful if it can be acted on: without a portal
+                    // link this leaves the merchant on a screen with no way forward, which
+                    // is exactly what the upload path used to do.
+                    val kycUrl = result["kycUrl"]?.takeIf { it.isNotBlank() }
+                    _events.emit(OnboardingEvent.Toast(
+                        result["message"]
+                            ?: "Upload this document on the Easebuzz portal to finish verification.",
+                        isError = true,
+                        actionLabel = if (kycUrl != null) "Open portal" else null,
+                        actionUrl = kycUrl
+                    ))
                     loadStatus()
                 }
                 .onFailure { e ->
                     _events.emit(OnboardingEvent.Toast(
-                        UserMessageSanitizer.sanitize(e, "Upload failed. Please try again."),
+                        UserMessageSanitizer.sanitize(e, "Could not open the Easebuzz portal. Please try again."),
                         isError = true
                     ))
                 }

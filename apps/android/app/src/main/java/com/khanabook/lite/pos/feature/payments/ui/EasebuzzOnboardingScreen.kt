@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -40,6 +41,8 @@ import com.khanabook.lite.pos.core.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.designsystem.StickyBottomScaffold
 import com.khanabook.lite.pos.core.designsystem.ToastKind
+import com.khanabook.lite.pos.core.util.BrowserLauncher
+import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewModel
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingEvent
@@ -72,12 +75,12 @@ fun EasebuzzOnboardingScreen(
                     // portal instead of leaving the merchant to hunt for a button.
                     if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
                         event.actionUrl?.let { url ->
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
+                            if (!BrowserLauncher.open(context, url)) {
+                                KhanaToast.show(
+                                    "No app on this device can open the portal. Link: $url",
+                                    ToastKind.Error
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -832,7 +835,7 @@ private fun KycStatusStep(
                         )
                     }
 
-                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val openPortal = rememberPortalOpener()
                     if (!status.kycUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(spacing.medium))
                         // Easebuzz requires the merchant to sign in and upload documents themselves;
@@ -847,13 +850,7 @@ private fun KycStatusStep(
                         )
                         Spacer(Modifier.height(spacing.small))
                         Button(
-                            onClick = {
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(status.kycUrl)
-                                )
-                                context.startActivity(intent)
-                            },
+                            onClick = { openPortal(status.kycUrl) },
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = KhanaRadii.button,
                             modifier = Modifier.fillMaxWidth()
@@ -1028,15 +1025,9 @@ private fun RejectedContent(
           Spacer(Modifier.height(spacing.large))
 
           if (!status.kycUrl.isNullOrBlank()) {
-              val context = androidx.compose.ui.platform.LocalContext.current
+              val openPortal = rememberPortalOpener()
               Button(
-                  onClick = {
-                      val intent = android.content.Intent(
-                          android.content.Intent.ACTION_VIEW,
-                          android.net.Uri.parse(status.kycUrl)
-                      )
-                      context.startActivity(intent)
-                  },
+                  onClick = { openPortal(status.kycUrl) },
                   colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                   shape = KhanaRadii.button,
                   modifier = Modifier.fillMaxWidth()
@@ -1275,6 +1266,28 @@ private fun SelectField(
                         expanded = false
                     }
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Opens the KYC portal, telling the merchant when the device cannot. POS terminals are often
+ * imaged without a browser, where startActivity throws and the button simply appears broken.
+ */
+@Composable
+private fun rememberPortalOpener(): (String?) -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    return remember(context, scope) {
+        { url ->
+            if (!BrowserLauncher.open(context, url)) {
+                scope.launch {
+                    KhanaToast.show(
+                        "No app on this device can open the portal. Link: ${url.orEmpty()}",
+                        ToastKind.Error
+                    )
+                }
             }
         }
     }

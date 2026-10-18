@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.feature.onboarding.ui
 import com.khanabook.lite.pos.core.theme.*
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,6 +33,7 @@ import com.khanabook.lite.pos.feature.payments.data.AddressProofType
 import com.khanabook.lite.pos.feature.printing.domain.PdfOpener
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.designsystem.ToastKind
+import com.khanabook.lite.pos.core.util.BrowserLauncher
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.auth.viewmodel.DeviceSessionViewModel
 import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewModel
@@ -41,7 +41,6 @@ import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingEvent
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
 import com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
-import java.io.File
 
 @Composable
 fun ComplianceDocumentsScreen(
@@ -96,16 +95,13 @@ fun ComplianceDocumentsScreen(
 
     val isDuplicateTypeError = (selectedProof1Type == selectedProof2Type) && (status?.businessProof2Present == true)
 
+    // Easebuzz accepts no documents through its API, so nothing is uploaded here: picking the
+    // file confirms the merchant has it, and the snackbar that follows opens the portal. Copying
+    // the bytes into app storage only to discard them was the old behaviour.
     val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        val docType = pendingDocType ?: return@rememberLauncherForActivityResult
-        val proofType = pendingProofType
-        uri?.let {
-            val file = copyUriToFile(context, it, "kyc_${docType}_${System.currentTimeMillis()}")
-            if (file != null) {
-                vm.uploadKycDocument(docType, file, proofType)
-            } else {
-                toastScope.launch { KhanaToast.show("Could not read selected file", ToastKind.Error) }
-            }
+        val docType = pendingDocType
+        if (uri != null && docType != null) {
+            vm.requestKycPortalLink(docType, pendingProofType)
         }
         pendingDocType = null
         pendingProofType = null
@@ -125,12 +121,13 @@ fun ComplianceDocumentsScreen(
                         )
                         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
                             event.actionUrl?.let { url ->
-                                context.startActivity(
-                                    android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(url)
+                                if (!BrowserLauncher.open(context, url)) {
+                                    // A terminal with no browser must not look like a dead button.
+                                    KhanaToast.show(
+                                        "No app on this device can open the portal. Link: $url",
+                                        ToastKind.Error
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -598,26 +595,3 @@ private fun CpvChecklistItem(text: String) {
     }
 }
 
-private fun copyUriToFile(context: Context, uri: Uri, baseName: String): File? = try {
-    val mime = context.contentResolver.getType(uri) ?: ""
-    val ext = when {
-        mime.contains("pdf") -> ".pdf"
-        mime.contains("png") -> ".png"
-        mime.contains("jpeg") || mime.contains("jpg") -> ".jpg"
-        mime.contains("webp") -> ".webp"
-        else -> {
-            val lastPath = uri.lastPathSegment?.lowercase() ?: ""
-            if (lastPath.endsWith(".png")) ".png"
-            else if (lastPath.endsWith(".jpg") || lastPath.endsWith(".jpeg")) ".jpg"
-            else if (lastPath.endsWith(".webp")) ".webp"
-            else ".pdf"
-        }
-    }
-    val target = File(context.cacheDir, "$baseName$ext")
-    context.contentResolver.openInputStream(uri)?.use { input ->
-        target.outputStream().use { out -> input.copyTo(out) }
-    }
-    target
-} catch (e: Exception) {
-    null
-}

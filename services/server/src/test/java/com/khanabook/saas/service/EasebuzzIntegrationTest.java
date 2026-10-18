@@ -382,6 +382,41 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getIdProofKey());
     }
 
+    @Transactional
+    @Test
+    void theAppAsksForThePortalLinkWithoutSendingTheDocument() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        sm.setKycPortalUrl("https://kyc.easebuzz.in/session/abc");
+        subMerchantRepo.save(sm);
+
+        // The app path: no file at all. Sending bytes to a server that may not keep them was a
+        // wasted upload on a POS terminal, so only the document type is sent.
+        Map<String, Object> result = subMerchantService.requestKycPortalLink(testRestaurantId, "bank_proof");
+
+        assertEquals("portal_required", result.get("status"));
+        assertEquals("BANK_PROOF", result.get("documentType"));
+        assertEquals("https://kyc.easebuzz.in/session/abc", result.get("kycUrl"));
+        verifyNoInteractions(easebuzzApi);
+
+        EasebuzzSubMerchant stored = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        // Support still needs to see what the merchant said they had.
+        assertEquals("KYC_UPLOAD_DEFERRED_TO_PORTAL:BANK_PROOF", stored.getEasebuzzResponse());
+        // Nothing may claim the document arrived when it never left the device.
+        assertNull(stored.getBankProofKey());
+    }
+
+    @Test
+    void anUnknownDocumentTypeIsRejectedBeforeAnythingIsRecorded() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> subMerchantService.requestKycPortalLink(testRestaurantId, "aadhaar_back"));
+        assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getEasebuzzResponse());
+    }
+
     private org.springframework.mock.web.MockMultipartFile kycFile() {
         return new org.springframework.mock.web.MockMultipartFile(
                 "file", "pan.pdf", "application/pdf", new byte[512]);

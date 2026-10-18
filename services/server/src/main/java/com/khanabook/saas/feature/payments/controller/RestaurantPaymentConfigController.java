@@ -205,6 +205,22 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(subMerchantService.generateKycAccessKey(id));
     }
 
+    /**
+     * Record that the merchant has a KYC document and return the portal link to upload it.
+     * <p>
+     * The app must use this instead of {@code POST /restaurants/kyc-document}: Easebuzz accepts
+     * no documents through its API, so uploading the file only spent the merchant's bandwidth.
+     */
+    @PostMapping("/kyc-portal-link")
+    public ResponseEntity<Map<String, Object>> kycPortalLink(@RequestBody Map<String, Object> body) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        Object docType = body.get("docType");
+        if (docType == null || docType.toString().isBlank()) {
+            throw new IllegalArgumentException("docType is required");
+        }
+        return ResponseEntity.ok(subMerchantService.requestKycPortalLink(restaurantId, docType.toString()));
+    }
+
     /** Verify the onboarding OTP sent by EaseBuzz (LIVE only — not supported in sandbox). */
     @PostMapping("/verify-otp")
     public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, Object> body) {
