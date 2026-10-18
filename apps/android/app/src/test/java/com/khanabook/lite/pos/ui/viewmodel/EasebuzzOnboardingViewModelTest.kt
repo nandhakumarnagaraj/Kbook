@@ -1,4 +1,5 @@
 package com.khanabook.lite.pos.ui.viewmodel
+import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingEvent
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingStep
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse
@@ -18,6 +19,7 @@ import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -29,6 +31,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -452,5 +455,37 @@ class EasebuzzOnboardingViewModelTest {
         // Same for the outlet format: Easebuzz locks the MCC at creation, so defaulting it would
         // permanently file every bar and QSR as dine-in (5812).
         assertEquals("", viewModel.restaurantFormat)
+    }
+
+    @Test
+    fun `a refused upload points at the portal instead of claiming success`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+        coEvery { onboardingRepository.uploadKycDocument(any(), any(), any()) } returns Result.success(
+            mapOf(
+                "status" to EasebuzzOnboardingViewModel.UPLOAD_STATUS_PORTAL_REQUIRED,
+                "message" to "Easebuzz did not accept the document upload. Finish KYC on the Easebuzz portal."
+            )
+        )
+
+        val events = mutableListOf<OnboardingEvent>()
+        val viewModel = createViewModel()
+        val collected = launch(testDispatcher) { viewModel.events.collect { events.add(it) } }
+        advanceUntilIdle()
+
+        viewModel.uploadKycDocument("id_proof", File("pan.pdf"))
+        advanceUntilIdle()
+        collected.cancel()
+
+        val toasts = events.filterIsInstance<OnboardingEvent.Toast>()
+        assertEquals(1, toasts.size)
+        assertTrue("the fallback must be surfaced as an error", toasts.single().isError)
+        assertTrue(
+            "the message must name the portal",
+            toasts.single().message.contains("portal", ignoreCase = true)
+        )
+        assertFalse(
+            "a refused upload must never be reported as success",
+            toasts.any { it.message == "Document uploaded successfully" }
+        )
     }
 }

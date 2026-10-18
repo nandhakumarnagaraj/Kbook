@@ -358,6 +358,34 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("PENDING_KYC", submitted.getStatus());
     }
 
+    @Transactional
+    @Test
+    void kycDocumentIsNotForwardedAndThePortalIsReturned() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        sm.setKycPortalUrl("https://kyc.easebuzz.in/session/abc");
+        subMerchantRepo.save(sm);
+
+        // upload_kyc_documents returns 404 on both hosts (verified 2026-10-18), so the service
+        // must not attempt it at all: a guaranteed-failing request buys nothing and hides the
+        // fact that the document can only be uploaded on the portal.
+        Map<String, Object> result = subMerchantService.submitKycDocument(
+                testRestaurantId, "id_proof", null, kycFile());
+
+        assertEquals("portal_required", result.get("status"));
+        assertEquals("https://kyc.easebuzz.in/session/abc", result.get("kycUrl"));
+        assertTrue(result.get("message").toString().contains("portal"),
+                "the merchant must be told where the document actually goes");
+        verifyNoInteractions(easebuzzApi);
+        // Nothing may claim the document reached Easebuzz when it never left this server.
+        assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getIdProofKey());
+    }
+
+    private org.springframework.mock.web.MockMultipartFile kycFile() {
+        return new org.springframework.mock.web.MockMultipartFile(
+                "file", "pan.pdf", "application/pdf", new byte[512]);
+    }
+
     private Map<String, Object> baseSubMerchantData() {
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("businessName", "Test Restaurant");

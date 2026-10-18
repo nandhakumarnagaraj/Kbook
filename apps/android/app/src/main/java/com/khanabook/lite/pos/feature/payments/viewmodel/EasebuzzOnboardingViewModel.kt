@@ -225,6 +225,13 @@ class EasebuzzOnboardingViewModel @Inject constructor(
 
         fun isValidPan(pan: String): Boolean = PAN_REGEX.matches(pan)
         fun isValidIfsc(ifsc: String): Boolean = IFSC_REGEX.matches(ifsc)
+
+        /**
+         * Status returned for every document the merchant picks: Easebuzz has no document-ingest
+         * API (the endpoint our client used answers 404), so the document is always uploaded on
+         * the hosted portal. This is the expected outcome, not a transient failure.
+         */
+        const val UPLOAD_STATUS_PORTAL_REQUIRED = "portal_required"
     }
 
     fun loadStatus() {
@@ -403,8 +410,15 @@ class EasebuzzOnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             _isSubmitting.value = true
             repository.uploadKycDocument(docType, file, proofType)
-                .onSuccess {
-                    _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))
+                .onSuccess { result ->
+                    if (result["status"] == UPLOAD_STATUS_PORTAL_REQUIRED) {
+                        _events.emit(OnboardingEvent.Toast(
+                            result["message"] ?: "Finish KYC on the Easebuzz portal.",
+                            isError = true
+                        ))
+                    } else {
+                        _events.emit(OnboardingEvent.Toast("Document uploaded successfully"))
+                    }
                     loadStatus()
                 }
                 .onFailure { e ->

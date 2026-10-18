@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -243,10 +242,10 @@ public class SubMerchantService {
     }
 
     /**
-     * Sentinel stored in the {@code *_key} columns to mark a document that was
-     * delivered to Easebuzz's servers. It is NOT a local storage key: the file
-     * itself lives on Easebuzz (upload_kyc_documents), so the download endpoints
-     * must not try to resolve it from disk.
+     * Legacy sentinel in the {@code *_key} columns, written by the removed API-upload path to mean
+     * "delivered to Easebuzz, not stored here". Nothing writes it any more — Easebuzz has no
+     * document-ingest API — but rows created before 2026-10-18 still carry it, so the download
+     * endpoints must keep treating it as "no local file".
      */
     public static final String EASEBUZZ_HOSTED_MARKER = "EASEBUZZ_HOSTED";
 
@@ -254,10 +253,20 @@ public class SubMerchantService {
     private static final long KYC_FILE_MIN_BYTES = 64L;
 
     /**
-     * Uploads a KYC/address proof document directly to Easebuzz via
-     * {@code POST /submerchant/v1/upload_kyc_documents} (multipart + SHA-256).
-     * Per the Easebuzz aggregator model the document is stored on Easebuzz's
-     * servers — KhanaBook keeps only submission metadata, never a local PII copy.
+     * Validates a KYC document the merchant chose and returns the hosted portal where it must be
+     * uploaded.
+     * <p>
+     * Easebuzz has <strong>no document-ingest API</strong>: {@code POST
+     * /submerchant/v1/upload_kyc_documents} answered 404 on both {@code testdashboard} and
+     * {@code dashboard} (probed 2026-10-18), byte-identical to a route that does not exist, while
+     * a documented route answered with application JSON. The file is therefore validated and
+     * discarded — never forwarded, never stored, never marked as delivered. Callers must use the
+     * returned {@code kycUrl}; the document slot stays empty on purpose, which is what the
+     * download endpoints rely on.
+     * <p>
+     * {@code proofType} is still accepted for wire compatibility with the app, but is no longer
+     * recorded: storing a proof type without a proof would tell the status endpoint a document
+     * exists when none does.
      */
     @Transactional
     public Map<String, Object> submitKycDocument(Long restaurantId, String docType, String proofType, MultipartFile file) {
@@ -281,50 +290,26 @@ public class SubMerchantService {
             throw new IllegalArgumentException("File too large; max " + (KYC_FILE_MAX_BYTES / (1024 * 1024)) + " MB");
         }
 
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Could not read uploaded KYC document", e);
-        }
-
-        log.info("Submitting KYC document restaurantId={} docType={} easebuzzType={} subMerchant={}",
+        log.info("KYC document received restaurantId={} docType={} easebuzzType={} subMerchant={} — Easebuzz has no document API; returning the portal link instead",
                 restaurantId, docType, documentType, sm.getSubMerchantId());
-        Map<String, Object> result = easebuzzApi.uploadKycDocument(sm.getSubMerchantId(), documentType, bytes, sanitizeFilename(file.getOriginalFilename()));
-
-        if (!isTruthy(result.get("status"))) {
-            String error = result.get("error") != null ? result.get("error").toString() : "Easebuzz rejected the document";
-            log.warn("Easebuzz KYC upload rejected restaurantId={} docType={} error={}", restaurantId, docType, error);
-            throw new BusinessRuleException("Easebuzz could not accept the document: " + error, "kyc_upload_rejected");
-        }
-
-        switch (docType) {
-            case "id_proof" -> sm.setIdProofKey(EASEBUZZ_HOSTED_MARKER);
-            case "bank_proof" -> sm.setBankProofKey(EASEBUZZ_HOSTED_MARKER);
-            case "business_proof_1" -> {
-                sm.setBusinessProof1Key(EASEBUZZ_HOSTED_MARKER);
-                if (proofType != null && !proofType.isBlank()) {
-                    sm.setBusinessProof1Type(proofType.trim().toUpperCase());
-                }
-            }
-            case "business_proof_2" -> {
-                sm.setBusinessProof2Key(EASEBUZZ_HOSTED_MARKER);
-                if (proofType != null && !proofType.isBlank()) {
-                    sm.setBusinessProof2Type(proofType.trim().toUpperCase());
-                }
-            }
-            default -> throw new IllegalArgumentException("Unknown KYC document type: " + docType);
-        }
-        if (sm.getKycSubmittedAt() == null) {
-            sm.setKycSubmittedAt(System.currentTimeMillis());
-        }
-        sm.setEasebuzzResponse("KYC_UPLOADED:" + documentType);
+        sm.setEasebuzzResponse("KYC_UPLOAD_DEFERRED_TO_PORTAL:" + documentType);
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        log.info("KYC document accepted by Easebuzz restaurantId={} docType={} — no local copy stored", restaurantId, docType);
-        return Map.of("status", "success", "subMerchantId", sm.getSubMerchantId(), "documentType", documentType);
+        return Map.of(
+                "status", "portal_required",
+                "subMerchantId", sm.getSubMerchantId(),
+                "documentType", documentType,
+                "kycUrl", sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "",
+                "message", "Easebuzz does not accept KYC documents through its API. Upload this document on the Easebuzz portal.");
     }
 
+    /**
+     * Maps our slot name to the Easebuzz document type. Easebuzz has no document type per proof
+     * kind, so both business-proof slots are filed upstream as ADDRESS_PROOF; the finer
+     * {@code proofType} the app collects (RENT_AGREEMENT, GST_CERTIFICATE, FSSAI_LICENSE, …) is
+     * kept on our own row as metadata only and never sent. Do not add a mapping here without a
+     * documented Easebuzz value to map onto.
+     */
     private static String easebuzzDocumentType(String docType) {
         return switch (docType) {
             case "id_proof" -> "ID_PROOF";
@@ -338,11 +323,6 @@ public class SubMerchantService {
         if (o == null) return false;
         if (o instanceof Boolean b) return b;
         return "true".equalsIgnoreCase(o.toString()) || "success".equalsIgnoreCase(o.toString());
-    }
-
-    private static String sanitizeFilename(String name) {
-        if (name == null || name.isBlank()) return "document.pdf";
-        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     public static String resolveSubMerchantId(Map<String, Object> data) {

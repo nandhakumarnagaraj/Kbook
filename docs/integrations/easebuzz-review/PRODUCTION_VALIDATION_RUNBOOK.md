@@ -138,3 +138,73 @@ The following checks were completed against `https://kbook.iadv.cloud` after dep
 | Credential rotation | Revoke and replace credentials previously exposed in the old env file | REQUIRED |
 
 The live payment/refund checkbox must not be marked complete until the merchant key, salt, and Wire API key have been rotated in Easebuzz and a signed ₹1 payment/refund cycle has been captured.
+
+## 11. KYC document upload + MCC — closing the two unknowns (2026-10-18)
+
+`POST /submerchant/v1/upload_kyc_documents` appears in no Easebuzz doc and ERA could not
+confirm it exists. With production access this is answerable without support. Run in order;
+the first two are read-only.
+
+### 11.1 Has the undocumented upload ever succeeded? (read-only)
+
+```sql
+SELECT
+  count(*) FILTER (WHERE easebuzz_response LIKE 'KYC_UPLOADED:%')                  AS accepted_by_easebuzz,
+  count(*) FILTER (WHERE easebuzz_response LIKE 'KYC_UPLOAD_DEFERRED_TO_PORTAL:%') AS deferred_since_release,
+  count(*) FILTER (WHERE 'EASEBUZZ_HOSTED' IN (id_proof_key, bank_proof_key,
+                                               business_proof_1_key, business_proof_2_key)) AS slots_marked
+FROM easebuzz_sub_merchant;
+```
+
+| Result | Meaning | Action |
+|---|---|---|
+| `accepted_by_easebuzz > 0` | The endpoint has worked in production | Keep the call; the portal fallback stays as the safety net |
+| `accepted = 0`, `slots_marked = 0` | No evidence it ever worked. Before this release a failure threw, so absence proves little | Go to 11.2 |
+| `deferred_since_release` rising | Every attempt is being refused | Treat the endpoint as dead (11.2 confirms) |
+
+### 11.2 One sandbox call (writes only to a sandbox sub-merchant)
+
+```bash
+curl -sS -X POST "$EASEBUZZ_DASHBOARD_BASE_URL/submerchant/v1/upload_kyc_documents" \
+  -F "submerchant_id=<sandbox_submerchant_id>" \
+  -F "document_type=ID_PROOF" \
+  -F "hash=$(sha256sum pan.pdf | cut -d' ' -f1)" \
+  -F "file=@pan.pdf"
+```
+
+- `200` with `status: true` → the endpoint is live; correct the doc wording, keep the call.
+- `404` / `405` / HTML error page → not deployed for our account. Delete the call and route the
+  app to the portal (plan Step 3, second branch).
+
+Do **not** run this against a live merchant's sub-merchant id: a document pushed there is a real
+KYC submission and cannot be withdrawn.
+
+### 11.3 MCC read from the dashboard (read-only)
+
+Open one QSR outlet and read the MCC on its profile.
+
+| Dashboard shows | Conclusion |
+|---|---|
+| 5814 | `sub_merchant_mcc_code` is honoured and `mccCodeForFormat` is working |
+| 5812 | The field is ignored; `restaurant_format` is decorative and the send can be retired |
+| Blank / not shown | MCC is assigned after CPV; re-check once an outlet is ACTIVE |
+
+Record the `submerchant_id`, the outlet format we sent, and the code shown — that row is the only
+audit trail of what we transmitted.
+
+### 11.4 Evidence
+
+| Check | Date | submerchant_id | Observed | Verdict |
+|---|---|---|---|---|
+| 11.1 upload history | 2026-10-18 | — | not run (route question settled first) | N/A |
+| 11.2 route existence, sandbox | 2026-10-18 | `PROBE_NONEXISTENT` | `upload_kyc_documents` → **404 HTML**; control route → **400 JSON**; negative control → 404 HTML | **ROUTE ABSENT** |
+| 11.2 route existence, production | 2026-10-18 | `PROBE_NONEXISTENT` | identical to sandbox | **ROUTE ABSENT** |
+| 11.3 MCC on dashboard | | | | PENDING |
+
+A 404 that is byte-identical to a known-bogus route, next to a documented route answering with
+application JSON, is a stronger signal than any credentialled attempt: it needs no account and
+cannot be confused with an auth or payload error.
+
+The route test above uses fake ids and no credentials. It creates nothing. A credentialled
+upload to a **live** sub-merchant must never be used to test this — that submission cannot be
+withdrawn.
