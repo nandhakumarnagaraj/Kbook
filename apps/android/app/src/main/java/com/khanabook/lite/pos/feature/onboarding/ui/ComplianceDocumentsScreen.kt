@@ -189,7 +189,7 @@ fun ComplianceDocumentsScreen(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                "Upload clear photos or PDFs. Any 1 valid document (Electricity Bill, GST, Shop Act, Trade License, Udyam, or Rent Agreement) is accepted for CPV. You may optionally upload a 2nd distinct document.",
+                "Upload clear photos or PDFs. Any 1 valid document (Electricity Bill, GST, Shop Act, Trade License, Import/Export Certificate, Udyam) is accepted for CPV. A rent/lease agreement alone is not accepted - pair it with a second proof. You may optionally upload a 2nd distinct document.",
                 color = TextGold.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -253,6 +253,17 @@ fun ComplianceDocumentsScreen(
                 onView = { vm.downloadKycDocument("business_proof_2") },
                 spacing = spacing
             )
+
+            if (selectedProof1Type == AddressProofType.RENT_AGREEMENT &&
+                !(status?.businessProof2Present ?: false)
+            ) {
+                Text(
+                    "A rent/lease agreement cannot be the only business proof - add a second, different document below.",
+                    color = DangerRed,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = spacing.extraSmall, top = spacing.extraSmall)
+                )
+            }
 
             if (selectedProof1Type == selectedProof2Type && !(status?.businessProof2Present ?: false)) {
                 Text(

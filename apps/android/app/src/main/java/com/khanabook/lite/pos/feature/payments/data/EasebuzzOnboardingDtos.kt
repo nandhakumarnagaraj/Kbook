@@ -6,6 +6,8 @@ data class EasebuzzOnboardingRequest(
     @SerializedName("businessName") val businessName: String,
     @SerializedName("legalEntityName") val legalEntityName: String?,
     @SerializedName("businessType") val businessType: String,
+    /** Outlet format (DINE_IN / QSR / BAR / CATERER) - decides the Easebuzz MCC code. */
+    @SerializedName("restaurantFormat") val restaurantFormat: String? = null,
     @SerializedName("pan") val pan: String,
     @SerializedName("gst") val gst: String?,
     @SerializedName("businessAddress") val businessAddress: String,
@@ -85,8 +87,13 @@ enum class AddressProofType(
 ) {
     ELECTRICITY_BILL(
         "ELECTRICITY_BILL",
-        "Electricity Bill",
+        "Utility Bill (Electricity / Water / Gas)",
         "Recent bill (last 2-3 months) in business or proprietor name"
+    ),
+    IMPORT_EXPORT_CERTIFICATE(
+        "IMPORT_EXPORT_CERTIFICATE",
+        "Import / Export Certificate",
+        "Import-Export certificate issued in the name of the proprietorship firm"
     ),
     GST_CERTIFICATE(
         "GST_CERTIFICATE",
@@ -101,7 +108,7 @@ enum class AddressProofType(
     RENT_AGREEMENT(
         "RENT_AGREEMENT",
         "Rent / Lease Agreement",
-        "Registered rental or lease deed for the shop premises"
+        "Registered rental or lease deed - not accepted as the only business proof"
     ),
     FSSAI_LICENSE(
         "FSSAI_LICENSE",

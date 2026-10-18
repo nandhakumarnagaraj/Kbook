@@ -9,6 +9,8 @@ import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,7 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
     private final PushNotificationService pushNotificationService;
+    private final ObjectMapper objectMapper;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -62,6 +65,7 @@ public class SubMerchantService {
             sm.setBusinessName(str(data.get("businessName")));
             sm.setLegalEntityName(str(data.get("legalEntityName")));
             sm.setBusinessType(str(data.get("businessType")));
+            sm.setRestaurantFormat(str(data.get("restaurantFormat")));
             sm.setPan(str(data.get("pan")));
             sm.setGst(str(data.get("gst")));
             sm.setBankAccountNo(str(data.get("bankAccountNo")));
@@ -103,6 +107,14 @@ public class SubMerchantService {
 
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /** Rent/lease agreements are listed by Easebuzz for individuals/freelancers, not proprietors. */
+    private static boolean isRentAgreement(String proofType) {
+        if (proofType == null) return false;
+        String t = proofType.trim().toUpperCase().replace(" ", "_");
+        return t.equals("RENT_AGREEMENT") || t.equals("RENT_AGREEMENT_OR_LEASE")
+            || t.equals("LEASE_AGREEMENT");
     }
 
     /** Matches the proprietorship business types EaseBuzz requires two proofs for. */
@@ -175,6 +187,7 @@ public class SubMerchantService {
         if (data.containsKey("businessName")) sm.setBusinessName(data.get("businessName"));
         if (data.containsKey("legalEntityName")) sm.setLegalEntityName(data.get("legalEntityName"));
         if (data.containsKey("businessType")) sm.setBusinessType(data.get("businessType"));
+        if (data.containsKey("restaurantFormat")) sm.setRestaurantFormat(data.get("restaurantFormat"));
         if (data.containsKey("pan")) sm.setPan(data.get("pan"));
         if (data.containsKey("gst")) sm.setGst(data.get("gst"));
         if (data.containsKey("bankAccountNo")) sm.setBankAccountNo(data.get("bankAccountNo"));
@@ -344,6 +357,22 @@ public class SubMerchantService {
         return null;
     }
 
+    /**
+     * The webhook event's payload column is JSONB, so the stored body must be real JSON.
+     * A Map's toString() produces {k=v}, which Postgres rejects - and because this runs
+     * inside the webhook transaction, that rejection discards the KYC status update too.
+     */
+    private String toStoredPayloadJson(Map<String, Object> payload, String eventType, String subMerchantId) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            log.error("Could not serialize sub-merchant webhook payload (subMerchantId={}); "
+                    + "storing a minimal valid JSON record", subMerchantId, e);
+            String safeEvent = eventType == null ? "" : eventType.replace("\\", "\\\\").replace("\"", "\\\"");
+            return "{\"event\":\"" + safeEvent + "\",\"payload_serialization_error\":true}";
+        }
+    }
+
     @Transactional
     @SuppressWarnings("unchecked")
     public void processWebhook(Map<String, Object> payload) {
@@ -373,7 +402,18 @@ public class SubMerchantService {
             smOpt = subMerchantRepo.findBySubMerchantId(subMerchantId);
         }
         if (smOpt.isEmpty() && email != null && !email.isBlank()) {
-            smOpt = subMerchantRepo.findByContactEmail(email);
+            // contact_email is not unique - Easebuzz allows one owner's outlets to share it -
+            // so a single-result finder would throw on a legitimate duplicate. Only attribute
+            // the event when the email identifies exactly one sub-merchant.
+            java.util.List<EasebuzzSubMerchant> byEmail = subMerchantRepo.findAllByContactEmail(email);
+            if (byEmail.size() == 1) {
+                smOpt = Optional.of(byEmail.get(0));
+            } else if (byEmail.size() > 1) {
+                log.error("KYC webhook cannot be attributed: {} sub-merchants share contact email {} "
+                        + "(payload id={}). Reconciliation must match on submerchant_id.",
+                        byEmail.size(), email, subMerchantId);
+                return;
+            }
         }
 
         if (smOpt.isEmpty()) {
@@ -391,7 +431,7 @@ public class SubMerchantService {
         event.setSubMerchantId(sm.getSubMerchantId() != null ? sm.getSubMerchantId() : subMerchantId);
         event.setEventType(eventType);
         event.setRawStatus(kycProfileStatus != null ? kycProfileStatus : kycStatus);
-        event.setPayload(payload.toString());
+        event.setPayload(toStoredPayloadJson(payload, eventType, subMerchantId));
         event.setReceivedAt(now);
         event.setProcessed(false);
         webhookEventRepo.save(event);
@@ -400,11 +440,25 @@ public class SubMerchantService {
             sm.setKycPortalUrl(kycUrl);
         }
 
+        // Easebuzz reports bank verification separately from KYC approval, and either can be
+        // false on its own. A sub-merchant cannot accept payments until both are true, so an
+        // approved KYC alone must not flip the row to ACTIVE.
+        boolean bankStatusSupplied = data.get("bank_status") != null;
+        boolean bankVerified = isTruthy(data.get("bank_status"));
+
         if (kycProfileStatus != null || kycStatus != null) {
-            if ("Completed".equalsIgnoreCase(kycProfileStatus) || "True".equalsIgnoreCase(kycStatus) || Boolean.TRUE.equals(kycStatusObj)) {
-                sm.setStatus("ACTIVE");
+            boolean kycApproved = "Completed".equalsIgnoreCase(kycProfileStatus)
+                    || "True".equalsIgnoreCase(kycStatus) || Boolean.TRUE.equals(kycStatusObj);
+            if (kycApproved) {
                 sm.setKycStatus("True");
-                sm.setKycActivatedAt(now);
+                if (bankStatusSupplied && !bankVerified) {
+                    log.warn("Sub-merchant {} KYC approved but bank_status=false - not activating; "
+                            + "payments cannot be accepted until the bank account is verified",
+                            sm.getSubMerchantId());
+                } else {
+                    sm.setStatus("ACTIVE");
+                    sm.setKycActivatedAt(now);
+                }
             } else if ("CPV_PENDING".equalsIgnoreCase(kycProfileStatus)) {
                 sm.setStatus("CPV_PENDING");
                 sm.setKycStatus("Pending");
@@ -793,15 +847,21 @@ public class SubMerchantService {
         }
         // EaseBuzz CPV: KYC submissions with incomplete core fields produce negative
         // reports. Gate all always-mandatory fields here so a partial draft can never
-        // reach EaseBuzz. GST is intentionally NOT gated: it is only sent when present
-        // (non-GST merchants are valid), pending confirmation of the per-entity-type
-        // mandatory set from EaseBuzz.
+        // reach EaseBuzz. GST is intentionally NOT gated: Easebuzz confirmed to the merchant
+        // (2026-10-17) that a GST certificate is not required for sub-merchant KYC, so it is
+        // only sent when present. PAN, FSSAI, bank details, one business proof and Aadhaar
+        // remain the KYC set (the last two are collected on Easebuzz's hosted portal).
         java.util.List<String> missing = new java.util.ArrayList<>();
+        // The MCC is derived from this and Easebuzz cannot change it after creation, so a
+        // submission without a format would permanently file the outlet under dine-in.
+        if (isBlank(sm.getRestaurantFormat())) missing.add("restaurant format");
         if (isBlank(sm.getPan())) missing.add("PAN");
         if (isBlank(sm.getBusinessAddress())) missing.add("business address");
         if (isBlank(sm.getState())) missing.add("state");
         if (isBlank(sm.getBankAccountNo())) missing.add("bank account number");
         if (isBlank(sm.getIfsc())) missing.add("IFSC");
+        if (isBlank(sm.getBankName())) missing.add("bank name");
+        if (isBlank(sm.getBranchName())) missing.add("branch name");
         if (isBlank(sm.getBeneficiaryName())) missing.add("beneficiary name");
         if (isBlank(sm.getContactEmail())) missing.add("contact email");
         if (isBlank(sm.getContactPhone())) missing.add("contact phone");
@@ -843,6 +903,21 @@ public class SubMerchantService {
                     "BUSINESS_PROOF_TYPES_NOT_DISTINCT"
                 );
             }
+            // Easebuzz accepts Shop & Establishment, Import/Export certificate, trade
+            // licence, Udyam (URC) or a utility bill as a proprietorship's business
+            // proof. A rent/lease agreement is only listed for individuals/freelancers,
+            // so it cannot be the merchant's only proof - that reaches CPV and comes
+            // back as a negative report.
+            boolean hasNonRentProof = (proof1 && !isRentAgreement(type1))
+                    || (proof2 && !isRentAgreement(type2));
+            if (!hasNonRentProof) {
+                throw new BusinessRuleException(
+                    "A rent/lease agreement cannot be the only business proof for a proprietorship. "
+                        + "Submit at least one of: Shop & Establishment certificate, Import/Export certificate, "
+                        + "trade licence, Udyam (URC) certificate, or a utility bill.",
+                    "BUSINESS_PROOF_TYPE_NOT_ACCEPTED"
+                );
+            }
         }
         String subMerchantId = sm.getSubMerchantId();
         if (subMerchantId == null || subMerchantId.isBlank()) {
@@ -861,6 +936,7 @@ public class SubMerchantService {
             sm.getBusinessType(), sm.getPan(), sm.getGst(),
             sm.getBusinessAddress(),
             sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber(),
+            sm.getRestaurantFormat(),
             sm.getUpiDeductionLtLimit(), sm.getDcDeductionGtTwoThousand()
         );
         Object statusObj = result != null ? result.get("status") : null;

@@ -13,6 +13,8 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEvent;
+import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +47,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Autowired private PostSplitService postSplitService;
     @Autowired private BillRepository billRepository;
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
+    @Autowired private EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
     @MockBean private MerchantAgreementService merchantAgreementService;
@@ -76,6 +79,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("businessName", "Test Restaurant");
         data.put("businessType", "Restaurant");
+        data.put("restaurantFormat", "DINE_IN");
         data.put("pan", "ABCDE1234F");
         data.put("gst", "27AABCU9603R1ZM");
         data.put("bankAccountNo", "123456789012");
@@ -97,7 +101,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("Test Restaurant", sm.getBusinessName());
 
         // 2. Submit to Easebuzz (mock)
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -214,7 +218,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof2Type", "UDYAM_CERTIFICATE",
             "businessProof2Url", "https://docs.kbook.test/proof2.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -233,7 +237,37 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof1Type", "ELECTRICITY_BILL",
             "businessProof1Url", "https://docs.kbook.test/bill.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
+    }
+
+    @Transactional
+    @Test
+    void proprietorshipRejectsRentAgreementAsOnlyProof() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.put("businessType", "SOLE_PROPRIETORSHIP");
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        // A rent agreement alone reaches CPV and comes back negative - block it.
+        subMerchantService.update(sm.getId(), Map.of(
+            "businessProof1Type", "RENT_AGREEMENT",
+            "businessProof1Url", "https://docs.kbook.test/rent.pdf"
+        ));
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("BUSINESS_PROOF_TYPE_NOT_ACCEPTED", ex.getRule());
+
+        // Adding an accepted proof unblocks the submission.
+        subMerchantService.update(sm.getId(), Map.of(
+            "businessProof2Type", "SHOP_ESTABLISHMENT",
+            "businessProof2Url", "https://docs.kbook.test/shop.pdf"
+        ));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -256,7 +290,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Supplying the legal entity name allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("legalEntityName", "Test Restaurant Pvt Ltd"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -269,6 +303,8 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         Map<String, Object> data = baseSubMerchantData();
         data.remove("pan");   // core CPV fields left blank
         data.remove("ifsc");
+        data.remove("bankName");
+        data.remove("branchName");
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
         // Missing mandatory fields → submission blocked, gaps listed in the message.
@@ -279,10 +315,15 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("MANDATORY_FIELDS_MISSING", ex.getRule());
         assertTrue(ex.getMessage().contains("PAN"));
         assertTrue(ex.getMessage().contains("IFSC"));
+        assertTrue(ex.getMessage().contains("bank name"));
+        assertTrue(ex.getMessage().contains("branch name"));
 
         // Supplying the missing fields allows submission to proceed.
-        subMerchantService.update(sm.getId(), Map.of("pan", "ABCDE1234F", "ifsc", "HDFC0000123"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        subMerchantService.update(sm.getId(), Map.of(
+            "pan", "ABCDE1234F", "ifsc", "HDFC0000123",
+            "bankName", "HDFC", "branchName", "Test Branch"
+        ));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -309,7 +350,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Making the second proof a distinct type allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("businessProof2Type", "UDYAM_CERTIFICATE"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -321,6 +362,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("businessName", "Test Restaurant");
         data.put("legalEntityName", "Test Restaurant Pvt Ltd");
         data.put("businessType", "Restaurant");
+        data.put("restaurantFormat", "DINE_IN");
         data.put("pan", "ABCDE1234F");
         data.put("gst", "29ABCDE1234F1Z5");
         data.put("bankAccountNo", "1234567890");
@@ -335,6 +377,107 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("contactPhone", "9999999999");
         data.put("commissionRate", "0.0");
         return data;
+    }
+
+    @Transactional
+    @Test
+    void kycWebhookPersistsPayloadAsValidJson() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+
+        subMerchantService.processWebhook(Map.of(
+            "event", "MERCHANT_KYC_APPROVAL",
+            "data", Map.of(
+                "id", testSubMerchantId,
+                "kyc_status", true,
+                "kyc_profile_status", "Completed"
+            )
+        ));
+
+        java.util.List<EasebuzzSubMerchantWebhookEvent> events = webhookEventRepo.findAll();
+        assertEquals(1, events.size());
+
+        // payload is a JSONB column: a Map's toString() body is not JSON and Postgres rejects
+        // it, which would roll back the KYC status update along with the audit record.
+        String stored = events.get(0).getPayload();
+        assertTrue(stored != null && stored.trim().startsWith("{"),
+                "payload should be a JSON object, got: " + stored);
+        assertDoesNotThrow(() -> new com.fasterxml.jackson.databind.ObjectMapper().readTree(stored),
+                "payload must parse as JSON, got: " + stored);
+    }
+
+    @Transactional
+    @Test
+    void kycApprovedWithUnverifiedBankDoesNotActivate() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+
+        subMerchantService.processWebhook(Map.of(
+            "event", "MERCHANT_KYC_APPROVAL",
+            "data", Map.of(
+                "id", testSubMerchantId,
+                "kyc_status", true,
+                "bank_status", false,
+                "kyc_profile_status", "Completed"
+            )
+        ));
+
+        EasebuzzSubMerchant after = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertNotEquals("ACTIVE", after.getStatus(), "bank not verified - must not activate");
+        assertNull(after.getKycActivatedAt(), "activation timestamp must stay empty");
+        assertEquals("True", after.getKycStatus());
+    }
+
+    @Transactional
+    @Test
+    void kycWebhookWithSharedContactEmailIsNotAttributed() {
+        EasebuzzSubMerchant first = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        first.setSubMerchantId(testSubMerchantId + "A");
+        subMerchantRepo.save(first);
+
+        EasebuzzSubMerchant second = subMerchantService.create(baseSubMerchantData(), testRestaurantId + 1000);
+        second.setSubMerchantId(testSubMerchantId + "B");
+        subMerchantRepo.save(second);
+
+        // Both rows carry test@example.com while the payload's id matches neither. The old
+        // single-result finder threw IncorrectResultSizeDataAccessException here.
+        assertDoesNotThrow(() -> subMerchantService.processWebhook(Map.of(
+            "event", "MERCHANT_KYC_APPROVAL",
+            "data", Map.of(
+                "id", "SOME-OTHER-ID",
+                "kyc_status", true,
+                "kyc_profile_status", "Completed",
+                "email", "test@example.com"
+            )
+        )));
+
+        assertNotEquals("ACTIVE", subMerchantRepo.findById(first.getId()).orElseThrow().getStatus());
+        assertNotEquals("ACTIVE", subMerchantRepo.findById(second.getId()).orElseThrow().getStatus());
+    }
+
+    @Transactional
+    @Test
+    void submissionRequiresRestaurantFormat() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.remove("restaurantFormat"); // no format → MCC would silently lock to dine-in 5812
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.core.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("MANDATORY_FIELDS_MISSING", ex.getRule());
+        assertTrue(ex.getMessage().contains("restaurant format"));
+
+        // Setting the format allows the submission to proceed.
+        subMerchantService.update(sm.getId(), Map.of("restaurantFormat", "QSR"));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
     }
 
     @Test

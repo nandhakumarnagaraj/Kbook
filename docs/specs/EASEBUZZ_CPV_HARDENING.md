@@ -1,6 +1,9 @@
 # Easebuzz Sub-Merchant Onboarding / CPV Hardening
 
-Status: PLAN (not yet implemented). Server-side only. No DB schema/migration.
+Status: IMPLEMENTED (verified 2026-10-17). Server-side gate, plus the Android client
+aligned the same day. No DB schema/migration.
+The distinct-proof rule was extended on 2026-10-17: a rent/lease agreement cannot
+be a proprietorship's only business proof (`BUSINESS_PROOF_TYPE_NOT_ACCEPTED`).
 
 ## Context
 
@@ -78,8 +81,10 @@ record — NOT part of the Easebuzz onboarding API payload).
 - `services/server/.../service/EasebuzzApiClient.java` — fallback becomes unreachable for valid submits (Change 1).
 - `services/server/.../service/EasebuzzIntegrationTest.java` — new tests: legal-name-required,
   mandatory-fields-missing, distinct-proofs (mirror existing proof test style).
-- (Follow-up, separate change) Android `EasebuzzOnboardingViewModel`/screen — surface new
-  error codes; make legal entity name a required form field client-side.
+- Android `EasebuzzOnboardingViewModel`/screen — aligned 2026-10-17: legal entity name and
+  FSSAI are required in the form, a rejection edit submits through `/resubmit` (a REJECTED row
+  cannot go back through `/onboard`), and the compliance screen warns that a rent/lease
+  agreement cannot be the only business proof.
 
 ## Explicitly NOT in scope
 - No DB schema/migration (fields already exist).
@@ -96,6 +101,51 @@ record — NOT part of the Easebuzz onboarding API payload).
 1. Authoritative list of Easebuzz-accepted business-proof document types (from Jonathan).
 2. Confirm mandatory-field set per entity type (is GST mandatory for all, or only when
    `gst_enabled`? Tax config has a `gst_enabled` flag).
+   **Two Easebuzz support answers (2026-10-17) conflict:**
+   - The KYC document list for a sole proprietorship names: bank proof, PAN of proprietor,
+     **GST certificate (mandatory)**, one business proof from the accepted list (Shop &
+     Establishment, Import/Export, trade licence, Udyam/URC, utility bill) and Aadhaar of
+     the proprietor. Guide: `https://docs.easebuzz.in/docs/get-started/6v6i0r0x14zly`
+   - An earlier reply said a merchant without GST/PAN "may face challenges" and that Udyam
+     (URC) can be submitted as proof of address for a sole proprietor.
+   **RESOLVED (2026-10-17 by ERA, in writing):** GST is **not mandatory** for sub-merchants.
+   GST therefore stays optional everywhere - `submitToEasebuzz` keeps it out of the mandatory
+   gate and only sends it when present, and the onboarding form labels the field optional.
+   No GST gate is to be added.
+   Same reply also settles the rest of the set: PAN is mandatory for **every** entity
+   (proprietor's PAN for a sole proprietorship, firm/company PAN otherwise); Aadhaar of the
+   proprietor/signatory is mandatory but **portal-only by design** - ERA confirmed that portal
+   upload is sufficient, the merchant must sign in and upload it themselves, masked Aadhaar /
+   Aadhaar XML / passport / voter ID / driving licence are accepted, and KhanaBook carries no
+   storage or verification liability for it. Model: parent merchant (KhanaBook) + sub-merchant
+   per restaurant. Per-type document matrix: `../../integrations/easebuzz/EASEBUZZ.md`.
+   `Public Limited` / OPC are supported (ERA, 2026-10-17), so the form needs no change. The
+   MCC gap closed on 2026-10-17: Easebuzz locks the code at creation, so an **outlet format**
+   (dine-in / QSR / bar / caterer) is now required in the onboarding form and in
+   `MANDATORY_FIELDS_MISSING`, stored on `easebuzz_sub_merchant.restaurant_format`, and mapped
+   to 5812 / 5814 / 5813 / 5811 by `EasebuzzApiClient.mccCodeForFormat`. Sub-merchants created
+   before the change remain on 5812 and cannot be amended at Easebuzz.
+
+## KYC approval webhook hardening (2026-10-18)
+
+Found while auditing `SubMerchantService.processWebhook` against the published
+`MERCHANT_KYC_APPROVAL` schema. Three defects, all fixed:
+
+1. **Payload was not JSON.** `event.setPayload(payload.toString())` stored a `Map`'s text
+   (`{event=…}`) into a `JSONB NOT NULL` column (V55). Postgres rejects that, and because the
+   method is `@Transactional` the rejection discarded the KYC status update with the audit
+   row. Now serialised with `ObjectMapper.writeValueAsString`. H2 did not catch this, which is
+   why the suite was green; the regression test asserts the stored body parses as JSON.
+2. **`bank_status` was ignored.** Activation keyed on `kyc_status` alone. Easebuzz reports
+   bank verification separately and the merchant cannot accept payments until both are true,
+   so `bank_status=false` now blocks the `ACTIVE` transition.
+3. **`contact_email` is not unique.** The webhook falls back to email when the payload id
+   does not match, and a single-result finder throws `IncorrectResultSizeDataAccessException`
+   on a legitimate duplicate. The repository now exposes `findAllByContactEmail` and the
+   event is attributed only when exactly one sub-merchant matches.
+
+Still open from the same audit: `kyc_expiry_date` is neither stored nor polled, so a lapsed
+KYC goes unnoticed (Easebuzz sends no expiry webhook). See `EASEBUZZ_LIFECYCLE.md` §14.
 
 ## Risk & regression
 - Overall risk: LOW. Submit-time validations only; block only submissions that would fail

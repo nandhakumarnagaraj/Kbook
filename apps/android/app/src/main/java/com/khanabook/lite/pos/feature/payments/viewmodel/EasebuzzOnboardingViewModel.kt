@@ -117,7 +117,12 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     // Retained form data across steps
     var businessName = ""
     var legalEntityName = ""
-    var businessType = "SOLE_PROPRIETORSHIP"
+    // No default: a Pvt Ltd owner who never opened the dropdown used to submit as a sole
+    // proprietorship, which drives the wrong Easebuzz nature code and the wrong proof rules.
+    var businessType = ""
+    // Easebuzz fixes the MCC at creation and cannot change it afterwards, so the outlet format
+    // must be chosen explicitly rather than defaulting every restaurant to dine-in.
+    var restaurantFormat = ""
     var pan = ""
     var gst = ""
     var businessAddress = ""
@@ -130,6 +135,13 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     var branchName = ""
     var beneficiaryName = ""
     var fssaiNumber = ""
+
+    /**
+     * Which submit endpoint the flow must end on. A merchant that already exists at Easebuzz
+     * (REJECTED) cannot go through /onboard - the server answers ONBOARDING_ALREADY_SUBMITTED -
+     * so an edit started from the rejection screen has to finish on /resubmit.
+     */
+    private var resubmitMode = false
 
     init {
         prefillFromProfile()
@@ -238,6 +250,11 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     }
 
     fun startOnboarding() {
+        startOnboardingFlow(resubmit = false)
+    }
+
+    private fun startOnboardingFlow(resubmit: Boolean) {
+        resubmitMode = resubmit
         _currentStep.value = OnboardingStep.BusinessDetails
         _uiState.value = OnboardingUiState.InProgress(OnboardingStep.BusinessDetails)
     }
@@ -272,6 +289,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 businessName = businessName.trim(),
                 legalEntityName = legalEntityName.trim().ifBlank { null },
                 businessType = businessType,
+                restaurantFormat = restaurantFormat.trim().ifBlank { null },
                 pan = pan.trim().uppercase(),
                 gst = gst.trim().ifBlank { null },
                 businessAddress = businessAddress.trim(),
@@ -285,11 +303,21 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 beneficiaryName = beneficiaryName.trim(),
                 fssaiNumber = fssaiNumber.trim().ifBlank { null }
             )
-            repository.onboard(request)
+            val submission = if (resubmitMode) repository.resubmit(request) else repository.onboard(request)
+            submission
                 .onSuccess { response ->
                     if (response.status == "success") {
-                        _events.emit(OnboardingEvent.Toast("Registration submitted successfully!"))
-                        goToStep(OnboardingStep.OtpVerification)
+                        if (resubmitMode) {
+                            // No new OTP: the sub-merchant is already registered. Easebuzz re-reviews
+                            // the corrected details and sends a new KYC webhook.
+                            resubmitMode = false
+                            _events.emit(OnboardingEvent.Toast("Details resubmitted. Easebuzz will re-review your KYC."))
+                            goToStep(OnboardingStep.KycStatus)
+                            loadStatus()
+                        } else {
+                            _events.emit(OnboardingEvent.Toast("Registration submitted successfully!"))
+                            goToStep(OnboardingStep.OtpVerification)
+                        }
                     } else {
                         _events.emit(OnboardingEvent.Toast(
                             response.message ?: "Submission failed. Please check your details.",
@@ -362,9 +390,9 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     }
 
     fun resubmitAfterRejection() {
-        // Delegates to startOnboarding() which lets user edit and re-submit through the normal flow.
-        // The backend /resubmit endpoint is called via submitBankDetailsAndOnboard() after re-edit.
-        startOnboarding()
+        // Same edit flow, but the final submit must reach /resubmit: the merchant already has a
+        // sub-merchant id at Easebuzz, and /onboard would be refused for a REJECTED row.
+        startOnboardingFlow(resubmit = true)
     }
 
     fun uploadKycDocument(docType: String, file: java.io.File, proofType: String? = null) {

@@ -306,6 +306,8 @@ interface KhanaBookApi {
             @Body request: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRequest
         ): com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingResponse
 
+        // Rejected merchants already exist at Easebuzz; /onboard answers
+        // ONBOARDING_ALREADY_SUBMITTED for them, so corrections go through /resubmit.
         @POST("api/v1/restaurants/payment-config/easebuzz/resubmit")
         suspend fun resubmitEasebuzz(
             @Body request: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRequest

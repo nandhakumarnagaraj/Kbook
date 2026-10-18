@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -476,7 +477,7 @@ class EasebuzzWebhookTest {
         payload.put("data", data);
 
         when(subMerchantRepo.findBySubMerchantId("UNKNOWN_SM_ID")).thenReturn(Optional.empty());
-        when(subMerchantRepo.findByContactEmail("unknown@restaurant.com")).thenReturn(Optional.empty());
+        when(subMerchantRepo.findAllByContactEmail("unknown@restaurant.com")).thenReturn(List.of());
 
         Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
         assertEquals("hash_mismatch", result.get("status"));

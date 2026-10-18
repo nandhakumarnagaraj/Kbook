@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -505,6 +506,38 @@ class EasebuzzWebhookServiceTest {
     }
 
     @Test
+    @DisplayName("A REFUND_PROCESSED callback (status 'processed') completes the attempt")
+    void refundWebhook_processedStatus_completesRefund() throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", TXNID);
+        payload.put("status", "processed");
+        payload.put("easepayid", EASEBUZZ_ID);
+        payload.put("refund_id", "RFD-1");
+        payload.put("refund_amount", "100.00");
+        payload.put("hash", refundHash(EASEBUZZ_ID));
+
+        Bill bill = bill("paid");
+        RefundAttempt attempt = attempt("RFD-1", "100.00", "INITIATED");
+        EasebuzzWebhookEvent paymentEvent = new EasebuzzWebhookEvent();
+        paymentEvent.setEasebuzzId(EASEBUZZ_ID);
+
+        when(billRepo.findByGatewayTxnId(TXNID)).thenReturn(Optional.of(bill));
+        when(webhookEventRepo.findByRestaurantIdAndTxnId(RESTAURANT_ID, TXNID))
+                .thenReturn(Optional.of(paymentEvent));
+        when(refundAttemptRepo.findByBillIdAndGatewayRefundId(BILL_ID, "RFD-1"))
+                .thenReturn(Optional.of(attempt));
+        when(billRepo.save(any(Bill.class))).thenAnswer(i -> i.getArgument(0));
+        when(refundAttemptRepo.save(any(RefundAttempt.class))).thenAnswer(i -> i.getArgument(0));
+        when(webhookEventRepo.save(any(EasebuzzWebhookEvent.class))).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = service.handleRefundWebhook(payload);
+
+        assertThat(result.get("status")).isEqualTo("received");
+        assertThat(attempt.getStatus()).isEqualTo("COMPLETED");
+        assertThat(bill.getPaymentStatus()).isEqualTo("partially_refunded");
+    }
+
+    @Test
     @DisplayName("A full refund marks the bill refunded and cancels the order")
     void refundWebhook_fullRefund_marksBillRefundedAndCancelled() throws Exception {
         Map<String, String> payload = new HashMap<>();
@@ -766,8 +799,8 @@ class EasebuzzWebhookServiceTest {
         payload.put("event", "MERCHANT_KYC_APPROVAL");
         payload.put("email", "owner@restaurant.com");
 
-        when(subMerchantRepo.findByContactEmail("owner@restaurant.com"))
-                .thenReturn(Optional.of(new EasebuzzSubMerchant()));
+        when(subMerchantRepo.findAllByContactEmail("owner@restaurant.com"))
+                .thenReturn(List.of(new EasebuzzSubMerchant()));
 
         Map<String, Object> result = service.handleSubMerchantWebhook(payload);
 

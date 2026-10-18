@@ -197,6 +197,33 @@ class EasebuzzOnboardingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(OnboardingStep.OtpVerification, viewModel.currentStep.value)
+        coVerify(exactly = 1) { onboardingRepository.onboard(any()) }
+        coVerify(exactly = 0) { onboardingRepository.resubmit(any()) }
+    }
+
+    @Test
+    fun `rejected merchant resubmits through resubmit, not onboard`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
+            EasebuzzOnboardingStatusResponse(status = "REJECTED", hasSubMerchant = true)
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // The rejection screen starts the edit flow, which must end on /resubmit: a REJECTED
+        // sub-merchant already exists at Easebuzz and /onboard refuses it.
+        viewModel.resubmitAfterRejection()
+        viewModel.businessName = "Test Kitchen"
+        viewModel.bankAccountNo = "1234567890"
+        coEvery { onboardingRepository.resubmit(any()) } returns Result.success(
+            EasebuzzOnboardingResponse(status = "success", message = "resubmitted")
+        )
+
+        viewModel.submitBankDetailsAndOnboard()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { onboardingRepository.resubmit(any()) }
+        coVerify(exactly = 0) { onboardingRepository.onboard(any()) }
+        assertEquals(OnboardingStep.KycStatus, viewModel.currentStep.value)
     }
 
     @Test
@@ -393,5 +420,20 @@ class EasebuzzOnboardingViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { restaurantRepository.saveProfileLocally(any()) }
+    }
+
+    @Test
+    fun `business type starts empty so the form cannot default to sole proprietorship`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(onboardingStatus())
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // A defaulted SOLE_PROPRIETORSHIP made every entity submit with the proprietorship
+        // nature code and proof rules; the owner must choose the type explicitly.
+        assertEquals("", viewModel.businessType)
+        // Same for the outlet format: Easebuzz locks the MCC at creation, so defaulting it would
+        // permanently file every bar and QSR as dine-in (5812).
+        assertEquals("", viewModel.restaurantFormat)
     }
 }

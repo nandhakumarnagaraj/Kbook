@@ -2,7 +2,7 @@
 
 > Single starting point for the Easebuzz payment integration. Consolidates the
 > architecture, lifecycle, code map, configuration and known gaps. Verified against
-> the working tree at `main` / HEAD `afa5cc86` on 2026-10-17.
+> the working tree at `main` on 2026-10-18.
 >
 > 22 related files live in this folder, `../easebuzz-review/`, `../../specs/` and
 > `../../evidence/planning/`. This page does not replace them — it tells you which one to read.
@@ -56,9 +56,66 @@ Notes verified from code and the ERA-confirmed doc:
   `sm_<id>_v1`, `_v2`, … There is no label-update API.
 - **CPV submit gates** (implemented in `SubMerchantService.submitToEasebuzz`):
   `LEGAL_ENTITY_NAME_REQUIRED`, `FSSAI_REQUIRED`, `MANDATORY_FIELDS_MISSING`,
-  `BUSINESS_PROOFS_REQUIRED` / `BUSINESS_PROOF_TYPES_REQUIRED`.
-  The spec header in `../../specs/EASEBUZZ_CPV_HARDENING.md` still says "PLAN (not yet
-  implemented)" — that is stale; the gates exist in code (verified 2026-10-17).
+  `BUSINESS_PROOFS_REQUIRED` / `BUSINESS_PROOF_TYPES_REQUIRED`, and
+  `BUSINESS_PROOF_TYPE_NOT_ACCEPTED` — a rent/lease agreement cannot be the only
+  business proof for a proprietorship (Easebuzz lists it only for individuals).
+  Accepted instead: Shop & Establishment, Import/Export certificate, trade licence,
+  Udyam (URC), or a utility bill (electricity/water/gas).
+  Spec: `../../specs/EASEBUZZ_CPV_HARDENING.md` (implemented, verified 2026-10-17).
+- **Model confirmed (ERA, 2026-10-17):** KhanaBook is the parent merchant; each restaurant
+  is a sub-merchant, settled to its own bank account.
+- **KYC matrix (ERA, 2026-10-17).** PAN is mandatory for every entity - the proprietor's PAN
+  for a sole proprietorship, the firm/company PAN otherwise. GST is **optional** (confirmed
+  in writing).
+- **Aadhaar — portal-only, confirmed (ERA, 2026-10-17).** Portal upload is sufficient; the
+  OTP-based in-app e-KYC is **not** mandatory, which is why the app collects no Aadhaar.
+  Whose Aadhaar: the proprietor for a sole proprietorship, the authorised signatory / director
+  for firm, LLP, company or trust. Masked Aadhaar (last 4 digits) or Aadhaar XML is accepted -
+  the full card is not required. With PAN + FSSAI + Udyam, passport, voter ID or driving
+  licence are accepted instead. KhanaBook carries **no storage or verification liability**
+  for documents the merchant uploads. The merchant must sign in and upload themselves -
+  KhanaBook cannot upload on their behalf. There is no Aadhaar-specific webhook;
+  `MERCHANT_KYC_APPROVAL` is the only signal, matching our status handling.
+
+  | Entity | Mandatory documents | Owner |
+  |---|---|---|
+  | Sole proprietor | PAN, Aadhaar, bank proof, FSSAI, Udyam/MSME | Proprietor |
+  | Partnership firm | PAN (firm), partnership deed, bank proof, FSSAI, Udyam/MSME | Firm / partners |
+  | LLP | PAN (LLP), certificate of incorporation, bank proof, FSSAI | LLP / designated partners |
+  | Private limited | PAN (company), COI, bank proof, FSSAI | Company / directors |
+  | Trust / society | PAN (trust), registration deed, bank proof, FSSAI | Trust / authorised signatory |
+
+  Shop/business documents: GST, FSSAI, Udyam/MSME, Shop & Establishment, rent agreement,
+  utility bill. Owner documents: PAN, Aadhaar, photograph. For a sole proprietorship,
+  documents in the owner's name are accepted for the business. `Public Limited` / OPC are
+  supported (ERA, 2026-10-17); they are simply absent from the matrix table above.
+  CPV liability sits with the restaurant; KhanaBook carries due diligence as parent.
+- **MCC is set from the outlet format at creation** (implemented 2026-10-17, after ERA
+  confirmed the code cannot be changed post-creation). The onboarding form requires an outlet
+  format (dine-in / QSR / bar / caterer), `easebuzz_sub_merchant.restaurant_format` stores it,
+  `submitToEasebuzz` refuses a submission without it, and
+  `EasebuzzApiClient.mccCodeForFormat` maps it to 5812 / 5814 / 5813 / 5811 (unknown or
+  missing falls back to 5812 with a warning). Sub-merchants created before this change stay on
+  5812: Easebuzz will not change an MCC in any status (even PENDING_KYC), so the only fix is
+  recreation — new `submerchant_id`, KYC re-upload, OTP and portal redone, old split label and
+  settlements left on the old record for manual reconciliation. Their retrieve API does not
+  expose the MCC, and the `MERCHANT_KYC_APPROVAL` payload carries no `business_details` block
+  either (checked against the published webhook schema, 2026-10-18), so `restaurant_format`
+  on our row is the audit trail.
+  `Public Limited` / OPC are supported.
+- **Money movement (ERA, 2026-10-17).** Settlement is T+1 (next business day, cut-off ~6 PM
+  IST) with the payout webhook after settlement; refunds reach the customer in 3-5 business
+  days and report as `REFUND_PROCESSED` with status `processed`. Chargebacks and instant
+  settlement are enabled for the **parent merchant only** — sub-merchants inherit the setting.
+  InstaCollect is for subscription merchants, not a restaurant POS.
+  Lifecycle detail: `EASEBUZZ_LIFECYCLE.md`.
+- **KYC webhook handling (hardened 2026-10-18).** `SubMerchantService.processWebhook` stores
+  the raw body with `ObjectMapper.writeValueAsString`: the audit column is `JSONB`, and a
+  `Map.toString()` body (`{event=…}`) is rejected by Postgres, which rolled back the whole
+  approval transaction. Activation now requires **`bank_status` as well as `kyc_status`** —
+  Easebuzz reports them independently and a sub-merchant cannot take payments until both are
+  true. Because `contact_email` is not unique, the email fallback attributes an event only
+  when it matches exactly one sub-merchant; ambiguous matches are logged and ignored.
 
 ## 4. Payment lifecycle
 
@@ -198,7 +255,9 @@ because a timed-out call there may still have committed at the gateway.
 | `/refund/v1/retrieve` in production | Contract confirmed; live acceptance still tracked as an open item |
 | Per-mode live evidence (cards/UPI/NB/wallet) | Tracked in the go-live mapping doc; not all scenarios have production evidence |
 | EMI | Deliberately excluded (low-ticket restaurant bills) |
-| CPV hardening spec | Implemented in code; the spec header still says "PLAN" |
+| CPV hardening spec | Implemented in code and verified 2026-10-17 |
+| KYC approval webhook | Hardened 2026-10-18: real-JSON payload write, `bank_status` gate, unambiguous email fallback |
+| KYC expiry / re-verification | **Not handled** — the payload carries `kyc_expiry_date`; we store nothing and have no polling job, and no expiry webhook is sent |
 | Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
 | Gateway call retries | Implemented for idempotent/read-only calls only |
 

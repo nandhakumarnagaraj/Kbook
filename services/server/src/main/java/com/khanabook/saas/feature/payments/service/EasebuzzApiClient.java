@@ -388,7 +388,7 @@ return result;
 	public Map<String, Object> createSubMerchant(String subMerchantId, String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress,
-			String legalEntityName, String state, String fssaiNumber,
+			String legalEntityName, String state, String fssaiNumber, String restaurantFormat,
 			BigDecimal upiDeductionLtLimit, BigDecimal dcDeductionGtTwoThousand) {
 		checkCredentials();
 
@@ -440,7 +440,13 @@ return result;
 		businessDetails.put("sub_merchant_business_name", sanitizedLegalName);
 		businessDetails.put("sub_merchant_business_address", businessAddress);
 		businessDetails.put("sub_merchant_state", state);
-		businessDetails.put("sub_merchant_mcc_code", "5812");
+		// Easebuzz locks the MCC at creation (no post-update), so it must reflect the outlet.
+		String mccCode = mccCodeForFormat(restaurantFormat);
+		if (restaurantFormat == null || restaurantFormat.isBlank()) {
+			log.warn("No restaurant format supplied for sub-merchant {} - defaulting MCC to {}",
+				subMerchantName, mccCode);
+		}
+		businessDetails.put("sub_merchant_mcc_code", mccCode);
 
 		if (gst != null && !gst.isBlank()) businessDetails.put("sub_merchant_gstin", gst);
 		if (pan != null && !pan.isBlank()) businessDetails.put("sub_merchant_pan_number", pan);
@@ -468,9 +474,43 @@ return result;
 	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress,
-			String legalEntityName, String state, String fssaiNumber) {
+			String legalEntityName, String state, String fssaiNumber, String restaurantFormat) {
 		return createSubMerchant(null, subMerchantName, email, phone, accountNumber, ifsc, bankName, nameInBank, branchName,
-				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber, null, null);
+				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber, restaurantFormat, null, null);
+	}
+
+	/**
+	 * Maps the outlet format chosen at onboarding to the Easebuzz MCC code. Easebuzz accepts
+	 * 5812 (dine-in), 5814 (QSR / fast food), 5813 (bar / drinking place) and 5811 (caterer)
+	 * and cannot change the code after creation. An unknown or missing format falls back to
+	 * 5812 (eating places and restaurants) so a submission is never rejected for this field.
+	 */
+	public static String mccCodeForFormat(String restaurantFormat) {
+		if (restaurantFormat == null) return "5812";
+		switch (restaurantFormat.trim().toUpperCase().replace(" ", "_").replace("-", "_")) {
+			case "QSR":
+			case "FAST_FOOD":
+			case "QUICK_SERVICE_RESTAURANT":
+				return "5814";
+			case "BAR":
+			case "PUB":
+			case "DRINKING_PLACE":
+				return "5813";
+			case "CATERER":
+			case "CATERING":
+				return "5811";
+			case "DINE_IN":
+			case "RESTAURANT":
+			case "CASUAL_DINING":
+			case "FINE_DINING":
+			case "CAFE":
+			case "BAKERY":
+			case "CLOUD_KITCHEN":
+			case "FOOD_TRUCK":
+				return "5812";
+			default:
+				return "5812";
+		}
 	}
 
 	public Map<String, Object> updateSubMerchant(String subMerchantId, String subMerchantName, String email,

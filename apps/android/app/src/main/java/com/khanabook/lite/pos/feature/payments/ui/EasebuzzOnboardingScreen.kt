@@ -226,7 +226,7 @@ private fun NotStartedContent(onStart: () -> Unit, spacing: Spacing) {
         )
         Spacer(Modifier.height(spacing.medium))
         Text(
-            "You'll need:\n• Business PAN card\n• Bank account details (IFSC)\n• Phone number for OTP\n• KYC documents (uploaded later)",
+            "You'll need:\n• PAN - proprietor's PAN for a sole proprietorship, firm/company PAN otherwise\n• Aadhaar of the proprietor / authorised signatory (masked or Aadhaar XML is fine; passport, voter ID or driving licence accepted instead)\n• Bank account number and IFSC\n• FSSAI number and one business proof (Shop & Establishment, Udyam/MSME, trade licence, utility bill or Import/Export certificate)\n• Phone number for OTP\n\nGST is optional. You upload the documents yourself, signed in to Easebuzz's KYC portal at the end.",
             style = MaterialTheme.typography.bodySmall,
             color = TextGold.copy(alpha = 0.7f),
             textAlign = TextAlign.Start,
@@ -254,6 +254,7 @@ private fun BusinessDetailsStep(
     var businessName by remember { mutableStateOf(viewModel.businessName) }
     var legalEntityName by remember { mutableStateOf(viewModel.legalEntityName) }
     var businessType by remember { mutableStateOf(viewModel.businessType) }
+    var restaurantFormat by remember { mutableStateOf(viewModel.restaurantFormat) }
     var pan by remember { mutableStateOf(viewModel.pan) }
     var gst by remember { mutableStateOf(viewModel.gst) }
     var fssaiNumber by remember { mutableStateOf(viewModel.fssaiNumber) }
@@ -267,11 +268,17 @@ private fun BusinessDetailsStep(
             .fillMaxSize()
     ) {
         val isPanValid = EasebuzzOnboardingViewModel.isValidPan(pan)
-        val isProprietorship = businessType == "SOLE_PROPRIETORSHIP"
-        val isLegalEntityRequired = isProprietorship
-        val isLegalEntityValid = !isLegalEntityRequired || legalEntityName.isNotBlank()
-        val isFssaiValid = fssaiNumber.isBlank() || fssaiNumber.length == 14
-        val isValid = businessName.isNotBlank() && isPanValid && isLegalEntityValid && isFssaiValid &&
+        // Easebuzz CPV matches the registered name against PAN/GST, so the server refuses any
+        // submission without it (LEGAL_ENTITY_NAME_REQUIRED) - required for every entity type.
+        val isLegalEntityValid = legalEntityName.isNotBlank()
+        // FSSAI is mandatory for food merchants server-side (FSSAI_REQUIRED); a blank field here
+        // would only fail after both steps are filled.
+        val isFssaiValid = fssaiNumber.length == 14
+        // Business type is required: it selects the Easebuzz nature code and decides whether the
+        // proprietorship proof rules apply, so it can never be inferred by default.
+        val isValid = businessName.isNotBlank() && businessType.isNotBlank() &&
+            restaurantFormat.isNotBlank() && isPanValid &&
+            isLegalEntityValid && isFssaiValid &&
             businessAddress.isNotBlank() && state.isNotBlank() &&
             contactEmail.contains("@") && contactPhone.length == 10
 
@@ -282,6 +289,7 @@ private fun BusinessDetailsStep(
                         viewModel.businessName = businessName
                         viewModel.legalEntityName = legalEntityName
                         viewModel.businessType = businessType
+                        viewModel.restaurantFormat = restaurantFormat
                         viewModel.pan = pan
                         viewModel.gst = gst
                         viewModel.fssaiNumber = fssaiNumber
@@ -315,23 +323,54 @@ private fun BusinessDetailsStep(
 
                 OnboardingField("Business Name *", businessName, { businessName = it }, focusManager, ImeAction.Next)
                 OnboardingField(
-                    if (isLegalEntityRequired) "Legal Entity Name *" else "Legal Entity Name",
+                    "Legal Entity Name *",
                     legalEntityName, { legalEntityName = it }, focusManager, ImeAction.Next
                 )
-                if (isLegalEntityRequired && legalEntityName.isBlank()) {
+                if (legalEntityName.isBlank()) {
                     Text(
-                        "Required for Sole Proprietorship",
+                        "Name as registered with PAN/GST - CPV matches it exactly",
                         color = WarningYellow,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
                     )
                 }
                 BusinessTypeDropdown(businessType) { businessType = it }
+                // MCC is locked at sub-merchant creation, so the outlet format has to be chosen here.
+                RestaurantFormatDropdown(restaurantFormat) { restaurantFormat = it }
+                if (restaurantFormat.isBlank()) {
+                    Text(
+                        "Sets your payment category code - Easebuzz cannot change it after registration.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
                 OnboardingField("PAN *", pan, { pan = it.uppercase().take(10) }, focusManager, ImeAction.Next,
                     keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.Characters)
+                // PAN is mandatory for every entity (ERA answer, 2026-10-17) - the proprietor's PAN
+                // for a sole proprietorship, the firm/company PAN for everyone else.
+                if (!isPanValid) {
+                    Text(
+                        "Proprietor's PAN for a sole proprietorship; firm or company PAN otherwise.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
                 OnboardingField("GST Number", gst, { gst = it.uppercase().take(15) }, focusManager, ImeAction.Next,
                     capitalization = KeyboardCapitalization.Characters)
-                OnboardingField("FSSAI Number", fssaiNumber, { 
+                // GST is optional: Easebuzz confirmed in writing (2026-10-17) that it is not
+                // mandatory for sub-merchants. Udyam (URC) covers the business-proof requirement,
+                // so this field is only sent when the merchant is GST-registered.
+                if (gst.isBlank()) {
+                    Text(
+                        "Optional - enter your 15-character GSTIN if you are GST-registered. Easebuzz confirmed GST is not mandatory; an Udyam (URC) certificate covers the business proof.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = spacing.small, bottom = spacing.small)
+                    )
+                }
+                OnboardingField("FSSAI Number *", fssaiNumber, { 
                     fssaiNumber = it.filter { c -> c.isDigit() }.take(14)
                     if (fssaiNumber.length == 14) {
                         viewModel.lookupFssai(fssaiNumber)
@@ -424,7 +463,7 @@ private fun BusinessDetailsStep(
                     }
                 }
                 OnboardingField("Business Address *", businessAddress, { businessAddress = it }, focusManager, ImeAction.Next)
-                OnboardingField("State *", state, { state = it }, focusManager, ImeAction.Next)
+                StateDropdown(state) { state = it }
                 OnboardingField("Email *", contactEmail, { contactEmail = it.trim() }, focusManager, ImeAction.Next,
                     keyboardType = KeyboardType.Email)
                 OnboardingField("Phone *", contactPhone, { contactPhone = it.filter { c -> c.isDigit() }.take(10) },
@@ -775,6 +814,17 @@ private fun KycStatusStep(
                     val context = androidx.compose.ui.platform.LocalContext.current
                     if (!status.kycUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(spacing.medium))
+                        // Easebuzz requires the merchant to sign in and upload documents themselves;
+                        // KhanaBook cannot upload on their behalf (ERA clarification, 2026-10-17).
+                        Text(
+                            "Sign in on the portal with your registered email or phone to upload your documents. " +
+                                "Aadhaar (masked or XML) - or passport, voter ID or driving licence if you have no Aadhaar.",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(spacing.small))
                         Button(
                             onClick = {
                                 val intent = android.content.Intent(
@@ -915,7 +965,7 @@ private fun RejectedContent(
         )
         Spacer(Modifier.height(spacing.large))
         Button(
-            onClick = { viewModel.startOnboarding() },
+            onClick = { viewModel.resubmitAfterRejection() },
             enabled = !isSubmitting,
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
             shape = KhanaRadii.button,
@@ -1037,14 +1087,75 @@ private fun OnboardingField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BusinessTypeDropdown(selected: String, onSelect: (String) -> Unit) {
-    val options = listOf(
-        "SOLE_PROPRIETORSHIP" to "Sole Proprietorship",
-        "PARTNERSHIP" to "Partnership",
-        "PRIVATE_LIMITED" to "Private Limited",
-        "LLP" to "LLP",
-        "PUBLIC_LIMITED" to "Public Limited",
-        "TRUST" to "Trust/Society"
+    SelectField(
+        label = "Business Type *",
+        options = BUSINESS_TYPE_OPTIONS,
+        selected = selected,
+        placeholder = "Select business type",
+        onSelect = onSelect
     )
+}
+
+/** Easebuzz validates the state name string, so a typo here becomes a CPV failure. */
+@Composable
+private fun StateDropdown(selected: String, onSelect: (String) -> Unit) {
+    SelectField(
+        label = "State *",
+        options = INDIAN_STATES.map { it to it },
+        selected = selected,
+        placeholder = "Select state / UT",
+        onSelect = onSelect
+    )
+}
+
+@Composable
+private fun RestaurantFormatDropdown(selected: String, onSelect: (String) -> Unit) {
+    SelectField(
+        label = "Outlet Format *",
+        options = RESTAURANT_FORMAT_OPTIONS,
+        selected = selected,
+        placeholder = "Select outlet format",
+        onSelect = onSelect
+    )
+}
+
+// Codes map to Easebuzz MCC: DINE_IN 5812, QSR 5814, BAR 5813, CATERER 5811.
+private val RESTAURANT_FORMAT_OPTIONS = listOf(
+    "DINE_IN" to "Dine-in / restaurant",
+    "QSR" to "QSR / fast food",
+    "BAR" to "Bar / pub",
+    "CATERER" to "Caterer"
+)
+
+private val BUSINESS_TYPE_OPTIONS = listOf(
+    "SOLE_PROPRIETORSHIP" to "Sole Proprietorship",
+    "PARTNERSHIP" to "Partnership",
+    "PRIVATE_LIMITED" to "Private Limited",
+    "LLP" to "LLP",
+    "PUBLIC_LIMITED" to "Public Limited",
+    "TRUST" to "Trust/Society"
+)
+
+private val INDIAN_STATES = listOf(
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+    "Uttarakhand", "West Bengal",
+    // Union territories
+    "Andaman & Nicobar Islands", "Chandigarh", "Dadra & Nagar Haveli and Daman & Diu", "Delhi",
+    "Jammu & Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectField(
+    label: String,
+    options: List<Pair<String, String>>,
+    selected: String,
+    placeholder: String,
+    onSelect: (String) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     val displayName = options.firstOrNull { it.first == selected }?.second ?: selected
 
@@ -1053,7 +1164,8 @@ private fun BusinessTypeDropdown(selected: String, onSelect: (String) -> Unit) {
             value = displayName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Business Type *") },
+            label = { Text(label) },
+            placeholder = { Text(placeholder, color = TextGold.copy(alpha = 0.4f)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryGold,

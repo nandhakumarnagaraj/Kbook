@@ -55,6 +55,11 @@ class EasebuzzOnboardingRepository @Inject constructor(
     suspend fun onboard(request: EasebuzzOnboardingRequest): Result<EasebuzzOnboardingResponse> =
         runApi { api.onboardEasebuzz(request) }
 
+    /**
+     * Correct the details of a sub-merchant that already exists at Easebuzz. The server keeps a
+     * rejected merchant in REJECTED and rejects /onboard with ONBOARDING_ALREADY_SUBMITTED, so
+     * this is the only endpoint that can push corrected details after a CPV negative report.
+     */
     suspend fun resubmit(request: EasebuzzOnboardingRequest): Result<EasebuzzOnboardingResponse> =
         runApi { api.resubmitEasebuzz(request) }
 

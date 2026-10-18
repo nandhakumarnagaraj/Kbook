@@ -389,7 +389,10 @@ public class EasebuzzWebhookService {
             return;
         }
 
-        if ("refunded".equalsIgnoreCase(status)) {
+        // Easebuzz documents the refund callback as REFUND_PROCESSED and sends status
+        // "processed"; older/legacy callbacks use "refunded". Both mean the money is back, and
+        // the completion path is still gated by the hash, refund-id and amount checks above.
+        if ("refunded".equalsIgnoreCase(status) || "processed".equalsIgnoreCase(status)) {
             BigDecimal completed = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;
             BigDecimal cumulative = completed.add(attempt.getAmount());
             if (bill.getTotalAmount() == null || cumulative.compareTo(bill.getTotalAmount()) > 0) {
@@ -671,7 +674,9 @@ public class EasebuzzWebhookService {
                     exists = subMerchantRepo.findBySubMerchantId(subMerchantId).isPresent();
                 }
                 if (!exists && email != null && !email.isBlank()) {
-                    exists = subMerchantRepo.findByContactEmail(email).isPresent();
+                    // contact_email is not unique; only treat the email as identifying evidence
+                    // when it maps to exactly one sub-merchant. Ambiguous -> no match (deny).
+                    exists = subMerchantRepo.findAllByContactEmail(email).size() == 1;
                 }
                 if (exists) {
                     if (isDevOrSandboxProfile()) {

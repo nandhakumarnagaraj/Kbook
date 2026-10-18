@@ -127,6 +127,13 @@ public class EasebuzzSubMerchant {
     private Integer splitLabelVersion = 0;
 
     /**
+     * Outlet format (DINE_IN / QSR / BAR / CATERER). Decides the MCC code sent to Easebuzz at
+     * creation; Easebuzz cannot change the MCC afterwards, so it must be right the first time.
+     */
+    @Column(name = "restaurant_format")
+    private String restaurantFormat;
+
+    /**
      * Bank account snapshot ("account|ifsc") the current split label was registered
      * against. Used to detect a bank change and rotate to a new label (Easebuzz has
      * no label-update API; a bank change requires a new label).

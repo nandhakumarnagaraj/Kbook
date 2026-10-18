@@ -14,7 +14,9 @@ public interface EasebuzzSubMerchantRepository extends JpaRepository<EasebuzzSub
 
     Optional<EasebuzzSubMerchant> findBySubMerchantId(String subMerchantId);
 
-    Optional<EasebuzzSubMerchant> findByContactEmail(String contactEmail);
+    // contact_email is not unique: Easebuzz allows several sub-merchants (e.g. one owner's
+    // outlets) to share a contact email, so this must not be a single-result finder.
+    List<EasebuzzSubMerchant> findAllByContactEmail(String contactEmail);
 
     List<EasebuzzSubMerchant> findByStatus(String status);
 
