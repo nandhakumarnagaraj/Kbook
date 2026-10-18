@@ -144,8 +144,9 @@ Found while auditing `SubMerchantService.processWebhook` against the published
    on a legitimate duplicate. The repository now exposes `findAllByContactEmail` and the
    event is attributed only when exactly one sub-merchant matches.
 
-Still open from the same audit: `kyc_expiry_date` is neither stored nor polled, so a lapsed
-KYC goes unnoticed (Easebuzz sends no expiry webhook). See `EASEBUZZ_LIFECYCLE.md` §14.
+`kyc_expiry_date` is now stored from the webhook (V111) and returned by the sub-merchant
+status endpoint. Still open: nothing acts on it, so a lapsed KYC would go unnoticed until a
+scheduled poll of the Get Sub-merchant Details API is added. See `EASEBUZZ_LIFECYCLE.md` §14.
 
 ## Risk & regression
 - Overall risk: LOW. Submit-time validations only; block only submissions that would fail

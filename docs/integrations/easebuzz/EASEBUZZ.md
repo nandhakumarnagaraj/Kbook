@@ -257,7 +257,7 @@ because a timed-out call there may still have committed at the gateway.
 | EMI | Deliberately excluded (low-ticket restaurant bills) |
 | CPV hardening spec | Implemented in code and verified 2026-10-17 |
 | KYC approval webhook | Hardened 2026-10-18: real-JSON payload write, `bank_status` gate, unambiguous email fallback |
-| KYC expiry / re-verification | **Not handled** — the payload carries `kyc_expiry_date`; we store nothing and have no polling job, and no expiry webhook is sent |
+| KYC expiry / re-verification | **Value stored** (V111) from the approval webhook and returned by the status endpoint; **no expiry enforcement or poll job yet**, and Easebuzz sends no expiry webhook |
 | Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
 | Gateway call retries | Implemented for idempotent/read-only calls only |
 

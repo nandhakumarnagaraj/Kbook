@@ -98,6 +98,10 @@ public class EasebuzzSubMerchant {
     @Column(name = "kyc_portal_url")
     private String kycPortalUrl;
 
+    /** Raw `kyc_expiry_date` from the approval webhook, e.g. "2023-03-02 12:27:22". */
+    @Column(name = "kyc_expiry_date", length = 40)
+    private String kycExpiryDate;
+
     @Column(name = "kyc_submitted_at")
     private Long kycSubmittedAt;
 

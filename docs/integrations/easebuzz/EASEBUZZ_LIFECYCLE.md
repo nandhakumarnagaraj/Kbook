@@ -194,11 +194,11 @@ backoff, so a dropped callback does not lose a payment.
    details); our automatic split-label rotation is optional but recommended for tracking, and
    is what we do today.
 5. No in-app Aadhaar capture — by design, per ERA (portal-only is sufficient).
-6. **KYC expiry is not tracked.** The approval payload carries `kyc_expiry_date`; when it
-   lapses the sub-merchant can no longer accept payments, and Easebuzz sends no expiry
-   webhook. We store nothing and poll nothing, so a lapsed merchant would keep taking
-   payments at the POS until a manual check. Needs a column plus a scheduled poll of the
-   Get Sub-merchant Details API.
+6. **KYC expiry — stored, not enforced.** The approval payload's `kyc_expiry_date` is now
+   persisted (`easebuzz_sub_merchant.kyc_expiry_date`, V111) and returned by the sub-merchant
+   status endpoint. Nothing acts on it yet: when it lapses the sub-merchant can no longer
+   accept payments and Easebuzz sends no expiry webhook, so a scheduled poll of the
+   Get Sub-merchant Details API is still needed to catch it.
 
 ### Recreating a sub-merchant for a wrong MCC (ERA, 2026-10-17)
 

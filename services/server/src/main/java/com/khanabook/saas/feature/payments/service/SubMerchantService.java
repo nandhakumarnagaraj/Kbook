@@ -394,6 +394,8 @@ public class SubMerchantService {
         String kycProfileStatus = data.containsKey("kyc_profile_status") && data.get("kyc_profile_status") != null
                 ? data.get("kyc_profile_status").toString() : null;
         String kycUrl = data.containsKey("kyc_url") && data.get("kyc_url") != null ? data.get("kyc_url").toString() : null;
+        String kycExpiryDate = data.containsKey("kyc_expiry_date") && data.get("kyc_expiry_date") != null
+                ? data.get("kyc_expiry_date").toString() : null;
 
         long now = System.currentTimeMillis();
 
@@ -438,6 +440,9 @@ public class SubMerchantService {
 
         if (kycUrl != null && !kycUrl.isBlank()) {
             sm.setKycPortalUrl(kycUrl);
+        }
+        if (kycExpiryDate != null && !kycExpiryDate.isBlank()) {
+            sm.setKycExpiryDate(kycExpiryDate);
         }
 
         // Easebuzz reports bank verification separately from KYC approval, and either can be

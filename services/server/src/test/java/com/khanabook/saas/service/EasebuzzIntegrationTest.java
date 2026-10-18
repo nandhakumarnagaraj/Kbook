@@ -459,6 +459,29 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
     @Transactional
     @Test
+    void kycWebhookStoresExpiryDate() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+
+        // Easebuzz sends no expiry webhook, so the value on the approval callback is the only
+        // chance to learn when this sub-merchant's KYC stops being valid.
+        subMerchantService.processWebhook(Map.of(
+            "event", "MERCHANT_KYC_APPROVAL",
+            "data", Map.of(
+                "id", testSubMerchantId,
+                "kyc_status", true,
+                "kyc_profile_status", "Completed",
+                "kyc_expiry_date", "2027-03-02 12:27:22"
+            )
+        ));
+
+        EasebuzzSubMerchant after = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertEquals("2027-03-02 12:27:22", after.getKycExpiryDate());
+    }
+
+    @Transactional
+    @Test
     void submissionRequiresRestaurantFormat() {
         Map<String, Object> data = baseSubMerchantData();
         data.remove("restaurantFormat"); // no format → MCC would silently lock to dine-in 5812

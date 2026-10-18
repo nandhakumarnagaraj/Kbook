@@ -113,6 +113,7 @@ public class RestaurantPaymentConfigController {
             result.put("kycStatus",          sm.getKycStatus() != null ? sm.getKycStatus() : "");
             result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
             result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
+            result.put("kycExpiryDate",      sm.getKycExpiryDate() != null ? sm.getKycExpiryDate() : "");
             result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
             result.put("businessProof1Type", sm.getBusinessProof1Type());
             result.put("businessProof2Type", sm.getBusinessProof2Type());
@@ -139,6 +140,7 @@ public class RestaurantPaymentConfigController {
             fallback.put("kycStatus",          "");
             fallback.put("kycSubmissionDate",  null);
             fallback.put("kycUrl",            "");
+            fallback.put("kycExpiryDate",      "");
             fallback.put("activationDate",     null);
             fallback.put("businessProof1Type", null);
             fallback.put("businessProof2Type", null);
@@ -225,6 +227,7 @@ public class RestaurantPaymentConfigController {
         out.put("subMerchantId", sm.getSubMerchantId() != null ? sm.getSubMerchantId() : "");
         out.put("subMerchantStatus", sm.getStatus());
         out.put("kycStatus", sm.getKycStatus() != null ? sm.getKycStatus() : "");
+        out.put("kycExpiryDate", sm.getKycExpiryDate() != null ? sm.getKycExpiryDate() : "");
         out.put("message", Objects.toString(sm.getEasebuzzResponse(), ""));
         return out;
     }
