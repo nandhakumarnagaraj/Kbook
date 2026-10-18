@@ -33,6 +33,9 @@ sealed class OnboardingUiState {
     data class AwaitingKyc(val status: EasebuzzOnboardingStatusResponse) : OnboardingUiState()
     data class Active(val status: EasebuzzOnboardingStatusResponse) : OnboardingUiState()
     data class Rejected(val status: EasebuzzOnboardingStatusResponse) : OnboardingUiState()
+
+    /** KYC lapsed after approval: the server flags this and payment creation is refused. */
+    data class Expired(val status: EasebuzzOnboardingStatusResponse) : OnboardingUiState()
     data class Error(val message: String) : OnboardingUiState()
 }
 
@@ -232,6 +235,7 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                     _uiState.value = when {
                         status.isActive -> OnboardingUiState.Active(status)
                         status.status == "REJECTED" -> OnboardingUiState.Rejected(status)
+                        status.status == "KYC_EXPIRED" -> OnboardingUiState.Expired(status)
                         status.status == "KYC_SUBMITTED" || status.status == "PENDING_KYC" || status.status == "CPV_PENDING" ->
                             OnboardingUiState.AwaitingKyc(status)
                         status.hasSubMerchant -> OnboardingUiState.AwaitingKyc(status)

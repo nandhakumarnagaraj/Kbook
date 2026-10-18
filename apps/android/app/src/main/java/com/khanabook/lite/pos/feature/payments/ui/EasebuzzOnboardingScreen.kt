@@ -173,15 +173,22 @@ fun EasebuzzOnboardingScreen(
             }
             is OnboardingUiState.Active -> {
                 ActiveContent(status = state.status, spacing = spacing, onBack = onBack)
-            }
-            is OnboardingUiState.Rejected -> {
-                RejectedContent(
-                    viewModel = viewModel,
-                    status = state.status,
-                    isSubmitting = isSubmitting,
-                    spacing = spacing
-                )
-            }
+            }              is OnboardingUiState.Rejected -> {
+                  RejectedContent(
+                      viewModel = viewModel,
+                      status = state.status,
+                      isSubmitting = isSubmitting,
+                      spacing = spacing
+                  )
+              }
+              is OnboardingUiState.Expired -> {
+                  ExpiredContent(
+                      viewModel = viewModel,
+                      status = state.status,
+                      isSubmitting = isSubmitting,
+                      spacing = spacing
+                  )
+              }
             is OnboardingUiState.Error -> {
                 ErrorContent(message = state.message, onRetry = { viewModel.loadStatus() }, spacing = spacing)
             }
@@ -974,10 +981,71 @@ private fun RejectedContent(
             Text("Edit & Resubmit", color = DarkBrown1)
         }
     }
-}
+}  /**
+   * KYC lapsed after approval. Easebuzz sends no expiry webhook, so the server flags it from the
+   * stored expiry date and refuses new payment links - waiting here would never resolve itself.
+   */
+  @Composable
+  private fun ExpiredContent(
+      viewModel: EasebuzzOnboardingViewModel,
+      status: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse,
+      isSubmitting: Boolean,
+      spacing: Spacing
+  ) {
+      Column(
+          modifier = Modifier
+              .fillMaxSize()
+              .verticalScroll(rememberScrollState())
+              .padding(spacing.medium),
+          horizontalAlignment = Alignment.CenterHorizontally
+      ) {
+          Spacer(Modifier.height(spacing.extraLarge))
+          Text("⚠️", style = MaterialTheme.typography.displaySmall)
+          Spacer(Modifier.height(spacing.medium))
+          Text("KYC Expired", style = MaterialTheme.typography.titleMedium, color = DangerRed)
+          Spacer(Modifier.height(spacing.medium))
+          Text(
+              "This outlet's KYC has lapsed, so online payments are paused. " +
+                  "Re-verify on the Easebuzz portal to start taking payments again.",
+              style = MaterialTheme.typography.bodyMedium,
+              color = TextGold,
+              textAlign = TextAlign.Center
+          )
+          Spacer(Modifier.height(spacing.large))
 
-@Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit, spacing: Spacing) {
+          if (!status.kycUrl.isNullOrBlank()) {
+              val context = androidx.compose.ui.platform.LocalContext.current
+              Button(
+                  onClick = {
+                      val intent = android.content.Intent(
+                          android.content.Intent.ACTION_VIEW,
+                          android.net.Uri.parse(status.kycUrl)
+                      )
+                      context.startActivity(intent)
+                  },
+                  colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                  shape = KhanaRadii.button,
+                  modifier = Modifier.fillMaxWidth()
+              ) {
+                  Text("Open Easebuzz KYC Portal ↗", color = DarkBrown1)
+              }
+              Spacer(Modifier.height(spacing.small))
+          }
+
+          Button(
+              onClick = { viewModel.resubmitAfterRejection() },
+              enabled = !isSubmitting,
+              colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+              shape = KhanaRadii.button,
+              modifier = Modifier.fillMaxWidth()
+          ) {
+              Text("Edit & Resubmit", color = DarkBrown1)
+          }
+      }
+  }
+
+  @Composable
+  private fun ErrorContent(message: String, onRetry: () -> Unit, spacing: Spacing) {
     Column(
         modifier = Modifier.fillMaxSize().padding(spacing.large),
         horizontalAlignment = Alignment.CenterHorizontally,

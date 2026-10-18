@@ -132,6 +132,23 @@ class EasebuzzOnboardingViewModelTest {
     }
 
     @Test
+    fun `loadStatus sets Expired when KYC has lapsed`() = runTest(testScheduler) {
+        val expiredStatus = EasebuzzOnboardingStatusResponse(
+            hasSubMerchant = true,
+            status = "KYC_EXPIRED",
+            isActive = false
+        )
+        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(expiredStatus)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Must not fall through to AwaitingKyc: a lapsed KYC never resolves on its own, because
+        // Easebuzz sends no expiry webhook.
+        assertTrue(viewModel.uiState.value is OnboardingUiState.Expired)
+    }
+
+    @Test
     fun `loadStatus does not claim onboarding is needed when status lookup fails`() = runTest(testScheduler) {
         coEvery { onboardingRepository.getOnboardingStatus() } returns Result.failure(RuntimeException("Network error"))
 

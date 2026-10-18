@@ -199,8 +199,9 @@ backoff, so a dropped callback does not lose a payment.
    `SubMerchantKycExpiryService`; a lapsed row moves to `KYC_EXPIRED`, which payment creation
    already refuses (`SUBMERCHANT_NOT_ACTIVE`). The value is read as IST because the payload
    states no timezone, and an unparseable date leaves the merchant `ACTIVE` rather than cutting
-   them off on a parsing bug. Remaining gap: the Android app maps `KYC_EXPIRED` into its
-   generic "awaiting KYC" state and needs an explicit "renew KYC" branch.
+   them off on a parsing bug. The POS renders a dedicated "KYC Expired" screen with the Easebuzz portal
+   link and an edit-and-resubmit action, rather than telling the merchant to wait for a
+   webhook that never comes.
 
 ### Recreating a sub-merchant for a wrong MCC (ERA, 2026-10-17)
 

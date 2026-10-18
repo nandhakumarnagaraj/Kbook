@@ -257,7 +257,7 @@ because a timed-out call there may still have committed at the gateway.
 | EMI | Deliberately excluded (low-ticket restaurant bills) |
 | CPV hardening spec | Implemented in code and verified 2026-10-17 |
 | KYC approval webhook | Hardened 2026-10-18: real-JSON payload write, `bank_status` gate, unambiguous email fallback |
-| KYC expiry / re-verification | Stored from the approval webhook (V111) and enforced daily by `SubMerchantKycExpiryService`, which moves lapsed rows to `KYC_EXPIRED` so payment creation refuses them (Easebuzz sends no expiry webhook). The Android app still renders that state as generic "awaiting KYC" |
+| KYC expiry / re-verification | Stored from the approval webhook (V111) and enforced daily by `SubMerchantKycExpiryService`, which moves lapsed rows to `KYC_EXPIRED` so payment creation refuses them (Easebuzz sends no expiry webhook). The POS shows a dedicated "KYC Expired" state with the portal and a resubmit action |
 | Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
 | Gateway call retries | Implemented for idempotent/read-only calls only |
 

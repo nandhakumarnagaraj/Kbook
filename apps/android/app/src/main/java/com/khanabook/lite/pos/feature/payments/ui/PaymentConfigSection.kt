@@ -616,7 +616,9 @@ fun EasebuzzOnboardingHub(
                                 kycStatusStr == "CPV_PENDING" ->
                                     "Complete the quick agentless contact verification to unlock automatic daily 6:00 AM bank payouts."
                                 kycStatusStr == "REJECTED" ->
-                                    "A submitted document was rejected. Please upload a fresh copy."
+                                      "A submitted document was rejected. Please upload a fresh copy."
+                                  kycStatusStr == "KYC_EXPIRED" ->
+                                      "Your KYC has lapsed, so online payments are paused. Re-verify to resume."
                                 ebStatus?.businessProof1Present == true ->
                                     "Address proof submitted. Payout verification is under review by Easebuzz."
                                 else ->
@@ -636,6 +638,7 @@ fun EasebuzzOnboardingHub(
                                 text = when {
                                     kycStatusStr == "CPV_PENDING" -> "Complete Verification →"
                                     kycStatusStr == "REJECTED" -> "Re-upload Proof →"
+                                      kycStatusStr == "KYC_EXPIRED" -> "Re-verify KYC →"
                                     ebStatus?.businessProof1Present == true -> "View Uploaded Proofs"
                                     else -> "Upload Payout Proof →"
                                 },

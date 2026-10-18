@@ -148,8 +148,8 @@ Found while auditing `SubMerchantService.processWebhook` against the published
 `SubMerchantKycExpiryService`, which moves a lapsed row to `KYC_EXPIRED`; payment creation
 refuses any sub-merchant that is not `ACTIVE`, so that transition is what stops new payment
 links. The value is interpreted as IST (the payload states no timezone) and an unparseable
-date leaves the merchant `ACTIVE` rather than blocking them on a parsing bug. The Android app
-still needs an explicit `KYC_EXPIRED` branch. See `EASEBUZZ_LIFECYCLE.md` §14.
+date leaves the merchant `ACTIVE` rather than blocking them on a parsing bug. The POS renders a dedicated `KYC_EXPIRED` state with the Easebuzz portal
+link and a resubmit action. See `EASEBUZZ_LIFECYCLE.md` §14.
 
 ## Risk & regression
 - Overall risk: LOW. Submit-time validations only; block only submissions that would fail
