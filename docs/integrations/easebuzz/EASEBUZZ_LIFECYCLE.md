@@ -194,11 +194,13 @@ backoff, so a dropped callback does not lose a payment.
    details); our automatic split-label rotation is optional but recommended for tracking, and
    is what we do today.
 5. No in-app Aadhaar capture — by design, per ERA (portal-only is sufficient).
-6. **KYC expiry — stored, not enforced.** The approval payload's `kyc_expiry_date` is now
-   persisted (`easebuzz_sub_merchant.kyc_expiry_date`, V111) and returned by the sub-merchant
-   status endpoint. Nothing acts on it yet: when it lapses the sub-merchant can no longer
-   accept payments and Easebuzz sends no expiry webhook, so a scheduled poll of the
-   Get Sub-merchant Details API is still needed to catch it.
+6. **KYC expiry — stored and enforced daily.** `easebuzz_sub_merchant.kyc_expiry_date` (V111)
+   is written from the approval callback and checked each day by
+   `SubMerchantKycExpiryService`; a lapsed row moves to `KYC_EXPIRED`, which payment creation
+   already refuses (`SUBMERCHANT_NOT_ACTIVE`). The value is read as IST because the payload
+   states no timezone, and an unparseable date leaves the merchant `ACTIVE` rather than cutting
+   them off on a parsing bug. Remaining gap: the Android app maps `KYC_EXPIRED` into its
+   generic "awaiting KYC" state and needs an explicit "renew KYC" branch.
 
 ### Recreating a sub-merchant for a wrong MCC (ERA, 2026-10-17)
 

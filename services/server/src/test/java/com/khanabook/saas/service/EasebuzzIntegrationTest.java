@@ -48,6 +48,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Autowired private BillRepository billRepository;
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
     @Autowired private EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
+    @Autowired private com.khanabook.saas.feature.payments.service.SubMerchantKycExpiryService kycExpiryService;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
     @MockBean private MerchantAgreementService merchantAgreementService;
@@ -478,6 +479,37 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         EasebuzzSubMerchant after = subMerchantRepo.findById(sm.getId()).orElseThrow();
         assertEquals("2027-03-02 12:27:22", after.getKycExpiryDate());
+    }
+
+    @Transactional
+    @Test
+    void kycExpiryCheckBlocksOnlyExpiredSubMerchants() {
+        EasebuzzSubMerchant expired = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        expired.setSubMerchantId(testSubMerchantId + "EXP");
+        expired.setStatus("ACTIVE");
+        expired.setKycExpiryDate("2020-01-01 00:00:00");
+        subMerchantRepo.save(expired);
+
+        EasebuzzSubMerchant stillValid = subMerchantService.create(baseSubMerchantData(), testRestaurantId + 1000);
+        stillValid.setSubMerchantId(testSubMerchantId + "OK");
+        stillValid.setStatus("ACTIVE");
+        stillValid.setKycExpiryDate("2999-01-01 00:00:00");
+        subMerchantRepo.save(stillValid);
+
+        EasebuzzSubMerchant unparseable = subMerchantService.create(baseSubMerchantData(), testRestaurantId + 2000);
+        unparseable.setSubMerchantId(testSubMerchantId + "BAD");
+        unparseable.setStatus("ACTIVE");
+        unparseable.setKycExpiryDate("not-a-date");
+        subMerchantRepo.save(unparseable);
+
+        kycExpiryService.flagExpiredKyc();
+
+        // Expired: off ACTIVE, which is what makes payment creation refuse the merchant.
+        assertEquals("KYC_EXPIRED", subMerchantRepo.findById(expired.getId()).orElseThrow().getStatus());
+        // A future date must not be touched.
+        assertEquals("ACTIVE", subMerchantRepo.findById(stillValid.getId()).orElseThrow().getStatus());
+        // A date we cannot read must not silently cut a merchant off.
+        assertEquals("ACTIVE", subMerchantRepo.findById(unparseable.getId()).orElseThrow().getStatus());
     }
 
     @Transactional

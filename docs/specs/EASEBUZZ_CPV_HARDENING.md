@@ -144,9 +144,12 @@ Found while auditing `SubMerchantService.processWebhook` against the published
    on a legitimate duplicate. The repository now exposes `findAllByContactEmail` and the
    event is attributed only when exactly one sub-merchant matches.
 
-`kyc_expiry_date` is now stored from the webhook (V111) and returned by the sub-merchant
-status endpoint. Still open: nothing acts on it, so a lapsed KYC would go unnoticed until a
-scheduled poll of the Get Sub-merchant Details API is added. See `EASEBUZZ_LIFECYCLE.md` §14.
+`kyc_expiry_date` is stored from the webhook (V111) and enforced daily by
+`SubMerchantKycExpiryService`, which moves a lapsed row to `KYC_EXPIRED`; payment creation
+refuses any sub-merchant that is not `ACTIVE`, so that transition is what stops new payment
+links. The value is interpreted as IST (the payload states no timezone) and an unparseable
+date leaves the merchant `ACTIVE` rather than blocking them on a parsing bug. The Android app
+still needs an explicit `KYC_EXPIRED` branch. See `EASEBUZZ_LIFECYCLE.md` §14.
 
 ## Risk & regression
 - Overall risk: LOW. Submit-time validations only; block only submissions that would fail
