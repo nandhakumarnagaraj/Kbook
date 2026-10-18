@@ -180,11 +180,12 @@ backoff, so a dropped callback does not lose a payment.
 
 ## 14. Open items
 
-1. **MCC — implemented 2026-10-17.** Easebuzz locks the code at creation, so the onboarding
-   form now requires an **outlet format** (dine-in / QSR / bar / caterer), the server stores
-   it in `easebuzz_sub_merchant.restaurant_format`, refuses a submit without it, and maps it
-   to 5812 / 5814 / 5813 / 5811 in `EasebuzzApiClient.mccCodeForFormat`. Sub-merchants created
-   **before** this change are stuck on 5812 — see the recreation runbook below.
+1. **MCC — not controllable (corrected 2026-10-18).** Easebuzz assigns the code internally and
+   documents no create-time MCC field. The outlet format is still captured and stored in
+   `easebuzz_sub_merchant.restaurant_format`, and `EasebuzzApiClient.mccCodeForFormat` still
+   sends 5812 / 5814 / 5813 / 5811 in `sub_merchant_mcc_code`, but the field is undocumented
+   and the format is **no longer a submit gate**. Confirm what Easebuzz actually applied on the
+   dashboard before trusting any of it.
    Easebuzz does **not** expose the MCC on the sub-merchant retrieve API, and the
    `MERCHANT_KYC_APPROVAL` payload has no `business_details` block either, so
    `restaurant_format` on our own row is the only audit trail of what we sent.
@@ -194,7 +195,13 @@ backoff, so a dropped callback does not lose a payment.
    details); our automatic split-label rotation is optional but recommended for tracking, and
    is what we do today.
 5. No in-app Aadhaar capture — by design, per ERA (portal-only is sufficient).
-6. **KYC expiry — stored and enforced daily.** `easebuzz_sub_merchant.kyc_expiry_date` (V111)
+6. **Bank verification can stall a merchant.** `bank_status` is reported once, on the approval
+   webhook, and no webhook fires when it later changes. A row approved with `bank_status=false`
+   never reaches `ACTIVE` on its own. The value is stored (V112) so the stall is visible, and
+   `POST /admin/sub-merchants/{id}/mark-bank-verified` is the manual unblock once Easebuzz
+   support confirms the account.
+
+7. **KYC expiry — stored and enforced daily.** `easebuzz_sub_merchant.kyc_expiry_date` (V111)
    is written from the approval callback and checked each day by
    `SubMerchantKycExpiryService`; a lapsed row moves to `KYC_EXPIRED`, which payment creation
    already refuses (`SUBMERCHANT_NOT_ACTIVE`). The value is read as IST because the payload

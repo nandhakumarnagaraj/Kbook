@@ -90,12 +90,15 @@ Notes verified from code and the ERA-confirmed doc:
   documents in the owner's name are accepted for the business. `Public Limited` / OPC are
   supported (ERA, 2026-10-17); they are simply absent from the matrix table above.
   CPV liability sits with the restaurant; KhanaBook carries due diligence as parent.
-- **MCC is set from the outlet format at creation** (implemented 2026-10-17, after ERA
-  confirmed the code cannot be changed post-creation). The onboarding form requires an outlet
-  format (dine-in / QSR / bar / caterer), `easebuzz_sub_merchant.restaurant_format` stores it,
-  `submitToEasebuzz` refuses a submission without it, and
-  `EasebuzzApiClient.mccCodeForFormat` maps it to 5812 / 5814 / 5813 / 5811 (unknown or
-  missing falls back to 5812 with a warning). Sub-merchants created before this change stay on
+- **MCC is NOT controllable at create** (corrected 2026-10-18). Easebuzz assigns the code
+  internally and documents no create-time MCC field: ERA first said it travels in
+  `business_details.sub_merchant_business_nature`, then confirmed that key carries the entity
+  type and that `sub_merchant_mcc_code` (what we send) is undocumented. The outlet format is
+  still captured and stored in `easebuzz_sub_merchant.restaurant_format`, but it is **no longer
+  a submit gate** — it never demonstrably changed the MCC, and gating on it only blocked
+  merchants. `EasebuzzApiClient.mccCodeForFormat` still sends 5812 / 5814 / 5813 / 5811 in
+  `sub_merchant_mcc_code` in case the field is honoured; confirm on the dashboard before
+  relying on it. Sub-merchants created before this change stay on
   5812: Easebuzz will not change an MCC in any status (even PENDING_KYC), so the only fix is
   recreation — new `submerchant_id`, KYC re-upload, OTP and portal redone, old split label and
   settlements left on the old record for manual reconciliation. Their retrieve API does not
@@ -257,6 +260,8 @@ because a timed-out call there may still have committed at the gateway.
 | EMI | Deliberately excluded (low-ticket restaurant bills) |
 | CPV hardening spec | Implemented in code and verified 2026-10-17 |
 | KYC approval webhook | Hardened 2026-10-18: real-JSON payload write, `bank_status` gate, unambiguous email fallback |
+| MCC at create | **Not controllable** — assigned by Easebuzz; `sub_merchant_mcc_code` is undocumented and `business_nature` is the entity type |
+| Bank verification after approval | No webhook when `bank_status` changes, so a row can stall; `bank_status` is stored (V112) and `POST /admin/sub-merchants/{id}/mark-bank-verified` is the manual unblock |
 | KYC expiry / re-verification | Stored from the approval webhook (V111) and enforced daily by `SubMerchantKycExpiryService`, which moves lapsed rows to `KYC_EXPIRED` so payment creation refuses them (Easebuzz sends no expiry webhook). The POS shows a dedicated "KYC Expired" state with the portal and a resubmit action |
 | Webhook IP allowlist | Implemented, **left disabled** until Easebuzz publishes its callback ranges |
 | Gateway call retries | Implemented for idempotent/read-only calls only |

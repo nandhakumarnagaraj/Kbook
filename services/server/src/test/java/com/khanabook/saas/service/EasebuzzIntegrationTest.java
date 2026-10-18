@@ -429,6 +429,27 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertNotEquals("ACTIVE", after.getStatus(), "bank not verified - must not activate");
         assertNull(after.getKycActivatedAt(), "activation timestamp must stay empty");
         assertEquals("True", after.getKycStatus());
+        // Persisted so an operator can see why the row is stuck.
+        assertEquals(Boolean.FALSE, after.getBankStatus());
+    }
+
+    @Transactional
+    @Test
+    void manualBankVerificationActivatesApprovedSubMerchant() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        sm.setKycStatus("True");
+        sm.setBankStatus(false);
+        sm.setStatus("PENDING_KYC");
+        subMerchantRepo.save(sm);
+
+        // Easebuzz sends no webhook when bank_status changes after approval, so this manual
+        // path is the only way an approved-but-unverified merchant ever starts taking payments.
+        EasebuzzSubMerchant unblocked = subMerchantService.markBankVerified(sm.getId());
+
+        assertEquals("ACTIVE", unblocked.getStatus());
+        assertEquals(Boolean.TRUE, unblocked.getBankStatus());
+        assertNotNull(unblocked.getKycActivatedAt());
     }
 
     @Transactional
@@ -514,25 +535,20 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
     @Transactional
     @Test
-    void submissionRequiresRestaurantFormat() {
+    void submissionProceedsWithoutRestaurantFormat() {
         Map<String, Object> data = baseSubMerchantData();
-        data.remove("restaurantFormat"); // no format → MCC would silently lock to dine-in 5812
+        data.remove("restaurantFormat");
         EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
 
-        com.khanabook.saas.core.exception.BusinessRuleException ex = assertThrows(
-            com.khanabook.saas.core.exception.BusinessRuleException.class,
-            () -> subMerchantService.submitToEasebuzz(sm.getId())
-        );
-        assertEquals("MANDATORY_FIELDS_MISSING", ex.getRule());
-        assertTrue(ex.getMessage().contains("restaurant format"));
-
-        // Setting the format allows the submission to proceed.
-        subMerchantService.update(sm.getId(), Map.of("restaurantFormat", "QSR"));
+        // The outlet format used to be a submit gate on the assumption that it chose the MCC.
+        // Easebuzz assigns the MCC internally and documents no create-time MCC field, so the
+        // format is ops data - a missing one must not block an otherwise complete submission.
         when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
         assertEquals("PENDING_KYC", submitted.getStatus());
+        assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getRestaurantFormat());
     }
 
     @Test

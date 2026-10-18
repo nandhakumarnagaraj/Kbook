@@ -98,6 +98,10 @@ public class EasebuzzSubMerchant {
     @Column(name = "kyc_portal_url")
     private String kycPortalUrl;
 
+    /** `bank_status` from the approval webhook. Null when the payload did not carry it. */
+    @Column(name = "bank_status")
+    private Boolean bankStatus;
+
     /** Raw `kyc_expiry_date` from the approval webhook, e.g. "2023-03-02 12:27:22". */
     @Column(name = "kyc_expiry_date", length = 40)
     private String kycExpiryDate;

@@ -74,6 +74,16 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.submitToEasebuzz(id));
     }
 
+    /**
+     * Manual unblock after Easebuzz support confirms the bank account is verified. Easebuzz
+     * sends no webhook when bank_status changes after approval, so an approved merchant with an
+     * unverified bank would otherwise never reach ACTIVE and could never take payments.
+     */
+    @PostMapping("/{id}/mark-bank-verified")
+    public ResponseEntity<EasebuzzSubMerchant> markBankVerified(@PathVariable Long id) {
+        return ResponseEntity.ok(subMerchantService.markBankVerified(id));
+    }
+
     /** Push local sub-merchant updates to Easebuzz */
     @PostMapping("/{id}/update-on-easebuzz")
     public ResponseEntity<EasebuzzSubMerchant> updateOnEasebuzz(@PathVariable Long id) {

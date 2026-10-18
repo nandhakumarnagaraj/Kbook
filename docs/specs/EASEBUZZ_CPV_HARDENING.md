@@ -120,11 +120,12 @@ record — NOT part of the Easebuzz onboarding API payload).
    storage or verification liability for it. Model: parent merchant (KhanaBook) + sub-merchant
    per restaurant. Per-type document matrix: `../../integrations/easebuzz/EASEBUZZ.md`.
    `Public Limited` / OPC are supported (ERA, 2026-10-17), so the form needs no change. The
-   MCC gap closed on 2026-10-17: Easebuzz locks the code at creation, so an **outlet format**
-   (dine-in / QSR / bar / caterer) is now required in the onboarding form and in
-   `MANDATORY_FIELDS_MISSING`, stored on `easebuzz_sub_merchant.restaurant_format`, and mapped
-   to 5812 / 5814 / 5813 / 5811 by `EasebuzzApiClient.mccCodeForFormat`. Sub-merchants created
-   before the change remain on 5812 and cannot be amended at Easebuzz.
+   MCC is **not controllable at create** (corrected 2026-10-18): Easebuzz assigns the code
+   internally and documents no create-time MCC field. The outlet format is still captured and
+   stored on `easebuzz_sub_merchant.restaurant_format` and still sent as
+   `sub_merchant_mcc_code`, but it was removed from `MANDATORY_FIELDS_MISSING` — gating a
+   submission on a field that may have no effect only blocked merchants. Verify what Easebuzz
+   applied on the dashboard before relying on the mapping.
 
 ## KYC approval webhook hardening (2026-10-18)
 

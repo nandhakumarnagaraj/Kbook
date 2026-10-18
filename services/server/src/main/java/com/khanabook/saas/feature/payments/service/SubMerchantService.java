@@ -452,6 +452,9 @@ public class SubMerchantService {
         boolean bankVerified = isTruthy(data.get("bank_status"));
 
         if (kycProfileStatus != null || kycStatus != null) {
+            if (bankStatusSupplied) {
+                sm.setBankStatus(bankVerified);
+            }
             boolean kycApproved = "Completed".equalsIgnoreCase(kycProfileStatus)
                     || "True".equalsIgnoreCase(kycStatus) || Boolean.TRUE.equals(kycStatusObj);
             if (kycApproved) {
@@ -518,6 +521,30 @@ public class SubMerchantService {
         event.setProcessed(true);
         webhookEventRepo.save(event);
         log.info("Processed sub-merchant KYC webhook subMerchantId={} kycStatus={}", subMerchantId, kycStatus);
+    }
+
+    /**
+     * Manual unblock for a merchant whose bank is verified but whose row never reached ACTIVE.
+     * Easebuzz sends no webhook when bank_status changes after KYC approval, so without a
+     * manual path an approved-but-unverified merchant would be stranded indefinitely. Call
+     * only after Easebuzz support confirms the bank account.
+     */
+    @Transactional
+    public EasebuzzSubMerchant markBankVerified(Long id) {
+        EasebuzzSubMerchant sm = getById(id);
+        String previous = sm.getStatus();
+        sm.setBankStatus(true);
+        sm.setUpdatedAt(System.currentTimeMillis());
+        if ("True".equalsIgnoreCase(sm.getKycStatus()) && !"ACTIVE".equals(sm.getStatus())) {
+            sm.setStatus("ACTIVE");
+            if (sm.getKycActivatedAt() == null) {
+                sm.setKycActivatedAt(System.currentTimeMillis());
+            }
+        }
+        EasebuzzSubMerchant saved = subMerchantRepo.save(sm);
+        log.warn("SECURITY_AUDIT: bank marked verified manually for sub-merchant {} (status {} -> {})",
+                sm.getSubMerchantId(), previous, saved.getStatus());
+        return saved;
     }
 
     @Transactional
@@ -857,9 +884,10 @@ public class SubMerchantService {
         // only sent when present. PAN, FSSAI, bank details, one business proof and Aadhaar
         // remain the KYC set (the last two are collected on Easebuzz's hosted portal).
         java.util.List<String> missing = new java.util.ArrayList<>();
-        // The MCC is derived from this and Easebuzz cannot change it after creation, so a
-        // submission without a format would permanently file the outlet under dine-in.
-        if (isBlank(sm.getRestaurantFormat())) missing.add("restaurant format");
+        // The outlet format is deliberately NOT gated: Easebuzz assigns the MCC internally and
+        // does not document a create-time MCC field (ERA, 2026-10-18), so requiring a value that
+        // may have no effect would only block merchants at submit. It is still stored when
+        // supplied, as ops data and as the only record of what we intended.
         if (isBlank(sm.getPan())) missing.add("PAN");
         if (isBlank(sm.getBusinessAddress())) missing.add("business address");
         if (isBlank(sm.getState())) missing.add("state");
