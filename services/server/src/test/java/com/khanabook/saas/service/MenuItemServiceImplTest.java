@@ -337,6 +337,91 @@ class MenuItemServiceImplTest {
         verify(menuItemRepo).saveAll(any());
     }
 
+    // ── duplicate name handling: per-record failure, never a whole-batch 409 ──
+
+    @Test
+    void pushData_duplicateNameInDifferentRecord_addedToFailedIds() {
+        actAsKbookAdmin();
+        MenuItem existing = serverRow(900L, new BigDecimal("100"), true);
+        existing.setDeviceId("OTHER_DEVICE");
+        existing.setLocalId(99L);
+        when(menuItemRepo.findActiveDuplicateByNormalizedName(TENANT_ID, 10L, "burger"))
+            .thenReturn(Optional.of(existing));
+
+        MenuItem incoming = menuItem(1L, 10L);
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).contains(1L);
+        assertThat(resp.getFailedReasons().get(1L)).contains("already exists in this category");
+        verify(menuItemRepo, never()).saveAll(any());
+    }
+
+    @Test
+    void pushData_duplicateWithOverwriteExisting_updatesExisting() {
+        actAsKbookAdmin();
+        MenuItem existing = serverRow(900L, new BigDecimal("100"), true);
+        existing.setDeviceId("OTHER_DEVICE");
+        existing.setLocalId(99L);
+        when(menuItemRepo.findActiveDuplicateByNormalizedName(TENANT_ID, 10L, "burger"))
+            .thenReturn(Optional.of(existing));
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+
+        MenuItem incoming = menuItem(1L, 10L);
+        incoming.setOverwriteExisting(true);
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).doesNotContain(1L);
+        assertThat(incoming.getId()).isEqualTo(900L);
+    }
+
+    @Test
+    void pushData_sameDeviceSameLocalId_notFailed() {
+        // Lost-ack retry: the server already holds this exact record from the same device.
+        actAsKbookAdmin();
+        MenuItem existing = serverRow(900L, new BigDecimal("100"), true);
+        when(menuItemRepo.findActiveDuplicateByNormalizedName(TENANT_ID, 10L, "burger"))
+            .thenReturn(Optional.of(existing));
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 1L))
+            .thenReturn(Optional.of(existing));
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+
+        MenuItem incoming = menuItem(1L, 10L);
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(incoming));
+
+        assertThat(resp.getFailedLocalIds()).doesNotContain(1L);
+    }
+
+    @Test
+    void pushData_mixedBatch_duplicateDoesNotFailBatch() {
+        actAsKbookAdmin();
+        MenuItem existing = serverRow(900L, new BigDecimal("100"), true);
+        existing.setDeviceId("OTHER_DEVICE");
+        existing.setLocalId(99L);
+        when(menuItemRepo.findActiveDuplicateByNormalizedName(TENANT_ID, 10L, "burger"))
+            .thenReturn(Optional.of(existing));
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(menuItemRepo).saveAll(any());
+
+        MenuItem good = menuItem(1L, 10L);
+        good.setName("Pizza");
+        MenuItem duplicate = menuItem(2L, 10L); // "Burger" clashes
+
+        PushSyncResponse resp = service.pushData(TENANT_ID, List.of(good, duplicate));
+
+        assertThat(resp.getFailedLocalIds()).containsExactly(2L);
+        assertThat(resp.getFailedReasons().get(2L)).contains("already exists in this category");
+        assertThat(resp.getFailedLocalIds()).doesNotContain(1L);
+        verify(menuItemRepo).saveAll(any());
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private void actAsStaff() {

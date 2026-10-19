@@ -124,22 +124,24 @@ offline forever). Permission cache survives process death (Room `permission_cach
 |---|---|
 | `printer_profiles` | Local printer device config (role→printer, name, MAC, connection type, host/port, paper size, auto-print, logo, copies). Printer flags are mirrored inside the synced restaurant profile, but the device binding is local. |
 | `kitchen_print_queue` | Pending KOT print jobs. Pure runtime queue. |
-| `kot_events` | Immutable KOT print/state event log (NEW/ADD/VOID/REPRINT/CANCEL, kotRevision, item snapshot JSON). Local audit for reprints. |
+| `kot_events` | Immutable KOT print/state event log (event types ADD/VOID/REPRINT/CANCEL, kotRevision, item snapshot JSON). Local audit for reprints. |
 | `terminal_daily_counter` | Per-terminal, per-day bill numbering. Rebuilt/seeded from synced bills. |
 | `sync_quarantine_records`, `permission_cache`, `notifications` | Sync sandbox, offline-authorization mirror, local notification log. |
 
 ### PostgreSQL (production, `services/server/`)
 
-Bills, bill items & bill payments (**KOT state rides on bill items** as
-`kotState`/`kotStatus`), menu (categories/items/variants), restaurant profile,
+Bills, bill items & bill payments (no KOT columns; KOT state is device-local, see below),
+menu (categories/items/variants), restaurant profile,
 users/staff + permission rows & revision, stock logs + inventory, payments/Easebuzz
 records, tokens, rate-limit + security-audit events, terminals/devices, notification
 broadcasts, templates.
 
 ### The KOT nuance
 
-- KOT **state on a bill item syncs** into Postgres (`BillItemDTO`) so reports and
-  reconciliation see kitchen progress.
+- KOT **state is device-local.** `sentToKot` lives only on the Android device. The
+  push payload may carry it, but the server ignores it: Postgres has no KOT columns.
+- On pull, the device keeps its local `sentToKot` flag, so a re-sync does not
+  reset a ticket that was already sent to the kitchen.
 - KOT **printing runtime stays local** (`kitchen_print_queue` jobs, `kot_events`).
 
 ## Brand & design (summary)

@@ -1272,6 +1272,9 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     @Query("DELETE FROM bill_items WHERE server_id IN (:serverIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteSyncedBillItemsByServerIds(serverIds: List<Long>, restaurantId: Long)
 
+    @Query("SELECT * FROM bill_items WHERE server_id IN (:serverIds) AND restaurant_id = :restaurantId")
+    suspend fun getBillItemsByServerIds(serverIds: List<Long>, restaurantId: Long): List<BillItemEntity>
+
     @Query("SELECT * FROM bill_payments WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity>
 

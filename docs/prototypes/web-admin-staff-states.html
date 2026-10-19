@@ -70,7 +70,7 @@
       ['menu.edit_full', 'Edit Full Menu Details'], ['menu.add_item', 'Add New Items'], ['menu.delete_item', 'Remove Items']
     ] },
     { name: 'Orders', items: [
-      ['orders.view', 'View Order List'], ['orders.kot_view', 'See Kitchen Queue'], ['orders.kot_ready', 'Mark Items Ready'], ['orders.kot_void', 'Void KOT Items']
+      ['orders.view', 'View Order List']
     ] },
     { name: 'Reports', items: [
       ['reports.day_summary', "Today's Sales Summary"], ['reports.full', 'Full Revenue Reports'], ['reports.gst', 'GST/Tax Reports'], ['reports.export', 'Export/Download Data']
@@ -93,8 +93,8 @@
   var OWNER_SAMPLE = ALL_KEYS.slice();
 
   /* Owner-only config families, for the read-only view's strikethrough rows. */
-  var COUNTER_TEMPLATE = ['billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'orders.view', 'orders.kot_view', 'reports.day_summary'];
-  var MANAGER_TEMPLATE = ['billing.create', 'billing.edit', 'billing.void', 'billing.discount', 'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'menu.edit_price', 'menu.add_item', 'orders.view', 'orders.kot_view', 'orders.kot_ready', 'reports.day_summary', 'reports.full', 'staff.view'];
+  var COUNTER_TEMPLATE = ['billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'orders.view', 'reports.day_summary'];
+  var MANAGER_TEMPLATE = ['billing.create', 'billing.edit', 'billing.void', 'billing.discount', 'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability', 'menu.edit_price', 'menu.add_item', 'orders.view', 'reports.day_summary', 'reports.full', 'staff.view'];
 
   /* ── view state ─────────────────────────────────────────────────────── */
   var ui = {

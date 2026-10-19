@@ -105,6 +105,11 @@ class MasterSyncProcessorMenuRejectionTest {
     }
 
     @Test
+    fun `duplicate menu item name is deterministic so it does not trigger a full re-pull`() {
+        assertTrue(processor.isDeterministicRejection("Item already exists in this category"))
+    }
+
+    @Test
     fun `LWW and permission reasons are NOT deterministic`() {
         assertFalse(processor.isDeterministicRejection("Incoming record is older than the server record"))
         assertFalse(processor.isDeterministicRejection("Not permitted to change the price of this item (PERMISSION_NOT_GRANTED)"))

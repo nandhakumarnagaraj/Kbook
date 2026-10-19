@@ -69,6 +69,14 @@ class ActiveOrderDetailViewModel @Inject constructor(
                 _message.emit(UiMessage("No new items to send", ToastKind.Warning))
                 return@launch
             }
+            // A corrupted sentToKot flag must never trigger a full-order ticket. PrintRouter
+            // falls back to a raw full-order print when no event is pending, so require at
+            // least one unprinted KOT event before printing.
+            val token = current.bill.publicToken?.takeIf { it.isNotBlank() }
+            if (token == null || !billRepository.hasUnprintedKotEvents(token)) {
+                _message.emit(UiMessage("Kitchen ticket already printed", ToastKind.Warning))
+                return@launch
+            }
             _isLoading.value = true
             try {
                 val profile = restaurantRepository.getProfile()

@@ -26,7 +26,7 @@ BILLING : billing.create / billing.edit / billing.void / billing.discount /
           billing.refund / billing.settle
 MENU    : menu.view / menu.toggle_availability / menu.edit_price /
           menu.edit_full / menu.add_item / menu.delete_item
-ORDERS  : orders.view / orders.kot_view / orders.kot_ready / orders.kot_void
+ORDERS  : orders.view
 REPORTS : reports.day_summary / reports.full / reports.gst / reports.export
 STAFF   : staff.view / staff.add / staff.edit / staff.remove / staff.permissions
 SETTINGS: settings.shop_profile / settings.payment / settings.printer /
@@ -46,7 +46,7 @@ SHOP_STAFF: full operational freedom by role - every key EXCEPT the
   => changing staff access = code change + redeploy.
 
 Baseline "defensive floor" rows for new non-owner staff (DEFAULT_READONLY_KEYS):
-  menu.view, orders.view, orders.kot_view, reports.day_summary.
+  menu.view, orders.view, reports.day_summary.
 
 ====================================================================
 3. JWT & TOKEN DURATIONS (verified values)

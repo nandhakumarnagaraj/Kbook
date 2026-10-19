@@ -219,7 +219,8 @@ class MasterSyncProcessor @Inject constructor(
     internal fun isDeterministicRejection(reason: String?): Boolean {
         if (reason.isNullOrBlank()) return false
         val r = reason.lowercase()
-        return r.contains("could not be resolved")
+        return r.contains("could not be resolved") ||
+            r.contains("already exists in this category")
     }
 
     private data class BatchPushResult(
@@ -1847,10 +1848,25 @@ BillEntity(
             ) { remoteBillItem ->
                 "billItemId=${remoteBillItem.id}, billId=${remoteBillItem.billId}, serverBillId=${remoteBillItem.serverBillId}"
             }
-            resolvedBillItems.mapNotNull { it.serverId }.takeIf { it.isNotEmpty() }?.let { serverIds ->
-                billDao.deleteSyncedBillItemsByServerIds(serverIds, restaurantId)
+            // sentToKot is device-local (the server drops it), so a pull must keep the
+            // flag already recorded on this device. Otherwise every pull resets it and the
+            // next print re-sends the same items to the kitchen. Read the flags before the
+            // delete below removes those rows.
+            val incomingServerIds = resolvedBillItems.mapNotNull { it.serverId }
+            val sentToKotByServerId: Map<Long, Boolean> = if (incomingServerIds.isEmpty()) {
+                emptyMap()
+            } else {
+                billDao.getBillItemsByServerIds(incomingServerIds, restaurantId)
+                    .mapNotNull { local -> local.serverId?.let { it to local.sentToKot } }
+                    .toMap()
             }
-            billDao.upsertSyncedBillItems(resolvedBillItems)
+            val itemsToUpsert = resolvedBillItems.map { item ->
+                item.serverId?.let { sid -> item.copy(sentToKot = sentToKotByServerId[sid] ?: false) } ?: item
+            }
+            if (incomingServerIds.isNotEmpty()) {
+                billDao.deleteSyncedBillItemsByServerIds(incomingServerIds, restaurantId)
+            }
+            billDao.upsertSyncedBillItems(itemsToUpsert)
         }
 
         if (masterData.billPayments.isNotEmpty()) {

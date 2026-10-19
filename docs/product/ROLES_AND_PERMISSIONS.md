@@ -34,11 +34,11 @@ before issuing a token.
 
 ## 3. Permission model
 
-- **Server keys: 30** (`PermissionKey` enum). **Android keys: 27**
+- **Server keys: 27** (`PermissionKey` enum). **Android keys: 27**
   (`PermissionManager.ALL_PERMISSION_KEYS`).
-- The difference is the KOT family: `orders.kot_view`, `orders.kot_ready`,
-  `orders.kot_void` exist server-side but have no Android equivalent (verified: no
-  `orders.kot*` string in Android main).
+- The former KOT family (`orders.kot_view`, `orders.kot_ready`, `orders.kot_void`) was
+  removed server-side (migration V114): it had no Android equivalent, since KOT is
+  device-local.
 - **Staff are granted "everything except the owner-only config families."** The
   exclusion set has 9 keys and is identical on both sides:
 
@@ -61,7 +61,6 @@ before issuing a token.
 | Menu | `menu.view` | ✅ | ✅ |
 | Menu | `menu.toggle_availability`, `menu.edit_price`, `menu.edit_full`, `menu.add_item`, `menu.delete_item` | ❌ owner-only | ✅ |
 | Orders / KOT | `orders.view` | ✅ | ✅ |
-| Orders / KOT | `orders.kot_view`, `orders.kot_ready`, `orders.kot_void` | ✅ | ❌ not defined |
 | Reports | `reports.day_summary`, `reports.full`, `reports.gst` | ✅ | ✅ |
 | Reports | `reports.export` | ❌ owner-only | ✅ |
 | Staff | `staff.view`, `staff.add`, `staff.edit`, `staff.remove`, `staff.permissions` | ✅ | ✅ |

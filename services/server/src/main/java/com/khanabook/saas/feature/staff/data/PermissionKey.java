@@ -19,9 +19,6 @@ public enum PermissionKey {
 
     // Orders / KOT
     ORDERS_VIEW("orders.view", "View Order List", "ORDERS"),
-    ORDERS_KOT_VIEW("orders.kot_view", "See Kitchen Queue", "ORDERS"),
-    ORDERS_KOT_READY("orders.kot_ready", "Mark Items Ready", "ORDERS"),
-    ORDERS_KOT_VOID("orders.kot_void", "Void KOT Items", "ORDERS"),
 
     // Reports
     REPORTS_DAY_SUMMARY("reports.day_summary", "Today's Sales Summary", "REPORTS"),

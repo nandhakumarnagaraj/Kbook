@@ -48,7 +48,7 @@ Role capabilities:
 | **Active orders / live floor** | ✅ `ActiveOrdersScreen`, `ActiveOrderDetailScreen` | ✅ `business/active-orders` (`live-orders-tab`) | `/business/orders`, terminal-scoped pull | COMPLETE |
 | **Order history** | ✅ reports + search | ✅ `business/orders` (`order-history-tab`) | `/business/orders` paginated | COMPLETE |
 | **Find bill / search** | ✅ `SearchScreen` | ➖ | local DAO + server lookup | COMPLETE |
-| **KOT / kitchen tickets** | ✅ event-sourced (`kot_events` → `PrintRouter`) | ➖ | KOT state rides on `bill_items.kotState` | COMPLETE |
+| **KOT / kitchen tickets** | ✅ event-sourced (`kot_events` → `PrintRouter`) | ➖ | device-local only; `sentToKot` in the push payload is ignored; no KOT columns in Postgres | COMPLETE |
 | **Reprint KOT** | ✅ `ReprintKdsScreen` | ➖ | local only | COMPLETE |
 | **Call customer** | ✅ `CallCustomerScreen` | ➖ | local only | COMPLETE |
 | **Invoice / receipt PDF** | ✅ `InvoicePDFGenerator` | ✅ invoice HTML endpoint | `InvoiceController` | COMPLETE |
@@ -180,7 +180,7 @@ Persistence: PostgreSQL + Flyway (91 migration files, latest `V109`), 43 `@Entit
 
 | Local SQLite only (encrypted) | PostgreSQL (server truth) |
 |---|---|
-| `printer_profiles`, `kitchen_print_queue`, `kot_events`, `terminal_daily_counter`, `sync_quarantine_records`, `permission_cache`, `notifications` | bills, bill items/payments (including KOT state), menu/categories/variants, restaurant profile, users/staff/permissions, inventory, payments/Easebuzz, terminals, notifications broadcast |
+| `printer_profiles`, `kitchen_print_queue`, `kot_events`, `terminal_daily_counter`, `sync_quarantine_records`, `permission_cache`, `notifications` | bills, bill items/payments, menu/categories/variants, restaurant profile, users/staff/permissions, inventory, payments/Easebuzz, terminals, notifications broadcast |
 
 Android Room schema: **v82** (17 entity files, per-restaurant encrypted DBs).
 

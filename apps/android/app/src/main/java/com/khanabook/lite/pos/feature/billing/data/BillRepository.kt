@@ -769,6 +769,10 @@ class BillRepository(
         }
     }
 
+    /** True when at least one kitchen ticket for this bill has not been printed yet. */
+    suspend fun hasUnprintedKotEvents(publicToken: String): Boolean =
+        kotEventDao.getUnprintedEventsForBill(publicToken).isNotEmpty()
+
     private fun isKitchenPrintableStatus(status: String): Boolean =
         status.equals("draft", ignoreCase = true) ||
             status.equals("completed", ignoreCase = true) ||

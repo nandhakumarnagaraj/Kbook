@@ -809,6 +809,9 @@ class TenantBillDao @Inject constructor(
         dao.deleteSyncedBillItemsByServerIds(serverIds, restaurantId)
     }
 
+    override suspend fun getBillItemsByServerIds(serverIds: List<Long>, restaurantId: Long): List<BillItemEntity> =
+        dao.getBillItemsByServerIds(serverIds, restaurantId)
+
     override suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity> = dao.getUnsyncedBillPayments(restaurantId)
     override suspend fun getUnsyncedBillPaymentsWithSyncedParent(restaurantId: Long): List<BillPaymentEntity> = dao.getUnsyncedBillPaymentsWithSyncedParent(restaurantId)
     override suspend fun getUnsyncedBillPaymentsWithSyncedParentPaged(

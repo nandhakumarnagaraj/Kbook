@@ -1,7 +1,6 @@
 package com.khanabook.saas.feature.menu.service;
 import com.khanabook.saas.feature.sync.validation.SyncPushGuard;
 
-import com.khanabook.saas.core.exception.DuplicateMenuItemException;
 import com.khanabook.saas.feature.menu.data.Category;
 import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.menu.data.CategoryRepository;
@@ -67,7 +66,11 @@ public class MenuItemServiceImpl implements MenuItemService {
 						"Menu item category could not be resolved");
 				continue;
 			}
-			resolveDuplicateMenuItem(tenantId, item);
+			String duplicateFailure = resolveDuplicateMenuItem(tenantId, item);
+			if (duplicateFailure != null) {
+				addFailure(failedLocalIds, failedReasons, item.getLocalId(), duplicateFailure);
+				continue;
+			}
 			toSync.add(item);
 		}
 
@@ -122,10 +125,16 @@ public class MenuItemServiceImpl implements MenuItemService {
 		}
 	}
 
-	private void resolveDuplicateMenuItem(Long tenantId, MenuItem item) {
+	/**
+	 * Returns a per-record failure reason when the item collides with another item's name in the
+	 * same category, or {@code null} when the item may be saved. A collision is reported in the
+	 * 200 batch response rather than thrown: a thrown exception rejects the whole push with a 409,
+	 * which makes the device discard the batch and re-pull from epoch 0 in a loop.
+	 */
+	private String resolveDuplicateMenuItem(Long tenantId, MenuItem item) {
 		Long categoryIdToUse = item.getServerCategoryId() != null ? item.getServerCategoryId() : item.getCategoryId();
 		if (categoryIdToUse == null) {
-			return;
+			return null;
 		}
 
 		Optional<MenuItem> duplicate = repository.findActiveDuplicateByNormalizedName(
@@ -135,20 +144,20 @@ public class MenuItemServiceImpl implements MenuItemService {
 		);
 
 		if (duplicate.isEmpty()) {
-			return;
+			return null;
 		}
 
 		MenuItem existing = duplicate.get();
 		if (isSameMenuItemRecord(tenantId, item, existing)) {
-			return;
+			return null;
 		}
 
 		if (Boolean.TRUE.equals(item.getOverwriteExisting())) {
 			item.setId(existing.getId());
-			return;
+			return null;
 		}
 
-		throw new DuplicateMenuItemException("Item already exists in this category");
+		return "Item already exists in this category";
 	}
 
 	private boolean isSameMenuItemRecord(Long tenantId, MenuItem incoming, MenuItem existing) {

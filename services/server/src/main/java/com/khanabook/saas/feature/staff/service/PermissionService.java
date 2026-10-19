@@ -168,7 +168,6 @@ public class PermissionService {
     public static final List<String> DEFAULT_READONLY_KEYS = List.of(
             PermissionKey.MENU_VIEW.getKey(),
             PermissionKey.ORDERS_VIEW.getKey(),
-            PermissionKey.ORDERS_KOT_VIEW.getKey(),
             PermissionKey.REPORTS_DAY_SUMMARY.getKey()
     );
 

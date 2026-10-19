@@ -196,9 +196,6 @@ export class StaffPermissionsModalComponent {
       name: 'Orders',
       items: [
         { key: 'orders.view', displayName: 'View Order List' },
-        { key: 'orders.kot_view', displayName: 'See Kitchen Queue' },
-        { key: 'orders.kot_ready', displayName: 'Mark Items Ready' },
-        { key: 'orders.kot_void', displayName: 'Void KOT Items' },
       ]
     },
     {
@@ -302,7 +299,7 @@ export class StaffPermissionsModalComponent {
   applyCounterStaffTemplate(): void {
     this.permissionsSet.set(new Set([
       'billing.create', 'billing.settle', 'menu.view', 'menu.toggle_availability',
-      'reports.day_summary', 'orders.view', 'orders.kot_view'
+      'reports.day_summary', 'orders.view'
     ]));
   }
 
@@ -311,7 +308,7 @@ export class StaffPermissionsModalComponent {
       'billing.create', 'billing.edit', 'billing.void', 'billing.discount',
       'billing.refund', 'billing.settle', 'menu.view', 'menu.toggle_availability',
       'menu.edit_price', 'menu.add_item', 'reports.day_summary', 'reports.full',
-      'orders.view', 'orders.kot_view', 'orders.kot_ready', 'staff.view'
+      'orders.view', 'staff.view'
     ]));
   }
 

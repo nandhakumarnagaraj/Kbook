@@ -996,7 +996,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     const data = this.dashboard();
     return Number(data?.pendingPosPayments) || 0;
   });
-  readonly pendingKotCount = this.unsettledOrdersCount;
 
   readonly completedCount = computed(() => {
     const c = this.dailyClosingData();
@@ -1147,10 +1146,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   navigateToActiveOrders(): void {
     void this.router.navigate(['/business/orders'], { queryParams: { tab: 'live' } });
-  }
-
-  navigateToKot(): void {
-    this.navigateToActiveOrders();
   }
 
   navigateToTerminals(): void {
