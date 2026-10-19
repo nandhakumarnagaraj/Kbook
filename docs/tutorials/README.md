@@ -674,6 +674,8 @@ The fastest way to bill: no customer details, ~4 taps per bill.
 Use it for counter/takeaway sales where you don't need the customer's WhatsApp
 number.
 
+> **Video:** [How to Create a QuickBill](https://kbook.iadv.cloud/cdn/tutorials/create-quickbill.webm) (0:42)
+
 ---
 
 ### Turn On Quick Mode
@@ -840,6 +842,8 @@ Next: [9. Cancel a Bill](#9-cancel-a-bill)
 
 Cancel a bill that was made today — with a reason.
 
+> **Video:** [How to Cancel a Bill & Change Payment Mode](https://kbook.iadv.cloud/cdn/tutorials/cancel-bill-change-payment-mode.webm) (0:27)
+
 **Rules (enforced by the app):**
 - **Today's bills only** — *"Only today's orders can be edited."*
 - **Cancelled is permanent** — there is no un-cancel.
@@ -907,6 +911,8 @@ Next: [10. Change Payment Mode](#10-change-payment-mode)
 
 Recorded a bill as Cash but the customer actually paid by UPI? Fix it — either
 right while billing, or afterwards from Reports.
+
+> **Video:** [How to Cancel a Bill & Change Payment Mode](https://kbook.iadv.cloud/cdn/tutorials/cancel-bill-change-payment-mode.webm) (0:27) — the same clip also covers changing the payment mode.
 
 **Rules:** today's bills only; cancelled bills can't be changed. Any staff
 member can do this.
