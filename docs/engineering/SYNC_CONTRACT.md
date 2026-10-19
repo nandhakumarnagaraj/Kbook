@@ -129,6 +129,15 @@ returns 409, and conflict recovery pulls with `lastSyncTimestamp = 0`, which rew
 local categories to server order. Tracked in `../meta/KNOWN_ISSUES.md` and
 `../product/PROBLEM.md` item 1. **Do not paper over it by disabling the version guard.**
 
+### 4.4 Restaurant profile: per-field stale check
+
+`restaurant_profile` keeps a per-field revision map (`field_revisions`, format
+`field=revision,...`, `*` for whole-record writes; migration `V115`). A masked profile push
+(one that names `changedFields`) is rejected only if a named field changed after the till's
+claimed revision. Pushes without a mask, and rows without a revision map, use the old
+whole-row check. Android profile pushes do not set a mask today, so they still get the
+whole-row check.
+
 ## 5. Identity and scoping
 
 - Bill identity is `(restaurant_id, device_id, local_id)` — unique-constrained on both

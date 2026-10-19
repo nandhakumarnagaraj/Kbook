@@ -172,6 +172,10 @@ class TenantRestaurantDao @Inject constructor(
         dao.updateServerIdByLocalId(localId, serverId)
     }
 
+    override suspend fun refreshProfileServerRevision(localId: Long, serverUpdatedAt: Long) {
+        dao.refreshProfileServerRevision(localId, serverUpdatedAt)
+    }
+
     override suspend fun insertSyncedRestaurantProfiles(items: List<RestaurantProfileEntity>) {
         dao.insertSyncedRestaurantProfiles(items)
     }

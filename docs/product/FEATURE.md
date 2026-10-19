@@ -131,7 +131,7 @@ dialog; cancel/edit from the report row; export restricted to OWNER.
 app lock/PIN, display/feedback, sync center, support, sign-out.
 
 **Sync** (`feature/sync`): serialized mutex, debounced push, paged push (bills 100,
-items/payments 200), optimistic ack mapping, stale-push guard, conflict recovery,
+items/payments 200), optimistic ack mapping, stale-push guard (per-field for masked restaurant profile pushes), conflict recovery,
 quarantine table, paged master pull, terminal activation/reclaim.
 
 **Notifications** (`feature/notifications`): in-app banner + list + preferences, FCM

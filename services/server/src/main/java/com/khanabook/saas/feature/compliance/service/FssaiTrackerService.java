@@ -81,7 +81,9 @@ public class FssaiTrackerService {
                             if (profile.getFssaiExpiryDate() == null || expiryDate.isAfter(profile.getFssaiExpiryDate())) {
                                 profile.setFssaiExpiryDate(expiryDate);
                                 profile.setUpdatedAt(System.currentTimeMillis());
-                                profile.setServerUpdatedAt(System.currentTimeMillis());
+                                long fssaiRevision = System.currentTimeMillis();
+                                profile.setServerUpdatedAt(fssaiRevision);
+                                profile.markFieldsChanged(fssaiRevision, "fssaiexpirydate");
                                 restaurantProfileRepo.save(profile);
                                 log.info("Auto-updated profile FSSAI expiry date to {} for restaurantId={}", expiryDate, profile.getRestaurantId());
                             }

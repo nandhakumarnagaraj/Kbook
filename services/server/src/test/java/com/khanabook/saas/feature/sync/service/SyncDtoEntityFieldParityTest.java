@@ -85,6 +85,9 @@ class SyncDtoEntityFieldParityTest {
 			"menuItem", "bill", "itemVariant", "category",
 			// Restored by preserveServerOwnedState: isSuspended, role, tokenInvalidatedAt.
 			"isSuspended", "role", "tokenInvalidatedAt",
+			// Per-field revision map, stamped by stampProfileFieldRevisions from the existing row
+			// on every accepted profile push. The device never sends it.
+			"fieldRevisions",
 			// String on the DTO, LocalDate on the entity, so BeanUtils skips them. SyncMapper
 			// converts and mergeCounterState restores these explicitly instead.
 			"lastResetDateProper", "fssaiExpiryDate", "gstExpiryDate"

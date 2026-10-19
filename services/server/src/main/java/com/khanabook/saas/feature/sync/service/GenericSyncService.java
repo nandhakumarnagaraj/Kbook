@@ -753,7 +753,7 @@ public class GenericSyncService {
 									&& existingRecord.getServerUpdatedAt() != null
 									&& deviceServerRevision != null
 									&& deviceServerRevision > 0L
-									&& existingRecord.getServerUpdatedAt() > deviceServerRevision) {
+									&& isRevisionStale(incomingRecord, existingRecord, deviceServerRevision)) {
 								failedLocalIds.add(incomingRecord.getLocalId());
 								failedReasons.put(incomingRecord.getLocalId(),
 										"STALE_PUSH_CONFLICT: another device updated this "
@@ -821,6 +821,7 @@ public class GenericSyncService {
 								incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
 								applyProfileChangedFieldsMerge(incomingRecord, existingRecord);
 								mergeCounterState(incomingProfile, existingProfile);
+								stampProfileFieldRevisions(incomingProfile, existingProfile, serverTime);
 							}								// Refund preservation: refundAmount is server-owned (set by admin via
 								// markManualRefund). Android never sends it, so ALWAYS restore the
 								// server value on updates to prevent a push from zeroing a refund.
@@ -1193,6 +1194,69 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			return "Sync rejected by server";
 		}
 		return message.length() > 240 ? message.substring(0, 240) : message;
+	}
+
+	/**
+	 * Stale-push test for an update whose device claimed revision is {@code deviceRevision}.
+	 * A profile push that names specific fields is stale only if one of those fields changed
+	 * after the claim, so edits to different fields no longer collide. Every other record (and
+	 * whole-record profile pushes) is stale when the row itself changed after the claim.
+	 */
+	static boolean isRevisionStale(BaseSyncEntity incoming, BaseSyncEntity existing, long deviceRevision) {
+		if (incoming instanceof RestaurantProfile incomingProfile
+				&& existing instanceof RestaurantProfile existingProfile
+				&& existingProfile.hasFieldRevisions()) {
+			java.util.Set<String> masked = specificMaskFields(incomingProfile.getChangedFields());
+			if (masked != null) {
+				for (String field : masked) {
+					if (existingProfile.effectiveFieldRevision(field) > deviceRevision) {
+						return true;
+					}
+				}
+				return false;
+			}
+		}
+		return existing.getServerUpdatedAt() > deviceRevision;
+	}
+
+	/**
+	 * Lowercase field names a profile push names, or {@code null} when it is a whole-record push
+	 * (no mask, "all", or a wildcard), which is then treated as changing every field.
+	 */
+	static java.util.Set<String> specificMaskFields(String mask) {
+		if (mask == null || mask.isBlank() || mask.contains("*") || "all".equalsIgnoreCase(mask.trim())) {
+			return null;
+		}
+		java.util.Set<String> fields = new java.util.HashSet<>();
+		for (String f : mask.split(",")) {
+			String t = f == null ? "" : f.trim().toLowerCase();
+			if (!t.isEmpty()) {
+				fields.add(t);
+			}
+		}
+		return fields;
+	}
+
+	/**
+	 * Records, on an accepted profile push, the server revision at which each changed field
+	 * changed. A legacy row with no revision map first gets its whole-row revision as a baseline,
+	 * so fields not yet tracked are still conservatively treated as changed at that revision.
+	 */
+	static void stampProfileFieldRevisions(RestaurantProfile incoming, RestaurantProfile existing, long serverTime) {
+		if (existing.hasFieldRevisions()) {
+			incoming.setFieldRevisions(existing.getFieldRevisions());
+		} else {
+			incoming.setFieldRevisions(null);
+			if (existing.getServerUpdatedAt() != null) {
+				incoming.markAllFieldsChanged(existing.getServerUpdatedAt());
+			}
+		}
+		java.util.Set<String> masked = specificMaskFields(incoming.getChangedFields());
+		if (masked == null) {
+			incoming.markAllFieldsChanged(serverTime);
+		} else if (!masked.isEmpty()) {
+			incoming.markFieldsChanged(serverTime, masked.toArray(String[]::new));
+		}
 	}
 
 	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {

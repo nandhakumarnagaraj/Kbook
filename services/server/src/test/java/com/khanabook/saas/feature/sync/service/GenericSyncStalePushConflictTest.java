@@ -204,4 +204,63 @@ class GenericSyncStalePushConflictTest {
 		assertThat(response.getSuccessfulLocalIds()).contains(1L);
 		assertThat(response.getFailedReasons()).isEmpty();
 	}
+
+	/** A row whose per-field map says only {@code shopname} changed, at {@link #SERVER_REVISION}. */
+	private RestaurantProfile profileWithFieldRevisions() {
+		RestaurantProfile stored = storedProfile();
+		stored.markFieldsChanged(SERVER_REVISION, "shopname");
+		return stored;
+	}
+
+	private RestaurantProfile pushedProfile(Long claimedRevision, String changedFields) {
+		RestaurantProfile push = pushedProfile(claimedRevision);
+		push.setChangedFields(changedFields);
+		return push;
+	}
+
+	@Test
+	@DisplayName("a stale till editing a DIFFERENT field than the one another device changed is accepted")
+	void staleTillEditingOtherFieldIsAccepted() {
+		when(profileRepository.findByRestaurantId(TENANT)).thenReturn(Optional.of(profileWithFieldRevisions()));
+
+		PushSyncResponse response = service.handlePushSync(
+				TENANT, List.of(pushedProfile(REVISION_THE_STALE_TILL_SAW, "shopaddress")), profileRepository);
+
+		assertThat(response.getSuccessfulLocalIds()).contains(1L);
+		assertThat(response.getFailedReasons()).isEmpty();
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		ArgumentCaptor<List<RestaurantProfile>> captor = ArgumentCaptor.forClass(List.class);
+		verify(syncFallbackSaver).saveBatchInNewTx(any(), captor.capture());
+		RestaurantProfile saved = captor.getValue().get(0);
+		assertThat(saved.fieldRevisionMap())
+				.as("the accepted edit is recorded against its own field, keeping the other field's revision")
+				.containsEntry("shopname", SERVER_REVISION)
+				.containsKey("shopaddress");
+	}
+
+	@Test
+	@DisplayName("a stale till editing the SAME field another device changed is still quarantined")
+	void staleTillEditingSameFieldIsRejected() {
+		when(profileRepository.findByRestaurantId(TENANT)).thenReturn(Optional.of(profileWithFieldRevisions()));
+
+		PushSyncResponse response = service.handlePushSync(
+				TENANT, List.of(pushedProfile(REVISION_THE_STALE_TILL_SAW, "shopname")), profileRepository);
+
+		assertThat(response.getFailedLocalIds()).contains(1L);
+		assertThat(response.getFailedReasons().get(1L)).startsWith("STALE_PUSH_CONFLICT");
+		verify(syncFallbackSaver, never()).saveBatchInNewTx(any(), anyList());
+	}
+
+	@Test
+	@DisplayName("a row with no field revisions (legacy) still falls back to the whole-row check")
+	void legacyRowWithoutFieldRevisionsUsesWholeRowCheck() {
+		when(profileRepository.findByRestaurantId(TENANT)).thenReturn(Optional.of(storedProfile()));
+
+		PushSyncResponse response = service.handlePushSync(
+				TENANT, List.of(pushedProfile(REVISION_THE_STALE_TILL_SAW, "shopaddress")), profileRepository);
+
+		assertThat(response.getFailedLocalIds()).contains(1L);
+		assertThat(response.getFailedReasons().get(1L)).startsWith("STALE_PUSH_CONFLICT");
+	}
 }

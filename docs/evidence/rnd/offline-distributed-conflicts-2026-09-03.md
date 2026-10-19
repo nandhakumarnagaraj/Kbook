@@ -2,6 +2,8 @@
 
 **Date:** 2026-09-03 · **Author:** Kiro (acting PO) · Every claim grounded in code.
 
+> **Status update (2026-10-19):** The restaurant profile rows below (§3, and the profile row in the summary) describe the pre-V115 behaviour. The server now checks a masked profile push per field (`field_revisions`), so an edit to one field no longer reverts edits to other fields. Pushes without a mask, and Android profile pushes today, still use whole-row LWW. See `docs/engineering/SYNC_CONTRACT.md` §4.4.
+
 Question: across 5 offline terminals, what happens when two devices change the same
 (or related) state and later sync? This maps the WHOLE surface, not just menu.
 

@@ -280,6 +280,7 @@ public class AuthServiceImpl implements AuthService {
                                     profile.setEmail(user.getEmail());
                                     profile.setUpdatedAt(now);
                                     profile.setServerUpdatedAt(now);
+                                    profile.markFieldsChanged(now, "email");
                                     profile.setDeviceId("server");
                                     restaurantProfileRepository.save(profile);
                                 }

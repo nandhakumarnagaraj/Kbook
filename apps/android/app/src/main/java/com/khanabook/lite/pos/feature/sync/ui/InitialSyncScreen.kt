@@ -34,6 +34,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.designsystem.ScrollableCenteredLayout
 import com.khanabook.lite.pos.core.network.TerminalListItem
+import com.khanabook.lite.pos.core.util.DateUtils
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.sync.viewmodel.InitialSyncState
 import com.khanabook.lite.pos.feature.sync.viewmodel.InitialSyncViewModel
@@ -205,7 +206,7 @@ fun InitialSyncScreen(
                     )
                     Spacer(modifier = Modifier.height(spacing.small))
                     Text(
-                        text = "Existing counters found for this shop. Is this device replacing a previous counter?",
+                        text = "${state.terminals.size} ${if (state.terminals.size == 1) "counter" else "counters"} found for this shop. Is this device replacing a previous counter?",
                         color = TextGold.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center
@@ -252,6 +253,13 @@ fun InitialSyncScreen(
                                         color = TextGold.copy(alpha = 0.7f),
                                         style = MaterialTheme.typography.bodySmall
                                     )
+                                    term.lastActiveAt?.let { lastActive ->
+                                        Text(
+                                            text = "Last active: ${DateUtils.getRelativeTimeString(lastActive)}",
+                                            color = TextGold.copy(alpha = 0.7f),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
                             }
                         }

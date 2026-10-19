@@ -133,6 +133,10 @@ interface RestaurantDao {
     @Query("UPDATE restaurant_profile SET server_id = :serverId WHERE id = :localId")
     suspend fun updateServerIdByLocalId(localId: Long, serverId: Long)
 
+    // Adopts the server's current revision so the next push's claim is no longer stale.
+    @Query("UPDATE restaurant_profile SET server_updated_at = :serverUpdatedAt, is_synced = 0 WHERE id = :localId")
+    suspend fun refreshProfileServerRevision(localId: Long, serverUpdatedAt: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedRestaurantProfiles(items: List<RestaurantProfileEntity>)
 

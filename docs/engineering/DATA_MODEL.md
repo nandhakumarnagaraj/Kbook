@@ -33,6 +33,8 @@ join/index mappings).
 | `staff_permissions` | `StaffPermissionEntity` | permission rows mirror | ✅ pull |
 | `permission_cache` | `PermissionCacheEntity` | granted keys + revision for offline authorization | ✅ pull |
 | `restaurant_profile` | `RestaurantProfileEntity` | shop/tax/payment config snapshot | ✅ both |
+
+Server `restaurant_profile` also has `field_revisions` (V115), a per-field revision map that gates masked profile pushes. It is server-only and not in the Android schema. See `SYNC_CONTRACT.md` §4.4.
 | `printer_profiles` | `PrinterProfileEntity` | device-bound printer configuration | ❌ **never** |
 | `kitchen_print_queue` | `KitchenPrintQueueEntity` | pending KOT print jobs | ❌ **never** |
 | `kot_events` | `KotEventEntity` | immutable KOT event log (ADD/VOID/REPRINT + snapshot JSON) | ❌ **never** |

@@ -298,8 +298,12 @@ public class AssetStorageService {
 		profile.setLogoVersion(version);
 		profile.setUpdatedAt(now);
 		profile.setServerUpdatedAt(now);
+		profile.markFieldsChanged(now, "logourl", "logoversion");
 		profile.setDeviceId("server");
 	}
+
+
+
 
 	private void deleteOldVersions(Long restaurantId, String kind, int keepVersion) {
 		Path dir = Paths.get(basePath, String.valueOf(restaurantId));

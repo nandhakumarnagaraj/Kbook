@@ -92,6 +92,7 @@ public class RestaurantPaymentConfigController {
             long now = System.currentTimeMillis();
             profile.setUpdatedAt(now);
             profile.setServerUpdatedAt(now);
+            profile.markFieldsChanged(now, "easebuzzenabled");
             profile.setDeviceId("server");
         }
         profileRepo.save(profile);

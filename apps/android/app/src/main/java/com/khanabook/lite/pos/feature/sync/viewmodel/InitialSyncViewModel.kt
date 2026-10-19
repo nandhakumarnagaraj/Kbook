@@ -258,6 +258,17 @@ class InitialSyncViewModel @Inject constructor(
                 } else {
                     _syncState.value = InitialSyncState.Error("Reclaim failed: no token returned.")
                 }
+            } catch (e: HttpException) {
+                Log.e("InitialSyncViewModel", "Reclaim terminal failed: HTTP ${e.code()}", e)
+                _syncState.value = if (e.code() == 409) {
+                    InitialSyncState.Error(
+                        "This device is already set up as another counter. Contact your shop owner."
+                    )
+                } else {
+                    InitialSyncState.Error(
+                        UserMessageSanitizer.sanitize(e, "Failed to reclaim counter. Please try again.")
+                    )
+                }
             } catch (e: Exception) {
                 Log.e("InitialSyncViewModel", "Reclaim terminal failed", e)
                 _syncState.value = InitialSyncState.Error(

@@ -772,6 +772,32 @@ public class BusinessWriteService {
         }
 
         long now = System.currentTimeMillis();
+        // Per-field revisions: stamp only the fields this update actually wrote, so a till
+        // editing other fields is not rejected as stale.
+        java.util.List<String> written = new java.util.ArrayList<>();
+        if (updateDto.getShopName() != null) written.add("shopname");
+        if (updateDto.getShopAddress() != null) written.add("shopaddress");
+        if (updateDto.getWhatsappNumber() != null) written.add("whatsappnumber");
+        if (updateDto.getEmail() != null) written.add("email");
+        if (updateDto.getGstEnabled() != null) written.add("gstenabled");
+        if (updateDto.getGstin() != null) written.add("gstin");
+        if (updateDto.getGstPercentage() != null) written.add("gstpercentage");
+        if (updateDto.getCustomTaxName() != null) written.add("customtaxname");
+        if (updateDto.getCustomTaxPercentage() != null) written.add("customtaxpercentage");
+        if (updateDto.getUpiEnabled() != null) written.add("upienabled");
+        if (updateDto.getUpiHandle() != null) written.add("upihandle");
+        if (updateDto.getUpiMobile() != null) written.add("upimobile");
+        if (updateDto.getCashEnabled() != null) written.add("cashenabled");
+        if (updateDto.getPosEnabled() != null) written.add("posenabled");
+        if (updateDto.getOrderPaymentFlowMode() != null) written.add("orderpaymentflowmode");
+        if (updateDto.getInvoiceFooter() != null) written.add("invoicefooter");
+        if (updateDto.getReviewUrl() != null) written.add("reviewurl");
+        if (updateDto.getFssaiNumber() != null) written.add("fssainumber");
+        if (updateDto.getFssaiExpiryDate() != null) written.add("fssaiexpirydate");
+        if (updateDto.getGstExpiryDate() != null) written.add("gstexpirydate");
+        if (!written.isEmpty()) {
+            profile.markFieldsChanged(now, written.toArray(new String[0]));
+        }
         profile.setUpdatedAt(now);
         profile.setServerUpdatedAt(now);
         RestaurantProfile saved = profileRepository.save(profile);

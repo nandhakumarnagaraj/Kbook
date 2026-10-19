@@ -121,6 +121,7 @@ public class UserServiceImpl implements UserService {
 			profile.setWhatsappNumber(newMobileNumber);
 			profile.setUpdatedAt(now);
 			profile.setServerUpdatedAt(now);
+			profile.markFieldsChanged(now, "whatsappnumber");
 			profile.setDeviceId("server");
 			restaurantProfileRepository.save(profile);
 		});

@@ -204,6 +204,73 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@jakarta.persistence.Transient
 	private String changedFields;
 
+	// Server-side per-field revision map, "field=revision,field=revision" (lowercase field
+	// names, as used by GenericSyncService's profile mask). Records, for each profile field,
+	// the server revision at which it last changed, so a masked push is rejected only when a
+	// field it names changed after the device's claimed revision.
+	@Column(name = "field_revisions")
+	private String fieldRevisions;
+
+	public String getFieldRevisions() { return fieldRevisions; }
+	public void setFieldRevisions(String fieldRevisions) { this.fieldRevisions = fieldRevisions; }
+
+	/** Parsed view of {@link #fieldRevisions}; empty when none recorded. */
+	public java.util.Map<String, Long> fieldRevisionMap() {
+		java.util.Map<String, Long> out = new java.util.HashMap<>();
+		if (fieldRevisions == null || fieldRevisions.isBlank()) return out;
+		for (String entry : fieldRevisions.split(",")) {
+			int eq = entry.indexOf('=');
+			if (eq <= 0) continue;
+			try {
+				out.put(entry.substring(0, eq).trim(), Long.parseLong(entry.substring(eq + 1).trim()));
+			} catch (NumberFormatException ignored) {
+				// malformed entry: treat as unknown (no conflict recorded)
+			}
+		}
+		return out;
+	}
+
+	/** Stamps the given lowercase field names with {@code revision}, keeping other entries. */
+	public void markFieldsChanged(long revision, String... fields) {
+		java.util.Map<String, Long> map = fieldRevisionMap();
+		for (String f : fields) {
+			map.put(f.toLowerCase(), revision);
+		}
+		this.fieldRevisions = serializeFieldRevisions(map);
+	}
+
+	/** Stamps every field at {@code revision} (whole-record write); replaces older entries. */
+	public void markAllFieldsChanged(long revision) {
+		java.util.Map<String, Long> map = new java.util.HashMap<>();
+		map.put(WILDCARD_REVISION_KEY, revision);
+		this.fieldRevisions = serializeFieldRevisions(map);
+	}
+
+	/** True once any revision has been recorded; a row without one falls back to whole-row checks. */
+	public boolean hasFieldRevisions() {
+		return !fieldRevisionMap().isEmpty();
+	}
+
+	/**
+	 * Last server revision at which {@code field} changed: the later of its own entry and the
+	 * whole-record stamp. Unrecorded fields read as 0 (no change since tracking began).
+	 */
+	public long effectiveFieldRevision(String field) {
+		java.util.Map<String, Long> map = fieldRevisionMap();
+		return Math.max(map.getOrDefault(field.toLowerCase(), 0L), map.getOrDefault(WILDCARD_REVISION_KEY, 0L));
+	}
+
+	public static final String WILDCARD_REVISION_KEY = "*";
+
+	public static String serializeFieldRevisions(java.util.Map<String, Long> map) {
+		StringBuilder sb = new StringBuilder();
+		for (java.util.Map.Entry<String, Long> e : map.entrySet()) {
+			if (sb.length() > 0) sb.append(',');
+			sb.append(e.getKey()).append('=').append(e.getValue());
+		}
+		return sb.toString();
+	}
+
 	// --- Easebuzz + compliance fields (v2 port) ---
 	@Column(name = "easebuzz_enabled")
 	private Boolean easebuzzEnabled;

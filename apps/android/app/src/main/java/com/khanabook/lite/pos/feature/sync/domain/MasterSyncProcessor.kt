@@ -561,19 +561,41 @@ class MasterSyncProcessor @Inject constructor(
 
         val profile = restaurantDao.getProfile(restaurantId) ?: restaurantDao.getProfile()
 
-        val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
-        val validProfiles = unsyncedProfiles.filter { it.restaurantId == restaurantId }
-        pushBatches(
-            label = "restaurant profiles",
-            records = validProfiles,
-            localId = RestaurantProfileEntity::id,
-            transform = RestaurantProfileEntity::toSyncDto,
-            push = api::pushRestaurantProfiles,
-            markSynced = restaurantDao::markRestaurantProfilesAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } },
-            isolateHttpConflicts = isolateHttpConflicts,
-            onPermanentlyRejected = { rejected -> quarantineRejectedProfiles(rejected, restaurantId) }
-        )
+        // A stale profile claim is a revision race, not a permission problem: refresh the
+        // claim once and re-push the same pending edit. Only a second stale rejection is
+        // quarantined. Any other permanent rejection is quarantined immediately.
+        val refreshedProfileIds = mutableSetOf<Long>()
+        val pushProfiles: suspend () -> Unit = {
+            val validProfiles = restaurantDao.getUnsyncedRestaurantProfiles().filter { it.restaurantId == restaurantId }
+            pushBatches(
+                label = "restaurant profiles",
+                records = validProfiles,
+                localId = RestaurantProfileEntity::id,
+                transform = RestaurantProfileEntity::toSyncDto,
+                push = api::pushRestaurantProfiles,
+                markSynced = restaurantDao::markRestaurantProfilesAsSynced,
+                onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } },
+                isolateHttpConflicts = isolateHttpConflicts,
+                onPermanentlyRejected = { rejected ->
+                    val (stale, other) = rejected.entries.partition { isStaleProfileRejection(it.value) }
+                    if (other.isNotEmpty()) {
+                        quarantineRejectedProfiles(other.associate { it.key to it.value }, restaurantId)
+                    }
+                    // Retry is tracked per profile across all batches of this pass: a profile
+                    // already refreshed once that is stale again is quarantined, not retried.
+                    val (retryable, repeated) = stale.partition { it.key !in refreshedProfileIds }
+                    if (retryable.isNotEmpty()) {
+                        refreshedProfileIds += retryable.map { it.key }
+                        refreshProfileRevision(restaurantId, retryable.map { it.key })
+                    }
+                    if (repeated.isNotEmpty()) {
+                        quarantineRejectedProfiles(repeated.associate { it.key to it.value }, restaurantId)
+                    }
+                }
+            )
+        }
+        pushProfiles()
+        if (refreshedProfileIds.isNotEmpty()) pushProfiles()
 
         val unsyncedUsers = userDao.getUnsyncedUsers()
         val validUsers = unsyncedUsers.filter { it.restaurantId == restaurantId }
@@ -982,6 +1004,39 @@ class MasterSyncProcessor @Inject constructor(
         return quarantined
     }
 
+    private val STALE_PROFILE_MESSAGE = "Another device updated your shop settings. Pull to refresh."
+
+    internal fun isStaleProfileRejection(reason: String?): Boolean =
+        reason?.contains("stale_push_conflict", ignoreCase = true) == true
+
+    /**
+     * Pulls the server's current profile revision (ignoring this device's own claim) and adopts
+     * its serverUpdatedAt on the still-pending local row, so the next push is no longer stale.
+     * The local edit is kept: only the claim is refreshed, never the profile values.
+     */
+    private suspend fun refreshProfileRevision(restaurantId: Long, localIds: List<Long>) {
+        val remote = try {
+            api.pullMasterSync(
+                lastSyncTimestamp = 0L,
+                deviceId = sessionManager.getDeviceId(),
+                ignoreDeviceId = true,
+                size = 1
+            ).profiles.firstOrNull { it.restaurantId == restaurantId }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logWarn("Profile revision refresh failed for restaurant $restaurantId: ${e.message}")
+            null
+        }
+        if (remote == null) {
+            logWarn("Profile revision refresh returned no profile for restaurant $restaurantId")
+            return
+        }
+        for (localId in localIds) {
+            restaurantDao.refreshProfileServerRevision(localId, remote.serverUpdatedAt)
+        }
+    }
+
     internal suspend fun quarantineRejectedProfiles(
         rejected: Map<Long, String>,
         restaurantId: Long
@@ -990,6 +1045,7 @@ class MasterSyncProcessor @Inject constructor(
         val now = System.currentTimeMillis()
         var quarantined = 0
         for ((localId, reason) in rejected) {
+            logWarn("Profile $localId rejected by server: $reason")
             val profile = restaurantDao.getProfile(restaurantId)
             val displayName = profile?.shopName ?: "Restaurant profile"
             val snapshot = profile?.let {
@@ -1007,7 +1063,10 @@ class MasterSyncProcessor @Inject constructor(
                     childDisplayName = displayName,
                     childSummary = "Profile sync conflict",
                     childSnapshotJson = snapshot,
-                    syncFailureReason = reason.ifBlank { "Profile push rejected" },
+                    syncFailureReason = when {
+                        isStaleProfileRejection(reason) -> STALE_PROFILE_MESSAGE
+                        else -> reason.ifBlank { "Profile push rejected" }
+                    },
                     quarantinedAt = now
                 )
             )
