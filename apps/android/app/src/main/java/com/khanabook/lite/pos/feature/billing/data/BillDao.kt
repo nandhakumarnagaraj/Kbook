@@ -1368,6 +1368,9 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSyncQuarantineRecords(records: List<SyncQuarantineEntity>)
 
+    @Query("DELETE FROM sync_quarantine_records WHERE id = :id AND restaurant_id = :restaurantId")
+    suspend fun deleteSyncQuarantineRecord(id: Long, restaurantId: Long): Int
+
     @Query("DELETE FROM bill_payments WHERE is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteAllSyncedBillPayments(restaurantId: Long)
 

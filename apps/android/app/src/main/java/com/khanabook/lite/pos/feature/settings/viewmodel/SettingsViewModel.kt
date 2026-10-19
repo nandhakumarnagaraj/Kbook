@@ -282,6 +282,16 @@ class SettingsViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Acknowledges a Rows Needing Review entry so it stops counting toward the Home banner. */
+    fun dismissQuarantinedSyncRecord(recordId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val restaurantId = sessionManager.getRestaurantId()
+            if (restaurantId > 0L) {
+                billDao.deleteSyncQuarantineRecord(recordId, restaurantId)
+            }
+        }
+    }
+
     init {
         // Reactive network monitoring: when the device roams to a new Wi-Fi
         // network (SSID / subnet change), re-evaluate the local subnet prefix

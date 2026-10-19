@@ -858,6 +858,9 @@ class TenantBillDao @Inject constructor(
         dao.upsertSyncQuarantineRecords(records)
     }
 
+    override suspend fun deleteSyncQuarantineRecord(id: Long, restaurantId: Long): Int =
+        dao.deleteSyncQuarantineRecord(id, restaurantId)
+
     override suspend fun deleteAllSyncedBillPayments(restaurantId: Long) {
         dao.deleteAllSyncedBillPayments(restaurantId)
     }

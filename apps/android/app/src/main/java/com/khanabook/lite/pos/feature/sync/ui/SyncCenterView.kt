@@ -186,7 +186,8 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
         )
 
         QuarantineIssuesCard(
-            quarantinedRecords = quarantinedRecords
+            quarantinedRecords = quarantinedRecords,
+            onDismiss = viewModel::dismissQuarantinedSyncRecord
         )
 
         OrderIdHealthCard(
@@ -474,7 +475,8 @@ private fun DuplicateIdRow(
 
 @Composable
 private fun QuarantineIssuesCard(
-    quarantinedRecords: List<SyncQuarantineEntity>
+    quarantinedRecords: List<SyncQuarantineEntity>,
+    onDismiss: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
@@ -512,7 +514,7 @@ private fun QuarantineIssuesCard(
 
             if (quarantinedRecords.isNotEmpty()) {
                 quarantinedRecords.take(5).forEach { record ->
-                    QuarantineRecordRow(record)
+                    QuarantineRecordRow(record = record, onDismiss = { onDismiss(record.id) })
                 }
             }
         }
@@ -520,7 +522,7 @@ private fun QuarantineIssuesCard(
 }
 
 @Composable
-private fun QuarantineRecordRow(record: SyncQuarantineEntity) {
+private fun QuarantineRecordRow(record: SyncQuarantineEntity, onDismiss: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
     Column(
         modifier = Modifier
@@ -554,6 +556,9 @@ private fun QuarantineRecordRow(record: SyncQuarantineEntity) {
                 color = TextGold.copy(alpha = 0.62f),
                 style = MaterialTheme.typography.bodySmall
             )
+        }
+        TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+            Text("Dismiss", color = PrimaryGold)
         }
     }
 }
