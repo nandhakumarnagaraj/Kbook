@@ -46,6 +46,10 @@ Before making ANY code or architectural modification, the agent MUST inspect and
 3. **Multi-Tenant Isolation:**
    * Every SQL query against synced entities must enforce `restaurant_id = :restaurantId`.
    * Never trust client-provided tenant IDs; extract identity strictly from verified JWT claims.
+4. **Staff Management Architecture (Zero Staff UI on Android POS):**
+   * **Web Admin Exclusive:** Staff account creation, deactivation, 4-digit PIN setup, and permission delegation exist **100% in Web Admin (`apps/web-admin/src/app/pages/staff`)** and are restricted exclusively to the `OWNER` role (`@RequireRole({UserRole.OWNER})`).
+   * **Zero Staff Management UI on Android:** The Android POS tablet contains **no screens, dialogs, or forms for managing staff** for ANY role (neither Staff nor Owner). Counter POS tablets are shared physical devices; stripping staff administration prevents physical credential tampering. Android POS only consumes staff data as a read-only entity (`UserEntity`) via MasterSync strictly for cashier counter sign-in and stamping `created_by_user_id` on bills/KOTs.
+   * **Do Not Hallucinate Android Staff Screens:** If working on Android, never attempt to implement, search for, or bind staff creation/deletion UI on mobile. The permission keys `STAFF_ADD`, `STAFF_REMOVE`, and `STAFF_PERMISSIONS` exist in Android only for enum/sync contract parity with the server.
 
 ---
 
