@@ -310,25 +310,26 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
-    /* Logout (Full Solid Red) */
+    /* Logout (Secondary / Ghost with gentle danger hover) */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
-      background: var(--kb-color-danger);
-      color: var(--kb-color-on-primary);
-      border: 1px solid var(--kb-color-danger);
+      background: transparent;
+      color: var(--kb-color-muted);
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 500;
       font-size: 0.85rem;
       transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .logout-btn:hover {
-      background: var(--kb-color-danger);
-      border-color: var(--kb-color-danger);
+      background: rgba(192, 57, 43, 0.08);
+      color: var(--kb-color-danger);
+      border-color: rgba(192, 57, 43, 0.3);
     }
     .logout-btn:active {
       transform: scale(0.97);

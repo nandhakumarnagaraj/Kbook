@@ -155,7 +155,7 @@ interface RestaurantProfile {
             </div>
             <div class="field">
               <label>Shop Address</label>
-              <input class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" />
+              <textarea class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
             </div>
             <div class="field">
               <label>WhatsApp Contact Number</label>

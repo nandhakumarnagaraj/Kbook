@@ -393,10 +393,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   styles: [`
     :host {
       display: block;
-      --kb-purple-950: #321064;
+      --kb-purple-950: #002B5C;
       --kb-purple-800: #0055B3;
-      --kb-purple-600: #7C3AED;
-      --kb-lavender: #A78BFA;
+      --kb-purple-600: #0066CC;
+      --kb-lavender: #3B82F6;
       --kb-text: #111827;
       --kb-muted: #667085;
       --kb-border: #D8DCE7;
@@ -888,9 +888,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       color: #9CA3AF;
     }
     .field-input:focus {
-      outline: 3px solid #C4B5FD;
+      outline: 3px solid rgba(0, 102, 204, 0.25);
       outline-offset: 2px;
-      border-color: #7C3AED;
+      border-color: #0066CC;
     }
 
     .toggle-pwd-btn {
@@ -913,7 +913,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       color: #111827;
     }
     .toggle-pwd-btn:focus-visible {
-      outline: 2px solid #7C3AED;
+      outline: 2px solid #0066CC;
     }
     .pwd-icon {
       display: block;
@@ -959,13 +959,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 52px;
       border: 0;
       border-radius: 12px;
-      background: #7C3AED;
+      background: #0066CC;
       color: #FFFFFF;
       font: inherit;
       font-size: 16px;
       font-weight: 650;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32);
+      box-shadow: 0 4px 14px rgba(0, 102, 204, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -975,16 +975,16 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   box-shadow 160ms ease;
     }
     .login-button:hover:not(:disabled) {
-      background: #0066CC;
-      box-shadow: 0 6px 20px rgba(91, 33, 182, 0.38);
+      background: #0055B3;
+      box-shadow: 0 6px 20px rgba(0, 102, 204, 0.35);
       transform: translateY(-1px);
     }
     .login-button:active:not(:disabled) {
       transform: scale(0.98);
     }
     .login-button:disabled {
-      background: #DDD6FE;
-      color: #FFFFFF;
+      background: #E5E7EB;
+      color: #9CA3AF;
       box-shadow: none;
       cursor: not-allowed;
       transform: none;

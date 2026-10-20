@@ -698,6 +698,8 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   padding: 1.5rem;
   min-width: 340px;
   max-width: 480px;
+  max-height: min(88vh, 760px);
+  overflow-y: auto;
   width: 100%;
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.2s ease;

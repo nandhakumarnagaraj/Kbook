@@ -664,7 +664,7 @@ import { environment } from '../../../environments/environment';
     .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: var(--kb-space-2) 0 0.75rem; }
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
-    .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
     .toggle-btn {
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
@@ -677,8 +677,16 @@ import { environment } from '../../../environments/environment';
     }
     .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
-    .toggle-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
-    .toggle-btn--off { border-color: var(--kb-color-error); color: var(--kb-color-error); }
+    .toggle-btn--on {
+      border-color: var(--kb-color-primary, #0066cc);
+      background: var(--kb-color-primary, #0066cc);
+      color: var(--kb-color-on-primary, #ffffff);
+    }
+    .toggle-btn--off {
+      border-color: var(--kb-color-error, #c0392b);
+      background: var(--kb-color-surface, #ffffff);
+      color: var(--kb-color-error, #c0392b);
+    }
     /* Star affordances: the wishlist toggle in the header, the per-dish star, and the panel
        that collects them. Sizes match the category star in the Categories dialog so the two
        stars read as the same control in two places. */

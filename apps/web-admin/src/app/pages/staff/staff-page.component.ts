@@ -108,7 +108,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       display: flex;
       gap: 0.35rem;
       align-items: center;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      white-space: nowrap;
     }
     .small-action-btn {
       padding: 4px 10px;
@@ -257,7 +258,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                     *ngIf="item.active"
                     (click)="requestRevoke(item)"
                     title="Sign this person out of every device without disabling their account"
-                  >Sign out</button>
+                  >Revoke Session</button>
                   <button
                     class="small-action-btn small-action-btn--success"
                     *ngIf="!item.active && !isSelf(item)"
