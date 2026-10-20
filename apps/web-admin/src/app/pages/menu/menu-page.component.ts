@@ -677,7 +677,7 @@ import { environment } from '../../../environments/environment';
     }
     .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
-    .toggle-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
+    .toggle-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
     .toggle-btn--off { border-color: var(--kb-color-error); color: var(--kb-color-error); }
     /* Star affordances: the wishlist toggle in the header, the per-dish star, and the panel
        that collects them. Sizes match the category star in the Categories dialog so the two
