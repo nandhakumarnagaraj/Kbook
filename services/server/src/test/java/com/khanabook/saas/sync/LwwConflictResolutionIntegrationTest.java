@@ -4,10 +4,8 @@ import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
-import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.billing.data.BillItem;
 import com.khanabook.saas.feature.billing.data.BillPayment;
-import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.menu.data.Category;
 import com.khanabook.saas.feature.menu.data.ItemVariant;
 import com.khanabook.saas.feature.menu.data.ItemRecipe;
@@ -19,7 +17,6 @@ import com.khanabook.saas.feature.inventory.data.StockMovement;
 import com.khanabook.saas.feature.inventory.data.StockLog;
 import com.khanabook.saas.feature.inventory.data.Vendor;
 import com.khanabook.saas.feature.inventory.data.CustomerProfile;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
@@ -47,10 +44,8 @@ import com.khanabook.saas.feature.auth.entity.SecurityAuditEvent;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
-import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.billing.data.BillItemRepository;
 import com.khanabook.saas.feature.billing.data.BillPaymentRepository;
-import com.khanabook.saas.feature.menu.data.MenuItemRepository;
 import com.khanabook.saas.feature.menu.data.CategoryRepository;
 import com.khanabook.saas.feature.menu.data.ItemVariantRepository;
 import com.khanabook.saas.feature.menu.data.ItemRecipeRepository;
@@ -61,7 +56,6 @@ import com.khanabook.saas.feature.inventory.data.StockMovementRepository;
 import com.khanabook.saas.feature.inventory.data.StockLogRepository;
 import com.khanabook.saas.feature.inventory.data.VendorRepository;
 import com.khanabook.saas.feature.inventory.data.CustomerProfileRepository;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
@@ -112,6 +106,29 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
 
     private static final Long RESTAURANT = 9201L;
 
+    /**
+     * H2 runs with DB_CLOSE_DELAY=-1, so rows persist across @DirtiesContext
+     * context rebuilds and every method in this class shares RESTAURANT. The
+     * server overwrites the pushed body's deviceId with the trusted terminal
+     * deviceId (TerminalRequestFilter), so two methods reusing a fixed series
+     * would share (restaurantId, deviceId, localId) and collide. Each terminal
+     * therefore gets a unique series/deviceId, and assertions scope to that
+     * device's bill instead of "every bill in the restaurant".
+     */
+    private Bill singleBillForDevice(String deviceId) {
+        return billRepository
+                .findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(RESTAURANT, deviceId, 1L)
+                .orElseThrow(() -> new AssertionError("no bill for device " + deviceId));
+    }
+
+    private long billCountForDevice(String deviceId) {
+        return billRepository
+                .findByRestaurantIdAndDeviceIdAndLocalIdIn(RESTAURANT, deviceId, java.util.List.of(1L))
+                .stream()
+                .filter(b -> !Boolean.TRUE.equals(b.getIsDeleted()))
+                .count();
+    }
+
     @Autowired private MockMvc mockMvc;
     @Autowired private BillRepository billRepository;
     @Autowired private RestaurantTerminalRepository terminalRepository;
@@ -123,11 +140,15 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
     }
 
     private RestaurantTerminal createTerminal(String series) {
+        // Unique series/device per call: the trusted deviceId is derived from the
+        // terminal, and RESTAURANT is shared across methods, so a fixed series
+        // would collide with a previous method's bill.
+        String uniqueSeries = series + "-" + UUID.randomUUID();
         RestaurantTerminal t = new RestaurantTerminal();
         t.setRestaurantId(RESTAURANT);
-        t.setTerminalSeries(series);
-        t.setTerminalName("Terminal " + series);
-        t.setDeviceId("DEV_" + series);
+        t.setTerminalSeries(uniqueSeries);
+        t.setTerminalName("Terminal " + uniqueSeries);
+        t.setDeviceId("DEV_" + uniqueSeries);
         t.setIsActive(true);
         t.setCreatedAt(System.currentTimeMillis());
         t.setUpdatedAt(System.currentTimeMillis());
@@ -172,6 +193,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // First push: draft at T0
@@ -179,7 +201,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, now, dev, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Second push: completed at T0+1s (newer, same device + localId)
@@ -187,14 +209,14 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now + 1000L, "DEV_A", "completed", "pending")))
+                .content(billJson(1L, now + 1000L, dev, "completed", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: bill should be "completed" — LWW accepted the newer push
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getOrderStatus()).isEqualTo("completed");
-        assertThat(bills.get(0).getUpdatedAt()).isEqualTo(now + 1000L);
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        var bill = singleBillForDevice(dev);
+        assertThat(bill.getOrderStatus()).isEqualTo("completed");
+        assertThat(bill.getUpdatedAt()).isEqualTo(now + 1000L);
     }
 
     @Test
@@ -204,6 +226,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // First push: completed at T0
@@ -211,7 +234,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "completed", "pending")))
+                .content(billJson(1L, now, dev, "completed", "pending")))
                 .andExpect(status().isOk());
 
         // Second push: draft at T0-1s (stale)
@@ -219,14 +242,14 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now - 1000L, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, now - 1000L, dev, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: bill is still "completed" — stale push was rejected
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getOrderStatus()).isEqualTo("completed");
-        assertThat(bills.get(0).getUpdatedAt()).isEqualTo(now);
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        var bill = singleBillForDevice(dev);
+        assertThat(bill.getOrderStatus()).isEqualTo("completed");
+        assertThat(bill.getUpdatedAt()).isEqualTo(now);
     }
 
     // ── A2: Bill state machine — P0-2 protects finalized bills ───────
@@ -239,6 +262,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // Push bill as "paid" at T0
@@ -246,7 +270,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "completed", "paid")))
+                .content(billJson(1L, now, dev, "completed", "paid")))
                 .andExpect(status().isOk());
 
         // Push same bill as "draft" at T0+1s (higher timestamp)
@@ -254,14 +278,14 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now + 1000L, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, now + 1000L, dev, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: P0-2 protected the paid status — bill is still completed/paid
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getPaymentStatus()).isEqualTo("paid");
-        assertThat(bills.get(0).getOrderStatus()).isEqualTo("completed");
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        var bill = singleBillForDevice(dev);
+        assertThat(bill.getPaymentStatus()).isEqualTo("paid");
+        assertThat(bill.getOrderStatus()).isEqualTo("completed");
     }
 
     @Test
@@ -271,6 +295,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // Push bill as "paid" at T0
@@ -278,7 +303,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "completed", "paid")))
+                .content(billJson(1L, now, dev, "completed", "paid")))
                 .andExpect(status().isOk());
 
         // Push same bill as "pending" at T0+1s (stale device)
@@ -286,13 +311,12 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now + 1000L, "DEV_A", "completed", "pending")))
+                .content(billJson(1L, now + 1000L, dev, "completed", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: payment status is still "paid" — protected
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getPaymentStatus()).isEqualTo("paid");
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        assertThat(singleBillForDevice(dev).getPaymentStatus()).isEqualTo("paid");
     }
 
     // ── A3: Equal timestamps — second push wins (>= favors incoming) ──
@@ -306,6 +330,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // Push "completed" first at T0
@@ -313,7 +338,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "completed", "pending")))
+                .content(billJson(1L, now, dev, "completed", "pending")))
                 .andExpect(status().isOk());
 
         // Push "draft" at same timestamp T0 (>= favors incoming for non-protected fields)
@@ -321,13 +346,12 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, now, dev, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: LWW accepted second push, but P0-2 protected completed status
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getOrderStatus()).isEqualTo("completed");
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        assertThat(singleBillForDevice(dev).getOrderStatus()).isEqualTo("completed");
     }
 
     @Test
@@ -337,6 +361,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         RestaurantTerminal t = createTerminal("A");
         String token = terminalToken(t);
         String auth = authToken();
+        String dev = t.getDeviceId();
         long now = System.currentTimeMillis();
 
         // Push draft with totalAmount=100 at T0
@@ -344,14 +369,14 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", token)
-                .content(billJson(1L, now, "DEV_A", "draft", "pending")))
+                .content(billJson(1L, now, dev, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Push draft with totalAmount=200 at same T0 — LWW >= favors incoming
         String updatedBill = """
             [{
               "localId": 1,
-              "deviceId": "DEV_A",
+              "deviceId": "%s",
               "restaurantId": %d,
               "updatedAt": %d,
               "createdAt": %d,
@@ -366,7 +391,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
               "paymentStatus": "pending",
               "orderStatus": "draft"
             }]
-            """.formatted(RESTAURANT, now, now);
+            """.formatted(dev, RESTAURANT, now, now);
         mockMvc.perform(post("/sync/bills/push")
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
@@ -375,9 +400,8 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         // Verify: non-protected field updated via LWW
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(1);
-        assertThat(bills.get(0).getTotalAmount().doubleValue()).isEqualTo(200.00d);
+        assertThat(billCountForDevice(dev)).isEqualTo(1);
+        assertThat(singleBillForDevice(dev).getTotalAmount().doubleValue()).isEqualTo(200.00d);
     }
 
     // ── Multiple terminals create separate bills (not LWW) ────────────
@@ -392,6 +416,8 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
         String tokenA = terminalToken(tA);
         String tokenB = terminalToken(tB);
         String auth = authToken();
+        String devA = tA.getDeviceId();
+        String devB = tB.getDeviceId();
         long now = System.currentTimeMillis();
 
         // Terminal A pushes at T0
@@ -399,7 +425,7 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", tokenA)
-                .content(billJson(1L, now, "DEV_A", "completed", "pending")))
+                .content(billJson(1L, now, devA, "completed", "pending")))
                 .andExpect(status().isOk());
 
         // Terminal B pushes at T0+1s with same localId=1 but different deviceId
@@ -407,11 +433,13 @@ class LwwConflictResolutionIntegrationTest extends BaseIntegrationTest {
                 .contentType("application/json")
                 .header("Authorization", "Bearer " + auth)
                 .header("X-Terminal-Token", tokenB)
-                .content(billJson(1L, now + 1000L, "DEV_B", "draft", "pending")))
+                .content(billJson(1L, now + 1000L, devB, "draft", "pending")))
                 .andExpect(status().isOk());
 
         // Verify: two separate bills — each device owns its localId space
-        var bills = billRepository.findByRestaurantIdAndIsDeletedFalse(RESTAURANT);
-        assertThat(bills).hasSize(2);
+        assertThat(billCountForDevice(devA)).isEqualTo(1);
+        assertThat(billCountForDevice(devB)).isEqualTo(1);
+        assertThat(singleBillForDevice(devA).getOrderStatus()).isEqualTo("completed");
+        assertThat(singleBillForDevice(devB).getOrderStatus()).isEqualTo("draft");
     }
 }
