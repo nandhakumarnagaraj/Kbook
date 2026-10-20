@@ -534,17 +534,17 @@ import { formatDate } from '../../shared/formatters';
     }
     .danger-btn {
       color: var(--kb-color-danger);
-      border-color: rgba(192, 57, 43, 0.25);
+      border-color: rgba(var(--kb-color-danger-rgb), 0.25);
     }
     .danger-btn:hover {
-      background: rgba(192, 57, 43, 0.06);
+      background: rgba(var(--kb-color-danger-rgb), 0.06);
     }
     .success-btn {
       color: var(--kb-color-success);
-      border-color: rgba(47, 133, 90, 0.25);
+      border-color: rgba(var(--kb-color-success-rgb), 0.25);
     }
     .success-btn:hover {
-      background: rgba(47, 133, 90, 0.06);
+      background: rgba(var(--kb-color-success-rgb), 0.06);
     }
     /* Bento Fleet Grid */
     .terminals-bento-grid {
@@ -568,8 +568,8 @@ import { formatDate } from '../../shared/formatters';
       border-radius: var(--kb-radius-lg);
     }
     .fleet-tile--alert {
-      border-color: rgba(183, 121, 31, 0.4);
-      background: rgba(183, 121, 31, 0.03);
+      border-color: rgba(var(--kb-color-warning-rgb), 0.4);
+      background: rgba(var(--kb-color-warning-rgb), 0.03);
     }
     .fleet-limit-banner {
       display: flex;
@@ -578,8 +578,8 @@ import { formatDate } from '../../shared/formatters';
       padding: var(--kb-space-2) var(--kb-space-3);
       margin-top: var(--kb-space-2);
       border-radius: var(--kb-radius-md);
-      border: 1px solid rgba(183, 121, 31, 0.4);
-      background: rgba(183, 121, 31, 0.08);
+      border: 1px solid rgba(var(--kb-color-warning-rgb), 0.4);
+      background: rgba(var(--kb-color-warning-rgb), 0.08);
       color: var(--kb-color-warning);
       font-size: 0.82rem;
       font-weight: 500;
@@ -597,11 +597,11 @@ import { formatDate } from '../../shared/formatters';
       flex-shrink: 0;
     }
     .tile-icon-wrap--green {
-      background: rgba(47, 133, 90, 0.1);
+      background: rgba(var(--kb-color-success-rgb), 0.1);
       color: var(--kb-color-success);
     }
     .tile-icon-wrap--amber {
-      background: rgba(183, 121, 31, 0.1);
+      background: rgba(var(--kb-color-warning-rgb), 0.1);
       color: var(--kb-color-warning);
     }
     .tile-body {
@@ -657,9 +657,9 @@ import { formatDate } from '../../shared/formatters';
       font-weight: 600;
       padding: 2px 8px;
       border-radius: var(--kb-radius-full);
-      background: rgba(183, 121, 31, 0.12);
+      background: rgba(var(--kb-color-warning-rgb), 0.12);
       color: var(--kb-color-warning);
-      border: 1px solid rgba(183, 121, 31, 0.3);
+      border: 1px solid rgba(var(--kb-color-warning-rgb), 0.3);
     }
     .filter-pills-row {
       display: flex;
@@ -745,8 +745,8 @@ import { formatDate } from '../../shared/formatters';
     }
     .status-indicator-pill--active {
       color: var(--kb-color-success);
-      background: rgba(47, 133, 90, 0.08);
-      border: 1px solid rgba(47, 133, 90, 0.25);
+      background: rgba(var(--kb-color-success-rgb), 0.08);
+      border: 1px solid rgba(var(--kb-color-success-rgb), 0.25);
     }
     .status-indicator-pill--inactive {
       color: var(--kb-color-muted-foreground);
@@ -755,8 +755,8 @@ import { formatDate } from '../../shared/formatters';
     }
     .status-indicator-pill--pending {
       color: var(--kb-color-warning);
-      background: rgba(183, 121, 31, 0.08);
-      border: 1px solid rgba(183, 121, 31, 0.25);
+      background: rgba(var(--kb-color-warning-rgb), 0.08);
+      border: 1px solid rgba(var(--kb-color-warning-rgb), 0.25);
     }
     .action-stack-row {
       display: flex;

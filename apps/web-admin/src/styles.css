@@ -8,22 +8,26 @@
   /* ---------------------------------------------------------------------- */
   /* Core neutrals & surfaces (existing --* names kept for backward compat)  */
   /* ---------------------------------------------------------------------- */
-  --bg:            #FAF7F2;  /* warm off-white */
-  --panel:         #FFFFFF;
-  --panel-2:       #F8F5EF;  /* table header / raised subtle */
-  --ink:           #1C1A17;
+  /* Legacy names alias the --kb-* semantic layer so there is one source of truth. */
+  --bg:            var(--kb-color-bg-app);
+  --panel:         var(--kb-color-surface);
+  --panel-2:       var(--kb-color-surface-2);  /* table header / raised subtle */
+  --surface-1:     var(--kb-color-surface);
+  --surface-2:     var(--kb-color-surface-2);
+  --ink:           var(--kb-color-foreground);
   --ink-2:         #2A2A28;
-  --muted:         #6B655C;
+  --muted:         var(--kb-color-muted-foreground);
   --muted-2:       #9E9689;
-  --line:          #EFE9DE;
-  --line-strong:   #E1D9CA;
+  --line:          var(--kb-color-border);
+  --border:        var(--kb-color-border);
+  --line-strong:   var(--kb-color-border-strong);
 
   /* ---------------------------------------------------------------------- */
   /* Brand — KhanaBook Logo Palette (Royal Violet & POS Indigo)             */
   /* ---------------------------------------------------------------------- */
   --brand:         var(--kb-blue-500);
   --brand-deep:    var(--kb-blue-600);
-  --brand-soft:    #E8F1FB;
+  --brand-soft:    var(--kb-color-primary-soft);
   --brand-ring:    rgba(var(--kb-color-primary-rgb), 0.35);
   /* Focus indicator: solid blue, 6.19:1 on white (WCAG 2.2 non-text 3:1 minimum). */
   --brand-focus-ring: var(--kb-blue-500);
@@ -36,14 +40,14 @@
   /* ---------------------------------------------------------------------- */
   --accent:        #0F766E;
   --accent-soft:   #ECFDF5;
-  --danger:        #C0392B;
-  --danger-soft:   #F9E7E3;
-  --success:       #2F855A;
-  --success-soft:  #E7F4EC;
-  --warning:       #B7791F;
-  --warning-soft:  #FBF3DF;
-  --info:          #2B6CB0;
-  --info-soft:     #E5EEF7;
+  --danger:        var(--kb-color-danger);
+  --danger-soft:   var(--kb-color-danger-soft);
+  --success:       var(--kb-color-success);
+  --success-soft:  var(--kb-color-success-soft);
+  --warning:       var(--kb-color-warning);
+  --warning-soft:  var(--kb-color-warning-soft);
+  --info:          var(--kb-color-info);
+  --info-soft:     var(--kb-color-info-soft);
 
   /* ---------------------------------------------------------------------- */
   /* Shadows (espresso-based shadows)                                        */
@@ -113,6 +117,10 @@
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
   --kb-color-primary-rgb:       0, 102, 204;
+  --kb-color-success-rgb:       47, 133, 90;
+  --kb-color-warning-rgb:       183, 121, 31;
+  --kb-color-danger-rgb:        192, 57, 43;
+  --kb-color-info-rgb:          43, 108, 176;
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
