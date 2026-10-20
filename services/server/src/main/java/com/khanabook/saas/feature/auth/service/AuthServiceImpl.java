@@ -263,6 +263,13 @@ public class AuthServiceImpl implements AuthService {
 
                             // v1 fix (KB): a suspended business cannot authenticate on any path.
                             checkBusinessNotSuspended(user.getRestaurantId());
+
+                            // G3: web-admin has no SHOP_STAFF surface. Reject staff Google login.
+                            if (UserRole.SHOP_STAFF == user.getRole()) {
+                                log.warn("Web-admin Google login rejected for staff account: restaurantId={}", user.getRestaurantId());
+                                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                        "Staff accounts cannot sign in to web admin.");
+                            }
                             if (user.getGoogleEmail() == null) {
                                 user.setGoogleEmail(email);
                             }
@@ -332,7 +339,7 @@ public class AuthServiceImpl implements AuthService {
             } else {
                 throw new IllegalArgumentException("Invalid Google ID token.");
             }
-        } catch (IllegalArgumentException e) {
+        } catch (ResponseStatusException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
             log.error("Google login failed", e);

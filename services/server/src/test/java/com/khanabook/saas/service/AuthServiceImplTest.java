@@ -36,6 +36,7 @@ class AuthServiceImplTest {
     @Mock private JwtUtility jwtUtility;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private PasswordResetOtpService passwordResetOtpService;
+    @Mock private com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -43,6 +44,7 @@ class AuthServiceImplTest {
     @BeforeEach
     void setup() {
         ReflectionTestUtils.setField(authService, "accessTokenExpMs", 3600000L);
+        ReflectionTestUtils.setField(authService, "googleIdTokenVerifier", googleIdTokenVerifier);
     }
 
     @Test
@@ -227,6 +229,51 @@ class AuthServiceImplTest {
         authService.requestPasswordResetOtp("9876543210");
 
         verify(passwordResetOtpService).issueOtp("9876543210");
+    }
+
+    @Test
+    void googleLogin_staffAccount_isRejected() throws Exception {
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = mock(com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.class);
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = new com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload();
+        payload.setEmail("staff@khanabook.com");
+        payload.set("name", "Staff Member");
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-id-token")).thenReturn(idToken);
+
+        User staff = activeUser("9876543210", "hashed", 100L);
+        staff.setRole(UserRole.SHOP_STAFF);
+        staff.setEmail("staff@khanabook.com");
+        when(userRepository.findByLoginIdIgnoreCase("staff@khanabook.com")).thenReturn(Optional.of(staff));
+
+        GoogleLoginRequest req = new GoogleLoginRequest("valid-id-token", "web-device");
+
+        assertThatThrownBy(() -> authService.googleLogin(req))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("403");
+
+        verify(jwtUtility, never()).generateToken(anyString(), anyLong(), anyString(), any());
+    }
+
+    @Test
+    void googleLogin_ownerAccount_isAllowed() throws Exception {
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = mock(com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.class);
+        com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = new com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload();
+        payload.setEmail("owner@khanabook.com");
+        payload.set("name", "Owner Member");
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-id-token")).thenReturn(idToken);
+
+        User owner = activeUser("9876543210", "hashed", 100L);
+        owner.setRole(UserRole.OWNER);
+        owner.setEmail("owner@khanabook.com");
+        when(userRepository.findByLoginIdIgnoreCase("owner@khanabook.com")).thenReturn(Optional.of(owner));
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("google-jwt-token");
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        GoogleLoginRequest req = new GoogleLoginRequest("valid-id-token", "web-device");
+        AuthResponse resp = authService.googleLogin(req);
+
+        assertThat(resp.getToken()).isEqualTo("google-jwt-token");
     }
 
     private User activeUser(String phone, String hash, Long restaurantId) {
