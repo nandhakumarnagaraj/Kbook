@@ -67,9 +67,9 @@ import { RefreshButtonComponent } from './refresh-button.component';
     .date-toolbar__button {
       display: grid;
       place-items: center;
-      flex: 0 0 38px;
-      width: 38px;
-      height: 38px;
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       border: 1px solid #1686f5;
       border-radius: 5px;

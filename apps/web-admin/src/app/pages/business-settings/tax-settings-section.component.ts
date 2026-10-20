@@ -51,9 +51,11 @@ interface VerificationState {
 
         <ng-container *ngIf="tax().gstEnabled">
           <div class="field">
-            <label>GSTIN (15-character GST identification) *</label>
+            <label for="gstin-input">GSTIN (15-character GST identification) *</label>
             <div class="input-with-action">
               <input
+                id="gstin-input"
+                aria-label="GSTIN"
                 class="field-control tabular-num"
                 #gstinRef="ngModel"
                 [ngModel]="tax().gstin"
@@ -85,8 +87,10 @@ interface VerificationState {
           </div>
 
           <div class="field">
-            <label>GST Percentage (%) *</label>
+            <label for="gst-percentage-input">GST Percentage (%) *</label>
             <input
+              id="gst-percentage-input"
+              aria-label="GST Percentage"
               class="field-control tabular-num"
               type="number"
               [ngModel]="tax().gstPercentage"
@@ -101,8 +105,10 @@ interface VerificationState {
 
         <ng-container *ngIf="!tax().gstEnabled">
           <div class="field">
-            <label>Custom Tax Name</label>
+            <label for="custom-tax-name-input">Custom Tax Name</label>
             <input
+              id="custom-tax-name-input"
+              aria-label="Custom Tax Name"
               class="field-control"
               [ngModel]="tax().customTaxName"
               (ngModelChange)="updateField('customTaxName', $event)"
@@ -110,8 +116,10 @@ interface VerificationState {
             />
           </div>
           <div class="field">
-            <label>Custom Tax Percentage (%)</label>
+            <label for="custom-tax-percentage-input">Custom Tax Percentage (%)</label>
             <input
+              id="custom-tax-percentage-input"
+              aria-label="Custom Tax Percentage"
               class="field-control tabular-num"
               type="number"
               [ngModel]="tax().customTaxPercentage"
@@ -125,9 +133,11 @@ interface VerificationState {
 
         <!-- FSSAI License Section -->
         <div class="field field-full">
-          <label>FSSAI Food Safety License Number (14 digits)</label>
+          <label for="fssai-input">FSSAI Food Safety License Number (14 digits)</label>
           <div class="input-with-action">
             <input
+              id="fssai-input"
+              aria-label="FSSAI Food Safety License Number"
               class="field-control tabular-num"
               #fssaiRef="ngModel"
               [ngModel]="tax().fssaiNumber"

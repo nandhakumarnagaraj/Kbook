@@ -90,7 +90,7 @@ function getTodayIsoDate(): string {
             class="header-pill-btn"
             (click)="toggleTerminalsModal()"
             title="View active POS terminals fleet"
-            aria-label="POS terminals">
+            [attr.aria-label]="onlineTerminalsCount() + '/' + totalTerminalsCount() + ' Terminals'">
             <span class="dot-beacon" [class.dot-beacon--active]="onlineTerminalsCount() > 0"></span>
             <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }}/{{ totalTerminalsCount() }}</strong> Terminals</span>
           </button>
@@ -175,7 +175,7 @@ function getTodayIsoDate(): string {
             <span class="metric-total-sub">/ {{ data.posOrderCount }}</span>
           </div>
           <div class="progress-meter-container">
-            <div class="progress-meter-track" role="progressbar" [attr.aria-valuenow]="completedRate()" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-meter-track" role="progressbar" aria-label="Order completion rate" [attr.aria-valuenow]="completedRate()" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-meter-fill" [style.width.%]="completedRate()"></div>
             </div>
             <div class="progress-meter-legend">

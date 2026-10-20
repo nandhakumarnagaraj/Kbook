@@ -27,7 +27,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         <div class="brand-glow-2" aria-hidden="true"></div>
 
         <div class="brand-top">
-          <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
+          <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website" aria-label="KhanaBook - Back to Homepage">
             <div class="brand-logo">
               <img src="/khanabook_logo.png" alt="KhanaBook" />
             </div>
@@ -118,7 +118,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       <main class="auth-main">
         <div class="auth-topbar">
           <div class="mobile-brand-container">
-            <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website" aria-label="KhanaBook Homepage">
+            <a href="https://khanabook.in" class="mobile-brand" title="Back to KhanaBook website" aria-label="KhanaBook - Back to Homepage">
               <div class="brand-logo brand-logo--sm">
                 <img src="/khanabook_logo.png" alt="KhanaBook" />
               </div>

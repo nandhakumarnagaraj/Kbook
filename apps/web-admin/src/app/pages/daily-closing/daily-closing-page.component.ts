@@ -340,7 +340,7 @@ interface DailyClosingData {
       border: none;
     }
     .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub {
-      color: rgba(255, 255, 255, 0.85);
+      color: #FFFFFF;
     }
     .bento-kpi--hero .bento-kpi__value {
       color: #FFFFFF;

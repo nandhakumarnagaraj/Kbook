@@ -64,7 +64,7 @@ interface RestaurantProfile {
           Live Sync Ready
         </span>
 
-        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save all business settings">
+        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save All Changes">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
@@ -72,7 +72,7 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-        <app-refresh-button (refresh)="load()" [loading]="loading()" ariaLabel="Reload settings from server" />
+        <app-refresh-button (refresh)="load()" [loading]="loading()" ariaLabel="Refresh - Reload settings from server" />
       </app-page-header>
 
       <!-- Stale refresh banner (prototype pattern) -->
@@ -200,7 +200,7 @@ interface RestaurantProfile {
         <div class="sticky-save-dock">
           <div class="save-dock-inner">
             <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
-            <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save all business settings">
+            <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save All Changes">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>

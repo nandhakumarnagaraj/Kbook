@@ -199,8 +199,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .brand-block { padding: 0 0.5rem 0.5rem; }
     .brand-row { display: flex; align-items: center; gap: 0.75rem; }
     .brand-logo-circle {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 10px;
       background: #FFFFFF;
       display: inline-flex;
@@ -350,8 +350,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       flex-direction: column;
       justify-content: center;
       gap: var(--kb-space-2);
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       padding: 0 var(--kb-space-3);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-card);

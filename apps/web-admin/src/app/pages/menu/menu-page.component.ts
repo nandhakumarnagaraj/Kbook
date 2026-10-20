@@ -155,7 +155,7 @@ import { environment } from '../../../environments/environment';
                     class="icon-btn fav-btn"
                     [class.fav-btn--on]="item.favourite"
                     [attr.aria-pressed]="!!item.favourite"
-                    [attr.aria-label]="item.favourite ? 'Remove ' + item.name + ' from favourites' : 'Mark ' + item.name + ' as favourite'"
+                    [attr.aria-label]="item.favourite ? 'Starred - Remove ' + item.name + ' from favourites' : 'Star - Mark ' + item.name + ' as favourite'"
                     [title]="item.favourite ? 'Starred: leads its category at the counter' : 'Star this dish so it leads its category at the counter'"
                     [disabled]="togglingItemFavouriteId === item.menuItemId"
                     (click)="toggleItemFavourite(item)"
@@ -211,7 +211,7 @@ import { environment } from '../../../environments/environment';
                 class="ghost-btn fav-btn"
                 [class.fav-btn--on]="item.favourite"
                 [attr.aria-pressed]="!!item.favourite"
-                [attr.aria-label]="item.favourite ? 'Remove ' + item.name + ' from favourites' : 'Mark ' + item.name + ' as favourite'"
+                [attr.aria-label]="item.favourite ? 'Starred - Remove ' + item.name + ' from favourites' : 'Star - Mark ' + item.name + ' as favourite'"
                 [disabled]="togglingItemFavouriteId === item.menuItemId"
                 (click)="toggleItemFavourite(item)"
               >{{ item.favourite ? '★ Starred' : '☆ Star' }}</button>

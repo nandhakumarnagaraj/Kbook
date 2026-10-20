@@ -72,7 +72,7 @@ describe('shared vocabulary (bento.css)', () => {
 
   it('resolves the .kpi-tag modifiers to semantic tokens', () => {
     // POS Devices and Daily Closing read live state off these two.
-    expect(styleOf(host, '.kpi-tag--green').color).toBe('rgb(47, 133, 90)'); // --kb-color-success
+    expect(styleOf(host, '.kpi-tag--green').color).toBe('rgb(30, 112, 68)'); // --kb-color-success
     expect(styleOf(host, '.kpi-tag--green').backgroundColor).toBe('rgb(231, 244, 236)'); // success-soft
     expect(styleOf(host, '.kpi-tag--warn').color).toBe('rgb(192, 57, 43)'); // --kb-color-danger
     expect(styleOf(host, '.kpi-tag--warn').backgroundColor).toBe('rgb(249, 231, 227)'); // danger-soft

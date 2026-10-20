@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -252,7 +252,7 @@ export interface PaymentMethodsSettings {
     .test-qr-content { flex: 1; min-width: 240px; }
     .test-qr-badge {
       display: inline-block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: var(--kb-color-success);
+      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: #1E6B40;
       padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
     }
     .test-qr-content h4 { margin: 0 0 4px; font-size: 1rem; color: var(--kb-color-foreground); }
