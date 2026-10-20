@@ -326,25 +326,21 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
       color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
     }
     .biz-action-btn--danger:hover {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
       color: #FFFFFF;
-      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
     .biz-action-btn--success {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
       color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(47, 133, 90, 0.25);
     }
     .biz-action-btn--success:hover {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
       color: #FFFFFF;
-      box-shadow: 0 4px 14px rgba(47, 133, 90, 0.4);
     }
     .modal-backdrop {
       position: fixed;

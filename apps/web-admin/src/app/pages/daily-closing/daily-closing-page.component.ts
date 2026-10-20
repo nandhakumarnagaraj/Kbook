@@ -335,10 +335,9 @@ interface DailyClosingData {
       gap: 0.35rem;
     }
     .bento-kpi--hero {
-      background: linear-gradient(135deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
+      background: var(--kb-color-primary);
       color: #FFFFFF;
       border: none;
-      box-shadow: 0 8px 24px rgba(93, 69, 253, 0.28);
     }
     .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub {
       color: rgba(255, 255, 255, 0.85);
@@ -471,7 +470,7 @@ interface DailyClosingData {
     }
     .cash-count-field:focus {
       border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(93, 69, 253, 0.12);
+      box-shadow: 0 0 0 3px rgba(var(--kb-color-primary-rgb), 0.12);
     }
 
     .variance-badge {

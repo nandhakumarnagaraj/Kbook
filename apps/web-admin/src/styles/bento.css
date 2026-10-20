@@ -133,7 +133,7 @@
       background: var(--kb-color-primary);
       border-color: var(--kb-color-primary);
       color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(108, 39, 217, 0.22);
+      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.22);
     }
 
 .header-action-btn--primary:hover {
@@ -784,7 +784,7 @@
 }
 
 .btn-retry:focus-visible {
-  outline: 3px solid rgba(108, 39, 217, 0.35);
+  outline: 3px solid rgba(var(--kb-color-primary-rgb), 0.35);
   outline-offset: 2px;
 }
 
@@ -856,8 +856,8 @@
 }
 
 .ghost-btn:hover:not(:disabled) {
-  border-color: var(--brand, #6C27D9);
-  color: var(--brand, #6C27D9);
+  border-color: var(--brand, #0066CC);
+  color: var(--brand, #0066CC);
 }
 
 .ghost-btn:disabled {

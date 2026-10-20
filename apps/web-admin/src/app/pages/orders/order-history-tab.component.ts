@@ -427,12 +427,10 @@ export function orderStatusLabel(status: string | null | undefined): string {
     .preset-pill--active {
       background: var(--kb-color-primary) !important;
       color: var(--kb-color-surface) !important;
-      box-shadow: 0 2px 6px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .preset-pill--outline {
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
-      box-shadow: 0 1px 2px rgba(28, 26, 23, 0.04);
     }
     .custom-date-picker-drawer {
       margin-bottom: 1.25rem;
@@ -440,7 +438,6 @@ export function orderStatusLabel(status: string | null | undefined): string {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(28, 26, 23, 0.04);
     }
     /* Tactile CTA Buttons (cta.gallery & 60fps.design) */
     

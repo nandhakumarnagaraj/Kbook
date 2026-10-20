@@ -262,7 +262,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     .pos-card-tactile:hover {
       transform: translateY(-2px);
       border-color: var(--kb-color-primary-soft);
-      box-shadow: 0 8px 24px rgba(93, 69, 253, 0.08);
+      box-shadow: 0 8px 24px rgba(var(--kb-color-primary-rgb), 0.08);
     }
     .pos-card-tactile:active {
       transform: scale(0.98);
@@ -474,13 +474,11 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       background: var(--kb-color-danger);
       border-color: var(--kb-color-danger);
       color: var(--kb-color-on-primary);
-      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
     }
     .card-action-btn--danger:hover {
       background: var(--kb-color-danger);
       border-color: var(--kb-color-danger);
       color: var(--kb-color-on-primary);
-      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
 
     /* ── Modal Layout ── */

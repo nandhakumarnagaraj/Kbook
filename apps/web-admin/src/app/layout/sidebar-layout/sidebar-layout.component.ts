@@ -204,7 +204,6 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       flex-shrink: 0;
       overflow: hidden;
       padding: 3px;
@@ -246,11 +245,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .nav-link:hover { background: var(--pos-sidebar-hover, #22274A); color: #FFFFFF; }
     .nav-link:active { transform: scale(0.97); }
     .nav-link.active-link {
-      background: var(--pos-purple, #6C27D9);
+      background: var(--pos-purple, #0066CC);
       color: #FFFFFF;
       font-weight: 600;
       border: none;
-      box-shadow: 0 4px 14px rgba(var(--kb-color-primary-rgb), 0.35);
     }
     .nav-link.active-link .nav-link__icon {
       color: #FFFFFF;
@@ -326,13 +324,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
-      box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
       transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .logout-btn:hover {
       background: var(--kb-color-danger);
       border-color: var(--kb-color-danger);
-      box-shadow: 0 4px 14px rgba(192, 57, 43, 0.4);
     }
     .logout-btn:active {
       transform: scale(0.97);

@@ -394,14 +394,14 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     :host {
       display: block;
       --kb-purple-950: #321064;
-      --kb-purple-800: #5B21B6;
+      --kb-purple-800: #0055B3;
       --kb-purple-600: #7C3AED;
       --kb-lavender: #A78BFA;
       --kb-text: #111827;
       --kb-muted: #667085;
       --kb-border: #D8DCE7;
       --kb-surface: #FFFFFF;
-      --kb-soft: #F5F3FF;
+      --kb-soft: #E8F1FB;
     }
 
     .auth-shell {
@@ -418,7 +418,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       background: linear-gradient(
         125deg,
         #321064 0%,
-        #5B21B6 48%,
+        #0055B3 48%,
         #6D28D9 100%
       );
       color: #FFFFFF;
@@ -950,7 +950,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .forgot-link:hover {
-      color: #5B21B6;
+      color: #0066CC;
       text-decoration: underline;
     }
 
@@ -975,7 +975,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   box-shadow 160ms ease;
     }
     .login-button:hover:not(:disabled) {
-      background: #5B21B6;
+      background: #0066CC;
       box-shadow: 0 6px 20px rgba(91, 33, 182, 0.38);
       transform: translateY(-1px);
     }
@@ -1024,7 +1024,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .signup-link:hover {
-      color: #5B21B6;
+      color: #0066CC;
       text-decoration: underline;
     }
     .trust-badge-row {
@@ -1108,7 +1108,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     @media (prefers-contrast: more) {
       .field-input { border-color: #000000; border-width: 2px; }
       .field-label { color: #000000; font-weight: 700; }
-      .login-button { background: #5B21B6; color: #FFFFFF; border: 2px solid #000000; }
+      .login-button { background: #0066CC; color: #FFFFFF; border: 2px solid #000000; }
       .divider { color: #000000; font-weight: 700; }
       .divider::before, .divider::after { background: #000000; height: 2px; }
     }

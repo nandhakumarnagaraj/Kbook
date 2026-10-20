@@ -358,7 +358,6 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-color-primary);
       color: var(--kb-color-primary-foreground);
       border-color: var(--kb-color-primary);
-      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .tab-pill--active:hover {
       color: var(--kb-color-primary-foreground);
@@ -373,16 +372,15 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-xl); padding: var(--kb-space-3) var(--kb-space-4);
       display: grid; gap: var(--kb-space-2);
-      transition: border-color .18s, transform .18s, box-shadow .18s;
-      box-shadow: var(--kb-shadow-xs);
+      transition: border-color .18s, transform .18s;
     }
     .kpi-card--hero {
       background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
     }
-    .kpi-card--hero:hover { transform: translateY(-1px); box-shadow: var(--kb-shadow-md); border-color: var(--kb-color-primary); }
+    .kpi-card--hero:hover { transform: translateY(-1px); border-color: var(--kb-color-primary); }
     .kpi-card--warn {
       border-color: var(--kb-color-error-soft);
-      background: linear-gradient(160deg, var(--kb-color-error-soft) 0%, var(--kb-color-surface) 60%);
+      background: var(--kb-color-surface);
     }
 
     .kpi-head { display: flex; justify-content: space-between; align-items: center; }
@@ -524,6 +522,9 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .skeleton { background: var(--line); border-radius: var(--r-md); animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 130px; }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton, .kpi-card { animation: none; transition: none; }
+    }
     .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--kb-space-4); padding: var(--kb-space-8); text-align: center; }
   `]
 })

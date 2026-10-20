@@ -399,10 +399,9 @@ function todayRange(): { from: string; to: string } {
       gap: 0.35rem;
     }
     .bento-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary-hover) 100%);
+      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary) 100%);
       color: #FFFFFF;
       border: none;
-      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
     }
     .bento-card--hero .bento-label { color: rgba(255, 255, 255, 0.75); }
     .bento-card--hero .bento-value { color: #FFFFFF; }
@@ -578,7 +577,7 @@ function todayRange(): { from: string; to: string } {
       background: var(--kb-color-primary);
       color: #FFFFFF;
       border-color: var(--kb-color-primary);
-      box-shadow: 0 2px 8px rgba(93, 69, 253, 0.25);
+      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .tab-pill--active:hover {
       color: #FFFFFF;

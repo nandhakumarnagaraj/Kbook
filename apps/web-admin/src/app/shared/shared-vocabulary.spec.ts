@@ -98,7 +98,7 @@ describe('shared vocabulary (bento.css)', () => {
 
   it('renders both .btn-micro modifiers, including the danger variant', () => {
     const primary = styleOf(host, '.btn-micro--primary');
-    expect(primary.backgroundColor).toBe('rgb(108, 39, 217)'); // --kb-color-primary
+    expect(primary.backgroundColor).toBe('rgb(0, 102, 204)'); // --kb-color-primary
     expect(primary.color).toBe('rgb(255, 255, 255)');
 
     // Added to bento.css when the order-history copy was removed; two templates use it.

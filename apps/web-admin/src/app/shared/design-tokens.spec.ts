@@ -25,7 +25,7 @@ describe('design tokens', () => {
   it('resolves an alpha variant of the primary colour to that colour', () => {
     const tint = probe((el) => (el.style.background = 'rgba(var(--kb-color-primary-rgb), 0.1)'));
     const solid = probe((el) => (el.style.background = 'var(--kb-color-primary)'));
-    const reference = probe((el) => (el.style.background = 'rgba(108, 39, 217, 0.1)'));
+    const reference = probe((el) => (el.style.background = 'rgba(0, 102, 204, 0.1)'));
 
     const tinted = getComputedStyle(tint).backgroundColor;
     expect(tinted).withContext('an unresolvable token would drop the declaration and leave it transparent').not.toBe('rgba(0, 0, 0, 0)');
