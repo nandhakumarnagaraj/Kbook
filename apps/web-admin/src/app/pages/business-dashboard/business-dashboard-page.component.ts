@@ -2,19 +2,23 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { combineLatest, EMPTY, of, Subject, Subscription } from 'rxjs';
+import { combineLatest, of, Subject, Subscription } from 'rxjs';
 import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
+  OrderDetailResponse,
   HourlySalesRow,
   ItemSalesRow,
   BusinessTerminal,
   NotificationItem
 } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
+import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
@@ -67,10 +71,12 @@ function getTodayIsoDate(): string {
   imports: [
     CommonModule,
     FormsModule,
+    OrderDetailModalComponent,
     PageHeaderComponent,
     AnimatedCounterComponent,
     NotificationBellComponent,
-    RefreshButtonComponent
+    RefreshButtonComponent,
+    HeaderSearchComponent
   ],
   template: `
     <div class="page-shell" *ngIf="viewDashboard() as data; else loading">
@@ -422,6 +428,11 @@ function getTodayIsoDate(): string {
       </ng-template>
     </ng-template>
 
+    <!-- Order Detail Modal -->
+    <app-order-detail-modal
+      [order]="selectedOrderDetail()"
+      (closed)="closeOrderDetail()">
+    </app-order-detail-modal>
   `,
   styles: [`
     :host {
@@ -563,7 +574,7 @@ function getTodayIsoDate(): string {
     }
     .dish-bar-fill {
       height: 100%;
-      background: var(--kb-color-primary);
+      background: linear-gradient(90deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
       border-radius: 999px;
     }
     .dish-rev-label {
@@ -627,16 +638,18 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   /** Wall-clock of the last successful dashboard load, and a coarse ticker that
    *  drives the relative "updated Xs ago" label. */
   private readonly lastUpdatedAt = signal<number | null>(null);
-  /** Supplementary widget requests; cancelled when a newer load starts or on destroy. */
-  private supplementarySubs = new Subscription();
+  private readonly nowTick = signal(Date.now());
 
   private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private freshnessTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Auto-refresh cadence. The dashboard aggregates ~9 endpoints, so it polls
    *  slower than the Active Orders board (30s) and skips hidden tabs. */
   private static readonly AUTO_REFRESH_MS = 60_000;
 
   readonly activeOrders = signal<PosActiveOrder[]>([]);
+  readonly imageErrors = signal<Record<string, boolean>>({});
+  readonly selectedOrderDetail = signal<OrderDetailResponse | null>(null);
 
   // Live Data Signals from Swagger
   readonly hourlySalesData = signal<HourlySalesRow[]>([]);
@@ -678,15 +691,29 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       }
     }, BusinessDashboardPageComponent.AUTO_REFRESH_MS);
 
+    this.freshnessTimer = setInterval(() => this.nowTick.set(Date.now()), 15_000);
   }
 
   ngOnDestroy(): void {
     if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
-    this.supplementarySubs.unsubscribe();
+    if (this.freshnessTimer) clearInterval(this.freshnessTimer);
     if (this.refreshSubscription) this.refreshSubscription.unsubscribe();
     this.autoRefreshTimer = null;
+    this.freshnessTimer = null;
     this.refreshSubscription = null;
   }
+
+  readonly freshnessLabel = computed(() => {
+    const stamp = this.lastUpdatedAt();
+    if (!stamp) return '';
+    const seconds = Math.max(0, Math.floor((this.nowTick() - stamp) / 1000));
+    if (seconds < 10) return 'Updated just now';
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Updated ${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `Updated ${hours}h ago`;
+  });
 
   private initDashboardStream(): void {
     this.refreshSubscription = this.refresh$.pipe(
@@ -747,6 +774,8 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
                 });
 
               this.activeOrders.set(liveActive);
+            } else {
+              this.activeOrders.set([]);
             }
 
             this.lastUpdatedAt.set(Date.now());
@@ -819,14 +848,13 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     this.inventoryStatus.set('loading');
 
     // 1. Hourly Sales Curve (GET /analytics/hourly-sales)
-    // A failed poll ends the stream with no emission, so the last good value stays on screen.
-    this.api.getHourlySales(today).pipe(catchError(() => EMPTY)).subscribe(data => {
+    this.api.getHourlySales(today).pipe(catchError(() => of([]))).subscribe(data => {
       this.hourlySalesData.set(Array.isArray(data) ? data : []);
       this.playHourlyBars();
     });
 
     // 2. Top Selling Dishes (GET /analytics/item-sales)
-    this.api.getItemSales(today, today).pipe(catchError(() => EMPTY)).subscribe(data => {
+    this.api.getItemSales(today, today).pipe(catchError(() => of([]))).subscribe(data => {
       if (Array.isArray(data) && data.length > 0) {
         this.topDishesData.set(data.sort((a, b) => (b.quantitySold || 0) - (a.quantitySold || 0)).slice(0, 5));
       } else {
@@ -850,27 +878,31 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         this.inventoryStatus.set('available');
       },
       error: () => {
+        this.lowStockMaterials.set([]);
         this.inventoryStatus.set('unavailable');
       }
     });
 
     // 4. POS Terminal Fleet Health (GET /business/terminals)
-    this.api.getTerminals().pipe(catchError(() => EMPTY)).subscribe(terms => {
+    this.api.getTerminals().pipe(catchError(() => of([]))).subscribe(terms => {
       this.terminals.set(Array.isArray(terms) ? terms : []);
     });
 
     // 5. Daily Closing Split (GET /analytics/daily-closing)
-    this.api.getDailyClosing(today).pipe(catchError(() => EMPTY)).subscribe(closing => {
+    this.api.getDailyClosing(today).pipe(catchError(() => of(null))).subscribe(closing => {
       if (closing) {
         this.dailyClosingData.set(closing);
       }
     });
 
     // 6. Notifications (GET /notifications)
-    this.api.getNotifications(10).pipe(catchError(() => EMPTY)).subscribe(res => {
+    this.api.getNotifications(10).pipe(catchError(() => of({ status: 'ok', notifications: [], unreadCount: 0 }))).subscribe(res => {
       if (res && Array.isArray(res.notifications)) {
         this.notifications.set(res.notifications);
         this.unreadNotifsCount.set(res.unreadCount || 0);
+      } else {
+        this.notifications.set([]);
+        this.unreadNotifsCount.set(0);
       }
     });
   }
@@ -982,7 +1014,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly completedRate = computed(() => {
     const total = Number(this.dashboard()?.posOrderCount) || 0;
     const completed = this.completedCount();
-    if (total === 0) return 0;
+    if (total === 0) return 100;
     return Math.min(100, Math.round((completed / total) * 100));
   });
 
@@ -1020,6 +1052,10 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         this.unreadNotifsCount.set(0);
       }
     });
+  }
+
+  handleImageError(orderCode: string): void {
+    this.imageErrors.update(errs => ({ ...errs, [orderCode]: true }));
   }
 
   formatCurrencyValue(value: number): string {
@@ -1082,6 +1118,28 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     this.loadSupplementaryData();
   }
 
+  copyInvoice(order: PosActiveOrder): void {
+    const session = this.auth.session();
+    const link = buildInvoiceLink(session?.restaurantId, order.orderId, order.publicToken);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link).then(() => {
+        this.toast.show(`Invoice link copied for Order #${order.orderCode}`, 'success');
+      }).catch(() => {
+        this.toast.show(`Order #${order.orderCode} invoice link ready`, 'info');
+      });
+    } else {
+      this.toast.show(`Order #${order.orderCode} invoice link ready`, 'info');
+    }
+  }
+
+  navigateToOrders(): void {
+    void this.router.navigate(['/business/orders']);
+  }
+
+  navigateToStaff(): void {
+    void this.router.navigate(['/business/staff']);
+  }
+
   navigateToMenu(): void {
     void this.router.navigate(['/business/menu']);
   }
@@ -1100,4 +1158,16 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/business/inventory']);
   }
 
+  openOrderDetail(orderId: number): void {
+    this.api.getOrderDetail(orderId).subscribe({
+      next: (detail) => this.selectedOrderDetail.set(detail),
+      error: () => {
+        this.toast.show('Unable to load order details.', 'error');
+      }
+    });
+  }
+
+  closeOrderDetail(): void {
+    this.selectedOrderDetail.set(null);
+  }
 }

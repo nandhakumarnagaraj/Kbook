@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section.component';
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
@@ -9,6 +11,9 @@ import { PasswordChangeSectionComponent } from './password-change-section.compon
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { environment } from '../../../environments/environment';
+
+const API = environment.apiBaseUrl;
 
 interface RestaurantProfile {
   shopName: string;
@@ -51,23 +56,32 @@ interface RestaurantProfile {
   template: `
     <div class="page-shell">
       <app-page-header
-        title="Business &amp; Restaurant Settings"
-        subtitle="Restaurant identity, GST compliance and payment channels. Changes sync to every POS register after you save."
+        title="Business &amp; Restaurant Configuration"
+        subtitle="Configure restaurant identity, automated GST compliance, and payment settlement channels."
       >
-        <span kbHeaderBadge class="kpi-tag kpi-tag--green" *ngIf="!loading() && !loadError()">
+        <span kbHeaderBadge class="kpi-tag kpi-tag--green" *ngIf="!loading()">
           <span class="pulse-indicator" aria-hidden="true"></span>
-          Live sync ready
+          Live Sync Ready
         </span>
+
+        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save all business settings">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+          </button>
         <app-refresh-button (refresh)="load()" [loading]="loading()" ariaLabel="Reload settings from server" />
       </app-page-header>
 
-      <!-- Shown when a reload fails but previously loaded values are still on screen -->
-      <div class="stale-banner" *ngIf="!loading() && loadError() && profile()" role="alert">
-        <span>Couldn't refresh settings. You're seeing the last values loaded. {{ loadError() }}</span>
+      <!-- Stale refresh banner (prototype pattern) -->
+      <div class="stale-banner" *ngIf="!loading() && loadError() && profile()" role="status" aria-live="polite">
+        <span>Couldn't update settings. {{ loadError() }}</span>
         <button type="button" class="btn-retry" (click)="load()">Retry</button>
       </div>
 
-      <div class="panel loading loading-panel" *ngIf="loading()" role="status" aria-busy="true">
+      <div class="panel loading" *ngIf="loading()" role="status" aria-busy="true">
         <span class="visually-hidden">Loading settings...</span>
         <div class="skeleton-stack">
           <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
@@ -82,22 +96,23 @@ interface RestaurantProfile {
 
       <ng-container *ngIf="viewProfile() as p">
 
-        <!-- Restaurant identity -->
-        <section class="panel settings-section" aria-labelledby="identity-heading">
-          <header class="section-head">
-            <div class="section-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Shop Profile (unsection.com tonal layout) -->
+        <section class="panel settings-section">
+          <div class="section-title-wrap">
+            <div class="section-icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </div>
             <div>
-              <h3 id="identity-heading">Restaurant Identity</h3>
-              <p class="muted">Shown on thermal receipts, customer invoices and online menus.</p>
+              <h3>Restaurant Identity &amp; Invoicing</h3>
+              <p class="muted">Information printed on thermal receipts, customer invoices, and online menus.</p>
             </div>
-          </header>
+          </div>
 
-          <div class="logo-card">
+          <!-- Logo Management -->
+          <div class="logo-uploader-card">
             <div class="logo-preview-box">
               <img *ngIf="p.logoUrl" [src]="p.logoUrl" alt="Restaurant logo" class="logo-preview-img" />
               <div *ngIf="!p.logoUrl" class="logo-empty-box">
@@ -106,24 +121,28 @@ interface RestaurantProfile {
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <polyline points="21 15 16 10 5 21"/>
                 </svg>
-                <span>No logo</span>
+                <span>No Logo</span>
               </div>
             </div>
             <div class="logo-meta">
-              <h4>Logo</h4>
-              <p class="muted">PNG, JPG, WebP or SVG, up to 2MB. Used on bills and digital menus.</p>
+              <h4>Storefront &amp; Thermal Receipt Logo</h4>
+              <p class="muted">Upload your brand mark. Displayed on bills, printed thermal receipts, and digital menus (PNG, JPG, max 2MB).</p>
               <div class="logo-actions">
-                <label class="ghost-btn file-picker-label" [class.is-disabled]="logoBusy()">
-                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" class="visually-hidden" [disabled]="logoBusy()" aria-label="Choose restaurant logo file" />
+                <label class="ghost-btn file-picker-label">
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" aria-label="Choose restaurant logo file" />
                   <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
-                  {{ logoBusy() ? 'Uploading...' : (p.logoUrl ? 'Change logo' : 'Upload logo') }}
+                  {{ logoBusy() ? 'Uploading...' : (p.logoUrl ? 'Change Logo' : 'Upload Logo') }}
                 </label>
                 <button *ngIf="p.logoUrl" type="button" class="ghost-btn danger-btn" [disabled]="logoBusy()" (click)="removeLogo()">
-                  Remove logo
+                  <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                  Remove Logo
                 </button>
               </div>
             </div>
@@ -131,34 +150,33 @@ interface RestaurantProfile {
 
           <div class="form-grid">
             <div class="field">
-              <label for="shop-name">Shop name <span class="required" aria-hidden="true">*</span></label>
-              <input id="shop-name" class="field-control" [(ngModel)]="p.shopName" name="shopName" placeholder="Restaurant name" required autocomplete="organization" />
+              <label>Shop Name *</label>
+              <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" aria-label="Shop name (required)" />
             </div>
             <div class="field">
-              <label for="whatsapp-number">WhatsApp contact</label>
-              <input id="whatsapp-number" class="field-control tabular-num" type="tel" inputmode="numeric" [(ngModel)]="p.whatsappNumber" name="whatsappNumber" placeholder="10-digit mobile number" maxlength="10" autocomplete="tel" />
-            </div>
-            <div class="field field--wide">
-              <label for="shop-address">Shop address</label>
-              <input id="shop-address" class="field-control" [(ngModel)]="p.shopAddress" name="shopAddress" placeholder="Full address" autocomplete="street-address" />
+              <label>Shop Address</label>
+              <input class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" />
             </div>
             <div class="field">
-              <label for="official-email">Official email</label>
-              <input id="official-email" class="field-control" type="email" [(ngModel)]="p.email" name="email" placeholder="name@restaurant.com" autocomplete="email" />
+              <label>WhatsApp Contact Number</label>
+              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" aria-label="WhatsApp contact number" />
             </div>
             <div class="field">
-              <label for="review-url">Google review link</label>
-              <input id="review-url" class="field-control" type="url" [(ngModel)]="p.reviewUrl" name="reviewUrl" placeholder="https://g.page/r/your-restaurant/review" />
+              <label>Official Email</label>
+              <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" aria-label="Official business email" />
             </div>
-            <div class="field field--wide">
-              <label for="invoice-footer">Receipt footer note</label>
-              <input id="invoice-footer" class="field-control" [(ngModel)]="p.invoiceFooter" name="invoiceFooter" placeholder="e.g. Thank you, visit again!" />
-              <p class="field-hint">Printed at the bottom of every thermal receipt.</p>
+            <div class="field">
+              <label>Thermal Receipt Footer Note</label>
+              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" aria-label="Thermal receipt footer note" />
+            </div>
+            <div class="field">
+              <label>Google Maps Review URL</label>
+              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" aria-label="Google Maps review URL" />
             </div>
           </div>
         </section>
 
-        <!-- Tax configuration -->
+        <!-- Tax Configuration -->
         <app-tax-settings-section
           [tax]="{
             gstEnabled: p.gstEnabled,
@@ -173,42 +191,32 @@ interface RestaurantProfile {
           (taxChange)="applyTaxSettings($event)"
         />
 
-        <!-- Payment methods -->
+        <!-- Payment Methods -->
         <app-payment-methods-section
           [settings]="{ cashEnabled: p.cashEnabled, upiEnabled: p.upiEnabled, upiHandle: p.upiHandle, upiMobile: p.upiMobile, posEnabled: p.posEnabled, orderPaymentFlowMode: p.orderPaymentFlowMode, shopName: p.shopName }"
           (settingsChange)="applyPaymentSettings($event)"
         />
 
-        <div class="sticky-save-dock" [class.sticky-save-dock--dirty]="isDirty()">
+        <div class="sticky-save-dock">
           <div class="save-dock-inner">
-            <span class="dock-status" role="status" aria-live="polite">
-              <span class="dock-dot" aria-hidden="true"></span>
-              {{ isDirty() ? 'You have unsaved changes' : 'All changes saved' }}
-            </span>
-            <div class="dock-actions">
-              <button type="button" class="ghost-btn" [disabled]="saving() || !isDirty()" (click)="discardChanges()">Discard</button>
-              <button class="primary-btn" type="button" [disabled]="saving() || !isDirty()" (click)="saveProfile()" aria-label="Save all business settings">
-                {{ saving() ? 'Saving...' : 'Save changes' }}
-              </button>
-            </div>
+            <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
+            <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save all business settings">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+            </button>
           </div>
         </div>
 
       </ng-container>
 
-      <!-- Password is saved on its own, so it sits outside the save dock -->
+      <!-- Change Password -->
       <app-password-change-section />
     </div>
   `,
   styles: [`
-    .loading-panel { margin-bottom: var(--kb-space-4); }
-    .skeleton-stack { display: flex; flex-direction: column; gap: var(--kb-space-3); }
-    .skeleton { background: var(--kb-color-surface-2); border-radius: var(--kb-radius-md); animation: settings-pulse 1.5s ease-in-out infinite; }
-    .skeleton-row { height: 48px; }
-    @keyframes settings-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.8; } }
-
-    .settings-section { margin-bottom: var(--kb-space-4); }
-    .section-head {
+    .section-title-wrap {
       display: flex;
       align-items: flex-start;
       gap: var(--kb-space-3);
@@ -216,8 +224,6 @@ interface RestaurantProfile {
       padding-bottom: var(--kb-space-3);
       border-bottom: 1px solid var(--kb-color-border);
     }
-    .section-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
-    .section-head p { margin: 2px 0 0; font-size: 0.82rem; }
     .section-icon {
       width: 34px;
       height: 34px;
@@ -229,8 +235,46 @@ interface RestaurantProfile {
       justify-content: center;
       flex-shrink: 0;
     }
-
-    .logo-card {
+    .section-title-wrap h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .section-title-wrap p {
+      margin: 2px 0 0 0;
+      font-size: 0.82rem;
+    }
+    .settings-section { margin-bottom: var(--kb-space-4); }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: var(--kb-space-3);
+    }
+    .field label { display: block; font-size: 0.82rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
+    .tabular-num { font-variant-numeric: tabular-nums; }
+    .sticky-save-dock {
+      position: sticky;
+      bottom: var(--kb-space-4);
+      z-index: var(--kb-z-topbar, 30);
+      margin: var(--kb-space-4) 0;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+    .save-dock-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .dock-hint {
+      font-size: 0.82rem;
+      color: var(--kb-color-muted-foreground);
+    }
+    .logo-uploader-card {
       display: flex;
       gap: var(--kb-space-4);
       align-items: center;
@@ -253,7 +297,11 @@ interface RestaurantProfile {
       justify-content: center;
       flex-shrink: 0;
     }
-    .logo-preview-img { width: 100%; height: 100%; object-fit: contain; }
+    .logo-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
     .logo-empty-box {
       display: flex;
       flex-direction: column;
@@ -263,83 +311,46 @@ interface RestaurantProfile {
       font-size: 0.72rem;
       gap: 4px;
     }
-    .logo-meta { flex: 1; min-width: 220px; }
-    .logo-meta h4 { margin: 0 0 2px; font-size: 0.95rem; font-weight: 600; }
-    .logo-meta p { margin: 0 0 var(--kb-space-2); font-size: 0.82rem; }
-    .logo-actions { display: flex; gap: var(--kb-space-2); align-items: center; flex-wrap: wrap; }
-    .file-picker-label { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .file-picker-label.is-disabled { opacity: 0.6; cursor: not-allowed; }
-    .danger-btn { color: var(--kb-color-error); border-color: rgba(192, 57, 43, 0.3); }
-    .danger-btn:hover { background: rgba(192, 57, 43, 0.08); }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-      gap: var(--kb-space-4) var(--kb-space-3);
+    .logo-meta {
+      flex: 1;
+      min-width: 220px;
     }
-    .field--wide { grid-column: 1 / -1; }
-    .field label {
-      display: block;
+    .logo-meta h4 {
+      margin: 0 0 2px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .logo-meta p {
+      margin: 0 0 var(--kb-space-2);
       font-size: 0.82rem;
-      color: var(--kb-color-foreground);
-      font-weight: 500;
-      margin-bottom: var(--kb-space-1);
     }
-    .required { color: var(--kb-color-error); }
-    .field-hint { margin: var(--kb-space-1) 0 0; font-size: 0.75rem; color: var(--kb-color-muted-foreground); }
-    .tabular-num { font-variant-numeric: tabular-nums; }
-
-    .sticky-save-dock {
-      position: sticky;
-      bottom: var(--kb-space-4);
-      z-index: var(--kb-z-topbar, 30);
-      margin: var(--kb-space-4) 0;
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg);
-      animation: dock-enter var(--kb-duration-slow, 300ms) var(--kb-ease-standard, ease-out) both;
-    }
-    .settings-section { animation: section-enter var(--kb-duration-base, 200ms) var(--kb-ease-standard, ease-out) both; }
-    @keyframes dock-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-    @keyframes section-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) {
-      .sticky-save-dock, .settings-section, .skeleton { animation: none; }
-    }
-    .sticky-save-dock--dirty { border-color: rgba(217, 119, 6, 0.45); }
-    .save-dock-inner {
+    .logo-actions {
       display: flex;
-      justify-content: space-between;
+      gap: var(--kb-space-2);
       align-items: center;
-      gap: var(--kb-space-3);
       flex-wrap: wrap;
     }
-    .dock-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: var(--kb-color-muted-foreground);
+    .file-picker-label {
+      cursor: pointer;
     }
-    .dock-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--kb-color-success, #16a34a);
+    .danger-btn {
+      color: var(--kb-color-error);
+      border-color: rgba(192, 57, 43, 0.3);
     }
-    .sticky-save-dock--dirty .dock-dot { background: #d97706; }
-    .sticky-save-dock--dirty .dock-status { color: var(--kb-color-foreground); font-weight: 500; }
-    .dock-actions { display: flex; gap: var(--kb-space-2); }
-    .primary-btn:disabled, .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    @media (max-width: 640px) {
-      .save-dock-inner { flex-direction: column; align-items: stretch; }
-      .dock-actions { justify-content: flex-end; }
+    .danger-btn:hover {
+      background: rgba(192, 57, 43, 0.08);
+    }
+    .field-btn {
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 1px;
     }
   `]
 })
 export class BusinessSettingsPageComponent {
+  private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
   private readonly businessApi = inject(BusinessApiService);
 
   loading = signal(true);
@@ -348,22 +359,12 @@ export class BusinessSettingsPageComponent {
   logoBusy = signal(false);
   profile = signal<RestaurantProfile | null>(null);
 
-  /** Last values confirmed by the server (or loaded), used to detect unsaved edits. */
-  private readonly savedSnapshot = signal('');
-
   /**
    * The settings form is withheld while a reload is in flight so the skeleton
    * above takes over: a manual refresh then visibly reloads the page instead of
    * leaving the old values on screen behind a spinning icon.
    */
   readonly viewProfile = computed(() => (this.loading() ? null : this.profile()));
-
-  /** True when the form differs from the last saved values. The logo is excluded
-   *  because logo upload and removal are persisted immediately on their own. */
-  isDirty(): boolean {
-    const p = this.profile();
-    return !!p && this.comparable(p) !== this.savedSnapshot();
-  }
 
   constructor() { this.load(); }
 
@@ -372,45 +373,45 @@ export class BusinessSettingsPageComponent {
     this.loadError.set('');
     this.businessApi.getProfile().subscribe({
       next: (p) => {
-        const loaded: RestaurantProfile = p
-          ? {
-              shopName: p.shopName ?? '',
-              shopAddress: p.shopAddress ?? '',
-              whatsappNumber: p.whatsappNumber ?? '',
-              email: p.email ?? '',
-              logoUrl: p.logoUrl ?? '',
-              gstEnabled: p.gstEnabled ?? false,
-              gstin: p.gstin ?? '',
-              gstPercentage: p.gstPercentage ?? 5,
-              customTaxName: p.customTaxName ?? '',
-              customTaxPercentage: p.customTaxPercentage ?? 0,
-              fssaiNumber: p.fssaiNumber ?? '',
-              fssaiExpiryDate: p.fssaiExpiryDate ?? '',
-              gstExpiryDate: p.gstExpiryDate ?? '',
-              upiEnabled: p.upiEnabled ?? false,
-              upiHandle: p.upiHandle ?? '',
-              upiMobile: p.upiMobile ?? '',
-              cashEnabled: p.cashEnabled ?? true,
-              posEnabled: p.posEnabled ?? false,
-              orderPaymentFlowMode: p.orderPaymentFlowMode ?? 'pay_before_food',
-              invoiceFooter: p.invoiceFooter ?? '',
-              reviewUrl: p.reviewUrl ?? ''
-            }
-          : {
-              shopName: '', shopAddress: '', whatsappNumber: '', email: '',
-              logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
-              customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
-              upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
-              posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
-              invoiceFooter: '', reviewUrl: ''
-            };
-        this.profile.set(loaded);
-        this.savedSnapshot.set(this.comparable(loaded));
+        if (p) {
+          this.profile.set({
+            shopName: p.shopName ?? '',
+            shopAddress: p.shopAddress ?? '',
+            whatsappNumber: p.whatsappNumber ?? '',
+            email: p.email ?? '',
+            logoUrl: p.logoUrl ?? '',
+            gstEnabled: p.gstEnabled ?? false,
+            gstin: p.gstin ?? '',
+            gstPercentage: p.gstPercentage ?? 5,
+            customTaxName: p.customTaxName ?? '',
+            customTaxPercentage: p.customTaxPercentage ?? 0,
+            fssaiNumber: p.fssaiNumber ?? '',
+            fssaiExpiryDate: p.fssaiExpiryDate ?? '',
+            gstExpiryDate: p.gstExpiryDate ?? '',
+            upiEnabled: p.upiEnabled ?? false,
+            upiHandle: p.upiHandle ?? '',
+            upiMobile: p.upiMobile ?? '',
+            cashEnabled: p.cashEnabled ?? true,
+            posEnabled: p.posEnabled ?? false,
+            orderPaymentFlowMode: p.orderPaymentFlowMode ?? 'pay_before_food',
+            invoiceFooter: p.invoiceFooter ?? '',
+            reviewUrl: p.reviewUrl ?? ''
+          });
+        } else {
+          this.profile.set({
+            shopName: '', shopAddress: '', whatsappNumber: '', email: '',
+            logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
+            customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
+            upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
+            posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
+            invoiceFooter: '', reviewUrl: ''
+          });
+        }
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
-        this.loadError.set('Failed to load settings. Check your connection and try again.');
+        this.loadError.set('Failed to load settings. Check connection and try again.');
       }
     });
   }
@@ -427,16 +428,6 @@ export class BusinessSettingsPageComponent {
     this.profile.set({ ...p, ...patch });
   }
 
-  /** Reverts unsaved edits to the last saved values. */
-  discardChanges(): void {
-    const saved = this.savedSnapshot();
-    if (!saved) return;
-    // The logo is persisted on its own, so keep whatever is currently shown.
-    const logoUrl = this.profile()?.logoUrl ?? '';
-    this.profile.set({ ...(JSON.parse(saved) as RestaurantProfile), logoUrl });
-    this.toast.show('Unsaved changes discarded.', 'info');
-  }
-
   saveProfile(): void {
     const p = this.profile();
     if (!p || !p.shopName?.trim()) {
@@ -447,10 +438,13 @@ export class BusinessSettingsPageComponent {
     this.businessApi.updateProfile(p).subscribe({
       next: (saved) => {
         this.saving.set(false);
-        this.toast.show('Restaurant settings saved.', 'success');
-        const merged = saved ? { ...p, ...saved } : p;
-        this.profile.set(merged);
-        this.savedSnapshot.set(this.comparable(merged));
+        this.toast.show('Restaurant settings saved successfully.', 'success');
+        if (saved) {
+          this.profile.set({
+            ...p,
+            ...saved
+          });
+        }
       },
       error: (err) => {
         this.saving.set(false);
@@ -464,7 +458,7 @@ export class BusinessSettingsPageComponent {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      this.toast.show('Logo file must be smaller than 2MB.', 'error');
+      this.toast.show('Logo file size must be less than 2MB.', 'error');
       input.value = '';
       return;
     }
@@ -477,7 +471,7 @@ export class BusinessSettingsPageComponent {
           this.profile.set({ ...p, logoUrl });
         }
         this.logoBusy.set(false);
-        this.toast.show('Logo uploaded.', 'success');
+        this.toast.show('Logo uploaded successfully.', 'success');
         input.value = '';
       },
       error: (err) => {
@@ -505,8 +499,6 @@ export class BusinessSettingsPageComponent {
       }
     });
   }
-
-  private comparable(p: RestaurantProfile): string {
-    return JSON.stringify({ ...p, logoUrl: '' });
-  }
 }
+
+
