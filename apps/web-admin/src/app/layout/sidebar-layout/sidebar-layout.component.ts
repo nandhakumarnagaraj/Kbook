@@ -173,11 +173,13 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     }
     .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--pos-bg-body, #F6F8FD); }
     .skip-link {
-      position: fixed; left: 1rem; top: 0; z-index: 100;
-      padding: 0.65rem 1rem; color: var(--kb-color-foreground); background: var(--kb-color-primary);
+      position: fixed; left: 1rem; top: 0; z-index: 110;
+      padding: 0.65rem 1rem; color: #ffffff; background: var(--kb-color-primary, #0066cc);
+      font-weight: 600; text-decoration: none;
       border-radius: var(--kb-radius-sm); transform: translateY(-110%);
+      transition: transform 0.15s ease;
     }
-    .skip-link:focus { transform: translateY(0); }
+    .skip-link:focus { transform: translateY(0); outline: 2px solid #ffffff; outline-offset: 2px; }
 
     /* ── Sidebar (POS Command Center Navy) ── */
     .sidebar {
@@ -368,7 +370,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         gap: var(--kb-space-4);
         position: sticky;
         top: 0;
-        z-index: 30;
+        z-index: 101;
         padding: var(--kb-space-3) var(--kb-space-4);
         background: var(--kb-color-surface);
         border-bottom: 1px solid var(--kb-color-border);
@@ -378,7 +380,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         position: fixed;
         top: 0;
         left: 0;
-        z-index: 40;
+        z-index: 100;
         width: 280px;
         max-width: 85vw;
         height: 100vh;
@@ -391,7 +393,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         display: block;
         position: fixed;
         inset: 0;
-        z-index: 35;
+        z-index: 99;
         background: rgba(26, 26, 26, 0.5);
         backdrop-filter: blur(2px);
       }

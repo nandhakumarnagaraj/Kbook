@@ -166,6 +166,8 @@ import { environment } from '../../../environments/environment';
                     [class.toggle-btn--off]="!item.available"
                     (click)="toggleAvailability(item)"
                     [disabled]="togglingId === item.menuItemId"
+                    [attr.aria-pressed]="item.available"
+                    [attr.aria-label]="item.name + ' availability: ' + (item.available ? 'On' : 'Off')"
                   >
                     {{ item.available ? 'On' : 'Off' }}
                   </button>
@@ -367,6 +369,8 @@ import { environment } from '../../../environments/environment';
                 [class.toggle-btn--off]="!formAvailable"
                 [disabled]="formSaving"
                 (click)="formAvailable = !formAvailable"
+                [attr.aria-pressed]="formAvailable"
+                [attr.aria-label]="'Item availability: ' + (formAvailable ? 'Available' : 'Unavailable')"
               >
                 {{ formAvailable ? 'Available' : 'Unavailable' }}
               </button>
@@ -681,11 +685,13 @@ import { environment } from '../../../environments/environment';
       border-color: var(--kb-color-primary, #0066cc);
       background: var(--kb-color-primary, #0066cc);
       color: var(--kb-color-on-primary, #ffffff);
+      font-weight: 600;
     }
     .toggle-btn--off {
       border-color: var(--kb-color-error, #c0392b);
       background: var(--kb-color-surface, #ffffff);
       color: var(--kb-color-error, #c0392b);
+      font-weight: 600;
     }
     /* Star affordances: the wishlist toggle in the header, the per-dish star, and the panel
        that collects them. Sizes match the category star in the Categories dialog so the two

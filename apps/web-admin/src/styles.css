@@ -460,6 +460,15 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 }
 .primary-btn:active { transform: scale(0.97); }
 .primary-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.primary-btn:disabled,
+.primary-btn[disabled] {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .ghost-btn {
   display: inline-flex;
@@ -817,7 +826,8 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   padding: 0;
   transition: background 0.18s ease;
 }
-.toggle-btn.on { background: var(--brand); }
+.toggle-btn.on,
+.toggle-btn--on { background: var(--brand); color: #ffffff; }
 .toggle-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .toggle-knob {
   position: absolute;
@@ -830,7 +840,8 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.18s ease;
 }
-.toggle-btn.on .toggle-knob { transform: translateX(18px); }
+.toggle-btn.on .toggle-knob,
+.toggle-btn--on .toggle-knob { transform: translateX(18px); }
 
 /* ============ Micro-interactions & Tactile Feedback ============
    ONE behaviour for every control, wherever it lives. Feedback must not depend

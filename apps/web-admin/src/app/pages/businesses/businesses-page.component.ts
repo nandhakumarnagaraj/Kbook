@@ -279,7 +279,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
             <div class="form-group">
               <label for="create-address">Address / City (optional)</label>
-              <input id="create-address" class="field-control" type="text" formControlName="address" placeholder="e.g. Indiranagar, Bangalore" />
+              <textarea id="create-address" class="field-control" rows="3" formControlName="address" placeholder="e.g. Indiranagar, Bangalore" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
             </div>
 
             <div class="modal-actions">
