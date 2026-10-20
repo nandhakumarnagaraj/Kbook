@@ -142,7 +142,9 @@ The server extracts `restaurant_id` and `role` directly from the validated JWT c
 
 ## 4. Staff & Hardware Terminal API (`/business`)
 
-### 4.1 Staff Management
+### 4.1 Staff Management (Web Admin Exclusive)
+> **Surface Scope:** These endpoints are consumed exclusively by the Web Admin console (`apps/web-admin/src/app/pages/staff`). Android POS contains zero staff administration screens and only pulls active staff profiles via read-only `/sync/master/pull` for counter sign-in.
+
 * `GET /business/staff` *(Role: `OWNER`)*
   * **Response:** Array of staff accounts (`name`, `loginId`, `phoneNumber`, `role`, `isActive`, `lastLoginAt`).
 * `POST /business/staff` *(Role: `OWNER`)*
@@ -156,9 +158,11 @@ The server extracts `restaurant_id` and `role` directly from the validated JWT c
       "phoneNumber": "9876543210"
     }
     ```
-* `PUT /business/staff/:userId`
-* `POST /business/staff/:userId/deactivate`
-* `POST /business/staff/:userId/activate`
+* `PUT /business/staff/:userId` *(Role: `OWNER`)*
+* `POST /business/staff/:userId/deactivate` *(Role: `OWNER`)*
+* `POST /business/staff/:userId/activate` *(Role: `OWNER`)*
+* `POST /permissions/grant` *(Role: `OWNER`)*
+* `POST /permissions/revoke` *(Role: `OWNER`)*
 
 ### 4.2 Terminal Provisioning & Pairing
 * `GET /business/terminals`

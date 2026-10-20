@@ -7,14 +7,14 @@ KhanaBook is an offline-first restaurant billing and operations system for small
 
 ## Repository layout
 
-| Path | What it is |
-|---|---|
-| `apps/android/` | Kotlin/Compose POS app (self-contained Gradle project) |
-| `apps/web-admin/` | Angular admin console |
-| `services/server/` | Spring Boot API and Flyway migrations |
-| `docs/` | All documentation — start at [`docs/README.md`](docs/README.md) |
-| `ops/` | Deploy scripts, Docker Compose files, Apache/nginx configs, backups |
-| `specs/` · `mcp/` · `cdn/` | Local tooling and runtime uploads (git-ignored) |
+| Path | What it is | Target Users & Surface Rules |
+|---|---|---|
+| `apps/android/` | Kotlin/Compose POS app (self-contained Gradle project) | **Counter Staff & Cashiers:** Fast offline-first billing, KOT generation, dynamic UPI/Cash payments, and thermal receipt printing. *Contains zero staff management or configuration screens to safeguard shared physical counter tablets.* |
+| `apps/web-admin/` | Angular 18 standalone admin console | **Restaurant Owners Only:** Menu catalog pricing, staff account creation & permission delegation, raw material recipes/inventory, GST/FSSAI settings, and daily shift closings. *Staff credentials strictly rejected (`surface: 'web'`).* |
+| `services/server/` | Spring Boot API and Flyway migrations | Central multi-tenant cloud service, edge synchronization engine (`/sync/push`, `/sync/pull`), Easebuzz dynamic payment webhooks, and audit logging. |
+| `docs/` | All documentation — start at [`docs/README.md`](docs/README.md) | Architectural specifications, database schemas, and operational runbooks. |
+| `ops/` | Deploy scripts, Docker Compose files, Apache/nginx configs, backups | Production infrastructure and container setup. |
+| `specs/` · `mcp/` · `cdn/` | Local tooling and runtime uploads (git-ignored) | Tooling, MCP definitions, and local media artifacts. |
 
 See [`docs/README.md`](docs/README.md) for the full documentation index.
 

@@ -124,6 +124,22 @@ flowchart LR
 | **`SHOP_STAFF`** | **NO (Blocked)** | **YES** | POS counter billing only: Order creation, KOT generation, split payments, table assignment. **Explicitly rejected at `/auth/login` when `surface: 'web'`.** |
 | **`KBOOK_ADMIN`** | **YES** | **NO** | Internal platform operations: Feature flag toggles, merchant onboarding audits, system health monitoring. |
 
+### Surface Separation of Concerns: Web Admin vs. Android POS
+
+To maintain physical security at restaurant counters and prevent unauthorized credential changes, KhanaBook enforces strict surface separation:
+
+1. **Staff Management is 100% Web Admin-Exclusive:**
+   - Adding new staff members, setting 4-digit POS PINs, editing contact info, deactivating staff, and configuring granular permissions/role templates exist **exclusively in Web Admin (`apps/web-admin/src/app/pages/staff`)** and are restricted to the `OWNER` role.
+   - The backend permission controller (`/permissions/**`) guards all staff mutation endpoints with `@RequireRole({UserRole.OWNER})`.
+
+2. **Android POS Tablet Has Zero Staff Management UI:**
+   - Neither `OWNER` nor `SHOP_STAFF` can create, edit, or delete staff members from the Android tablet.
+   - **Why:** Counter POS tablets are physically shared among rotating shifts (cashiers, stewards, runners). Stripping administrative staff controls from the tablet eliminates the risk of rogue employee creation, PIN tampering, or privilege escalation at the counter.
+   - **How Android Uses Staff Data:** The Android client pulls active staff members as a read-only sync entity (`UserEntity`) strictly for the lock-screen sign-in and operator switching, ensuring each bill and KOT is accurately stamped with the acting `created_by_user_id`.
+
+3. **Restricted Operational Keys on POS:**
+   - In `PermissionManager.kt`, keys under `SHOP_STAFF_CONFIG_KEYS` (`MENU_EDIT_PRICE`, `MENU_ADD_ITEM`, `MENU_DELETE_ITEM`, `SETTINGS_PAYMENT`, `SETTINGS_GST`, `REPORTS_EXPORT`) are blocked for `SHOP_STAFF` even if explicitly pushed via sync. Staff can only execute fast counter billing, KOT generation, payment receipt, and daily shift cash counting.
+
 ---
 
 ## 5. Monorepo Repository Structure

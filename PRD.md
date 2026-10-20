@@ -31,9 +31,12 @@ Per architecture migration `V94__collapse_staff_roles`, KhanaBook implements a s
 
 | Role | Permitted Access Surfaces | Responsibilities & Capabilities |
 | :--- | :--- | :--- |
-| **`OWNER`** | **Web Admin** & **Android POS** | Full administrative and business control. Can configure restaurants, modify menu prices, manage raw material inventory, view financial/tax reports, manage staff, and revoke sessions. |
+| **`OWNER`** | **Web Admin** & **Android POS** | Full administrative and business control. Can configure restaurants, modify menu prices, manage raw material inventory, view financial/tax reports, manage staff accounts & permissions on Web Admin, and revoke sessions. |
 | **`SHOP_STAFF`** | **Android POS Only** *(Rejected at Web Admin login)* | Counter billers, stewards, and kitchen staff. Can create bills, accept cash/UPI payments, print KOTs, and trigger thermal receipts. Cannot access financial reports or Web Admin. |
 | **`KBOOK_ADMIN`** | **Internal Platform Only** | Super-administrators managing multi-tenant onboarding, Easebuzz aggregator merchant agreements, platform feature flags, and sub-merchant KYC. |
+
+> **Surface Separation Rule:**
+> Staff Management (account creation, PIN assignment, permission delegation, deactivation) is strictly a **Web Admin-only module** for the `OWNER`. The Android POS app does **not** include any staff management screens or controls; it consumes staff profiles via read-only sync exclusively for operator sign-in and bill stamping.
 
 ---
 
