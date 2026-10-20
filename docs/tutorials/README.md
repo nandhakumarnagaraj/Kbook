@@ -154,6 +154,8 @@ point. Address, GST, printers, and payments are configured later from Settings.
    **Verify OTP**, then set a **New Password** and **Confirm Password**, and tap
    **Reset Password** → **Done**.
 
+> **Video:** [How to Sign In with Google](https://kbook.iadv.cloud/cdn/tutorials/continue-with-google.webm) (0:10)
+
 ---
 
 ### First Launch: Device Setup
