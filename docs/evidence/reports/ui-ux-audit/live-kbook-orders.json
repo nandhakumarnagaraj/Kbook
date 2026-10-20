@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "url": "https://kbook.iadv.cloud/business/orders",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 10363,
+    "rollups": [],
+    "totals": {
+      "severity": {
+        "low": 1
+      },
+      "category": {
+        "layout_invariant": 1
+      },
+      "viewport": {
+        "mobile": 1
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Toggle navigation menu\"]",
+      "bbox": {
+        "x": 16,
+        "y": 12,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-1",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}

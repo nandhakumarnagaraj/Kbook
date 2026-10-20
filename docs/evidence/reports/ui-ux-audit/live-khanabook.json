@@ -1,0 +1,246 @@
+{
+  "meta": {
+    "url": "https://khanabook.in/",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 27907,
+    "rollups": [
+      {
+        "viewport": "mobile",
+        "ruleId": "undersized-touch-target",
+        "total": 9,
+        "shown": 5
+      }
+    ],
+    "totals": {
+      "severity": {
+        "high": 3,
+        "low": 14
+      },
+      "category": {
+        "a11y_contrast": 3,
+        "layout_invariant": 14
+      },
+      "viewport": {
+        "desktop": 6,
+        "mobile": 11
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bg-\\[\\#F0142D\\]",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.33 (foreground color: #ffffff, background color: #f0142d, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-1",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Go to slide Live Counter & Tables\"]",
+      "bbox": {
+        "x": 1304,
+        "y": 373,
+        "width": 16,
+        "height": 32
+      },
+      "actual": "16x32px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-2",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Go to slide High-Speed Billing\"]",
+      "bbox": {
+        "x": 1304,
+        "y": 417,
+        "width": 16,
+        "height": 16
+      },
+      "actual": "16x16px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-3",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Go to slide Multi-Mode Settlement\"]",
+      "bbox": {
+        "x": 1304,
+        "y": 445,
+        "width": 16,
+        "height": 16
+      },
+      "actual": "16x16px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-4",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Go to slide Shift & Sales Reports\"]",
+      "bbox": {
+        "x": 1304,
+        "y": 473,
+        "width": 16,
+        "height": 16
+      },
+      "actual": "16x16px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-5",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Go to slide Live Menu Control\"]",
+      "bbox": {
+        "x": 1304,
+        "y": 501,
+        "width": 16,
+        "height": 16
+      },
+      "actual": "16x16px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-6",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bg-\\[\\#F0142D\\]",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.33 (foreground color: #ffffff, background color: #f0142d, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-7",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "scrollable-region-focusable",
+      "severity": "high",
+      "selector": ".overflow-x-auto.shadow-2xl.border-border\\/70",
+      "bbox": null,
+      "actual": "Fix any of the following: Element should have focusable content Element should be focusable",
+      "expected": "Ensure elements that have scrollable content are accessible by keyboard in Safari",
+      "id": "mobile-8",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Open navigation\"]",
+      "bbox": {
+        "x": 338,
+        "y": 20,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-9",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Previous customer story\"]",
+      "bbox": {
+        "x": 43,
+        "y": 13837,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-10",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Pause customer stories carousel\"]",
+      "bbox": {
+        "x": 99,
+        "y": 13837,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-11",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Show story 1\"]",
+      "bbox": {
+        "x": 155,
+        "y": 13843,
+        "width": 28,
+        "height": 28
+      },
+      "actual": "28x28px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-12",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Show story 2\"]",
+      "bbox": {
+        "x": 191,
+        "y": 13843,
+        "width": 28,
+        "height": 28
+      },
+      "actual": "28x28px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-13",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}

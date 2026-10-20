@@ -1,0 +1,249 @@
+{
+  "meta": {
+    "url": "https://kbook.iadv.cloud/business/menu",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 15131,
+    "rollups": [
+      {
+        "viewport": "desktop",
+        "ruleId": "color-contrast",
+        "total": 10,
+        "shown": 5
+      },
+      {
+        "viewport": "mobile",
+        "ruleId": "color-contrast",
+        "total": 10,
+        "shown": 5
+      },
+      {
+        "viewport": "mobile",
+        "ruleId": "label-content-name-mismatch",
+        "total": 10,
+        "shown": 5
+      }
+    ],
+    "totals": {
+      "severity": {
+        "high": 30,
+        "low": 1
+      },
+      "category": {
+        "a11y_contrast": 30,
+        "layout_invariant": 1
+      },
+      "viewport": {
+        "desktop": 10,
+        "mobile": 21
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(1) > td:nth-child(6) > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-1",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(2) > td:nth-child(6) > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-2",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(3) > td:nth-child(6) > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-3",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(4) > td:nth-child(6) > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-4",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(5) > td:nth-child(6) > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-5",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(1) > .mobile-data-card__head > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-6",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(2) > .mobile-data-card__head > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-7",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(3) > .mobile-data-card__head > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-8",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(4) > .mobile-data-card__head > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-9",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(5) > .mobile-data-card__head > .chip.success",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-10",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".mobile-data-card__actions > .fav-btn--on.fav-btn[aria-label=\"Remove Tester from favourites\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-11",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".mobile-data-card__actions > .fav-btn[aria-label=\"Mark TestLiveSite as favourite\"][type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-12",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": "article:nth-child(3) > .mobile-data-card__actions > .fav-btn.ghost-btn[type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-13",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": "article:nth-child(4) > .mobile-data-card__actions > .fav-btn.ghost-btn[type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-14",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".mobile-data-card__actions > .fav-btn[aria-label=\"Mark 409loop as favourite\"][type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-15",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Toggle navigation menu\"]",
+      "bbox": {
+        "x": 16,
+        "y": 12,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-16",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}

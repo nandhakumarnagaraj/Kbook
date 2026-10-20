@@ -1,0 +1,156 @@
+{
+  "meta": {
+    "url": "https://kbook.iadv.cloud/business/daily-closing",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 10682,
+    "rollups": [],
+    "totals": {
+      "severity": {
+        "high": 6,
+        "low": 3
+      },
+      "category": {
+        "a11y_contrast": 6,
+        "layout_invariant": 3
+      },
+      "viewport": {
+        "desktop": 3,
+        "mobile": 6
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".kpi-tag",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-1",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bento-kpi--hero > .bento-kpi__label",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.46 (foreground color: #d9e8f7, background color: #0066cc, font size: 9.4pt (12.48px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-2",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bento-kpi--hero > .bento-kpi__sub",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.46 (foreground color: #d9e8f7, background color: #0066cc, font size: 9.1pt (12.16px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-3",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".kpi-tag",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-4",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bento-kpi--hero > .bento-kpi__label",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.46 (foreground color: #d9e8f7, background color: #0066cc, font size: 9.4pt (12.48px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-5",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".bento-kpi--hero > .bento-kpi__sub",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.46 (foreground color: #d9e8f7, background color: #0066cc, font size: 9.1pt (12.16px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-6",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Toggle navigation menu\"]",
+      "bbox": {
+        "x": 16,
+        "y": 12,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-7",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "input[aria-label=\"Closing date\"]",
+      "bbox": {
+        "x": 16,
+        "y": 223,
+        "width": 129,
+        "height": 36
+      },
+      "actual": "129x36px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-8",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Download daily closing CSV\"]",
+      "bbox": {
+        "x": 153,
+        "y": 222,
+        "width": 38,
+        "height": 38
+      },
+      "actual": "38x38px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-9",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}

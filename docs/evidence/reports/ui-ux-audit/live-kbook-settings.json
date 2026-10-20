@@ -1,0 +1,356 @@
+{
+  "meta": {
+    "url": "https://kbook.iadv.cloud/business/settings",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 11636,
+    "rollups": [
+      {
+        "viewport": "mobile",
+        "ruleId": "undersized-touch-target",
+        "total": 6,
+        "shown": 5
+      }
+    ],
+    "totals": {
+      "severity": {
+        "high": 10,
+        "critical": 2,
+        "low": 6,
+        "medium": 5
+      },
+      "category": {
+        "a11y_contrast": 12,
+        "layout_invariant": 11
+      },
+      "viewport": {
+        "desktop": 11,
+        "mobile": 12
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".kpi-tag",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-1",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".test-qr-badge",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 3.75 (foreground color: #2f855a, background color: #dceee2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-2",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".header-action-btn--primary",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "desktop-3",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": "button[aria-label=\"Reload settings from server\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "desktop-4",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".primary-btn[aria-label=\"Save all business settings\"][type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "desktop-5",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label",
+      "severity": "critical",
+      "selector": "input[type=\"number\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Element does not have an implicit (wrapped) <label> Element does not have an explicit <label> aria-label attribute does not exist or is empty aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty Element has no…",
+      "expected": "Ensure every form element has a label",
+      "id": "desktop-6",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > label > input",
+      "bbox": {
+        "x": 277,
+        "y": 678,
+        "width": 13,
+        "height": 13
+      },
+      "actual": "13x13px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-7",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > label > input",
+      "bbox": {
+        "x": 277,
+        "y": 1024,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-8",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > label > input",
+      "bbox": {
+        "x": 659,
+        "y": 1024,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-9",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(3) > label > input",
+      "bbox": {
+        "x": 1041,
+        "y": 1024,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-10",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "div > div > label > input",
+      "bbox": {
+        "x": 277,
+        "y": 1523,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on desktop (WCAG 2.5.8)",
+      "id": "desktop-11",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".kpi-tag",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.01 (foreground color: #2f855a, background color: #e7f4ec, font size: 8.6pt (11.52px), font weight: bold). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-12",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": ".test-qr-badge",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 3.75 (foreground color: #2f855a, background color: #dceee2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-13",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".header-action-btn--primary",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-14",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": "button[aria-label=\"Reload settings from server\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-15",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label-content-name-mismatch",
+      "severity": "high",
+      "selector": ".primary-btn[aria-label=\"Save all business settings\"][type=\"button\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Text inside the element is not included in the accessible name",
+      "expected": "Ensure that elements labelled through their content must have their visible text as part of their accessible name",
+      "id": "mobile-16",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "label",
+      "severity": "critical",
+      "selector": "input[type=\"number\"]",
+      "bbox": null,
+      "actual": "Fix any of the following: Element does not have an implicit (wrapped) <label> Element does not have an explicit <label> aria-label attribute does not exist or is empty aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty Element has no…",
+      "expected": "Ensure every form element has a label",
+      "id": "mobile-17",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Toggle navigation menu\"]",
+      "bbox": {
+        "x": 16,
+        "y": 12,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-18",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "medium",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > label > input",
+      "bbox": {
+        "x": 21,
+        "y": 1372,
+        "width": 13,
+        "height": 13
+      },
+      "actual": "13x13px",
+      "expected": ">= 24x24px on mobile (WCAG 2.5.8)",
+      "id": "mobile-19",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "medium",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > label > input",
+      "bbox": {
+        "x": 21,
+        "y": 1737,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on mobile (WCAG 2.5.8)",
+      "id": "mobile-20",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "medium",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > label > input",
+      "bbox": {
+        "x": 21,
+        "y": 1779,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on mobile (WCAG 2.5.8)",
+      "id": "mobile-21",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "medium",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(3) > label > input",
+      "bbox": {
+        "x": 21,
+        "y": 1822,
+        "width": 18,
+        "height": 18
+      },
+      "actual": "18x18px",
+      "expected": ">= 24x24px on mobile (WCAG 2.5.8)",
+      "id": "mobile-22",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}

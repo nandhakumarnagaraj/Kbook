@@ -1,0 +1,122 @@
+{
+  "meta": {
+    "url": "https://kbook.iadv.cloud/business/staff",
+    "viewports": [
+      "desktop",
+      "mobile"
+    ],
+    "tokensApplied": false,
+    "aiTriage": false,
+    "vision": false,
+    "visual": false,
+    "reducedMotion": false,
+    "durationMs": 12200,
+    "rollups": [],
+    "totals": {
+      "severity": {
+        "high": 6,
+        "low": 1
+      },
+      "category": {
+        "a11y_contrast": 6,
+        "layout_invariant": 1
+      },
+      "viewport": {
+        "desktop": 3,
+        "mobile": 4
+      }
+    }
+  },
+  "issues": [
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(1) > td:nth-child(5) > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-1",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(2) > td:nth-child(5) > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-2",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "tr:nth-child(3) > td:nth-child(5) > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "desktop-3",
+      "viewport": "desktop",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(1) > .mobile-data-card__head > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-4",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(2) > .mobile-data-card__head > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-5",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "a11y_contrast",
+      "ruleId": "color-contrast",
+      "severity": "high",
+      "selector": "article:nth-child(3) > .mobile-data-card__head > .status-indicator-pill.status-indicator-pill--active",
+      "bbox": null,
+      "actual": "Fix any of the following: Element has insufficient color contrast of 4.1 (foreground color: #2f855a, background color: #eef5f2, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "expected": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "id": "mobile-6",
+      "viewport": "mobile",
+      "source": "measured"
+    },
+    {
+      "category": "layout_invariant",
+      "ruleId": "undersized-touch-target",
+      "severity": "low",
+      "selector": "button[aria-label=\"Toggle navigation menu\"]",
+      "bbox": {
+        "x": 16,
+        "y": 12,
+        "width": 40,
+        "height": 40
+      },
+      "actual": "40x40px (icon-only) ",
+      "expected": ">= 44x44px for icon-only controls on mobile (WCAG 2.5.5 / Apple HIG)",
+      "id": "mobile-7",
+      "viewport": "mobile",
+      "source": "measured"
+    }
+  ],
+  "suppressed": []
+}
