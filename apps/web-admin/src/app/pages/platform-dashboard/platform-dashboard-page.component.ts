@@ -378,6 +378,11 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
     }
     .kpi-card--hero:hover { transform: translateY(-1px); border-color: var(--kb-color-primary); }
+    /* Muted greys are unreadable on the blue hero gradient; use the solid foreground (white) instead. */
+    .kpi-card--hero .kpi-label,
+    .kpi-card--hero .kpi-foot,
+    .kpi-card--hero .kpi-delta,
+    .kpi-card--hero .kpi-compare { color: var(--kb-color-primary-foreground); }
     .kpi-card--warn {
       border-color: var(--kb-color-error-soft);
       background: var(--kb-color-surface);
