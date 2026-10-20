@@ -12,26 +12,18 @@ object BillCalculator {
         val totalGst: String
     )
 
-    data class CashTenderCalculation(
-        val payableAmount: Double,
-        val tenderedAmount: Double,
-        val changeDue: Double,
-        val shortage: Double,
-        val isExactOrMore: Boolean,
-        val isPartial: Boolean
-    )
-
     fun calculateSubtotal(items: List<Pair<String, Int>>): String {
         var subtotal = BigDecimal.ZERO
         items.forEach { (price, qty) ->
-            val itemTotal = BigDecimal(price).multiply(BigDecimal.valueOf(qty.toLong()))
+            val itemPrice = price.toBigDecimalOrNull() ?: BigDecimal.ZERO
+            val itemTotal = itemPrice.multiply(BigDecimal.valueOf(qty.toLong()))
             subtotal = subtotal.add(itemTotal)
         }
         return subtotal.setScale(2, RoundingMode.HALF_UP).toString()
     }
 
     fun calculateGST(subtotal: String, gstPct: Double, isInclusive: Boolean = false): GstBreakdown {
-        val bdSubtotal = BigDecimal(subtotal)
+        val bdSubtotal = subtotal.toBigDecimalOrNull() ?: BigDecimal.ZERO
         val bdGstPct = BigDecimal.valueOf(gstPct)
         val bd100 = BigDecimal.valueOf(100)
         
@@ -68,10 +60,10 @@ object BillCalculator {
         return if (isInclusive) {
             BigDecimal(subtotal).setScale(2, RoundingMode.HALF_UP).toString()
         } else {
-            val total = BigDecimal(subtotal)
-                .add(BigDecimal(cgst))
-                .add(BigDecimal(sgst))
-                .add(BigDecimal(customTax))
+            val total = (subtotal.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                .add(cgst.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                .add(sgst.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                .add(customTax.toBigDecimalOrNull() ?: BigDecimal.ZERO)
             total.setScale(2, RoundingMode.HALF_UP).toString()
         }
     }
@@ -121,41 +113,4 @@ object BillCalculator {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toString()
     }
 
-    fun calculateCashTender(payableAmount: Double, tenderedText: String): CashTenderCalculation {
-        val tendered = tenderedText.toDoubleOrNull() ?: 0.0
-        val changeDue = if (tendered >= payableAmount && payableAmount > 0.0) tendered - payableAmount else 0.0
-        val shortage = if (tendered in 0.01..<payableAmount) payableAmount - tendered else 0.0
-        return CashTenderCalculation(
-            payableAmount = payableAmount,
-            tenderedAmount = tendered,
-            changeDue = changeDue,
-            shortage = shortage,
-            isExactOrMore = tendered >= payableAmount && payableAmount > 0.0,
-            isPartial = shortage > 0.0
-        )
-    }
-
-    fun getSuggestedCashDenominations(amount: Double): List<Long> {
-        if (amount <= 0.0) return emptyList()
-        val rounded = kotlin.math.ceil(amount).toLong()
-        val list = linkedSetOf<Long>()
-        list.add(rounded) // Exact amount
-
-        // Next ₹50 boundary
-        val next50 = ((rounded + 49) / 50) * 50
-        if (next50 > rounded) list.add(next50)
-
-        // Next ₹100 boundary
-        val next100 = ((rounded + 99) / 100) * 100
-        if (next100 > rounded && next100 != next50) list.add(next100)
-
-        // Common Indian currency notes
-        val commonNotes = listOf(100L, 200L, 500L, 1000L, 2000L)
-        for (note in commonNotes) {
-            if (note > rounded && list.size < 4) {
-                list.add(note)
-            }
-        }
-        return list.take(4)
-    }
 }

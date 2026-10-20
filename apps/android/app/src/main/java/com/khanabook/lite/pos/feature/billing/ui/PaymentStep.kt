@@ -104,7 +104,6 @@ fun PaymentStep(
     val restoredPartAmount2 by viewModel.partAmount2.collectAsStateWithLifecycle()
 
     var p1Text by remember { mutableStateOf("") }
-    var cashTenderedText by remember { mutableStateOf("") }
     var p2Text by remember { mutableStateOf("") }
     var resumedPendingBillId by remember { mutableStateOf<Long?>(null) }
     var isCreatingPaymentAttempt by remember { mutableStateOf(false) }
@@ -988,14 +987,6 @@ fun PaymentStep(
                     )
                 }
 
-                if (selectedMode == PaymentMode.CASH) {
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    CashTenderSection(
-                        payableAmount = totalAmount,
-                        tenderedText = cashTenderedText,
-                        onTenderedChange = { cashTenderedText = it }
-                    )
-                }
 
 
                 if (isSplitMode) {

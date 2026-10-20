@@ -92,7 +92,7 @@ fun NewBillScreen(
     val quickMode = resolvedQuickMode ?: false
     var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else if (quickMode) 2 else initialStep) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
-    val effectiveFirstStep = if (quickMode) 2 else 1
+    val effectiveFirstStep = if (draftBillId != null) initialStep else if (quickMode) 2 else 1
 
     // Auto-unlock payment flow after 60 seconds to prevent user being trapped
     LaunchedEffect(paymentFlowLocked) {
@@ -388,7 +388,11 @@ fun NewBillScreen(
                                     billingViewModel = billingViewModel,
                                     activeDraftBills = activeDraftBills,
                                     onOpenDraftOrder = { billId, targetStep ->
-                                        navController?.navigate(Routes.newBill(draftBillId = billId, targetStep = targetStep))
+                                        navController?.navigate(Routes.newBill(draftBillId = billId, targetStep = targetStep)) {
+                                            popUpTo(Routes.NEW_BILL_PATTERN) {
+                                                inclusive = true
+                                            }
+                                        }
                                     }
                             )
                     2 ->

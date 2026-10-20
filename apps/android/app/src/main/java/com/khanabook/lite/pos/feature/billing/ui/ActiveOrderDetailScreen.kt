@@ -231,6 +231,7 @@ private fun DetailActionButtons(
     val spacing = KhanaBookTheme.spacing
     val newItems = detail.items.filterNot { it.sentToKot }
     val buttonHeight = KhanaBookTheme.layout.actionButtonHeight
+    val isCompletedOrPaid = detail.bill.orderStatus == OrderStatus.COMPLETED.dbValue || detail.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing.small)
@@ -241,6 +242,7 @@ private fun DetailActionButtons(
         ) {
             Button(
                 onClick = { onAddItems(detail.bill.id) },
+                enabled = !isCompletedOrPaid,
                 modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryGold,
@@ -275,6 +277,7 @@ private fun DetailActionButtons(
         ) {
             Button(
                 onClick = { onCollectPayment(detail.bill.id) },
+                enabled = !isCompletedOrPaid,
                 modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SuccessGreen,
@@ -288,6 +291,7 @@ private fun DetailActionButtons(
             }
             Button(
                 onClick = onCancel,
+                enabled = !isCompletedOrPaid,
                 modifier = Modifier.weight(1f).heightIn(min = buttonHeight),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DangerRed,
