@@ -457,7 +457,7 @@ class BillingViewModel @Inject constructor(
         cartManager.clear()
         _customerName.value = if (isQuickMode) "Quick Bill" else ""
         _customerWhatsapp.value = ""
-        _orderType.value = if (isQuickMode) OrderType.TAKEAWAY else OrderType.DINE_IN
+        _orderType.value = OrderType.DINE_IN
         paymentStateManager.reset()
         _lastBill.value = null
         _error.value = null
@@ -467,7 +467,7 @@ class BillingViewModel @Inject constructor(
 
     fun applyQuickBillDefaultsIfNeeded(isQuickMode: Boolean) {
         if (isQuickMode) {
-            _orderType.value = OrderType.TAKEAWAY
+            _orderType.value = OrderType.DINE_IN
             _customerName.value = "Quick Bill"
             _customerWhatsapp.value = ""
         }
