@@ -1,254 +1,316 @@
 # KhanaBook — Database Schema & Data Model Specification (DATABASE.md)
 
-**Document Version:** 2.0.0  
-**Status:** Approved Source of Truth for Relational Schema  
-**Database Engines:** PostgreSQL 16+ (Cloud Database) & SQLite 3 (Android Edge Terminals)  
+**Document Version:** 2.1.0  
+**Status:** Approved Source of Truth for Relational Schema & Local Edge Storage  
+**Database Engines:** PostgreSQL 16+ (Cloud Master, Flyway 115+ Migrations) & SQLite 3 / Room v82 (Android Edge Terminals with SQLCipher)  
 
 ---
 
-## 1. Entity Relationship (ER) Diagram
+## 1. Cloud Relational Entity Relationship (ER) Diagram
 
 ```mermaid
 erDiagram
-    RESTAURANTS ||--o{ USERS : employs
-    RESTAURANTS ||--o{ TERMINALS : registers
-    RESTAURANTS ||--o{ MENU_CATEGORIES : organizes
-    RESTAURANTS ||--o{ ORDERS : bills
-    RESTAURANTS ||--o{ DAILY_CLOSINGS : settles
-    
-    MENU_CATEGORIES ||--o{ MENU_ITEMS : contains
-    MENU_ITEMS ||--o{ ITEM_VARIANTS : specifies
-    
-    ORDERS ||--o{ ORDER_ITEMS : includes
-    ORDERS ||--o{ PAYMENTS : settles_with
-    
-    USERS ||--o{ ORDERS : creates
-    TERMINALS ||--o{ ORDERS : originates_from
+    RESTAURANTPROFILES ||--o{ RESTAURANT_TERMINAL : provisions
+    RESTAURANTPROFILES ||--o{ USERS : employs
+    RESTAURANTPROFILES ||--o{ CATEGORIES : organizes
+    RESTAURANTPROFILES ||--o{ BILLS : records
+    RESTAURANTPROFILES ||--o{ RAW_MATERIALS : stocks
+    RESTAURANTPROFILES ||--o{ EASEBUZZ_SUB_MERCHANT : onboards
+    RESTAURANTPROFILES ||--o{ FSSAI_TRACKER : tracks_compliance
 
-    RESTAURANTS {
+    CATEGORIES ||--o{ MENUITEMS : contains
+    MENUITEMS ||--o{ ITEMVARIANTS : has_variants
+    MENUITEMS ||--o{ ITEM_RECIPES : defines_recipe
+    RAW_MATERIALS ||--o{ ITEM_RECIPES : consumed_by
+
+    BILLS ||--o{ BILL_ITEMS : contains
+    BILLS ||--o{ BILL_PAYMENTS : settled_by
+    RESTAURANT_TERMINAL ||--o{ BILLS : issues_series_for
+
+    RAW_MATERIALS ||--o{ STOCK_MOVEMENTS : logs
+    RAW_MATERIALS ||--o{ PURCHASE_ORDER_ITEMS : ordered_in
+    VENDORS ||--o{ PURCHASE_ORDERS : supplies
+    PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : includes
+
+    RESTAURANTPROFILES {
         bigint id PK
-        varchar name
-        text address
-        varchar phone
-        varchar email
-        varchar gstin
-        varchar fssai_number
-        boolean gst_enabled
-        numeric gst_rate
-        varchar logo_url
-        timestamp created_at
-        timestamp updated_at
+        varchar restaurant_id UQ "Singleton restaurant UUID"
+        varchar name "Trading business name"
+        text address "Physical shop address"
+        varchar phone "Primary contact phone"
+        varchar email "Business contact email"
+        varchar gstin "15-digit GSTIN registration"
+        varchar fssai_number "14-digit FSSAI registration"
+        boolean tax_enabled "Composite GST flag"
+        varchar whatsapp_number "Receipt delivery WhatsApp"
+        varchar logo_url "Header logo URL"
+        bigint updated_at "BaseSyncEntity epoch ms"
     }
 
     USERS {
         bigint id PK
-        bigint restaurant_id FK
-        varchar name
-        varchar login_id
-        varchar password_hash
-        varchar role
-        varchar phone
-        boolean is_active
-        timestamp last_login_at
-        timestamp created_at
+        bigint restaurant_id FK "Tenant boundary"
+        varchar login_id UQ "Unique login identifier"
+        varchar name "User full name"
+        varchar email "Unique login email"
+        varchar phone_number "Phone number"
+        varchar password_hash "BCrypt hash"
+        varchar role "OWNER | SHOP_STAFF | KBOOK_ADMIN"
+        varchar auth_provider "PHONE | GOOGLE | PASSWORD"
+        boolean is_active "Account status flag"
     }
 
-    TERMINALS {
-        varchar id PK
-        bigint restaurant_id FK
-        varchar name
-        varchar role
-        varchar hardware_id
-        boolean is_primary
-        boolean is_active
-        timestamp last_heartbeat_at
-        timestamp created_at
-    }
-
-    MENU_CATEGORIES {
+    RESTAURANT_TERMINAL {
         bigint id PK
-        bigint restaurant_id FK
-        varchar name
-        integer sort_order
-        boolean is_starred
-        timestamp created_at
+        bigint restaurant_id FK "Tenant boundary"
+        varchar terminal_series "Allocated invoice prefix (e.g. A, B)"
+        varchar device_id "Hardware UUID"
+        varchar terminal_name "Display counter name"
+        varchar status "PENDING | APPROVED | REJECTED | DEACTIVATED"
+        bigint last_seen_at "Heartbeat epoch ms"
     }
 
-    MENU_ITEMS {
+    CATEGORIES {
         bigint id PK
-        bigint restaurant_id FK
-        bigint category_id FK
-        varchar name
-        numeric base_price
-        varchar food_type
-        boolean is_available
-        boolean is_favourite
-        varchar image_url
-        timestamp created_at
-        timestamp updated_at
+        bigint restaurant_id FK "Tenant boundary"
+        varchar name "Category display name"
+        boolean is_veg "Veg preference flag"
+        integer sort_order "Display sequence"
+        boolean is_active "Active catalog status"
+        boolean is_favourite "Server-pinned lead category"
     }
 
-    ITEM_VARIANTS {
+    MENUITEMS {
         bigint id PK
-        bigint menu_item_id FK
-        varchar name
-        numeric price
-        boolean is_active
+        bigint restaurant_id FK "Tenant boundary"
+        bigint category_id "Local client category FK"
+        bigint server_category_id FK "Cloud categories.id FK"
+        varchar name "Dish or beverage name"
+        numeric base_price "Standard selling price"
+        varchar food_type "VEG | NON_VEG | EGG | BEVERAGE"
+        text description "Menu item description"
+        boolean is_available "Real-time kitchen toggle"
+        boolean is_favourite "Starred item"
+        varchar image_url "CDN thumbnail"
     }
 
-    ORDERS {
+    ITEMVARIANTS {
         bigint id PK
-        bigint restaurant_id FK
-        varchar bill_number
-        varchar order_type
-        varchar status
-        numeric subtotal
-        numeric tax_amount
-        numeric discount_amount
-        numeric total_amount
-        varchar terminal_id FK
-        bigint cashier_id FK
-        timestamp created_at
-        timestamp settled_at
+        bigint restaurant_id FK "Tenant boundary"
+        bigint menu_item_id "Local client item FK"
+        bigint server_menu_item_id FK "Cloud menuitems.id FK"
+        varchar name "Portion (Half, Full, 500ml)"
+        numeric price "Portion selling price"
+        boolean is_active "Active portion status"
     }
 
-    ORDER_ITEMS {
+    BILLS {
         bigint id PK
-        bigint order_id FK
-        bigint menu_item_id FK
-        varchar item_name_snapshot
-        varchar variant_name_snapshot
-        integer quantity
-        numeric unit_price_snapshot
-        numeric total_price
+        bigint restaurant_id FK "Tenant boundary"
+        varchar device_id "Creating POS device UUID"
+        bigint local_id "Creating POS local bill ID"
+        bigint daily_order_id "Counter token sequence"
+        varchar daily_order_display "Formatted token (e.g. #042)"
+        varchar terminal_series "Terminal identifier prefix"
+        varchar invoice_number "Legal tax invoice number"
+        varchar order_type "DINE_IN | TAKEAWAY | DELIVERY"
+        numeric subtotal "Tax-exclusive item sum"
+        numeric cgst_amount "Central GST component"
+        numeric sgst_amount "State GST component"
+        numeric total_amount "Gross bill total payable"
+        varchar payment_mode "CASH | UPI | SPLIT | CARD"
+        varchar payment_status "PAID | PENDING | REFUNDED"
+        varchar order_status "COMPLETED | CANCELLED | VOID"
+        integer status_version "Monotonic intentional state counter"
     }
 
-    PAYMENTS {
+    BILL_ITEMS {
         bigint id PK
-        bigint order_id FK
-        bigint restaurant_id FK
-        varchar payment_mode
-        varchar transaction_ref
-        numeric amount
-        varchar status
-        timestamp created_at
+        bigint restaurant_id FK "Tenant boundary"
+        bigint bill_id "Local bill ID"
+        bigint server_bill_id FK "Cloud bills.id FK"
+        bigint menu_item_id "Snapshot item reference"
+        varchar item_name "Fixed item name snapshot"
+        varchar variant_name "Fixed variant snapshot"
+        integer quantity "Quantity billed"
+        numeric price "Unit price snapshot"
+        numeric subtotal "Line subtotal"
     }
 
-    DAILY_CLOSINGS {
+    BILL_PAYMENTS {
         bigint id PK
-        bigint restaurant_id FK
-        date closing_date
-        numeric expected_cash
-        numeric actual_cash
-        numeric digital_total
-        numeric grand_total
-        bigint closed_by_user_id FK
-        timestamp closed_at
+        bigint restaurant_id FK "Tenant boundary"
+        bigint bill_id "Local bill ID"
+        bigint server_bill_id FK "Cloud bills.id FK"
+        varchar payment_mode "CASH | UPI | CARD | CREDIT"
+        numeric amount "Settlement component amount"
+        varchar payment_status "SUCCESS | FAILED | PENDING"
+        varchar transaction_ref "Easebuzz/Bank reference ID"
+    }
+
+    RAW_MATERIALS {
+        bigint id PK
+        bigint restaurant_id FK "Tenant boundary"
+        varchar name "Ingredient name (e.g. Basmati Rice)"
+        varchar unit "Unit of measure (KG, LTR, PACK)"
+        numeric current_stock "Available stock quantity"
+        numeric reorder_level "Low-stock trigger threshold"
+        numeric cost_per_unit "Latest purchase rate"
+    }
+
+    ITEM_RECIPES {
+        bigint id PK
+        bigint restaurant_id FK "Tenant boundary"
+        bigint menu_item_id FK "Cloud menuitems.id FK"
+        bigint raw_material_id FK "Cloud raw_materials.id FK"
+        numeric quantity_required "Portion consumption quantity"
     }
 ```
 
 ---
 
-## 2. Table Specifications & Column Definitions
+## 2. PostgreSQL Physical Table Specifications
 
-### 2.1 `restaurants` (Business Profile & Multi-Tenant Root)
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `BIGINT` | Primary Key, Generated Always as Identity | Unique restaurant identifier |
-| `name` | `VARCHAR(150)` | NOT NULL | Registered trading business name |
-| `address` | `TEXT` | NULL | Full multi-line physical shop address |
-| `phone` | `VARCHAR(15)` | NOT NULL | Primary contact/WhatsApp number |
-| `email` | `VARCHAR(255)` | NULL | Official communication email |
-| `gstin` | `VARCHAR(15)` | NULL | 15-character Indian GSTIN registration |
-| `fssai_number` | `VARCHAR(14)` | NULL | 14-digit FSSAI license/registration |
-| `gst_enabled` | `BOOLEAN` | NOT NULL DEFAULT false | Whether tax calculation is active |
-| `gst_rate` | `NUMERIC(5,2)` | NOT NULL DEFAULT 5.00 | Applicable composite GST percentage |
-| `logo_url` | `VARCHAR(500)` | NULL | URL to restaurant receipt/header logo |
-| `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | Registration timestamp |
-| `updated_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | Last update timestamp |
+### 2.1 `restaurantprofiles` (Tenant Singleton Profile)
+* **Table:** `restaurantprofiles`
+* **Constraints:**
+  * `uq_restaurantprofiles_restaurant_id`: Unique constraint on `restaurant_id` (guarantees exactly one profile row per tenant).
+  * `restaurantprofiles_restaurant_id_device_id_local_id_key`: Unique constraint on composite tuple `(restaurant_id, device_id, local_id)`.
+* **Columns:**
+  | Column | Type | Constraints | Description |
+  | :--- | :--- | :--- | :--- |
+  | `id` | `BIGINT` | Primary Key (Identity) | Server primary key |
+  | `restaurant_id` | `VARCHAR(64)` | NOT NULL, UNIQUE | Business tenant UUID |
+  | `name` | `VARCHAR(150)` | NOT NULL | Registered trading business name |
+  | `address` | `TEXT` | NULL | Full physical address for receipt printing |
+  | `phone` | `VARCHAR(15)` | NOT NULL | Owner contact phone number |
+  | `email` | `VARCHAR(255)` | NULL | Official business email |
+  | `gstin` | `VARCHAR(15)` | NULL | 15-character Indian GSTIN registration |
+  | `fssai_number` | `VARCHAR(14)` | NULL | 14-digit FSSAI license/registration number |
+  | `tax_enabled` | `BOOLEAN` | NOT NULL DEFAULT false | Whether tax calculation is active |
+  | `whatsapp_number` | `VARCHAR(15)` | NULL | WhatsApp number for automated e-bills |
+  | `logo_url` | `VARCHAR(500)` | NULL | CDN URL to receipt/header logo image |
+  | `version` | `BIGINT` | NOT NULL DEFAULT 0 | Optimistic locking counter |
+  | `updated_at` | `BIGINT` | NOT NULL | BaseSyncEntity epoch milliseconds |
+  | `created_at` | `BIGINT` | NOT NULL | BaseSyncEntity epoch milliseconds |
 
-### 2.2 `users` (Staff & Authentication Accounts)
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `BIGINT` | Primary Key, Generated Always as Identity | Unique user ID |
-| `restaurant_id` | `BIGINT` | Foreign Key -> `restaurants.id` | Tenant isolation scoping |
-| `name` | `VARCHAR(100)` | NOT NULL | Staff member full name |
-| `login_id` | `VARCHAR(100)` | NOT NULL | Username, phone, or email for login |
-| `password_hash` | `VARCHAR(255)` | NOT NULL | Argon2id / BCrypt salted password hash |
-| `role` | `VARCHAR(20)` | NOT NULL | `OWNER`, `MANAGER`, `CASHIER`, `KITCHEN` |
-| `phone` | `VARCHAR(15)` | NULL | Staff mobile number |
-| `is_active` | `BOOLEAN` | NOT NULL DEFAULT true | Account status; false prevents login |
-| `last_login_at`| `TIMESTAMPTZ` | NULL | Timestamp of latest successful auth |
-| `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT now() | Creation timestamp |
+### 2.2 `users` (Authentication & Access Control)
+* **Table:** `users`
+* **Constraints:** Unique on `email`, `login_id`, `phone_number`.
+* **Columns:**
+  | Column | Type | Constraints | Description |
+  | :--- | :--- | :--- | :--- |
+  | `id` | `BIGINT` | Primary Key (Identity) | Server primary key |
+  | `restaurant_id` | `BIGINT` | NOT NULL, Indexed | Multi-tenant boundary |
+  | `name` | `VARCHAR(100)` | NOT NULL | Full name of staff member or owner |
+  | `login_id` | `VARCHAR(100)` | NOT NULL, UNIQUE | Username for credentials auth |
+  | `email` | `VARCHAR(255)` | NULL, UNIQUE | Email address |
+  | `phone_number` | `VARCHAR(15)` | NULL, UNIQUE | Mobile phone number |
+  | `google_email` | `VARCHAR(255)` | NULL, Indexed | Linked Google SSO address |
+  | `auth_provider` | `VARCHAR(20)` | NOT NULL DEFAULT 'PHONE' | `PHONE`, `GOOGLE`, `PASSWORD` |
+  | `password_hash` | `VARCHAR(255)` | NULL | BCrypt password hash (WRITE_ONLY) |
+  | `role` | `VARCHAR(20)` | NOT NULL | `OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN` |
+  | `is_active` | `BOOLEAN` | NOT NULL DEFAULT true | Whether account can authenticate |
 
-### 2.3 `menu_items` & `item_variants`
-* **`menu_items`:**
-  * `id`: `BIGINT` (PK)
-  * `restaurant_id`: `BIGINT` (FK -> `restaurants.id`)
-  * `category_id`: `BIGINT` (FK -> `menu_categories.id`)
-  * `name`: `VARCHAR(150)` (NOT NULL)
-  * `base_price`: `NUMERIC(10,2)` (NOT NULL DEFAULT 0.00)
-  * `food_type`: `VARCHAR(20)` (CHECK in `'VEG', 'NON_VEG', 'EGG', 'BEVERAGE'`)
-  * `is_available`: `BOOLEAN` (NOT NULL DEFAULT true)
-  * `is_favourite`: `BOOLEAN` (NOT NULL DEFAULT false)
-  * `image_url`: `VARCHAR(500)` (NULL)
-* **`item_variants`:**
-  * `id`: `BIGINT` (PK)
-  * `menu_item_id`: `BIGINT` (FK -> `menu_items.id` ON DELETE CASCADE)
-  * `name`: `VARCHAR(50)` (NOT NULL, e.g. "Half", "Full", "Large")
-  * `price`: `NUMERIC(10,2)` (NOT NULL)
+### 2.3 `bills`, `bill_items`, and `bill_payments` (Financial Core)
+* **Table:** `bills`
+  * **Composite Unique Constraint:** `(restaurant_id, device_id, local_id)`
+  * **Status Versioning:** `status_version INT NOT NULL DEFAULT 0` — incremented by Android POS on intentional state changes to safeguard against stale Last-Write-Wins overwrites.
+  * **Invoice Numbering:** `invoice_number VARCHAR(50)` generated as `KB-{RestaurantId}-{TerminalSeries}-{FinancialYear}-{Seq}`.
+* **Table:** `bill_items`
+  * **Composite Unique Constraint:** `(restaurant_id, device_id, local_id)`
+  * **Historical Snapshots:** Captures `item_name`, `variant_name`, `quantity`, `price`, `tax_rate`, and `subtotal`. Subsequent price adjustments on `menuitems` never alter historical bill records.
+* **Table:** `bill_payments`
+  * **Composite Unique Constraint:** `(restaurant_id, device_id, local_id)`
+  * Supports split settlements across `CASH`, `UPI`, `CARD`, `CREDIT`.
 
-### 2.4 `orders` & `order_items`
-* **`orders`:**
-  * `id`: `BIGINT` (PK)
-  * `restaurant_id`: `BIGINT` (FK -> `restaurants.id`, Indexed)
-  * `bill_number`: `VARCHAR(50)` (NOT NULL, Unique per restaurant)
-  * `order_type`: `VARCHAR(20)` (`DINE_IN`, `TAKEAWAY`, `DELIVERY`)
-  * `status`: `VARCHAR(20)` (`PENDING`, `COMPLETED`, `CANCELLED`, `REFUNDED`)
-  * `subtotal`: `NUMERIC(10,2)` (NOT NULL)
-  * `tax_amount`: `NUMERIC(10,2)` (NOT NULL DEFAULT 0.00)
-  * `discount_amount`: `NUMERIC(10,2)` (NOT NULL DEFAULT 0.00)
-  * `total_amount`: `NUMERIC(10,2)` (NOT NULL)
-  * `terminal_id`: `VARCHAR(50)` (FK -> `terminals.id`)
-  * `created_at`: `TIMESTAMPTZ` (NOT NULL DEFAULT now(), Indexed)
+### 2.4 `categories`, `menuitems`, and `itemvariants` (Menu Engine)
+* **Table:** `categories`
+  * `(restaurant_id, device_id, local_id)` composite unique key.
+  * Fields: `name`, `is_veg`, `sort_order`, `is_active`, `is_favourite`.
+* **Table:** `menuitems`
+  * Contains local `category_id` (Room reference) and server `server_category_id` (`categories.id` foreign key).
+  * Fields: `name`, `base_price`, `food_type`, `description`, `is_available` (real-time availability), `is_favourite`, `image_url`.
+* **Table:** `itemvariants`
+  * Maps portions ("Half", "Full", "Small", "Regular") to parent `menuitems`.
+
+### 2.5 Inventory & Recipe Management
+* **`raw_materials`:** Stores raw ingredients (` Basmati Rice`, `Cooking Oil`, `Chicken Breasts`) with unit of measure, stock balance, reorder levels, and unit costs.
+* **`item_recipes`:** Maps each menu item to required raw material quantities (`menu_item_id`, `raw_material_id`, `quantity_required`). Billed items automatically trigger stock deduction.
+* **`stock_movements`:** Audit trail for inventory adjustments (`PURCHASE`, `SALE_DEDUCTION`, `WASTAGE`, `PHYSICAL_AUDIT_ADJUSTMENT`).
+* **`purchase_orders` & `vendors`:** Tracks supplier PO procurement cycles (`DRAFT`, `ORDERED`, `RECEIVED`, `CANCELLED`).
+
+### 2.6 Compliance & Payment Integration Tables
+* **`easebuzz_sub_merchant`:** Sub-merchant account credentials, KYC status (`APPROVED`, `SUBMITTED`, `ACTION_REQUIRED`), Easebuzz sub-merchant virtual ID, bank account details.
+* **`easebuzz_webhook_events`:** Inbound webhook payloads, processed status, and SHA-512 verification logs.
+* **`fssai_tracker`:** 14-digit FSSAI license record, FoSCoS validity date, license category (Registration vs State License), and renewal notifications.
+* **`merchant_agreement`:** Owner terms-of-service acceptance, IP address, timestamp, and signed legal contract blobs.
 
 ---
 
-## 3. Database Indexes for Query Optimization
+## 3. Android Room Database Schema (Edge Engine - Schema v82)
+
+The Android POS client runs a local SQLite database encrypted with **SQLCipher** (`khanabook_lite_db_<restaurantId>`), managed via `AppDatabase.kt` (Room Schema **v82**).
+
+### 3.1 17 Room Entity Classes
+
+| # | Room Entity Class | Table Name | Purpose on Edge POS |
+| :-: | :--- | :--- | :--- |
+| 1 | `UserEntity` | `users` | Local cached credentials, offline PIN verification, active shift login |
+| 2 | `RestaurantProfileEntity` | `restaurantprofiles` | Cached business identity, receipt tax rates, header info |
+| 3 | `CategoryEntity` | `categories` | Menu classification and POS tab ordering |
+| 4 | `MenuItemEntity` | `menuitems` | Dish catalog, live 86/availability toggles, base pricing |
+| 5 | `ItemVariantEntity` | `itemvariants` | Dish portions and variant pricing |
+| 6 | `PrinterProfileEntity` | `printer_profiles` | USB, Bluetooth, and IP thermal ESC/POS printer hardware configurations |
+| 7 | `KitchenPrintQueueEntity` | `kitchen_print_queue` | Local queue ensuring KOTs print reliably even during network dropouts |
+| 8 | `BillEntity` | `bills` | Complete offline bill record, split tenders, order status, monotonic version |
+| 9 | `BillItemEntity` | `bill_items` | Line items attached to offline bills with price snapshots |
+| 10 | `BillPaymentEntity` | `bill_payments` | Tender details (Cash, Dynamic QR, Card) |
+| 11 | `SyncQuarantineEntity` | `sync_quarantine` | Isolates malformed or conflicted records from blocking the sync pipeline |
+| 12 | `MenuItemCategoryRepairEntity` | `menuitem_category_repairs` | Edge heal mechanism for orphaned category-item links during sync |
+| 13 | `KotEventEntity` | `kot_events` | Kitchen ticket lifecycles (Send, Edit, Void, Reprint) |
+| 14 | `TerminalDailyCounterEntity` | `terminal_daily_counters` | Monotonic token sequence generation for daily order counters |
+| 15 | `NotificationEntity` | `notifications` | Local push notification feed from FCM / Web Admin |
+| 16 | `StaffPermissionEntity` | `staff_permissions` | Local cached permissions matrix for the logged-in user |
+| 17 | `PermissionCacheEntity` | `permission_cache` | High-speed cache for instant POS UI permission checks |
+
+---
+
+## 4. Database Indexing & Performance Optimization
 
 ```sql
--- Tenant-scoped order queries & dashboard analytics
-CREATE INDEX idx_orders_restaurant_created ON orders (restaurant_id, created_at DESC);
-CREATE INDEX idx_orders_bill_lookup ON orders (restaurant_id, bill_number);
+-- Multi-tenant sync delta lookups (used by /sync/pull)
+CREATE INDEX idx_bills_tenant_updated ON bills (restaurant_id, updated_at);
+CREATE INDEX idx_menuitems_tenant_updated ON menuitems (restaurant_id, updated_at);
+CREATE INDEX idx_categories_tenant_updated ON categories (restaurant_id, updated_at);
+CREATE INDEX idx_restaurantprofiles_tenant_updated ON restaurantprofiles (restaurant_id, updated_at);
 
--- Menu item lookups by category and availability
-CREATE INDEX idx_menu_items_restaurant_cat ON menu_items (restaurant_id, category_id, is_available);
+-- Composite key lookups (used by /sync/push upserts)
+CREATE INDEX idx_bills_device ON bills (restaurant_id, device_id, local_id);
+CREATE INDEX idx_bill_items_device ON bill_items (restaurant_id, device_id, local_id);
+CREATE INDEX idx_bill_payments_device ON bill_payments (restaurant_id, device_id, local_id);
+CREATE INDEX idx_menuitems_device ON menuitems (restaurant_id, device_id, local_id);
 
--- Staff lookup by login identifier
-CREATE UNIQUE INDEX idx_users_restaurant_login ON users (restaurant_id, login_id);
+-- Business reporting and analytics lookups
+CREATE INDEX idx_bills_daily_order ON bills (restaurant_id, daily_order_id);
+CREATE INDEX idx_bills_created_at ON bills (restaurant_id, created_at DESC);
+CREATE INDEX idx_bills_order_status ON bills (restaurant_id, order_status);
 
--- Terminal heartbeat & status lookup
-CREATE INDEX idx_terminals_restaurant ON terminals (restaurant_id, is_active);
+-- Hardware and session lookups
+CREATE INDEX idx_restaurant_terminal_restaurant ON restaurant_terminal (restaurant_id);
+CREATE INDEX idx_users_login_id ON users (login_id);
+CREATE INDEX idx_users_restaurant_role ON users (restaurant_id, role);
 ```
 
 ---
 
-## 4. Tenant Isolation & Row-Level Security (RLS)
+## 5. Migration Discipline & Data Integrity
 
-All cloud queries must strictly enforce multi-tenant isolation. When using PostgreSQL Row-Level Security:
-
-```sql
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY tenant_isolation_orders ON orders
-    FOR ALL
-    USING (restaurant_id = current_setting('app.current_restaurant_id')::bigint);
-```
-
----
-
-## 5. Edge SQLite Sync & Migration Discipline
-
-* **Local Android Schema:** Maintained via Room Database migrations (`MIGRATION_1_2.kt`, etc.).
-* **Zero Destruction Rule:** Cloud and local migrations MUST NEVER drop production tables or truncate customer data during schema updates.
-* **Seed Strategy:** Test environments initialize standard categories (`Appetizers`, `Main Course`, `Beverages`, `Breads`) and default terminal configurations without altering existing live businesses.
+1. **Flyway Migrations (`services/server/src/main/resources/db/migration/`):**
+   * Currently at version **`V115`**.
+   * Forward-only discipline: Existing migration scripts (`V1` through `V115`) MUST NEVER be modified or deleted.
+   * New schema changes require a sequentially numbered migration (e.g. `V116__...sql`).
+2. **Room Database Migrations (`AppDatabase.kt`):**
+   * Version **`82`**. Every schema alteration must define an explicit `Migration(from, to)` block in `AppDatabase.kt` and pass `DatabaseMigrationListConsistencyTest.kt`.
+3. **Zero Destruction Guarantee:**
+   * Production columns and tables are never dropped. Unused fields are marked `@Deprecated` in entity code and left intact in the database to guarantee backward compatibility with edge terminals.

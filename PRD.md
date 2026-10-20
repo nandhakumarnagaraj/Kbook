@@ -1,152 +1,98 @@
 # KhanaBook — Product Requirements Document (PRD)
 
-**Document Version:** 2.0.0  
-**Status:** Approved Source of Truth  
-**Target Domain:** [https://kbook.iadv.cloud](https://kbook.iadv.cloud) / Android POS  
+**Document Version:** 2.1.0 (Codebase Aligned)  
+**Status:** Single Source of Truth for Product Scope  
+**Target Domain:** [https://kbook.iadv.cloud](https://kbook.iadv.cloud) (Web Admin) & Android POS Client  
+**Codebase Provenance:** Verified against `apps/web-admin`, `apps/android`, and `services/server`  
 
 ---
 
 ## 1. Problem Statement & Value Proposition
 
 ### 1.1 The Problem
-Small and mid-sized restaurants, quick-service eateries (QSR), and food outlets in India face severe operational friction:
-* **Internet Unreliability:** Peak billing hours suffer when broadband or cellular connectivity drops, halting traditional cloud POS systems.
-* **Payment Reconciliation Gaps:** Cashiers use static paper UPI QR standees that require manual amount verification, leading to fraud, missed payments, and settlement mismatches.
-* **Complex Enterprise Software:** Legacy desktop POS software is clunky, expensive, hard to train staff on, and lacks seamless multi-device or mobile owner monitoring.
-* **Compliance Overlap:** Navigating GST slabs, FSSAI license compliance, and daily cash-vs-digital closing requires manual spreadsheet compilation.
+Small, medium, and multi-counter food establishments in India operate in high-turnover, chaotic environments subject to internet dropouts, staff fraud, and reconciliation errors:
+* **Connectivity Failures:** Cloud-only POS systems freeze when local internet drops, stopping table turnovers.
+* **Payment Misalignment:** Paper static QR codes require cashiers to look at customer phone screens, inviting fake screenshots and unverified transactions.
+* **Inventory & Recipe Leakage:** Dishes are sold without tracking underlying ingredient consumption or stock depletion.
+* **Complex Multi-Device Coordination:** Counter billers, stewards, and kitchen printers often print colliding bill numbers or out-of-order KOTs.
 
 ### 1.2 Value Proposition
-KhanaBook delivers an **offline-first restaurant POS and real-time cloud management platform** built specifically for restaurant owners:
-1. **Zero-Downtime Billing:** Local SQLite + Room mesh network on Android terminals keeps billing running 100% offline.
-2. **Instant Dynamic UPI Payments:** Generates order-specific dynamic QR codes with exact bill amounts via Easebuzz payment gateway, auto-reconciling every transaction.
-3. **Owner Visibility Anywhere:** A lightweight, responsive Web Admin portal (`https://kbook.iadv.cloud`) providing live floor monitoring, menu management, staff RBAC, and tax reporting.
-4. **Automated Daily Closing:** One-click day-end reconciliation calculating cash in hand, digital settlements, GST ledgers, and terminal sync status.
+KhanaBook delivers an **offline-first restaurant POS and real-time cloud management platform** built for restaurant owners:
+1. **100% Offline Billing Resilience:** Local encrypted SQLite Room database on Android terminals maintains uninterrupted counter checkout.
+2. **Instant Dynamic UPI Checkout:** Generates bill-specific dynamic QR codes via Easebuzz aggregator with exact bill amounts, auto-reconciling every payment.
+3. **Owner Cloud Portal:** Angular 18 Web Admin (`https://kbook.iadv.cloud`) providing real-time sales visibility, menu management, raw material inventory/recipe control, and staff session management.
+4. **Automated Daily Shift Reconciliation:** Tracks cash in hand, digital settlements, GST ledgers, and terminal sync health at shift close.
 
 ---
 
-## 2. Target Users & User Personas
+## 2. User Roles & Access Surface (Codebase Aligned)
 
-| Persona | Primary Interface | Primary Goals & Jobs to Be Done |
+Per architecture migration `V94__collapse_staff_roles`, KhanaBook implements a simplified, hardened 3-role security model:
+
+| Role | Permitted Access Surfaces | Responsibilities & Capabilities |
 | :--- | :--- | :--- |
-| **Restaurant Owner (`OWNER`)** | Web Admin & Android Tablet | Complete business visibility, menu engineering, pricing, staff permissions, daily revenue reports, GST/tax audits, and bank settlement tracking. |
-| **Store Manager (`MANAGER`)** | Android Terminal & Web Admin | Shift management, opening/closing cash drawers, resolving order voids/refunds, inventory monitoring, and staff attendance. |
-| **Biller / Cashier (`CASHIER`)** | Android Terminal (Handheld/Tablet) | Ultra-fast order entry (under 5 seconds), dynamic QR generation, cash handling, and instant thermal receipt printing. |
-| **Kitchen Staff (`KITCHEN`)** | Kitchen Display Screen (KDS) / Ticket Printer | Receiving Kitchen Order Tickets (KOT) in real-time, tracking prep time, and marking items out-of-stock. |
+| **`OWNER`** | **Web Admin** & **Android POS** | Full administrative and business control. Can configure restaurants, modify menu prices, manage raw material inventory, view financial/tax reports, manage staff, and revoke sessions. |
+| **`SHOP_STAFF`** | **Android POS Only** *(Rejected at Web Admin login)* | Counter billers, stewards, and kitchen staff. Can create bills, accept cash/UPI payments, print KOTs, and trigger thermal receipts. Cannot access financial reports or Web Admin. |
+| **`KBOOK_ADMIN`** | **Internal Platform Only** | Super-administrators managing multi-tenant onboarding, Easebuzz aggregator merchant agreements, platform feature flags, and sub-merchant KYC. |
 
 ---
 
-## 3. Core User Journeys
+## 3. Core Functional Modules
 
-### Journey 1: Ultra-Fast Table/Counter Checkout (Cashier)
-1. Cashier taps categories and dishes on the POS terminal (or scans barcode/shortcodes).
-2. Taps "Charge" -> Selects payment mode (Cash or Dynamic UPI).
-3. POS displays a dynamic QR code on screen with exact bill amount.
-4. Customer scans QR using GPay/PhonePe/Paytm; webhook/polling confirms receipt in < 2 seconds.
-5. Receipt auto-prints to thermal printer, order syncs to cloud in background.
+### 3.1 Offline-First Billing & Kitchen Orders (POS)
+* **Sub-Second Order Flow:** Cashier adds items, chooses order type (`DINE_IN`, `TAKEAWAY`, `DELIVERY`), and generates bills.
+* **KOT Generation:** Dispatches Kitchen Order Tickets directly to thermal printers over USB, Bluetooth, or ESC/POS network interfaces.
+* **Zero Collision Identity:** Invoices generated with composite identity `(restaurant_id, device_id, local_id)` and sequential bill numbering.
 
-### Journey 2: Owner Menu & Price Management (Owner)
-1. Owner logs into `https://kbook.iadv.cloud/login`.
-2. Navigates to **Menu** -> views dish list with instant search and category filters.
-3. Toggles dish availability `[On]` / `[Off]` with immediate real-time sync to all billing counters.
-4. Adds a new dish with name, category, veg/non-veg flag, tax rate, and pricing variants.
-5. Marks high-margin dishes with a star `★` to lead the category on POS terminals.
+### 3.2 Dynamic Payments & Easebuzz Gateway
+* Automatic sub-merchant onboarding via Easebuzz RBI aggregator API.
+* Real-time dynamic UPI QR code rendering on terminal screens.
+* Instant webhook payment reconciliation with HMAC SHA-512 signature verification.
+* Split payment support (Cash + UPI / Card).
 
-### Journey 3: Daily Shift Closing & Reconciliation (Manager/Owner)
-1. At shift end, manager navigates to **Daily Closing**.
-2. System auto-calculates total cash collected vs digital UPI settlements from Easebuzz.
-3. Cashier enters physical cash count; system highlights any cash drawer variance.
-4. Manager reviews voided bills and discounts, then closes the business day.
-5. Closing summary is dispatched to owner's WhatsApp and cloud ledger.
+### 3.3 Menu Engineering & Catalog Control
+* Categories with server-owned favorites (`is_favourite`) and custom sort ordering (`sort_order`).
+* Dishes with food type flags (`VEG`, `NON_VEG`, `EGG`, `BEVERAGE`), variants (Half/Full), and image attachments.
+* Real-time availability toggling (`is_available: true/false`) pushed to all terminals.
+* Starred dishes (`is_favourite`) pin high-margin items to lead their category on POS screens.
+* OCR menu card scanner support for automated initial menu extraction.
 
----
+### 3.4 Raw Materials & Recipe Inventory (Server & Web Admin)
+* Raw material stock ledger (`raw_materials`, `stock_movements`, `purchase_orders`).
+* Recipe mapping (`item_recipes`): Automatically deducts ingredient quantities when dishes are billed.
+* Vendor management and purchase order tracking.
 
-## 4. Functional Requirements & Feature Matrix
+### 3.5 Terminal Management & Heartbeats
+* Up to 5 registered Android hardware terminals per restaurant.
+* Terminal roles: Primary Billing Counter, Secondary Counter, Steward Terminal.
+* Remote terminal session recovery challenge protocol.
 
-### 4.1 Authentication & Multi-Role Access Control (RBAC)
-* Phone number or Email authentication with secure password or OTP verification.
-* Strict role hierarchy: `OWNER`, `MANAGER`, `CASHIER`, `KITCHEN`.
-* Session persistence via secure stateless tokens (`sessionStorage` on Web Admin, encrypted storage on Android).
-* Safe session revocation: Ability for Owner to revoke any staff session remotely without deleting their profile.
-
-### 4.2 Menu Engineering & Catalog Management
-* Category hierarchy with custom ordering and pin-to-top favorites.
-* Dish attributes: Name, photo, category, veg/non-veg indicator, base price, tax rate, short code.
-* Variant pricing (e.g., Half / Full, Small / Regular / Large).
-* Real-time availability toggling (`Available` / `Unavailable`) syncing instantly across all connected terminals.
-* Bulk dish reassignment when moving items between categories.
-
-### 4.3 POS Billing & Offline-First Sync
-* Sub-second order creation and item search.
-* Multiple order types: Dine-In (table management), Takeaway / Counter, Delivery.
-* Split billing, order item customization, notes, and custom discounts (percentage or fixed).
-* Offline operation: Orders save locally to Room/SQLite; sync engine pushes batches upon network restoration with monotonic version vector conflict resolution.
-
-### 4.4 Payments & Integrated Settlement
-* Integration with Easebuzz payment aggregator for sub-merchant onboarding.
-* Generation of dynamic UPI QR codes embedding bill ID and exact amount.
-* Automated webhook confirmation and fallback status polling.
-* Multi-mode payment support: Cash, UPI, Credit/Debit Cards, Due / Customer Ledger.
-
-### 4.5 Terminals & Hardware Management
-* Device registration with unique Hardware ID and Terminal role (e.g. Counter 1, Bar, Kitchen).
-* Real-time online/offline status monitoring and heartbeat detection.
-* Primary billing counter assignment.
-* USB, Bluetooth, and Network (ESC/POS) thermal printer integration.
-
-### 4.6 Reports, Taxes & Business Intelligence
-* Real-time dashboard KPI cards: Net Revenue, Order Count, Average Order Value (AOV), Cash vs UPI split.
-* Item-wise sales breakdown with margin analysis.
-* GST Tax Ledger generation exportable for accounting compliance.
-* Audit trail logging all cancelled, voided, or discounted orders with cashier IDs.
+### 3.6 Daily Shift Closing & Tax Audits
+* Shift cash drawer opening balance, expected cash, actual counted cash, and variance logging.
+* Digital payment reconciliation against Easebuzz payout ledgers.
+* Composite GST Tax Ledger generation exportable for accounting compliance.
 
 ---
 
-## 5. Non-Functional Requirements
+## 4. Scope Boundaries
 
-| Metric / Dimension | Requirement |
-| :--- | :--- |
-| **Availability** | 99.9% cloud uptime; 100% offline terminal billing availability. |
-| **Performance** | Billing transaction completion < 3 seconds; Web Admin page loads < 1.5 seconds. |
-| **Security** | TLS 1.3 in transit; AES-256 for credentials at rest; RBI-compliant payment storage (no raw card data stored). |
-| **Data Integrity** | Monotonically increasing bill numbers per business without gaps or duplicates across offline terminals. |
-| **Responsive Web** | Full desktop (1440×900), tablet (768×1024), and mobile (375×812) compatibility with zero horizontal overflow. |
-| **Accessibility** | WCAG 2.1 AA compliant colors (minimum 4.5:1 text contrast ratio) and visible keyboard focus indicators. |
+### In Scope (Authoritative)
+* Offline-first GST billing, KOT printing, and thermal receipt dispatch.
+* Menu catalog with variants, categories, and availability toggles.
+* Easebuzz sub-merchant payments and dynamic UPI QR generation.
+* 5-terminal local mesh sync with cloud ingestion.
+* Raw material inventory, recipes, and vendor purchase orders.
+* Owner Web Admin management and daily shift closing.
 
----
-
-## 6. Page & Screen Structure (Web Admin)
-
-1. `/login`: Clean, accessible sign-in with phone/email and password visibility toggle.
-2. `/business/dashboard`: Executive overview, KPI metric tiles, terminal counts, hourly revenue charts.
-3. `/business/orders`: Live floor order tracker (Live Floor) and searchable historical settlement logs.
-4. `/business/menu`: Searchable dish table, category manager, favorites toggle, and Add/Edit Dish modal.
-5. `/business/staff`: Employee list, assigned roles, status pills, session revocation, and staff modal.
-6. `/business/inventory`: Stock level tracking, low-stock warnings, and reorder triggers.
-7. `/business/terminals`: Terminal hardware overview, online status badges, role assignment, and health checks.
-8. `/business/daily-closing`: Shift totals, cash drawer verification, digital settlement totals, and day close action.
-9. `/business/reports`: Tabbed analytics (Revenue Overview, GST Tax Ledger, Item-Wise Sales).
-10. `/business/settings`: Business profile (Shop Name, Address, WhatsApp, Email), GSTIN/FSSAI verification, and printer configs.
+### Out of Scope (Removed or Never Planned)
+* Third-party delivery marketplace auto-injection (Swiggy/Zomato APIs — schema residue only).
+* Public consumer storefront ordering app.
+* Standalone kitchen display screen (KDS) tablet hardware (Android POS handles kitchen thermal KOT printing directly).
+* Customer loyalty points and rewards programs.
 
 ---
 
-## 7. Scope Boundaries
-
-### In Scope (MVP)
-* Core billing, KOT generation, and ESC/POS thermal printing.
-* Dynamic UPI QR generation via Easebuzz.
-* Local SQLite terminal storage with background cloud synchronization.
-* Web Admin management for Menu, Staff, Orders, Terminals, Daily Closing, and Reports.
-* Role-based access control (`OWNER` vs `SHOP_STAFF`).
-
-### Out of Scope (Post-MVP)
-* Multi-outlet franchise warehouse inventory sync.
-* Direct consumer food delivery marketplace integrations (Swiggy/Zomato auto-order injection).
-* Customer loyalty point redemption programs.
-* Automated AI voice billing.
-
----
-
-## 8. Success Criteria
-* **Checkout Speed:** Average counter checkout time reduced from 45 seconds to under 15 seconds.
-* **Payment Reconciliation:** 100% zero-discrepancy automated reconciliation between Easebuzz settlements and POS daily closing reports.
-* **Offline Resilience:** Zero lost orders during complete internet outages lasting up to 24 hours.
+## 5. Success Metrics
+* **Billing Latency:** < 500ms local order creation on Android terminals.
+* **Zero Offline Data Loss:** 100% of offline bills sync cleanly upon network reconnection without sequence collisions.
+* **Zero Reconciliation Gap:** Exact 1:1 match between Easebuzz UPI settlements and Web Admin closing reports.

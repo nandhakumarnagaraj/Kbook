@@ -1,154 +1,184 @@
 # KhanaBook — System Architecture Specification (ARCHITECTURE.md)
 
-**Document Version:** 2.0.0  
-**Status:** Approved Source of Truth for System Architecture  
-**Target:** Monorepo (`apps/web-admin`, `apps/android`, `services/*`)  
+**Document Version:** 2.1.0  
+**Status:** Approved Source of Truth for System Architecture (Verified against Codebase Ground Truth)  
+**Target Monorepo:** `apps/web-admin` (Angular 18.2.0), `apps/android` (Kotlin Compose, Room v82), `services/server` (Spring Boot 3.5.12, Java 17)  
 
 ---
 
 ## 1. High-Level System Architecture
 
-KhanaBook utilizes a **hybrid offline-first edge architecture** paired with a cloud-native synchronization and analytics backend.
+KhanaBook operates on a **hybrid offline-first edge architecture** paired with a cloud-native synchronization and analytics backend.
 
 ```mermaid
 flowchart TB
     subgraph Edge["Restaurant Premises (Edge / Offline-First)"]
-        POS1["Android POS 1 (Primary / Counter)"]
-        POS2["Android POS 2 (Handheld / Steward)"]
-        KDS["Kitchen Display (KDS / Printer)"]
+        POS1["Android POS Terminal 1 (Counter / Primary)"]
+        POS2["Android POS Terminal 2 (Steward / Handheld)"]
+        KDS["Kitchen Display / Thermal ESC-POS Printer"]
+        RoomDB[("Local SQLite / Room DB v82\n(SQLCipher Encrypted)")]
         
         POS1 <--> |Local WiFi Mesh / P2P| POS2
         POS1 --> |ESC/POS USB/BT/Net| KDS
-        POS1 --- SQLite[("Local SQLite / Room DB")]
+        POS1 --- RoomDB
+        POS2 --- RoomDB
     end
 
     subgraph Cloud["Cloud Infrastructure (kbook.iadv.cloud)"]
-        LB["Load Balancer / Ingress (Cloudflare / Nginx)"]
-        API["Cloud Backend API (Spring Boot / Node)"]
-        PG[("PostgreSQL Master + Read Replicas")]
-        Redis[("Redis Sync Cache & Pub/Sub")]
-        
-        WebAdmin["Web Admin SPA (Angular 17+)"]
+        LB["Ingress / Reverse Proxy (Nginx / Cloudflare)"]
+        Server["Spring Boot 3.5.12 Backend\n(Java 17 Monolith • services/server)"]
+        PG[("PostgreSQL 16+\n(Flyway 115+ Migrations)")]
+        Redis[("Redis Sync Cache & Rate Limiting")]
+        WebAdmin["Web Admin SPA\n(Angular 18.2.0 Standalone)"]
     end
 
-    subgraph Integrations["External Services"]
-        Easebuzz["Easebuzz Payment Aggregator"]
-        Firebase["Firebase Cloud Messaging (FCM)"]
+    subgraph Integrations["External Services & Compliance"]
+        Easebuzz["Easebuzz Sub-Merchant API & Dynamic UPI"]
+        FCM["Firebase Cloud Messaging (FCM)"]
+        FSSAI["FSSAI / FoSCoS Verification Gateway"]
+        GST["GSTIN Portal Lookup Gateway"]
     end
 
-    POS1 == Sync Queue (HTTPS/WSS) ==> LB
-    WebAdmin == REST + JWT ==> LB
-    LB --> API
-    API --> PG
-    API --> Redis
-    API <--> Easebuzz
-    API --> Firebase
+    POS1 == Sync Queue (/sync/push, /sync/pull) ==> LB
+    WebAdmin == REST + JWT (surface: 'web') ==> LB
+    LB --> Server
+    Server --> PG
+    Server --> Redis
+    Server <--> Easebuzz
+    Server --> FCM
+    Server <--> FSSAI
+    Server <--> GST
 ```
 
 ---
 
 ## 2. Technology Stack & Technical Rationale
 
-| Layer / Component | Technology | Rationale |
-| :--- | :--- | :--- |
-| **Web Admin Frontend** | Angular 17+ (TypeScript, SCSS, ESBuild) | Type-safe, modular enterprise architecture; reactive forms for deep settings; built-in dependency injection for maintainable service contracts. |
-| **Android POS Client** | Kotlin, Jetpack Compose, Room DB | Native performance; sub-second UI responsiveness; direct hardware integration for USB/BT thermal printers and payment PIN pads. |
-| **Cloud Backend** | Spring Boot (Java 21) & Node.js microservices | Robust transactional integrity for financial settlements; high throughput for concurrent terminal sync queues. |
-| **Database** | PostgreSQL 16+ (Cloud) & SQLite 3 (Edge) | PostgreSQL provides ACID guarantees and robust JSONB support for order item snapshots; SQLite delivers zero-dependency local offline storage. |
-| **Payment Gateway** | Easebuzz Sub-Merchant API | Certified RBI payment aggregator providing automated sub-merchant onboarding and instant dynamic UPI QR checkout. |
-| **Push & Notifications** | Firebase Cloud Messaging (FCM) | Lightweight real-time invalidation pings to edge terminals when menu prices or availability change in Web Admin. |
+| Layer / Component | Technology | Codebase Ground Truth | Technical Rationale |
+| :--- | :--- | :--- | :--- |
+| **Web Admin Frontend** | Angular 18.2.0 Standalone | `apps/web-admin` (TypeScript, SCSS, ESBuild, Signals, RxJS) | Type-safe, modular enterprise architecture; standalone components with zero NgModules; Angular Signals for fine-grained reactive state; WCAG 2.1 AA compliant. |
+| **Android POS Client** | Kotlin, Jetpack Compose | `apps/android` (Room schema v82, SQLCipher, Dagger Hilt, WorkManager) | Native edge performance; sub-second offline billing; SQLCipher database encryption per restaurant (`khanabook_lite_db_<restaurantId>`); direct ESC/POS hardware printing. |
+| **Cloud Backend** | Spring Boot 3.5.12 on Java 17 | `services/server` (Maven monolith, Spring Data JPA, Hibernate 6) | Strong ACID transactional integrity for financial ledgers; structured monolithic architecture partitioned by domain feature packages (`billing`, `inventory`, `menu`, `auth`, `sync`, `payments`, `compliance`). |
+| **Cloud Database** | PostgreSQL 16+ | 115+ Flyway migrations (`V1` through `V115`) | Relational integrity, composite unique constraints (`restaurant_id`, `device_id`, `local_id`), JSONB support, tenant-isolated data structures. |
+| **Edge Database** | SQLite 3 / Room v82 | 17 Room entities (`AppDatabase.kt`) | Local zero-latency reads/writes, transactional outbox pattern, SQLCipher encryption at rest. |
+| **Payment Gateway** | Easebuzz Sub-Merchant API | Webhook HMAC-SHA512 verification | Certified RBI payment aggregator providing automated sub-merchant KYC onboarding, split payments, and instant dynamic UPI QR checkout. |
+| **Push Invalidation** | Firebase Cloud Messaging (FCM) | `DeviceToken`, `NotificationEvent` | Lightweight real-time invalidation pings to edge terminals when menu prices, item availability, or permissions change. |
 
 ---
 
-## 3. Data Flow & Synchronization Contract
+## 3. Multi-Tenant Sync & Data Flow Contract
 
-### 3.1 Offline-First Event Sourcing
-1. **Local Commit First:** Every order creation, item addition, payment collection, or bill void is written immediately to the local Android SQLite database with an autoincrementing local event ID and UTC timestamp.
-2. **Bill Number Sequencing:** Bill numbers follow the format `KB-{RestaurantId}-{TerminalId}-{ShiftNumber}-{Seq}` to eliminate collision across offline terminals without waiting for cloud coordination.
-3. **Outbox Pattern:** Written events are queued in a persistent local Outbox table (`sync_outbox`).
-4. **Batch Synchronization:** When network connectivity is active, the Sync Worker posts batches (up to 50 events) to `/api/v1/sync/events`.
-5. **Conflict Resolution:** Cloud uses **Last-Write-Wins (LWW) with Monotonic Clock Validation**. For financial transactions (payments), events are strictly append-only; voided orders append a negative compensation ledger record.
+### 3.1 Composite Key Contract (`BaseSyncEntity`)
+Every edge-synced entity inherits from `BaseSyncEntity` and adheres to a strict composite tuple:
+* **Tuple:** `(restaurant_id, device_id, local_id)`
+* **Invariants:**
+  * `restaurant_id`: Tenant boundary (BigInt).
+  * `device_id`: Hardware identifier of the creating POS device (String).
+  * `local_id`: Locally autoincrementing primary key generated in SQLite (BigInt).
+  * `version`: Optimistic lock counter (`@Version`).
+  * `server_updated_at`: Epoch timestamp (millis) stamped by the server on write.
+  * `is_deleted`: Soft-delete flag; records are never physically destroyed.
+
+### 3.2 Offline-First Sync Cycle
+1. **Local Commit First:** Billing, menu status changes, and raw material usages commit immediately to the local Room database (`khanabook_lite_db_<restaurantId>`).
+2. **Bill Invoice Number Generation:** Bill numbers follow the format `KB-{RestaurantId}-{TerminalSeries}-{FinancialYear}-{Seq}`. Sequence allocation is gated by `RestaurantTerminal.terminalSeries` to prevent number collisions across offline terminals.
+3. **Push Sync (`POST /sync/push`):**
+   * Android WorkManager batches un-synced entities and pushes them to the server.
+   * Server validates `restaurant_id` against the JWT claims.
+   * Protects deliberate status changes using `status_version` monotonic counters (preventing stale Last-Write-Wins overwrites).
+4. **Pull Sync (`POST /sync/pull`):**
+   * Android terminal requests all records where `server_updated_at > last_sync_timestamp`.
+   * Delta updates are merged into Room in a single local transaction.
 
 ---
 
-## 4. Repository & Monorepo Folder Structure
+## 4. Role-Based Access Control (RBAC) Architecture
+
+Per migration `V94__collapse_staff_roles`, KhanaBook enforces a 3-role security model:
+
+```mermaid
+flowchart LR
+    subgraph Roles["Role Hierarchy"]
+        Admin["KBOOK_ADMIN\n(Superadmin / Platform)"]
+        Owner["OWNER\n(Restaurant Proprietor)"]
+        Staff["SHOP_STAFF\n(Cashier / Steward / Counter)"]
+    end
+
+    subgraph Surfaces["Client Access Boundaries"]
+        Web["Web Admin (https://kbook.iadv.cloud)"]
+        POS["Android POS App"]
+    end
+
+    Admin --> |Full Platform Access| Web
+    Owner --> |Full Business Access| Web
+    Owner --> |Full Business Access| POS
+    Staff --> |POS Billing & Counter ONLY| POS
+    Staff -.-> |REJECTED (surface: 'web')| Web
+```
+
+### Role Security Matrix
+
+| Role | Web Admin Access | POS App Access | Permissions & Capabilities |
+| :--- | :---: | :---: | :--- |
+| **`OWNER`** | **YES** | **YES** | Full control: Menu pricing, business profiles, GST/FSSAI settings, staff creation, terminal approval, inventory recipes, manual refunds, and daily closing. |
+| **`SHOP_STAFF`** | **NO (Blocked)** | **YES** | POS counter billing only: Order creation, KOT generation, split payments, table assignment. **Explicitly rejected at `/auth/login` when `surface: 'web'`.** |
+| **`KBOOK_ADMIN`** | **YES** | **NO** | Internal platform operations: Feature flag toggles, merchant onboarding audits, system health monitoring. |
+
+---
+
+## 5. Monorepo Repository Structure
 
 ```
 KhanaBook/
 ├── apps/
-│   ├── web-admin/               # Angular Web Admin SPA
-│   │   ├── src/
-│   │   │   ├── app/
-│   │   │   │   ├── core/        # Auth, guards, interceptors, API models
-│   │   │   │   ├── layout/      # Sidebar, headers, bottom action bars
-│   │   │   │   ├── pages/       # Dashboard, Menu, Orders, Staff, Settings
-│   │   │   │   └── shared/      # Modals, buttons, badges, tables
-│   │   │   └── styles/          # Global tokens, themes, reset
-│   │   └── angular.json
-│   └── android/                 # Kotlin Jetpack Compose POS App
-│       ├── app/
-│       │   ├── src/main/java/com/khanabook/
-│       │   │   ├── data/        # Room DB, entities, sync worker
-│       │   │   ├── domain/      # Order use cases, printing, billing
-│       │   │   └── presentation/# Compose screens, POS floor, cashier
+│   ├── web-admin/               # Angular 18.2.0 Standalone Web Admin SPA
+│   │   ├── src/app/
+│   │   │   ├── core/            # Auth, guards, interceptors, business-api.service.ts
+│   │   │   ├── layout/          # Sidebar, header, navigation shell
+│   │   │   ├── pages/           # Dashboard, Menu, Orders, Staff, Terminals, Inventory, Settings
+│   │   │   └── shared/          # Reusable modal, badges, data tables, buttons
+│   │   ├── angular.json
+│   │   └── package.json         # Angular 18.2.0, fast-check, animejs, qrcode
+│   └── android/                 # Kotlin Jetpack Compose Android POS App
+│       ├── app/src/main/java/com/khanabook/lite/pos/
+│       │   ├── core/database/   # AppDatabase.kt (Room v82), DatabaseProvider (SQLCipher)
+│       │   ├── feature/billing/ # BillEntity, BillItemEntity, BillPaymentEntity, BillDao
+│       │   ├── feature/menu/    # MenuItemEntity, CategoryEntity, ItemVariantEntity
+│       │   ├── feature/sync/    # SyncWorker, SyncQuarantineEntity, push/pull clients
+│       │   └── feature/auth/    # UserEntity, RestaurantProfileEntity
 │       └── build.gradle.kts
-├── services/                    # Cloud backend services & API gateways
-│   ├── core-api/                # Authentication, business, menu, staff
-│   ├── sync-service/            # Terminal event ingestion & queue
-│   └── payment-service/         # Easebuzz webhook handler & reconciler
-├── docs/                        # Architecture, specs, PRD, design tokens
-└── specs/                       # Test specifications and fixtures
+├── services/
+│   └── server/                  # Spring Boot 3.5.12 Monolithic API (Java 17)
+│       ├── src/main/java/com/khanabook/saas/
+│       │   ├── feature/auth/        # User, OtpRequest, JWT security, AuthProvider
+│       │   ├── feature/billing/     # Bill, BillItem, BillPayment, BillSyncService
+│       │   ├── feature/compliance/  # FssaiTracker, FssaiRenewal
+│       │   ├── feature/inventory/   # RawMaterial, ItemRecipe, StockMovement, PurchaseOrder
+│       │   ├── feature/menu/        # Category, MenuItem, ItemVariant, ItemRecipe
+│       │   ├── feature/payments/    # EasebuzzSubMerchant, EasebuzzWebhookEvent
+│       │   ├── feature/restaurants/ # RestaurantProfile, RestaurantTerminal
+│       │   ├── feature/staff/       # StaffPermission, RoleTemplate
+│       │   └── feature/sync/        # BaseSyncEntity, GenericSyncService
+│       ├── src/main/resources/db/migration/ # Flyway migrations V1..V115
+│       └── pom.xml                  # Spring Boot 3.5.12, Java 17, PostgreSQL, Flyway
+├── docs/                        # Engineering, specs, runbooks, tutorials, meta
+└── PRD.md / DESIGN.md / ARCHITECTURE.md / DATABASE.md / API.md / AGENTS.md
 ```
 
 ---
 
-## 5. Authentication, Authorization & Security Boundaries
+## 6. Security Boundaries & Invariants
 
-### 5.1 Authentication Flow
-* **Stateless JWT:** Upon successful login with phone/email and password/OTP, the server issues a signed HMAC-SHA512 JWT (valid for 180 days with refresh token rotation).
-* **Storage Isolation:** On Web Admin, the session token is preserved in `window.sessionStorage` under `khanabook.webAdmin.v1.session` to protect against cross-tab token pollution and automatically clear upon browser window termination.
-* **Header Transmission:** All client requests pass `Authorization: Bearer <token>`.
-
-### 5.2 Role-Based Access Control (RBAC) Matrix
-
-| Resource / Action | `OWNER` | `MANAGER` | `CASHIER` | `KITCHEN` |
-| :--- | :---: | :---: | :---: | :---: |
-| View Financial Reports & GST | Full | View Only | Denied | Denied |
-| Modify Menu Items & Prices | Full | View Only | View Only | View Only |
-| Toggle Dish Availability | Full | Full | View Only | Mark Out |
-| Manage Staff & Permissions | Full | Denied | Denied | Denied |
-| Bill Orders & Accept Payments| Full | Full | Full | Denied |
-| Void Bills & Apply Discounts | Full | Full (Limit) | Supervisor Req | Denied |
-| View KOT Kitchen Tickets | Full | Full | Full | Full |
-
-### 5.3 Security Boundaries & Tenancy Isolation
-* **Tenant Scoping:** Every SQL query and API invocation MUST filter by `restaurant_id` extracted exclusively from the validated JWT claims. Clients cannot inject arbitrary `restaurant_id` query parameters.
-* **Secret Protection:** API secret keys for Easebuzz and database credentials reside strictly in cloud environment variables (`.env`) and NEVER compile into frontend bundles.
-
----
-
-## 6. Error Handling Strategy
-
-1. **Client-Side Graceful Degradation:**
-   * When an API request fails due to network dropout, the Web Admin renders inline retry affordances and cached read-only views without throwing unhandled exceptions.
-2. **Standard Error Envelope:**
-   All backend JSON error responses follow a uniform contract:
-   ```json
-   {
-     "success": false,
-     "error": {
-       "code": "ITEM_ALREADY_EXISTS",
-       "message": "A dish with this name already exists in this category.",
-       "details": {}
-     }
-   }
-   ```
-3. **404 Route Fallback:** Unmapped URLs gracefully render the branded KOT Void 404 ticket (`ERR-404-VOID`) rather than crashing or showing blank white pages.
-
----
-
-## 7. Testing & Quality Assurance Architecture
-
-* **Unit & Component Tests:** Jasmine & Karma across Angular Web Admin (`npm test`), testing components, interceptors, and utility functions (207+ passing tests).
-* **End-to-End & Live Auditing:** Playwright test suites executing automated UI/UX, responsive, and accessibility audits across 1440×900 and 375×812 viewports.
-* **Android Unit & Room Tests:** JUnit 5, Mockk, and Room in-memory database testing verifying sync collision logic.
+1. **Authentication:**
+   * JWT access token (short-lived) + rotating Refresh Token (stored in `refresh_tokens` table).
+   * Web Admin login passes `{ surface: 'web' }` to enforce staff boundary rejection server-side.
+2. **Multi-Tenant Isolation:**
+   * Every SQL query against `BaseSyncEntity` tables MUST include `WHERE restaurant_id = :restaurantId`.
+   * Cross-tenant data access returns immediate `403 Forbidden` and emits a `SecurityAuditEvent`.
+3. **Financial Immutability:**
+   * Completed `bills` are append-only.
+   * Price modifications on a menu item do NOT affect historical `bill_items` (items store fixed unit price and item name snapshots).
+   * Manual voids require documented cancellation reasons and append compensation entries.
+4. **Hardware Terminal Pairing:**
+   * Terminals must register via `RestaurantTerminal` and obtain a provisioned `terminalSeries`.
+   * Unapproved terminals cannot mint invoice numbers or push sync batches.

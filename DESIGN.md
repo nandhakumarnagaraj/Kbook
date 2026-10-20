@@ -1,7 +1,7 @@
 # KhanaBook — Design System & UI/UX Specification (DESIGN.md)
 
-**Document Version:** 2.0.0  
-**Status:** Single Source of Truth for Visual Design & UX  
+**Document Version:** 2.1.0  
+**Status:** Single Source of Truth for Visual Design & UX (Verified against Codebase Ground Truth)  
 **Design Philosophy:** Purpose-Built Hospitality Utility, Tactical Clarity, High Contrast  
 
 ---

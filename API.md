@@ -1,8 +1,8 @@
 # KhanaBook — API Specification & Integration Contract (API.md)
 
-**Document Version:** 2.0.0  
-**Status:** Approved Source of Truth for Internal & External APIs  
-**Base URL:** `https://kbook.iadv.cloud/api/v1`  
+**Document Version:** 2.1.0  
+**Status:** Approved Source of Truth for Internal & External APIs (Verified against Codebase Ground Truth)  
+**Base URL:** `https://kbook.iadv.cloud/api/v1` (Web & Mobile Ingress)  
 **Content-Type:** `application/json`  
 
 ---
@@ -15,132 +15,262 @@ All authenticated endpoints require an `Authorization` header containing the JWT
 Authorization: Bearer <jwt_token>
 ```
 
-### 1.2 Standard Success Envelope
-```json
-{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "limit": 25,
-    "total": 128
-  }
-}
-```
+### 1.2 Multi-Tenant Isolation
+The server extracts `restaurant_id` and `role` directly from the validated JWT claims. Clients are prohibited from overriding `restaurant_id` via request body or query parameters to access another tenant's data.
 
-### 1.3 Standard Error Envelope
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_CREDENTIALS",
-    "message": "Phone number or password incorrect.",
-    "details": {}
+### 1.3 Standard Response & Error Envelopes
+* **Success Envelope:**
+  ```json
+  {
+    "success": true,
+    "data": { ... },
+    "meta": {
+      "page": 0,
+      "limit": 25,
+      "total": 142
+    }
   }
-}
-```
+  ```
+* **Standard Error Envelope:**
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "STAFF_WEB_ACCESS_DENIED",
+      "message": "Staff credentials are restricted to the Android POS terminal.",
+      "timestamp": 1729420000000
+    }
+  }
+  ```
 
 ---
 
-## 2. Core API Endpoints
+## 2. Authentication Endpoints (`/auth`)
 
-### 2.1 Authentication (`/auth`)
-* `POST /auth/login`
-  * **Payload:** `{ "loginId": "9150677849", "password": "..." }`
-  * **Response:** `{ "token": "...", "refreshToken": "...", "role": "OWNER", "restaurantId": "...", "userName": "..." }`
-* `POST /auth/refresh`
-  * **Payload:** `{ "refreshToken": "..." }`
-  * **Response:** Returns refreshed token.
-* `POST /auth/revoke-session` *(Role: `OWNER`)*
-  * **Payload:** `{ "userId": 42 }`
-  * **Purpose:** Remotely invalidates a staff member's active session without disabling their account.
+### 2.1 Password & Phone Login (`POST /auth/login`)
+* **Payload:**
+  ```json
+  {
+    "loginId": "9150677849",
+    "password": "...",
+    "surface": "web"
+  }
+  ```
+  *(Note: `surface: 'web'` is mandatory for Web Admin to enforce the `SHOP_STAFF` boundary rejection).*
+* **Response (Success - 200 OK):**
+  ```json
+  {
+    "token": "eyJhbGciOi...",
+    "refreshToken": "4a8e2b9c...",
+    "role": "OWNER",
+    "restaurantId": 1042,
+    "userName": "Nandhakumar",
+    "loginId": "9150677849"
+  }
+  ```
+* **Staff Rejection Response (403 Forbidden):**
+  If a user with role `SHOP_STAFF` attempts login with `surface: "web"`, the server returns:
+  `{ "success": false, "error": { "code": "STAFF_WEB_ACCESS_DENIED" } }`
 
-### 2.2 Menu Catalog (`/business/menu`)
-* `GET /business/menu/items`
-  * **Query Params:** `categoryId`, `search`, `page`, `limit`
-  * **Response:** Array of menu items with variants, price, food type, category, and availability flags.
-* `POST /business/menu/items` *(Role: `OWNER`)*
+### 2.2 Google SSO Login (`POST /auth/google`)
+* **Payload:** `{ "idToken": "<google_id_token>" }`
+* **Response:** Returns `AuthSession` with JWT and refresh token.
+
+### 2.3 Logout & Session Invalidation (`POST /auth/logout`)
+* **Payload:** `{ "refreshToken": "4a8e2b9c..." }`
+* **Purpose:** Revokes the refresh token in the `refresh_tokens` database table immediately.
+
+### 2.4 Staff Session Revocation (`POST /business/staff/:userId/revoke-sessions`)
+* **Role:** `OWNER`
+* **Response:** `{ "revoked": 2 }`
+* **Purpose:** Terminate all active sessions of a compromised staff member.
+
+---
+
+## 3. Business & Menu Catalog API (`/business`)
+
+### 3.1 Dashboard & Orders
+* `GET /business/dashboard`
+  * **Params:** `period` (`today`, `week`, `month`)
+  * **Response:** Gross sales, net sales, order counts, average ticket size, and tax breakdowns.
+* `GET /business/dashboard/trends`
+  * **Response:** Hourly sales and order distribution curves.
+* `GET /business/orders/page`
+  * **Params:** `page`, `limit`, `status`, `paymentMode`, `search`
+  * **Response:** Paginated list of completed, cancelled, or pending bills.
+* `GET /business/orders/:billId`
+  * **Response:** Detailed bill record including snapshot line items, tax components, and split payments.
+* `POST /business/bills/:billId/void` *(Role: `OWNER`)*
+  * **Payload:** `{ "reason": "Customer cancellation / wrong entry" }`
+* `POST /business/bills/:billId/manual-refund` *(Role: `OWNER`)*
+  * **Payload:** `{ "amount": 250.00, "refundMode": "CASH", "reason": "Dish returned" }`
+* `POST /business/bills/:billId/status`
+  * **Payload:** `{ "orderStatus": "COMPLETED", "statusVersion": 2 }`
+* `POST /business/bills/:billId/payment-mode`
+  * **Payload:** `{ "paymentMode": "SPLIT", "statusVersion": 2 }`
+
+### 3.2 Menu Items & Categories
+* `GET /business/menu`
+  * **Response:** Full catalog of menu items with variants, categories, and availability.
+* `POST /business/menu` *(Role: `OWNER`)*
   * **Payload:**
     ```json
     {
-      "name": "Chicken Biryani",
-      "categoryId": 12,
-      "foodType": "NON_VEG",
-      "basePrice": 220.00,
-      "isAvailable": true,
-      "variants": [
-        { "name": "Half", "price": 140.00 },
-        { "name": "Full", "price": 240.00 }
-      ]
+      "name": "Paneer Butter Masala",
+      "categoryId": 8,
+      "foodType": "VEG",
+      "basePrice": 240.00,
+      "description": "Cottage cheese cubes in rich tomato gravy",
+      "isAvailable": true
     }
     ```
-* `PATCH /business/menu/items/:id/availability` *(Role: `OWNER`, `MANAGER`)*
-  * **Payload:** `{ "isAvailable": true }`
-  * **Purpose:** Instant toggle syncing to all POS terminals.
-* `PATCH /business/menu/items/:id/favourite` *(Role: `OWNER`)*
-  * **Payload:** `{ "isFavourite": true }`
-  * **Purpose:** Pins dish to lead the category on POS terminals.
-
-### 2.3 Orders & Billing (`/business/orders`)
-* `GET /business/orders/live`
-  * **Purpose:** Real-time stream/poll of floor orders currently in preparation or open tables.
-* `GET /business/orders/history`
-  * **Query Params:** `startDate`, `endDate`, `terminalId`, `paymentMode`, `page`
-  * **Response:** Paginated completed, cancelled, and refunded orders.
-* `POST /business/orders/sync`
-  * **Purpose:** Sync endpoint where Android POS batch-pushes offline order events.
-
-### 2.4 Staff Management (`/business/staff`)
-* `GET /business/staff` *(Role: `OWNER`)*
-  * **Response:** List of staff members, assigned roles (`MANAGER`, `CASHIER`, `KITCHEN`), phone, and active status.
-* `POST /business/staff` *(Role: `OWNER`)*
-  * **Payload:** `{ "name": "Rahul", "loginId": "rahul_cashier", "password": "...", "role": "CASHIER", "phone": "9876543210" }`
-* `PATCH /business/staff/:id/status` *(Role: `OWNER`)*
-  * **Payload:** `{ "isActive": false }`
-  * **Purpose:** Deactivates or activates a staff profile.
-
-### 2.5 Terminals & Hardware (`/business/terminals`)
-* `GET /business/terminals`
-  * **Response:** List of registered hardware terminals, role, hardware UUID, and heartbeat timestamp.
-* `POST /business/terminals/heartbeat`
-  * **Payload:** `{ "terminalId": "term_01", "hardwareId": "...", "appVersion": "2.4.1" }`
-
-### 2.6 Daily Closing & Shift Settlements (`/business/daily-closing`)
-* `GET /business/daily-closing/current`
-  * **Response:** Running shift totals: expected cash, Easebuzz digital total, order count, void count.
-* `POST /business/daily-closing/close` *(Role: `OWNER`, `MANAGER`)*
-  * **Payload:** `{ "actualCashCounted": 4500.00, "notes": "Shift 1 balanced" }`
-  * **Response:** Sealed daily closing ledger record with discrepancy calculation.
+* `PUT /business/menu/:menuItemId` *(Role: `OWNER`)*
+* `DELETE /business/menu/:menuItemId` *(Role: `OWNER`)*
+* `POST /business/menu/:menuItemId/toggle-availability`
+  * **Purpose:** Instant toggle that invalidates edge terminal caches.
+* `POST /business/menu/:menuItemId/image` *(Multipart Form-Data)*
+* `DELETE /business/menu/:menuItemId/image`
+* `GET /business/menu/categories`
+* `POST /business/menu/categories` `{ "name": "Desserts" }`
+* `PUT /business/menu/categories/:categoryId` `{ "name": "Signature Desserts" }`
+* `DELETE /business/menu/categories/:categoryId`
+* `GET /business/menu/:menuItemId/variants`
+* `POST /business/menu/:menuItemId/variants` `{ "variantName": "Full", "price": 320.00 }`
+* `DELETE /business/menu/:menuItemId/variants/:variantId`
 
 ---
 
-## 3. External Webhook Contracts (Easebuzz Payment Aggregator)
+## 4. Staff & Hardware Terminal API (`/business`)
 
-### 3.1 Payment Webhook (`POST /api/v1/webhooks/easebuzz`)
-When a customer scans a dynamic UPI QR code and completes payment, Easebuzz dispatches an instant webhook to KhanaBook:
+### 4.1 Staff Management
+* `GET /business/staff` *(Role: `OWNER`)*
+  * **Response:** Array of staff accounts (`name`, `loginId`, `phoneNumber`, `role`, `isActive`, `lastLoginAt`).
+* `POST /business/staff` *(Role: `OWNER`)*
+  * **Payload:**
+    ```json
+    {
+      "name": "Karthik",
+      "loginId": "karthik_pos",
+      "password": "...",
+      "role": "SHOP_STAFF",
+      "phoneNumber": "9876543210"
+    }
+    ```
+* `PUT /business/staff/:userId`
+* `POST /business/staff/:userId/deactivate`
+* `POST /business/staff/:userId/activate`
 
+### 4.2 Terminal Provisioning & Pairing
+* `GET /business/terminals`
+  * **Response:** List of registered POS devices, terminal series (`A`, `B`), hardware UUIDs, and heartbeats.
+* `GET /business/terminal-requests`
+  * **Response:** Pending activation requests from newly installed Android POS devices.
+* `POST /business/terminal-requests/:requestId/approve`
+  * **Payload:** `{ "terminalSeries": "A", "terminalName": "Billing Counter 1" }`
+* `POST /business/terminal-requests/:requestId/reject`
+* `POST /business/terminals/:terminalId/rename`
+* `POST /business/terminals/:terminalId/deactivate`
+* `POST /business/terminals/:terminalId/reactivate`
+* `POST /business/terminals/:terminalId/recover`
+
+---
+
+## 5. Inventory & Recipe Tracking API (`/inventory`)
+
+* `GET /inventory/materials`
+  * **Response:** Raw materials list with current stock levels, units (KG, LTR), and reorder thresholds.
+* `POST /inventory/materials` / `PUT /inventory/materials/:id` / `DELETE /inventory/materials/:id`
+* `GET /inventory/recipes/:menuItemId`
+  * **Response:** Bill-of-materials recipe breakdown for a specific dish.
+* `POST /inventory/recipes`
+  * **Payload:** `{ "menuItemId": 42, "rawMaterialId": 12, "quantityRequired": 0.25 }`
+* `DELETE /inventory/recipes/:id`
+* `GET /inventory/purchase-orders`
+* `POST /inventory/purchase-orders`
+* `POST /inventory/purchase-orders/:id/receive` `{ "unitCost": 45.00 }`
+* `POST /inventory/purchase-orders/:id/cancel`
+* `POST /inventory/wastage` `{ "rawMaterialId": 12, "quantity": 1.5, "reason": "Spoiled" }`
+* `POST /inventory/physical-count` `{ "rawMaterialId": 12, "countedStock": 14.2 }`
+* `GET /inventory/movements/:materialId`
+* `GET /inventory/variance?from=...&to=...`
+* `GET /inventory/vendors` / `POST /inventory/vendors`
+
+---
+
+## 6. Analytics & Compliance API
+
+### 6.1 Shift & Tax Analytics (`/analytics`)
+* `GET /analytics/daily-closing?date=YYYY-MM-DD`
+  * **Response:** Closed shift summary: cash collected, Easebuzz digital total, tax totals, variance.
+* `GET /analytics/hourly-sales?date=YYYY-MM-DD`
+  * **Response:** Array of hourly sales volumes and ticket counts.
+* `GET /analytics/item-sales?from=YYYY-MM-DD&to=YYYY-MM-DD`
+  * **Response:** Product mix report ranking dishes by revenue and quantity sold.
+* `GET /analytics/gst-ledger?from=YYYY-MM-DD&to=YYYY-MM-DD`
+  * **Response:** Tax report detailing CGST (2.5%), SGST (2.5%), taxable turnover, and exempted sales.
+
+### 6.2 Government Compliance & Merchant Agreement
+* `GET /business/lookup/fssai?fssaiNo=14-digit-number`
+  * **Response:** Real-time FoSCoS portal lookup returning business name, address, category, and expiry date.
+* `GET /business/lookup/gst?gstin=15-digit-gstin`
+  * **Response:** Official GST portal lookup returning registered legal name and filing status.
+* `GET /business/merchant-agreement`
+* `POST /business/merchant-agreement`
+* `GET /business/merchant-agreement/download` *(Returns signed PDF contract blob)*
+
+---
+
+## 7. Edge Sync Engine Contract (`/sync`)
+
+### 7.1 Sync Push (`POST /sync/push`)
+The Android POS client batches locally committed entities (`BaseSyncEntity`) and pushes them to the server:
+* **Payload:**
+  ```json
+  {
+    "deviceId": "d41d8cd98f00b204e9800998ecf8427e",
+    "terminalSeries": "A",
+    "bills": [ ... ],
+    "billItems": [ ... ],
+    "billPayments": [ ... ],
+    "stockMovements": [ ... ]
+  }
+  ```
+* **Server Logic:**
+  * Validates tenant isolation (`restaurant_id`).
+  * Employs monotonic counter checks (`status_version`) via `BillSyncService.protectBillState` to ensure intentional offline edits take precedence over stale state.
+  * Stamps records with `server_updated_at` (epoch ms).
+
+### 7.2 Sync Pull (`POST /sync/pull`)
+* **Payload:**
+  ```json
+  {
+    "since": 1729410000000,
+    "limit": 100
+  }
+  ```
+* **Response:** Returns delta changes for `categories`, `menuitems`, `itemvariants`, and `restaurantprofiles` modified after the specified timestamp.
+
+---
+
+## 8. Easebuzz Payment Webhook Integration
+
+### 8.1 Inbound Webhook (`POST /api/v1/webhooks/easebuzz`)
+Dispatched by Easebuzz upon dynamic UPI QR code completion:
 ```json
 {
-  "txnid": "KB-4912-TERM01-ORD-10492",
-  "easepayid": "EP1928491823",
-  "amount": "380.00",
+  "txnid": "KB-1042-A-2425-0042",
+  "easepayid": "EP20261020104928",
+  "amount": "480.00",
   "status": "success",
   "mode": "UPI",
-  "hash": "8f3a9e2c4b..."
+  "hash": "d5a8b7c4f1e0..."
 }
 ```
 
-### 3.2 HMAC Signature Verification
-Every inbound webhook must verify the SHA-512 / HMAC signature before updating the order status:
+### 8.2 HMAC-SHA512 Signature Verification
+Every inbound webhook must verify the SHA-512 cryptographic hash before crediting a bill:
 ```
 CalculatedHash = SHA512(Key + "|" + txnid + "|" + amount + "|" + status + "|" + Salt)
 ```
-If `CalculatedHash !== payload.hash`, the request is rejected with `401 Unauthorized` to prevent spoofed payments.
-
----
-
-## 4. Rate Limiting & API Security Rules
-
-* **Rate Limiting:** Public auth endpoints (`/auth/login`) are rate-limited to 5 requests per minute per IP to prevent brute-force attacks.
-* **No Client Secrets:** Payment gateway salts and database secrets are never returned in any API response.
-* **CORS Policy:** Restricted to `https://kbook.iadv.cloud` and authorized local development origins (`http://localhost:4200`).
+* If `CalculatedHash !== payload.hash`, the server immediately responds with `401 Unauthorized` and records a `SecurityAuditEvent`.
+* Upon successful verification, the bill status transitions to `PAID` and an FCM push notification is dispatched to counter terminals.
