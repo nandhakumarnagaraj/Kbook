@@ -259,58 +259,15 @@ fun MenuSelectionStep(
                 shape = KhanaRadii.lg
             )
 
-            // The favourites toggle sits with the search bar rather than inside the category
-            // strip: it is not a category, and mixing it in would make the strip's index-based
-            // selection point at the wrong tab.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                FilterChip(
-                    selected = favouritesOnly,
-                    onClick = { menuViewModel.toggleFavouritesOnly() },
-                    label = {
-                        Text(
-                            if (favouriteItems.isEmpty()) "Favourites"
-                            else "Favourites (${favouriteItems.size})",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (favouritesOnly) FontWeight.Bold else FontWeight.Medium
-                            )
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (favouritesOnly) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                            contentDescription = null,
-                            tint = if (favouritesOnly) PrimaryGold else TextGold.copy(alpha = 0.7f)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = DarkBrown2,
-                        labelColor = TextGold,
-                        selectedContainerColor = PrimaryGold.copy(alpha = 0.25f),
-                        selectedLabelColor = PrimaryGold,
-                        selectedLeadingIconColor = PrimaryGold
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = favouritesOnly,
-                        borderColor = BorderGold.copy(alpha = 0.4f),
-                        selectedBorderColor = PrimaryGold
-                    )
-                )
-            }
-
-            // The strip stays visible in the favourites view, because it is also the way out of
-            // it: the pinned categories sit at its head (they are sorted first), and tapping one
-            // returns to that category. Nothing is highlighted while the favourites list is up,
-            // so the strip never claims a category the list is not showing.
-            if (searchQuery.isBlank() && categories.isNotEmpty()) {
-                val selectedIndex =
-                        categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
+            // Category and Favourites scroll bar: Favourites is the first tab in the scrollable strip,
+            // followed by all available categories.
+            if (searchQuery.isBlank() && (categories.isNotEmpty() || favouriteItems.isNotEmpty())) {
+                val selectedIndex = if (favouritesOnly) {
+                    0
+                } else {
+                    val catIdx = categories.indexOfFirst { it.id == selectedCategoryId }
+                    if (catIdx >= 0) catIdx + 1 else 0
+                }
                 ScrollableTabRow(
                         selectedTabIndex = selectedIndex,
                         containerColor = PrimaryGold,
@@ -318,7 +275,7 @@ fun MenuSelectionStep(
                         edgePadding = spacing.medium,
                         divider = {},
                         indicator = { tabPositions ->
-                            if (!favouritesOnly && selectedIndex < tabPositions.size) {
+                            if (selectedIndex < tabPositions.size) {
                                 TabRowDefaults.SecondaryIndicator(
                                         modifier =
                                                 Modifier.tabIndicatorOffset(
@@ -329,9 +286,38 @@ fun MenuSelectionStep(
                             }
                         }
                 ) {
+                    Tab(
+                        selected = favouritesOnly,
+                        onClick = {
+                            menuViewModel.setFavouritesOnly(true)
+                        },
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (favouritesOnly) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (favouritesOnly) DarkBrown1 else DarkBrown1.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    if (favouriteItems.isEmpty()) "Favourites"
+                                    else "Favourites (${favouriteItems.size})",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (favouritesOnly) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                )
+                            }
+                        },
+                        selectedContentColor = DarkBrown1,
+                        unselectedContentColor = DarkBrown1.copy(alpha = 0.7f)
+                    )
                     categories.forEach { category ->
+                        val isSelected = !favouritesOnly && category.id == selectedCategoryId
                         Tab(
-                                selected = !favouritesOnly && category.id == selectedCategoryId,
+                                selected = isSelected,
                                 onClick = {
                                     menuViewModel.setFavouritesOnly(false)
                                     menuViewModel.selectCategory(category.id)
@@ -340,7 +326,7 @@ fun MenuSelectionStep(
                                     Text(
                                             category.name,
                                             style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = if (category.id == selectedCategoryId) FontWeight.Bold else FontWeight.Medium
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                             )
                                     )
                                 },
