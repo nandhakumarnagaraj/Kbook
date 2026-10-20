@@ -34,7 +34,6 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -292,24 +291,12 @@ fun MenuSelectionStep(
                             menuViewModel.setFavouritesOnly(true)
                         },
                         text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (favouritesOnly) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (favouritesOnly) DarkBrown1 else DarkBrown1.copy(alpha = 0.7f)
+                            Text(
+                                "Favourites",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (favouritesOnly) FontWeight.Bold else FontWeight.Medium
                                 )
-                                Text(
-                                    if (favouriteItems.isEmpty()) "Favourites"
-                                    else "Favourites (${favouriteItems.size})",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (favouritesOnly) FontWeight.Bold else FontWeight.Medium
-                                    )
-                                )
-                            }
+                            )
                         },
                         selectedContentColor = DarkBrown1,
                         unselectedContentColor = DarkBrown1.copy(alpha = 0.7f)
