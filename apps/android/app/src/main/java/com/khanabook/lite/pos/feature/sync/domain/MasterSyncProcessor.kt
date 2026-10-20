@@ -1818,14 +1818,16 @@ BillEntity(
                         // (mirrors the recordScope exception below).
                         recordOrigin = if (remoteBill.orderStatus.lowercase() == "draft" &&
                             remoteBill.paymentStatus.lowercase() == "pending" &&
-                            createdTerminalId == sessionManager.getTerminalId()) {
+                            (remoteBill.currentOwnerTerminalId == sessionManager.getTerminalId() ||
+                             (remoteBill.currentOwnerTerminalId.isNullOrBlank() && createdTerminalId == sessionManager.getTerminalId()))) {
                             "local_created"
                         } else {
                             "server_imported"
                         },
                         recordScope = if (remoteBill.orderStatus.lowercase() == "draft" &&
                             remoteBill.paymentStatus.lowercase() == "pending" &&
-                            createdTerminalId == sessionManager.getTerminalId()) {
+                            (remoteBill.currentOwnerTerminalId == sessionManager.getTerminalId() ||
+                             (remoteBill.currentOwnerTerminalId.isNullOrBlank() && createdTerminalId == sessionManager.getTerminalId()))) {
                             // If server returns a draft that belongs to THIS terminal, keep it operational
                             "terminal_operational"
                         } else {

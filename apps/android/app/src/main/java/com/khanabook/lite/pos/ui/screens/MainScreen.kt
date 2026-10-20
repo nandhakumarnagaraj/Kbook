@@ -89,6 +89,17 @@ fun MainScreen(
             }
         mutableIntStateOf(initialVisibleIndex) 
     }
+    LaunchedEffect(initialTab) {
+        val targetIdx = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
+            .let { idx ->
+                if (idx != -1) idx
+                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: homeTabIndex
+                else homeTabIndex
+            }
+        if (selectedTabIndex != targetIdx) {
+            selectedTabIndex = targetIdx
+        }
+    }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
     var settingsSection by rememberSaveable(initialSettingsSection) {
         mutableStateOf(initialSettingsSection ?: "menu")

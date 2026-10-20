@@ -190,26 +190,22 @@ fun ReprintKdsScreen(
 
                 OutlinedTextField(
                     value = dailyId,
-                    onValueChange = {
-                        if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                            dailyId = it
-                            showDailyIdError = false
-                        } else {
-                            showDailyIdError = true
-                        }
+                    onValueChange = { input ->
+                        dailyId = input.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
+                        showDailyIdError = false
                     },
                     label = { Text("Order No") },
                     placeholder = { Text("e.g. A01") },
                     isError = showDailyIdError,
                     supportingText = {
                         if (showDailyIdError) {
-                            Text("Please enter numbers only")
+                            Text("Please enter an order number")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Ascii,
                         imeAction = ImeAction.Search
                     ),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(

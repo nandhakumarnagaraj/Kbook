@@ -70,11 +70,18 @@ object BillCalculator {
 
     fun validatePartPayment(a1: String, a2: String, total: String): Boolean {
         return try {
-            val sum = BigDecimal(a1.ifBlank { "0" }).add(BigDecimal(a2.ifBlank { "0" }))
-                .setScale(2, RoundingMode.HALF_UP)
-            val bdTotal = BigDecimal(total.ifBlank { "0" }).setScale(2, RoundingMode.HALF_UP)
+            val bd1 = a1.ifBlank { "0" }.toBigDecimalOrNull() ?: return false
+            val bd2 = a2.ifBlank { "0" }.toBigDecimalOrNull() ?: return false
+            val bdTotal = total.ifBlank { "0" }.toBigDecimalOrNull() ?: return false
 
-            sum.compareTo(bdTotal) == 0
+            if (bd1 < BigDecimal.ZERO || bd2 < BigDecimal.ZERO || bdTotal <= BigDecimal.ZERO) {
+                return false
+            }
+
+            val sum = bd1.add(bd2).setScale(2, RoundingMode.HALF_UP)
+            val scaledTotal = bdTotal.setScale(2, RoundingMode.HALF_UP)
+
+            sum.compareTo(scaledTotal) == 0
         } catch (e: Exception) {
             false
         }

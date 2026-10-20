@@ -88,8 +88,7 @@ interface BillDao {
           AND order_status = 'draft'
           AND payment_status = 'pending'
           AND is_deleted = 0
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND (
               current_owner_terminal_id = :terminalId
               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
@@ -112,8 +111,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
           AND order_status = 'draft'
           AND payment_status = 'pending'
           AND is_deleted = 0
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND (
               current_owner_terminal_id = :terminalId
               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
@@ -222,8 +220,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
           AND is_deleted = 0
           AND order_status = 'draft'
           AND payment_status = 'pending'
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz')
           AND (
               current_owner_terminal_id = :terminalId
@@ -321,8 +318,7 @@ fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<B
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
           AND created_terminal_id = :terminalId
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -340,8 +336,7 @@ fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>
           AND restaurant_id = :restaurantId
           AND owner_user_id = :ownerUserId
           AND created_terminal_id = :terminalId
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )
@@ -356,8 +351,7 @@ suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, te
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND created_terminal_id = :terminalId
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )
@@ -373,8 +367,7 @@ suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, te
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
           AND created_terminal_id = :terminalId
-          AND record_scope = 'terminal_operational'
-          AND record_origin = 'local_created'
+          AND (record_scope = 'terminal_operational' OR record_origin = 'local_created')
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos', 'easebuzz'
           )

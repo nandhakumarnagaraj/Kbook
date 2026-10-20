@@ -22,7 +22,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
      * Guarded to never go negative.
      */
     private fun netAmount(bill: BillEntity): BigDecimal {
-        val gross = BigDecimal(bill.totalAmount)
+        val gross = bill.totalAmount.toBigDecimalOrNull() ?: BigDecimal.ZERO
         val refund = bill.refundAmount
             ?.takeIf { it.isNotBlank() }
             ?.let { runCatching { BigDecimal(it) }.getOrNull() }
@@ -44,8 +44,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
             
             if (PaymentModeManager.isPartPayment(mode)) {
                 val labels = PaymentModeManager.getPartLabels(mode)
-                val p1 = BigDecimal(bill.partAmount1)
-                val p2 = BigDecimal(bill.partAmount2)
+                val p1 = bill.partAmount1.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val p2 = bill.partAmount2.toBigDecimalOrNull() ?: BigDecimal.ZERO
 
                 breakdown[labels.first] = (breakdown[labels.first] ?: BigDecimal.ZERO).add(p1)
                 breakdown[labels.second] = (breakdown[labels.second] ?: BigDecimal.ZERO).add(p2)
@@ -133,8 +133,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
                     PaymentMode.CASH -> cash = cash.add(amount)
                     PaymentMode.UPI -> upi = upi.add(amount)
                     PaymentMode.PART_CASH_UPI -> {
-                        cash = cash.add(BigDecimal(bill.partAmount1))
-                        upi = upi.add(BigDecimal(bill.partAmount2))
+                        cash = cash.add(bill.partAmount1.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                        upi = upi.add(bill.partAmount2.toBigDecimalOrNull() ?: BigDecimal.ZERO)
                     }
                     else -> other = other.add(amount)
                 }
@@ -152,8 +152,10 @@ class ReportGenerator(private val billRepository: BillRepository) {
 
     suspend fun getMonthlyReport(month: Int, year: Int): MonthlySalesReport {
         val monthStr = month.toString().padStart(2, '0')
+        val yearMonth = java.time.YearMonth.of(year, month)
+        val lastDay = yearMonth.lengthOfMonth().toString().padStart(2, '0')
         val startOfMonth = "$year-$monthStr-01 00:00:00"
-        val endOfMonth = "$year-$monthStr-31 23:59:59"
+        val endOfMonth = "$year-$monthStr-$lastDay 23:59:59"
         
         val bills = billRepository.getBillsByDateRange(startOfMonth, endOfMonth).firstOrNull() ?: emptyList()
         

@@ -61,7 +61,7 @@ fun TaxConfigView(
     var gstPct by remember { mutableStateOf(profile?.gstPercentage?.toInt()?.toString() ?: "0") }
     var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
 
-    val isFssaiValid = fssaiRegex.matches(fssaiNumber)
+    val isFssaiValid = fssaiNumber.isEmpty() || fssaiRegex.matches(fssaiNumber)
     val isGstValid = !gstEnabled || ValidationUtils.isValidGst(gstNumber)
     val isGstPctValid = !gstEnabled || ValidationUtils.isValidTaxPercentage(gstPct)
     val isSaveEnabled = isFssaiValid && isGstValid && isGstPctValid
@@ -119,7 +119,7 @@ fun TaxConfigView(
             ParchmentTextField(
                 value = fssaiNumber,
                 onValueChange = { fssaiNumber = it.filter(Char::isDigit).take(14) },
-                label = "FSSAI License *",
+                label = "FSSAI License",
                 isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
                 supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Enter exactly 14 digits" else null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

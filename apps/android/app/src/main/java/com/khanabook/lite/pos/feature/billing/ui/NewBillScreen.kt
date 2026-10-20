@@ -192,7 +192,7 @@ fun NewBillScreen(
 
     // Keep users inside the billing flow while an online payment is actively
     // being confirmed, otherwise online and offline paths can diverge.
-    androidx.activity.compose.BackHandler(enabled = paymentFlowLocked || step > 1) {
+    androidx.activity.compose.BackHandler(enabled = paymentFlowLocked || step > 1 || (step == effectiveFirstStep && hasItemsInCart)) {
         if (paymentFlowLocked) {
             coroutineScope.launch {
                 KhanaToast.show("Payment confirmation in progress. Please wait.", ToastKind.Info)

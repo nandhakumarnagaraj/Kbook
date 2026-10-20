@@ -501,7 +501,7 @@ PrinterTargetCard(
                             autoPrintOnSuccess = autoPrint,
                             includeLogoInPrint = includeLogo,
                             maskCustomerPhone = maskPhone,
-                            isSynced = true,
+                            isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
                         viewModel.updatePrinterProfile(

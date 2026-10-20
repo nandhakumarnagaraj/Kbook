@@ -132,6 +132,17 @@ class BillCalculatorTest {
         assertTrue(BillCalculator.validatePartPayment("1050.00", "", "1050.00"))
     }
 
+    @Test
+    fun `part payment with negative amounts is rejected`() {
+        assertFalse(BillCalculator.validatePartPayment("-50.00", "1100.00", "1050.00"))
+        assertFalse(BillCalculator.validatePartPayment("1100.00", "-50.00", "1050.00"))
+    }
+
+    @Test
+    fun `part payment with invalid string format is rejected`() {
+        assertFalse(BillCalculator.validatePartPayment("abc", "1050.00", "1050.00"))
+    }
+
     // ── Part Payment Split ────────────────────────────────────────────────────
 
     @Test

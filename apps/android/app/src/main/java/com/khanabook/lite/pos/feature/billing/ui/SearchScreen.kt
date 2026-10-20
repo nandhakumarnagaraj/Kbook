@@ -241,13 +241,9 @@ fun SearchScreen(
 
                     OutlinedTextField(
                         value = dailyId,
-                        onValueChange = {
-                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                dailyId = it
-                                showDailyIdError = false
-                            } else {
-                                showDailyIdError = true
-                            }
+                        onValueChange = { input ->
+                            dailyId = input.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
+                            showDailyIdError = false
                         },
                         label = { Text("Order No") },
                         placeholder = { Text("e.g. A01") },
@@ -255,19 +251,13 @@ fun SearchScreen(
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
+                            keyboardType = KeyboardType.Ascii,
                             imeAction = ImeAction.Search
                         ),
                         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                             onSearch = { submitDailySearch() },
                             onDone = { submitDailySearch() }
-                        ),
-                        isError = showDailyIdError,
-                        supportingText = {
-                            if (showDailyIdError) {
-                                Text(context.getString(R.string.field_numbers_only))
-                            }
-                        }
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))
