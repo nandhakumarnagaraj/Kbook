@@ -67,6 +67,8 @@ import com.khanabook.lite.pos.core.theme.RichEspresso
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.domain.model.OrderStatus
+import com.khanabook.lite.pos.domain.model.PaymentStatus
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderDetailViewModel
 
@@ -99,6 +101,13 @@ fun ActiveOrderDetailScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(billWithItems) {
+        val bill = billWithItems?.bill ?: return@LaunchedEffect
+        if (bill.orderStatus == OrderStatus.COMPLETED.dbValue || bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+            onBack()
         }
     }
 

@@ -138,6 +138,26 @@ fun NewBillScreen(
     val coroutineScope = rememberCoroutineScope()
     var showDiscardDraftDialog by remember { mutableStateOf(false) }
     val hasItemsInCart = cartItems.isNotEmpty()
+    val navigateToHome: () -> Unit = {
+        if (navController != null) {
+            val hasMain = runCatching { navController.getBackStackEntry(Routes.MAIN_PATTERN) }.isSuccess
+            navController.navigate(Routes.main(NavigationTabs.TAB_HOME)) {
+                if (hasMain) {
+                    popUpTo(Routes.MAIN_PATTERN) {
+                        inclusive = false
+                    }
+                } else {
+                    popUpTo(0) {
+                        inclusive = true
+                    }
+                }
+                launchSingleTop = true
+            }
+        } else {
+            onBack()
+        }
+    }
+
     val performBack: () -> Unit = {
         when (resolveBillingBackAction(step, initialStep, draftBillId != null, quickMode)) {
             BillingBackAction.EXIT -> {
@@ -177,6 +197,10 @@ fun NewBillScreen(
             coroutineScope.launch {
                 KhanaToast.show("Payment confirmation in progress. Please wait.", ToastKind.Info)
             }
+            return@BackHandler
+        }
+        if (step == 4) {
+            navigateToHome()
             return@BackHandler
         }
         performBack()
@@ -228,19 +252,6 @@ fun NewBillScreen(
         }
     }
 
-    val navigateToHome: () -> Unit = {
-        if (navController != null) {
-            navController.navigate(Routes.main(NavigationTabs.TAB_HOME)) {
-                popUpTo(Routes.NEW_BILL_PATTERN) {
-                    inclusive = true
-                }
-                launchSingleTop = true
-            }
-        } else {
-            onBack()
-        }
-    }
-
     val returnToCompletedOrders: () -> Unit = {
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
@@ -249,9 +260,16 @@ fun NewBillScreen(
             } else {
                 Routes.main(NavigationTabs.TAB_REPORTS, source = "ALL")
             }
+            val hasMain = runCatching { navController.getBackStackEntry(Routes.MAIN_PATTERN) }.isSuccess
             navController.navigate(route) {
-                popUpTo(Routes.NEW_BILL_PATTERN) {
-                    inclusive = true
+                if (hasMain) {
+                    popUpTo(Routes.MAIN_PATTERN) {
+                        inclusive = false
+                    }
+                } else {
+                    popUpTo(0) {
+                        inclusive = true
+                    }
                 }
                 launchSingleTop = true
                 restoreState = true
