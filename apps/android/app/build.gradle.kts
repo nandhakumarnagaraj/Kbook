@@ -41,8 +41,8 @@ val signingStoreFile = configValue("SIGNING_STORE_FILE")
 val signingStorePassword = configValue("SIGNING_STORE_PASSWORD")
 val signingKeyAlias = configValue("SIGNING_KEY_ALIAS")
 val signingKeyPassword = configValue("SIGNING_KEY_PASSWORD")
-val releaseVersionCode = configValue("RELEASE_VERSION_CODE", "20").toIntOrNull() ?: 20
-val releaseVersionName = configValue("RELEASE_VERSION_NAME", "1.0.11")
+val releaseVersionCode = configValue("RELEASE_VERSION_CODE", "38").toIntOrNull() ?: 38
+val releaseVersionName = configValue("RELEASE_VERSION_NAME", "1.0.38")
 val hasReleaseSigning =
     signingStoreFile.isNotBlank() &&
         signingStorePassword.isNotBlank() &&
