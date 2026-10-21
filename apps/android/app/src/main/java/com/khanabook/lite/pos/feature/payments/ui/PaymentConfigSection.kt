@@ -249,7 +249,7 @@ fun PaymentConfigView(
                 enabled = !readOnly
             )
             PaymentToggle(
-                "Easebuzz Online",
+                "Online Payments",
                 easebuzzEnabled,
                 onCheckedChange = { easebuzzEnabled = it; easebuzzTouched = true },
                 enabled = !readOnly
@@ -258,7 +258,7 @@ fun PaymentConfigView(
                 PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
                 is PaymentReadinessUiState.Unavailable -> state.message
                 is PaymentReadinessUiState.Ready -> when {
-                    state.readiness.agreementRequired -> "Payment agreement needs the owner's signature before payment links can be created."
+                    state.readiness.agreementRequired -> ""
                     !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
                     state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
                     !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
@@ -466,26 +466,8 @@ fun EasebuzzOnboardingHub(
                     .padding(spacing.large),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CreditCard,
-                        contentDescription = null,
-                        tint = PrimaryGold,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Accept Online Payments",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryGold
-                    )
-                }
-
                 Text(
-                    text = "Link your bank account & PAN to start accepting customer payments via Dynamic UPI QR & Payment Gateway in 2 minutes.",
+                    text = "Add your bank account and PAN to accept UPI and card payments. Takes about 2 minutes.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextGold.copy(alpha = 0.85f)
                 )
