@@ -223,6 +223,21 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	/**
+	 * Thrown by Spring's static resource handler when no file matches the request (for example
+	 * {@code /api/v1/swagger-ui.html}). It is a client error, so it must not fall through to the
+	 * catch-all handler and be reported as a 500.
+	 */
+	@ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleNoResourceFound(
+			org.springframework.web.servlet.resource.NoResourceFoundException e, HttpServletRequest request) {
+		log.warn("No resource found [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+				"error", "Resource not found",
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Map<String, Object>> handleGeneralException(
 			Exception e, HttpServletRequest request) {

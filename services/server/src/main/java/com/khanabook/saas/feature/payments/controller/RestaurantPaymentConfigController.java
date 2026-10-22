@@ -6,6 +6,11 @@ import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
+import com.khanabook.saas.feature.payments.dto.PaymentConfigOpenApiSchemas;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -25,6 +30,7 @@ public class RestaurantPaymentConfigController {
     private final SubMerchantService subMerchantService;
 
     @GetMapping
+    @Operation(responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ConfigResponse.class))))
     public ResponseEntity<Map<String, Object>> getConfig() {
         Long restaurantId = TenantContext.getCurrentTenant();
         RestaurantProfile profile = profileRepo.findByRestaurantId(restaurantId)
@@ -55,6 +61,7 @@ public class RestaurantPaymentConfigController {
     }
 
     @PutMapping
+    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.UpdateRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ConfigResponse.class))))
     public ResponseEntity<Map<String, Object>> updateConfig(@RequestBody Map<String, Object> data) {
         if (!"OWNER".equals(TenantContext.getCurrentRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
@@ -102,6 +109,7 @@ public class RestaurantPaymentConfigController {
     }
 
     @GetMapping("/sub-merchant-status")
+    @Operation(responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.SubMerchantStatusResponse.class))))
     public ResponseEntity<Map<String, Object>> getSubMerchantStatus() {
         Long restaurantId = TenantContext.getCurrentTenant();
         try {
@@ -187,6 +195,7 @@ public class RestaurantPaymentConfigController {
      * Body carries the onboarding details (business/legal name, type, PAN, GST, FSSAI, bank, etc.).
      */
     @PostMapping("/onboard")
+    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.OnboardingRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
     public ResponseEntity<Map<String, Object>> onboard(@RequestBody Map<String, Object> data) {
         Long restaurantId = TenantContext.getCurrentTenant();
         EasebuzzSubMerchant sm = subMerchantService.onboardForRestaurant(restaurantId, data);
@@ -195,6 +204,7 @@ public class RestaurantPaymentConfigController {
 
     /** Push corrected details to EaseBuzz after a KYC rejection. */
     @PostMapping("/resubmit")
+    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.OnboardingRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
     public ResponseEntity<Map<String, Object>> resubmit(@RequestBody Map<String, Object> data) {
         Long restaurantId = TenantContext.getCurrentTenant();
         EasebuzzSubMerchant sm = subMerchantService.resubmitForRestaurant(restaurantId, data);
@@ -208,6 +218,7 @@ public class RestaurantPaymentConfigController {
      * role would hand that role the merchant's KYC session.
      */
     @PostMapping("/kyc-access-key")
+    @Operation(responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.KycAccessKeyResponse.class))))
     public ResponseEntity<Map<String, Object>> kycAccessKey() {
         if (!isOwner()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
@@ -224,6 +235,7 @@ public class RestaurantPaymentConfigController {
      * no documents through its API, so uploading the file only spent the merchant's bandwidth.
      */
     @PostMapping("/kyc-portal-link")
+    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.KycPortalLinkRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.KycPortalLinkResponse.class))))
     public ResponseEntity<Map<String, Object>> kycPortalLink(@RequestBody Map<String, Object> body) {
         // The response carries the same portal access key, so this inherits the owner-only rule
         // from /kyc-access-key rather than becoming the way around it.
@@ -240,6 +252,7 @@ public class RestaurantPaymentConfigController {
 
     /** Verify the onboarding OTP sent by EaseBuzz (LIVE only — not supported in sandbox). */
     @PostMapping("/verify-otp")
+    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.OtpVerificationRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
     public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, Object> body) {
         Long restaurantId = TenantContext.getCurrentTenant();
         Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
@@ -249,6 +262,7 @@ public class RestaurantPaymentConfigController {
 
     /** Resend the onboarding OTP (LIVE only — not supported in sandbox). */
     @PostMapping("/resend-otp")
+    @Operation(responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
     public ResponseEntity<Map<String, Object>> resendOtp() {
         Long restaurantId = TenantContext.getCurrentTenant();
         Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
