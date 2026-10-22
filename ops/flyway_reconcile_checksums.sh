@@ -150,17 +150,49 @@ fi
 
 # Confirm every local migration V1+ has been applied (missing applied migrations
 # would indicate a database behind the codebase).
+#
+# A local script that is NOT in the history is only a defect when it sits BELOW the
+# highest applied version: that is a real gap (the ledger skipped a migration), and
+# the schema is behind the code.
+#
+# A local script ABOVE the highest applied version is PENDING, not broken. This gate
+# runs BEFORE the new server starts, so the migration shipping with this very deploy is
+# by definition not in the ledger yet - Flyway applies it on the next boot. Counting
+# that as a discrepancy made every deploy that adds a migration unshippable: the gate
+# could never be satisfied by the deploy it was meant to guard. It is reported so the
+# operator can see what this deploy will apply, but it does not halt.
+#
+# The order matters: the two cases are compared numerically, not lexically, so V9 does
+# not sort above V116.
+max_applied=0
+while IFS='|' read -r _rank version _description _checksum _success; do
+  [ -z "$version" ] && continue
+  if [ "$version" -gt "$max_applied" ] 2>/dev/null; then
+    max_applied="$version"
+  fi
+done < "$HISTORY_FILE"
+
 missing=0
+pending=0
 for file in "$MIGRATION_DIR"/V*.sql; do
   [ -e "$file" ] || continue
   ver="$(basename "$file" | sed -E 's/^V([0-9]+).*/\1/')"
-  if ! grep -qE "\|${ver}\|" "$HISTORY_FILE"; then
-    echo "UNAPPLIED: V${ver} ($(basename "$file")) is present locally but not in history"
+  if grep -qE "\|${ver}\|" "$HISTORY_FILE"; then
+    continue
+  fi
+  if [ "$ver" -gt "$max_applied" ] 2>/dev/null; then
+    echo "PENDING : V${ver} ($(basename "$file")) will be applied by Flyway on this deploy"
+    pending=$((pending + 1))
+  else
+    echo "UNAPPLIED: V${ver} ($(basename "$file")) is present locally but not in history (below highest applied V${max_applied})"
     missing=$((missing + 1))
   fi
 done
 if [ "$missing" -gt 0 ]; then
   mismatches=$((mismatches + missing))
+fi
+if [ "$pending" -gt 0 ]; then
+  echo "NOTE    : ${pending} migration(s) pending application by this deploy - not a discrepancy."
 fi
 
 echo "------------------------------------------------"

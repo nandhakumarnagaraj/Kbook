@@ -147,6 +147,14 @@ web-admin-output.log
 /artifacts/android/*.apk
 
 /apps/web-admin/dist/
+# Root-level web-admin/ is local-only state: the LIVE docroot served by nginx/Apache
+# plus node_modules and .angular caches. Zero tracked files live under it.
+/web-admin/
+# Other root-level local-only state: a stray Android/ build tree, a stray server/
+# working dir (logs, target/, uploads) and AI session transcripts.
+/Android/
+/server/
+/session-*.md
 # Root-level manifests only — the real ones live in apps/web-admin and must stay tracked.
 /package-lock.json
 /package.json

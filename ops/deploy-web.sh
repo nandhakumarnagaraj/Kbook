@@ -9,10 +9,16 @@ set -euo pipefail
 #   SKIP_BUILD set to 1 to reuse an existing dist/ (skip npm ci + ng build)
 
 ROOT_DIR="/var/www/kbook.iadv.cloud"
-# Apache DocumentRoot for kbook.iadv.cloud is the Angular build output itself
-# (see /etc/apache2/sites-enabled/kbook.iadv.cloud-le-ssl.conf: DocumentRoot ...browser).
-# Override WEB_ROOT only if the vhost points somewhere else.
-WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/apps/web-admin/dist/khanabook-web-admin/browser}"
+# The live docroot for kbook.iadv.cloud is NOT the build output inside the repo.
+# nginx (root ...) and Apache (DocumentRoot ...) both serve:
+#   /var/www/kbook.iadv.cloud/web-admin/dist/khanabook-web-admin/browser
+# while the Angular build writes to:
+#   /var/www/kbook.iadv.cloud/apps/web-admin/dist/khanabook-web-admin/browser
+# Pointing WEB_ROOT at the build output made this script compare the two paths,
+# decide they were identical, skip the copy, and report success - leaving the
+# live site on the previous bundle while the repo held the new one. Override
+# WEB_ROOT only if the vhost points somewhere else.
+WEB_ROOT="${WEB_ROOT:-/var/www/kbook.iadv.cloud/web-admin/dist/khanabook-web-admin/browser}"
 WEB_SRC="$ROOT_DIR/apps/web-admin"
 DIST_DIR="$WEB_SRC/dist/khanabook-web-admin/browser"
 HEALTH_URL="https://kbook.iadv.cloud/api/v1/actuator/health"
