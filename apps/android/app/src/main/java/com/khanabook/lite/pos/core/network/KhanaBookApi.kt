@@ -342,24 +342,6 @@ interface KhanaBookApi {
         @GET("api/v1/business/kyc-document/{docType}/download")
         suspend fun downloadKycDocument(@Path("docType") docType: String): okhttp3.ResponseBody
 
-        // ── Merchant Agreement (e-agreement, signed PDF) ──────────────────
-
-        @GET("api/v1/business/merchant-agreement")
-        suspend fun getMerchantAgreementStatus(): Map<String, Any?>
-
-        @Multipart
-        @POST("api/v1/business/merchant-agreement")
-        suspend fun uploadMerchantAgreement(
-            @Part file: MultipartBody.Part,
-            @Part signerName: MultipartBody.Part,
-            @Part agreementVersion: MultipartBody.Part,
-            @Part termsSha256: MultipartBody.Part,
-            @Part accepted: MultipartBody.Part
-        ): Map<String, Any?>
-
-        @GET("api/v1/business/merchant-agreement/download")
-        suspend fun downloadMerchantAgreement(): okhttp3.ResponseBody
-
 }
 
 data class TerminalListItem(

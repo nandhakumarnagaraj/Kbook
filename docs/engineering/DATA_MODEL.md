@@ -60,7 +60,7 @@ Table names are the physical `@Table` names.
 | **Restaurants / identity** | `restaurantprofiles`, `restaurant_terminal`, `device_registration_request`, `users`, `refresh_tokens`, `token_blocklist`, `otp_requests`, `staff_permissions`, `staff_permission_revision`, `permission_requests`, `role_templates` |
 | **Payments / Easebuzz** | `easebuzz_sub_merchant`, `easebuzz_sub_merchant_webhook_event`, `easebuzz_webhook_events`, `easebuzz_payouts`, `easebuzz_refund_attempts`, `chargebacks`, `webhook_retry_jobs` |
 | **Inventory** | `raw_materials`, `item_recipes`, `purchase_orders`, `purchase_order_items`, `vendors`, `stock_movements`, `stock_logs` (see §5) |
-| **Compliance** | `fssai_tracker`, `fssai_renewals`, `merchant_agreement` |
+| **Compliance** | `fssai_tracker`, `fssai_renewals` |
 | **Notifications** | `notification_events`, `device_tokens` |
 | **Platform** | `feature_flag`, `feature_flag_override`, `feature_flag_audit`, `security_audit_log`, `rate_limit_attempts` |
 | **Legacy / dead** | `marketplace_orders`, `marketplace_order_items` — no entity or code (see `../product/MARKETPLACE_INTEGRATIONS.md`) |

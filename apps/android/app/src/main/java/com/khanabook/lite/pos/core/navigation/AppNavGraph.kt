@@ -342,12 +342,6 @@ internal fun AppNavGraph(
         }
         composable(Routes.COMPLIANCE_DOCUMENTS) {
             com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
-                onBack = { navController.popBackStack() },
-                onOpenAgreement = { navController.navigate(Routes.MERCHANT_AGREEMENT) }
-            )
-        }
-        composable(Routes.MERCHANT_AGREEMENT) {
-            com.khanabook.lite.pos.feature.onboarding.ui.MerchantAgreementScreen(
                 onBack = { navController.popBackStack() }
             )
         }

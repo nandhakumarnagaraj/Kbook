@@ -69,10 +69,7 @@ import kotlinx.coroutines.withContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
-import com.khanabook.lite.pos.feature.onboarding.viewmodel.AgreementStatus
-import com.khanabook.lite.pos.feature.onboarding.viewmodel.AgreementUiState
 import com.khanabook.lite.pos.feature.payments.viewmodel.EasebuzzOnboardingViewModel
-import com.khanabook.lite.pos.feature.onboarding.viewmodel.MerchantAgreementViewModel
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
 import com.khanabook.lite.pos.feature.payments.viewmodel.PaymentReadinessUiState
 import androidx.compose.material.icons.Icons
@@ -258,7 +255,6 @@ fun PaymentConfigView(
                 PaymentReadinessUiState.Loading -> "Checking online payment setup with the server…"
                 is PaymentReadinessUiState.Unavailable -> state.message
                 is PaymentReadinessUiState.Ready -> when {
-                    state.readiness.agreementRequired -> ""
                     !state.readiness.subMerchantActive -> "Easebuzz onboarding and KYC must be active before payment links can be created."
                     state.readiness.easebuzzEnabled && !easebuzzEnabled -> "Save to turn Easebuzz Online off. New payment links remain possible until the server confirms the change."
                     !state.readiness.easebuzzEnabled && easebuzzEnabled -> "Save to turn Easebuzz Online on. The server still blocks new payment links."
@@ -279,7 +275,6 @@ fun PaymentConfigView(
             Spacer(modifier = Modifier.height(spacing.small))
             EasebuzzOnboardingHub(
                 onNavigateToOnboarding = onNavigateToOnboarding,
-                onOpenAgreement = { onSectionSelected("merchant_agreement") },
                 onOpenComplianceDocs = { onSectionSelected("compliance_documents") },
                 readOnly = readOnly,
                 easebuzzVm = easebuzzVm
@@ -407,30 +402,21 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
 @Composable
 fun EasebuzzOnboardingHub(
     onNavigateToOnboarding: () -> Unit,
-    onOpenAgreement: () -> Unit,
     onOpenComplianceDocs: () -> Unit,
     readOnly: Boolean = false,
-    easebuzzVm: EasebuzzOnboardingViewModel = hiltViewModel(),
-    agreementVm: MerchantAgreementViewModel = hiltViewModel()
+    easebuzzVm: EasebuzzOnboardingViewModel = hiltViewModel()
 ) {
     val onboardingUiState by easebuzzVm.uiState.collectAsStateWithLifecycle()
-    val agreementUiState by agreementVm.uiState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
     LaunchedEffect(Unit) {
         easebuzzVm.loadStatus()
-        agreementVm.load()
     }
 
     val ebStatus: EasebuzzOnboardingStatusResponse? = when (val s = onboardingUiState) {
         is OnboardingUiState.Active -> s.status
         is OnboardingUiState.AwaitingKyc -> s.status
         is OnboardingUiState.Rejected -> s.status
-        else -> null
-    }
-
-    val agreementStatus: AgreementStatus? = when (val s = agreementUiState) {
-        is AgreementUiState.Ready -> s.status
         else -> null
     }
 
@@ -494,8 +480,12 @@ fun EasebuzzOnboardingHub(
     }
 
     // ── State 2: Registered & Active ──
-    val kycStatusStr = ebStatus?.kycStatus?.uppercase() ?: ""
-    val isKycActive = kycStatusStr == "ACTIVE"
+    // `kycStatus` carries Easebuzz's True/Pending/False flag; the lifecycle (ACTIVE,
+    // CPV_PENDING, REJECTED, KYC_EXPIRED, ...) arrives in `status`. Reading the lifecycle out
+    // of `kycStatus` could never match: the payout card then showed for fully active merchants
+    // and the rejected/expired copy was unreachable, falling through to the generic upload tip.
+    val kycLifecycle = ebStatus?.status?.uppercase() ?: ""
+    val isKycActive = ebStatus?.isActive == true || kycLifecycle == "ACTIVE"
 
     Card(
         modifier = Modifier
@@ -555,10 +545,10 @@ fun EasebuzzOnboardingHub(
             }
 
             Text(
-                text = if (agreementStatus?.hasCurrentAgreement == true && ebStatus?.isActive == true)
-                    "Your Easebuzz account and payment agreement are ready for online payments."
+                text = if (ebStatus?.isActive == true)
+                    "Your Easebuzz account is ready for online payments."
                 else
-                    "Complete Easebuzz activation and sign the current payment agreement before creating payment links.",
+                    "Complete Easebuzz activation before creating payment links.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextGold.copy(alpha = 0.85f)
             )
@@ -595,11 +585,11 @@ fun EasebuzzOnboardingHub(
 
                         Text(
                             text = when {
-                                kycStatusStr == "CPV_PENDING" ->
+                                kycLifecycle == "CPV_PENDING" ->
                                     "Complete the quick agentless contact verification to unlock automatic daily 6:00 AM bank payouts."
-                                kycStatusStr == "REJECTED" ->
-                                      "A submitted document was rejected. Please upload a fresh copy."
-                                  kycStatusStr == "KYC_EXPIRED" ->
+                                kycLifecycle == "REJECTED" ->
+                                      "A submitted document was rejected. Submit a fresh copy on the Easebuzz KYC portal."
+                                  kycLifecycle == "KYC_EXPIRED" ->
                                       "Your KYC has lapsed, so online payments are paused. Re-verify to resume."
                                 ebStatus?.businessProof1Present == true ->
                                     "Address proof submitted. Payout verification is under review by Easebuzz."
@@ -618,9 +608,9 @@ fun EasebuzzOnboardingHub(
                         ) {
                             Text(
                                 text = when {
-                                    kycStatusStr == "CPV_PENDING" -> "Complete Verification →"
-                                    kycStatusStr == "REJECTED" -> "Re-upload Proof →"
-                                      kycStatusStr == "KYC_EXPIRED" -> "Re-verify KYC →"
+                                    kycLifecycle == "CPV_PENDING" -> "Complete Verification →"
+                                    kycLifecycle == "REJECTED" -> "Re-submit Proof →"
+                                      kycLifecycle == "KYC_EXPIRED" -> "Re-verify KYC →"
                                     ebStatus?.businessProof1Present == true -> "View Uploaded Proofs"
                                     else -> "Upload Payout Proof →"
                                 },
@@ -633,7 +623,7 @@ fun EasebuzzOnboardingHub(
                 }
             }
 
-            // Quick footer actions: Account Details & Merchant Agreement
+            // Quick footer action: Account Details
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -648,13 +638,6 @@ fun EasebuzzOnboardingHub(
                     Text("Account Details ↗", color = PrimaryGold, style = MaterialTheme.typography.bodySmall)
                 }
 
-                TextButton(onClick = onOpenAgreement) {
-                    Text(
-                        text = if (agreementStatus?.hasCurrentAgreement == true) "✓ Agreement Signed" else "Payment Agreement ↗",
-                        color = if (agreementStatus?.hasCurrentAgreement == true) SuccessGreen else TextGold,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             }
         }
     }

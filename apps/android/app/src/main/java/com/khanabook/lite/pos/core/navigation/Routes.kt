@@ -82,5 +82,4 @@ object Routes {
     // ── Payments / compliance ──────────────────────────────────────────────────
     const val EASEBUZZ_ONBOARDING = "easebuzz_onboarding"
     const val COMPLIANCE_DOCUMENTS = "compliance_documents"
-    const val MERCHANT_AGREEMENT = "merchant_agreement"
 }

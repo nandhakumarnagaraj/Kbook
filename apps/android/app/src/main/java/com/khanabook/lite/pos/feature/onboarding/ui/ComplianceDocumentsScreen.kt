@@ -1,9 +1,6 @@
 package com.khanabook.lite.pos.feature.onboarding.ui
 import com.khanabook.lite.pos.core.theme.*
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -44,8 +41,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ComplianceDocumentsScreen(
-    onBack: () -> Unit,
-    onOpenAgreement: () -> Unit
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
@@ -68,9 +64,6 @@ fun ComplianceDocumentsScreen(
         is OnboardingUiState.Rejected -> state.status
         else -> null
     }
-
-    var pendingDocType by remember { mutableStateOf<String?>(null) }
-    var pendingProofType by remember { mutableStateOf<String?>(null) }
 
     var selectedProof1Type by remember {
         mutableStateOf(
@@ -95,17 +88,10 @@ fun ComplianceDocumentsScreen(
 
     val isDuplicateTypeError = (selectedProof1Type == selectedProof2Type) && (status?.businessProof2Present == true)
 
-    // Easebuzz accepts no documents through its API, so nothing is uploaded here: picking the
-    // file confirms the merchant has it, and the snackbar that follows opens the portal. Copying
-    // the bytes into app storage only to discard them was the old behaviour.
-    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        val docType = pendingDocType
-        if (uri != null && docType != null) {
-            vm.requestKycPortalLink(docType, pendingProofType)
-        }
-        pendingDocType = null
-        pendingProofType = null
-    }
+    // Easebuzz accepts no documents through its API, so no file is ever sent from here. The old
+    // flow opened a picker, threw the picked bytes away and then asked the merchant to upload
+    // again in a browser — a button that promised an upload it could not perform. Selecting a
+    // document type and tapping the button now goes straight to the hosted KYC portal.
 
     LaunchedEffect(events) {
         events.collect { event ->
@@ -204,7 +190,7 @@ fun ComplianceDocumentsScreen(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                "Upload clear photos or PDFs. Any 1 valid document (Electricity Bill, GST, Shop Act, Trade License, Import/Export Certificate, Udyam) is accepted for CPV. A rent/lease agreement alone is not accepted - pair it with a second proof. You may optionally upload a 2nd distinct document.",
+                "Pick the document type, then upload the file on the Easebuzz KYC portal - documents are submitted to Easebuzz, not stored by KhanaBook. Any 1 valid document (Electricity Bill, GST, Shop Act, Trade License, Import/Export Certificate, Udyam) is accepted for CPV. A rent/lease agreement alone is not accepted - pair it with a second proof. You may optionally add a 2nd distinct document.",
                 color = TextGold.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -241,11 +227,7 @@ fun ComplianceDocumentsScreen(
                 canView = status?.businessProof1DownloadPath != null,
                 isAllowed = canUpload,
                 isSubmitting = isSubmitting,
-                onUpload = {
-                    pendingDocType = "business_proof_1"
-                    pendingProofType = selectedProof1Type.code
-                    fileLauncher.launch("*/*")
-                },
+                onUpload = { vm.requestKycPortalLink("business_proof_1", selectedProof1Type.code) },
                 onView = { vm.downloadKycDocument("business_proof_1") },
                 spacing = spacing
             )
@@ -260,11 +242,7 @@ fun ComplianceDocumentsScreen(
                 canView = status?.businessProof2DownloadPath != null,
                 isAllowed = canUpload && (selectedProof1Type != selectedProof2Type),
                 isSubmitting = isSubmitting,
-                onUpload = {
-                    pendingDocType = "business_proof_2"
-                    pendingProofType = selectedProof2Type.code
-                    fileLauncher.launch("*/*")
-                },
+                onUpload = { vm.requestKycPortalLink("business_proof_2", selectedProof2Type.code) },
                 onView = { vm.downloadKycDocument("business_proof_2") },
                 spacing = spacing
             )
@@ -295,18 +273,6 @@ fun ComplianceDocumentsScreen(
             CpvChecklistCard(spacing = spacing)
 
             Spacer(Modifier.height(spacing.medium))
-
-            // ── 7. Merchant Agreement ──────────────────────────────────
-            OutlinedButton(
-                onClick = onOpenAgreement,
-                border = BorderStroke(1.dp, PrimaryGold),
-                shape = KhanaRadii.xl,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Description, contentDescription = null, tint = PrimaryGold)
-                Spacer(Modifier.size(spacing.extraSmall))
-                Text("View / Sign Merchant e-Agreement", color = PrimaryGold)
-            }
 
             if (!canUpload) {
                 Spacer(Modifier.height(spacing.small))
@@ -451,7 +417,7 @@ private fun AddressProofCard(
                     Text(title, color = TextGold, style = MaterialTheme.typography.titleSmall)
                 }
                 Text(
-                    if (isUploaded) "Uploaded" else "Pending",
+                    if (isUploaded) "Submitted" else "Not submitted",
                     color = if (isUploaded) SuccessGreen else DangerRed,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
@@ -531,7 +497,7 @@ private fun AddressProofCard(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Upload (PDF/Image)", color = DarkBrown1)
+                        Text("Upload on Easebuzz →", color = DarkBrown1)
                     }
                 }
                 OutlinedButton(

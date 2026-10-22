@@ -270,16 +270,9 @@ fun SettingsScreen(
                     "about_app" -> {
                         AboutAppView()
                     }
-                    "merchant_agreement" -> {
-                        com.khanabook.lite.pos.feature.onboarding.ui.MerchantAgreementScreen(
-                            onBack = { selectSection("menu") },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
                     "compliance_documents" -> {
                         com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
-                            onBack = { selectSection("menu") },
-                            onOpenAgreement = { selectSection("merchant_agreement") }
+                            onBack = { selectSection("menu") }
                         )
                     }
                 }
