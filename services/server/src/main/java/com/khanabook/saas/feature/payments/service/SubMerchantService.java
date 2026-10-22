@@ -323,14 +323,41 @@ public class SubMerchantService {
         log.info("KYC document deferred to portal restaurantId={} easebuzzType={} subMerchant={} ({}) — Easebuzz has no document API",
                 sm.getRestaurantId(), documentType, sm.getSubMerchantId(), detail);
         sm.setEasebuzzResponse("KYC_UPLOAD_DEFERRED_TO_PORTAL:" + documentType);
+        String portalUrl = sm.getKycPortalUrl();
+        if (portalUrl == null || portalUrl.isBlank()) {
+            // The create response may already have handed us a link. When it did not, mint one
+            // here: returning an empty URL leaves the merchant on the one screen that exists to
+            // unblock them with nothing to tap. Best-effort — the document note is still recorded
+            // when Easebuzz cannot issue a link right now.
+            String issued = refreshKycPortalUrl(sm);
+            if (issued != null && !issued.isBlank()) {
+                sm.setKycPortalUrl(issued);
+                portalUrl = issued;
+            }
+        }
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
         return Map.of(
                 "status", "portal_required",
                 "subMerchantId", sm.getSubMerchantId(),
                 "documentType", documentType,
-                "kycUrl", sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "",
+                "kycUrl", portalUrl != null ? portalUrl : "",
                 "message", "Upload this document on the Easebuzz portal to finish verification.");
+    }
+
+    /**
+     * Issues a fresh hosted-KYC link for a sub-merchant, returning {@code ""} when Easebuzz cannot
+     * provide one. The link is an access credential, so only its absence or presence is logged.
+     */
+    private String refreshKycPortalUrl(EasebuzzSubMerchant sm) {
+        try {
+            Object issued = generateKycAccessKey(sm.getId()).get("kyc_url");
+            return issued != null ? issued.toString() : "";
+        } catch (RuntimeException e) {
+            log.warn("Could not issue a KYC portal link for sub-merchant {}: {}",
+                    sm.getSubMerchantId(), e.getMessage());
+            return "";
+        }
     }
 
     /**
@@ -574,7 +601,7 @@ public class SubMerchantService {
         );
         Boolean apiStatus = (Boolean) result.get("status");
         if (Boolean.TRUE.equals(apiStatus)) {
-            sm.setEasebuzzResponse(result.toString());
+            sm.setEasebuzzResponse(toStorageSafeJson(result));
             rotateSplitLabelIfBankChanged(sm);
         } else {
             String error = (String) result.get("error");
@@ -669,16 +696,18 @@ public class SubMerchantService {
             sm.getContactEmail(),
             sm.getContactPhone()
         );
-        // Easebuzz response returns kyc_dashboard_url or msg with the KYC portal URL
-        Object kycUrlObj = result.get("kyc_dashboard_url");
-        if (kycUrlObj == null || kycUrlObj.toString().isBlank()) {
-            kycUrlObj = result.get("msg");
-        }
-        String kycUrl = kycUrlObj != null ? kycUrlObj.toString() : "";
-        if (!kycUrl.isBlank()) {
+        // A create response may already carry the hosted KYC link, so this call is a refresh,
+        // not the only source. Never blank a working link on a failed refresh: that would strand
+        // a merchant who already had a usable portal URL.
+        String kycUrl = extractKycPortalUrl(result);
+        if (kycUrl != null) {
             sm.setKycPortalUrl(kycUrl);
             sm.setUpdatedAt(System.currentTimeMillis());
             subMerchantRepo.save(sm);
+        } else if (sm.getKycPortalUrl() != null) {
+            kycUrl = sm.getKycPortalUrl();
+        } else {
+            kycUrl = "";
         }
         return Map.of(
             "status", result.getOrDefault("status", "failure"),
@@ -963,14 +992,12 @@ public class SubMerchantService {
                 );
             }
         }
+        // Easebuzz owns this identifier: the generate_kyc_access_key spec describes
+        // sub_merchant_id as the "Unique ID for Submerchant created by EaseBuzz". Send one back
+        // only when the gateway already issued it (resubmit); a locally invented id would be
+        // echoed upstream as if it were theirs and then used for KYC calls that only accept
+        // the gateway-issued value.
         String subMerchantId = sm.getSubMerchantId();
-        if (subMerchantId == null || subMerchantId.isBlank()) {
-            Long restId = sm.getRestaurantId() != null ? sm.getRestaurantId() : 0L;
-            String restTail = String.format("%06d", restId % 1000000);
-            String uuidTail = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
-            subMerchantId = "KBSM" + restTail + uuidTail;
-            sm.setSubMerchantId(subMerchantId);
-        }
 
         Map<String, Object> result = easebuzzApi.createSubMerchant(
             subMerchantId,
@@ -986,17 +1013,50 @@ public class SubMerchantService {
         Object statusObj = result != null ? result.get("status") : null;
         boolean apiStatus = EasebuzzApiClient.toBool(statusObj);
         if (apiStatus && result != null) {
-            Object returnedSmIdObj = result.get("submerchant_id");
-            if (returnedSmIdObj != null && !returnedSmIdObj.toString().isBlank()) {
-                sm.setSubMerchantId(returnedSmIdObj.toString());
+            String returnedSmId = extractSubMerchantId(result);
+            if (returnedSmId != null) {
+                sm.setSubMerchantId(returnedSmId);
+            } else {
+                log.warn("Easebuzz accepted sub-merchant {} but returned no sub-merchant id; "
+                        + "KYC portal and payments stay blocked until one arrives", id);
+            }
+            // The create response can already carry the hosted KYC link. Persisting it lets the
+            // owner open the portal straight after onboarding, without a separate
+            // generate_kyc_access_key round trip; that call stays available as a refresh.
+            String createKycUrl = extractKycPortalUrl(result);
+            if (createKycUrl != null) {
+                sm.setKycPortalUrl(createKycUrl);
+                log.info("Sub-merchant {} create response carried a KYC portal link; "
+                        + "the owner can onboard documents without a separate access-key call", id);
+            }
+            // The create response often omits kyc_details, and the portal is the only place a KYC
+            // document can go (no document-ingest API). Issuing the link here means the owner sees
+            // a working "upload documents" action the moment onboarding succeeds, instead of
+            // having to discover a separate refresh step. Best-effort: registration already
+            // succeeded, so a failed access-key call must not turn it into a failure.
+            if (createKycUrl == null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank()) {
+                try {
+                    Map<String, Object> keyResult = easebuzzApi.generateKycAccessKey(
+                            sm.getSubMerchantId(), sm.getBusinessName(),
+                            sm.getContactEmail(), sm.getContactPhone());
+                    String issuedUrl = extractKycPortalUrl(keyResult);
+                    if (issuedUrl != null) {
+                        sm.setKycPortalUrl(issuedUrl);
+                        log.info("Sub-merchant {} KYC portal link issued immediately after create", id);
+                    } else {
+                        log.warn("Sub-merchant {} registered but no KYC portal link was issued; "
+                                + "the owner must refresh the link before uploading documents", id);
+                    }
+                } catch (Exception e) {
+                    log.warn("Sub-merchant {} registered; KYC portal link request failed: {}", id, e.getMessage());
+                }
             }
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
-            sm.setEasebuzzResponse(result.toString());
+            sm.setEasebuzzResponse(toStorageSafeJson(result));
         } else {
             sm.setStatus("FAILED");
-            Object errorObj = result != null ? result.get("error") : null;
-            String error = errorObj != null ? errorObj.toString() : (result != null ? result.toString() : "Unknown error");
+            String error = extractProviderError(result);
             log.error("Easebuzz submission failed for smId={}: {}", id, error);
             sm.setEasebuzzResponse(error);
         }
@@ -1004,6 +1064,137 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         log.info("Sub-merchant {} submitted to Easebuzz, status={}", id, sm.getStatus());
         return sm;
+    }
+
+    /**
+     * Picks the gateway's human-readable failure text out of a create response.
+     * <p>
+     * Easebuzz returns {@code {"status":false,"error":...,"error_desc":...}}, and either field can
+     * be null depending on the failure. Falling back to the whole map dumped operators a raw JSON
+     * blob in the onboarding screen, which is exactly the diagnostic that does not help them — so
+     * {@code error_desc} wins, then {@code error}/{@code msg}/{@code message}, then the raw map.
+     */
+    public static String extractProviderError(Map<String, Object> result) {
+        if (result == null) return "Unknown error";
+        for (String key : new String[]{"error_desc", "error", "msg", "message"}) {
+            Object value = result.get(key);
+            if (value == null || value instanceof Boolean || value instanceof Number) continue;
+            String text = value.toString().trim();
+            if (!text.isEmpty() && !"null".equalsIgnoreCase(text)) return text;
+        }
+        return result.toString();
+    }
+
+    /**
+     * Reads the gateway-issued sub-merchant id out of a create response.
+     * <p>
+     * Easebuzz documents it nested — {@code {"status":true,"submerchant":{"submerchant_id":"SXXXABCD"}}}
+     * — while top-level placement has also been observed on this project's account. Both shapes
+     * are accepted, and {@code msg}/{@code data} envelopes are unwrapped for the same reason.
+     * Returns {@code null} when the response carries no id at all, which the caller must treat as
+     * "not onboarded yet" rather than substituting one of its own.
+     */
+    public static String extractSubMerchantId(Map<String, Object> result) {
+        if (result == null) return null;
+        String direct = asId(result.get("submerchant_id"));
+        if (direct != null) return direct;
+        for (String container : new String[]{"submerchant", "data", "msg"}) {
+            if (result.get(container) instanceof Map<?, ?> nested) {
+                String id = asId(nested.get("submerchant_id"));
+                if (id != null) return id;
+            }
+        }
+        return null;
+    }
+
+    private static String asId(Object value) {
+        if (value == null) return null;
+        String id = value.toString().trim();
+        return id.isEmpty() ? null : id;
+    }
+
+    /**
+     * Reads the hosted KYC portal URL out of a gateway response.
+     * <p>
+     * Easebuzz documents it on {@code generate_kyc_access_key} as
+     * {@code {"status":true,"kyc_dashboard_url":"https://kyc.easebuzz.in/...?access_key=..."}},
+     * and this project's account has also returned the same link inside the create response
+     * ({@code kyc_details.kyc_dashboard_url}). Both shapes are accepted so the caller never has to
+     * assume a separate access-key call is required; only absolute http(s) URLs qualify, which
+     * keeps a plain {@code msg} sentence from being stored as if it were a link.
+     *
+     * @return the URL, or {@code null} when the response carries none
+     */
+    public static String extractKycPortalUrl(Map<String, Object> result) {
+        if (result == null) return null;
+        for (String key : new String[]{"kyc_dashboard_url", "kyc_url"}) {
+            String url = asPortalUrl(result.get(key));
+            if (url != null) return url;
+        }
+        for (String container : new String[]{"kyc_details", "submerchant", "data", "msg"}) {
+            if (result.get(container) instanceof Map<?, ?> nested) {
+                for (String key : new String[]{"kyc_dashboard_url", "kyc_url", "url"}) {
+                    String url = asPortalUrl(nested.get(key));
+                    if (url != null) return url;
+                }
+            }
+        }
+        return asPortalUrl(result.get("msg"));
+    }
+
+    private static String asPortalUrl(Object value) {
+        if (value == null || value instanceof Map || value instanceof Boolean || value instanceof Number) return null;
+        String candidate = value.toString().trim();
+        String lower = candidate.toLowerCase(java.util.Locale.ROOT);
+        boolean absolute = lower.startsWith("https://") || lower.startsWith("http://");
+        return absolute && candidate.contains(".") ? candidate : null;
+    }
+
+    /** Response keys whose values are KYC access credentials and must never be persisted or logged. */
+    private static final java.util.Set<String> KYC_SECRET_KEYS =
+            java.util.Set.of("kyc_dashboard_url", "kyc_url", "access_key", "kyc_access_key");
+
+    /**
+     * Serialises a gateway response for storage with every KYC access URL/key removed.
+     * <p>
+     * {@code easebuzz_response} is surfaced verbatim as the onboarding {@code message} and is read
+     * by support, so a raw create response would leak a portal URL that signs anyone holding it
+     * into the merchant's KYC session. Redaction is structural (the field survives as
+     * {@code [REDACTED]}) so diagnostics stay useful; on any serialisation failure the method fails
+     * closed rather than falling back to the raw map.
+     */
+    private String toStorageSafeJson(Map<String, Object> result) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode tree = objectMapper.valueToTree(result);
+            redactKycSecrets(tree);
+            return objectMapper.writeValueAsString(tree);
+        } catch (RuntimeException | JsonProcessingException e) {
+            log.warn("Could not serialise Easebuzz response for storage; storing a redacted stub");
+            return "{\"payload_redacted\":true}";
+        }
+    }
+
+    private static void redactKycSecrets(com.fasterxml.jackson.databind.JsonNode node) {
+        if (node instanceof com.fasterxml.jackson.databind.node.ObjectNode obj) {
+            java.util.List<String> names = new java.util.ArrayList<>();
+            obj.fieldNames().forEachRemaining(names::add);
+            for (String name : names) {
+                com.fasterxml.jackson.databind.JsonNode child = obj.get(name);
+                if (child == null) continue;
+                String key = name.toLowerCase(java.util.Locale.ROOT);
+                boolean secretKey = KYC_SECRET_KEYS.stream().anyMatch(key::contains);
+                if (child.isValueNode() && !child.isNull()) {
+                    String text = child.asText();
+                    if (secretKey || text.toLowerCase(java.util.Locale.ROOT).contains("access_key=")) {
+                        obj.put(name, "[REDACTED]");
+                    }
+                } else {
+                    redactKycSecrets(child);
+                }
+            }
+        } else if (node instanceof com.fasterxml.jackson.databind.node.ArrayNode arr) {
+            arr.forEach(SubMerchantService::redactKycSecrets);
+        }
     }
 
     // ============================================================

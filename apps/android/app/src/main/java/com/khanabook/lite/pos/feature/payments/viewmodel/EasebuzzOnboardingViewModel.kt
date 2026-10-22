@@ -328,7 +328,17 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                             loadStatus()
                         } else {
                             _events.emit(OnboardingEvent.Toast("Registration submitted successfully!"))
-                            goToStep(OnboardingStep.OtpVerification)
+                            // No OTP stop: Easebuzz's create contract carries no OTP field, and the
+                            // hosted KYC portal is where documents actually go. The portal link is
+                            // issued server-side immediately after create when Easebuzz returned
+                            // none; fall back to the refresh call only when neither source had it.
+                            val portal = response.kycUrl?.takeIf { it.isNotBlank() }
+                            if (portal != null) {
+                                goToStep(OnboardingStep.KycStatus)
+                                loadStatus()
+                            } else {
+                                generateKycAccessKey()
+                            }
                         }
                     } else {
                         _events.emit(OnboardingEvent.Toast(

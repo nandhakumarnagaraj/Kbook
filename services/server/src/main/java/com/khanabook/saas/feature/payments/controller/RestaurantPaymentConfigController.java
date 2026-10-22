@@ -6,7 +6,6 @@ import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
-import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -24,7 +23,6 @@ public class RestaurantPaymentConfigController {
 
     private final RestaurantProfileRepository profileRepo;
     private final SubMerchantService subMerchantService;
-    private final MerchantAgreementService merchantAgreementService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
@@ -40,16 +38,17 @@ public class RestaurantPaymentConfigController {
         Map<String, Object> config = new HashMap<>();
         boolean subMerchantActive = sm != null && sm.getSubMerchantId() != null
                 && !sm.getSubMerchantId().isBlank() && "ACTIVE".equals(sm.getStatus());
-        boolean hasCurrentAgreement = merchantAgreementService.hasCurrentSignedAgreement(restaurantId);
         boolean enabled = Boolean.TRUE.equals(profile.getEasebuzzEnabled());
         config.put("subMerchantActive", subMerchantActive);
-        config.put("paymentLinkReady", enabled && hasCurrentAgreement && subMerchantActive);
+        config.put("paymentLinkReady", enabled && subMerchantActive);
         config.put("easebuzzEnabled", enabled);
-        config.put("agreementRequired", !hasCurrentAgreement);
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
         config.put("subMerchantId", sm != null ? sm.getSubMerchantId() : null);
         config.put("kycStatus", sm != null ? sm.getKycStatus() : null);
-        config.put("kycPortalUrl", sm != null ? sm.getKycPortalUrl() : null);
+        // The hosted KYC URL embeds an access key: anyone holding it signs in as this merchant's
+        // KYC session. Only the owner may receive it — counter staff terminals poll this endpoint
+        // for readiness and must never be handed a credential they have no use for.
+        config.put("kycPortalUrl", ownerOnlyKycUrl(sm));
         config.put("kycSubmittedAt", sm != null ? sm.getKycSubmittedAt() : null);
         config.put("kycActivatedAt", sm != null ? sm.getKycActivatedAt() : null);
         return ResponseEntity.ok(config);
@@ -68,12 +67,6 @@ public class RestaurantPaymentConfigController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "easebuzzEnabled must be true or false");
             }
             boolean enabled = Boolean.TRUE.equals(data.get("easebuzzEnabled"));
-            if (enabled && !merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
-                return ResponseEntity.status(409).body(Map.of(
-                        "status", "failure",
-                        "error", "Restaurant owner agreement is required before enabling Easebuzz payments",
-                        "agreementRequired", true));
-            }
             if (enabled) {
                 EasebuzzSubMerchant sm;
                 try {
@@ -99,6 +92,15 @@ public class RestaurantPaymentConfigController {
         return getConfig();
     }
 
+    private static boolean isOwner() {
+        return "OWNER".equals(TenantContext.getCurrentRole());
+    }
+
+    /** The portal URL for an owner, {@code null} for every other role. */
+    private static String ownerOnlyKycUrl(EasebuzzSubMerchant sm) {
+        return (isOwner() && sm != null) ? sm.getKycPortalUrl() : null;
+    }
+
     @GetMapping("/sub-merchant-status")
     public ResponseEntity<Map<String, Object>> getSubMerchantStatus() {
         Long restaurantId = TenantContext.getCurrentTenant();
@@ -113,7 +115,8 @@ public class RestaurantPaymentConfigController {
             result.put("isActive",           isActive);
             result.put("kycStatus",          sm.getKycStatus() != null ? sm.getKycStatus() : "");
             result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
-            result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
+            String portalUrl = ownerOnlyKycUrl(sm);
+            result.put("kycUrl",            portalUrl != null ? portalUrl : "");
             result.put("kycExpiryDate",      sm.getKycExpiryDate() != null ? sm.getKycExpiryDate() : "");
             result.put("bankStatus",         sm.getBankStatus());
             result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
@@ -198,9 +201,17 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(actionResult(sm));
     }
 
-    /** Generate the EaseBuzz hosted KYC portal URL for document upload. */
+    /**
+     * Generate (or refresh) the EaseBuzz hosted KYC portal URL for document upload.
+     * <p>
+     * Owner-only: the response carries a portal access key, so issuing one on behalf of another
+     * role would hand that role the merchant's KYC session.
+     */
     @PostMapping("/kyc-access-key")
     public ResponseEntity<Map<String, Object>> kycAccessKey() {
+        if (!isOwner()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
+        }
         Long restaurantId = TenantContext.getCurrentTenant();
         Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
         return ResponseEntity.ok(subMerchantService.generateKycAccessKey(id));
@@ -214,6 +225,11 @@ public class RestaurantPaymentConfigController {
      */
     @PostMapping("/kyc-portal-link")
     public ResponseEntity<Map<String, Object>> kycPortalLink(@RequestBody Map<String, Object> body) {
+        // The response carries the same portal access key, so this inherits the owner-only rule
+        // from /kyc-access-key rather than becoming the way around it.
+        if (!isOwner()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
+        }
         Long restaurantId = TenantContext.getCurrentTenant();
         Object docType = body.get("docType");
         if (docType == null || docType.toString().isBlank()) {
@@ -248,6 +264,10 @@ public class RestaurantPaymentConfigController {
         out.put("kycStatus", sm.getKycStatus() != null ? sm.getKycStatus() : "");
         out.put("kycExpiryDate", sm.getKycExpiryDate() != null ? sm.getKycExpiryDate() : "");
         out.put("bankStatus", sm.getBankStatus());
+        // Same rule as GET /restaurants/payment-config/easebuzz: the portal URL embeds an access
+        // key that signs in as this merchant's KYC session, so only an owner receives it.
+        String portalUrl = ownerOnlyKycUrl(sm);
+        out.put("kycUrl", portalUrl != null ? portalUrl : "");
         out.put("message", Objects.toString(sm.getEasebuzzResponse(), ""));
         return out;
     }

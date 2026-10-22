@@ -17,7 +17,9 @@ import org.springframework.web.client.RestTemplate;
 import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -41,6 +43,11 @@ public class EasebuzzApiClient {
 	private static final long BASE_BACKOFF_MS = 250L;
 	private static final long MAX_BACKOFF_MS = 1_000L;
 	private static final int RETRYABLE_STATUS_TOO_MANY_REQUESTS = 429;
+	/** Easebuzz documents a 20-row default and a 500-row maximum per settlements page. */
+	private static final int SETTLEMENT_PAGE_SIZE = 500;
+	/** Bound so a gateway bug in the {@code next} cursor cannot hang the reconciliation job. */
+	private static final int SETTLEMENT_MAX_PAGES = 40;
+
 	private final RestTemplate restTemplate;
 	private final EasebuzzProperties props;
 
@@ -63,8 +70,13 @@ public class EasebuzzApiClient {
 		
 		// 1. Extract and Clean Parameters
 		String txnid = data.get("txnid");
-		// Easebuzz allows up to 40 chars for txnid (regex: ^[a-zA-Z0-9_|\\-\\/]{1,40}$)
-		if (txnid.length() > 40) txnid = txnid.substring(0, 40);
+		// Easebuzz allows up to 40 chars for txnid (regex: ^[a-zA-Z0-9_|\\-\\/]{1,40}$).
+		// Truncating is the only option that still collects the payment, but it silently
+		// splits the gateway id from the id we persist, so it must never be quiet.
+		if (txnid.length() > 40) {
+			log.warn("Truncating txnid to 40 characters for the gateway (length {})", txnid.length());
+			txnid = txnid.substring(0, 40);
+		}
 		
 		String amount = data.get("amount");
 		String productinfo = data.get("productinfo").replaceAll("[^a-zA-Z0-9]", ""); 
@@ -147,6 +159,16 @@ public class EasebuzzApiClient {
 			String accessKey = (String) raw.get("data");
 			log.info("Easebuzz access key generated txnid={} accessKeyLength={} payMode={}",
 					txnid, accessKey != null ? accessKey.length() : 0, props.getPayMode());
+			// The access key is 64 lowercase hex characters (the official integration kit
+			// validates the same shape). Anything else is a "success" carrying a payload no
+			// checkout page can use, so it must not become a payment URL.
+			if (accessKey == null || !accessKey.matches("^[a-f0-9]{64}$")) {
+				log.error("Easebuzz returned an unusable access key txnid={} length={}",
+						txnid, accessKey != null ? accessKey.length() : 0);
+				result.put("status", "failure");
+				result.put("error", "Easebuzz returned an invalid access key");
+				return result;
+			}
 			result.put("status", "success");
 			result.put("access_token", accessKey);
 			result.put("payment_url", props.getPaymentBaseUrl() + "/pay/" + accessKey);
@@ -164,9 +186,10 @@ public class EasebuzzApiClient {
 		params.add("txnid", txnid);
 		params.add("hash", generateHash(props.getMerchantKey(), txnid));
 
-		// Read-only lookup: safe to repeat.
-		Map<String, Object> raw = post(props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve", params, true);
-		return raw;
+		// Read-only lookup: safe to repeat. See postFormWithFallback for why both routes are tried.
+		return postFormWithFallback(java.util.List.of(
+				props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve",
+				props.getDashboardBaseUrl() + "/transaction/v2/retrieve"), params, true);
 	}
 
 	/**
@@ -183,22 +206,24 @@ public class EasebuzzApiClient {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), merchantRefundId, easebuzzId, refundAmount);
 
-		Map<String, Object> body = new HashMap<>();
-		body.put("key", props.getMerchantKey());
-		body.put("merchant_refund_id", merchantRefundId);
-		body.put("easebuzz_id", easebuzzId);
-		body.put("refund_amount", refundAmount);
-		body.put("hash", hash);
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.set("key", props.getMerchantKey());
+		params.set("merchant_refund_id", merchantRefundId);
+		params.set("easebuzz_id", easebuzzId);
+		params.set("refund_amount", refundAmount);
+		params.set("hash", hash);
 
+		// Form-encoded is the first-party content type for this route: the official kit posts
+		// it that way (easebuzz-lib/refund.php). JSON acceptance was never documented.
 		// Idempotent at the gateway via merchant_refund_id: a retry cannot double-refund.
-		return postJson(props.getDashboardBaseUrl() + "/transaction/v2/refund", body, true);
+		return post(props.getDashboardBaseUrl() + "/transaction/v2/refund", params, true);
 	}
 
 	/**
-	 * Refund status contract confirmed by ERA (2026-09-23 + follow-up) and the
-	 * official Java kit (web/refund_status_response.jsp): easebuzz_id lookup,
-	 * optional merchant_refund_id, key|easebuzz_id|salt hash. JSON body is
-	 * accepted by the gateway; form-urlencoded is the documented primary.
+	 * Refund status contract: easebuzz_id lookup, optional merchant_refund_id, and the
+	 * {@code key|easebuzz_id|salt} hash — all three match the official integration kit
+	 * (easebuzz-lib/refund_status.php), which also posts the request form-encoded. That is the
+	 * content type used here; JSON acceptance was an assumption with no first-party source.
 	 */
 	public Map<String, Object> getRefundStatus(String easebuzzId, String merchantRefundId) {
 		if (easebuzzId == null || easebuzzId.isBlank()) {
@@ -207,15 +232,15 @@ public class EasebuzzApiClient {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), easebuzzId);
 
-		Map<String, Object> params = new HashMap<>();
-		params.put("key", props.getMerchantKey());
-		params.put("easebuzz_id", easebuzzId);
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.set("key", props.getMerchantKey());
+		params.set("easebuzz_id", easebuzzId);
 		if (merchantRefundId != null && !merchantRefundId.isBlank()) {
-			params.put("merchant_refund_id", merchantRefundId);
+			params.set("merchant_refund_id", merchantRefundId);
 		}
-		params.put("hash", hash);
+		params.set("hash", hash);
 
-		return postJson(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params, true);
+		return post(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params, true);
 	}
 
 	public Map<String, Object> verifyOtp(String subMerchantId, String otp) {
@@ -292,11 +317,63 @@ public class EasebuzzApiClient {
 		return retrieveSettlements(date, date, null);
 	}
 
+	/**
+	 * Retrieves every settlements page for the range.
+	 *
+	 * <p>Easebuzz documents 20 rows per page by default (500 maximum) and hands back the cursor in
+	 * {@code next}, which must be echoed in {@code page} to continue. Returning only the first page
+	 * would silently hide transactions from reconciliation, which reads a missing row as "the
+	 * webhook never arrived" — a busy restaurant settles more than one page a day.
+	 */
 	public Map<String, Object> retrieveSettlements(String startDate, String endDate, String subMerchantId) {
 		checkCredentials();
 		String normStart = normalizeDate(startDate);
 		String normEnd = normalizeDate(endDate);
 		String hash = generateHash(props.getMerchantKey(), normStart, normEnd);
+
+		Map<String, Object> firstPage = requestSettlementPage(hash, normStart, normEnd, subMerchantId, null);
+		if (!toBool(firstPage.get("status"))) {
+			return firstPage;
+		}
+
+		List<Object> rows = new ArrayList<>();
+		Object firstData = firstPage.get("data");
+		if (firstData instanceof List<?> list) {
+			rows.addAll(list);
+		}
+
+		Object next = firstPage.get("next");
+		int pages = 1;
+		while (next != null && !next.toString().isBlank() && pages < SETTLEMENT_MAX_PAGES) {
+			Map<String, Object> page = requestSettlementPage(hash, normStart, normEnd, subMerchantId, next.toString());
+			if (!toBool(page.get("status"))) {
+				log.warn("Settlements page {} failed for {}..{}: {}", next, normStart, normEnd, page.get("error"));
+				break;
+			}
+			Object pageData = page.get("data");
+			if (pageData instanceof List<?> list) {
+				rows.addAll(list);
+			}
+			next = page.get("next");
+			pages++;
+		}
+
+		boolean truncated = next != null && !next.toString().isBlank();
+		if (truncated) {
+			// Fail loudly: a partially fetched period must not be reported as fully reconciled.
+			log.error("Settlements pagination stopped after {} pages for {}..{} with next={}",
+					pages, normStart, normEnd, next);
+		}
+
+		Map<String, Object> merged = new LinkedHashMap<>(firstPage);
+		merged.put("data", rows);
+		merged.put("pagesFetched", pages);
+		merged.put("truncated", truncated);
+		return merged;
+	}
+
+	private Map<String, Object> requestSettlementPage(String hash, String normStart, String normEnd,
+			String subMerchantId, String page) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("merchant_key", props.getMerchantKey());
 		body.put("key", props.getMerchantKey());
@@ -314,6 +391,10 @@ public class EasebuzzApiClient {
 
 		if (subMerchantId != null && !subMerchantId.isBlank()) {
 			body.put("submerchant_id", subMerchantId);
+		}
+		body.put("page_size", SETTLEMENT_PAGE_SIZE);
+		if (page != null) {
+			body.put("page", page);
 		}
 
 		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body, true);
@@ -611,19 +692,8 @@ return result;
 	private Map<String, Object> post(String url, MultiValueMap<String, String> bodyMap, boolean retryable) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		
-		// Manually build the query string to avoid [val] formatting issues
-		StringBuilder sb = new StringBuilder();
-		bodyMap.forEach((key, values) -> {
-			if (!values.isEmpty()) {
-				if (sb.length() > 0) sb.append("&");
-				sb.append(java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8));
-				sb.append("=");
-				sb.append(java.net.URLEncoder.encode(values.get(0), java.nio.charset.StandardCharsets.UTF_8));
-			}
-		});
-		
-		HttpEntity<String> request = new HttpEntity<>(sb.toString(), headers);
+
+		HttpEntity<String> request = new HttpEntity<>(encodeForm(bodyMap), headers);
 		try {
 			ResponseEntity<Map<String, Object>> response = exchangeWithRetry(url, request, retryable);
 			log.debug("Easebuzz API {} success: {}", url, response.getStatusCode());
@@ -635,6 +705,66 @@ return result;
 			log.error("Easebuzz API {} failed: {}", url, e.getMessage());
 			return Map.of("status", "failure", "error", e.getMessage());
 		}
+	}
+
+	/**
+	 * Builds the form body by hand so multi-valued entries are not rendered as {@code key[0]=}
+	 * by a form message converter.
+	 */
+	private static String encodeForm(MultiValueMap<String, String> bodyMap) {
+		StringBuilder sb = new StringBuilder();
+		bodyMap.forEach((key, values) -> {
+			if (!values.isEmpty()) {
+				if (sb.length() > 0) sb.append("&");
+				sb.append(java.net.URLEncoder.encode(key, StandardCharsets.UTF_8));
+				sb.append("=");
+				sb.append(java.net.URLEncoder.encode(values.get(0), StandardCharsets.UTF_8));
+			}
+		});
+		return sb.toString();
+	}
+
+	/**
+	 * POSTs a form-encoded body, advancing to the next candidate URL only when the gateway says the
+	 * route itself is absent (404/405). Any other outcome is final: a 400 or a 500 means the route
+	 * exists and the request was rejected, so trying a different path would only hide the reason.
+	 *
+	 * <p>This exists because two first-party Easebuzz sources disagree on the transaction-status
+	 * route: the v2.0 integration kit posts to {@code /transaction/v2/retrieve}
+	 * (easebuzz-lib/transaction.php) while the docs site documents
+	 * {@code /transaction/v2.1/retrieve}. Both are tried, and the log records which one answered,
+	 * so the ambiguity is settled by real traffic instead of being guessed at deploy time.
+	 */
+	private Map<String, Object> postFormWithFallback(java.util.List<String> urls,
+			MultiValueMap<String, String> bodyMap, boolean retryable) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		HttpEntity<String> request = new HttpEntity<>(encodeForm(bodyMap), headers);
+
+		for (int i = 0; i < urls.size(); i++) {
+			String url = urls.get(i);
+			boolean hasNext = i < urls.size() - 1;
+			try {
+				ResponseEntity<Map<String, Object>> response = exchangeWithRetry(url, request, retryable);
+				if (hasNext) {
+					log.debug("Easebuzz route {} answered; alternate route not needed", url);
+				}
+				return response.getBody();
+			} catch (org.springframework.web.client.HttpStatusCodeException e) {
+				int code = e.getStatusCode().value();
+				if (hasNext && (code == 404 || code == 405)) {
+					log.warn("Easebuzz route {} answered {}; trying alternate route {}", url, code, urls.get(i + 1));
+					continue;
+				}
+				log.error("Easebuzz API {} error {}", url, e.getStatusCode());
+				return Map.of("status", "failure", "error", "Easebuzz gateway request failed");
+			} catch (Exception e) {
+				log.error("Easebuzz API {} failed: {}", url, e.getMessage());
+				return Map.of("status", "failure", "error",
+						e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+			}
+		}
+		throw new IllegalStateException("No Easebuzz route candidate was supplied");
 	}
 
 	private Map<String, Object> postJson(String url, Map<String, Object> data) {

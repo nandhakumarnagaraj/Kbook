@@ -44,7 +44,6 @@ import com.khanabook.saas.feature.staff.data.PermissionKey;
 import com.khanabook.saas.feature.staff.data.PermissionRequest;
 import com.khanabook.saas.feature.staff.data.RoleTemplate;
 import com.khanabook.saas.feature.platform.data.FeatureFlag;
-import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
 import com.khanabook.saas.feature.auth.data.UserDTO;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;

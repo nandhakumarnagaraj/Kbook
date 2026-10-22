@@ -55,6 +55,14 @@ public class EasebuzzWebhookService {
         String txnid = payload.get("txnid");
         String status = payload.get("status");
 
+        // Authenticate before answering anything about this txnid. The duplicate guard used to run
+        // first, which let an unauthenticated caller distinguish "already processed" from
+        // "hash_mismatch" and so probe which (txnid, status) pairs exist.
+        if (!verifyWebhookHash(payload)) {
+            log.warn("Payment webhook hash mismatch txnid={}", txnid);
+            return Map.of("status", "hash_mismatch");
+        }
+
         // Replay/duplicate webhook guard
         if (txnid != null && status != null) {
             boolean alreadyProcessed = webhookEventRepo.existsByTxnIdAndStatus(txnid, status);
@@ -62,12 +70,6 @@ public class EasebuzzWebhookService {
                 log.info("Duplicate webhook ignored txnid={} status={}", txnid, status);
                 return Map.of("status", "ok", "message", "already processed");
             }
-        }
-
-        // Verify webhook hash before processing
-        if (!verifyWebhookHash(payload)) {
-            log.warn("Payment webhook hash mismatch txnid={}", txnid);
-            return Map.of("status", "hash_mismatch");
         }
 
         String easebuzzId = payload.getOrDefault("easebuzz_id", payload.get("easepayid"));
@@ -95,6 +97,7 @@ public class EasebuzzWebhookService {
                         bill.setGatewayStatus("success");
                         bill.setPaymentStatus("paid");
                         bill.setPaidAt(System.currentTimeMillis());
+                        bill.touchStatusVersion();
                         if (amountStr != null) {
                             bill.setSettledAmount(new BigDecimal(amountStr));
                         }
@@ -407,6 +410,7 @@ public class EasebuzzWebhookService {
                 boolean fullyRefunded = cumulative.compareTo(bill.getTotalAmount()) == 0;
                 bill.setPaymentStatus(fullyRefunded ? "refunded" : "partially_refunded");
                 bill.setGatewayStatus(fullyRefunded ? "refunded" : "partially_refunded");
+                bill.touchStatusVersion();
                 if (fullyRefunded) bill.setOrderStatus("cancelled");
 
                 String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
@@ -494,11 +498,21 @@ public class EasebuzzWebhookService {
             return Map.of("status", "hash_mismatch");
         }
 
-        log.info("Payout webhook received requestId={} payoutId={} status={} utr={}", requestId, payoutId, resolvedStatus, utr);
+        String disbursementId = payload.get("id");
+        String disbursementType = payload.get("disbursement_type");
+        log.info("Payout webhook received requestId={} payoutId={} disbursementId={} type={} status={} utr={}",
+                requestId, payoutId, disbursementId, disbursementType, resolvedStatus, utr);
 
         java.util.Optional<EasebuzzPayout> foundPayout = (requestId != null && !requestId.isBlank())
                 ? payoutRepo.findByMerchantRequestId(requestId)
                 : ((payoutId != null && !payoutId.isBlank()) ? payoutRepo.findByPayoutId(payoutId) : java.util.Optional.empty());
+
+        if (foundPayout.isEmpty()) {
+            // InstaCollect disbursement events identify themselves by `data.id`, which no local
+            // payout row is keyed on; surface the mismatch instead of acknowledging silently.
+            log.warn("Payout webhook matched no payout record requestId={} payoutId={} disbursementId={} type={}",
+                    requestId, payoutId, disbursementId, disbursementType);
+        }
 
         foundPayout.ifPresent(payout -> {
             payout.setStatus(resolvedStatus);
@@ -602,9 +616,40 @@ public class EasebuzzWebhookService {
     private boolean verifyPayoutHash(Map<String, String> payload) {
         try {
             String receivedHash = payload.get("hash");
+            if (receivedHash == null || receivedHash.isBlank()) {
+                // InstaCollect disbursement events carry the digest in `Authorization`.
+                receivedHash = payload.get("Authorization");
+            }
             if (receivedHash == null || receivedHash.isBlank()) return false;
 
             String receivedHashClean = receivedHash.trim().toLowerCase();
+
+            // Scenario 0: InstaCollect disbursement webhook
+            //   key|refund|unique_transaction_reference|amount|status|salt
+            //   key|settlement|unique_transaction_reference|amount|status|salt
+            String disbursementType = payload.get("disbursement_type");
+            if (disbursementType != null && !disbursementType.isBlank()) {
+                String utr = payload.get("unique_transaction_reference");
+                if (utr == null || utr.isBlank()) {
+                    // The sequence interpolates the UTR. With a null UTR (the documented
+                    // SETTLEMENT_INITIATED example) there is no reproducible input, and inventing
+                    // one would accept unverifiable money movement. Easebuzz has been asked how a
+                    // null-UTR initiation is signed; until then this stays closed.
+                    log.warn("Disbursement webhook type={} carries no unique_transaction_reference; " +
+                            "documented hash cannot be reproduced — rejecting", disbursementType);
+                    return false;
+                }
+                String disbursementHash = sha512(props.getMerchantKey() + "|"
+                        + disbursementType.toLowerCase() + "|" + utr + "|"
+                        + nullSafe(payload.get("amount")) + "|" + nullSafe(payload.get("status")) + "|"
+                        + props.getSalt()).trim().toLowerCase();
+                if (MessageDigest.isEqual(disbursementHash.getBytes(StandardCharsets.UTF_8),
+                        receivedHashClean.getBytes(StandardCharsets.UTF_8))) {
+                    return true;
+                }
+                log.warn("Disbursement webhook hash mismatch type={} utr={}", disbursementType, utr);
+                return false;
+            }
 
             // Scenario 1: Settlement Payout Webhook (key|payout_id|salt)
             if (payload.containsKey("payout_id") && !payload.containsKey("beneficiary_account_number")) {

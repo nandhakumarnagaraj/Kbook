@@ -10,7 +10,6 @@ import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEventRepository;
-import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -39,7 +38,6 @@ public class EasebuzzPaymentService {
     private final ChargebackPreventionService chargebackService;
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
-    private final MerchantAgreementService merchantAgreementService;
     private final RestaurantProfileRepository restaurantProfileRepository;
 
     @Transactional
@@ -154,6 +152,7 @@ public class EasebuzzPaymentService {
             bill.setGatewayStatus("success");
             bill.setPaymentStatus("paid");
             bill.setPaidAt(System.currentTimeMillis());
+            bill.touchStatusVersion();
             billRepo.save(bill);
             saveGatewayEventIfPresent(bill, easebuzzId, "success");
             log.info("Payment verification success billId={} txnid={} easebuzzId={}", billId, bill.getGatewayTxnId(), easebuzzId);
@@ -398,10 +397,6 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> createPaymentLink(Map<String, Object> request) {
         Long restaurantId = ((Number) request.get("restaurantId")).longValue();
-        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
-            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
-                    "error", "Restaurant owner must sign the current payment agreement");
-        }
         BigDecimal parsedAmount;
         try {
             Object rawAmount = request.get("amount");
@@ -504,11 +499,6 @@ public class EasebuzzPaymentService {
             return Map.of("status", "failure", "code", "ACCESS_DENIED",
                     "error", "Bill does not belong to this restaurant");
         }
-        if (!merchantAgreementService.hasCurrentSignedAgreement(restaurantId)) {
-            return Map.of("status", "failure", "code", "AGREEMENT_REQUIRED",
-                    "error", "Restaurant owner must sign the current payment agreement");
-        }
-
         // Block if already paid
         if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
             log.warn("Blocked payment link creation for already paid billId={}", billId);

@@ -250,7 +250,7 @@ private fun NotStartedContent(onStart: () -> Unit, spacing: Spacing) {
         )
         Spacer(Modifier.height(spacing.medium))
         Text(
-            "You'll need:\n• PAN - proprietor's PAN for a sole proprietorship, firm/company PAN otherwise\n• Aadhaar of the proprietor / authorised signatory (masked or Aadhaar XML is fine; passport, voter ID or driving licence accepted instead)\n• Bank account number and IFSC\n• FSSAI number and one business proof (Shop & Establishment, Udyam/MSME, trade licence, utility bill or Import/Export certificate)\n• Phone number for OTP\n\nGST is optional. You upload the documents yourself, signed in to Easebuzz's KYC portal at the end.",
+            "You'll need:\n• PAN - proprietor's PAN for a sole proprietorship, firm/company PAN otherwise\n• Aadhaar of the proprietor / authorised signatory (masked or Aadhaar XML is fine; passport, voter ID or driving licence accepted instead)\n• Bank account number and IFSC\n• FSSAI number and one business proof (Shop & Establishment, Udyam/MSME, trade licence, utility bill or Import/Export certificate)\n• Phone number (used to sign in to the KYC portal; an OTP only if Easebuzz asks for one)\n\nGST is optional. You upload the documents yourself, signed in to Easebuzz's KYC portal at the end.",
             style = MaterialTheme.typography.bodySmall,
             color = TextGold.copy(alpha = 0.7f),
             textAlign = TextAlign.Start,
@@ -873,6 +873,17 @@ private fun KycStatusStep(
                         ) {
                             Text("Upload & Manage Address Proofs", color = PrimaryGold)
                         }
+                    }
+
+                    // Easebuzz sends an OTP for some accounts and not for others, and its create
+                    // contract has no OTP field. Keep the path reachable without gating the KYC
+                    // portal behind it.
+                    TextButton(onClick = { viewModel.goToStep(OnboardingStep.OtpVerification) }) {
+                        Text(
+                            "Easebuzz asked for a phone OTP? Verify it here",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }

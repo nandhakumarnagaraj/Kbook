@@ -249,6 +249,51 @@ sha512(key|submerchant_id|salt)
 
 **Recommendation**: Verify discrepancies #1-3 against live Easebuzz sandbox before producing production fixes. Discrepancies #4-5 are architectural choices confirmed via ERA follow-ups.
 
+### ✅ Contract verified against Easebuzz's own integration kit (2026-10-21)
+
+Discrepancies #1-#3 are resolved from first-party source code, not an AI answer:
+[`easebuzz/paywitheasebuzz-php-lib`](https://github.com/easebuzz/paywitheasebuzz-php-lib) v2.0 —
+`easebuzz-lib/{initiate_payment,transaction,refund,refund_status}.php` and the hash map in `utils.php`.
+
+| Call | Endpoint (host) | Content type | Hash sequence |
+|---|---|---|---|
+| Initiate payment | `POST /payment/initiateLink` (`payBaseUrl`) | form-urlencoded | `key\|txnid\|amount\|productinfo\|firstname\|email\|udf1..udf10\|salt` |
+| Transaction status | `POST /transaction/v2/retrieve` (`dashboardBaseUrl`) | form-urlencoded | `key\|txnid\|salt` |
+| Refund | `POST /transaction/v2/refund` (`dashboardBaseUrl`) | form-urlencoded | `key\|merchant_refund_id\|easebuzz_id\|refund_amount\|salt` |
+| Refund status | `POST /refund/v1/retrieve` (`dashboardBaseUrl`) | form-urlencoded | `key\|easebuzz_id\|salt` |
+| Payment callback | merchant webhook | — | reverse: `salt\|status\|udf10..udf1\|email\|firstname\|productinfo\|amount\|txnid\|key` |
+
+Consequences for this codebase:
+1. **The refund and refund-status calls are form-urlencoded**, matching the kit. They were previously sent as JSON; the assertion that JSON was accepted had no first-party source. Covered by `EasebuzzRefundStatusContractTest` and `EasebuzzRequestContractTest`.
+2. **The transaction-status route is ambiguous between first-party sources**: the kit posts to `/transaction/v2/retrieve` while the docs site documents `/transaction/v2.1/retrieve`. `EasebuzzApiClient.getTransactionStatus` tries v2.1 and falls back to v2 only on HTTP 404/405, logging which one answered, so production traffic settles it without a guess.
+3. **`/transaction/v1/initiatePayment`, `/transaction/v1/verifyPayment` and `/transaction/v1/refund` do not appear in any first-party source** and are not used. The `/payment/initiateLink` route is confirmed.
+4. The kit drops `udf8`-`udf10` from the POST body after hashing them. This code sends all ten UDFs and hashes all ten, which is self-consistent but unverified against the gateway; a live sandbox call is still required before changing it.
+5. The kit validates that the returned `access_key` is 64 lowercase hex characters; `initiatePayment` now does the same before building a checkout URL.
+6. **`sub_merchant_id` is issued by Easebuzz**, per the [Generate Sub-Merchant KYC Access Key API](https://docs.easebuzz.in/docs/payment-gateway/2b48a38b084b9-generate-sub-merchant-kyc-access-key-api) ("Unique ID for Submerchant created by EaseBuzz"). `submitToEasebuzz` therefore never mints an id: it sends one only when the gateway already returned it (resubmit), and reads the generated id from the response — nested under `submerchant` as documented, with a top-level fallback for accounts that return that shape (`SubMerchantService.extractSubMerchantId`). Covered by `SubMerchantIdExtractionTest` and `EasebuzzRequestContractTest`.
+7. The same page confirms the KYC access-key call exactly as implemented: `POST /submerchant/v1/generate_kyc_access_key`, JSON, `merchant_key|sub_merchant_id|name|email|phone|salt`, response `{status, kyc_dashboard_url}`.
+
+### ✅ Easebuzz reference supplied 2026-10-22
+
+Two contracts in that reference changed code:
+
+1. **Settlement retrieval is paginated.** `/settlements/v1/retrieve` returns 20 rows by default
+   (500 max) and hands back a `next` cursor to echo in `page`. `retrieveSettlements` now sends
+   `page_size: 500` and follows the cursor, returning `pagesFetched` / `truncated`; a truncated
+   period is logged at ERROR. Previously only the first page was read, which made reconciliation
+   report settled transactions as "webhook never arrived".
+2. **InstaCollect disbursement webhooks sign differently.** `REFUND_*` / `SETTLEMENT_*` events hash
+   `key|refund|utr|amount|status|salt` (or `|settlement|`) and deliver the digest in
+   `data.Authorization`. `verifyPayoutHash` verifies that sequence first and fails closed when the
+   documented `null` UTR makes the input unreproducible.
+3. The same reference shows payout objects wrapping `peb_transactions[]`, so
+   `EasebuzzReconciliationService` now flattens them before matching and falls back to
+   `peb_settlement_amount` for the restaurant's share. Payout-level `payout_amount` is never reused
+   as a transaction amount.
+
+Still open: the reference states refund and refund-status are JSON, while Easebuzz's PHP kit posts
+both form-urlencoded — the code follows the kit, so this needs an Easebuzz answer before it changes.
+The Transaction Status API is still not documented in any first-party source.
+
 ---
 
 ## 🛠️ Implementation References

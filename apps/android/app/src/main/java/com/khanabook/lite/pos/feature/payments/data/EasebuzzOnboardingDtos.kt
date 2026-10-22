@@ -27,6 +27,8 @@ data class EasebuzzOnboardingResponse(
     @SerializedName("subMerchantId") val subMerchantId: String? = null,
     @SerializedName("subMerchantStatus") val subMerchantStatus: String? = null,
     @SerializedName("kycStatus") val kycStatus: String? = null,
+    /** Hosted KYC portal (owner only). Present when the server could issue one at submission. */
+    @SerializedName("kycUrl") val kycUrl: String? = null,
     @SerializedName("message") val message: String? = null
 )
 

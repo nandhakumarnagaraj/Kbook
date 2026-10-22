@@ -148,6 +148,15 @@ class EasebuzzWebhookServiceTest {
         return sha512(MERCHANT_KEY + "|" + nullSafe(payoutId) + "|" + SALT);
     }
 
+    /** InstaCollect disbursement hash: key|refund|utr|amount|status|salt (or |settlement|). */
+    private String disbursementHash(String type, Map<String, String> p) throws Exception {
+        return sha512(MERCHANT_KEY + "|" + type + "|"
+                + nullSafe(p.get("unique_transaction_reference")) + "|"
+                + nullSafe(p.get("amount")) + "|"
+                + nullSafe(p.get("status")) + "|"
+                + SALT);
+    }
+
     /** Transfer (Payout V2) hash: key|beneficiary_account_number|ifsc|upi_handle|request_number|amount|utr|status|salt. */
     private String transferPayoutHash(Map<String, String> p) throws Exception {
         String input = MERCHANT_KEY + "|"
@@ -264,13 +273,20 @@ class EasebuzzWebhookServiceTest {
     }
 
     @Test
-    @DisplayName("Duplicate (txnid, status) short-circuits before hash verification — no double-processing")
-    void duplicateWebhook_shortCircuitsBeforeHashVerification() {
+    @DisplayName("Duplicate (txnid, status) short-circuits — but only once the hash is verified")
+    void duplicateWebhook_shortCircuitsOnlyAfterHashVerification() throws Exception {
         Map<String, String> payload = paymentPayload();
-        // deliberately NO hash — proves the replay guard runs first
-
         when(webhookEventRepo.existsByTxnIdAndStatus(TXNID, "success")).thenReturn(true);
 
+        // An unsigned duplicate must be rejected BEFORE the replay lookup is consulted.
+        // Answering "already processed" would confirm to an unauthenticated caller that
+        // this txnid/status pair exists in the merchant's ledger.
+        Map<String, Object> unsigned = service.handlePaymentWebhook(payload);
+        assertThat(unsigned.get("status")).isEqualTo("hash_mismatch");
+        verify(webhookEventRepo, never()).existsByTxnIdAndStatus(TXNID, "success");
+
+        // A correctly signed duplicate is still acknowledged without reprocessing.
+        payload.put("hash", paymentHash(payload));
         Map<String, Object> result = service.handlePaymentWebhook(payload);
 
         assertThat(result.get("status")).isEqualTo("ok");
@@ -698,6 +714,56 @@ class EasebuzzWebhookServiceTest {
         assertThat(result.get("status")).isEqualTo("received");
         assertThat(payout.getStatus()).isEqualTo("success");
         assertThat(payout.getUtr()).isEqualTo("UTR-777");
+    }
+
+    @Test
+    @DisplayName("An InstaCollect disbursement event is verified by its documented hash, not the payout hashes")
+    void payoutWebhook_instaCollectDisbursementHash_verified() throws Exception {
+        Map<String, String> inner = new HashMap<>();
+        inner.put("id", "DISB-1");
+        inner.put("disbursement_type", "refund");
+        inner.put("unique_transaction_reference", "UTR-555");
+        inner.put("amount", "100.00");
+        inner.put("status", "success");
+        // InstaCollect delivers the digest under `Authorization`, not `hash`.
+        inner.put("Authorization", disbursementHash("refund", inner));
+
+        Map<String, Object> result = service.handlePayoutWebhook(Map.of("data", inner));
+
+        // No local payout row is keyed on a disbursement id, but the event must authenticate:
+        // a 401 here makes Easebuzz retry an event it can never get past.
+        assertThat(result.get("status")).isEqualTo("received");
+    }
+
+    @Test
+    @DisplayName("A disbursement event with a tampered Authorization hash is rejected")
+    void payoutWebhook_instaCollectTamperedHash_returnsHashMismatch() {
+        Map<String, String> inner = new HashMap<>();
+        inner.put("id", "DISB-1");
+        inner.put("disbursement_type", "settlement");
+        inner.put("unique_transaction_reference", "UTR-555");
+        inner.put("amount", "1000.00");
+        inner.put("status", "in_process");
+        inner.put("Authorization", "deadbeef");
+
+        Map<String, Object> result = service.handlePayoutWebhook(Map.of("data", inner));
+
+        assertThat(result.get("status")).isEqualTo("hash_mismatch");
+    }
+
+    @Test
+    @DisplayName("A disbursement event without a UTR is rejected because its hash cannot be reproduced")
+    void payoutWebhook_instaCollectNullUtr_rejected() throws Exception {
+        Map<String, String> inner = new HashMap<>();
+        inner.put("id", "DISB-1");
+        inner.put("disbursement_type", "settlement");
+        inner.put("amount", "1000.00");
+        inner.put("status", "in_process");
+        inner.put("Authorization", disbursementHash("settlement", inner));
+
+        Map<String, Object> result = service.handlePayoutWebhook(Map.of("data", inner));
+
+        assertThat(result.get("status")).isEqualTo("hash_mismatch");
     }
 
     @Test

@@ -186,9 +186,17 @@ class EasebuzzOnboardingViewModelTest {
     }
 
     @Test
-    fun `submitBankDetailsAndOnboard succeeds and moves to OtpVerification`() = runTest(testScheduler) {
-        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
-            EasebuzzOnboardingStatusResponse(status = "NOT_STARTED", hasSubMerchant = false)
+    fun `submitBankDetailsAndOnboard opens the portal it was handed, with no OTP stop`() = runTest(testScheduler) {
+        // First read: nothing registered yet. Second read (after submission): Easebuzz holds the
+        // sub-merchant and KYC is pending, which is what the KYC screen renders.
+        coEvery { onboardingRepository.getOnboardingStatus() } returnsMany listOf(
+            Result.success(EasebuzzOnboardingStatusResponse(status = "NOT_STARTED", hasSubMerchant = false)),
+            Result.success(
+                EasebuzzOnboardingStatusResponse(
+                    status = "PENDING_KYC", hasSubMerchant = true, subMerchantId = "SM_TEST",
+                    kycUrl = "https://kyc.easebuzz.in/portal/from-onboard"
+                )
+            )
         )
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -208,16 +216,59 @@ class EasebuzzOnboardingViewModelTest {
 
         val response = EasebuzzOnboardingResponse(
             status = "success",
-            message = "Onboarding initiated"
+            message = "Onboarding initiated",
+            kycUrl = "https://kyc.easebuzz.in/portal/from-onboard"
         )
         coEvery { onboardingRepository.onboard(any()) } returns Result.success(response)
 
         viewModel.submitBankDetailsAndOnboard()
         advanceUntilIdle()
 
-        assertEquals(OnboardingStep.OtpVerification, viewModel.currentStep.value)
+        // Easebuzz's create contract has no OTP field; the portal link is the next step.
+        assertEquals(OnboardingStep.KycStatus, viewModel.currentStep.value)
         coVerify(exactly = 1) { onboardingRepository.onboard(any()) }
         coVerify(exactly = 0) { onboardingRepository.resubmit(any()) }
+        coVerify(exactly = 0) { onboardingRepository.generateKycAccessKey() }
+    }
+
+    @Test
+    fun `submitBankDetailsAndOnboard issues a portal link when the response carries none`() = runTest(testScheduler) {
+        coEvery { onboardingRepository.getOnboardingStatus() } returnsMany listOf(
+            Result.success(EasebuzzOnboardingStatusResponse(status = "NOT_STARTED", hasSubMerchant = false)),
+            Result.success(
+                EasebuzzOnboardingStatusResponse(
+                    status = "PENDING_KYC", hasSubMerchant = true, subMerchantId = "SM_TEST"
+                )
+            )
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.startOnboarding()
+        viewModel.businessName = "Test Kitchen"
+        viewModel.pan = "ABCDE1234F"
+        viewModel.businessAddress = "123 Main St"
+        viewModel.state = "Karnataka"
+        viewModel.contactEmail = "kitchen@example.com"
+        viewModel.contactPhone = "9876543210"
+        viewModel.bankAccountNo = "1234567890"
+        viewModel.ifsc = "HDFC0001234"
+        viewModel.bankName = "HDFC Bank"
+        viewModel.branchName = "MG Road"
+        viewModel.beneficiaryName = "Test Owner"
+
+        coEvery { onboardingRepository.onboard(any()) } returns Result.success(
+            EasebuzzOnboardingResponse(status = "success", message = "Onboarding initiated")
+        )
+        coEvery { onboardingRepository.generateKycAccessKey() } returns Result.success(
+            EasebuzzKycAccessKeyResponse(status = "success", kycUrl = "https://kyc.easebuzz.in/portal/refreshed")
+        )
+
+        viewModel.submitBankDetailsAndOnboard()
+        advanceUntilIdle()
+
+        assertEquals(OnboardingStep.KycStatus, viewModel.currentStep.value)
+        coVerify(exactly = 1) { onboardingRepository.generateKycAccessKey() }
     }
 
     @Test
@@ -284,7 +335,6 @@ class EasebuzzOnboardingViewModelTest {
         val readiness = com.khanabook.lite.pos.feature.payments.data.EasebuzzPaymentReadiness(
             paymentLinkReady = true,
             easebuzzEnabled = true,
-            agreementRequired = false,
             subMerchantActive = true,
             subMerchantStatus = "ACTIVE"
         )
@@ -348,7 +398,6 @@ class EasebuzzOnboardingViewModelTest {
     private fun readiness(easebuzzEnabled: Boolean) = EasebuzzPaymentReadiness(
         paymentLinkReady = easebuzzEnabled,
         easebuzzEnabled = easebuzzEnabled,
-        agreementRequired = false,
         subMerchantActive = true,
         subMerchantStatus = "ACTIVE"
     )

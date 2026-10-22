@@ -159,6 +159,40 @@ class EasebuzzReconciliationServiceTest extends BaseIntegrationTest {
         assertEquals(1, result.get("splitMissingSettlements"));
     }
 
+    @Test
+    void testSplitReconciliationFlattensPayoutObjectsFromSettlementsApi() {
+        Bill bill = createPaidBill("KB_RECON_PAYOUT_SHAPE", new BigDecimal("1000.00"), new BigDecimal("50.00"));
+
+        mockSubMerchant(testSubMerchantId);
+        // Documented /settlements/v1/retrieve shape: payout objects wrapping peb_transactions[].
+        // The payout-level total (5000.00) belongs to a different level and must not be read as
+        // the restaurant's share of this transaction.
+        when(easebuzzApi.retrieveSettlements(any()))
+            .thenReturn(Map.of(
+                "status", true,
+                "next", "2",
+                "count", 1,
+                "data", List.of(Map.of(
+                    "payout_id", "PO-1",
+                    "payout_amount", "5000.00",
+                    "peb_transactions", List.of(Map.of(
+                        "txnid", bill.getGatewayTxnId(),
+                        "submerchant_id", testSubMerchantId,
+                        "status", "settled",
+                        "amount", "1000.00",
+                        "peb_settlement_amount", "950.00"
+                    ))
+                ))
+            ));
+
+        Map<String, Object> result = reconciliationService.reconcileSplits("2026-09-09");
+
+        assertEquals("success", result.get("status"));
+        assertEquals(1, result.get("splitMatched"));
+        assertEquals(0, result.get("splitMismatches"));
+        assertEquals(0, result.get("splitMissingSettlements"));
+    }
+
     private Bill createPaidBill(String txnid, BigDecimal total, BigDecimal commission) {
         Bill bill = new Bill();
         bill.setRestaurantId(testRestaurantId);

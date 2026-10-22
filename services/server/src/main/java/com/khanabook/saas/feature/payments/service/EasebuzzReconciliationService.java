@@ -274,6 +274,10 @@ public class EasebuzzReconciliationService {
 
             BigDecimal payout = parseAmount(row.get("payout_amount"));
             if (payout == null) {
+                // Settlements report the restaurant's net share per transaction here.
+                payout = parseAmount(row.get("peb_settlement_amount"));
+            }
+            if (payout == null) {
                 // Fallback: payout_amount missing; derive from amount minus MDR/GST
                 BigDecimal gross = parseAmount(row.get("amount"));
                 BigDecimal charge = parseAmount(row.get("peb_service_charge"));
@@ -399,8 +403,47 @@ public class EasebuzzReconciliationService {
         return missing;
     }
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> extractTransactions(Map<String, Object> response) {
+        return flattenPayouts(extractRawRows(response));
+    }
+
+    /**
+     * {@code /settlements/v1/retrieve} answers with payout objects, each carrying its own
+     * {@code peb_transactions[]} and {@code peb_refunds[]}. Reconciliation matches single
+     * transactions, so the transaction rows are lifted out here. Payout-level totals are
+     * deliberately not copied onto them: {@code payout_amount} is the bank credit for the whole
+     * disposition, a different level from a transaction amount. A flat legacy list passes through.
+     */
+    private List<Map<String, Object>> flattenPayouts(List<Map<String, Object>> rows) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Object txns = row.get("peb_transactions");
+            if (!(txns instanceof List<?> list) || list.isEmpty()) {
+                out.add(row);
+                continue;
+            }
+            for (Object txn : list) {
+                if (!(txn instanceof Map<?, ?> txnMap)) continue;
+                Map<String, Object> flat = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : txnMap.entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() != null) {
+                        flat.put(entry.getKey().toString(), entry.getValue());
+                    }
+                }
+                // Payout-level context the transaction row itself does not repeat.
+                for (String key : new String[] { "payout_id", "payout_actual_date" }) {
+                    if (!flat.containsKey(key) && row.get(key) != null) {
+                        flat.put(key, row.get(key));
+                    }
+                }
+                out.add(flat);
+            }
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractRawRows(Map<String, Object> response) {
         // Easebuzz settlement response may have transactions in different structures
         Object msg = response.get("msg");
         if (msg instanceof List) {

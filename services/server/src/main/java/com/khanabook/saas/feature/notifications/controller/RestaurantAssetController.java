@@ -26,11 +26,20 @@ public class RestaurantAssetController {
 		return ResponseEntity.ok(Map.of("logoUrl", result.url(), "logoVersion", result.version()));
 	}
 
+	/**
+	 * Legacy upload path, kept for app builds that still ship the bytes. The response carries the
+	 * hosted KYC portal URL, which is an access credential, so it is owner-only — otherwise a
+	 * counter terminal could spend a tiny upload to obtain the merchant's KYC session link.
+	 */
 	@PostMapping(value = "/kyc-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, Object>> uploadKycDocument(
 			@RequestParam("type") String docType,
 			@RequestParam(value = "proofType", required = false) String proofType,
 			@RequestPart("file") MultipartFile file) {
+		if (!"OWNER".equals(TenantContext.getCurrentRole())) {
+			throw new org.springframework.web.server.ResponseStatusException(
+					org.springframework.http.HttpStatus.FORBIDDEN, "Restaurant owner access required");
+		}
 		Map<String, Object> result = subMerchantService.submitKycDocument(
 				TenantContext.getCurrentTenant(), docType, proofType, file);
 		return ResponseEntity.ok(result);

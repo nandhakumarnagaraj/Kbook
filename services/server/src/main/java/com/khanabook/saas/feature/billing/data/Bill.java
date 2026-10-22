@@ -108,6 +108,19 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "status_version", nullable = false)
 	private Integer statusVersion = 0;
 
+	/**
+	 * Records an intentional state change so {@code statusVersion} stays ahead of device pushes.
+	 * <p>
+	 * A device bumps the counter on an explicit user action; a gateway webhook or a server-side
+	 * verification is a deliberate transition too, even though no device was involved. Leaving
+	 * the counter untouched lets a POS push that replayed the same number look like the newest
+	 * state to {@code BillSyncService.protectBillState}, which is exactly what the counter exists
+	 * to prevent.
+	 */
+	public void touchStatusVersion() {
+		statusVersion = (statusVersion == null ? 0 : statusVersion) + 1;
+	}
+
 	@Column(name = "refund_amount", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal refundAmount;
 

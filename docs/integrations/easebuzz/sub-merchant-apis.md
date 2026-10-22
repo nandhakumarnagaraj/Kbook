@@ -34,17 +34,30 @@
 ## 1. Create Sub-Merchant
 
 - **Official Doc**: https://docs.easebuzz.in/docs/payment-gateway/af94640eeae86-create-sub-merchant-api
-- **Endpoint**: `POST https://dashboard.easebuzz.in/merchant/v1/submerchant/create`
+- **Endpoint**: `POST https://dashboard.easebuzz.in/merchant/v1/submerchant/create/`
+  (the create page shows a trailing slash, the update page shows none — both reach the same handler; KhanaBook sends `/create/`)
 - **Content-Type**: `application/json`
-- **Hash**: `key|submerchant_email|submerchant_phone|salt`
+- **Hash**: `sha512(key|submerchant_email|submerchant_phone|salt)`
 
-### Request
+> Collected 2026-10-21. Every claim below is tagged with where it comes from:
+> **[DOC]** official Stoplight page, **[ERA]** Easebuzz relationship manager (written answers),
+> **[CODE]** this repository. The official pages are client-rendered, so their bodies cannot be
+> fetched programmatically — the request/response samples here are transcriptions held in this repo,
+> not live scrapes.
+
+### 1.1 Request body — sections
+
+| Section | Official doc | KhanaBook sends | Note |
+|---|---|---|---|
+| `merchant_details` | required | always | `merchant_key` + `hash` |
+| `submerchant_details` | required, 10 keys | always, exactly those 10 | `sub_merchant_id` added only when Easebuzz already issued one |
+| `business_details` | absent from the create sample; **ERA lists it as optional** | always | CPV needs legal name, address, state, MCC — see 1.2 |
+| `submerchant_deduction_percentage` | optional | only when a rate is configured | UPI/DC deduction overrides |
+| `kyc_details` | **never appears in any first-party sample we hold** | never | see 1.3 |
+
 ```json
 {
-  "merchant_details": {
-    "merchant_key": "YOUR_MERCHANT_KEY",
-    "hash": "sha512(key|email|phone|salt)"
-  },
+  "merchant_details": { "merchant_key": "YOUR_MERCHANT_KEY", "hash": "sha512(key|email|phone|salt)" },
   "submerchant_details": {
     "sub_merchant_name": "Business Name",
     "sub_merchant_email": "email@example.com",
@@ -60,7 +73,34 @@
 }
 ```
 
-### Response (Success)
+`sub_merchant_password` / `sub_merchant_confirm_password` are auto-generated per onboarding and never
+shown to the owner. `sub_merchant_id` is **not** in the required set — it is accepted, but only
+meaningful for a re-submit after Easebuzz has issued an ID.
+
+### 1.2 `business_details` (sent by KhanaBook; ERA: optional)
+
+```json
+{
+  "sub_merchant_business_name":    "Registered legal entity name",
+  "sub_merchant_business_nature":  "INDIVIDUAL/FREELANCERS | SOLE PROPRIETOR | PARTNERSHIP FIRM | PRIVATE LTD/PUBLIC LTD/OPC",
+  "sub_merchant_business_type":    "SOLE_PROPRIETORSHIP | PARTNERSHIP | PRIVATE_LIMITED | PUBLIC_LIMITED | ...",
+  "sub_merchant_business_address": "Full physical address",
+  "sub_merchant_state":            "Maharashtra",
+  "sub_merchant_mcc_code":         "5812 (restaurant) — locked at creation, no post-update",
+  "sub_merchant_gstin":            "optional",
+  "sub_merchant_pan_number":       "optional",
+  "sub_merchant_fssai_number":     "optional (mandatory for food merchants per Easebuzz compliance)"
+}
+```
+
+`sub_merchant_pan_number` and `sub_merchant_fssai_number` are **business identifiers, not document
+uploads** — sending them is not "KYC in create".
+
+### 1.3 Response
+
+Success — both shapes occur (ERA's reference puts `submerchant_id` at the top level; the create sample
+nests it). `SubMerchantService` reads top-level first, then `submerchant` / `data` / `msg`:
+
 ```json
 {
   "status": true,
@@ -75,14 +115,118 @@
 }
 ```
 
-### Response (Failure)
+Failure — `error` is a code, `error_desc` is the sentence a human can act on:
+
+```json
+{ "status": false, "error": "error_code", "error_desc": "Sub merchant already exists" }
+```
+
+KhanaBook extracts provider text in the order `error_desc` → `error` → `msg` → `message`, skipping
+boolean/numeric values, and falls back to the raw map only when nothing textual exists. This is what
+stops `{status=false, error=null, error_desc=...}` from surfacing as raw JSON.
+
+The same call can also hand back the hosted KYC link. This is not in the create sample we hold, but
+it has been observed on this project's account and it removes a round trip, so it is consumed when
+present rather than assumed:
+
 ```json
 {
-  "status": false,
-  "error": "error_code",
-  "error_desc": "Human readable error description"
+  "status": true,
+  "submerchant_id": "S360DILA",
+  "kyc_details": {
+    "status": true,
+    "message": "Token generated successfully",
+    "kyc_dashboard_url": "https://kyc.easebuzz.in/...?access_key=..."
+  }
 }
 ```
+
+`kyc_details.status` / `message` mean **the link was generated**, not that KYC passed. The row
+stays `PENDING_KYC` until a KYC webhook says otherwise; nothing here may be read as approval.
+
+`SubMerchantService.extractKycPortalUrl` reads `kyc_dashboard_url` / `kyc_url` from the top level,
+then from `kyc_details`, `submerchant` or `data`, then accepts a bare `msg` **only when it is an
+absolute http(s) URL** (the access-key response is documented as `{"status":true,"msg":"https://…"}`,
+so both shapes are real). The URL is stored on the row, which means the owner can open the portal
+immediately; `generate_kyc_access_key` is then only the fallback when the create response carried no
+link, and the refresh path when a link has expired.
+
+Immediately after a successful create the sub-merchant is `PENDING_KYC`; it reaches `ACTIVE`,
+`CPV_PENDING` or `REJECTED` only through the KYC webhook.
+
+### 1.4 KYC — two mutually exclusive paths
+
+**Path A — portal (implemented, sanctioned).**
+
+```
+1. POST /merchant/v1/submerchant/create/            → submerchant_id, status=PENDING_KYC   (no docs)
+   └─ may also return kyc_details.kyc_dashboard_url → stored, portal usable immediately
+2. POST /submerchant/v1/generate_kyc_access_key     → kyc_dashboard_url
+       hash merchant_key|sub_merchant_id|name|email|phone|salt
+       only when step 1 returned no link; also the refresh path for an expired link
+3. OWNER uploads documents on the Easebuzz portal   (documents never touch KhanaBook)
+4. KYC webhook → ACTIVE / CPV_PENDING / REJECTED
+```
+
+**Secret handling.** The portal URL embeds an `access_key`: anyone holding it opens that
+sub-merchant's KYC session. KhanaBook therefore
+
+- stores the link in `kyc_portal_url` and never logs its value (only that one was captured/issued);
+- redacts it — along with any `access_key` string — from the raw gateway response kept in
+  `easebuzz_response`, because that column is surfaced as the onboarding `message`;
+- returns it only to `OWNER`: `GET /restaurants/payment-config/easebuzz` and
+  `GET …/sub-merchant-status` blank it for every other role, and `POST …/kyc-access-key` is
+  owner-only so a counter terminal cannot mint a KYC session.
+
+A failed refresh never blanks a stored link: the merchant keeps the URL they already had.
+
+**No OTP stop (2026-10-22).** The create contract carries no OTP field, so onboarding no longer
+waits for one: `submitToEasebuzz` stores a create-time link, and when the create response carries
+none it issues one with `generate_kyc_access_key` immediately (best-effort — a failed call cannot
+turn a successful registration into a failure). `POST …/onboard` and `…/resubmit` return that link
+as `kycUrl` (blank for every role except `OWNER`). `POST …/verify-otp` and `…/resend-otp` remain
+available for accounts that still send an OTP, reachable from the KYC screen as a secondary action.
+
+**Path B — `kyc_details` inside create (not implemented, deliberately).**
+
+| Round | ERA's answer | Consequence |
+|---|---|---|
+| 1 | not mentioned at all | nothing to build |
+| 2 | `kyc_details` exists, documents passed as `file_url` | a URL implies a publicly fetchable file |
+| 3 | "optional fields" on create | optional ≠ specified; still no field reference |
+
+Blockers, in order of weight:
+1. No first-party field reference — not in the create sample, not in the failure sample, not in the
+   access-key page. Field names, nesting and per-business-type mandatory doc sets are all guesses.
+2. `file_url` needs a file Easebuzz's servers can GET. `V89__add_sub_merchant_kyc_storage_keys.sql`
+   deliberately moved KYC files into **private** storage with no public URL, so no compliant value
+   can be produced without reversing that privacy decision.
+3. Sending an unknown block to a CPV pipeline risks a mismatch rejection that is hard to unwind.
+
+Guard: `EasebuzzRequestContractTest
+.createSubMerchantSendsTheDocumentedSectionsAndNeverAKycDetailsBlock` asserts the three documented
+sections are present **and** that `kyc_details` is absent — adding it to the create payload fails the build.
+
+### 1.5 Sources collected in this repository
+
+| File | What it proves |
+|---|---|
+| `docs/integrations/easebuzz/sub-merchant-apis.md` (this file) | transcribed request/response contracts for all sub-merchant, split, payment, refund, payout routes |
+| `docs/integrations/easebuzz/easebuzz-complete-implementation-summary.txt` | per-endpoint implementation status; records that the OpenAPI **YAML export** (`Submerchant-APIs.yaml`) was consulted for update and lists `kyc_details` as an optional block |
+| `docs/integrations/easebuzz/easebuzz-era-crosscheck-2026-10-18.md` | ERA Q&A log, including the `upload_kyc_documents` non-answer and the route probe |
+| `docs/integrations/easebuzz/easebuzz-submerchant-business-model.md` | business/compliance model, private-storage KYC keys (`id_proof_url`, `bank_proof_url` columns) |
+| `docs/integrations/easebuzz/EASEBUZZ.md`, `EASEBUZZ_LIFECYCLE.md` | integration and lifecycle overview |
+| `md/EASEBUZZ_DOCUMENTATION.md` | consolidated implementation notes |
+| `services/server/.../EasebuzzApiClient.java` | what is actually on the wire |
+
+### 1.6 Open questions for Easebuzz (exact asks)
+
+1. Full schema of `kyc_details` on create: key names, nesting, which document types are mandatory per
+   business type, and whether `file_url` must be publicly GET-able or may be a time-limited signed URL.
+2. Is `business_details` required at create? ERA says optional; the create sample omits it entirely.
+3. Canonical path: `/submerchant/create/` or `/submerchant/create`.
+4. A copy of the OpenAPI export (`Submerchant-APIs.yaml`) — our summary references it, but it is not in
+   this repository, and that is the single artifact that would settle all three questions above.
 
 ---
 
@@ -150,6 +294,11 @@
   "msg": "https://kyc.easebuzz.in/..."
 }
 ```
+
+The OpenAPI export documents the field as `kyc_dashboard_url` instead of `msg`; KhanaBook accepts
+either (`SubMerchantService.extractKycPortalUrl`). The link is a credential — see the secret-handling
+rules in §1.4. Treat this call as a **refresh**: a create response may already have supplied the link,
+and a failed refresh must not replace a working URL with an empty one.
 
 ### Response (Failure)
 ```json
@@ -999,3 +1148,64 @@ Customer pays via Android POS
 | `POST` | `/admin/sub-merchants/{id}/wire/kyc-profile-url` | Get KYC profile URL from WIRE | WIRE: Get KYC Profile URL |
 | `POST` | `/admin/sub-merchants/wire/insta-collect-webhook` | Configure InstaCollect webhook | WIRE: InstaCollect Webhook Config |
 | `POST` | `/admin/sub-merchants/wire/payout-webhook` | Configure payout webhook | WIRE: Payout Webhook Config |
+
+---
+
+## 22. Settlement Retrieval & InstaCollect Disbursement Webhooks (2026-10-22)
+
+This section records the contracts supplied by Easebuzz on 2026-10-22 and what the code now does
+with them. Anything not confirmed there is marked as such rather than invented.
+
+### 22.1 Settlement / payout reconciliation retrieval
+
+- **Endpoint**: `POST https://dashboard.easebuzz.in/settlements/v1/retrieve`
+- **Content-Type**: `application/json`
+- **Hash**: `sha512(merchant_key|start_date|end_date|salt)`; dates `DD-MM-YYYY`, `end_date >= start_date`
+- **Auth alternative**: a `token` (1-hour validity, Token Authentication API) may replace `hash`
+- **Pagination**: 20 rows per page by default, `page_size` maximum 500, and the `next` value must be
+  echoed back in `page` until `next` is null
+- **Sub-merchant filter**: `submerchant_id`, used when the sub-merchant's payout UTR is required
+- **Response**: `{ next, previous, count, data: [ { payout_id, paid_out, payout_amount,
+  payout_actual_date, bank_transaction_id, peb_transactions: [...], peb_refunds: [...] } ], status }`
+
+`payout_amount` is the bank credit for the whole payout. It is a different level from a
+`peb_transactions[]` row and must never be summed with, or substituted for, a transaction amount.
+
+KhanaBook behaviour (`EasebuzzApiClient.retrieveSettlements`):
+- sends `page_size: 500`, follows `next` through `page`, and returns one merged `data` array plus
+  `pagesFetched` / `truncated`. A truncated period is logged at ERROR and never reported as
+  reconciled.
+- `EasebuzzReconciliationService.flattenPayouts` lifts `peb_transactions[]` out of each payout before
+  matching, so bill matching still happens at transaction level. `peb_settlement_amount` is used as
+  the restaurant's share when `payout_amount` is absent from the transaction row.
+
+### 22.2 InstaCollect disbursement webhooks
+
+Events: `REFUND_INITIATED`, `REFUND_STATUS_UPDATE`, `SETTLEMENT_INITIATED`, `SETTLEMENT_STATUS_UPDATE`.
+The body is `{ event, data: {...} }`; the digest arrives in `data.Authorization` (not `hash`).
+
+| Event family | Hash sequence |
+|---|---|
+| Refund disbursement | `sha512(key\|refund\|unique_transaction_reference\|amount\|status\|salt)` |
+| Settlement disbursement | `sha512(key\|settlement\|unique_transaction_reference\|amount\|status\|salt)` |
+
+`EasebuzzWebhookService.verifyPayoutHash` now verifies this sequence (reading `hash` first, then
+`Authorization`) before the older `key|payout_id|salt` and Transfer V2 sequences.
+
+**Open, deliberately fail-closed**: `SETTLEMENT_INITIATED` is documented with a `null`
+`unique_transaction_reference`. The hash interpolates that value, so a null-UTR event cannot be
+reproduced locally; such events are rejected with a warning instead of being accepted unverified.
+Easebuzz must confirm how a null-UTR initiation is signed.
+
+**Deduplication** should key on `data.id` (the disbursement id). No local table is keyed on it yet —
+`handlePayoutWebhook` logs the disbursement id and warns when no payout row matches, rather than
+acknowledging silently.
+
+### 22.3 Not confirmed by this reference
+
+| Item | Status |
+|---|---|
+| Transaction Status API endpoint/headers/hash/schema | Still unconfirmed. Code keeps `POST /transaction/v2.1/retrieve` with a `/transaction/v2/retrieve` fallback on 404/405 |
+| Refund + refund-status content type | **Conflict**: this reference shows `application/json`; Easebuzz's PHP kit posts both form-urlencoded, which is what the code sends (see `EasebuzzRefundStatusContractTest`, `EasebuzzRequestContractTest`). Resolve with Easebuzz before switching |
+| InstaCollect ack code / retry policy / delivery headers | Not established. Do not reuse the payment-gateway webhook retry assumptions |
+| KYC webhook key selection | Documented as `key\|submerchant_id\|salt`; the "which key" question is still open |

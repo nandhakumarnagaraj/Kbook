@@ -36,7 +36,6 @@ import com.khanabook.saas.feature.staff.data.PermissionKey;
 import com.khanabook.saas.feature.staff.data.PermissionRequest;
 import com.khanabook.saas.feature.staff.data.RoleTemplate;
 import com.khanabook.saas.feature.platform.data.FeatureFlag;
-import com.khanabook.saas.feature.onboarding.entity.MerchantAgreement;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
@@ -1332,10 +1331,9 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			incomingProfile.setSwiggyWebhookSecret(existingProfile.getSwiggyWebhookSecret());
 			incomingProfile.setMarketplaceNotes(existingProfile.getMarketplaceNotes());
 			incomingProfile.setOwnWebsiteEnabled(existingProfile.getOwnWebsiteEnabled());
-			// Easebuzz enablement is owner-gated AND gated on a signed Merchant
-			// Agreement (see RestaurantPaymentConfigController#updateConfig). It is
-			// carried on the DTO, so without restoring it any device push could flip
-			// online payments on and bypass both checks.
+			// Easebuzz enablement is owner-gated (see RestaurantPaymentConfigController#updateConfig).
+			// It is carried on the DTO, so without restoring it any device push could flip
+			// online payments on and bypass that check.
 			incomingProfile.setEasebuzzEnabled(existingProfile.getEasebuzzEnabled());
 		}
 		// Inventory cascade is server-owned: when a raw material runs out,

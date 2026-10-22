@@ -44,10 +44,9 @@ class GenericSyncServerOwnedStateTest {
     }
 
     /**
-     * Online Payments Setup is owner-gated in RestaurantPaymentConfigController and
-     * additionally requires a signed Merchant Agreement. The flag rides on
-     * RestaurantProfileDTO, so a device push must not be able to flip it on and
-     * bypass both checks.
+     * Online Payments Setup is owner-gated in RestaurantPaymentConfigController only.
+     * The flag rides on RestaurantProfileDTO, so a device push must not be able to flip
+     * it on and bypass that check.
      */
     @Test
     void deviceProfilePushCannotEnableEasebuzzPayments() {

@@ -6,7 +6,6 @@ import com.khanabook.saas.feature.payments.service.EasebuzzPaymentService;
 import com.khanabook.saas.feature.payments.service.SubMerchantService;
 import com.khanabook.saas.feature.payments.controller.RestaurantPaymentConfigController;
 import com.khanabook.saas.core.security.TenantContext;
-import com.khanabook.saas.feature.onboarding.service.MerchantAgreementService;
 import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
@@ -52,7 +51,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Autowired private com.khanabook.saas.feature.payments.service.StuckPaymentSweepService sweepService;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
-    @MockBean private MerchantAgreementService merchantAgreementService;
     @MockBean private com.khanabook.saas.feature.notifications.service.PushNotificationService pushNotificationService;
 
     private static final java.util.concurrent.atomic.AtomicLong TEST_SEQ =
@@ -418,6 +416,167 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getEasebuzzResponse());
     }
 
+    @Transactional
+    @Test
+    void createResponseCarryingAKycPortalLinkIsPersistedForTheOwner() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        String portalUrl = "https://kyc.easebuzz.in/session/abc?access_key=SUPERSECRET";
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId, "kyc_dashboard_url", portalUrl));
+
+        subMerchantService.submitToEasebuzz(sm.getId());
+
+        EasebuzzSubMerchant stored = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        // The create response already carries the link, so the owner must not need a separate
+        // generate_kyc_access_key round trip before they can upload documents.
+        assertEquals(portalUrl, stored.getKycPortalUrl());
+        assertEquals("PENDING_KYC", stored.getStatus());
+        // The response is stored for support, but the access key inside it is a credential.
+        assertFalse(stored.getEasebuzzResponse().contains("SUPERSECRET"),
+                "stored response must not carry the KYC access key: " + stored.getEasebuzzResponse());
+        assertTrue(stored.getEasebuzzResponse().contains("REDACTED"));
+        assertTrue(stored.getEasebuzzResponse().contains(testSubMerchantId),
+                "redaction must keep the diagnostics support needs");
+    }
+
+    @Transactional
+    @Test
+    void createResponseWithANestedKycDetailsLinkIsAlsoAccepted() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        String portalUrl = "https://kyc.easebuzz.in/session/nested";
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of(
+                "status", true,
+                "submerchant_id", testSubMerchantId,
+                "kyc_details", Map.of("kyc_dashboard_url", portalUrl)));
+
+        subMerchantService.submitToEasebuzz(sm.getId());
+
+        assertEquals(portalUrl, subMerchantRepo.findById(sm.getId()).orElseThrow().getKycPortalUrl(),
+                "the link is read from kyc_details when Easebuzz nests it there");
+    }
+
+    @Transactional
+    @Test
+    void createResponseWithoutALinkLeavesPortalIssuanceToTheAccessKeyCall() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        subMerchantService.submitToEasebuzz(sm.getId());
+
+        assertNull(subMerchantRepo.findById(sm.getId()).orElseThrow().getKycPortalUrl(),
+                "no link was returned, so none may be invented");
+    }
+
+    @Transactional
+    @Test
+    void portalLinkRequestIssuesOneWhenCreateReturnedNone() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+        String portalUrl = "https://kyc.easebuzz.in/session/issued-on-demand";
+        when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "kyc_dashboard_url", portalUrl));
+
+        Map<String, Object> result = subMerchantService.requestKycPortalLink(testRestaurantId, "id_proof");
+
+        assertEquals("portal_required", result.get("status"));
+        assertEquals(portalUrl, result.get("kycUrl"),
+                "the document screen must always get a link it can open");
+        assertEquals(portalUrl, subMerchantRepo.findById(sm.getId()).orElseThrow().getKycPortalUrl());
+    }
+
+    @Transactional
+    @Test
+    void aFailedAccessKeyRefreshDoesNotBlankAnExistingPortalLink() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        sm.setKycPortalUrl("https://kyc.easebuzz.in/session/existing");
+        subMerchantRepo.save(sm);
+        when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
+            .thenReturn(Map.of("status", false, "error", "temporarily unavailable"));
+
+        Map<String, Object> result = subMerchantService.generateKycAccessKey(sm.getId());
+
+        assertEquals("https://kyc.easebuzz.in/session/existing", result.get("kyc_url"));
+        assertEquals("https://kyc.easebuzz.in/session/existing",
+                subMerchantRepo.findById(sm.getId()).orElseThrow().getKycPortalUrl());
+    }
+
+    @Transactional
+    @Test
+    void submitIssuesPortalLinkImmediatelyWhenCreateReturnsNone() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+        String portalUrl = "https://kyc.easebuzz.in/session/issued-at-submit";
+        when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "kyc_dashboard_url", portalUrl));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId(), false);
+
+        assertEquals(portalUrl, submitted.getKycPortalUrl(),
+                "onboarding must hand the owner a usable portal link without a second request");
+        assertEquals(portalUrl, subMerchantRepo.findById(sm.getId()).orElseThrow().getKycPortalUrl());
+    }
+
+    @Transactional
+    @Test
+    void submitKeepsTheCreateTimePortalLinkWithoutRefreshing() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        String createUrl = "https://kyc.easebuzz.in/session/from-create";
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId,
+                    "kyc_details", Map.of("kyc_dashboard_url", createUrl)));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId(), false);
+
+        assertEquals(createUrl, submitted.getKycPortalUrl());
+        verify(easebuzzApi, never()).generateKycAccessKey(any(), any(), any(), any());
+    }
+
+    @Test
+    void ownerOnboardResponseCarriesTheKycPortalUrl() {
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+        String portalUrl = "https://kyc.easebuzz.in/session/from-onboard";
+        when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "kyc_dashboard_url", portalUrl));
+
+        TenantContext.setCurrentTenant(testRestaurantId);
+        TenantContext.setCurrentRole("OWNER");
+        try {
+            Map<String, Object> body = paymentConfigController.onboard(baseSubMerchantData()).getBody();
+            assertEquals("success", body.get("status"));
+            assertEquals(portalUrl, body.get("kycUrl"));
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    @Test
+    void onboardResponseNeverHandsCounterStaffThePortalKey() {
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+        when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "kyc_dashboard_url", "https://kyc.easebuzz.in/session/staff"));
+
+        TenantContext.setCurrentTenant(testRestaurantId);
+        TenantContext.setCurrentRole("SHOP_STAFF");
+        try {
+            Map<String, Object> body = paymentConfigController.onboard(baseSubMerchantData()).getBody();
+            assertEquals("", body.get("kycUrl"),
+                    "the portal URL signs in as the merchant, so counter staff must never receive it");
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
     private org.springframework.mock.web.MockMultipartFile kycFile() {
         return new org.springframework.mock.web.MockMultipartFile(
                 "file", "pan.pdf", "application/pdf", new byte[512]);
@@ -636,20 +795,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void paymentLinkRequiresCurrentOwnerAgreement() {
-        createActiveSubMerchant();
-        Bill bill = createTestBill(testRestaurantId, new BigDecimal("100.00"));
-
-        Map<String, Object> result = paymentService.createPaymentLinkForBill(bill.getId(), testRestaurantId);
-
-        assertEquals("AGREEMENT_REQUIRED", result.get("code"));
-        verify(easebuzzApi, never()).createPaymentLink(any());
-        assertNull(billRepository.findById(bill.getId()).orElseThrow().getGatewayTxnId());
-    }
-
-    @Test
     void paymentLinkRequiresOnboardedSubMerchant() {
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         Map<String, Object> result = paymentService.createPaymentLink(Map.of(
                 "restaurantId", testRestaurantId, "amount", "100.00"));
@@ -663,7 +809,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = createActiveSubMerchant();
         sm.setCommissionRate(new BigDecimal("3.00"));
         subMerchantRepo.save(sm);
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
         when(easebuzzApi.createPaymentLink(any())).thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
 
         Map<String, Object> result = paymentService.createPaymentLink(Map.of(
@@ -676,7 +821,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void paymentLinkRejectsInvalidAmountBeforeGatewayCall() {
         createActiveSubMerchant();
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         Map<String, Object> result = paymentService.createPaymentLink(Map.of(
                 "restaurantId", testRestaurantId, "amount", "0.001"));
@@ -688,7 +832,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void ownerDisabledEasebuzzBlocksNewBillPaymentLink() {
         createActiveSubMerchant();
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
         TenantContext.setCurrentTenant(testRestaurantId);
         TenantContext.setCurrentRole("OWNER");
         try {
@@ -714,7 +857,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = createActiveSubMerchant();
         sm.setCommissionRate(BigDecimal.ZERO);
         subMerchantRepo.save(sm);
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
 
         // Create a bill
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
@@ -749,7 +891,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     void billPaymentLinkUsesDotDecimalRegardlessOfServerLocale() {
         createActiveSubMerchant();
         Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
-        when(merchantAgreementService.hasCurrentSignedAgreement(testRestaurantId)).thenReturn(true);
         when(easebuzzApi.createPaymentLink(any()))
                 .thenReturn(Map.of("status", "success", "link", "https://pay.easebuzz.in/test"));
 
