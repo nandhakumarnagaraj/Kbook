@@ -694,15 +694,7 @@ public class SubMerchantService {
                 "MISSING_EASEBUZZ_ID"
             );
         }
-        Map<String, Object> result = easebuzzApi.generateKycAccessKey(
-            sm.getSubMerchantId(),
-            // Same sanitised name the create call registered: quotes and backslashes are stripped
-            // there, and sending the raw business name here made a name with an apostrophe
-            // ("Chef's Kitchen") differ from the profile Easebuzz already holds.
-            EasebuzzApiClient.sanitizeName(sm.getBusinessName()),
-            sm.getContactEmail(),
-            sm.getContactPhone()
-        );
+        Map<String, Object> result = issueKycAccessKey(sm);
         // A create response may already carry the hosted KYC link, so this call is a refresh,
         // not the only source. Never blank a working link on a failed refresh: that would strand
         // a merchant who already had a usable portal URL.
@@ -723,13 +715,55 @@ public class SubMerchantService {
         response.put("status", result.getOrDefault("status", "failure"));
         response.put("kyc_url", kycUrl);
         response.put("sub_merchant_id", sm.getSubMerchantId());
-        Object providerError = result.get("error_desc") != null
-                ? result.get("error_desc")
-                : result.get("error");
-        if (providerError != null) {
+        Object providerError = result.get("error_desc");
+        if (providerError == null || (providerError instanceof String && ((String) providerError).isBlank())) {
+            providerError = result.get("error");
+        }
+        if (providerError != null && !(providerError instanceof String && ((String) providerError).isBlank())) {
             response.put("error", providerError.toString());
+        } else {
+            response.put("error", "");
         }
         return response;
+    }
+
+    /**
+     * Issues a KYC access key, retrying once with the upper-cased name when Easebuzz rejects the
+     * hash.
+     *
+     * <p>Easebuzz stores the sub-merchant name in the form it hashes against, and that form can
+     * differ from what we hold: S280498XHD5 is registered as {@code BIRYANIWALE ANNA} while the
+     * local row says {@code BiryaniWale Anna}. Because the hash is case-sensitive, the gateway
+     * answers "Request cannot be verified. Hash mismatch." and the merchant gets no portal link.
+     * The retry only runs on that specific rejection, so a merchant whose stored name already
+     * matches is never sent a different one.
+     */
+    private Map<String, Object> issueKycAccessKey(EasebuzzSubMerchant sm) {
+        // Same sanitised name the create call registered: quotes and backslashes are stripped
+        // there, and sending the raw business name here made a name with an apostrophe
+        // ("Chef's Kitchen") differ from the profile Easebuzz already holds.
+        String declared = EasebuzzApiClient.sanitizeName(sm.getBusinessName());
+        Map<String, Object> result = easebuzzApi.generateKycAccessKey(
+            sm.getSubMerchantId(), declared, sm.getContactEmail(), sm.getContactPhone());
+        if (!isHashMismatch(result) || declared == null) {
+            return result;
+        }
+        String upper = declared.trim().toUpperCase(java.util.Locale.ROOT);
+        if (upper.equals(declared)) {
+            return result;
+        }
+        log.info("generate_kyc_access_key hash mismatch for sub-merchant {}; retrying with the "
+                + "upper-cased name", sm.getSubMerchantId());
+        return easebuzzApi.generateKycAccessKey(
+            sm.getSubMerchantId(), upper, sm.getContactEmail(), sm.getContactPhone());
+    }
+
+    private static boolean isHashMismatch(Map<String, Object> result) {
+        if (result == null) return false;
+        Object error = result.get("error_desc");
+        if (error == null || error.toString().isBlank()) error = result.get("error");
+        return error != null
+            && error.toString().toLowerCase(java.util.Locale.ROOT).contains("hash mismatch");
     }
 
     // ============================================================
@@ -1010,9 +1044,7 @@ public class SubMerchantService {
             // succeeded, so a failed access-key call must not turn it into a failure.
             if (createKycUrl == null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank()) {
                 try {
-                    Map<String, Object> keyResult = easebuzzApi.generateKycAccessKey(
-                            sm.getSubMerchantId(), EasebuzzApiClient.sanitizeName(sm.getBusinessName()),
-                            sm.getContactEmail(), sm.getContactPhone());
+                    Map<String, Object> keyResult = issueKycAccessKey(sm);
                     String issuedUrl = extractKycPortalUrl(keyResult);
                     if (issuedUrl != null) {
                         sm.setKycPortalUrl(issuedUrl);
