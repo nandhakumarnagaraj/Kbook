@@ -15,6 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { NotificationItem } from '../core/models/api.models';
 import { formatDate } from './formatters';
+import { FocusTrapDirective } from '../core/components/focus-trap.directive';
 
 /**
  * Notification bell + flyout, extracted from the business dashboard.
@@ -34,7 +35,7 @@ import { formatDate } from './formatters';
   selector: 'app-notification-bell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, FocusTrapDirective],
   template: `
     <div class="notif-wrapper" #wrapper>
       <button
@@ -61,6 +62,7 @@ import { formatDate } from './formatters';
         id="kb-notification-flyout"
         role="region"
         aria-label="System notifications"
+        appFocusTrap
         *ngIf="open()">
         <div class="notif-flyout__head">
           <h4>System Notifications</h4>

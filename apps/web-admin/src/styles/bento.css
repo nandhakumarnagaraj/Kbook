@@ -903,3 +903,184 @@
 .empty-glyph {
   color: var(--muted-2, #9E9689);
 }
+
+/* ── Revenue Split Bar ── */
+.revenue-split-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--kb-color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.split-pill { display: flex; align-items: center; gap: 0.35rem; }
+
+.split-legend {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.split-legend--cash { background: var(--kb-color-success); }
+.split-legend--upi { background: var(--kb-color-primary); }
+
+.split-val { color: #FFFFFF; font-weight: 600; }
+
+.split-divider { color: var(--kb-color-muted-foreground); }
+
+/* ── Hourly Chart ── */
+.hourly-chart-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  min-height: 140px;
+}
+
+.hourly-bars-track {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hourly-bar-node {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.bar-pill-track {
+  width: 100%;
+  height: 90px;
+  background: var(--kb-color-bg-app);
+  border: 1px solid var(--kb-color-surface-2);
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.bar-pill-fill {
+  width: 100%;
+  background: var(--kb-color-border-strong);
+  border-radius: 7px;
+  transform-origin: bottom;
+  transition: height 240ms ease, background 150ms ease;
+}
+
+.bar-pill-fill--peak { background: var(--kb-color-primary); }
+.bar-pill-fill--current { background: var(--kb-color-burnt); }
+
+.hourly-bar-node:hover .bar-pill-fill { filter: brightness(0.92); }
+
+.bar-tick-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--kb-color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-tick-label--current { color: var(--kb-color-burnt); font-weight: 700; }
+
+/* ── Top Dishes Stack ── */
+.top-dishes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.dish-leader-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.dish-rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--kb-color-primary-soft);
+  color: var(--kb-color-primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dish-leader-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dish-leader-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.dish-name-label {
+  font-size: 0.86rem;
+  color: var(--kb-color-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dish-qty-label {
+  font-size: 0.75rem;
+  color: var(--kb-color-muted-foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dish-bar-track {
+  width: 100%;
+  height: 5px;
+  background: var(--kb-color-surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dish-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
+  border-radius: 999px;
+}
+
+.dish-rev-label {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--kb-color-foreground);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ── Terminal Item Row ── */
+.terminal-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--kb-color-surface-2);
+  border-radius: 12px;
+  background: var(--kb-color-bg-app);
+}
+
+.terminal-core-info { display: flex; align-items: center; gap: 0.75rem; }
+
+.terminal-tag { display: block; font-size: 0.72rem; color: var(--kb-color-muted-foreground); }
+
+.terminal-meta-info { text-align: right; }
+

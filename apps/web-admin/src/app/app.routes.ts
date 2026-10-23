@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { AuthService } from './core/auth/auth.service';
 import { authGuard, roleGuard } from './core/auth/role.guard';
+import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 
 export const routes: Routes = [
   {
@@ -95,6 +96,7 @@ export const routes: Routes = [
       {
         path: 'business/settings',
         canActivate: [roleGuard],
+        canDeactivate: [unsavedChangesGuard],
         data: { roles: ['OWNER'] },
         loadComponent: () => import('./pages/business-settings/business-settings-page.component').then(m => m.BusinessSettingsPageComponent)
       },

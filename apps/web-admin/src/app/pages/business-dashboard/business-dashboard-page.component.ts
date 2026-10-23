@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { combineLatest, of, Subject, Subscription } from 'rxjs';
@@ -17,6 +17,8 @@ import {
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
+import { MathPipe } from '../../shared/math.pipe';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
@@ -72,6 +74,8 @@ function getTodayIsoDate(): string {
     CommonModule,
     FormsModule,
     OrderDetailModalComponent,
+    MathPipe,
+    FocusTrapDirective,
     PageHeaderComponent,
     AnimatedCounterComponent,
     NotificationBellComponent,
@@ -138,7 +142,7 @@ function getTodayIsoDate(): string {
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Today's Revenue</span>
             <span class="trend-badge" *ngIf="data.deltaToday !== 0" [class.trend-badge--down]="data.deltaToday < 0">
-              {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ Math.abs(data.deltaToday) }}% vs yest.
+              {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ data.deltaToday | math:'abs' }}% vs yest.
             </span>
             <span class="trend-badge trend-badge--neutral" *ngIf="data.deltaToday === 0">
               Live Intake
@@ -321,7 +325,7 @@ function getTodayIsoDate(): string {
     </div>
 
     <!-- ── Terminal Fleet Status Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" (click)="toggleTerminalsModal()">
+    <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" appFocusTrap (click)="toggleTerminalsModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <h3>POS Hardware Terminals</h3>
@@ -354,7 +358,7 @@ function getTodayIsoDate(): string {
     </div>
 
     <!-- ── Low Stock Alert Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" (click)="toggleLowStockModal()">
+    <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" appFocusTrap (click)="toggleLowStockModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <div class="tactile-head-with-icon">
@@ -443,164 +447,6 @@ function getTodayIsoDate(): string {
       color: var(--kb-color-foreground);
       font-family: var(--kb-font-sans);
     }
-
-    /* Revenue Split Bar */
-    .revenue-split-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      padding-top: 0.4rem;
-      font-size: 0.78rem;
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .split-pill { display: flex; align-items: center; gap: 0.35rem; }
-    .split-legend {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .split-legend--cash { background: var(--kb-color-success); }
-    .split-legend--upi { background: var(--kb-color-primary); }
-    .split-val { color: #FFFFFF; font-weight: 600; }
-    .split-divider { color: var(--kb-color-muted-foreground); }
-
-    /* Hourly Chart */
-    .hourly-chart-wrapper {
-      flex: 1;
-      display: flex;
-      align-items: flex-end;
-      min-height: 140px;
-    }
-    .hourly-bars-track {
-      width: 100%;
-      height: 120px;
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-    }
-    .hourly-bar-node {
-      flex: 1;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      cursor: pointer;
-    }
-    .bar-pill-track {
-      width: 100%;
-      height: 90px;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 8px;
-      display: flex;
-      align-items: flex-end;
-      overflow: hidden;
-    }
-    .bar-pill-fill {
-      width: 100%;
-      background: var(--kb-color-border-strong);
-      border-radius: 7px;
-      transform-origin: bottom;
-      transition: height 240ms ease, background 150ms ease;
-    }
-    .bar-pill-fill--peak { background: var(--kb-color-primary); }
-    .bar-pill-fill--current { background: var(--kb-color-burnt); }
-    .hourly-bar-node:hover .bar-pill-fill { filter: brightness(0.92); }
-    .bar-tick-label {
-      font-size: 0.68rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .bar-tick-label--current { color: var(--kb-color-burnt); font-weight: 700; }
-
-    /* Top Dishes Stack */
-    .top-dishes-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 0.85rem;
-    }
-    .dish-leader-row {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-    }
-    .dish-rank-badge {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
-      font-size: 0.74rem;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .dish-leader-info {
-      flex: 1;
-      min-width: 0;
-    }
-    .dish-leader-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-    }
-    .dish-name-label {
-      font-size: 0.86rem;
-      color: var(--kb-color-foreground);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .dish-qty-label {
-      font-size: 0.75rem;
-      color: var(--kb-color-muted-foreground);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    .dish-bar-track {
-      width: 100%;
-      height: 5px;
-      background: var(--kb-color-surface-2);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .dish-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
-      border-radius: 999px;
-    }
-    .dish-rev-label {
-      font-size: 0.86rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      font-variant-numeric: tabular-nums;
-      flex-shrink: 0;
-    }
-
-    /* .channel-chip table badge + its channel modifiers now live in the global
-       styles/bento.css (identical values) so every page shares one definition. */
-
-    /* ── Modals Overlay ── */
-    .terminal-item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 0.85rem;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 12px;
-      background: var(--kb-color-bg-app);
-    }
-    .terminal-core-info { display: flex; align-items: center; gap: 0.75rem; }
-    .terminal-tag { display: block; font-size: 0.72rem; color: var(--kb-color-muted-foreground); }
-    .terminal-meta-info { text-align: right; }
   `]
 })
 export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
@@ -664,8 +510,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   // Modal / Flyout Toggles
   readonly terminalsModalOpen = signal(false);
   readonly lowStockModalOpen = signal(false);
-
-  readonly Math = Math;
 
   readonly isOfflineError = computed(() => {
     const err = (this.dashboardError() || this.staleError()).toLowerCase();
@@ -1024,6 +868,12 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   toggleLowStockModal(): void {
     this.lowStockModalOpen.update(v => !v);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeCloseModals(): void {
+    if (this.terminalsModalOpen()) this.terminalsModalOpen.set(false);
+    if (this.lowStockModalOpen()) this.lowStockModalOpen.set(false);
   }
 
   markNotificationAsRead(item: NotificationItem): void {

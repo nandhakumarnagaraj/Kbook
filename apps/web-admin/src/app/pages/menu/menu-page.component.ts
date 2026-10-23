@@ -587,6 +587,42 @@ import { environment } from '../../../environments/environment';
         (confirmed)="confirmDelete()"
         (cancelled)="closeDeleteConfirm()"
       ></app-confirm-dialog>
+
+      <!-- Delete Category Confirmation -->
+      <app-confirm-dialog
+        *ngIf="confirmCategory"
+        title="Delete Category"
+        [message]="'Are you sure you want to delete \\'' + confirmCategory.name + '\\'? This action cannot be undone.'"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="executeDeleteCategory()"
+        (cancelled)="cancelDeleteCategory()"
+      ></app-confirm-dialog>
+
+      <!-- Delete Variant Confirmation -->
+      <app-confirm-dialog
+        *ngIf="confirmVariant"
+        title="Delete Variant"
+        [message]="'Are you sure you want to delete variant \\'' + confirmVariant.variantName + '\\'? This action cannot be undone.'"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="executeDeleteVariant()"
+        (cancelled)="cancelDeleteVariant()"
+      ></app-confirm-dialog>
+
+      <!-- Remove Image Confirmation -->
+      <app-confirm-dialog
+        *ngIf="confirmRemoveImage"
+        title="Remove Photo"
+        [message]="'Are you sure you want to remove the photo for \\'' + confirmRemoveImage.name + '\\'? This action cannot be undone.'"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="executeRemoveImage()"
+        (cancelled)="cancelRemoveImage()"
+      ></app-confirm-dialog>
     </div>
   `,
   styles: [`
@@ -818,6 +854,9 @@ export class MenuPageComponent implements OnDestroy {
 
   // Delete state
   deleteTarget: BusinessMenuItem | null = null;
+  confirmCategory: BusinessCategory | null = null;
+  confirmVariant: BusinessItemVariant | null = null;
+  confirmRemoveImage: BusinessMenuItem | null = null;
 
   // Bulk move state: emptying a category so it can be deleted (see startBulkMove)
   bulkMoveSource: BusinessCategory | null = null;
@@ -1229,6 +1268,13 @@ export class MenuPageComponent implements OnDestroy {
       this.toast.show(`Cannot delete '${cat.name}' because it contains ${count} dish(es). Move or delete the dishes first.`, 'error');
       return;
     }
+    this.confirmCategory = cat;
+  }
+
+  executeDeleteCategory(): void {
+    const cat = this.confirmCategory;
+    if (!cat) return;
+    this.confirmCategory = null;
     this.api.deleteCategory(cat.categoryId).subscribe({
       next: () => {
         this.categories = this.categories.filter(c => c.categoryId !== cat.categoryId);
@@ -1241,6 +1287,10 @@ export class MenuPageComponent implements OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  cancelDeleteCategory(): void {
+    this.confirmCategory = null;
   }
 
   // --- Variants Management Handlers ---
@@ -1310,6 +1360,13 @@ export class MenuPageComponent implements OnDestroy {
 
   deleteVariant(variant: BusinessItemVariant): void {
     if (!this.editingItem) return;
+    this.confirmVariant = variant;
+  }
+
+  executeDeleteVariant(): void {
+    const variant = this.confirmVariant;
+    if (!variant || !this.editingItem) return;
+    this.confirmVariant = null;
     this.deletingVariantId = variant.variantId;
     this.api.deleteVariant(this.editingItem.menuItemId, variant.variantId).subscribe({
       next: () => {
@@ -1322,9 +1379,12 @@ export class MenuPageComponent implements OnDestroy {
         this.deletingVariantId = null;
         const msg = err?.error?.message || 'Failed to delete variant.';
         this.toast.show(msg, 'error');
-        this.cdr.markForCheck();
       }
     });
+  }
+
+  cancelDeleteVariant(): void {
+    this.confirmVariant = null;
   }
 
   trackByVariantId = (_: number, variant: BusinessItemVariant) => variant.variantId;
@@ -1414,10 +1474,21 @@ export class MenuPageComponent implements OnDestroy {
 
   onPhotoRemove(): void {
     if (!this.formPhotoPreview) return;
+    this.confirmRemoveImage = this.editingItem ?? null;
+  }
+
+  executeRemoveImage(): void {
+    const target = this.confirmRemoveImage;
+    if (!target) return;
+    this.confirmRemoveImage = null;
     this.formPhotoFile = null;
     this.formPhotoPreview = null;
     this.formPhotoRemoving = true;
     this.cdr.markForCheck();
+  }
+
+  cancelRemoveImage(): void {
+    this.confirmRemoveImage = null;
   }
 
   isFormValid(): boolean {

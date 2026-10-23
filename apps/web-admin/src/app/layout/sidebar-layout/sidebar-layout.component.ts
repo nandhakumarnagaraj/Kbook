@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, ViewChild, Ho
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
+import { IconComponent } from '../../shared/icon.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { environment } from '../../../environments/environment';
@@ -17,7 +18,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
   selector: 'app-sidebar-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent, IconComponent],
   template: `
     <div class="layout-shell">
       <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -76,51 +77,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             routerLinkActive="active-link"
             class="nav-link"
             (click)="closeMenu()">
-            <span class="nav-link__icon" aria-hidden="true" [ngSwitch]="link.iconKey">
-              <!-- Dashboard -->
-              <svg *ngSwitchCase="'dashboard'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
-              </svg>
-              <!-- Orders -->
-              <svg *ngSwitchCase="'orders'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-              <!-- Active Orders / Kitchen -->
-              <svg *ngSwitchCase="'kitchen'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589a5 5 0 0 0-9.186 0a4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1ZM6 17h12"/>
-              </svg>
-              <!-- Menu -->
-              <svg *ngSwitchCase="'menu'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/><path d="M15 2v19"/><path d="M5 2c1.5 2 1.5 5 0 7v12"/>
-              </svg>
-              <!-- Staff -->
-              <svg *ngSwitchCase="'staff'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              <!-- Inventory -->
-              <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                <line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-              <!-- Terminals -->
-              <svg *ngSwitchCase="'terminals'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
-              <!-- Payments -->
-              <svg *ngSwitchCase="'payments'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-              </svg>
-              <!-- Reports -->
-              <svg *ngSwitchCase="'reports'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-              <!-- Settings -->
-              <svg *ngSwitchCase="'settings'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-              <span *ngSwitchDefault>{{ link.icon }}</span>
+            <span class="nav-link__icon" aria-hidden="true">
+              <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
+              <span *ngIf="!link.iconKey">{{ link.icon }}</span>
             </span>
             <span class="nav-link__label">{{ link.label }}</span>
             <span *ngIf="link.badge" class="nav-link__badge">{{ link.badge }}</span>

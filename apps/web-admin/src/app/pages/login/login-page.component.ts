@@ -393,15 +393,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   styles: [`
     :host {
       display: block;
-      --kb-purple-950: #002B5C;
-      --kb-purple-800: #0055B3;
-      --kb-purple-600: #0066CC;
-      --kb-lavender: #3B82F6;
-      --kb-text: #111827;
-      --kb-muted: #667085;
-      --kb-border: #D8DCE7;
-      --kb-surface: #FFFFFF;
-      --kb-soft: #E8F1FB;
+      --kb-purple-950: var(--kb-color-primary);
+      --kb-purple-800: var(--kb-color-primary-hover);
+      --kb-purple-600: var(--kb-color-primary);
+      --kb-lavender: var(--kb-color-primary);
+      --kb-text: var(--kb-color-foreground);
+      --kb-muted: var(--kb-color-muted-foreground);
+      --kb-border: var(--kb-color-border);
+      --kb-surface: var(--kb-color-surface);
+      --kb-soft: var(--kb-color-primary-soft);
     }
 
     .auth-shell {
@@ -409,7 +409,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 100dvh;
       display: grid;
       grid-template-columns: 5fr 3fr; /* 62.5% left, 37.5% right */
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       overflow-x: hidden;
     }
 
@@ -418,10 +418,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       background: linear-gradient(
         125deg,
         #321064 0%,
-        #0055B3 48%,
+        var(--kb-color-primary-hover) 48%,
         #6D28D9 100%
       );
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       padding: clamp(32px, 3.5vw, 48px) clamp(36px, 4.2vw, 56px);
       display: flex;
       flex-direction: column;
@@ -488,7 +488,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 42px;
       height: 42px;
       border-radius: 11px;
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       display: grid;
       place-items: center;
       padding: 4px;
@@ -509,10 +509,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-weight: 800;
       font-size: 1.35rem;
       letter-spacing: -0.025em;
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
     }
     .brand-title--dark {
-      color: #111827;
+      color: var(--kb-color-foreground);
       font-size: 1.2rem;
     }
 
@@ -526,7 +526,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       border-radius: 9999px;
       font-size: 0.82rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
@@ -562,11 +562,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-weight: 800;
       line-height: 1.1;
       letter-spacing: -0.035em;
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       margin: 0;
     }
     .brand-hero-accent {
-      background: linear-gradient(135deg, #FFFFFF 20%, #DDD6FE 100%);
+      background: linear-gradient(135deg, var(--kb-color-surface) 20%, #DDD6FE 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -627,7 +627,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       height: 38px;
       border-radius: 11px;
       background: rgba(255, 255, 255, 0.18);
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       display: grid;
       place-items: center;
       flex-shrink: 0;
@@ -654,7 +654,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .feature-heading {
       font-size: 14.5px;
       font-weight: 650;
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       line-height: 1.35;
       letter-spacing: -0.01em;
     }
@@ -690,7 +690,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .brand-foot-link:hover {
-      color: #FFFFFF;
+      color: var(--kb-color-surface);
       text-decoration: underline;
     }
     .foot-dot {
@@ -706,7 +706,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       background:
         radial-gradient(ellipse at 100% 100%, rgba(124, 58, 237, 0.10) 0%, rgba(124, 58, 237, 0) 34%),
         radial-gradient(ellipse at 0% 100%, rgba(167, 139, 250, 0.08) 0%, rgba(167, 139, 250, 0) 30%),
-        linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 52%, #FAF7FF 100%);
+        linear-gradient(135deg, var(--kb-color-surface) 0%, var(--kb-color-surface) 52%, var(--kb-color-bg-app) 100%);
       overflow-y: auto;
       box-sizing: border-box;
       min-height: 100vh;
@@ -727,21 +727,21 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #F9FAFB;
-      border: 1px solid #D8DCE7;
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
       border-radius: 9999px;
       min-height: 42px;
       padding: 8px 16px;
       font-size: 14px;
       font-weight: 600;
-      color: #374151;
+      color: var(--kb-color-muted-foreground);
       cursor: default;
     }
     .lang-globe {
       flex: none;
     }
     .lang-caret {
-      color: #6B7280;
+      color: var(--kb-color-muted-foreground);
       flex: none;
     }
 
@@ -769,7 +769,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .brand-subtitle {
       font-size: 0.72rem;
-      color: #7C3AED;
+      color: var(--kb-color-primary);
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -786,12 +786,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-weight: 750;
       line-height: 1.2;
       letter-spacing: -0.035em;
-      color: #111827;
+      color: var(--kb-color-foreground);
     }
     .login-sub {
       margin: 0;
       font-size: 15px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       line-height: 1.45;
     }
 
@@ -810,7 +810,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .google-loading {
       text-align: center;
       font-size: 0.84rem;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       padding: 0.25rem 0;
     }
 
@@ -818,7 +818,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       gap: 14px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       font-size: 13px;
       font-weight: 500;
       margin: 4px 0;
@@ -827,7 +827,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       content: '';
       flex: 1;
       height: 1px;
-      background: #D8DCE7;
+      background: var(--kb-color-border);
     }
 
     .auth-form {
@@ -841,7 +841,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .field-label {
       font-size: 13.5px;
       font-weight: 600;
-      color: #111827;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.01em;
       text-transform: none;
     }
@@ -860,7 +860,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .leading-icon {
       position: absolute;
       left: 16px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       pointer-events: none;
       z-index: 1;
       flex-shrink: 0;
@@ -870,12 +870,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 100%;
       min-height: 52px;
       padding: 14px 16px;
-      border: 1px solid #D8DCE7;
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       font: inherit;
       font-size: 15px;
-      color: #111827;
+      color: var(--kb-color-foreground);
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .field-input--with-icon {
@@ -885,12 +885,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       padding-right: 48px;
     }
     .field-input::placeholder {
-      color: #9CA3AF;
+      color: var(--kb-color-muted-foreground);
     }
     .field-input:focus {
       outline: 3px solid rgba(0, 102, 204, 0.25);
       outline-offset: 2px;
-      border-color: #0066CC;
+      border-color: var(--kb-color-primary);
     }
 
     .toggle-pwd-btn {
@@ -902,7 +902,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-width: 40px;
       min-height: 40px;
       padding: 8px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       display: grid;
       place-items: center;
       z-index: 1;
@@ -910,10 +910,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .toggle-pwd-btn:hover {
-      color: #111827;
+      color: var(--kb-color-foreground);
     }
     .toggle-pwd-btn:focus-visible {
-      outline: 2px solid #0066CC;
+      outline: 2px solid var(--kb-color-primary);
     }
     .pwd-icon {
       display: block;
@@ -930,7 +930,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
       gap: 8px;
       font-size: 14px;
-      color: #4B5563;
+      color: var(--kb-color-muted-foreground);
       cursor: pointer;
       user-select: none;
     }
@@ -938,19 +938,19 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 17px;
       height: 17px;
       border-radius: 4px;
-      border: 1.5px solid #D8DCE7;
-      accent-color: #7C3AED;
+      border: 1.5px solid var(--kb-color-border);
+      accent-color: var(--kb-color-primary);
       cursor: pointer;
     }
     .forgot-link {
       font-size: 14px;
       font-weight: 600;
-      color: #7C3AED;
+      color: var(--kb-color-primary);
       text-decoration: none;
       transition: color 0.15s ease;
     }
     .forgot-link:hover {
-      color: #0066CC;
+      color: var(--kb-color-primary);
       text-decoration: underline;
     }
 
@@ -959,8 +959,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 52px;
       border: 0;
       border-radius: 12px;
-      background: #0066CC;
-      color: #FFFFFF;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-surface);
       font: inherit;
       font-size: 16px;
       font-weight: 650;
@@ -975,7 +975,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   box-shadow 160ms ease;
     }
     .login-button:hover:not(:disabled) {
-      background: #0055B3;
+      background: var(--kb-color-primary-hover);
       box-shadow: 0 6px 20px rgba(0, 102, 204, 0.35);
       transform: translateY(-1px);
     }
@@ -983,8 +983,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transform: scale(0.98);
     }
     .login-button:disabled {
-      background: #E5E7EB;
-      color: #9CA3AF;
+      background: var(--kb-color-muted);
+      color: var(--kb-color-muted-foreground);
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -1014,17 +1014,17 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .footer-links {
       margin: 0;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       font-size: 14px;
     }
     .signup-link {
-      color: #7C3AED;
+      color: var(--kb-color-primary);
       font-weight: 600;
       text-decoration: none;
       transition: color 0.15s ease;
     }
     .signup-link:hover {
-      color: #0066CC;
+      color: var(--kb-color-primary);
       text-decoration: underline;
     }
     .trust-badge-row {
@@ -1032,7 +1032,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
       gap: 6px;
       font-size: 13px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       font-weight: 500;
     }
     .trust-icon {
@@ -1041,11 +1041,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .mobile-foot-row {
       display: none;
       font-size: 13px;
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       gap: 8px;
     }
     .mobile-foot-link {
-      color: #7C3AED;
+      color: var(--kb-color-primary);
       font-weight: 600;
       text-decoration: none;
     }
@@ -1054,7 +1054,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
 
     .back-link {
-      color: #667085;
+      color: var(--kb-color-muted-foreground);
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -1066,7 +1066,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .back-link:hover {
-      color: #7C3AED;
+      color: var(--kb-color-primary);
       text-decoration: underline;
     }
 
@@ -1077,14 +1077,14 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       line-height: 1.4;
     }
     .alert-box.error {
-      color: #B91C1C;
-      background: #FEF2F2;
-      border: 1px solid #FEE2E2;
+      color: var(--kb-color-danger);
+      background: var(--kb-color-danger-soft);
+      border: 1px solid var(--kb-color-danger-soft);
     }
     .alert-box.success {
-      color: #15803D;
-      background: #F0FDF4;
-      border: 1px solid #DCFCE7;
+      color: var(--kb-color-success);
+      background: var(--kb-color-success-soft);
+      border: 1px solid var(--kb-color-success-soft);
     }
 
     @media (max-width: 1080px) {
@@ -1108,7 +1108,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     @media (prefers-contrast: more) {
       .field-input { border-color: #000000; border-width: 2px; }
       .field-label { color: #000000; font-weight: 700; }
-      .login-button { background: #0066CC; color: #FFFFFF; border: 2px solid #000000; }
+      .login-button { background: var(--kb-color-primary); color: var(--kb-color-surface); border: 2px solid #000000; }
       .divider { color: #000000; font-weight: 700; }
       .divider::before, .divider::after { background: #000000; height: 2px; }
     }

@@ -10,7 +10,9 @@ import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './paymen
 import { PasswordChangeSectionComponent } from './password-change-section.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { unsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -51,7 +53,8 @@ interface RestaurantProfile {
     PasswordChangeSectionComponent,
     PageHeaderComponent,
     ApiStateComponent,
-    RefreshButtonComponent
+    RefreshButtonComponent,
+    ConfirmDialogComponent
   ],
   template: `
     <div class="page-shell">
@@ -213,6 +216,19 @@ interface RestaurantProfile {
 
       <!-- Change Password -->
       <app-password-change-section />
+
+      <!-- Remove Logo Confirmation -->
+      <app-confirm-dialog
+        *ngIf="confirmRemoveLogo()"
+        title="Remove Logo"
+        message="Are you sure you want to remove the business logo? This action cannot be undone."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        [confirmDanger]="true"
+        (confirmed)="executeRemoveLogo()"
+        (cancelled)="cancelRemoveLogo()"
+      ></app-confirm-dialog>
+
     </div>
   `,
   styles: [`
@@ -357,7 +373,20 @@ export class BusinessSettingsPageComponent {
   loadError = signal('');
   saving = signal(false);
   logoBusy = signal(false);
+  confirmRemoveLogo = signal(false);
   profile = signal<RestaurantProfile | null>(null);
+  private readonly originalProfile = signal<RestaurantProfile | null>(null);
+
+  readonly dirty = computed(() => {
+    const current = this.profile();
+    const original = this.originalProfile();
+    if (!current || !original) return false;
+    return JSON.stringify(current) !== JSON.stringify(original);
+  });
+
+  canDeactivate(): boolean {
+    return !this.dirty();
+  }
 
   /**
    * The settings form is withheld while a reload is in flight so the skeleton
@@ -374,7 +403,7 @@ export class BusinessSettingsPageComponent {
     this.businessApi.getProfile().subscribe({
       next: (p) => {
         if (p) {
-          this.profile.set({
+          const loaded: RestaurantProfile = {
             shopName: p.shopName ?? '',
             shopAddress: p.shopAddress ?? '',
             whatsappNumber: p.whatsappNumber ?? '',
@@ -396,16 +425,20 @@ export class BusinessSettingsPageComponent {
             orderPaymentFlowMode: p.orderPaymentFlowMode ?? 'pay_before_food',
             invoiceFooter: p.invoiceFooter ?? '',
             reviewUrl: p.reviewUrl ?? ''
-          });
+          };
+          this.profile.set(loaded);
+          this.originalProfile.set({ ...loaded });
         } else {
-          this.profile.set({
+          const empty: RestaurantProfile = {
             shopName: '', shopAddress: '', whatsappNumber: '', email: '',
             logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
             customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
             upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
             posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
             invoiceFooter: '', reviewUrl: ''
-          });
+          };
+          this.profile.set(empty);
+          this.originalProfile.set({ ...empty });
         }
         this.loading.set(false);
       },
@@ -440,10 +473,9 @@ export class BusinessSettingsPageComponent {
         this.saving.set(false);
         this.toast.show('Restaurant settings saved successfully.', 'success');
         if (saved) {
-          this.profile.set({
-            ...p,
-            ...saved
-          });
+          const updated = { ...p, ...saved };
+          this.profile.set(updated);
+          this.originalProfile.set({ ...updated });
         }
       },
       error: (err) => {
@@ -483,6 +515,11 @@ export class BusinessSettingsPageComponent {
   }
 
   removeLogo(): void {
+    this.confirmRemoveLogo.set(true);
+  }
+
+  executeRemoveLogo(): void {
+    this.confirmRemoveLogo.set(false);
     this.logoBusy.set(true);
     this.businessApi.deleteLogo().subscribe({
       next: () => {
@@ -498,6 +535,10 @@ export class BusinessSettingsPageComponent {
         this.toast.show(err?.error?.message ?? 'Failed to remove logo.', 'error');
       }
     });
+  }
+
+  cancelRemoveLogo(): void {
+    this.confirmRemoveLogo.set(false);
   }
 }
 
