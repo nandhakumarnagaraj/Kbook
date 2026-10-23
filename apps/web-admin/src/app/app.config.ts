@@ -11,7 +11,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideHttpClient(withInterceptors([jwtInterceptor])),
-    provideServiceWorker('ngsw-config.json'),
+    provideServiceWorker('ngsw-worker.js'),
     FirebaseInitService,
     KBNotificationService,
   ],

@@ -1292,6 +1292,9 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     if (lastLoginId) {
       this.form.patchValue({ loginId: lastLoginId });
     }
+    if (window.location.hash === '#forgot') {
+      this.forgotStep.set('phone');
+    }
     this.initGoogle();
   }
 
